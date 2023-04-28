@@ -9,7 +9,9 @@ from django.utils import timezone
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
+    MonitorEnvironmentLimitsExceeded,
     MonitorFailure,
+    MonitorLimitsExceeded,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -119,7 +121,7 @@ class MonitorTestCase(TestCase):
 
     @override_settings(MAX_MONITORS_PER_ORG=10)
     def test_monitor_organization_limit(self):
-        for i in range(settings.MAX_MONITORS_PER_ORG + 1):
+        for i in range(settings.MAX_MONITORS_PER_ORG):
             Monitor.objects.create(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
@@ -130,15 +132,15 @@ class MonitorTestCase(TestCase):
             )
 
         with pytest.raises(
-            Exception,
+            MonitorLimitsExceeded,
             match=f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization",
         ):
             Monitor.objects.create(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 type=MonitorType.CRON_JOB,
-                name=f"Unicron-{settings.MAX_MONITORS_PER_ORG + 1}",
-                slug=f"unicron-{settings.MAX_MONITORS_PER_ORG + 1}",
+                name=f"Unicron-{settings.MAX_MONITORS_PER_ORG}",
+                slug=f"unicron-{settings.MAX_MONITORS_PER_ORG}",
                 config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
             )
 
@@ -292,13 +294,13 @@ class MonitorEnvironmentTestCase(TestCase):
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
 
-        for i in range(settings.MAX_ENVIRONMENTS_PER_MONITOR + 1):
+        for i in range(settings.MAX_ENVIRONMENTS_PER_MONITOR):
             MonitorEnvironment.objects.ensure_environment(self.project, monitor, f"space-{i}")
 
         with pytest.raises(
-            Exception,
+            MonitorEnvironmentLimitsExceeded,
             match=f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor",
         ):
             MonitorEnvironment.objects.ensure_environment(
-                self.project, monitor, f"space-{settings.MAX_ENVIRONMENTS_PER_MONITOR + 1}"
+                self.project, monitor, f"space-{settings.MAX_ENVIRONMENTS_PER_MONITOR}"
             )

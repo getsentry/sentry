@@ -246,7 +246,7 @@ def check_organization_monitor_limits(sender, instance, **kwargs):
     if (
         instance.pk is None
         and sender.objects.filter(organization_id=instance.organization_id).count()
-        > settings.MAX_MONITORS_PER_ORG
+        == settings.MAX_MONITORS_PER_ORG
     ):
         raise MonitorLimitsExceeded(
             f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization"
@@ -425,7 +425,7 @@ def check_monitor_environment_limits(sender, instance, **kwargs):
     if (
         instance.pk is None
         and sender.objects.filter(monitor=instance.monitor).count()
-        > settings.MAX_ENVIRONMENTS_PER_MONITOR
+        == settings.MAX_ENVIRONMENTS_PER_MONITOR
     ):
         raise MonitorEnvironmentLimitsExceeded(
             f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
