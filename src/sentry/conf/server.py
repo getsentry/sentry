@@ -647,6 +647,7 @@ CELERY_IMPORTS = (
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.weekly_escalating_forecast",
+    "sentry.tasks.auto_ongoing_issues",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -745,6 +746,7 @@ CELERY_QUEUES = [
     ),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
+    Queue("auto_transition_issue_states", routing_key="auto_transition_issue_states"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -932,6 +934,17 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute=0, hour="*/6"),
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
+    },
+    "dynamic-sampling-recalibrate-orgs": {
+        "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
+    },
+    "schedule_auto_transition": {
+        "task": "sentry.tasks.schedule_auto_transition",
+        # Run job once a day at 00:30
+        "schedule": crontab(minute=30, hour="0"),
+        "options": {"expires": 3600},
     },
 }
 
@@ -1128,6 +1141,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-ui": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
+    # Enable the task to transition new issues that are 3+ days old to (Unresolved, Ongoing) state
+    "organizations:issue-states-auto-transition-new-ongoing": False,
     # Enable the new issue states and substates
     "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1342,6 +1357,8 @@ SENTRY_FEATURES = {
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
+    # Enable the new experimental metrics extraction on spans
+    "organizations:span-metrics-extraction": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
