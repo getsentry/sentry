@@ -100,16 +100,16 @@ def _extract_info_from_rule(
     rule_type: RuleType, rule: PolymorphicRule
 ) -> Dict[str, Union[DecayingFn, List[str], str, None]]:
     if rule_type == RuleType.BOOST_ENVIRONMENTS_RULE:
-        return {"environments": rule["condition"]["inner"][0]["value"]}
+        return {"environments": rule["condition"]["inner"][0]["value"]}  # type:ignore
     elif rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
         return {
-            "release": rule["condition"]["inner"][0]["value"],
-            "environment": rule["condition"]["inner"][1]["value"],
+            "release": rule["condition"]["inner"][0]["value"],  # type:ignore
+            "environment": rule["condition"]["inner"][1]["value"],  # type:ignore
             "decayingFn": rule["decayingFn"],  # type:ignore
         }
     elif rule_type == RuleType.IGNORE_HEALTH_CHECKS_RULE:
-        return {"healthChecks": rule["condition"]["inner"][0]["value"]}
+        return {"healthChecks": rule["condition"]["inner"][0]["value"]}  # type:ignore
     elif rule_type == RuleType.BOOST_KEY_TRANSACTIONS_RULE:
-        return {"transactions": rule["condition"]["inner"][0]["value"]}
+        return {"transactions": rule["condition"]["inner"][0]["value"]}  # type:ignore
     else:
         return {}
