@@ -648,6 +648,46 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         result = preview(self.project, conditions, [], *MATCH_ARGS)
         assert group.id not in result
 
+    def test_transaction_issue_platform(self):
+        # Duplicated test_transaction, remove once perf issues are migrated to the issue platform
+        prev_hour = timezone.now() - timedelta(hours=1)
+        event = self.transaction_data.copy()
+        event.update(
+            {
+                "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
+                "timestamp": iso_format(prev_hour),
+                "tags": {"foo": "bar"},
+            }
+        )
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            transaction = self.store_event(project_id=self.project.id, data=event)
+        group = transaction.groups[0]
+
+        Activity.objects.create(
+            project=self.project,
+            group=group,
+            type=ActivityType.SET_REGRESSION.value,
+            datetime=prev_hour,
+            data={"event_id": transaction.event_id},
+        )
+
+        conditions = [
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "value": 0,
+                "interval": "5m",
+            },
+        ]
+
+        with self.feature("organizations:issue-platform-search-perf-issues"):
+            result = preview(self.project, conditions, [], *MATCH_ARGS)
+            assert group.id in result
+
+            conditions[1]["value"] = 1
+            result = preview(self.project, conditions, [], *MATCH_ARGS)
+            assert group.id not in result
+
     def test_no_activity_event_filter(self):
         conditions = [
             {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
