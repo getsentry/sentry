@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Project, Scope, Team} from 'sentry/types';
+import {Organization, Project, Scope, Team} from 'sentry/types';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -14,7 +14,7 @@ type ChildRenderProps = {
 
 type ChildFunction = (props: ChildRenderProps) => JSX.Element;
 
-type Props = {
+export type Props = {
   /**
    * List of required access levels
    */
@@ -35,7 +35,7 @@ type Props = {
    * An "org-member" does not have project:write but if they are "team-admin" for
    * of a parent team, they will have appropriate scopes.
    */
-  project?: Project;
+  project?: Project | null | undefined;
 
   /**
    * Optional: To be used when you need to check for access to the Team
@@ -44,7 +44,7 @@ type Props = {
    * An "org-member" does not have team:write but if they are "team-admin" for
    * the team, they will have appropriate scopes.
    */
-  team?: Team;
+  team?: Team | null | undefined;
 };
 
 /**
@@ -77,6 +77,23 @@ function Access({children, isSuperuser = false, access = [], team, project}: Pro
   }
 
   return <Fragment>{render ? children : null}</Fragment>;
+}
+
+export function hasEveryAccess(
+  access: Scope[],
+  props: {organization?: Organization; project?: Project; team?: Team}
+) {
+  const {organization, team, project} = props;
+  const {access: orgAccess} = organization || {access: [] as Organization['access']};
+  const {access: teamAccess} = team || {access: [] as Team['access']};
+  const {access: projAccess} = project || {access: [] as Project['access']};
+
+  return (
+    !access ||
+    access.every(acc => orgAccess.includes(acc)) ||
+    access.every(acc => teamAccess?.includes(acc)) ||
+    access.every(acc => projAccess?.includes(acc))
+  );
 }
 
 export default Access;

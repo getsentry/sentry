@@ -42,13 +42,14 @@ describe('Access', function () {
 
     it('read access from team', function () {
       const org = TestStubs.Organization({access: []});
-      const team1 = TestStubs.Team({access: []});
+      const nextRouterContext = TestStubs.routerContext([{organization: org}]);
 
+      const team1 = TestStubs.Team({access: []});
       render(
-        <Access access={['team:admin']} organization={org} team={team1}>
+        <Access access={['team:admin']} team={team1}>
           {childrenMock}
         </Access>,
-        {context: routerContext}
+        {context: nextRouterContext, organization: org}
       );
 
       expect(childrenMock).toHaveBeenCalledWith(
@@ -61,12 +62,11 @@ describe('Access', function () {
       const team2 = TestStubs.Team({
         access: ['team:read', 'team:write', 'team:admin'],
       });
-
       render(
-        <Access access={['team:admin']} organization={org} team={team2}>
+        <Access access={['team:admin']} team={team2}>
           {childrenMock}
         </Access>,
-        {context: routerContext}
+        {context: nextRouterContext, organization: org}
       );
 
       expect(childrenMock).toHaveBeenCalledWith(
@@ -79,13 +79,14 @@ describe('Access', function () {
 
     it('read access from project', function () {
       const org = TestStubs.Organization({access: []});
-      const proj1 = TestStubs.Project({access: []});
+      const nextRouterContext = TestStubs.routerContext([{organization: org}]);
 
+      const proj1 = TestStubs.Project({access: []});
       render(
-        <Access access={['project:read']} organization={org} project={proj1}>
+        <Access access={['project:read']} project={proj1}>
           {childrenMock}
         </Access>,
-        {context: routerContext}
+        {context: nextRouterContext, organization: org}
       );
 
       expect(childrenMock).toHaveBeenCalledWith(
@@ -96,12 +97,11 @@ describe('Access', function () {
       );
 
       const proj2 = TestStubs.Project({access: ['project:read']});
-
       render(
-        <Access access={['project:read']} organization={org} project={proj2}>
+        <Access access={['project:read']} project={proj2}>
           {childrenMock}
         </Access>,
-        {context: routerContext}
+        {context: nextRouterContext, organization: org}
       );
 
       expect(childrenMock).toHaveBeenCalledWith(
