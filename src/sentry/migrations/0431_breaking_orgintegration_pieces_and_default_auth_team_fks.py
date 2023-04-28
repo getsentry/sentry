@@ -146,7 +146,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0421_rule_set_null_owner_deleted"),
+        ("sentry", "0430_break_fks_on_alertruletriggeraction"),
     ]
 
     operations = (
