@@ -1,16 +1,13 @@
 from sentry.api.serializers.base import registry
-from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.models import (
     Actor,
     AuthProviderDefaultTeams,
     NotificationSetting,
     OrganizationMember,
-    SentryApp,
     Team,
     User,
 )
 from sentry.models.integrations import (
-    Integration,
     OrganizationIntegration,
     PagerDutyService,
     RepositoryProjectPathConfig,
@@ -25,12 +22,10 @@ decorator_exemptions = set()
 fk_exemptions = {
     (OrganizationMember, User),
     (AuthProviderDefaultTeams, Team),
-    (Integration, AlertRuleTriggerAction),
     (OrganizationIntegration, PagerDutyService),
     (OrganizationIntegration, RepositoryProjectPathConfig),
     (NotificationSetting, Actor),
     (User, Actor),
-    (AlertRuleTriggerAction, SentryApp),
 }
 
 
