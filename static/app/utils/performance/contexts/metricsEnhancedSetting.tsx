@@ -75,8 +75,14 @@ export function canUseMetricsDevUI(organization: Organization) {
 
 export function canUseMetricsData(organization: Organization) {
   const isDevFlagOn = canUseMetricsDevUI(organization); // Forces metrics data on as well.
+  const isInternalViewOn = organization.features.includes(
+    'performance-transaction-name-only-search'
+  );
   const samplingFeatureFlag = organization.features.includes('dynamic-sampling'); // Exists on AM2 plans only.
-  return samplingFeatureFlag || isDevFlagOn;
+  const isRollingOut =
+    samplingFeatureFlag && organization.features.includes('mep-rollout-flag');
+
+  return isDevFlagOn || isInternalViewOn || isRollingOut;
 }
 
 export function MEPSettingProvider({
