@@ -207,7 +207,7 @@ def get_release_file_cache_key_meta(release_id, releasefile_ident):
 
 
 def get_artifact_bundle_with_release_cache_key(release_id, artifact_bundle_ident):
-    return f"artifactbundle:v1:{release_id}:{artifact_bundle_ident}"
+    return f"artifactbundlefile:v1:{release_id}:{artifact_bundle_ident}"
 
 
 def get_artifact_bundle_with_release_cache_key_meta(release_id, artifact_bundle_ident):
@@ -1080,6 +1080,9 @@ class Fetcher:
         Pulls down the file indexed by url using the data in the ReleaseArtifactBundle table and returns a UrlResult
         object that "falsely" emulates an HTTP response connected to an HTTP request for fetching the file.
         """
+        if self.release is None:
+            return None
+
         cache_key, cache_key_meta = get_cache_keys_new(url, self.release, self.dist)
         result = cache.get(cache_key)
         if result == -1:  # Cached as unavailable
