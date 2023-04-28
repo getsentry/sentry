@@ -871,7 +871,7 @@ describe('Performance > TransactionSummary', function () {
     it('uses MEP dataset for stats query', async function () {
       const {organization, router, routerContext} = initializeData({
         query: {query: 'transaction.op:pageload'}, // transaction.op is covered by the metrics dataset
-        features: ['dynamic-sampling'],
+        features: ['dynamic-sampling', 'mep-rollout-flag'],
       });
 
       render(<TestComponent router={router} location={router.location} />, {
@@ -964,7 +964,7 @@ describe('Performance > TransactionSummary', function () {
       });
       const {organization, router, routerContext} = initializeData({
         query: {query: 'transaction.op:pageload has:not-compatible'}, // Adds incompatible w/ metrics tag
-        features: ['dynamic-sampling'],
+        features: ['dynamic-sampling', 'mep-rollout-flag'],
       });
 
       render(<TestComponent router={router} location={router.location} />, {
