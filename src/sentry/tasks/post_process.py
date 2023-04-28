@@ -702,8 +702,12 @@ def process_snoozes(job: PostProcessJob) -> None:
                 "user_count": snooze.user_count,
                 "user_window": snooze.user_window,
             }
-            add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
-            record_group_history(group, GroupHistoryStatus.ONGOING)
+            if features.has("organizations:issue-states", group.organization):
+                add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
+                record_group_history(group, GroupHistoryStatus.ONGOING)
+            else:
+                add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
+                record_group_history(group, GroupHistoryStatus.UNIGNORED)
             Activity.objects.create(
                 project=group.project,
                 group=group,

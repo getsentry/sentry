@@ -121,7 +121,7 @@ class TeamIssueBreakdownTest(APITestCase):
             group=group2_1, date_added=before_now(days=4), status=GroupHistoryStatus.IGNORED
         )
         self.create_group_history(
-            group=group2_1, date_added=before_now(days=3), status=GroupHistoryStatus.ONGOING
+            group=group2_1, date_added=before_now(days=3), status=GroupHistoryStatus.UNIGNORED
         )
         self.create_group_history(
             group=group2_1,

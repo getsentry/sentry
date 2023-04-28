@@ -1376,7 +1376,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
         assert GroupInbox.objects.filter(
-            group=group, reason=GroupInboxReason.ONGOING.value
+            group=group, reason=GroupInboxReason.UNIGNORED.value
         ).exists()
         assert Activity.objects.filter(
             group=group, project=group.project, type=ActivityType.SET_UNRESOLVED.value

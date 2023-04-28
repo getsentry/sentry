@@ -33,9 +33,11 @@ class ClearExpiredSnoozesTest(TestCase):
 
         assert not GroupSnooze.objects.filter(id=snooze1.id).exists()
         assert GroupSnooze.objects.filter(id=snooze2.id).exists()
-        assert GroupHistory.objects.filter(group=group1, status=GroupHistoryStatus.ONGOING).exists()
+        assert GroupHistory.objects.filter(
+            group=group1, status=GroupHistoryStatus.UNIGNORED
+        ).exists()
         assert not GroupHistory.objects.filter(
-            group=group2, status=GroupHistoryStatus.ONGOING
+            group=group2, status=GroupHistoryStatus.UNIGNORED
         ).exists()
 
         assert send_robust.called

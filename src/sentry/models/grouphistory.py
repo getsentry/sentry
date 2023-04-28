@@ -162,7 +162,7 @@ class GroupHistory(Model):
     status = BoundedPositiveIntegerField(
         default=0,
         choices=(
-            (GroupHistoryStatus.ONGOING, _("Unresolved")),
+            (GroupHistoryStatus.ONGOING, _("Ongoing")),
             (GroupHistoryStatus.RESOLVED, _("Resolved")),
             (GroupHistoryStatus.AUTO_RESOLVED, _("Automatically Resolved")),
             (GroupHistoryStatus.IGNORED, _("Ignored")),
