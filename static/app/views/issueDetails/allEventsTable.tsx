@@ -132,9 +132,6 @@ const getPlatformColumns = (
   platform: PlatformKey | undefined,
   options: {isProfilingEnabled: boolean; isReplayEnabled: boolean}
 ): ColumnInfo => {
-  const replayField = options.isReplayEnabled ? ['replayId'] : [];
-  const replayColumnTitle = options.isReplayEnabled ? [t('replay')] : [];
-
   const backendServerlessColumnInfo = {
     fields: ['url', 'runtime'],
     columnTitles: [t('url'), t('runtime')],
@@ -165,8 +162,8 @@ const getPlatformColumns = (
   const platformColumns = categoryToColumnMap[platformCategory];
 
   if (options.isReplayEnabled) {
-    platformColumns.fields.push(...replayField);
-    platformColumns.columnTitles.push(...replayColumnTitle);
+    platformColumns.fields.push('replayId');
+    platformColumns.columnTitles.push(t('replay'));
   }
 
   if (options.isProfilingEnabled && platform && PROFILING_PLATFORMS.includes(platform)) {
