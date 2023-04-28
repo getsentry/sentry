@@ -164,7 +164,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             return False
 
         try:
-            url = data["request"]["url"]
+            url = get_path(data, "request", "url")
         except KeyError:
             return False
         return url and bool(glob_match(url, self.pattern, ignorecase=True))

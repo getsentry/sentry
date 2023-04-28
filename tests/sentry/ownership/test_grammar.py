@@ -132,6 +132,11 @@ def test_matcher_test_url():
     assert not Matcher("url", "*.js").test({})
 
 
+def test_matcher_test_url_none():
+    for bad_data in (None, {}, {"request": None}, {"request": {"url": None}}):
+        assert not Matcher("url", "doesnt_matter").test(bad_data)
+
+
 def test_matcher_test_none():
     data = {"request": {"url": None}}
     assert not Matcher("url", "").test(data)
