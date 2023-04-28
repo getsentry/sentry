@@ -58,7 +58,7 @@ const HeroImage = styled('img')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    transform: translateX(-60%);
+    transform: translateX(-65%);
     width: 420px;
     min-width: 420px;
   }
