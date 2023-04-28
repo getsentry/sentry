@@ -58,7 +58,7 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
         If running as a monolith/control, we must authorize each request before sending.
         If running as a region, we don't authorize and instead, send it to our proxy endpoint,
         where tokens are added in by Control Silo. We do this to avoid race conditions around
-        stale tokens and centralize token refresh flows. 
+        stale tokens and centralize token refresh flows.
         """
         if not self.should_proxy_to_control or not prepared_request.url:
             prepared_request = self.authorize_request(prepared_request=prepared_request)
