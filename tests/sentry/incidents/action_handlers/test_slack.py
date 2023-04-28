@@ -148,8 +148,8 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
             target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value,
             target_identifier="some_id",
             target_display="#hello",
-            integration=integration,
-            sentry_app=None,
+            integration_id=integration.id,
+            sentry_app_id=None,
         )
         integration.delete()
         handler = SlackActionHandler(action, incident, self.project)
