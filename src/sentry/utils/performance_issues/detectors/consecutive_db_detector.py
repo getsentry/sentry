@@ -216,7 +216,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
         if request:
             url = request.get("url", "") or ""
-            method = request.get("method", "") or ""
+            method = request.get("http.method") or request.get("method", "") or ""
             if url.endswith("/graphql") and method.lower() in ["post", "get"]:
                 return False
 

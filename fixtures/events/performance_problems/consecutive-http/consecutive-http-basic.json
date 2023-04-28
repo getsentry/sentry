@@ -1176,7 +1176,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "xhr",
         "url": "https://my-api.io/api/users?page=1"
       },
@@ -1205,7 +1205,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "xhr",
         "url": "https://my-api.io/api/users?page=2"
       },
@@ -1223,7 +1223,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "xhr",
         "url": "https://my-api.io/api/users?page=3"
       },
@@ -1241,7 +1241,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "xhr",
         "url": "https://my-api.io/api/users?page=4"
       },
@@ -1259,7 +1259,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "xhr",
         "url": "https://my-api.io/api/users?page=5"
       },
@@ -1277,7 +1277,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "xhr",
         "url": "https://my-api.io/api/users?page=6"
       },
