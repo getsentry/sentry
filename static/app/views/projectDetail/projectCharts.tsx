@@ -23,8 +23,8 @@ import {
 } from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
-import NOT_AVAILABLE_MESSAGES from 'sentry/constants/notAvailableMessages';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {NOT_AVAILABLE_MESSAGES} from 'sentry/constants/notAvailableMessages';
 import {t} from 'sentry/locale';
 import {Organization, Project, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
