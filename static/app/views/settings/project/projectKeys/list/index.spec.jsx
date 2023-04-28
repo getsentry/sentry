@@ -123,6 +123,14 @@ describe('ProjectKeys', function () {
     expect(minidumpEndpoint).not.toBeInTheDocument();
     expect(unrealEndpoint).not.toBeInTheDocument();
     expect(securityHeaderEndpoint).not.toBeInTheDocument();
+
+    // Loader Script is rendered
+    expect(screen.getByText('Loader Script')).toBeInTheDocument();
+    const loaderScript = screen.getByRole('textbox', {
+      name: 'Loader Script',
+    });
+    const loaderScriptValue = loaderScript.value;
+    expect(loaderScriptValue).toEqual(expect.stringContaining(projectKeys[0].dsn.cdn));
   });
 
   it('renders for javascript-react project', function () {
@@ -152,6 +160,7 @@ describe('ProjectKeys', function () {
     expect(minidumpEndpoint).not.toBeInTheDocument();
     expect(unrealEndpoint).not.toBeInTheDocument();
     expect(securityHeaderEndpoint).not.toBeInTheDocument();
+    expect(screen.queryByText('Loader Script')).not.toBeInTheDocument();
   });
 
   it('renders multiple keys', function () {
