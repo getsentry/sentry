@@ -385,7 +385,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         allow_partial_buckets: bool = False,
         zerofill_results: bool = True,
         comparison_delta: Optional[timedelta] = None,
-        additional_query_column: str = None,
+        additional_query_column: Optional[str] = None,
     ) -> Dict[str, Any]:
         with self.handle_query_errors():
             with sentry_sdk.start_span(
