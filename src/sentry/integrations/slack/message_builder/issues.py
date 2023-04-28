@@ -258,7 +258,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.recipient = recipient
 
     @property
-    def escape_text(self):
+    def escape_text(self) -> bool:
         """
         Returns True if we need to escape the text in the message.
         """

@@ -50,7 +50,7 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
         return f"[{project_slug}] {title}"
 
     @property
-    def escape_text(self):
+    def escape_text(self) -> bool:
         """
         Returns True if we need to escape the text in the message.
         """
