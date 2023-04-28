@@ -4,6 +4,7 @@ from typing import Any, Iterable
 
 from sentry import features
 from sentry.models import Integration, Organization, Project
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.tasks.base import instrumented_task, load_model_from_db
 
 
@@ -32,8 +33,8 @@ def update_code_owners_schema(
             projects = [load_model_from_db(Project, project) for project in projects]
             code_owners = ProjectCodeOwners.objects.filter(project__in=projects)
 
+        integration = _load_integration_from_rpc(integration)
         if integration:
-            integration = load_model_from_db(Integration, integration, allow_cache=False)
             code_mapping_ids = RepositoryProjectPathConfig.objects.filter(
                 organization_integration__organization_id=organization.id,
                 organization_integration__integration_id=integration.id,
@@ -49,3 +50,13 @@ def update_code_owners_schema(
     # TODO(nisanthan): May need to add logging  for the cases where we might want to have more information if something fails
     except (RepositoryProjectPathConfig.DoesNotExist, ProjectCodeOwners.DoesNotExist):
         return
+
+
+def _load_integration_from_rpc(
+    integration: Integration | int | None,
+) -> Integration | RpcIntegration | None:
+    if integration is None:
+        return None
+    if isinstance(integration, Integration):
+        return integration
+    return integration_service.get_integration(integration_id=integration)
