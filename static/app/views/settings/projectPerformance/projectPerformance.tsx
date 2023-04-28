@@ -319,7 +319,8 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return (
       <Fragment>
         <SettingsPageHeader title={t('Performance')} />
-        <PermissionAlert access={requiredScopes} />
+        <PermissionAlert access={requiredScopes} project={project} />
+
         <Form
           saveOnBlur
           allowUndo
@@ -338,7 +339,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             this.setState({threshold: resp});
           }}
         >
-          <Access access={requiredScopes}>
+          <Access access={requiredScopes} project={project}>
             {({hasAccess}) => (
               <JsonForm
                 title={t('General')}
@@ -379,7 +380,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             apiMethod="PUT"
             apiEndpoint={projectEndpoint}
           >
-            <Access access={requiredScopes}>
+            <Access access={requiredScopes} project={project}>
               {({hasAccess}) => (
                 <JsonForm
                   title={t('Retention Priorities')}
@@ -416,7 +417,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
               apiMethod="PUT"
               apiEndpoint={projectEndpoint}
             >
-              <Access access={requiredScopes}>
+              <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (
                   <JsonForm
                     title={t('Performance Issues - All')}
@@ -433,7 +434,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
               apiMethod="PUT"
               apiEndpoint={performanceIssuesEndpoint}
             >
-              <Access access={requiredScopes}>
+              <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (
                   <JsonForm
                     title={t('Performance Issues - Detector Settings')}
