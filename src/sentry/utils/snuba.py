@@ -847,7 +847,7 @@ def _apply_cache_and_build_results(
 
     # Sort so that we get the results back in the original param list order
     results.sort()
-    # Drop the sort order valtests/snuba/api/endpoints/test_organization_event_details.py
+    # Drop the sort order val
     return [result[1] for result in results]
 
 
