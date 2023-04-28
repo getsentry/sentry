@@ -25,7 +25,7 @@ class JiraSentryInstallationViewTestCase(APITestCase):
 
 class JiraSentryInstallationViewErrorsTest(JiraSentryInstallationViewTestCase):
     @patch(
-        "sentry.integrations.jira.views.ui_hook.get_integration_from_request",
+        "sentry.integrations.jira.views.sentry_installation.get_integration_from_request",
         side_effect=ExpiredSignatureError(),
     )
     def test_expired_signature_error(self, mock_get_integration_from_request):
@@ -34,7 +34,7 @@ class JiraSentryInstallationViewErrorsTest(JiraSentryInstallationViewTestCase):
         assert REFRESH_REQUIRED in response.content
 
     @patch(
-        "sentry.integrations.jira.views.ui_hook.get_integration_from_request",
+        "sentry.integrations.jira.views.sentry_installation.get_integration_from_request",
         side_effect=AtlassianConnectValidationError(),
     )
     def test_expired_invalid_installation_error(self, mock_get_integration_from_request):
@@ -52,7 +52,7 @@ class JiraSentryInstallationViewTest(JiraSentryInstallationViewTestCase):
         assert REFRESH_REQUIRED not in response.content
         assert UNABLE_TO_VERIFY_INSTALLATION.encode() not in response.content
 
-    @patch("sentry.integrations.jira.views.ui_hook.get_integration_from_request")
+    @patch("sentry.integrations.jira.views.sentry_installation.get_integration_from_request")
     def test_simple_get(self, mock_get_integration_from_request):
         mock_get_integration_from_request.return_value = self.integration
         response = self.client.get(self.path)

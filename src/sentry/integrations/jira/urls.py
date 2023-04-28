@@ -1,14 +1,13 @@
 from django.conf.urls import url
 
+from .endpoints import JiraDescriptorEndpoint, JiraSearchEndpoint
 from .views import (
     JiraExtensionConfigurationView,
     JiraSentryInstallationView,
     JiraSentryIssueDetailsView,
 )
 from .webhooks import (
-    JiraDescriptorEndpoint,
     JiraIssueUpdatedWebhook,
-    JiraSearchEndpoint,
     JiraSentryInstalledWebhook,
     JiraSentryUninstalledWebhook,
 )
