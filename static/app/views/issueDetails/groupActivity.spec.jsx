@@ -14,10 +14,12 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {GroupActivityType} from 'sentry/types';
 import {GroupActivity} from 'sentry/views/issueDetails/groupActivity';
 
 describe('GroupActivity', function () {
   let project;
+  const dateCreated = '2021-10-01T15:31:38.950115Z';
 
   beforeEach(function () {
     project = TestStubs.Project();
@@ -337,5 +339,64 @@ describe('GroupActivity', function () {
 
       expect(deleteMock).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('renders ignored', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_IGNORED,
+          data: {
+            ignoreUntilEscalating: true,
+          },
+          user: TestStubs.User(),
+          dateCreated,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Foo Bar ignored this issue'
+    );
+  });
+
+  it('renders ignored until escalating', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_IGNORED,
+          data: {
+            ignoreUntilEscalating: true,
+          },
+          user: TestStubs.User(),
+          dateCreated,
+        },
+      ],
+      organization: {features: ['escalating-issues-ui']},
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Foo Bar archived this issue until it escalates'
+    );
+  });
+
+  it('renders ignored until it happens x times in time window', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_IGNORED,
+          data: {
+            ignoreCount: 400,
+            ignoreWindow: 1,
+          },
+          user: TestStubs.User(),
+          dateCreated,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Foo Bar ignored this issue until it happens 400 time(s) in 1 minute'
+    );
   });
 });
