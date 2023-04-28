@@ -1367,6 +1367,9 @@ ORGANIZATION_URLS = [
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
+        # XXX(epurkhiser): When removing method dispatch (once the legacy
+        # ingest endpoints are removed) we need to update apidocs/hooks.py to
+        # remove these from the explicit endpoints
         method_dispatch(
             GET=OrganizationMonitorCheckInIndexEndpoint.as_view(),
             POST=MonitorIngestCheckInIndexEndpoint.as_view(),  # Legacy ingest endpoint
@@ -1376,6 +1379,9 @@ ORGANIZATION_URLS = [
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+        # XXX(epurkhiser): When removing method dispatch (once the legacy
+        # ingest endpoints are removed) we need to update apidocs/hooks.py to
+        # remove these from the explicit endpoints
         method_dispatch(
             PUT=MonitorIngestCheckInDetailsEndpoint.as_view(),  # Legacy ingest endpoint
             csrf_exempt=True,
