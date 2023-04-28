@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from sentry.models import ApiToken
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import TransactionStatusTagValue, TransactionTagsKey
 from sentry.snuba.metrics.fields import (
     DERIVED_METRICS,
@@ -47,12 +47,16 @@ def mocked_mri_resolver(metric_names, mri_func):
     return lambda x: x if x in metric_names else mri_func(x)
 
 
-def indexer_record(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
+    return indexer.record(
+        use_case_id=use_case_id,
+        org_id=org_id,
+        string=string,
+    )
 
 
-perf_indexer_record = partial(indexer_record, UseCaseKey.PERFORMANCE)
-rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
+perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
+rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 
 @region_silo_test(stable=True)
