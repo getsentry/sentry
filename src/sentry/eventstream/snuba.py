@@ -441,7 +441,11 @@ class SnubaEventStream(SnubaProtocolEventStream):
 
         codec: JsonCodec[Any] = JsonCodec(schema=schema)
 
-        codec.validate(data)
+        try:
+            codec.validate(data)
+        except Exception:
+            print(data)  # noqa
+            raise
 
         try:
             resp = snuba._snuba_pool.urlopen(
