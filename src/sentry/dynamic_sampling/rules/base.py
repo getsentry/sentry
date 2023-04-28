@@ -3,7 +3,7 @@ from typing import List, OrderedDict, Set
 
 import sentry_sdk
 
-from sentry import quotas
+from sentry import options, quotas
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
@@ -25,7 +25,12 @@ def get_guarded_blended_sample_rate(project: Project) -> float:
     if sample_rate is None:
         raise Exception("get_blended_sample_rate returns none")
 
-    return get_prioritise_by_project_sample_rate(project, default_sample_rate=float(sample_rate))
+    if not options.get("dynamic-sampling:sliding-window"):
+        sample_rate = get_prioritise_by_project_sample_rate(
+            project, default_sample_rate=float(sample_rate)
+        )
+
+    return sample_rate
 
 
 def _get_rules_of_enabled_biases(
