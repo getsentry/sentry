@@ -15,10 +15,9 @@ const formGroups: JsonFormObject[] = [
         name: 'slug',
         type: 'string',
         required: true,
-        label: t('Name'),
+        label: t('Team Slug'),
         placeholder: 'e.g. api-team',
         help: t('A unique ID used to identify the team'),
-        disabled: ({access}) => !access.has('team:write'),
         transformInput: slugify,
 
         saveOnBlur: false,
@@ -43,8 +42,7 @@ const formGroups: JsonFormObject[] = [
         help: t(
           'Organization owners can bulk assign an org-role for all the members in this team'
         ),
-        disabled: ({access, idpProvisioned}) =>
-          !access.has('org:admin') || idpProvisioned,
+        disabled: ({disabled, idpProvisioned}) => disabled || idpProvisioned,
         visible: ({hasOrgRoleFlag}) => hasOrgRoleFlag,
         saveOnBlur: false,
         saveMessageAlertType: 'info',
