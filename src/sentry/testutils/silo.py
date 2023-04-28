@@ -69,7 +69,7 @@ class SiloModeTest:
                     SILO_MODE=mode,
                     SINGLE_SERVER_SILO_MODE=self._is_acceptance_test(test_class),
                     SENTRY_SUBNET_SECRET="secret",
-                    SENTRY_CONTROL_ADDRESS="https://sentry.io",
+                    SENTRY_CONTROL_ADDRESS="http://controlserver/",
                 ):
                     with override_regions(region_map):
                         if mode == SiloMode.REGION:

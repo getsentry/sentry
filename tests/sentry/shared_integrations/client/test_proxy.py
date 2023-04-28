@@ -8,7 +8,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils import TestCase
 
-control_address = "https://sentry.io"
+control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"
 
 
@@ -19,6 +19,7 @@ class IntegrationProxyClientTest(TestCase):
             integration_type = "integration"
             integration_name = "test"
             base_url = "https://example.com"
+            use_proxy_url_for_tests = True
 
         self.client_cls = TestClient
         self.oi_id = 24
