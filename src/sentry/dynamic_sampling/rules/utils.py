@@ -39,6 +39,7 @@ class RuleType(Enum):
     IGNORE_HEALTH_CHECKS_RULE = "ignoreHealthChecks"
     BOOST_KEY_TRANSACTIONS_RULE = "boostKeyTransactions"
     BOOST_LOW_VOLUME_TRANSACTIONS = "boostLowVolumeTransactions"
+    BOOST_REPLAY_ID_RULE = "boostReplayId"
 
 
 DEFAULT_BIASES: List[ActivatableBias] = [
@@ -50,6 +51,7 @@ DEFAULT_BIASES: List[ActivatableBias] = [
     {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
     {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
     {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": True},
+    {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
 ]
 RESERVED_IDS = {
     RuleType.UNIFORM_RULE: 1000,
@@ -57,6 +59,7 @@ RESERVED_IDS = {
     RuleType.IGNORE_HEALTH_CHECKS_RULE: 1002,
     RuleType.BOOST_KEY_TRANSACTIONS_RULE: 1003,
     RuleType.RECALIBRATION_RULE: 1004,
+    RuleType.BOOST_REPLAY_ID_RULE: 1005,
     RuleType.BOOST_LOW_VOLUME_TRANSACTIONS: 1400,
     RuleType.BOOST_LATEST_RELEASES_RULE: 1500,
 }
@@ -83,7 +86,7 @@ class EqConditionOptions(TypedDict):
 class EqCondition(TypedDict):
     op: Literal["eq"]
     name: str
-    value: List[str]
+    value: Union[List[str], None]
     options: EqConditionOptions
 
 
@@ -94,8 +97,8 @@ class GlobCondition(TypedDict):
 
 
 class Condition(TypedDict):
-    op: Literal["and", "or"]
-    inner: List[Union[EqCondition, GlobCondition]]
+    op: Literal["and", "or", "not"]
+    inner: Union[Union[EqCondition, GlobCondition], List[Union[EqCondition, GlobCondition]]]
 
 
 class Rule(TypedDict):

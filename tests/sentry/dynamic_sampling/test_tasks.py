@@ -10,7 +10,7 @@ from sentry.dynamic_sampling.rules.biases.recalibration_bias import Recalibratio
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     get_transactions_resampling_rates,
 )
-from sentry.dynamic_sampling.rules.utils import generate_cache_key_rebalance_factor
+from sentry.dynamic_sampling.rules.utils import RuleType, generate_cache_key_rebalance_factor
 from sentry.dynamic_sampling.tasks import (
     prioritise_projects,
     prioritise_transactions,
@@ -40,11 +40,12 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
         proj.update_option(
             "sentry:dynamic_sampling_biases",
             [
-                {"id": "boostEnvironments", "active": False},
-                {"id": "ignoreHealthChecks", "active": False},
-                {"id": "boostLatestRelease", "active": False},
-                {"id": "boostKeyTransactions", "active": False},
-                {"id": "boostLowVolumeTransactions", "active": False},
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+                {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             ],
         )
         # Store performance metrics for proj A
