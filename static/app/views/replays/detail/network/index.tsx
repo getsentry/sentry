@@ -17,7 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import NetworkDetails from 'sentry/views/replays/detail/network/details/networkDetails';
+import NetworkDetails from 'sentry/views/replays/detail/network/details';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
   COLUMN_COUNT,

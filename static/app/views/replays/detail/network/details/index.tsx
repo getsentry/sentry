@@ -25,7 +25,7 @@ type Props = {
   startTimestampMs: number;
 } & Omit<ReturnType<typeof useResizableDrawer>, 'size'>;
 
-function NetworkRequestDetails({
+function NetworkDetails({
   isHeld,
   isSetup,
   item,
@@ -130,4 +130,4 @@ const StyledSplitDivider = styled(SplitDivider)<{isHeld: boolean}>`
   }
 `;
 
-export default NetworkRequestDetails;
+export default NetworkDetails;
