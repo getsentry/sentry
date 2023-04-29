@@ -48,18 +48,19 @@ export function Setup({
   const minVersion = '7.50.0';
 
   const organization = useOrganization();
-  const sdkNeedsUpdate = useProjectSdkNeedsUpdate({
+  const {isFetching, needsUpdate} = useProjectSdkNeedsUpdate({
     minVersion,
     organization,
     projectId,
   });
+  const sdkNeedsUpdate = !isFetching && needsUpdate;
 
   const url = item.description || 'http://example.com';
 
   return (
     <SetupInstructions
       minVersion={minVersion}
-      sdkNeedsUpdate={Boolean(sdkNeedsUpdate)}
+      sdkNeedsUpdate={sdkNeedsUpdate}
       showSnippet={showSnippet}
       url={url}
     />

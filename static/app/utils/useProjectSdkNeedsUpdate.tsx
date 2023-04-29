@@ -8,26 +8,30 @@ type Opts = {
   projectId: string;
 };
 
-function useProjectSdkNeedsUpdate({
-  minVersion,
-  organization,
-  projectId,
-}: Opts): boolean | undefined {
+function useProjectSdkNeedsUpdate({minVersion, organization, projectId}: Opts):
+  | {
+      isFetching: true;
+      needsUpdate: undefined;
+    }
+  | {
+      isFetching: false;
+      needsUpdate: boolean;
+    } {
   const sdkUpdates = useProjectSdkUpdates({
     organization,
     projectId,
   });
 
   if (sdkUpdates.type !== 'resolved') {
-    return undefined;
+    return {isFetching: true, needsUpdate: undefined};
   }
 
   if (!sdkUpdates.data?.sdkVersion) {
-    return undefined;
+    return {isFetching: true, needsUpdate: undefined};
   }
 
   const needsUpdate = semverCompare(sdkUpdates.data?.sdkVersion || '', minVersion) === -1;
-  return needsUpdate;
+  return {isFetching: false, needsUpdate};
 }
 
 export default useProjectSdkNeedsUpdate;
