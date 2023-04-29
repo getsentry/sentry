@@ -2,12 +2,11 @@ import {Fragment, ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import ObjectInspector from 'sentry/components/objectInspector';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-const Indent = styled('div')`
+export const Indent = styled('div')`
   padding-left: ${space(4)};
 `;
 
@@ -16,20 +15,8 @@ const NotFoundText = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-export function objectInspectorOrNotFound(data: any, notFoundText: string) {
-  return data ? (
-    <Indent>
-      <ObjectInspector data={data} expandLevel={3} />
-    </Indent>
-  ) : (
-    <Indent>
-      <NotFoundText>{notFoundText}</NotFoundText>
-    </Indent>
-  );
-}
-
 export function keyValueTablOrNotFound(
-  data: Record<string, string>,
+  data: undefined | Record<string, string>,
   notFoundText: string
 ) {
   return data ? (
@@ -63,9 +50,9 @@ const ToggleButton = styled('button')`
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: ${space(0.75)};
+  gap: ${space(1)};
 
-  padding: ${space(0.5)} ${space(1.5)};
+  padding: ${space(0.5)} ${space(1)};
 
   :hover {
     background: ${p => p.theme.backgroundSecondary};

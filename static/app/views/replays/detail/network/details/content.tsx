@@ -1,5 +1,10 @@
 import styled from '@emotion/styled';
 
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {
+  Setup,
+  UnsupportedOp,
+} from 'sentry/views/replays/detail/network/details/onboarding';
 import type {SectionProps} from 'sentry/views/replays/detail/network/details/sections';
 import {
   GeneralSection,
@@ -12,39 +17,56 @@ import {
 import {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 
 export default function NetworkDetailsContent({
+  isSetup,
   visibleTab,
   ...props
-}: {visibleTab: TabKey} & SectionProps) {
-  // is it setup?
+}: {isSetup: boolean; visibleTab: TabKey} & SectionProps) {
+  const {item} = props;
+
+  const isSupportedOp = ['resource.fetch', 'resource.xhr'].includes(item.op);
+  const showContent = isSupportedOp && isSetup;
+  const showSetup = isSupportedOp && !isSetup;
 
   switch (visibleTab) {
     case 'request':
       return (
-        <SectionList>
-          <QueryParamsSection {...props} />
-          <RequestPayloadSection {...props} />
-        </SectionList>
+        <FluidHeight overflow="auto">
+          <SectionList>
+            <QueryParamsSection {...props} />
+            {showContent ? <RequestPayloadSection {...props} /> : null}
+          </SectionList>
+          {showSetup ? <Setup showSnippet="bodies" {...props} /> : null}
+          {isSupportedOp ? null : <UnsupportedOp type="bodies" />}
+        </FluidHeight>
       );
     case 'response':
       return (
-        <SectionList>
-          <ResponsePayloadSection {...props} />
-        </SectionList>
+        <FluidHeight overflow="auto">
+          {showContent ? (
+            <SectionList>
+              <ResponsePayloadSection {...props} />
+            </SectionList>
+          ) : null}
+          {showSetup ? <Setup showSnippet="bodies" {...props} /> : null}
+          {isSupportedOp ? null : <UnsupportedOp type="bodies" />}
+        </FluidHeight>
       );
     case 'details':
     default:
       return (
-        <SectionList>
-          <GeneralSection {...props} />
-          <RequestHeadersSection {...props} />
-          <ResponseHeadersSection {...props} />
-        </SectionList>
+        <FluidHeight overflow="auto">
+          <SectionList>
+            <GeneralSection {...props} />
+            {showContent ? <RequestHeadersSection {...props} /> : null}
+            {showContent ? <ResponseHeadersSection {...props} /> : null}
+          </SectionList>
+          {showSetup ? <Setup showSnippet="headers" {...props} /> : null}
+          {isSupportedOp ? null : <UnsupportedOp type="headers" />}
+        </FluidHeight>
       );
   }
 }
 
 const SectionList = styled('dl')`
-  height: 100%;
   margin: 0;
-  overflow: auto;
 `;

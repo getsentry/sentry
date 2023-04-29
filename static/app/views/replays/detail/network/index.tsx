@@ -35,7 +35,9 @@ const BODY_HEIGHT = 28;
 const RESIZEABLE_HANDLE_HEIGHT = 90;
 
 type Props = {
+  isNetworkDetailsSetup: boolean;
   networkSpans: undefined | NetworkSpan[];
+  projectId: undefined | string;
   startTimestampMs: number;
 };
 
@@ -45,7 +47,12 @@ const cellMeasurer = {
   fixedHeight: true,
 };
 
-function NetworkList({networkSpans, startTimestampMs}: Props) {
+function NetworkList({
+  isNetworkDetailsSetup,
+  networkSpans,
+  projectId,
+  startTimestampMs,
+}: Props) {
   const organization = useOrganization();
   const {currentTime, currentHoverTime} = useReplayContext();
 
@@ -239,9 +246,11 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
           >
             <NetworkDetails
               {...resizableDrawerProps}
+              isSetup={isNetworkDetailsSetup}
               item={detailDataIndex ? (items[detailDataIndex] as NetworkSpan) : null}
               onClose={() => setDetailRow('')}
-              onScrollToRow={() => setScrollToRow(detailRowIndex)}
+              onScrollToRow={() => setScrollToRow(Number(detailRowIndex))}
+              projectId={projectId}
               startTimestampMs={startTimestampMs}
             />
           </Feature>

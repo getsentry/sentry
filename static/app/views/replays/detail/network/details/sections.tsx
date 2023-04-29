@@ -2,13 +2,14 @@ import {Fragment, MouseEvent} from 'react';
 import queryString from 'query-string';
 
 import {Button} from 'sentry/components/button';
+import ObjectInspector from 'sentry/components/objectInspector';
 import {IconShow} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {
+  Indent,
   keyValueTablOrNotFound,
-  objectInspectorOrNotFound,
   SectionItem,
 } from 'sentry/views/replays/detail/network/details/components';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
@@ -17,6 +18,7 @@ import type {NetworkSpan} from 'sentry/views/replays/types';
 export type SectionProps = {
   item: NetworkSpan;
   onScrollToRow: () => void;
+  projectId: string;
   startTimestampMs: number;
 };
 
@@ -85,23 +87,41 @@ export function QueryParamsSection({item}: SectionProps) {
   const queryParams = queryString.parse(item.description?.split('?')?.[1] ?? '');
   return (
     <SectionItem title={t('Query String Parameters')}>
-      {objectInspectorOrNotFound(queryParams, t('Query Params not found'))}
+      <Indent>
+        <ObjectInspector data={queryParams} expandLevel={3} />
+      </Indent>
     </SectionItem>
   );
 }
 
 export function RequestPayloadSection({item}: SectionProps) {
+  const hasRequest = 'request' in item.data;
+
   return (
     <SectionItem title={t('Request Payload')}>
-      {objectInspectorOrNotFound(item.data?.request?.body, t('Request Body not found'))}
+      <Indent>
+        {hasRequest ? (
+          <ObjectInspector data={item.data?.request?.body} expandLevel={3} />
+        ) : (
+          tct('Request body not found.', item.data)
+        )}
+      </Indent>
     </SectionItem>
   );
 }
 
 export function ResponsePayloadSection({item}: SectionProps) {
+  const hasResponse = 'response' in item.data;
+
   return (
     <SectionItem title={t('Response Body')}>
-      {objectInspectorOrNotFound(item.data?.response?.body, t('Response body not found'))}
+      <Indent>
+        {hasResponse ? (
+          <ObjectInspector data={item.data?.response?.body} expandLevel={3} />
+        ) : (
+          tct('Response body not found.', item.data)
+        )}
+      </Indent>
     </SectionItem>
   );
 }

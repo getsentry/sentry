@@ -103,6 +103,8 @@ export default class ReplayReader {
   private networkSpans: ReplaySpan[];
   private memorySpans: MemorySpanType[];
 
+  private _isDetailsSetup: undefined | boolean;
+
   /**
    * @returns Duration of Replay (milliseonds)
    */
@@ -132,5 +134,18 @@ export default class ReplayReader {
 
   getMemorySpans = () => {
     return this.memorySpans;
+  };
+
+  isNetworkDetailsSetup = () => {
+    if (this._isDetailsSetup === undefined) {
+      // TODO(replay): there must be a better way
+      this._isDetailsSetup = this.networkSpans.some(span => {
+        return (
+          ('request' in span.data && 'headers' in span.data?.request) ||
+          ('response' in span.data && 'headers' in span.data?.response)
+        );
+      });
+    }
+    this._isDetailsSetup;
   };
 }
