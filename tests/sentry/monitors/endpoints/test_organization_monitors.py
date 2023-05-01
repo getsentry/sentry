@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+from sentry.constants import ObjectStatus
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -84,8 +85,10 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         )
 
     def test_all_monitor_environments(self):
-        monitor = self._create_monitor(status=MonitorStatus.OK)
-        monitor_environment = self._create_monitor_environment(monitor, name="test")
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(
+            monitor, name="test", status=MonitorStatus.OK
+        )
 
         monitor_empty = self._create_monitor(name="empty")
 
@@ -118,8 +121,8 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         self.check_valid_response(response, [monitor, monitor_visible])
 
     def test_search_by_slug(self):
-        monitor = self._create_monitor(status=MonitorStatus.OK, slug="test-slug")
-        self._create_monitor(status=MonitorStatus.OK, slug="other-monitor")
+        monitor = self._create_monitor(slug="test-slug")
+        self._create_monitor(slug="other-monitor")
 
         response = self.get_success_response(self.organization.slug, query="test-slug")
         self.check_valid_response(response, [monitor])
@@ -148,7 +151,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert monitor.organization_id == self.organization.id
         assert monitor.project_id == self.project.id
         assert monitor.name == "My Monitor"
-        assert monitor.status == MonitorStatus.ACTIVE
+        assert monitor.status == ObjectStatus.ACTIVE
         assert monitor.type == MonitorType.CRON_JOB
         assert monitor.config == {
             "schedule_type": ScheduleType.CRONTAB,

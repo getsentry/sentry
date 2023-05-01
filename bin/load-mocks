@@ -446,7 +446,7 @@ def main(
                     monitor=monitor,
                     monitor_environment=monitor_env,
                     status=CheckInStatus.OK
-                    if monitor.status == MonitorStatus.OK
+                    if monitor_env.status == MonitorStatus.OK
                     else CheckInStatus.ERROR,
                 )
 
