@@ -1,4 +1,4 @@
-from typing import Any, Dict, Literal, Mapping, Set, TypedDict
+from typing import Any, Dict, List, Literal, Mapping, Set, Tuple, TypedDict
 
 from sentry.apidocs.build import OPENAPI_TAGS
 from sentry.apidocs.utils import SentryApiBuildError
@@ -23,6 +23,50 @@ _DEFINED_TAG_SET = {t["name"] for t in OPENAPI_TAGS}
 EXCLUSION_PATH_PREFIXES = ["/api/0/monitors/"]
 
 
+def __get_explicit_endpoints() -> List[Tuple[str, str, str, Any]]:
+    """
+    We have a few endpoints which are wrapped by `method_dispatch`, which DRF
+    will ignore (see [0]). To still have these endpoints properly included in
+    our docs, we explicitly define them here.
+
+    XXX: This is currently just used for monitors. In the future we'll remove
+         the legacy monitor endpoints that require us to have method_dispatch
+         and we can probably remove this too.
+
+    [0]: https://github.com/encode/django-rest-framework/blob/3f8ab538c1a7e6f887af9fec41847e2d67ff674f/rest_framework/schemas/generators.py#L117-L118
+    """
+    from sentry.monitors.endpoints.monitor_ingest_checkin_details import (
+        MonitorIngestCheckInDetailsEndpoint,
+    )
+    from sentry.monitors.endpoints.monitor_ingest_checkin_index import (
+        MonitorIngestCheckInIndexEndpoint,
+    )
+    from sentry.monitors.endpoints.organization_monitor_checkin_index import (
+        OrganizationMonitorCheckInIndexEndpoint,
+    )
+
+    return [
+        (
+            "/api/0/organization/{organization_slug}/monitors/{monitor_slug}/checkins/",
+            r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
+            "GET",
+            OrganizationMonitorCheckInIndexEndpoint.as_view(),
+        ),
+        (
+            "/api/0/organization/{organization_slug}/monitors/{monitor_slug}/checkins/",
+            r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
+            "POST",
+            MonitorIngestCheckInIndexEndpoint.as_view(),
+        ),
+        (
+            "/api/0/organization/{organization_slug}/monitors/{monitor_slug}/checkins/{checkin_id}/",
+            r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+            "PUT",
+            MonitorIngestCheckInDetailsEndpoint.as_view(),
+        ),
+    ]
+
+
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
 
     filtered = []
@@ -41,6 +85,9 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
         else:
             # if an endpoint doesn't have any registered public methods, don't check it.
             pass
+
+    # Register explicit ednpoints
+    filtered.extend(__get_explicit_endpoints())
 
     return filtered
 
