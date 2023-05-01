@@ -221,7 +221,6 @@ export function ReplaySpanPayload({
     timestamp: startTimestamp?.getTime(), // in ms, same as startTimestamp
   };
 }
-fixtures / js - stubs / types.tsx;
 
 export function ReplaySpanPayloadNavigate({
   description = 'http://test.com',
