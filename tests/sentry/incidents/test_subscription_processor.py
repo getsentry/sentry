@@ -1068,7 +1068,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 t,
                 AlertRuleTriggerAction.Type.SLACK,
                 AlertRuleTriggerAction.TargetType.SPECIFIC,
-                integration=integration,
+                integration_id=integration.id,
                 input_channel_id="#workflow",
             )
 
@@ -1134,7 +1134,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             trigger,
             AlertRuleTriggerAction.Type.SLACK,
             AlertRuleTriggerAction.TargetType.SPECIFIC,
-            integration=integration,
+            integration_id=integration.id,
             input_channel_id=channel_name,
             target_identifier=channel_name,
         )
@@ -1214,7 +1214,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 t,
                 AlertRuleTriggerAction.Type.SLACK,
                 AlertRuleTriggerAction.TargetType.SPECIFIC,
-                integration=integration,
+                integration_id=integration.id,
                 input_channel_id="#workflow",
             )
 
