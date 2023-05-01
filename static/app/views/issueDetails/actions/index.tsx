@@ -35,6 +35,7 @@ import {space} from 'sentry/styles/space';
 import {
   Group,
   GroupStatusResolution,
+  IssueCategory,
   Organization,
   Project,
   ResolutionStatus,
@@ -88,8 +89,11 @@ class Actions extends Component<Props> {
   }
 
   getDiscoverUrl() {
-    const {group, project, organization} = this.props;
+    const {group, project, organization, event} = this.props;
     const {title, type, shortId} = group;
+
+    const groupIsOccurrenceBacked =
+      group.issueCategory === IssueCategory.PERFORMANCE && !!event?.occurrence;
 
     const config = getConfigForIssueType(group);
 
@@ -102,7 +106,10 @@ class Actions extends Component<Props> {
       projects: [Number(project.id)],
       version: 2 as SavedQueryVersions,
       range: '90d',
-      dataset: config.usesIssuePlatform ? DiscoverDatasets.ISSUE_PLATFORM : undefined,
+      dataset:
+        config.usesIssuePlatform || groupIsOccurrenceBacked
+          ? DiscoverDatasets.ISSUE_PLATFORM
+          : undefined,
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
