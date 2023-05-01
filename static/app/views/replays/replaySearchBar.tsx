@@ -1,6 +1,7 @@
 import {useCallback, useEffect} from 'react';
 
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
+import FeatureBadge from 'sentry/components/featureBadge';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -12,6 +13,7 @@ import {
   TagCollection,
   TagValue,
 } from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
   FieldKind,
@@ -19,6 +21,7 @@ import {
   REPLAY_CLICK_FIELDS,
   REPLAY_FIELDS,
 } from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import useTags from 'sentry/utils/useTags';
 
@@ -113,7 +116,9 @@ function ReplaySearchBar(props: Props) {
       {...props}
       onGetTagValues={getTagValues}
       supportedTags={getSupportedTags(tags, organization)}
-      placeholder={t('Search for users, duration, count_errors, and more')}
+      placeholder={t(
+        'Search for users, duration, clicked elements, count_errors, and more'
+      )}
       prepareQuery={prepareQuery}
       maxQueryLength={MAX_QUERY_LENGTH}
       searchSource="replay_index"
@@ -121,6 +126,24 @@ function ReplaySearchBar(props: Props) {
       maxMenuHeight={500}
       hasRecentSearches
       fieldDefinitionGetter={getReplayFieldDefinition}
+      mergeSearchGroupWith={{
+        click: {
+          documentation: t('Search by click selector. (Requires SDK version >= 7.44.0)'),
+          titleBadge: <FeatureBadge type="new">{t('New')}</FeatureBadge>,
+        },
+      }}
+      onSearch={(query: string) => {
+        props.onSearch?.(query);
+        const conditions = new MutableSearch(query);
+        const searchKeys = conditions.tokens.map(({key}) => key).filter(Boolean);
+
+        if (searchKeys.length > 0) {
+          trackAnalytics('replay.search', {
+            search_keys: searchKeys.join(','),
+            organization,
+          });
+        }
+      }}
     />
   );
 }

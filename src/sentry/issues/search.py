@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import functools
+import logging
 from copy import deepcopy
 from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, Set, TypedDict
 
-from sentry import features, options
+from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupCategory, get_all_group_type_ids, get_group_type_by_type_id
@@ -213,12 +214,18 @@ def _query_params_for_generic(
     if organization and features.has(
         "organizations:issue-platform", organization=organization, actor=actor
     ):
-        category_ids = {gc.value for gc in categories} if categories else None
+        if categories is None:
+            logging.error("Category is required in _query_params_for_generic")
+            return None
+
+        category_ids = {gc.value for gc in categories}
         group_types = {
             gt.type_id
             for gt in grouptype.registry.get_visible(organization, actor)
-            if not category_ids or gt.category in category_ids
+            if gt.category in category_ids
         }
+        if not group_types:
+            return None
 
         filters = {"occurrence_type_id": list(group_types), **filters}
         if group_ids:
@@ -239,13 +246,17 @@ def _query_params_for_generic(
     return None
 
 
-def get_search_strategies() -> Mapping[int, GroupSearchStrategy]:
+def get_search_strategies(
+    organization: Organization, actor: Optional[Any]
+) -> Mapping[int, GroupSearchStrategy]:
     strategies = {}
     for group_category in GroupCategory:
         if group_category == GroupCategory.ERROR:
             strategy = _query_params_for_error
         elif group_category == GroupCategory.PERFORMANCE:
-            if not options.get("performance.issues.create_issues_through_platform", False):
+            if not features.has(
+                "organizations:issue-platform-search-perf-issues", organization, actor=actor
+            ):
                 strategy = _query_params_for_perf
             else:
                 strategy = functools.partial(
@@ -267,7 +278,7 @@ def _update_profiling_search_filters(
     for sf in search_filters:
         # XXX: we replace queries on these keys to something that should return nothing since
         # profiling issues doesn't support stacktraces
-        if sf.key.name in ("error.unhandled", "error.handled"):
+        if sf.key.name in ("error.unhandled", "error.handled", "error.main_thread"):
             raise UnsupportedSearchQuery(
                 f"{sf.key.name} filter isn't supported for {GroupCategory.PROFILE.name}"
             )

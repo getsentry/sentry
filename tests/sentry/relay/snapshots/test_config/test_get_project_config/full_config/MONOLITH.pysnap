@@ -18,6 +18,9 @@ config:
     scrubData: true
     scrubDefaults: true
     sensitiveFields: []
+  features:
+  - organizations:transaction-name-mark-scrubbed-as-sanitized
+  - organizations:transaction-name-normalize
   filterSettings:
     csp:
       disallowedSources:

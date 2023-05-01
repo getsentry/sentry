@@ -19,7 +19,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {
   EventsResults,
@@ -50,7 +50,7 @@ export function ProfilingSlowestTransactionsPanel() {
   const [openPanel, setOpenPanel] = useState<null | string>(null);
 
   const profilingTransactions = useMemo(
-    () => profilingTransactionsQuery.data?.[0].data ?? [],
+    () => profilingTransactionsQuery.data?.data ?? [],
     [profilingTransactionsQuery.data]
   );
 
@@ -106,7 +106,7 @@ export function ProfilingSlowestTransactionsPanel() {
               transaction={transaction}
               open={transaction.transaction === openPanel}
               onOpen={() => setOpenPanel(transaction.transaction as string)}
-              units={profilingTransactionsQuery.data?.[0].meta.units}
+              units={profilingTransactionsQuery.data?.meta.units}
             />
           );
         })}
@@ -167,7 +167,7 @@ function SlowestTransactionPanelItem({
                 transaction: transaction.transaction as string,
               })}
               onClick={() => {
-                trackAdvancedAnalyticsEvent('profiling_views.go_to_transaction', {
+                trackAnalytics('profiling_views.go_to_transaction', {
                   source: 'slowest_transaction_panel',
                   organization,
                 });
@@ -236,7 +236,7 @@ function PanelItemFunctionsMiniGrid(props: PanelItemFunctionsMiniGridProps) {
         organization={organization}
         project={project}
         onLinkClick={() =>
-          trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+          trackAnalytics('profiling_views.go_to_flamegraph', {
             organization,
             source: 'slowest_transaction_panel',
           })

@@ -1,26 +1,26 @@
-import {CSSProperties, forwardRef, MouseEvent} from 'react';
+import {CSSProperties, forwardRef, MouseEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 
 import FileSize from 'sentry/components/fileSize';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import {operationName} from 'sentry/views/replays/detail/utils';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 const EMPTY_CELL = '\u00A0';
 
 type Props = {
   columnIndex: number;
+  currentHoverTime: number | undefined;
+  currentTime: number;
   handleClick: (span: NetworkSpan) => void;
   handleMouseEnter: (span: NetworkSpan) => void;
   handleMouseLeave: (span: NetworkSpan) => void;
-  isCurrent: boolean;
-  isHovered: boolean;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortNetwork>['sortConfig'];
   span: NetworkSpan;
@@ -28,15 +28,24 @@ type Props = {
   style: CSSProperties;
 };
 
+type CellProps = {
+  hasOccurred: boolean | undefined;
+  isDetailsOpen: boolean;
+  isStatusError: boolean;
+  className?: string;
+  numeric?: boolean;
+  onClick?: undefined | (() => void);
+};
+
 const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
   (
     {
       columnIndex,
+      currentHoverTime,
+      currentTime,
       handleClick,
       handleMouseEnter,
       handleMouseLeave,
-      isCurrent,
-      isHovered,
       rowIndex,
       sortConfig,
       span,
@@ -48,36 +57,56 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     // Rows include the sortable header, the dataIndex does not
     const dataIndex = String(rowIndex - 1);
 
-    const organization = useOrganization();
-    const {currentTime} = useReplayContext();
     const {getParamValue, setParamValue} = useUrlParams('n_detail_row', '');
-
     const isDetailsOpen = getParamValue() === dataIndex;
-
-    const hasNetworkDetails =
-      organization.features.includes('session-replay-network-details') &&
-      ['resource.fetch', 'resource.xhr'].includes(span.op);
 
     const startMs = span.startTimestamp * 1000;
     const endMs = span.endTimestamp * 1000;
     const statusCode = span.data.statusCode;
 
+    const spanTime = useMemo(
+      () => relativeTimeInMs(span.startTimestamp * 1000, startTimestampMs),
+      [span.startTimestamp, startTimestampMs]
+    );
+    const hasOccurred = currentTime >= spanTime;
+    const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= spanTime;
+
     const isByTimestamp = sortConfig.by === 'startTimestamp';
+    const isAsc = isByTimestamp ? sortConfig.asc : undefined;
     const columnProps = {
-      hasOccurred: isByTimestamp
-        ? currentTime >= relativeTimeInMs(span.startTimestamp * 1000, startTimestampMs)
-        : undefined,
-      hasOccurredAsc: isByTimestamp ? sortConfig.asc : undefined,
-      isCurrent,
+      className: classNames({
+        beforeCurrentTime: isByTimestamp
+          ? isAsc
+            ? hasOccurred
+            : !hasOccurred
+          : undefined,
+        afterCurrentTime: isByTimestamp
+          ? isAsc
+            ? !hasOccurred
+            : hasOccurred
+          : undefined,
+        beforeHoverTime:
+          isByTimestamp && currentHoverTime !== undefined
+            ? isAsc
+              ? isBeforeHover
+              : !isBeforeHover
+            : undefined,
+        afterHoverTime:
+          isByTimestamp && currentHoverTime !== undefined
+            ? isAsc
+              ? !isBeforeHover
+              : isBeforeHover
+            : undefined,
+      }),
+      hasOccurred: isByTimestamp ? hasOccurred : undefined,
       isDetailsOpen,
-      isHovered,
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
-      onClick: hasNetworkDetails ? () => setParamValue(dataIndex) : undefined,
+      onClick: () => setParamValue(dataIndex),
       onMouseEnter: () => handleMouseEnter(span),
       onMouseLeave: () => handleMouseLeave(span),
       ref,
       style,
-    };
+    } as CellProps;
 
     // `data.responseBodySize` is from SDK version 7.44-7.45
     const size = span.data.size ?? span.data.response?.size ?? span.data.responseBodySize;
@@ -102,12 +131,8 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps}>
-          <Tooltip
-            title={span.op.split('.')?.[1] ?? span.op}
-            isHoverable
-            showOnlyOnOverflow
-          >
-            <Text>{span.op.split('.')?.[1] ?? span.op}</Text>
+          <Tooltip title={operationName(span.op)} isHoverable showOnlyOnOverflow>
+            <Text>{operationName(span.op)}</Text>
           </Tooltip>
         </Cell>
       ),
@@ -143,57 +168,39 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
 );
 
 const cellBackground = p => {
+  if (p.isDetailsOpen) {
+    return `background-color: ${p.theme.textColor};`;
+  }
   if (p.hasOccurred === undefined && !p.isStatusError) {
-    return `background-color: ${p.isHovered ? p.theme.hover : 'inherit'};`;
+    const color = p.isHovered ? p.theme.hover : 'inherit';
+    return `background-color: ${color};`;
   }
   const color = p.isStatusError ? p.theme.alert.error.backgroundLight : 'inherit';
   return `background-color: ${color};`;
 };
 
-const cellBorder = p => {
-  if (p.hasOccurred === undefined) {
-    return null;
-  }
-  const color = p.isCurrent
-    ? p.theme.purple300
-    : p.isHovered
-    ? p.theme.purple200
-    : 'transparent';
-  return p.hasOccurredAsc
-    ? `border-bottom: 1px solid ${color};`
-    : `border-top: 1px solid ${color};`;
-};
-
 const cellColor = p => {
+  if (p.isDetailsOpen) {
+    const colors = p.isStatusError
+      ? [p.theme.alert.error.background]
+      : [p.theme.background];
+    return `color: ${p.hasOccurred !== false ? colors[0] : colors[0]};`;
+  }
   const colors = p.isStatusError
     ? [p.theme.alert.error.borderHover, p.theme.alert.error.iconColor]
     : ['inherit', p.theme.gray300];
-  if (p.hasOccurred === undefined) {
-    return `color: ${colors[0]};`;
-  }
-  return `color: ${p.hasOccurred ? colors[0] : colors[1]};`;
+
+  return `color: ${p.hasOccurred !== false ? colors[0] : colors[1]};`;
 };
 
-const Cell = styled('div')<{
-  hasOccurred: boolean | undefined;
-  hasOccurredAsc: boolean | undefined;
-  isCurrent: boolean;
-  isDetailsOpen: boolean;
-  isHovered: boolean;
-  isStatusError: boolean;
-  numeric?: boolean;
-  onClick?: undefined | (() => void);
-}>`
+const Cell = styled('div')<CellProps>`
   display: flex;
   align-items: center;
   padding: ${space(0.75)} ${space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
 
-  font-weight: ${p => (p.isDetailsOpen ? 'bold' : 'inherit')};
-
   ${cellBackground}
-  ${cellBorder}
   ${cellColor}
 
   ${p =>

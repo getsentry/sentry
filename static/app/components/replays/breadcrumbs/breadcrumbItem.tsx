@@ -1,4 +1,4 @@
-import {CSSProperties, memo, MouseEvent, useCallback} from 'react';
+import {CSSProperties, isValidElement, memo, MouseEvent, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
@@ -104,7 +104,7 @@ function BreadcrumbItem({
           ) : null}
         </TitleContainer>
 
-        {typeof description === 'string' ? (
+        {typeof description === 'string' || isValidElement(description) ? (
           <Description title={description} showOnlyOnOverflow>
             {description}
           </Description>
@@ -140,11 +140,13 @@ const TitleContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Title = styled('span')`
   ${p => p.theme.overflowEllipsis};
   text-transform: capitalize;
+  font-size: ${p => p.theme.fontSizeMedium};
   font-weight: 600;
   color: ${p => p.theme.gray400};
   line-height: ${p => p.theme.text.lineHeightBody};

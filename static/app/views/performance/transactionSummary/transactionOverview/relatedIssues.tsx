@@ -13,7 +13,7 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
@@ -57,7 +57,7 @@ class RelatedIssues extends Component<Props> {
 
   handleOpenClick = () => {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.summary.open_issues', {
+    trackAnalytics('performance_views.summary.open_issues', {
       organization: organization.id,
     });
   };

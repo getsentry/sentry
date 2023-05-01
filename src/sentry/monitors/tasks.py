@@ -1,6 +1,7 @@
 import logging
 from datetime import timedelta
 
+from django.conf import settings
 from django.utils import timezone
 
 from sentry.tasks.base import instrumented_task
@@ -18,7 +19,7 @@ from .models import (
 logger = logging.getLogger("sentry")
 
 # default maximum runtime for a monitor, in minutes
-TIMEOUT = 12 * 60
+TIMEOUT = 30
 
 # This is the MAXIMUM number of MONITOR this job will check.
 #
@@ -69,16 +70,19 @@ def check_monitors(current_datetime=None):
             monitor_environment=monitor_environment,
             status=CheckInStatus.MISSED,
         )
-        monitor_environment.monitor.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
         monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
 
-    qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related("monitor")[
-        :CHECKINS_LIMIT
-    ]
+    qs = (
+        MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS)
+        .select_related("monitor")
+        .exclude(monitor_id__in=settings.SENTRY_MONITORS_IGNORED_MONITORS)[:CHECKINS_LIMIT]
+    )
     metrics.gauge("sentry.monitors.tasks.check_monitors.timeout_count", qs.count())
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
         timeout = timedelta(minutes=(checkin.monitor.config or {}).get("max_runtime") or TIMEOUT)
+        # Check against date_updated to allow monitors to run for longer as
+        # long as they continute to send heart beats updating the checkin
         if checkin.date_updated > current_datetime - timeout:
             continue
 
@@ -101,5 +105,4 @@ def check_monitors(current_datetime=None):
             status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
         ).exists()
         if not has_newer_result:
-            monitor_environment.monitor.mark_failed(reason=MonitorFailure.DURATION)
             monitor_environment.mark_failed(reason=MonitorFailure.DURATION)

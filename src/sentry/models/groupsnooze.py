@@ -46,7 +46,6 @@ class GroupSnooze(Model):
     user_window = BoundedPositiveIntegerField(null=True)
     state = JSONField(null=True)
     actor_id = BoundedPositiveIntegerField(null=True)
-    until_escalating = models.BooleanField(null=True, default=False)
 
     objects = BaseManager(cache_fields=("group",))
 
@@ -97,7 +96,7 @@ class GroupSnooze(Model):
         start = end - timedelta(minutes=self.window)
 
         rate = tsdb.get_sums(
-            model=get_issue_tsdb_group_model(self.group.issue_category),
+            model=get_issue_tsdb_group_model(self.group.issue_category, self.group.project),
             keys=[self.group_id],
             start=start,
             end=end,
@@ -119,7 +118,7 @@ class GroupSnooze(Model):
         start = end - timedelta(minutes=self.user_window)
 
         rate = tsdb.get_distinct_counts_totals(
-            model=get_issue_tsdb_user_group_model(self.group.issue_category),
+            model=get_issue_tsdb_user_group_model(self.group.issue_category, self.group.project),
             keys=[self.group_id],
             start=start,
             end=end,

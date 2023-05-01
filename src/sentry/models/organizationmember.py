@@ -221,7 +221,7 @@ class OrganizationMember(Model):
         db_table = "sentry_organizationmember"
         unique_together = (("organization", "user"), ("organization", "email"))
 
-    __repr__ = sane_repr("organization_id", "user_id", "role")
+    __repr__ = sane_repr("organization_id", "user_id", "email", "role")
 
     def delete(self, *args, **kwds):
         with transaction.atomic(), in_test_psql_role_override("postgres"):

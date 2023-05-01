@@ -4,6 +4,7 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
+from sentry.models import ProjectOption
 from sentry.spans.grouping.strategy.base import Span
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
@@ -184,3 +185,23 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problem_2.fingerprint == "1-1009-515a42c2614f98fa886b6d9ad1ddfe1929329f53"
         assert problem_1.fingerprint == problem_2.fingerprint
+
+    def test_respects_project_option(self):
+        project = self.create_project()
+        event = self.create_issue_event()
+
+        settings = get_detection_settings(project.id)
+        detector = ConsecutiveHTTPSpanDetector(settings, event)
+
+        assert detector.is_creation_allowed_for_project(project)
+
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"consecutive_http_spans_detection_enabled": False},
+        )
+
+        settings = get_detection_settings(project.id)
+        detector = ConsecutiveHTTPSpanDetector(settings, event)
+
+        assert not detector.is_creation_allowed_for_project(project)

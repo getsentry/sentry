@@ -16,7 +16,6 @@ import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScree
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
-import {Resources} from 'sentry/components/events/interfaces/performance/resources';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
@@ -27,6 +26,7 @@ import {Event, Group, IssueCategory, Project} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
 
 type GroupEventDetailsContentProps = {
   group: Group;
@@ -41,7 +41,7 @@ type GroupEventEntryProps = {
   project: Project;
 };
 
-const GroupEventEntry = ({event, entryType, group, project}: GroupEventEntryProps) => {
+function GroupEventEntry({event, entryType, group, project}: GroupEventEntryProps) {
   const organization = useOrganization();
   const matchingEntry = event.entries.find(entry => entry.type === entryType);
 
@@ -57,13 +57,13 @@ const GroupEventEntry = ({event, entryType, group, project}: GroupEventEntryProp
       {...{organization, event}}
     />
   );
-};
+}
 
-const GroupEventDetailsContent = ({
+function GroupEventDetailsContent({
   group,
   event,
   project,
-}: GroupEventDetailsContentProps) => {
+}: GroupEventDetailsContentProps) {
   const organization = useOrganization();
   const location = useLocation();
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
@@ -125,9 +125,13 @@ const GroupEventDetailsContent = ({
       <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
-      <Resources {...{event, group}} />
-      <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
+      <ResourcesAndMaybeSolutions
+        event={event}
+        projectSlug={project.slug}
+        group={group}
+      />
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
+      <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
       <EventContexts group={group} event={event} />
       <EventExtraData event={event} />
       <EventPackageData event={event} />
@@ -155,7 +159,7 @@ const GroupEventDetailsContent = ({
       )}
     </Fragment>
   );
-};
+}
 
 const NotFoundMessage = styled('div')`
   padding: ${space(2)} ${space(4)};

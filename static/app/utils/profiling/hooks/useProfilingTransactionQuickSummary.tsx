@@ -63,18 +63,18 @@ export function useProfilingTransactionQuickSummary(
     query: '',
     selection,
     transaction,
-    sort: '-p95',
+    sort: '-sum',
     functionType: 'application',
     enabled: !skipFunctions,
   });
 
-  const slowestProfile = slowestProfileQuery?.data?.[0].data[0] ?? null;
-  const durationUnits = slowestProfileQuery.data?.[0].meta.units['transaction.duration'];
+  const slowestProfile = slowestProfileQuery?.data?.data[0] ?? null;
+  const durationUnits = slowestProfileQuery.data?.meta.units['transaction.duration'];
   const slowestProfileDurationMultiplier = durationUnits
     ? DURATION_UNITS[durationUnits] ?? 1
     : 1;
 
-  const latestProfile = latestProfileQuery?.data?.[0].data[0] ?? null;
+  const latestProfile = latestProfileQuery?.data?.data[0] ?? null;
   const functions = functionsQuery?.data?.[0]?.functions;
 
   return {

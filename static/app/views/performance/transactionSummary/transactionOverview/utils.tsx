@@ -38,10 +38,6 @@ export function getTransactionMEPParamsIfApplicable(
   organization: Organization,
   location: Location
 ) {
-  if (!organization.features.includes('performance-metrics-backed-transaction-summary')) {
-    return undefined;
-  }
-
   if (!canUseTransactionMetricsData(organization, location)) {
     return undefined;
   }
@@ -53,10 +49,6 @@ export function getTransactionTotalsMEPParamsIfApplicable(
   mepContext: MetricsEnhancedSettingContext,
   organization: Organization
 ) {
-  if (!organization.features.includes('performance-metrics-backed-transaction-summary')) {
-    return undefined;
-  }
-
   if (!canUseMetricsData(organization)) {
     return undefined;
   }

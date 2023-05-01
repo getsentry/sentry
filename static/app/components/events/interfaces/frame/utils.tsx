@@ -1,6 +1,12 @@
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Event, EventOrGroupType, Frame, PlatformType} from 'sentry/types';
+import {
+  Event,
+  EventOrGroupType,
+  Frame,
+  PlatformType,
+  StackTraceMechanism,
+} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 
 import {SymbolicatorStatus} from '../types';
@@ -86,17 +92,31 @@ export function hasAssembly(frame: Frame, platform?: string) {
   );
 }
 
+export function hasExceptionGroupTree({
+  isNewestFrame,
+  mechanism,
+}: {
+  isNewestFrame?: boolean;
+  mechanism?: StackTraceMechanism | null;
+}) {
+  return Boolean(isNewestFrame && mechanism?.is_exception_group);
+}
+
 export function isExpandable({
   frame,
   registers,
   emptySourceNotation,
   platform,
   isOnlyFrame,
+  isNewestFrame,
+  mechanism,
 }: {
   frame: Frame;
   registers: Record<string, string>;
   emptySourceNotation?: boolean;
+  isNewestFrame?: boolean;
   isOnlyFrame?: boolean;
+  mechanism?: StackTraceMechanism | null;
   platform?: string;
 }) {
   return (
@@ -104,7 +124,8 @@ export function isExpandable({
     hasContextSource(frame) ||
     hasContextVars(frame) ||
     hasContextRegisters(registers) ||
-    hasAssembly(frame, platform)
+    hasAssembly(frame, platform) ||
+    hasExceptionGroupTree({isNewestFrame, mechanism})
   );
 }
 
@@ -121,8 +142,20 @@ export function getLeadHint({
 
   switch (event.type) {
     case EventOrGroupType.ERROR:
-      return t('Crashed in non-app');
+      // ANRs/AppHangs are errors, but not crashes, so "Crashed in non-app" might be confusing as if
+      // there was a crash prior to ANR, hence special-casing them
+      return isAnrEvent(event) ? t('Occurred in non-app') : t('Crashed in non-app');
     default:
       return t('Occurred in non-app');
   }
+}
+
+function isAnrEvent(event: Event) {
+  const mechanismTag = event.tags?.find(({key}) => key === 'mechanism')?.value;
+  const isANR =
+    mechanismTag === 'ANR' ||
+    mechanismTag === 'AppExitInfo' ||
+    mechanismTag === 'AppHang' ||
+    mechanismTag === 'mx_hang_diagnostic';
+  return isANR;
 }

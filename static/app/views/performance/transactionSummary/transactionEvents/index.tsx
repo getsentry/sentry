@@ -5,7 +5,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -95,13 +95,10 @@ function EventsContentWrapper(props: ChildProps) {
   const onChangeSpanOperationBreakdownFilter = (
     newFilter: SpanOperationBreakdownFilter
   ) => {
-    trackAdvancedAnalyticsEvent(
-      'performance_views.transactionEvents.ops_filter_dropdown.selection',
-      {
-        organization,
-        action: newFilter as string,
-      }
-    );
+    trackAnalytics('performance_views.transactionEvents.ops_filter_dropdown.selection', {
+      organization,
+      action: newFilter as string,
+    });
 
     // Check to see if the current table sort matches the EventsDisplayFilter.
     // If it does, we can re-sort using the new SpanOperationBreakdownFilter
@@ -134,7 +131,7 @@ function EventsContentWrapper(props: ChildProps) {
   };
 
   const onChangeEventsDisplayFilter = (newFilterName: EventsDisplayFilterName) => {
-    trackAdvancedAnalyticsEvent(
+    trackAnalytics(
       'performance_views.transactionEvents.display_filter_dropdown.selection',
       {
         organization,
