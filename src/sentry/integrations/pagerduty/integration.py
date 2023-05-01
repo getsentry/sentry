@@ -159,7 +159,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
         with transaction.atomic():
             for service in services:
                 PagerDutyService.objects.create_or_update(
-                    organization_integration=org_integration,
+                    organization_integration_id=org_integration.id,
                     integration_key=service["integration_key"],
                     service_name=service["name"],
                 )
