@@ -11,6 +11,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.monitors.consumers.check_in import StoreMonitorCheckInStrategyFactory, _process_message
 from sentry.monitors.models import (
     CheckInStatus,
@@ -137,7 +138,7 @@ class MonitorConsumerTest(TestCase):
 
     @pytest.mark.django_db
     def test_disabled(self):
-        monitor = self._create_monitor(status=MonitorStatus.DISABLED)
+        monitor = self._create_monitor(status=ObjectStatus.DISABLED)
         message = self.get_message(monitor.slug, status="error")
         _process_message(message)
 
