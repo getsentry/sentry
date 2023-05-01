@@ -164,7 +164,6 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if sdk_name is None:
             return False
 
-        # based on https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/version.ts
         return sdk_name.lower() in [
             "sentry.javascript.browser",
             "sentry.javascript.react",
