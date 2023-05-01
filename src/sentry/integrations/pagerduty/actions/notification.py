@@ -91,7 +91,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             service
             for service in PagerDutyService.objects.filter(
                 organization_id=self.project.organization_id, integration_id__in=integration_ids
-            )
+            ).values_list("id", "service_name")
         ]
 
     def render_label(self):
@@ -106,5 +106,5 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         return self.form_cls(
             self.data,
             integrations=self.get_integrations(),
-            services=[(service.id, service.service_name) for service in self.get_services()],
+            services=self.get_services(),
         )
