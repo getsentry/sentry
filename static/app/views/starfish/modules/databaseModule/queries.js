@@ -41,6 +41,27 @@ const getActionQuery = action => (action !== 'ALL' ? `and action = '${action}'` 
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60;
 
+const getNewColumn = (duration, startTime) =>
+  duration > SEVEN_DAYS
+    ? `(
+        greater(min(start_timestamp), fromUnixTimestamp(${
+          startTime.unix() + duration / 10
+        })) and
+        greater(max(start_timestamp), fromUnixTimestamp(${
+          endTime.unix() - duration / 10
+        }))
+      ) as newish`
+    : '0 as newish';
+const getRetiredColumn = (duration, endTime) =>
+  duration > SEVEN_DAYS
+    ? `(
+        less(max(start_timestamp), fromUnixTimestamp(${
+          endTime.unix() - duration / 10
+        })) and
+        less(min(start_timestamp), fromUnixTimestamp(${startTime.unix() + duration / 10}))
+      ) as retired`
+    : '0 as retired';
+
 export const getOperations = date_filters => {
   return `
   select
@@ -168,7 +189,9 @@ export const getMainTable = (
   endTime,
   transactionFilter,
   tableFilter,
-  actionFilter
+  actionFilter,
+  newFilter,
+  oldFilter
 ) => {
   const filters = [
     DEFAULT_WHERE,
@@ -178,18 +201,9 @@ export const getMainTable = (
     actionFilter,
   ].filter(fil => !!fil);
   const duration = endTime.unix() - startTime.unix();
-  const newColumn =
-    duration > SEVEN_DAYS
-      ? `greater(min(start_timestamp), fromUnixTimestamp(${
-          startTime.unix() + duration / 10
-        })) as newish`
-      : '0 as newish';
-  const retiredColumn =
-    duration > SEVEN_DAYS
-      ? `less(max(start_timestamp), fromUnixTimestamp(${
-          endTime.unix() - duration / 10
-        })) as retired`
-      : '0 as retired';
+  const newColumn = getNewColumn(duration, startTime);
+  const retiredColumn = getRetiredColumn(duration, endTime);
+  const havingFilters = [newFilter, oldFilter].filter(fil => !!fil);
 
   return `
     select
@@ -217,6 +231,8 @@ export const getMainTable = (
       domain,
       data_keys,
       data_values
+    ${havingFilters.length > 0 ? 'having' : ''}
+      ${havingFilters.join(' and ')}
     order by ${ORDERBY}
     limit 100
   `;

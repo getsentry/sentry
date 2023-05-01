@@ -465,16 +465,15 @@ function Flamegraph(): ReactElement {
   // If we dont do this, then at some point during the zoom action the views will
   // detach and only one will zoom while the other one will stay at the same zoom level.
   useEffect(() => {
-    if (flamegraphView && spansView) {
-      const minWidthBetweenViews = Math.min(flamegraphView.minWidth, spansView.minWidth);
+    const minWidthBetweenViews = Math.min(
+      flamegraphView?.minWidth ?? Number.MAX_SAFE_INTEGER,
+      spansView?.minWidth ?? Number.MAX_SAFE_INTEGER,
+      uiFramesView?.minWidth ?? Number.MAX_SAFE_INTEGER
+    );
 
-      flamegraphView.setMinWidth(minWidthBetweenViews);
-      spansView.setMinWidth(minWidthBetweenViews);
-
-      if (uiFramesView) {
-        uiFramesView.setMinWidth(minWidthBetweenViews);
-      }
-    }
+    flamegraphView?.setMinWidth?.(minWidthBetweenViews);
+    spansView?.setMinWidth?.(minWidthBetweenViews);
+    uiFramesView?.setMinWidth?.(minWidthBetweenViews);
   }, [flamegraphView, spansView, uiFramesView]);
 
   // Uses a useLayoutEffect to ensure that these top level/global listeners are added before
