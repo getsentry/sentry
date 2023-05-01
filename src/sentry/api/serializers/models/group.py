@@ -900,7 +900,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
         *SKIP_SNUBA_FIELDS,
         "last_seen",
         "times_seen",
-        "date",  # We merge this with start/end, so don't want to include it as its own
+        "date",
+        "timestamp",  # We merge this with start/end, so don't want to include it as its own
         # condition
         # We don't need to filter by release stage again here since we're
         # filtering to specific groups. Saves us making a second query to
@@ -928,12 +929,28 @@ class GroupSerializerSnuba(GroupSerializerBase):
         # should try and encapsulate this logic, but if you're changing this, change it
         # there as well.
         self.start = None
-        start_params = [_f for _f in [start, get_search_filter(search_filters, "date", ">")] if _f]
+        start_params = [
+            _f
+            for _f in [
+                start,
+                get_search_filter(search_filters, "date", ">"),
+                get_search_filter(search_filters, "timestamp", ">"),
+            ]
+            if _f
+        ]
         if start_params:
             self.start = max(_f for _f in start_params if _f)
 
         self.end = None
-        end_params = [_f for _f in [end, get_search_filter(search_filters, "date", "<")] if _f]
+        end_params = [
+            _f
+            for _f in [
+                end,
+                get_search_filter(search_filters, "date", "<"),
+                get_search_filter(search_filters, "timestamp", "<"),
+            ]
+            if _f
+        ]
         if end_params:
             self.end = min(end_params)
 
