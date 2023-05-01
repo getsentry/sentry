@@ -218,7 +218,7 @@ class ConsecutiveDbDetectorTest(TestCase):
         event = {
             **self.create_issue_event(),
             "sdk": {"name": "sentry.javascript.browser"},
-            "measurements": {"lcp": {"value": 5999}},
+            "measurements": {"lcp": {"value": 5999, "unit": "millisecond"}},
             "start_timestamp": 0,
         }
         problems = self.find_problems(event)
@@ -264,7 +264,7 @@ class ConsecutiveDbDetectorTest(TestCase):
         event = {
             **self.create_issue_event(),
             "sdk": {"name": "sentry.javascript.browser"},
-            "measurements": {"lcp": {"value": 12001}},
+            "measurements": {"lcp": {"value": 12001, "unit": "millisecond"}},
             "start_timestamp": 0,
         }
         problems = self.find_problems(event)

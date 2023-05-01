@@ -27,6 +27,12 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
     def init(self):
         self.stored_problems: dict[str, PerformanceProblem] = {}
         self.consecutive_http_spans: list[Span] = []
+        self.lcp = None
+
+        lcp_value = get_path(self.event(), "measurements", "lcp", "value")
+        lcp_unit = get_path(self.event(), "measurements", "lcp", "unit")
+        if lcp_value and (lcp_unit is None or lcp_unit == "millisecond"):
+            self.lcp = lcp_value
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
@@ -61,11 +67,10 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             for idx in range(1, len(self.consecutive_http_spans))
         )
 
-        lcp = get_path(self._event, "measurements", "lcp", "value")
         exceeds_min_lcp_threshold = (
-            self._sum_span_duration(self.consecutive_http_spans) / lcp
+            self._sum_span_duration(self.consecutive_http_spans) / self.lcp
             >= self.settings.get("lcp_ratio_threshold")
-            if lcp and get_path(self._event, "sdk", "name") == "sentry.javascript.browser"
+            if self.lcp and get_path(self._event, "sdk", "name") == "sentry.javascript.browser"
             else True
         )
 
@@ -148,12 +153,11 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         return True
 
     def _span_occurs_after_lcp(self, span):
-        lcp = get_path(self._event, "measurements", "lcp", "value")
         return (
             datetime.fromtimestamp(span.get("timestamp"))
             > datetime.fromtimestamp(self._event.get("start_timestamp"))
-            + timedelta(milliseconds=lcp)
-            if lcp is not None
+            + timedelta(milliseconds=self.lcp)
+            if self.lcp is not None
             else True
         )
 
