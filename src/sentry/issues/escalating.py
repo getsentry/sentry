@@ -24,6 +24,7 @@ from snuba_sdk import (
 from sentry import analytics
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
@@ -34,7 +35,7 @@ from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["query_groups_past_counts", "parse_groups_past_counts"]
+__all__ = ["parse_groups_past_counts", "is_escalating", "_start_and_end_dates"]
 
 REFERRER = "sentry.issues.escalating"
 ELEMENTS_PER_SNUBA_PAGE = 10000  # This is the maximum value for Snuba
@@ -133,28 +134,6 @@ def _query_with_pagination(
     return all_results
 
 
-def parse_groups_past_counts(response: Sequence[GroupsCountResponse]) -> ParsedGroupsCount:
-    """
-    Return the parsed snuba response for groups past counts to be used in generate_issue_forecast.
-    ParsedGroupCount is of the form {<group_id>: {"intervals": [str], "data": [int]}}.
-
-    `response`: Snuba response for group event counts
-    """
-    group_counts: ParsedGroupsCount = {}
-    group_ids_list = group_counts.keys()
-    for data in response:
-        group_id = data["group_id"]
-        if group_id not in group_ids_list:
-            group_counts[group_id] = {
-                "intervals": [data["hourBucket"]],
-                "data": [data["count()"]],
-            }
-        else:
-            group_counts[group_id]["intervals"].append(data["hourBucket"])
-            group_counts[group_id]["data"].append(data["count()"])
-    return group_counts
-
-
 def _generate_query(
     project_ids: Sequence[int],
     group_ids: Sequence[int],
@@ -205,31 +184,56 @@ def _extract_project_and_group_ids(groups: Sequence[Group]) -> Dict[int, List[in
     return group_ids_by_project
 
 
-def get_group_hourly_count(organization_id: int, project_id: int, group_id: int) -> int:
+def parse_groups_past_counts(response: Sequence[GroupsCountResponse]) -> ParsedGroupsCount:
+    """
+    Return the parsed snuba response for groups past counts to be used in generate_issue_forecast.
+    ParsedGroupCount is of the form {<group_id>: {"intervals": [str], "data": [int]}}.
+
+    `response`: Snuba response for group event counts
+    """
+    group_counts: ParsedGroupsCount = {}
+    group_ids_list = group_counts.keys()
+    for data in response:
+        group_id = data["group_id"]
+        if group_id not in group_ids_list:
+            group_counts[group_id] = {
+                "intervals": [data["hourBucket"]],
+                "data": [data["count()"]],
+            }
+        else:
+            group_counts[group_id]["intervals"].append(data["hourBucket"])
+            group_counts[group_id]["data"].append(data["count()"])
+    return group_counts
+
+
+def get_group_hourly_count(group: Group) -> int:
     """Return the number of events a group has had today in the last hour"""
-    key = f"hourly-group-count:{project_id}:{group_id}"
+    key = f"hourly-group-count:{group.project.id}:{group.id}"
     hourly_count = cache.get(key)
 
     if hourly_count is None:
         now = datetime.now()
         current_hour = now.replace(minute=0, second=0, microsecond=0)
         query = Query(
-            match=Entity(EntityKey.Events.value),
+            match=Entity(_issue_category_entity(group.issue_category)),
             select=[
                 Function("count", []),
             ],
             where=[
-                Condition(Column("project_id"), Op.EQ, project_id),
-                Condition(Column("group_id"), Op.EQ, group_id),
+                Condition(Column("project_id"), Op.EQ, group.project.id),
+                Condition(Column("group_id"), Op.EQ, group.id),
                 Condition(Column("timestamp"), Op.GTE, current_hour),
                 Condition(Column("timestamp"), Op.LT, now),
             ],
         )
         request = Request(
-            dataset=Dataset.Events.value,
+            dataset=_issue_category_dataset(group.issue_category),
             app_id=IS_ESCALATING_REFERRER,
             query=query,
-            tenant_ids={"referrer": IS_ESCALATING_REFERRER, "organization_id": organization_id},
+            tenant_ids={
+                "referrer": IS_ESCALATING_REFERRER,
+                "organization_id": group.project.organization.id,
+            },
         )
         hourly_count = int(
             raw_snql_query(request, referrer=IS_ESCALATING_REFERRER)["data"][0]["count()"]
@@ -240,9 +244,7 @@ def get_group_hourly_count(organization_id: int, project_id: int, group_id: int)
 
 def is_escalating(group: Group) -> bool:
     """Return boolean depending on if the group is escalating or not"""
-    group_hourly_count = get_group_hourly_count(
-        group.project.organization.id, group.project.id, group.id
-    )
+    group_hourly_count = get_group_hourly_count(group)
     forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
     # Check if current event occurance is greater than forecast for today's date
     if group_hourly_count > forecast_today:
@@ -258,3 +260,17 @@ def is_escalating(group: Group) -> bool:
         )
         return True
     return False
+
+
+def _issue_category_dataset(category: GroupCategory) -> Dataset:
+    if category == GroupCategory.ERROR:
+        return Dataset.Events.value
+    else:
+        raise NotImplementedError
+
+
+def _issue_category_entity(category: GroupCategory) -> EntityKey:
+    if category == GroupCategory.ERROR:
+        return EntityKey.Events.value
+    else:
+        raise NotImplementedError
