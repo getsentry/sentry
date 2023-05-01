@@ -11,7 +11,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, TagWithTopValues} from 'sentry/types';
+import {Organization, Project, TagWithTopValues} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -20,6 +20,7 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
+  project: Project;
 } & AsyncView['props'];
 
 type State = {
@@ -66,13 +67,14 @@ class ProjectTags extends AsyncView<Props, State> {
   };
 
   renderBody() {
+    const {project} = this.props;
     const {tags} = this.state;
     const isEmpty = !tags || !tags.length;
 
     return (
       <Fragment>
         <SettingsPageHeader title={t('Tags')} />
-        <PermissionAlert />
+        <PermissionAlert project={project} />
 
         <TextBlock>
           {tct(
@@ -98,7 +100,7 @@ class ProjectTags extends AsyncView<Props, State> {
                 })}
               </EmptyMessage>
             ) : (
-              <Access access={['project:write']}>
+              <Access access={['project:write']} project={project}>
                 {({hasAccess}) =>
                   tags.map(({key, canDelete}, idx) => {
                     const enabled = canDelete && hasAccess;
