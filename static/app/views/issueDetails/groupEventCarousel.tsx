@@ -164,7 +164,12 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             {getDynamicText({
               fixed: 'Jan 1, 12:00 AM',
               value: (
-                <Tooltip showUnderline title={<EventCreatedTooltip event={event} />}>
+                <Tooltip
+                  isHoverable
+                  showUnderline
+                  title={<EventCreatedTooltip event={event} />}
+                  overlayStyle={{maxWidth: 300}}
+                >
                   <DateTime date={event.dateCreated ?? event.dateReceived} />
                 </Tooltip>
               ),
