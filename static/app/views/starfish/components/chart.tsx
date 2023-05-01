@@ -246,6 +246,11 @@ function Chart({
     showTimeInTooltip: true,
     colors,
     tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'cross',
+        label: {show: false},
+      },
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
           value,
