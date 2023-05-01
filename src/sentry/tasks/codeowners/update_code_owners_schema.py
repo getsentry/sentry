@@ -35,8 +35,8 @@ def update_code_owners_schema(
         integration_id = _unpack_integration_id(integration)
         if integration_id is not None:
             code_mapping_ids = RepositoryProjectPathConfig.objects.filter(
-                organization_integration__organization_id=organization.id,
-                organization_integration__integration_id=integration_id,
+                organization_id=organization.id,
+                integration_id=integration_id,
             ).values_list("id", flat=True)
 
             code_owners = ProjectCodeOwners.objects.filter(

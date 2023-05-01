@@ -74,7 +74,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0430_break_fks_on_alertruletriggeraction"),
+        ("sentry", "0433_set_monitor_status_to_object_status_only"),
     ]
 
     operations = external_actor_and_issue_migrations()
