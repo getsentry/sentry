@@ -8,9 +8,11 @@ from sentry.sentry_metrics.indexer.base import (
     KeyCollection,
     KeyResult,
     KeyResults,
+    OrgId,
     StringIndexer,
 )
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
+from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 
 
 class RawSimpleIndexer(StringIndexer):
@@ -24,14 +26,17 @@ class RawSimpleIndexer(StringIndexer):
         )
         self._reverse: Dict[int, str] = {}
 
-    def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
+    def bulk_record(self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]) -> KeyResults:
+        use_case_id = list(strings.keys())[0]  # should be only one use case per batch
+        org_strings = strings[use_case_id]
+
+        metric_path_key = METRIC_PATH_MAPPING[use_case_id]
+
         db_read_keys = KeyCollection(org_strings)
         db_read_key_results = KeyResults()
         for org_id, strs in org_strings.items():
             for string in strs:
-                id = self.resolve(use_case_id, org_id, string)
+                id = self.resolve(metric_path_key, org_id, string)
                 if id is not None:
                     db_read_key_results.add_key_result(
                         KeyResult(org_id=org_id, string=string, id=id), fetch_type=FetchType.DB_READ
@@ -51,7 +56,7 @@ class RawSimpleIndexer(StringIndexer):
 
         return db_read_key_results.merge(db_write_key_results)
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         return self._record(org_id, string)
 
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:

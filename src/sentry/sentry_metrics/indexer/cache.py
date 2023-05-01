@@ -12,9 +12,14 @@ from sentry.sentry_metrics.indexer.base import (
     KeyCollection,
     KeyResult,
     KeyResults,
+    OrgId,
     StringIndexer,
 )
-from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING
+from sentry.sentry_metrics.use_case_id_registry import (
+    METRIC_PATH_MAPPING,
+    REVERSE_METRIC_PATH_MAPPING,
+    UseCaseID,
+)
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
@@ -113,13 +118,16 @@ class CachingIndexer(StringIndexer):
         self.cache = cache
         self.indexer = indexer
 
-    def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
+    def bulk_record(self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]) -> KeyResults:
+        use_case_id = list(strings.keys())[0]  # should be only one use case per batch
+        org_strings = strings[use_case_id]
+
+        metric_path_key = METRIC_PATH_MAPPING[use_case_id]
+
         cache_keys = KeyCollection(org_strings)
         metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
         cache_key_strs = cache_keys.as_strings()
-        cache_results = self.cache.get_many(cache_key_strs, use_case_id.value)
+        cache_results = self.cache.get_many(cache_key_strs, metric_path_key.value)
 
         hits = [k for k, v in cache_results.items() if v is not None]
 
@@ -152,23 +160,23 @@ class CachingIndexer(StringIndexer):
         if db_record_keys.size == 0:
             return cache_key_results
 
-        db_record_key_results = self.indexer.bulk_record(use_case_id, db_record_keys.mapping)
+        db_record_key_results = self.indexer.bulk_record({use_case_id: db_record_keys.mapping})
 
         self.cache.set_many(
-            db_record_key_results.get_mapped_key_strings_to_ints(), use_case_id.value
+            db_record_key_results.get_mapped_key_strings_to_ints(), metric_path_key.value
         )
 
         double_write = options.get("sentry-metrics.indexer.cache-key-double-write")
 
         if double_write:
             self.cache.set_many_new(
-                db_record_key_results.get_mapped_key_strings_to_ints(), use_case_id.value
+                db_record_key_results.get_mapped_key_strings_to_ints(), metric_path_key.value
             )
 
         return cache_key_results.merge(db_record_key_results)
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
         return result[org_id][string]
 
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:

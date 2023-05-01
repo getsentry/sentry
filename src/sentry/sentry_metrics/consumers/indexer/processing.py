@@ -108,14 +108,11 @@ class MessageProcessor:
         batch.filter_messages(cardinality_limiter_state.keys_to_remove)
 
         extracted_strings = batch.extract_strings()
-        org_strings = next(iter(extracted_strings.values())) if extracted_strings else {}
 
-        sdk.set_measurement("org_strings.len", len(org_strings))
+        sdk.set_measurement("extracted_strings.len", len(extracted_strings))
 
         with metrics.timer("metrics_consumer.bulk_record"), sentry_sdk.start_span(op="bulk_record"):
-            record_result = self._indexer.bulk_record(
-                use_case_id=self._config.use_case_id, org_strings=org_strings
-            )
+            record_result = self._indexer.bulk_record(strings=extracted_strings)
 
         mapping = record_result.get_mapped_results()
         bulk_record_meta = record_result.get_fetch_metadata()

@@ -412,9 +412,7 @@ class StringIndexer(Service):
         "reverse_shared_org_resolve",
     )
 
-    def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
+    def bulk_record(self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]) -> KeyResults:
         """
         Takes in a mapping with org_ids to sets of strings.
 
@@ -449,7 +447,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be

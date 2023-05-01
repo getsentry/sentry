@@ -16,6 +16,7 @@ from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCac
 from sentry.sentry_metrics.indexer.mock import RawSimpleIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PGStringIndexerV2
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS, StaticStringIndexer
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.helpers.options import override_options
 
 BACKENDS = [
@@ -48,6 +49,7 @@ def indexer_cache():
 
 
 use_case_id = UseCaseKey("release-health")
+use_case_id_new = UseCaseID.SESSIONS
 
 
 def assert_fetch_type_for_tag_string_set(
@@ -62,7 +64,7 @@ def test_static_and_non_static_strings(indexer):
         2: {"release", "1.0.0"},
         3: {"production", "environment", "release", "2.0.0"},
     }
-    results = static_indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)
+    results = static_indexer.bulk_record(strings={use_case_id_new: org_strings})
 
     v1 = indexer.resolve(use_case_id, 2, "1.0.0")
     v2 = indexer.resolve(use_case_id, 3, "2.0.0")
@@ -95,7 +97,7 @@ def test_indexer(indexer, indexer_cache):
     org_strings = {org1_id: strings, org2_id: {"sup"}}
 
     # create a record with diff org_id but same string that we test against
-    indexer.record(use_case_id, 999, "hey")
+    indexer.record(use_case_id_new, 999, "hey")
 
     assert list(
         indexer_cache.get_many(
@@ -104,7 +106,7 @@ def test_indexer(indexer, indexer_cache):
         ).values()
     ) == [None, None, None]
 
-    results = indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings).results
+    results = indexer.bulk_record(strings={use_case_id_new: org_strings}).results
 
     org1_string_ids = {
         raw_indexer.resolve(use_case_id, org1_id, "hello"),
@@ -147,7 +149,7 @@ def test_resolve_and_reverse_resolve(indexer, indexer_cache):
     indexer = CachingIndexer(indexer_cache, indexer)
 
     org_strings = {org1_id: strings}
-    indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)
+    indexer.bulk_record(strings={use_case_id_new: org_strings})
 
     # test resolve and reverse_resolve
     id = indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="hello")
@@ -155,7 +157,7 @@ def test_resolve_and_reverse_resolve(indexer, indexer_cache):
     assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=id) == "hello"
 
     # test record on a string that already exists
-    indexer.record(use_case_id=use_case_id, org_id=org1_id, string="hello")
+    indexer.record(use_case_id=use_case_id_new, org_id=org1_id, string="hello")
     assert indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="hello") == id
 
     # test invalid values
@@ -173,14 +175,14 @@ def test_already_created_plus_written_results(indexer, indexer_cache) -> None:
     raw_indexer = indexer
     indexer = CachingIndexer(indexer_cache, indexer)
 
-    v0 = raw_indexer.record(use_case_id, org_id, "v1.2.0")
-    v1 = raw_indexer.record(use_case_id, org_id, "v1.2.1")
-    v2 = raw_indexer.record(use_case_id, org_id, "v1.2.2")
+    v0 = raw_indexer.record(use_case_id_new, org_id, "v1.2.0")
+    v1 = raw_indexer.record(use_case_id_new, org_id, "v1.2.1")
+    v2 = raw_indexer.record(use_case_id_new, org_id, "v1.2.2")
 
     expected_mapping = {"v1.2.0": v0, "v1.2.1": v1, "v1.2.2": v2}
 
     results = indexer.bulk_record(
-        use_case_id=use_case_id, org_strings={org_id: {"v1.2.0", "v1.2.1", "v1.2.2"}}
+        strings={use_case_id_new: {org_id: {"v1.2.0", "v1.2.1", "v1.2.2"}}}
     )
     assert len(results[org_id]) == len(expected_mapping) == 3
 
@@ -188,8 +190,7 @@ def test_already_created_plus_written_results(indexer, indexer_cache) -> None:
         assert expected_mapping[string] == id
 
     results = indexer.bulk_record(
-        use_case_id=use_case_id,
-        org_strings={org_id: {"v1.2.0", "v1.2.1", "v1.2.2", "v1.2.3"}},
+        strings={use_case_id_new: {org_id: {"v1.2.0", "v1.2.1", "v1.2.2", "v1.2.3"}}},
     )
     v3 = raw_indexer.resolve(use_case_id, org_id, "v1.2.3")
     expected_mapping["v1.2.3"] = v3
@@ -218,7 +219,7 @@ def test_already_cached_plus_read_results(indexer, indexer_cache) -> None:
     raw_indexer = indexer
     indexer = CachingIndexer(indexer_cache, indexer)
 
-    results = indexer.bulk_record(use_case_id=use_case_id, org_strings={org_id: {"beep", "boop"}})
+    results = indexer.bulk_record(strings={use_case_id_new: {org_id: {"beep", "boop"}}})
     assert len(results[org_id]) == 2
     assert results[org_id]["beep"] == 10
     assert results[org_id]["boop"] == 11
@@ -227,12 +228,10 @@ def test_already_cached_plus_read_results(indexer, indexer_cache) -> None:
     assert not raw_indexer.resolve(use_case_id, org_id, "beep")
     assert not raw_indexer.resolve(use_case_id, org_id, "boop")
 
-    bam = raw_indexer.record(use_case_id, org_id, "bam")
+    bam = raw_indexer.record(use_case_id_new, org_id, "bam")
     assert bam is not None
 
-    results = indexer.bulk_record(
-        use_case_id=use_case_id, org_strings={org_id: {"beep", "boop", "bam"}}
-    )
+    results = indexer.bulk_record(strings={use_case_id_new: {org_id: {"beep", "boop", "bam"}}})
     assert len(results[org_id]) == 3
     assert results[org_id]["beep"] == 10
     assert results[org_id]["boop"] == 11
@@ -263,7 +262,7 @@ def test_rate_limited(indexer):
             ],
         }
     ):
-        results = indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)
+        results = indexer.bulk_record(strings={use_case_id_new: org_strings})
 
     assert len(results[1]) == 3
     assert len(results[2]) == 2
@@ -297,7 +296,7 @@ def test_rate_limited(indexer):
             ],
         }
     ):
-        results = indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)
+        results = indexer.bulk_record(strings={use_case_id_new: org_strings})
 
     assert results[1] == {"x": None, "y": None, "z": None}
     for letter in "xyz":
@@ -317,7 +316,7 @@ def test_rate_limited(indexer):
             ],
         }
     ):
-        results = indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)
+        results = indexer.bulk_record(strings={use_case_id_new: org_strings})
 
     rate_limited_strings2 = set()
     for k, v in results[1].items():
