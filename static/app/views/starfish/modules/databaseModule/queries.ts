@@ -11,7 +11,7 @@ const ORDERBY = `
   -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
 `;
 
-const getActionSubquery = (date_filters: any) => {
+const getActionSubquery = (date_filters: string) => {
   return `
   select action
   from default.spans_experimental_starfish
@@ -24,7 +24,7 @@ const getActionSubquery = (date_filters: any) => {
   `;
 };
 
-const getDomainSubquery = (date_filters: any, action: any) => {
+const getDomainSubquery = (date_filters: string, action: string) => {
   return `
   select domain
   from default.spans_experimental_starfish
@@ -144,7 +144,7 @@ export const getTopTablesChart = (
 export const getPanelTableQuery = (
   date_filters: string,
   row: {
-    group_id: any;
+    group_id: string;
     action?: string;
     count?: number;
     data_keys?: string[];
@@ -181,7 +181,10 @@ export const getPanelTableQuery = (
   `;
 };
 
-const getOrderByFromKey = (sortKey: any, sortDirection: any) => {
+const getOrderByFromKey = (
+  sortKey: string | undefined,
+  sortDirection: string | undefined
+) => {
   if (!sortDirection || !sortKey) {
     return undefined;
   }
@@ -192,7 +195,7 @@ const getOrderByFromKey = (sortKey: any, sortDirection: any) => {
 export const getPanelGraphQuery = (
   date_filters: string,
   row: {
-    group_id: any;
+    group_id: string;
     action?: string;
     count?: number;
     data_keys?: string[];
@@ -229,7 +232,7 @@ export const getPanelGraphQuery = (
 export const getPanelEventCount = (
   date_filters: string,
   row: {
-    group_id: any;
+    group_id: string;
     action?: string;
     count?: number;
     data_keys?: string[];
