@@ -438,6 +438,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             now - timedelta(seconds=rollup_duration),
             time_from_now(17),
             rollup_duration,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         )
 
         environment_time_series = tsdb.get_distinct_counts_series(
@@ -447,6 +448,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             time_from_now(17),
             rollup_duration,
             environment_id=production_environment.id,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         )
 
         def collect_by_user_tag(aggregate, event):
@@ -512,6 +514,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 now - timedelta(seconds=rollup_duration),
                 time_from_now(17),
                 rollup_duration,
+                tenant_ids={"referrer": "r", "organization_id": 1234},
             )
         )
 
@@ -546,6 +549,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 now - timedelta(seconds=rollup_duration),
                 time_from_now(17),
                 rollup_duration,
+                tenant_ids={"referrer": "r", "organization_id": 1234},
             )
         )
 
