@@ -647,6 +647,7 @@ CELERY_IMPORTS = (
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.weekly_escalating_forecast",
+    "sentry.tasks.auto_ongoing_issues",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -939,6 +940,12 @@ CELERYBEAT_SCHEDULE = {
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
+    "schedule_auto_transition": {
+        "task": "sentry.tasks.schedule_auto_transition",
+        # Run job once a day at 00:30
+        "schedule": crontab(minute=30, hour="0"),
+        "options": {"expires": 3600},
+    },
 }
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
@@ -1134,6 +1141,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-ui": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
+    # Enable the task to transition new issues that are 3+ days old to (Unresolved, Ongoing) state
+    "organizations:issue-states-auto-transition-new-ongoing": False,
     # Enable the new issue states and substates
     "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1416,6 +1425,8 @@ SENTRY_FEATURES = {
     "organizations:org-roles-for-teams": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
+    # If true certain Slack messages will be escaped to prevent rendering markdown
+    "organizations:slack-escape-messages": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -3227,9 +3238,6 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
     "options": {"cluster": "default"},
 }
-
-# Killswitch to ignore checkins for explicit monitors
-SENTRY_MONITORS_IGNORED_MONITORS = []
 
 # Monitor limits to prevent abuse
 MAX_MONITORS_PER_ORG = 10000

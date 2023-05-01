@@ -1,36 +1,37 @@
+import {CSSProperties, useState} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 
 import Badge from 'sentry/components/badge';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
-import space from 'sentry/styles/space';
-import ArrayValue from 'sentry/utils/discover/arrayValue';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
-
-const HOST = 'http://localhost:8080';
+import {space} from 'sentry/styles/space';
+import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel';
 
 type Props = {
+  isDataLoading: boolean;
   location: Location;
-  onSelect: (row: DataRow) => void;
-  transaction: string;
-  action?: string;
-  columns?: {
-    key: string;
-    name: string;
-    width: number;
-  }[];
-  table?: string;
+  onSelect: (row: DataRow, rowIndex: number) => void;
+  columns?: any;
+  data?: DataRow[];
+  onSortChange?: ({
+    direction,
+    sortHeader,
+  }: {
+    direction: 'desc' | 'asc' | undefined;
+    sortHeader: TableColumnHeader;
+  }) => void;
+  selectedRow?: DataRow;
 };
 
 export type DataRow = {
+  action: string;
+  count: number;
   data_keys: Array<string>;
   data_values: Array<string>;
   description: string;
+  domain: string;
   epm: number;
   firstSeen: string;
   formatted_desc: string;
@@ -43,7 +44,10 @@ export type DataRow = {
   transactions: number;
 };
 
-const COLUMN_ORDER = [
+type Keys = 'description' | 'domain' | 'epm' | 'p75' | 'transactions' | 'total_time';
+export type TableColumnHeader = GridColumnHeader<Keys>;
+
+const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'description',
     name: 'Query',
@@ -74,56 +78,62 @@ const COLUMN_ORDER = [
 
 export default function APIModuleView({
   location,
-  action,
-  transaction,
+  data,
   onSelect,
-  table,
+  onSortChange,
+  selectedRow,
+  isDataLoading,
   columns,
 }: Props) {
-  const transactionFilter =
-    transaction.length > 0 ? `transaction='${transaction}'` : null;
-  const tableFilter = table ? `domain = '${table}'` : null;
-  const actionFilter = action ? `action = '${action}'` : null;
+  const [sort, setSort] = useState<{
+    direction: 'desc' | 'asc' | undefined;
+    sortHeader: TableColumnHeader | undefined;
+  }>({direction: undefined, sortHeader: undefined});
 
-  const pageFilter = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilter);
-  const DATE_FILTERS = `
-    greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
-    less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
-  `;
-
-  const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
-    queryKey: ['endpoints', action, transaction, table, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getMainTable(
-          DATE_FILTERS,
-          transactionFilter,
-          tableFilter,
-          actionFilter,
-          startTime,
-          endTime
-        )}&format=sql`
-      ).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
-  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    return <span>{column.name}</span>;
+  function onSortClick(col: TableColumnHeader) {
+    let direction: 'desc' | 'asc' | undefined = undefined;
+    if (sort.direction === 'desc') {
+      direction = 'asc';
+    } else if (!sort.direction) {
+      direction = 'desc';
+    }
+    if (onSortChange) {
+      setSort({direction, sortHeader: col});
+      onSortChange({direction, sortHeader: col});
+    }
   }
 
-  function renderBodyCell(column: GridColumnHeader, row: DataRow): React.ReactNode {
-    if (column.key === 'columns') {
-      const value = row.data_values[row.data_keys.indexOf('columns')];
-      return value ? <ArrayValue value={value?.split(',')} /> : <span />;
+  function renderHeadCell(col: TableColumnHeader): React.ReactNode {
+    const sortableKeys: Keys[] = ['p75', 'epm', 'total_time', 'domain', 'transactions'];
+    if (sortableKeys.includes(col.key)) {
+      const isBeingSorted = col.key === sort.sortHeader?.key;
+      const direction = isBeingSorted ? sort.direction : undefined;
+      return (
+        <SortableHeader
+          onClick={() => onSortClick(col)}
+          direction={direction}
+          title={col.name}
+        />
+      );
     }
-    if (column.key === 'order') {
-      const value = row.data_values[row.data_keys.indexOf('order')];
-      return value ? <ArrayValue value={value?.split(',')} /> : <span />;
-    }
-    if (column.key === 'description') {
-      const value = row[column.key];
+    return <span>{col.name}</span>;
+  }
+
+  function renderBodyCell(
+    column: TableColumnHeader,
+    row: DataRow,
+    rowIndex: number
+  ): React.ReactNode {
+    const {key} = column;
+
+    const isSelectedRow = selectedRow?.group_id === row.group_id;
+    const rowStyle: CSSProperties | undefined = isSelectedRow
+      ? {fontWeight: 'bold'}
+      : undefined;
+
+    if (key === 'description') {
+      const value = row[key];
+
       let headerExtra = '';
       if (row.newish === 1) {
         headerExtra = `Query (First seen ${row.firstSeen})`;
@@ -132,7 +142,7 @@ export default function APIModuleView({
       }
       return (
         <Hovercard header={headerExtra} body={value}>
-          <Link onClick={() => onSelect(row)} to="">
+          <Link onClick={() => onSelect(row, rowIndex)} to="" style={rowStyle}>
             {value.substring(0, 30)}
             {value.length > 30 ? '...' : ''}
             {value.length > 30 ? value.substring(value.length - 30) : ''}
@@ -142,27 +152,17 @@ export default function APIModuleView({
         </Hovercard>
       );
     }
-    if (['p75', 'total_time'].includes(column.key.toString())) {
-      return <span>{row[column.key].toFixed(2)}ms</span>;
+    if (key === 'p75' || key === 'total_time') {
+      const value = row[key];
+      return <span style={rowStyle}>{value.toFixed(2)}ms</span>;
     }
-    if (column.key === 'conditions') {
-      const value = row.data_values[row.data_keys.indexOf('where')];
-      return value ? (
-        <Link onClick={() => onSelect(row)} to="">
-          {value.length > 60 ? '...' : ''}
-          {value.substring(value.length - 60)}
-        </Link>
-      ) : (
-        <span />
-      );
-    }
-    return <span>{row[column.key]}</span>;
+    return <span style={rowStyle}>{row[key]}</span>;
   }
 
   return (
     <GridEditable
-      isLoading={areEndpointsLoading}
-      data={endpointsData}
+      isLoading={isDataLoading}
+      data={data as any}
       columnOrder={columns ?? COLUMN_ORDER}
       columnSortBy={[]}
       grid={{

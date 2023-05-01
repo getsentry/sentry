@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Scope} from 'sentry/types';
+import {Organization, Project, Scope, Team} from 'sentry/types';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -14,7 +14,7 @@ type ChildRenderProps = {
 
 type ChildFunction = (props: ChildRenderProps) => JSX.Element;
 
-type Props = {
+export type Props = {
   /**
    * List of required access levels
    */
@@ -27,18 +27,42 @@ type Props = {
    * Requires superuser
    */
   isSuperuser?: boolean;
+
+  /**
+   * Optional: To be used when you need to check for access to the Project
+   *
+   * E.g. On the project settings page, the user will need project:write.
+   * An "org-member" does not have project:write but if they are "team-admin" for
+   * of a parent team, they will have appropriate scopes.
+   */
+  project?: Project | null | undefined;
+
+  /**
+   * Optional: To be used when you need to check for access to the Team
+   *
+   * E.g. On the team settings page, the user will need team:write.
+   * An "org-member" does not have team:write but if they are "team-admin" for
+   * the team, they will have appropriate scopes.
+   */
+  team?: Team | null | undefined;
 };
 
 /**
  * Component to handle access restrictions.
  */
-function Access({children, isSuperuser = false, access = []}: Props) {
+function Access({children, isSuperuser = false, access = [], team, project}: Props) {
   const config = useLegacyStore(ConfigStore);
   const organization = useOrganization();
 
   const {access: orgAccess} = organization || {access: []};
+  const {access: teamAccess} = team || {access: [] as Team['access']};
+  const {access: projAccess} = project || {access: [] as Project['access']};
 
-  const hasAccess = !access || access.every(acc => orgAccess.includes(acc));
+  const hasAccess =
+    !access ||
+    access.every(acc => orgAccess.includes(acc)) ||
+    access.every(acc => teamAccess?.includes(acc)) ||
+    access.every(acc => projAccess?.includes(acc));
   const hasSuperuser = !!(config.user && config.user.isSuperuser);
 
   const renderProps: ChildRenderProps = {
@@ -53,6 +77,23 @@ function Access({children, isSuperuser = false, access = []}: Props) {
   }
 
   return <Fragment>{render ? children : null}</Fragment>;
+}
+
+export function hasEveryAccess(
+  access: Scope[],
+  props: {organization?: Organization; project?: Project; team?: Team}
+) {
+  const {organization, team, project} = props;
+  const {access: orgAccess} = organization || {access: [] as Organization['access']};
+  const {access: teamAccess} = team || {access: [] as Team['access']};
+  const {access: projAccess} = project || {access: [] as Project['access']};
+
+  return (
+    !access ||
+    access.every(acc => orgAccess.includes(acc)) ||
+    access.every(acc => teamAccess?.includes(acc)) ||
+    access.every(acc => projAccess?.includes(acc))
+  );
 }
 
 export default Access;

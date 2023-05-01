@@ -1,4 +1,12 @@
-import {createContext, Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {
+  createContext,
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -18,6 +26,7 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {FormSize} from 'sentry/utils/theme';
 import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
+import usePrevious from 'sentry/utils/usePrevious';
 
 import {SingleListProps} from './list';
 import {SelectOption} from './types';
@@ -74,6 +83,12 @@ export interface ControlProps
    * If true, there will be a "Clear" button in the menu header.
    */
   clearable?: boolean;
+  /**
+   * Whether to disable the search input's filter function (applicable only when
+   * `searchable` is true). This is useful for implementing custom search behaviors,
+   * like fetching new options on search (via the onSearch() prop).
+   */
+  disableSearchFilter?: boolean;
   disabled?: boolean;
   /**
    * Message to be displayed when all options have been filtered out (via search).
@@ -91,11 +106,21 @@ export interface ControlProps
    */
   grid?: boolean;
   /**
+   * If true, all select options will be hidden. This should only be used on a temporary
+   * basis in conjunction with `menuBody` to display special views/states (e.g. a
+   * secondary date range selector).
+   */
+  hideOptions?: boolean;
+  /**
    * If true, there will be a loading indicator in the menu header.
    */
   loading?: boolean;
   maxMenuHeight?: number | string;
   maxMenuWidth?: number | string;
+  /**
+   * Optional content to display below the menu's header and above the options.
+   */
+  menuBody?: React.ReactNode | ((actions: {closeOverlay: () => void}) => React.ReactNode);
   /**
    * Footer to be rendered at the bottom of the menu.
    */
@@ -158,19 +183,23 @@ export function Control({
   isOpen,
   onClose,
   onInteractOutside,
+  shouldCloseOnInteractOutside,
   disabled,
   position = 'bottom-start',
   offset,
+  hideOptions,
   menuTitle,
   maxMenuHeight = '32rem',
   maxMenuWidth,
   menuWidth,
+  menuBody,
   menuFooter,
 
   // Select props
   size = 'md',
   searchable = false,
   searchPlaceholder = 'Search…',
+  disableSearchFilter = false,
   onSearch,
   clearable = false,
   onClear,
@@ -197,13 +226,19 @@ export function Control({
    * Search/filter value, used to filter out the list of displayed elements
    */
   const [search, setSearch] = useState('');
+  const [searchInputValue, setSearchInputValue] = useState(search);
   const searchRef = useRef<HTMLInputElement>(null);
   const updateSearch = useCallback(
     (newValue: string) => {
-      setSearch(newValue);
       onSearch?.(newValue);
+
+      setSearchInputValue(newValue);
+      if (!disableSearchFilter) {
+        setSearch(newValue);
+        return;
+      }
     },
-    [onSearch]
+    [onSearch, disableSearchFilter]
   );
 
   const {keyboardProps: searchKeyboardProps} = useKeyboard({
@@ -234,6 +269,7 @@ export function Control({
   const {
     isOpen: overlayIsOpen,
     state: overlayState,
+    update: updateOverlay,
     triggerRef,
     triggerProps: overlayTriggerProps,
     overlayRef,
@@ -244,6 +280,7 @@ export function Control({
     offset,
     isOpen,
     onInteractOutside,
+    shouldCloseOnInteractOutside,
     onOpenChange: async open => {
       // On open
       if (open) {
@@ -275,13 +312,33 @@ export function Control({
 
       // On close
       onClose?.();
-      setSearch(''); // Clear search string
+
+      // Clear search string
+      setSearchInputValue('');
+      setSearch('');
 
       // Wait for overlay to appear/disappear
       await new Promise(resolve => resolve(null));
       triggerRef.current?.focus();
     },
   });
+
+  // Recalculate overlay position when its main content changes
+  const prevMenuBody = usePrevious(menuBody);
+  const prevHideOptions = usePrevious(hideOptions);
+  useEffect(() => {
+    if (
+      // Don't update when the content inside `menuBody` changes. We should only update
+      // when `menuBody` itself appears/disappears.
+      ((!prevMenuBody && !menuBody) || (!!prevMenuBody && !!menuBody)) &&
+      prevHideOptions === hideOptions
+    ) {
+      return;
+    }
+
+    updateOverlay?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuBody, hideOptions]);
 
   /**
    * The menu's full width, before any option has been filtered out. Used to maintain a
@@ -421,7 +478,7 @@ export function Control({
                 <SearchInput
                   ref={searchRef}
                   placeholder={searchPlaceholder}
-                  value={search}
+                  value={searchInputValue}
                   onFocus={onSearchFocus}
                   onBlur={onSearchBlur}
                   onChange={e => updateSearch(e.target.value)}
@@ -429,7 +486,10 @@ export function Control({
                   {...searchKeyboardProps}
                 />
               )}
-              <OptionsWrap>{children}</OptionsWrap>
+              {typeof menuBody === 'function'
+                ? menuBody({closeOverlay: overlayState.close})
+                : menuBody}
+              {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
               {menuFooter && (
                 <MenuFooter>
                   {typeof menuFooter === 'function'
