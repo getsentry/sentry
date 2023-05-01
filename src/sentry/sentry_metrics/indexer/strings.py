@@ -3,13 +3,11 @@ from typing import Mapping, Optional, Set
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
-    OrgId,
+    KeyCollection,
+    KeyResult,
+    KeyResults,
     StringIndexer,
-    UseCaseKeyCollection,
-    UseCaseKeyResult,
-    UseCaseKeyResults,
 )
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 # !!! DO NOT CHANGE THESE VALUES !!!
 #
@@ -146,32 +144,29 @@ class StaticStringIndexer(StringIndexer):
         self.indexer = indexer
 
     def bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
-    ) -> UseCaseKeyResults:
-        static_keys = UseCaseKeyCollection(strings)
-        static_key_results = UseCaseKeyResults()
-        for use_case_id, org_id, string in static_keys.as_tuples():
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
+    ) -> KeyResults:
+        static_keys = KeyCollection(org_strings)
+        static_key_results = KeyResults()
+        for org_id, string in static_keys.as_tuples():
             if string in SHARED_STRINGS:
                 id = SHARED_STRINGS[string]
-                static_key_results.add_use_case_key_result(
-                    UseCaseKeyResult(use_case_id, org_id, string, id), FetchType.HARDCODED
+                static_key_results.add_key_result(
+                    KeyResult(org_id, string, id), FetchType.HARDCODED
                 )
 
-        org_strings_left = static_key_results.get_unmapped_use_case_keys(static_keys)
+        org_strings_left = static_key_results.get_unmapped_keys(static_keys)
 
         if org_strings_left.size == 0:
             return static_key_results
 
         indexer_results = self.indexer.bulk_record(
-            {
-                use_case_id: key_collection.mapping
-                for use_case_id, key_collection in org_strings_left.mapping.items()
-            }
+            use_case_id=use_case_id, org_strings=org_strings_left.mapping
         )
 
         return static_key_results.merge(indexer_results)
 
-    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)

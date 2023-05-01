@@ -147,7 +147,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 transaction_name = t["transaction"]
                 project = t["project"]
                 t_p_key = project + "," + transaction_name
-                trending_transaction_names_stats[t_p_key] = response.data[t_p_key]
+                trending_transaction_names_stats[t_p_key] = response.data[t_p_key][trend_function]
 
             # send the results back to the client
             return Response(
