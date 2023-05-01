@@ -181,6 +181,7 @@ class GroupDetails extends Component<Props, State> {
   }
 
   async getEvent() {
+    this.setState({loadingEvent: true, eventError: false});
     const {params, environments, api} = this.props;
     const groupId = params.groupId;
     const eventId = params.eventId ?? 'latest';
