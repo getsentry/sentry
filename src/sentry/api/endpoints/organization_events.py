@@ -251,7 +251,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         use_profiles = batch_features.get("organizations:profiling", False)
 
-        use_occurrences = options.get("performance.issues.create_issues_through_platform", True)
+        use_occurrences = options.get("performance.issues.create_issues_through_platform", False)
 
         use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
 
