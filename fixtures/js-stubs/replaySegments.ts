@@ -220,7 +220,8 @@ export function ReplaySpanPayload({
     endTimestamp: endTimestamp?.getTime() / 1000, // in seconds, with ms precision
     timestamp: startTimestamp?.getTime(), // in ms, same as startTimestamp
   };
-}fixtures/js-stubs/types.tsx
+}
+fixtures / js - stubs / types.tsx;
 
 export function ReplaySpanPayloadNavigate({
   description = 'http://test.com',
