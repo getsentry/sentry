@@ -248,4 +248,4 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         self.archive_until_escalating(event.group)
 
         # Events are aggregated in the daily count query by date rather than the last 24hrs
-        assert get_group_daily_count(group.project.organization.id, group.project.id, group.id) == 1
+        assert get_group_daily_count(group.project.organization.id, group.project.id, group) == 1

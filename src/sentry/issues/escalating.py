@@ -53,6 +53,14 @@ GroupsCountResponse = TypedDict(
 ParsedGroupsCount = Dict[int, GroupCount]
 
 
+def issue_category_dataset(category: str) -> Dataset:
+    return Dataset.Events if category == str(GroupCategory.ERROR) else Dataset.IssuePlatform
+
+
+def issue_category_entity(category: str) -> EntityKey:
+    return EntityKey.Events if category == str(GroupCategory.ERROR) else EntityKey.IssuePlatform
+
+
 def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountResponse]:
     """Query Snuba for the counts for every group bucketed into hours.
 
@@ -75,22 +83,28 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
     start_date, end_date = _start_and_end_dates()
 
     # Error groups use the events dataset while profile and perf groups use the issue platform dataset
-    event_dataset_groups, issue_platform_dataset_groups = []
+    error_groups: List[Group] = []
+    other_groups: List[Group] = []
     for g in groups:
         if g.issue_category == GroupCategory.ERROR:
-            event_dataset_groups.append(g)
+            error_groups.append(g)
         else:
-            issue_platform_dataset_groups.append(g)
+            other_groups.append(g)
 
-    all_results += _process_groups(event_dataset_groups, start_date, end_date)
-    all_results += _process_groups(issue_platform_dataset_groups, start_date, end_date)
+    all_results += _process_groups(str(GroupCategory.ERROR), error_groups, start_date, end_date)
+    all_results += _process_groups("issue_platform", other_groups, start_date, end_date)
 
     return all_results
 
 
 def _process_groups(
-    groups: Sequence[Group], start_date: datetime, end_date: datetime
+    category: str,
+    groups: Sequence[Group],
+    start_date: datetime,
+    end_date: datetime,
 ) -> List[GroupsCountResponse]:
+    """Given a list of groups, query Snuba for their hourly bucket count.
+    The category defines which Snuba dataset and entity we query."""
     all_results = []  # type: ignore[var-annotated]
     if not groups:
         return all_results
@@ -120,7 +134,7 @@ def _process_groups(
 
         # TODO: Write this as a dispatcher type task and fire off a separate task per proj_ids
         all_results += _query_with_pagination(
-            organization_id, proj_ids, group_ids, start_date, end_date
+            category, organization_id, proj_ids, group_ids, start_date, end_date
         )
         # We're ready for a new set of projects and ids
         proj_ids, group_ids = [], []
@@ -129,6 +143,7 @@ def _process_groups(
 
 
 def _query_with_pagination(
+    category: str,
     organization_id: int,
     project_ids: Sequence[int],
     group_ids: Sequence[int],
@@ -140,9 +155,9 @@ def _query_with_pagination(
     all_results = []
     offset = 0
     while True:
-        query = _generate_query(project_ids, group_ids, offset, start_date, end_date)
+        query = _generate_query(category, project_ids, group_ids, offset, start_date, end_date)
         request = Request(
-            dataset=Dataset.Events.value,
+            dataset=issue_category_dataset(category).value,
             app_id=REFERRER,
             query=query,
             tenant_ids={"referrer": REFERRER, "organization_id": organization_id},
@@ -179,6 +194,7 @@ def parse_groups_past_counts(response: Sequence[GroupsCountResponse]) -> ParsedG
 
 
 def _generate_query(
+    category: str,
     project_ids: Sequence[int],
     group_ids: Sequence[int],
     offset: int,
@@ -189,7 +205,7 @@ def _generate_query(
     group_id_col = Column("group_id")
     proj_id_col = Column("project_id")
     return Query(
-        match=Entity(EntityKey.Events.value),
+        match=Entity(issue_category_entity(category).value),
         select=[
             proj_id_col,
             group_id_col,
@@ -228,9 +244,9 @@ def _extract_project_and_group_ids(groups: Sequence[Group]) -> Dict[int, List[in
     return group_ids_by_project
 
 
-def get_group_daily_count(organization_id: int, project_id: int, group_id: int) -> int:
+def get_group_daily_count(organization_id: int, project_id: int, group: Group) -> int:
     """Return the number of events a group has had today"""
-    key = f"daily-group-count:{project_id}:{group_id}"
+    key = f"daily-group-count:{project_id}:{group.id}"
     daily_count = cache.get(key)
 
     if daily_count is None:
@@ -238,19 +254,19 @@ def get_group_daily_count(organization_id: int, project_id: int, group_id: int) 
         midnight = datetime.combine(today, datetime.min.time())
         now = datetime.now()
         query = Query(
-            match=Entity(EntityKey.Events.value),
+            match=Entity(issue_category_entity(group.issue_category).value),
             select=[
                 Function("count", []),
             ],
             where=[
                 Condition(Column("project_id"), Op.EQ, project_id),
-                Condition(Column("group_id"), Op.EQ, group_id),
+                Condition(Column("group_id"), Op.EQ, group.id),
                 Condition(Column("timestamp"), Op.GTE, midnight),
                 Condition(Column("timestamp"), Op.LT, now),
             ],
         )
         request = Request(
-            dataset=Dataset.Events.value,
+            dataset=issue_category_dataset(group.issue_category).value,
             app_id=IS_ESCALATING_REFERRER,
             query=query,
             tenant_ids={"referrer": IS_ESCALATING_REFERRER, "organization_id": organization_id},
@@ -265,7 +281,7 @@ def get_group_daily_count(organization_id: int, project_id: int, group_id: int) 
 def is_escalating(group: Group) -> bool:
     """Return boolean depending on if the group is escalating or not"""
     group_daily_count = get_group_daily_count(
-        group.project.organization.id, group.project.id, group.id
+        group.project.organization.id, group.project.id, group
     )
     forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
     # Check if current event occurance is greater than forecast for today's date
