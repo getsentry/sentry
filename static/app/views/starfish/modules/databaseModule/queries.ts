@@ -271,6 +271,8 @@ export const getMainTable = (
   transactionFilter: string | null,
   tableFilter?: string,
   actionFilter?: string,
+  sortKey?: string,
+  sortDirection?: string,
   newFilter?: string,
   oldFilter?: string
 ) => {
@@ -285,6 +287,8 @@ export const getMainTable = (
   const newColumn = getNewColumn(duration, startTime, endTime);
   const retiredColumn = getRetiredColumn(duration, startTime, endTime);
   const havingFilters = [newFilter, oldFilter].filter(fil => !!fil);
+
+  const orderBy = getOrderByFromKey(sortKey, sortDirection) ?? ORDERBY;
 
   return `
     select
@@ -314,7 +318,7 @@ export const getMainTable = (
       data_values
     ${havingFilters.length > 0 ? 'having' : ''}
       ${havingFilters.join(' and ')}
-    order by ${ORDERBY}
+      order by ${orderBy}
     limit 100
   `;
 };
