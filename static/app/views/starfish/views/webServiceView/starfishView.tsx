@@ -4,7 +4,7 @@ import {Location} from 'history';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -212,7 +212,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           'endpoint',
           'tpm',
           'p50(duration)',
-          'p95(duration)',
+          'p50 change',
           'failure count',
           'cumulative time',
         ]}
