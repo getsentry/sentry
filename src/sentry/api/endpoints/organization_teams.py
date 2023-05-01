@@ -26,11 +26,10 @@ CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
 
 # OrganizationPermission + team:write
 class OrganizationTeamsPermission(OrganizationPermission):
+    # PUT and DELETE are irrelevant because they are handled by TeamDetailsEndpoint
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
+        "GET": ["org:read", "org:write"],
         "POST": ["org:write", "team:write"],
-        "PUT": ["org:write", "org:admin", "team:write"],
-        "DELETE": ["org:admin", "team:write"],
     }
 
 
@@ -48,8 +47,8 @@ class TeamPostSerializer(serializers.Serializer):
             )
         },
     )
-    set_admin = serializers.BooleanField(required=False, default=False)
     idp_provisioned = serializers.BooleanField(required=False, default=False)
+    set_admin = serializers.BooleanField(required=False, default=False)
 
     def validate(self, attrs):
         if not (attrs.get("name") or attrs.get("slug")):
