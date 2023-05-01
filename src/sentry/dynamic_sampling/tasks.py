@@ -100,7 +100,7 @@ def recalibrate_orgs() -> None:
                     errors[str(org_volume.org_id)] = error_message
 
         if errors:
-            logger.exception("Dynamic sampling organization recalibration failed", extra=errors)
+            logger.info("Dynamic sampling organization recalibration failed", extra=errors)
 
 
 @instrumented_task(
