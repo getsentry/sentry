@@ -29,14 +29,9 @@ def schedule_auto_transition_new() -> None:
         .distinct()
         .values_list("project_id", flat=True)
     ):
-        try:
-            org = Organization.objects.get_from_cache(
-                id=Project.objects.get_from_cache(id=project_id).organization_id
-            )
-        except Exception:
-            org = Organization.objects.get(
-                id=Project.objects.get_from_cache(id=project_id).organization_id
-            )
+        org = Organization.objects.get_from_cache(
+            id=Project.objects.get_from_cache(id=project_id).organization_id
+        )
 
         if features.has("organizations:issue-states-auto-transition-new-ongoing", org):
             auto_transition_issues_new_to_ongoing.delay(
@@ -103,14 +98,9 @@ def schedule_auto_transition_regressed() -> None:
         .distinct()
         .values_list("project_id", flat=True)
     ):
-        try:
-            org = Organization.objects.get_from_cache(
-                id=Project.objects.get_from_cache(id=project_id).organization_id
-            )
-        except Exception:
-            org = Organization.objects.get(
-                id=Project.objects.get_from_cache(id=project_id).organization_id
-            )
+        org = Organization.objects.get_from_cache(
+            id=Project.objects.get_from_cache(id=project_id).organization_id
+        )
 
         if features.has("organizations:issue-states-auto-transition-regressed-ongoing", org):
             auto_transition_issues_regressed_to_ongoing.delay(
