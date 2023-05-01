@@ -1,11 +1,19 @@
 import {Moment} from 'moment';
 
+import {useQuery} from 'sentry/utils/queryClient';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
+import {HOST} from 'sentry/views/starfish/utils/constants';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+
 const DEFAULT_WHERE = `
   startsWith(span_operation, 'db') and
   span_operation != 'db.redis' and
   module = 'db' and
   action != ''
 `;
+
+const INTERVAL = 12;
 
 const ORDERBY = `
   -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
@@ -271,6 +279,8 @@ export const getMainTable = (
   transactionFilter: string | null,
   tableFilter?: string,
   actionFilter?: string,
+  sortKey?: string,
+  sortDirection?: string,
   newFilter?: string,
   oldFilter?: string
 ) => {
@@ -285,6 +295,8 @@ export const getMainTable = (
   const newColumn = getNewColumn(duration, startTime, endTime);
   const retiredColumn = getRetiredColumn(duration, startTime, endTime);
   const havingFilters = [newFilter, oldFilter].filter(fil => !!fil);
+
+  const orderBy = getOrderByFromKey(sortKey, sortDirection) ?? ORDERBY;
 
   return `
     select
@@ -314,7 +326,47 @@ export const getMainTable = (
       data_values
     ${havingFilters.length > 0 ? 'having' : ''}
       ${havingFilters.join(' and ')}
-    order by ${ORDERBY}
+      order by ${orderBy}
     limit 100
   `;
+};
+
+export const useQueryTransactionByTPM = (row: DataRow) => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = `
+    greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
+    less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
+  `;
+  const queryFilter = `group_id = '${row.group_id}'`;
+
+  const query = `
+  select
+    count() as count,
+    transaction,
+    toStartOfInterval(start_timestamp, INTERVAL ${INTERVAL} hour) as interval
+  FROM default.spans_experimental_starfish
+  where
+    ${DEFAULT_WHERE} and
+    ${dateFilters} and
+    ${queryFilter}
+    and transaction IN (
+      SELECT
+        transaction
+      FROM default.spans_experimental_starfish
+      WHERE ${queryFilter}
+      GROUP BY transaction
+      ORDER BY count() desc
+      LIMIT 5
+    )
+  group by transaction, interval
+  order by transaction, interval
+  `;
+
+  return useQuery({
+    queryKey: ['p75PerTransaction', pageFilter.selection.datetime, row.group_id],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
 };

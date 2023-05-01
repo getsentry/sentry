@@ -23,6 +23,7 @@ import {
   getPanelEventCount,
   getPanelGraphQuery,
   getPanelTableQuery,
+  useQueryTransactionByTPM,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
@@ -150,6 +151,9 @@ function QueryDetailBody({
     less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
   `;
 
+  const {isLoading: isP75GraphLoading, data: tpmTransactionGraphData} =
+    useQueryTransactionByTPM(row);
+
   const [sort, setSort] = useState<{
     direction: 'desc' | 'asc' | undefined;
     sortHeader: TableColumnHeader | undefined;
@@ -201,7 +205,11 @@ function QueryDetailBody({
   });
 
   const isDataLoading =
-    isLoading || isTableLoading || isEventCountLoading || isRowLoading;
+    isLoading ||
+    isTableLoading ||
+    isEventCountLoading ||
+    isRowLoading ||
+    isP75GraphLoading;
 
   const eventCountMap = keyBy(eventCountData, 'transaction');
 
@@ -219,6 +227,12 @@ function QueryDetailBody({
 
   const [countSeries, p75Series] = throughputQueryToChartData(
     graphData,
+    startTime,
+    endTime
+  );
+
+  const tpmTransactionSeries = tpmTransactionQueryToChartData(
+    tpmTransactionGraphData,
     startTime,
     endTime
   );
@@ -358,6 +372,29 @@ function QueryDetailBody({
           />
         </FlexRowItem>
       </FlexRowContainer>
+      <FlexRowContainer>
+        <FlexRowItem>
+          <SubHeader>{t('Highest throughput transactions')}</SubHeader>
+          <Chart
+            statsPeriod="24h"
+            height={140}
+            data={tpmTransactionSeries}
+            start=""
+            end=""
+            loading={isDataLoading}
+            grid={{
+              left: '0',
+              right: '0',
+              top: '16px',
+              bottom: '8px',
+            }}
+            utc={false}
+            disableXAxis
+            isLineChart
+            hideYAxisSplitLine
+          />
+        </FlexRowItem>
+      </FlexRowContainer>
       <GridEditable
         isLoading={isDataLoading}
         data={mergedTableData}
@@ -404,7 +441,7 @@ const HeaderWrapper = styled('div')`
   cursor: pointer;
 `;
 
-function SortableHeader({title, direction, onClick}) {
+export function SortableHeader({title, direction, onClick}) {
   const arrow = !direction ? null : (
     <StyledIconArrow size="xs" direction={direction === 'desc' ? 'down' : 'up'} />
   );
@@ -461,6 +498,27 @@ function findOutlierMinMax(data: any[], property: string): {max: number; min: nu
   return {min: q1 - iqr * 1.5, max: q3 + iqr * 1.5};
 }
 
+const tpmTransactionQueryToChartData = (
+  data: {count: number; interval: string; transaction: string}[],
+  startTime: moment.Moment,
+  endTime: moment.Moment
+): Series[] => {
+  const seriesMap: Record<string, Series> = {};
+
+  data.forEach(row => {
+    const dataEntry = {value: row.count, name: row.interval};
+    if (!seriesMap[row.transaction]) {
+      seriesMap[row.transaction] = {
+        seriesName: row.transaction,
+        data: [],
+      };
+    }
+    seriesMap[row.transaction].data.push(dataEntry);
+  });
+  return Object.values(seriesMap).map(series =>
+    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+  );
+};
 const StyledIconArrow = styled(IconArrow)`
   vertical-align: top;
 `;
