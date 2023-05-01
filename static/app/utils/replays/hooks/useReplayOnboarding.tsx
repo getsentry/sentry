@@ -26,6 +26,12 @@ function getSelectedProjectList(
   return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
 }
 
+export function useHasOrganizationSentAnyReplayEvents() {
+  const {projects, fetching} = useProjects();
+  const hasOrgSentReplays = useMemo(() => projects.some(p => p.hasReplays), [projects]);
+  return {hasOrgSentReplays, fetching};
+}
+
 export function useHaveSelectedProjectsSentAnyReplayEvents() {
   const {projects, fetching} = useProjects();
   const {selection} = usePageFilters();

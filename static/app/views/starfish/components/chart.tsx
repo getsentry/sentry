@@ -120,11 +120,15 @@ function Chart({
     value => aggregateOutputType(value.seriesName) === 'percentage'
   );
 
-  const dataMax = durationOnly
+  let dataMax = durationOnly
     ? computeAxisMax([...data, ...(scatterPlot ?? [])])
     : percentOnly
     ? computeMax(data)
     : undefined;
+  // Fix an issue where max == 1 for duration charts would look funky cause we round
+  if (dataMax === 1 && durationOnly) {
+    dataMax += 1;
+  }
 
   const xAxes = disableMultiAxis
     ? undefined

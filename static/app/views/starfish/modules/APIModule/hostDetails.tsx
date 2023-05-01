@@ -4,7 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MeterBar} from 'sentry/views/starfish/modules/APIModule/hostTable';
 import {getHostStatusBreakdownQuery} from 'sentry/views/starfish/modules/APIModule/queries';

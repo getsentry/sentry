@@ -176,7 +176,7 @@ export default function HostTable({location, setDomainFilter}: Props) {
           }),
       }}
       location={location}
-      height={280}
+      height={400}
       scrollable
       stickyHeader
     />
