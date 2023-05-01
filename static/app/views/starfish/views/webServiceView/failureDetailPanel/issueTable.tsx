@@ -41,13 +41,13 @@ export default function IssueTable({organization, location, spike, transactions}
       width: 280,
     },
     {
-      key: 'count()',
-      name: 'Count',
+      key: 'count_unique(user)',
+      name: 'Users',
       width: 50,
     },
     {
-      key: 'count_unique(user)',
-      name: 'Users',
+      key: 'count()',
+      name: 'Count',
       width: 50,
     },
   ];
