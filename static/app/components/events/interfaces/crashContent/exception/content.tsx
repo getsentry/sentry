@@ -1,4 +1,4 @@
-import {Fragment, useContext} from 'react';
+import {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -13,7 +13,7 @@ import {defined} from 'sentry/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {Mechanism} from './mechanism';
-import {SetupSourceMapsAlert} from './setupSourceMapsAlert';
+import {RelatedExceptions} from './relatedExceptions';
 import {SourceMapDebug} from './sourceMapDebug';
 import StackTrace from './stackTrace';
 import {debugFramesEnabled, getUniqueFilesFromException} from './useSourceMapDebug';
@@ -72,14 +72,17 @@ export function Content({
     const hasSourcemapDebug = debugFrames.some(
       ({query}) => query.exceptionIdx === excIdx
     );
+    const id = defined(exc.mechanism?.exception_id)
+      ? `exception-${exc.mechanism?.exception_id}`
+      : undefined;
     return (
-      <div key={excIdx} className="exception">
+      <div key={excIdx} className="exception" data-test-id="exception-value">
         {defined(exc?.module) ? (
           <Tooltip title={tct('from [exceptionModule]', {exceptionModule: exc?.module})}>
-            <Title>{exc.type}</Title>
+            <Title id={id}>{exc.type}</Title>
           </Tooltip>
         ) : (
-          <Title>{exc.type}</Title>
+          <Title id={id}>{exc.type}</Title>
         )}
         <StyledPre className="exc-message">
           {meta?.[excIdx]?.value?.[''] && !exc.value ? (
@@ -91,13 +94,15 @@ export function Content({
         {exc.mechanism && (
           <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
         )}
+        <RelatedExceptions
+          mechanism={exc.mechanism}
+          allExceptions={values}
+          newestFirst={newestFirst}
+        />
         <ErrorBoundary mini>
-          <Fragment>
-            {!shouldDebugFrames && excIdx === 0 && <SetupSourceMapsAlert event={event} />}
-            {hasSourcemapDebug && (
-              <SourceMapDebug debugFrames={debugFrames} event={event} />
-            )}
-          </Fragment>
+          {hasSourcemapDebug && (
+            <SourceMapDebug debugFrames={debugFrames} event={event} />
+          )}
         </ErrorBoundary>
         <StackTrace
           data={

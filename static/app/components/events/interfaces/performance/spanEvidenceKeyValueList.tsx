@@ -16,6 +16,7 @@ import {
   EntryType,
   Event,
   EventTransaction,
+  getIssueTypeFromOccurenceType,
   IssueType,
   KeyValueListData,
   KeyValueListDataItem,
@@ -58,9 +59,11 @@ export function SpanEvidenceKeyValueList({
 }) {
   const {slug: orgSlug} = useOrganization();
   const spanInfo = getSpanInfoFromTransactionEvent(event);
-  const performanceProblem = event?.perfProblem;
 
-  if (!performanceProblem?.issueType || !spanInfo) {
+  const issueType =
+    event.perfProblem?.issueType ?? getIssueTypeFromOccurenceType(event.occurrence?.type);
+
+  if (!issueType || !spanInfo) {
     return (
       <DefaultSpanEvidence
         event={event}
@@ -82,7 +85,8 @@ export function SpanEvidenceKeyValueList({
       [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: RenderBlockingAssetSpanEvidence,
       [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
       [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
-    }[performanceProblem.issueType] ?? DefaultSpanEvidence;
+      [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: LargeHTTPPayloadSpanEvidence,
+    }[issueType] ?? DefaultSpanEvidence;
 
   return (
     <ClippedBox clipHeight={300}>
@@ -139,6 +143,29 @@ function ConsecutiveHTTPSpanEvidence({
           makeRow(
             'Offending Spans',
             offendingSpans.map(span => span.description)
+          ),
+        ].filter(Boolean) as KeyValueListData
+      }
+    />
+  );
+}
+
+function LargeHTTPPayloadSpanEvidence({
+  event,
+  offendingSpans,
+  orgSlug,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) {
+  return (
+    <PresortedKeyValueList
+      data={
+        [
+          makeTransactionNameRow(event, orgSlug, projectSlug),
+          makeRow(t('Large HTTP Payload Span'), getSpanEvidenceValue(offendingSpans[0])),
+          makeRow(
+            t('Payload Size'),
+            getSpanFieldBytes(offendingSpans[0], 'http.response_content_length') ??
+              getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
           ),
         ].filter(Boolean) as KeyValueListData
       }
@@ -285,7 +312,8 @@ function UncompressedAssetSpanEvidence({
         makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0])),
         makeRow(
           t('Asset Size'),
-          getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
+          getSpanFieldBytes(offendingSpans[0], 'http.response_content_length') ??
+            getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
         ),
         makeRow(
           t('Duration Impact'),

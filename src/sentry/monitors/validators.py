@@ -140,7 +140,7 @@ class ConfigValidator(serializers.Serializer):
             if not croniter.is_valid(schedule):
                 raise ValidationError({"schedule": "Schedule was not parseable"})
             # Do not support 6 or 7 field crontabs
-            if schedule.count(" ") > 4:
+            if len(schedule.split()) > 5:
                 raise ValidationError({"schedule": "Only 5 field crontab syntax is supported"})
 
         attrs["schedule"] = schedule
@@ -223,6 +223,17 @@ class MonitorCheckInValidator(serializers.Serializer):
         monitor_config = self.initial_data.get("monitor_config")
         if monitor_config:
             project = self.context["project"]
+            instance = {}
+            monitor = self.context.get("monitor", None)
+            if monitor:
+                instance = {
+                    "name": monitor.name,
+                    "slug": monitor.slug,
+                    "status": monitor.status,
+                    "type": monitor.type,
+                    "config": monitor.config,
+                    "project": project,
+                }
 
             # Use context to complete the full monitor validator object
             monitor_validator = MonitorValidator(
@@ -233,6 +244,7 @@ class MonitorCheckInValidator(serializers.Serializer):
                     "project": project.slug,
                     "config": monitor_config,
                 },
+                instance=instance,
                 context={
                     "organization": project.organization,
                     "access": self.context["request"].access,

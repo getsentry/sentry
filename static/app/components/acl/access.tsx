@@ -1,116 +1,99 @@
-import {Component} from 'react';
+import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/alert';
-import {t} from 'sentry/locale';
-import {Config, Organization, Scope} from 'sentry/types';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {Organization, Project, Scope, Team} from 'sentry/types';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
-import withConfig from 'sentry/utils/withConfig';
-import withOrganization from 'sentry/utils/withOrganization';
-
-const DEFAULT_NO_ACCESS_MESSAGE = (
-  <Alert type="error" showIcon>
-    {t('You do not have sufficient permissions to access this.')}
-  </Alert>
-);
+import useOrganization from 'sentry/utils/useOrganization';
 
 // Props that function children will get.
-export type ChildRenderProps = {
+type ChildRenderProps = {
   hasAccess: boolean;
   hasSuperuser: boolean;
 };
 
-type ChildFunction = (props: ChildRenderProps) => React.ReactNode;
+type ChildFunction = (props: ChildRenderProps) => JSX.Element;
 
-type DefaultProps = {
+export type Props = {
   /**
    * List of required access levels
    */
-  access: Scope[];
-
+  access?: Scope[];
   /**
-   * Custom renderer function for "no access" message OR `true` to use
-   * default message. `false` will suppress message.
+   * Children can be a node or a function as child.
    */
-  renderNoAccessMessage: ChildFunction | boolean;
-
+  children?: React.ReactNode | ChildFunction;
   /**
    * Requires superuser
    */
   isSuperuser?: boolean;
 
   /**
-   * Should the component require all access levels or just one or more.
+   * Optional: To be used when you need to check for access to the Project
+   *
+   * E.g. On the project settings page, the user will need project:write.
+   * An "org-member" does not have project:write but if they are "team-admin" for
+   * of a parent team, they will have appropriate scopes.
    */
-  requireAll?: boolean;
+  project?: Project | null | undefined;
+
+  /**
+   * Optional: To be used when you need to check for access to the Team
+   *
+   * E.g. On the team settings page, the user will need team:write.
+   * An "org-member" does not have team:write but if they are "team-admin" for
+   * the team, they will have appropriate scopes.
+   */
+  team?: Team | null | undefined;
 };
-
-const defaultProps: DefaultProps = {
-  renderNoAccessMessage: false,
-  isSuperuser: false,
-  requireAll: true,
-  access: [],
-};
-
-type Props = {
-  /**
-   * Configuration from ConfigStore
-   */
-  config: Config;
-
-  /**
-   * Current Organization
-   */
-  organization: Organization;
-
-  /**
-   * Children can be a node or a function as child.
-   */
-  children?: React.ReactNode | ChildFunction;
-} & Partial<DefaultProps>;
 
 /**
  * Component to handle access restrictions.
  */
-class Access extends Component<Props> {
-  static defaultProps = defaultProps;
+function Access({children, isSuperuser = false, access = [], team, project}: Props) {
+  const config = useLegacyStore(ConfigStore);
+  const organization = useOrganization();
 
-  render() {
-    const {
-      organization,
-      config,
-      access,
-      requireAll,
-      isSuperuser,
-      renderNoAccessMessage,
-      children,
-    } = this.props;
+  const {access: orgAccess} = organization || {access: []};
+  const {access: teamAccess} = team || {access: [] as Team['access']};
+  const {access: projAccess} = project || {access: [] as Project['access']};
 
-    const {access: orgAccess} = organization || {access: []};
-    const method = requireAll ? 'every' : 'some';
+  const hasAccess =
+    !access ||
+    access.every(acc => orgAccess.includes(acc)) ||
+    access.every(acc => teamAccess?.includes(acc)) ||
+    access.every(acc => projAccess?.includes(acc));
+  const hasSuperuser = !!(config.user && config.user.isSuperuser);
 
-    const hasAccess = !access || access[method](acc => orgAccess.includes(acc));
-    const hasSuperuser = !!(config.user && config.user.isSuperuser);
+  const renderProps: ChildRenderProps = {
+    hasAccess,
+    hasSuperuser,
+  };
 
-    const renderProps: ChildRenderProps = {
-      hasAccess,
-      hasSuperuser,
-    };
+  const render = hasAccess && (!isSuperuser || hasSuperuser);
 
-    const render = hasAccess && (!isSuperuser || hasSuperuser);
-
-    if (!render && typeof renderNoAccessMessage === 'function') {
-      return renderNoAccessMessage(renderProps);
-    }
-    if (!render && renderNoAccessMessage) {
-      return DEFAULT_NO_ACCESS_MESSAGE;
-    }
-
-    if (isRenderFunc<ChildFunction>(children)) {
-      return children(renderProps);
-    }
-
-    return render ? children : null;
+  if (isRenderFunc<ChildFunction>(children)) {
+    return children(renderProps);
   }
+
+  return <Fragment>{render ? children : null}</Fragment>;
 }
 
-export default withOrganization(withConfig(Access));
+export function hasEveryAccess(
+  access: Scope[],
+  props: {organization?: Organization; project?: Project; team?: Team}
+) {
+  const {organization, team, project} = props;
+  const {access: orgAccess} = organization || {access: [] as Organization['access']};
+  const {access: teamAccess} = team || {access: [] as Team['access']};
+  const {access: projAccess} = project || {access: [] as Project['access']};
+
+  return (
+    !access ||
+    access.every(acc => orgAccess.includes(acc)) ||
+    access.every(acc => teamAccess?.includes(acc)) ||
+    access.every(acc => projAccess?.includes(acc))
+  );
+}
+
+export default Access;

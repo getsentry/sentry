@@ -3,6 +3,7 @@ from hashlib import sha1
 import pytest
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db.models import F
 from django.urls import reverse
 
 from sentry import options
@@ -13,10 +14,12 @@ from sentry.api.endpoints.chunk import (
     MAX_CONCURRENCY,
     MAX_REQUEST_SIZE,
 )
-from sentry.models import MAX_FILE_SIZE, ApiToken, FileBlob
+from sentry.models import MAX_FILE_SIZE, ApiToken, FileBlob, Organization
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
+@region_silo_test(stable=True)
 class ChunkUploadTest(APITestCase):
     @pytest.fixture(autouse=True)
     def _restore_upload_url_options(self):
@@ -24,7 +27,8 @@ class ChunkUploadTest(APITestCase):
 
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
-        self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with exempt_from_silo_limits():
+            self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.url = reverse("sentry-api-0-chunk-upload", args=[self.organization.slug])
 
     def test_chunk_parameters(self):
@@ -49,13 +53,20 @@ class ChunkUploadTest(APITestCase):
         assert response.data["url"] == options.get("system.upload-url-prefix") + self.url
 
     def test_accept_with_feature_flag_enabled_and_disabled(self):
-        with self.feature({"organizations:artifact-bundles": False}):
+        with self.options({"sourcemaps.enable-artifact-bundles": 0.0}):
             response = self.client.get(
                 self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
             )
             assert "artifact_bundles" not in response.data["accept"]
 
-        with self.feature({"organizations:artifact-bundles": True}):
+        with self.options({"sourcemaps.enable-artifact-bundles": 1.0}):
+            response = self.client.get(
+                self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
+            )
+            assert "artifact_bundles" in response.data["accept"]
+
+        with self.options({"sourcemaps.enable-artifact-bundles": 0.0}):
+            self.organization.update(flags=F("flags").bitor(Organization.flags.early_adopter))
             response = self.client.get(
                 self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
             )
@@ -117,7 +128,8 @@ class ChunkUploadTest(APITestCase):
         assert response.data["maxFileSize"] == MAX_FILE_SIZE
 
     def test_wrong_api_token(self):
-        token = ApiToken.objects.create(user=self.user, scope_list=["org:org"])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=["org:org"])
         response = self.client.get(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert response.status_code == 403, response.content
 

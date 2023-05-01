@@ -20,7 +20,6 @@ from sentry.services.hybrid_cloud.region import (
     UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 
@@ -199,6 +198,21 @@ class OrganizationService(RpcService):
         """
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationSlug())
+    @abstractmethod
+    def get_org_by_slug(
+        self,
+        *,
+        slug: str,
+        user_id: Optional[int] = None,
+    ) -> Optional[RpcOrganizationSummary]:
+        """
+        Fetches the organization, by an organization slug. If user_id is passed, it will enforce visibility
+        rules. This method is differentiated from get_organization_by_slug by not being cached and returning
+        RpcOrganizationSummary instead of org contexts
+        """
+        pass
+
     # TODO: This should return RpcOrganizationSummary objects, since we cannot realistically span out requests and
     #  capture full org objects / teams / permissions.  But we can gather basic summary data from the control silo.
     @regional_rpc_method(resolve=UnimplementedRegionResolution())
@@ -272,7 +286,7 @@ class OrganizationService(RpcService):
         *,
         organization_id: int,
         default_org_role: str,
-        user: Optional[RpcUser] = None,
+        user_id: Optional[int] = None,
         email: Optional[str] = None,
         flags: Optional[RpcOrganizationMemberFlags] = None,
         role: Optional[str] = None,

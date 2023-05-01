@@ -13,11 +13,14 @@ import {
   OrganizationSummary,
 } from 'sentry/types';
 import {LocationQuery} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {
   ApiQueryKey,
+  getApiQueryData,
+  setApiQueryData,
   useApiQuery,
   UseApiQueryOptions,
   useMutation,
@@ -32,6 +35,7 @@ type Options = {
   organization: OrganizationSummary;
   partial: boolean;
   comparisonDelta?: number;
+  dataset?: DiscoverDatasets;
   end?: DateString;
   environment?: Readonly<string[]>;
   excludeOther?: boolean;
@@ -100,6 +104,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
     queryExtras,
     excludeOther,
     includeAllArgs,
+    dataset,
   }: {includeAllArgs?: IncludeAllArgsType} & Options
 ): IncludeAllArgsType extends true
   ? Promise<
@@ -127,6 +132,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
       withoutZerofill: withoutZerofill ? '1' : undefined,
       referrer: referrer ? referrer : 'api.organization-event-stats',
       excludeOther: excludeOther ? '1' : undefined,
+      dataset,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -154,6 +160,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
 export type EventQuery = {
   field: string[];
   query: string;
+  dataset?: DiscoverDatasets;
   environment?: string[];
   equation?: string[];
   noPagination?: boolean;
@@ -288,11 +295,13 @@ export const useDeleteEventAttachmentOptimistic = (
     onMutate: async variables => {
       await queryClient.cancelQueries(makeFetchEventAttachmentsQueryKey(variables));
 
-      const previous = queryClient.getQueryData<FetchEventAttachmentResponse>(
+      const previous = getApiQueryData<FetchEventAttachmentResponse>(
+        queryClient,
         makeFetchEventAttachmentsQueryKey(variables)
       );
 
-      queryClient.setQueryData<FetchEventAttachmentResponse>(
+      setApiQueryData<FetchEventAttachmentResponse>(
+        queryClient,
         makeFetchEventAttachmentsQueryKey(variables),
         oldData => {
           if (!Array.isArray(oldData)) {
@@ -311,7 +320,8 @@ export const useDeleteEventAttachmentOptimistic = (
       addErrorMessage(t('An error occurred while deleting the attachment'));
 
       if (context) {
-        queryClient.setQueryData(
+        setApiQueryData(
+          queryClient,
           makeFetchEventAttachmentsQueryKey(variables),
           context.previous
         );

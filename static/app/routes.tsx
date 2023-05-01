@@ -38,7 +38,10 @@ type CustomProps = {
  * We add some additional props to our routes
  */
 
-const Route = BaseRoute as React.ComponentClass<RouteProps & CustomProps>;
+const Route = BaseRoute as React.ComponentClass<
+  React.PropsWithChildren<RouteProps & CustomProps>
+>;
+
 const IndexRoute = BaseIndexRoute as React.ComponentClass<IndexRouteProps & CustomProps>;
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
@@ -1689,24 +1692,60 @@ function buildRoutes() {
           {performanceChildRoutes}
         </Route>
       )}
-      {usingCustomerDomain && (
-        <Route
-          path="/starfish/"
-          component={withDomainRequired(
-            make(() => import('sentry/views/starfish/content'))
-          )}
-        />
-      )}
-      <Route
-        path="organizations/:orgId/starfish/"
-        component={make(() => import('sentry/views/starfish/content'))}
-      />
       <Route
         path="/organizations/:orgId/performance/"
         component={withDomainRedirect(make(() => import('sentry/views/performance')))}
         key="org-performance"
       >
         {performanceChildRoutes}
+      </Route>
+    </Fragment>
+  );
+
+  const starfishChildRoutes = (
+    <Fragment>
+      <IndexRoute
+        component={make(() => import('sentry/views/starfish/views/webServiceView'))}
+      />
+      <Route
+        path="failure-detail/:slug/"
+        component={make(
+          () => import('sentry/views/starfish/views/webServiceView/endpointFailureEvents')
+        )}
+      />
+      <Route
+        path="database/"
+        component={make(() => import('sentry/views/starfish/modules/databaseModule'))}
+      />
+      <Route
+        path="api/"
+        component={make(() => import('sentry/views/starfish/modules/APIModule'))}
+      />
+      <Route
+        path="span/:groupId/"
+        component={make(() => import('sentry/views/starfish/views/spanSummary'))}
+      />
+    </Fragment>
+  );
+
+  const starfishRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/starfish/"
+          component={withDomainRequired(make(() => import('sentry/views/starfish')))}
+          key="orgless-starfish-route"
+        >
+          {starfishChildRoutes}
+        </Route>
+      )}
+
+      <Route
+        path="organizations/:orgId/starfish/"
+        component={make(() => import('sentry/views/starfish/'))}
+        key="org-starfish"
+      >
+        {starfishChildRoutes}
       </Route>
     </Fragment>
   );
@@ -2137,6 +2176,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {starfishRoutes}
       {profilingRoutes}
       {adminManageRoutes}
       {gettingStartedRoutes}

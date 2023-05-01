@@ -20,7 +20,7 @@ from sentry.models import (
     RuleStatus,
     User,
 )
-from sentry.models.actor import get_actor_id_for_user
+from sentry.models.actor import get_actor_for_user
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
@@ -160,6 +160,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
         assert response.data["snooze"]
         assert response.data["snoozeCreatedBy"] == "You"
+        assert not response.data["snoozeForEveryone"]
 
     def test_with_snooze_rule_everyone(self):
         user2 = self.create_user("user2@example.com")
@@ -176,6 +177,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
         assert response.data["snooze"]
         assert response.data["snoozeCreatedBy"] == user2.get_display_name()
+        assert response.data["snoozeForEveryone"]
 
     @responses.activate
     def test_with_unresponsive_sentryapp(self):
@@ -595,14 +597,13 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     def test_rule_form_owner_perms(self):
         new_user = self.create_user()
-        new_user.actor_id = get_actor_id_for_user(new_user)
         payload = {
             "name": "hello world",
             "actionMatch": "any",
             "filterMatch": "any",
             "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
             "actions": [],
-            "owner": new_user.actor.get_actor_identifier(),
+            "owner": get_actor_for_user(new_user).get_actor_identifier(),
         }
         response = self.get_error_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload

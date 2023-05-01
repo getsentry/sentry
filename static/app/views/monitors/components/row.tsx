@@ -102,7 +102,14 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
     {
       key: 'edit',
       label: t('Edit'),
-      to: normalizeUrl(`/organizations/${organization.slug}/crons/${monitor.slug}/edit/`),
+      // TODO(davidenwang): Right now we have to pass the environment
+      // through the URL so that when we save the monitor and are
+      // redirected back to the details page it queries the backend
+      // for a monitor environment with check-in data
+      to: normalizeUrl({
+        pathname: `/organizations/${organization.slug}/crons/${monitor.slug}/edit/`,
+        query: {environment: monitorEnv?.name},
+      }),
     },
     {
       key: 'delete',
@@ -128,12 +135,13 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
   }`;
 
   // TODO(davidenwang): Change accordingly when we have ObjectStatus on monitor
-  const monitorStatus = monitorEnv ? monitorEnv.status : monitor.status;
+  const monitorStatus =
+    monitor.status !== 'disabled' && monitorEnv ? monitorEnv.status : monitor.status;
 
   return (
     <Fragment>
       <MonitorName>
-        <MonitorBadge status={monitorEnv?.status ?? monitor.status} />
+        <MonitorBadge status={monitorStatus} />
         <NameAndSlug>
           <Link to={monitorDetailUrl}>{monitor.name}</Link>
           <MonitorSlug>{monitor.slug}</MonitorSlug>
@@ -151,6 +159,8 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
             ? tct('Missed [lastCheckin]', {lastCheckin})
             : monitorStatus === MonitorStatus.ERROR
             ? tct('Failed [lastCheckin]', {lastCheckin})
+            : monitorStatus === MonitorStatus.TIMEOUT
+            ? t('Timed out')
             : null}
         </TextOverflow>
       </MonitorColumn>

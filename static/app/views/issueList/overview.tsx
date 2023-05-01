@@ -37,7 +37,7 @@ import {
   TagCollection,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import CursorPoller from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
@@ -644,7 +644,7 @@ class IssueListOverview extends Component<Props, State> {
         });
 
         if (data.length === 0) {
-          trackAdvancedAnalyticsEvent('issue_search.empty', {
+          trackAnalytics('issue_search.empty', {
             organization: this.props.organization,
             search_type: 'issues',
             search_source: 'main_search',
@@ -653,7 +653,7 @@ class IssueListOverview extends Component<Props, State> {
         }
       },
       error: err => {
-        trackAdvancedAnalyticsEvent('issue_search.failed', {
+        trackAnalytics('issue_search.failed', {
           organization: this.props.organization,
           search_type: 'issues',
           search_source: 'main_search',
@@ -711,7 +711,7 @@ class IssueListOverview extends Component<Props, State> {
   onRealtimeChange = (realtime: boolean) => {
     Cookies.set('realtimeActive', realtime.toString());
     this.setState({realtimeActive: realtime});
-    trackAdvancedAnalyticsEvent('issues_stream.realtime_clicked', {
+    trackAnalytics('issues_stream.realtime_clicked', {
       organization: this.props.organization,
       enabled: realtime,
     });
@@ -780,7 +780,9 @@ class IssueListOverview extends Component<Props, State> {
         ignoredIds.length > 0 &&
         (query.includes('is:unresolved') || isForReviewQuery(query))
       ) {
-        this.onIssueAction(ignoredIds, 'Ignored');
+        const hasEscalatingIssues =
+          organization.features.includes('escalating-issues-ui');
+        this.onIssueAction(ignoredIds, hasEscalatingIssues ? 'Archived' : 'Ignored');
       }
       // Remove issues that are marked as Reviewed from the For Review tab, but still include the
       // issues if on the All Unresolved tab or saved/custom searches.
@@ -825,7 +827,7 @@ class IssueListOverview extends Component<Props, State> {
       moment(new Date(group.firstSeen)).isAfter(moment().subtract(7, 'd'))
     ).length;
 
-    trackAdvancedAnalyticsEvent('issues_tab.viewed', {
+    trackAnalytics('issues_tab.viewed', {
       organization,
       tab: tab?.analyticsName,
       page: page ? parseInt(page, 10) : 0,
@@ -848,7 +850,7 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   onSortChange = (sort: string) => {
-    trackAdvancedAnalyticsEvent('issues_stream.sort_changed', {
+    trackAnalytics('issues_stream.sort_changed', {
       organization: this.props.organization,
       sort,
     });
@@ -874,7 +876,7 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   paginationAnalyticsEvent = (direction: string) => {
-    trackAdvancedAnalyticsEvent('issues_stream.paginate', {
+    trackAnalytics('issues_stream.paginate', {
       organization: this.props.organization,
       direction,
     });
@@ -963,7 +965,7 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   onSavedSearchSelect = (savedSearch: SavedSearch) => {
-    trackAdvancedAnalyticsEvent('organization_saved_search.selected', {
+    trackAnalytics('organization_saved_search.selected', {
       organization: this.props.organization,
       search_type: 'issues',
       id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
@@ -1084,7 +1086,7 @@ class IssueListOverview extends Component<Props, State> {
 
   onIssueAction = (
     itemIds: string[],
-    actionType: 'Reviewed' | 'Resolved' | 'Ignored'
+    actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived'
   ) => {
     if (itemIds.length > 1) {
       addMessage(`${actionType} ${itemIds.length} ${t('Issues')}`, 'success', {
@@ -1134,6 +1136,32 @@ class IssueListOverview extends Component<Props, State> {
     });
   };
 
+  getPageCounts = () => {
+    const {location} = this.props;
+    const {pageLinks, queryCount, groupIds} = this.state;
+    const links = parseLinkHeader(pageLinks);
+    const queryPageInt = parseInt(location.query.page, 10);
+    // Cursor must be present for the page number to be used
+    const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
+
+    let numPreviousIssues = Math.min(page * MAX_ITEMS, queryCount);
+
+    // Because the query param `page` is not tied to the request, we need to
+    // validate that it's correct at the first and last page
+    if (!links?.next?.results || this.allResultsVisible()) {
+      // On last available page
+      numPreviousIssues = queryCount - groupIds.length;
+    } else if (!links?.previous?.results) {
+      // On first available page
+      numPreviousIssues = 0;
+    }
+
+    return {
+      numPreviousIssues,
+      numIssuesOnPage: groupIds.length,
+    };
+  };
+
   render() {
     if (this.props.savedSearchLoading) {
       return this.renderLoading();
@@ -1153,21 +1181,7 @@ class IssueListOverview extends Component<Props, State> {
     const {organization, selection, router} = this.props;
     const query = this.getQuery();
 
-    const numIssuesOnPage = groupIds.length;
-
     const modifiedQueryCount = Math.max(queryCount - itemsRemoved, 0);
-    const displayCount = tct('[count] of [total]', {
-      count: numIssuesOnPage,
-      total: (
-        <StyledQueryCount
-          hideParens
-          hideIfEmpty={false}
-          count={modifiedQueryCount}
-          max={queryMaxCount || 100}
-        />
-      ),
-    });
-
     const projectIds = selection?.projects?.map(p => p.toString());
 
     const showReprocessingTab = this.displayReprocessingTab();
@@ -1175,6 +1189,8 @@ class IssueListOverview extends Component<Props, State> {
       showReprocessingTab,
       query
     );
+
+    const {numPreviousIssues, numIssuesOnPage} = this.getPageCounts();
 
     return (
       <Layout.Page>
@@ -1199,7 +1215,6 @@ class IssueListOverview extends Component<Props, State> {
                 selection={selection}
                 query={query}
                 queryCount={modifiedQueryCount}
-                displayCount={displayCount}
                 onSelectStatsPeriod={this.onSelectStatsPeriod}
                 onMarkReviewed={this.onMarkReviewed}
                 onActionTaken={this.onActionTaken}
@@ -1239,8 +1254,17 @@ class IssueListOverview extends Component<Props, State> {
             <StyledPagination
               caption={
                 !issuesLoading
-                  ? tct('Showing [displayCount] issues', {
-                      displayCount,
+                  ? tct('[start]-[end] of [total]', {
+                      start: numPreviousIssues + 1,
+                      end: numPreviousIssues + numIssuesOnPage,
+                      total: (
+                        <StyledQueryCount
+                          hideParens
+                          hideIfEmpty={false}
+                          count={modifiedQueryCount}
+                          max={queryMaxCount || 100}
+                        />
+                      ),
                     })
                   : null
               }

@@ -12,7 +12,7 @@ import {IconOpen, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {analytics} from 'sentry/utils/analytics';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Props = {
   inputValue: string;
@@ -36,8 +36,8 @@ function ProjectSelectorItem({
   };
 
   const handleBookmarkToggle = (isBookmarked: boolean) => {
-    analytics('projectselector.bookmark_toggle', {
-      org_id: parseInt(organization.id, 10),
+    trackAnalytics('projectselector.bookmark_toggle', {
+      organization,
       bookmarked: isBookmarked,
     });
   };
@@ -122,7 +122,7 @@ const BadgeWrapper = styled('div')`
 
 const ActionButton = styled(Button)`
   color: ${p => p.theme.subText};
-  padding: ${space(1)} ${space(0.25)} ${space(1)} ${space(1)};
+  padding: ${space(1)} ${space(0.5)} ${space(1)} ${space(0.5)};
   opacity: 0.33;
   :hover {
     color: ${p => p.theme.textColor};
@@ -130,6 +130,7 @@ const ActionButton = styled(Button)`
 `;
 
 const ActionBookmark = styled(BookmarkStar)`
+  margin: 0 ${space(0.25)};
   ${p => !p.project.isBookmarked && 'opacity: 0.33'};
 `;
 

@@ -25,8 +25,7 @@ import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
 import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {metric} from 'sentry/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -107,7 +106,6 @@ type State = {
   project: Project;
   query: string;
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
-  showMEPAlertBanner: boolean;
   thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   timeWindow: number;
@@ -153,7 +151,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       eventTypes: _eventTypes,
       dataset: _dataset,
       name,
-      showMEPAlertBanner,
     } = location?.query ?? {};
     const eventTypes = typeof _eventTypes === 'string' ? [_eventTypes] : _eventTypes;
 
@@ -188,7 +185,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         : AlertRuleComparisonType.COUNT,
       project: this.props.project,
       owner: rule.owner,
-      showMEPAlertBanner: showMEPAlertBanner ?? false,
       alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
     };
   }
@@ -494,7 +490,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   handleFilterUpdate = (query: string, isQueryValid: boolean) => {
     const {organization, sessionId} = this.props;
 
-    trackAdvancedAnalyticsEvent('alert_builder.filter', {
+    trackAnalytics('alert_builder.filter', {
       organization,
       session_id: sessionId,
       query,
@@ -742,14 +738,14 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       return;
     }
 
-    const {dataset, showMEPAlertBanner} = this.state;
+    const {dataset} = this.state;
 
     if (isMetricsData && dataset === Dataset.TRANSACTIONS) {
-      this.setState({dataset: Dataset.GENERIC_METRICS, showMEPAlertBanner: false});
+      this.setState({dataset: Dataset.GENERIC_METRICS});
     }
 
-    if (!isMetricsData && dataset === Dataset.GENERIC_METRICS && !showMEPAlertBanner) {
-      this.setState({dataset: Dataset.TRANSACTIONS, showMEPAlertBanner: true});
+    if (!isMetricsData && dataset === Dataset.GENERIC_METRICS) {
+      this.setState({dataset: Dataset.TRANSACTIONS});
     }
   };
 
@@ -784,8 +780,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       loading,
       eventTypes,
       dataset,
-      showMEPAlertBanner,
       alertType,
+      isQueryValid,
     } = this.state;
 
     const chartProps = {
@@ -804,6 +800,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       thresholdType,
       comparisonDelta,
       comparisonType,
+      isQueryValid,
     };
 
     const wizardBuilderChart = (
@@ -942,7 +939,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                         this.handleFieldChange('timeWindow', value)
                       }
                       disableProjectSelector={disableProjectSelector}
-                      showMEPAlertBanner={showMEPAlertBanner}
                     />
                     <AlertListItem>{t('Set thresholds')}</AlertListItem>
                     {thresholdTypeForm(formDisabled)}

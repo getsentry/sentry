@@ -15,7 +15,8 @@ def list():
     from sentry import options
 
     for opt in options.all():
-        click.echo(f"{opt.name}: {options.get(opt.name)}")
+        if drift(opt.name):
+            click.echo(f"{opt.name}: {options.get(opt.name)}")
 
 
 @configoptions.command()
@@ -35,8 +36,7 @@ def patch(filename: str, dryrun: bool):
     if dryrun:
         click.echo("Dryrun flag on. ")
     with open(filename) as stream:
-        configmap_data = yaml.safe_load(stream)
-        data = configmap_data.get("data", {}).get("options-patch.yaml", "")
+        data = yaml.safe_load(stream)
 
         keysToFetch = data.get("fetch", {})
         keysToUpdate = data.get("update", {})
@@ -45,8 +45,9 @@ def patch(filename: str, dryrun: bool):
         for key in keysToFetch:
             _get(key, dryrun)
 
-        for key, val in keysToUpdate.items():
-            _set(key, val, dryrun)
+        if keysToUpdate is not None:
+            for key, val in keysToUpdate.items():
+                _set(key, val, dryrun)
 
         for key in keysToDelete:
             _delete(key, dryrun)
@@ -70,8 +71,7 @@ def strict(filename: str, dryrun: bool):
         click.echo("Dryrun flag on. ")
 
     with open(filename) as stream:
-        configmap_data = yaml.safe_load(stream)
-        data = configmap_data.get("data", {}).get("options-strict.yaml", "")
+        data = yaml.safe_load(stream)
 
         for key, val in data.items():
             _set(key, val, dryrun)
@@ -92,18 +92,15 @@ def get(key: str, dryrun: bool = False) -> str:
     return _get(key, dryrun)
 
 
-def _get(key: str, dryrun: bool = False) -> str:
+def _get(
+    key: str,
+    dryrun: bool = False,
+) -> str:
     from sentry import options
-    from sentry.options.manager import UnknownOption
 
-    try:
-        opt = options.lookup_key(key)
-        click.echo(f"Fetched Key: {opt.name} ({opt.type}) = {options.get(opt.name)}")
-        return opt
-    except UnknownOption:
-        raise click.ClickException("unknown option: %s" % key)
-    except TypeError as e:
-        raise click.ClickException(str(e))
+    opt = options.lookup_key(key)
+    click.echo(f"Fetched Key: {opt.name} ({opt.type}) = {options.get(opt.name)}")
+    return opt
 
 
 @configoptions.command()
@@ -124,24 +121,15 @@ def set(key: str, val: object, dryrun: bool = False) -> bool:
 
 def _set(key: str, val: object, dryrun: bool = False) -> bool:
     from sentry import options
-    from sentry.options.manager import UnknownOption
 
-    try:
-        opt = options.lookup_key(key)
-        if drift(key):
-            raise click.ClickException(f"Drift on option: {key}")
-
-        if not dryrun:
-            options.set(key, val)
-            click.echo(f"Updated key: {opt.name} ({opt.type}) = {val}")
-            return opt
-        else:
-            click.echo(f"Updated key: {opt.name} ({opt.type}) = {val}")
-            return opt
-    except UnknownOption:
-        raise click.ClickException("unknown option: %s" % key)
-    except TypeError as e:
-        raise click.ClickException(str(e))
+    opt = options.lookup_key(key)
+    if not dryrun:
+        options.set(key, val)
+        click.echo(f"Updated key: {opt.name} ({opt.type}) = {val}")
+        return opt
+    else:
+        click.echo(f"Updated key: {opt.name} ({opt.type}) = {val}")
+        return opt
 
 
 @configoptions.command()

@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
-  children: React.ReactChildren;
+  children: React.ReactNode;
 };
 
 function ProfilingContainer({children}: Props) {

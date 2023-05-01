@@ -4,21 +4,22 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, TypedDict
+from typing import Optional, TypedDict, cast
 
 from django.utils import timezone
+from pydantic.fields import Field
 
 from sentry.models import OrganizationMember
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 
-@dataclass(frozen=True, eq=True)
-class RpcOrganizationMemberMapping:
+class RpcOrganizationMemberMapping(RpcModel):
+    organizationmember_id: int = -1
     organization_id: int = -1
-    date_added: datetime = field(default_factory=timezone.now)
+    date_added: datetime = Field(default_factory=timezone.now)
 
     role: str = ""
     user_id: Optional[int] = None
@@ -53,11 +54,24 @@ def update_organizationmember_mapping_from_instance(
     return RpcOrganizationMemberMappingUpdate(**attributes)  # type: ignore
 
 
-class OrganizationMemberMappingService(InterfaceWithLifecycle):
+class OrganizationMemberMappingService(RpcService):
+    key = "organizationmember_mapping"
+    local_mode = SiloMode.CONTROL
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.organizationmember_mapping.impl import (
+            DatabaseBackedOrganizationMemberMappingService,
+        )
+
+        return DatabaseBackedOrganizationMemberMappingService()
+
+    @rpc_method
     @abstractmethod
     def create_mapping(
         self,
         *,
+        organizationmember_id: int,
         organization_id: int,
         role: str,
         user_id: Optional[int] = None,
@@ -67,10 +81,21 @@ class OrganizationMemberMappingService(InterfaceWithLifecycle):
     ) -> RpcOrganizationMemberMapping:
         pass
 
+    @rpc_method
     @abstractmethod
     def create_with_organization_member(
-        self, org_member: OrganizationMember
+        self, *, org_member: OrganizationMember
     ) -> RpcOrganizationMemberMapping:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def delete_with_organization_member(
+        self,
+        *,
+        organizationmember_id: int,
+        organization_id: int,
+    ) -> None:
         pass
 
 
@@ -82,10 +107,6 @@ def impl_with_db() -> OrganizationMemberMappingService:
     return DatabaseBackedOrganizationMemberMappingService()
 
 
-organizationmember_mapping_service: OrganizationMemberMappingService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
-        SiloMode.CONTROL: impl_with_db,
-    }
+organizationmember_mapping_service: OrganizationMemberMappingService = cast(
+    OrganizationMemberMappingService, OrganizationMemberMappingService.create_delegation()
 )

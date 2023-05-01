@@ -48,12 +48,8 @@ describe('ProjectTags', function () {
   });
 
   it('disables delete button for users without access', function () {
-    const context = {
-      organization: TestStubs.Organization({access: []}),
-    };
-
     render(<ProjectTags organization={org} params={{projectId: project.slug}} />, {
-      context: TestStubs.routerContext([context]),
+      organization: TestStubs.Organization({access: []}),
     });
 
     screen

@@ -36,9 +36,16 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         data = span.get("data", None)
-        transfer_size = data and data.get("Transfer Size", None)
-        encoded_body_size = data and data.get("Encoded Body Size", None)
-        decoded_body_size = data and data.get("Decoded Body Size", None)
+        transfer_size = data and (
+            data.get("http.transfer_size", None) or data.get("Transfer Size", None)
+        )
+        encoded_body_size = data and (
+            data.get("http.response_content_length", None) or data.get("Encoded Body Size", None)
+        )
+        decoded_body_size = data and (
+            data.get("http.decoded_response_content_length", None)
+            or data.get("Decoded Body Size", None)
+        )
         if not (encoded_body_size and decoded_body_size and transfer_size):
             return
 
@@ -103,7 +110,12 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def is_event_eligible(cls, event):
         tags = event.get("tags", [])
         browser_name = next(
-            (tag[1] for tag in tags if tag[0] == "browser.name" and len(tag) == 2), ""
+            (
+                tag[1]
+                for tag in tags
+                if tag is not None and tag[0] == "browser.name" and len(tag) == 2
+            ),
+            "",
         )
         if browser_name.lower() in [
             "chrome",

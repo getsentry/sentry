@@ -64,6 +64,7 @@ def submit_process(
     event_id: Optional[str],
     start_time: Optional[int],
     data_has_changed: bool = False,
+    from_symbolicate: bool = False,
     has_attachments: bool = False,
 ) -> None:
     task = process_event_from_reprocessing if from_reprocessing else process_event
@@ -72,6 +73,7 @@ def submit_process(
         start_time=start_time,
         event_id=event_id,
         data_has_changed=data_has_changed,
+        from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
     )
 
@@ -139,11 +141,15 @@ def _do_preprocess_event(
 
     is_js = False
     if data["platform"] in ("javascript", "node"):
-        from sentry.lang.javascript.processing import get_symbolication_function
+        from sentry.lang.javascript.processing import (
+            get_js_symbolication_function as get_symbolication_function,
+        )
 
         is_js = True
     else:
-        from sentry.lang.native.processing import get_symbolication_function
+        from sentry.lang.native.processing import (
+            get_native_symbolication_function as get_symbolication_function,
+        )
 
     symbolication_function = get_symbolication_function(data)
     if symbolication_function:
@@ -457,6 +463,8 @@ def process_event(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
+    from_symbolicate: bool = False,
+    has_attachments: bool = False,
     **kwargs: Any,
 ) -> None:
     """
@@ -475,6 +483,8 @@ def process_event(
         event_id=event_id,
         process_task=process_event,
         data_has_changed=data_has_changed,
+        from_symbolicate=from_symbolicate,
+        has_attachments=has_attachments,
     )
 
 
@@ -489,6 +499,8 @@ def process_event_from_reprocessing(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
+    from_symbolicate: bool = False,
+    has_attachments: bool = False,
     **kwargs: Any,
 ) -> None:
     return do_process_event(
@@ -497,6 +509,8 @@ def process_event_from_reprocessing(
         event_id=event_id,
         process_task=process_event_from_reprocessing,
         data_has_changed=data_has_changed,
+        from_symbolicate=from_symbolicate,
+        has_attachments=has_attachments,
     )
 
 
