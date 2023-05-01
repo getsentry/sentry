@@ -638,7 +638,7 @@ def process_inbox_adds(job: PostProcessJob) -> None:
                 add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
             elif (
                 not is_reprocessed and not has_reappeared
-            ):  # If true, we added the .UNIGNORED reason already
+            ):  # If true, we added the .ONGOING reason already
                 if is_new:
                     add_group_to_inbox(event.group, GroupInboxReason.NEW)
                 elif is_regression:
@@ -699,8 +699,12 @@ def process_snoozes(job: PostProcessJob) -> None:
                 "user_count": snooze.user_count,
                 "user_window": snooze.user_window,
             }
-            add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
-            record_group_history(group, GroupHistoryStatus.UNIGNORED)
+            if features.has("organizations:issue-states", group.organization):
+                add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
+                record_group_history(group, GroupHistoryStatus.ONGOING)
+            else:
+                add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
+                record_group_history(group, GroupHistoryStatus.UNIGNORED)
             Activity.objects.create(
                 project=group.project,
                 group=group,

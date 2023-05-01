@@ -94,6 +94,7 @@ ACTIONED_STATUSES = [
 
 UNRESOLVED_STATUSES = (
     GroupHistoryStatus.UNRESOLVED,
+    GroupHistoryStatus.ONGOING,
     GroupHistoryStatus.REGRESSED,
     GroupHistoryStatus.ESCALATING,
 )
@@ -107,6 +108,8 @@ RESOLVED_STATUSES = (
 
 PREVIOUS_STATUSES = {
     GroupHistoryStatus.UNRESOLVED: RESOLVED_STATUSES,
+    GroupHistoryStatus.ONGOING: RESOLVED_STATUSES
+    + (GroupHistoryStatus.REGRESSED, GroupHistoryStatus.ESCALATING, GroupHistoryStatus.IGNORED),
     GroupHistoryStatus.RESOLVED: UNRESOLVED_STATUSES,
     GroupHistoryStatus.SET_RESOLVED_IN_RELEASE: UNRESOLVED_STATUSES,
     GroupHistoryStatus.SET_RESOLVED_IN_COMMIT: UNRESOLVED_STATUSES,
@@ -168,7 +171,7 @@ class GroupHistory(Model):
     status = BoundedPositiveIntegerField(
         default=0,
         choices=(
-            (GroupHistoryStatus.UNRESOLVED, _("Unresolved")),
+            (GroupHistoryStatus.ONGOING, _("Ongoing")),
             (GroupHistoryStatus.RESOLVED, _("Resolved")),
             (GroupHistoryStatus.AUTO_RESOLVED, _("Automatically Resolved")),
             (GroupHistoryStatus.IGNORED, _("Ignored")),
