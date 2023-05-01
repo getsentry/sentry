@@ -97,6 +97,7 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
         important = event.occurrence.important_evidence_display
         if important:
             return important.value
+
     elif ev_type == "error":
         return ev_metadata.get("value") or ev_metadata.get("function")
     elif ev_type == "transaction":

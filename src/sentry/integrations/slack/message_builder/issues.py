@@ -4,7 +4,7 @@ from typing import Any, Mapping, Sequence
 
 from django.core.cache import cache
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.message_builder import (
     build_attachment_text,
@@ -256,13 +256,6 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.issue_details = issue_details
         self.notification = notification
         self.recipient = recipient
-
-    @property
-    def escape_text(self) -> bool:
-        """
-        Returns True if we need to escape the text in the message.
-        """
-        return features.has("organizations:slack-escape-messages", self.group.project.organization)
 
     def build(self) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested
