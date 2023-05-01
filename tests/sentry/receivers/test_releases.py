@@ -24,6 +24,7 @@ from sentry.models import (
     UserOption,
     add_group_to_inbox,
 )
+from sentry.models.groupresolution import GroupResolution
 from sentry.signals import buffer_incr_complete, receivers_raise_on_send
 from sentry.testutils import TestCase
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
@@ -231,6 +232,32 @@ class ResolvedInCommitTest(TestCase):
         ).exists()
 
         assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
+
+    @receivers_raise_on_send()
+    def test_resolve_in_next_release(self):
+        event = self.store_event(
+            data={"release": "1.0"},
+            project_id=self.project.id,
+        )
+        group = event.group
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+
+        repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
+
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
+        )
+        self.assertResolvedFromCommit(group, commit)
+
+        assert GroupResolution.objects.filter(
+            group=group,
+            type=GroupResolution.Type.in_next_release,
+            current_release_version="1.0",
+            release=Release.objects.get(organization_id=group.organization.id, version="1.0"),
+        ).exists()
 
 
 @region_silo_test(stable=True)

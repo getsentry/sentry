@@ -5,6 +5,10 @@ from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.api.helpers.group_index import (
+    follows_semver_versioning_scheme,
+    get_current_release_version_of_group,
+)
 from sentry.models import (
     Activity,
     Commit,
@@ -27,6 +31,7 @@ from sentry.models.grouphistory import (
     record_group_history,
     record_group_history_from_activity_type,
 )
+from sentry.models.groupresolution import GroupResolution
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
@@ -148,6 +153,36 @@ def resolved_in_commit(instance, created, **kwargs):
 
                 Activity.objects.create(**activity_kwargs)
 
+                event = group.get_latest_event()
+                # if the event has a release, attempt to mark the group as resolved in the next release
+                if event and event.release:
+                    # Check if semver versioning scheme is followed
+                    follows_semver = follows_semver_versioning_scheme(
+                        org_id=group.organization.id,
+                        project_id=group.project.id,
+                        release_version=event.version,
+                    )
+                    current_release_version = get_current_release_version_of_group(
+                        group=group, follows_semver=follows_semver
+                    )
+
+                    release = Release.objects.get(
+                        version=current_release_version, organization_id=group.organization.id
+                    )
+                    resolution_params = {
+                        "type": GroupResolution.Type.in_next_release,
+                        "status": GroupResolution.Status.resolved,
+                        "release": release,
+                        "current_release_version": current_release_version,
+                        "actor_id": acting_user if acting_user else None,
+                    }
+                    resolution, created = GroupResolution.objects.get_or_create(
+                        group=group,
+                        defaults=resolution_params,
+                    )
+                    if not created:
+                        resolution.update(datetime=timezone.now(), **resolution_params)
+
                 Group.objects.filter(id=group.id).update(
                     status=GroupStatus.RESOLVED,
                     resolved_at=current_datetime,
@@ -155,14 +190,12 @@ def resolved_in_commit(instance, created, **kwargs):
                 )
                 group.status = GroupStatus.RESOLVED
                 group.substatus = None
-
                 remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
                 record_group_history_from_activity_type(
                     group,
                     ActivityType.SET_RESOLVED_IN_COMMIT.value,
                     actor=acting_user if acting_user else None,
                 )
-
         except IntegrityError:
             pass
         else:
