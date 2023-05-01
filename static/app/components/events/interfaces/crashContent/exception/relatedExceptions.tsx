@@ -1,17 +1,16 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {hasExceptionGroupTree} from 'sentry/components/events/interfaces/frame/utils';
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EntryType, Event, ExceptionValue, StackTraceMechanism} from 'sentry/types';
+import {ExceptionValue, StackTraceMechanism} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 type ExceptionGroupContextProps = {
-  event: Event;
-  isNewestFrame?: boolean;
+  allExceptions: ExceptionValue[];
   mechanism?: StackTraceMechanism | null;
+  newestFirst?: boolean;
 };
 
 type ExceptionTreeProps = {
@@ -94,7 +93,7 @@ function ExceptionTree({
   }
 
   return (
-    <div>
+    <StyledPre>
       {parentException && <ExceptionTreeItem exception={parentException} level={0} />}
       <ExceptionTreeItem
         exception={exception}
@@ -110,21 +109,18 @@ function ExceptionTree({
           firstChild={i === 0}
         />
       ))}
-    </div>
+    </StyledPre>
   );
 }
 
-export function ExceptionGroupContext({
-  event,
+export function RelatedExceptions({
+  allExceptions,
   mechanism,
-  isNewestFrame,
+  newestFirst,
 }: ExceptionGroupContextProps) {
-  if (!mechanism || !hasExceptionGroupTree({mechanism, isNewestFrame})) {
+  if (!mechanism || !mechanism.is_exception_group) {
     return null;
   }
-
-  const allExceptions: ExceptionValue[] =
-    event.entries.find(entry => entry.type === EntryType.EXCEPTION)?.data?.values ?? [];
 
   const parentException = allExceptions.find(
     exc => exc.mechanism?.exception_id === mechanism.parent_id
@@ -136,18 +132,31 @@ export function ExceptionGroupContext({
     exc => exc.mechanism?.parent_id === mechanism.exception_id
   );
 
-  const data = [
-    {
-      key: t('Related Exceptions'),
-      subject: t('Related Exceptions'),
-      value: <ExceptionTree {...{parentException, exception, childExceptions}} />,
-    },
-  ];
-  return <KeyValueList data={data} isContextData />;
+  if (newestFirst) {
+    childExceptions.reverse();
+  }
+
+  return (
+    <Fragment>
+      <Heading>Related Exceptions</Heading>
+      <ExceptionTree {...{parentException, exception, childExceptions}} />
+    </Fragment>
+  );
 }
 
+const Heading = styled('div')`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: ${space(1)} 0 ${space(0.5)} 0;
+  color: ${p => p.theme.subText};
+`;
+
+const StyledPre = styled('pre')`
+  margin: 0;
+  overflow-x: auto;
+`;
+
 const TreeChildLineSvg = styled('svg')`
-  flex-shrink: 0;
   position: absolute;
   left: 6px;
   bottom: 50%;
@@ -155,16 +164,17 @@ const TreeChildLineSvg = styled('svg')`
 
 const TreeItem = styled('div')<{level: number}>`
   position: relative;
-  display: flex;
+  display: grid;
   align-items: center;
+  grid-template-columns: auto auto 1fr;
   gap: ${space(1)};
   padding-left: ${p => (p.level > 0 ? 20 : 0)}px;
   margin-left: ${p => Math.max((p.level - 1) * 20, 0)}px;
   height: 24px;
+  white-space: nowrap;
 `;
 
 const Circle = styled('div')`
-  flex-shrink: 0;
   border-radius: 50%;
   height: 12px;
   width: 12px;
