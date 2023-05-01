@@ -2,6 +2,7 @@ from typing import List
 
 import pytest
 
+from sentry import options
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.models import ProjectOption
@@ -206,17 +207,70 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert not detector.is_creation_allowed_for_project(project)
 
-    def test_only_triggers_for_frontend_events_when_spans_are_before_lcp(self):
+    def test_triggers_for_frontend_events_when_spans_are_before_lcp(
+        self,
+    ):
+        # Set lcp percentage low to test that only spans before lcp are considered
+        options.set("performance.issues.consecutive_http.lcp_percentage_min", 0.0)
+        self.settings = get_detection_settings()
+
+        # The total duration of the candidate spans is 6000ms
         event = {
             **self.create_issue_event(),
             "sdk": {"name": "sentry.javascript.browser"},
-            "measurements": {"lcp": {"value": 1}},
+            "measurements": {"lcp": {"value": 5999}},
             "start_timestamp": 0,
         }
         problems = self.find_problems(event)
         assert problems == []
 
-        event["measurements"]["lcp"]["value"] = 999999
+        event["measurements"]["lcp"]["value"] = 6000
+        problems = self.find_problems(event)
+        assert problems == [
+            PerformanceProblem(
+                fingerprint="1-1009-00b8644b56309c8391aa365783145162ab9c589a",
+                op="http",
+                desc="GET /api/0/organizations/endpoint1",
+                type=PerformanceConsecutiveHTTPQueriesGroupType,
+                parent_span_ids=None,
+                cause_span_ids=[],
+                offender_span_ids=[
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                ],
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                    ],
+                    "op": "http",
+                },
+                evidence_display=[],
+            )
+        ]
+
+    def test_triggers_for_frontend_events_when_spans_are_above_lcp_percentage_threshold(
+        self,
+    ):
+        # Total duration of candidate spans is 6000ms, so the detector should only
+        # trigger if LCP is less than or equal to 12000ms
+        options.set("performance.issues.consecutive_http.lcp_percentage_min", 0.5)
+        self.settings = get_detection_settings()
+
+        event = {
+            **self.create_issue_event(),
+            "sdk": {"name": "sentry.javascript.browser"},
+            "measurements": {"lcp": {"value": 12001}},
+            "start_timestamp": 0,
+        }
+        problems = self.find_problems(event)
+        assert problems == []
+
+        event["measurements"]["lcp"]["value"] = 12000
         problems = self.find_problems(event)
         assert problems == [
             PerformanceProblem(

@@ -671,7 +671,7 @@ register("performance.issues.render_blocking_assets.fcp_minimum_threshold", defa
 register("performance.issues.render_blocking_assets.fcp_maximum_threshold", default=10000.0)
 register("performance.issues.render_blocking_assets.fcp_ratio_threshold", default=0.33)
 register("performance.issues.render_blocking_assets.size_threshold", default=1000000)
-register("performance.issues.consecutive_http.lcp_percentage_min", default=0.1)
+register("performance.issues.consecutive_http.lcp_percentage_min", default=0.33)
 
 # System-wide option for sending occurrences to the issues platform
 register("performance.issues.send_to_issues_platform", default=False, flags=FLAG_MODIFIABLE_BOOL)

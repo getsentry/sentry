@@ -61,12 +61,19 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             for idx in range(1, len(self.consecutive_http_spans))
         )
 
-        # TODO(nar): Check here for total duration of all spans against % threshold
+        lcp = get_path(self._event, "measurements", "lcp", "value")
+        exceeds_min_lcp_threshold = (
+            self._sum_span_duration(self.consecutive_http_spans) / lcp
+            >= self.settings.get("lcp_percentage_min")
+            if lcp and get_path(self._event, "sdk", "name") == "sentry.javascript.browser"
+            else True
+        )
 
         if (
             exceeds_count_threshold
             and exceeds_span_duration_threshold
             and exceeds_duration_between_spans_threshold
+            and exceeds_min_lcp_threshold
         ):
             self._store_performance_problem()
 
@@ -147,7 +154,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             > datetime.fromtimestamp(self._event.get("start_timestamp"))
             + timedelta(milliseconds=lcp)
             if lcp is not None
-            else False
+            else True
         )
 
     def _fingerprint(self) -> str:
