@@ -17,6 +17,7 @@ class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase):
     def test_simple(self):
         project = self.create_project(name="test")
         env = Environment.objects.create(organization_id=project.organization_id, name="foo")
+        env_2 = Environment.objects.create(organization_id=project.organization_id, name="bar")
 
         monitor = Monitor.objects.create(
             organization_id=project.organization.id,
@@ -28,9 +29,20 @@ class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase):
             monitor=monitor,
             environment=env,
         )
+        monitor_env_2 = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=env_2,
+        )
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_env,
+            project_id=project.id,
+            date_added=monitor.date_added,
+            status=CheckInStatus.OK,
+        )
+        checkin_2 = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_env_2,
             project_id=project.id,
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
@@ -47,5 +59,7 @@ class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase):
 
         # Shared objects should continue to exist.
         assert Monitor.objects.filter(id=monitor.id).exists()
+        assert MonitorEnvironment.objects.filter(id=monitor_env_2.id).exists()
+        assert MonitorCheckIn.objects.filter(id=checkin_2.id).exists()
         assert Environment.objects.filter(id=env.id).exists()
         assert Project.objects.filter(id=project.id).exists()
