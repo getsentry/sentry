@@ -244,6 +244,7 @@ def convert_query_values(
     def convert_search_filter(
         search_filter: SearchFilter, organization: Organization
     ) -> SearchFilter:
+        search_filters = list(search_filter)
         if search_filter.key.name == "empty_stacktrace.js_console":
             if not features.has(
                 "organizations:javascript-console-error-tag", organization, actor=None
@@ -268,7 +269,7 @@ def convert_query_values(
                         "The substatus filter is not supported for this organization"
                     )
 
-                status = GROUP_SUBSTATUS_TO_STATUS_MAP.get(search_filter.value.raw_value)
+                status = GROUP_SUBSTATUS_TO_STATUS_MAP.get(search_filter.value.raw_value[0])
                 search_filters.append(
                     SearchFilter(
                         key=SearchKey(name="status"), operator="IN", value=SearchValue(status)

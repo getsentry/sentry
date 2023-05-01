@@ -68,7 +68,6 @@ def build_query_params_from_request(
             search_filters = convert_query_values(
                 parse_search_query(query), projects, request.user, environments
             )
-            # print(f"\n\n {search_filters=} \n\n")
         except InvalidSearchQuery as e:
             raise ValidationError(f"Error parsing search query: {e}")
 
