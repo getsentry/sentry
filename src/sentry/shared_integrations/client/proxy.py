@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import logging
+import sys
 
 from django.conf import settings
-from requests import PreparedRequest, Request
+from requests import PreparedRequest
 
 from sentry.integrations.client import ApiClient
 from sentry.services.hybrid_cloud.util import control_silo_function
@@ -23,30 +26,54 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
     Universal Client to access third-party resources safely in Hybrid Cloud.
     Requests to third parties must always exit the Sentry subnet via the Control Silo, and only
     add sensitive credentials at that stage.
+
+    When testing, client requests will always go to the base_url unless `self._use_proxy_url_for_tests`
+    is set to True.
     """
 
-    should_proxy_to_control = False
+    _should_proxy_to_control = False
+    _use_proxy_url_for_tests = False
 
-    def __init__(self, org_integration_id: int) -> None:
+    def __init__(
+        self,
+        integration_id: int | None = None,
+        org_integration_id: int | None = None,
+    ) -> None:
         super().__init__()
+
+        self.integration_id = integration_id
         self.org_integration_id = org_integration_id
 
         is_region_silo = SiloMode.get_current_mode() == SiloMode.REGION
-        subnet_secret = getattr(settings, "SENTRY_SUBNET_SECRET")
-        control_address = getattr(settings, "SENTRY_CONTROL_ADDRESS")
+        subnet_secret = getattr(settings, "SENTRY_SUBNET_SECRET", None)
+        control_address = getattr(settings, "SENTRY_CONTROL_ADDRESS", None)
+        is_test_environment = "pytest" in sys.modules
 
         if is_region_silo and subnet_secret and control_address:
-            self.should_proxy_to_control = True
+            self._should_proxy_to_control = True
             self.proxy_url = f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_BASE_PATH}"
 
+        if is_test_environment and not self._use_proxy_url_for_tests:
+            self.proxy_url = self.base_url
+
     @control_silo_function
-    def authorize_request(self, request: Request) -> Request:
-        raise NotImplementedError(
-            "'authorize_request' method must be implemented to safely proxy requests."
-        )
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        """
+        Used in the Control Silo to authorize all outgoing requests to the service provider.
+        """
+        return prepared_request
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
-        if not self.should_proxy_to_control or not prepared_request.url:
+        """
+        Every request through this subclassed clients run this method.
+        If running as a monolith/control, we must authorize each request before sending.
+        If running as a region, we don't authorize and instead, send it to our proxy endpoint,
+        where tokens are added in by Control Silo. We do this to avoid race conditions around
+        stale tokens and centralize token refresh flows.
+        """
+
+        if not self._should_proxy_to_control or not prepared_request.url:
+            prepared_request = self.authorize_request(prepared_request=prepared_request)
             return prepared_request
 
         # E.g. client.get("/chat.postMessage") -> proxy_path = 'chat.postMessage'

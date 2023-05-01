@@ -88,7 +88,7 @@ const createWrapper = (props = {}) => {
   };
   const onChangeTitleMock = jest.fn();
   const wrapper = render(
-    <ProjectAlerts organization={organization} params={params}>
+    <ProjectAlerts organization={organization} project={project} params={params}>
       <IssueRuleEditor
         params={params}
         location={router.location}
