@@ -21,7 +21,7 @@ import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 
 import DatabaseChartView from './databaseChartView';
-import DatabaseTableView, {DataRow} from './databaseTableView';
+import DatabaseTableView, {DataRow, TableColumnHeader} from './databaseTableView';
 import QueryDetail from './panel';
 
 const HOST = 'http://localhost:8080';
@@ -47,6 +47,10 @@ function DatabaseModule() {
     }
   };
   const [transaction, setTransaction] = useState<string>('');
+  const [sort, setSort] = useState<{
+    direction: 'desc' | 'asc' | undefined;
+    sortHeader: TableColumnHeader | undefined;
+  }>({direction: undefined, sortHeader: undefined});
   const [rows, setRows] = useState<{next?: DataRow; prev?: DataRow; selected?: DataRow}>({
     selected: undefined,
     next: undefined,
@@ -84,7 +88,6 @@ function DatabaseModule() {
 
     document.addEventListener('keydown', handleKeyDown);
 
-    // Don't forget to clean up
     return function cleanup() {
       document.removeEventListener('keydown', handleKeyDown);
     };
@@ -102,9 +105,12 @@ function DatabaseModule() {
       table,
       pageFilter.selection.datetime,
       transaction,
+      sort.sortHeader?.key,
+      sort.direction,
       newFilter,
       oldFilter,
     ],
+    cacheTime: 10000,
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getMainTable(
@@ -114,6 +120,8 @@ function DatabaseModule() {
           transactionFilter,
           tableFilter,
           actionFilter,
+          sort.sortHeader?.key,
+          sort.direction,
           newFilter,
           oldFilter
         )}&format=sql`
@@ -193,6 +201,7 @@ function DatabaseModule() {
               data={tableData}
               isDataLoading={isTableDataLoading || isTableRefetching}
               onSelect={setSelectedRow}
+              onSortChange={setSort}
               selectedRow={rows.selected}
             />
             <QueryDetail
