@@ -8,9 +8,6 @@ from sentry.models import (
     User,
 )
 from sentry.models.integrations import (
-    ExternalActor,
-    ExternalIssue,
-    Integration,
     OrganizationIntegration,
     PagerDutyService,
     RepositoryProjectPathConfig,
@@ -25,8 +22,6 @@ decorator_exemptions = set()
 fk_exemptions = {
     (OrganizationMember, User),
     (AuthProviderDefaultTeams, Team),
-    (Integration, ExternalActor),
-    (Integration, ExternalIssue),
     (OrganizationIntegration, PagerDutyService),
     (OrganizationIntegration, RepositoryProjectPathConfig),
     (NotificationSetting, Actor),
