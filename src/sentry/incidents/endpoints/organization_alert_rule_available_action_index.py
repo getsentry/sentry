@@ -42,7 +42,7 @@ def build_action_response(
 
         if registered_type.type == AlertRuleTriggerAction.Type.PAGERDUTY:
             action_response["options"] = [
-                {"value": service["id"], "label": service["service_name"]}
+                {"value": service.id, "label": service.service_name}
                 for service in get_pagerduty_services(organization.id, integration.id)
             ]
 
