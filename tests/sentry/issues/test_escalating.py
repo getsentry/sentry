@@ -10,7 +10,7 @@ from sentry.issues.escalating import (
     GroupCountProcessor,
     GroupsCountResponse,
     _start_and_end_dates,
-    get_group_daily_count,
+    get_group_hourly_count,
     is_escalating,
     query_groups_past_counts,
 )
@@ -32,6 +32,7 @@ class BaseGroupCounts(SnubaTestCase):  # type: ignore[misc]
         project_id: Optional[int] = None,
         count: int = 1,
         hours_ago: int = 0,
+        min_ago: int = 0,
         group: str = "foo-1",
     ) -> Event:
         """Creates one or many events for a group.
@@ -45,7 +46,7 @@ class BaseGroupCounts(SnubaTestCase):  # type: ignore[misc]
 
         last_event = None
         for _ in range(count):
-            data["timestamp"] = (datetime_reset_zero - timedelta(hours=hours_ago)).timestamp()  # type: ignore[assignment]
+            data["timestamp"] = (datetime_reset_zero - timedelta(hours=hours_ago, minutes=min_ago)).timestamp()  # type: ignore[assignment]
             data["event_id"] = uuid4().hex
             # assert_no_errors is necessary because of SDK and server time differences due to freeze gun
             last_event = self.store_event(data=data, project_id=proj_id, assert_no_errors=False)
@@ -239,14 +240,11 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert group.status == GroupStatus.IGNORED
             assert not GroupInbox.objects.filter(group=group).exists()
 
-    @freeze_time(TIME_YESTERDAY)
-    def test_daily_count_query(self) -> None:
-        """Test the daily count query only aggregates events from today"""
+    @freeze_time(TIME_YESTERDAY.replace(minute=12, second=40, microsecond=0))
+    def test_hourly_count_query(self) -> None:
+        """Test the hourly count query only aggregates events from today"""
         # TIME_YESTERDAY is at 6 in the morning
-        self._create_events_for_group(count=2, hours_ago=7)  # Yesterday
-        event = self._create_events_for_group(count=1)  # Today
-        group = event.group
-        self.archive_until_escalating(event.group)
+        event_1 = self._create_events_for_group(count=2, hours_ago=7)  # Yesterday
+        self.archive_until_escalating(event_1.group)
 
-        # Events are aggregated in the daily count query by date rather than the last 24hrs
-        assert get_group_daily_count(group.project.organization.id, group.project.id, group) == 1
+        assert get_group_hourly_count(event_1.group) == 1
