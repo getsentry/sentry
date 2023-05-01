@@ -5,7 +5,7 @@ This is later used for generating group forecasts for determining when a group m
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Dict, List, Sequence, Tuple, TypedDict
+from typing import Dict, List, Optional, Sequence, Tuple, TypedDict
 
 from snuba_sdk import (
     Column,
@@ -53,14 +53,6 @@ GroupsCountResponse = TypedDict(
 ParsedGroupsCount = Dict[int, GroupCount]
 
 
-def issue_category_dataset(category: str) -> Dataset:
-    return Dataset.Events if category == str(GroupCategory.ERROR) else Dataset.IssuePlatform
-
-
-def issue_category_entity(category: str) -> EntityKey:
-    return EntityKey.Events if category == str(GroupCategory.ERROR) else EntityKey.IssuePlatform
-
-
 def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountResponse]:
     """Query Snuba for the counts for every group bucketed into hours.
 
@@ -91,17 +83,17 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
         else:
             other_groups.append(g)
 
-    all_results += _process_groups(str(GroupCategory.ERROR), error_groups, start_date, end_date)
-    all_results += _process_groups("issue_platform", other_groups, start_date, end_date)
+    all_results += _process_groups(error_groups, start_date, end_date, GroupCategory.ERROR)
+    all_results += _process_groups(other_groups, start_date, end_date)
 
     return all_results
 
 
 def _process_groups(
-    category: str,
     groups: Sequence[Group],
     start_date: datetime,
     end_date: datetime,
+    category: Optional[GroupCategory] = None,
 ) -> List[GroupsCountResponse]:
     """Given a list of groups, query Snuba for their hourly bucket count.
     The category defines which Snuba dataset and entity we query."""
@@ -134,7 +126,7 @@ def _process_groups(
 
         # TODO: Write this as a dispatcher type task and fire off a separate task per proj_ids
         all_results += _query_with_pagination(
-            category, organization_id, proj_ids, group_ids, start_date, end_date
+            organization_id, proj_ids, group_ids, start_date, end_date, category
         )
         # We're ready for a new set of projects and ids
         proj_ids, group_ids = [], []
@@ -143,21 +135,21 @@ def _process_groups(
 
 
 def _query_with_pagination(
-    category: str,
     organization_id: int,
     project_ids: Sequence[int],
     group_ids: Sequence[int],
     start_date: datetime,
     end_date: datetime,
+    category: Optional[GroupCategory],
 ) -> List[GroupsCountResponse]:
     """Query Snuba for event counts for the given list of project ids and groups ids in
     a time range."""
     all_results = []
     offset = 0
     while True:
-        query = _generate_query(category, project_ids, group_ids, offset, start_date, end_date)
+        query = _generate_query(project_ids, group_ids, offset, start_date, end_date, category)
         request = Request(
-            dataset=issue_category_dataset(category).value,
+            dataset=_issue_category_dataset(category),
             app_id=REFERRER,
             query=query,
             tenant_ids={"referrer": REFERRER, "organization_id": organization_id},
@@ -171,41 +163,19 @@ def _query_with_pagination(
     return all_results
 
 
-def parse_groups_past_counts(response: Sequence[GroupsCountResponse]) -> ParsedGroupsCount:
-    """
-    Return the parsed snuba response for groups past counts to be used in generate_issue_forecast.
-    ParsedGroupCount is of the form {<group_id>: {"intervals": [str], "data": [int]}}.
-
-    `response`: Snuba response for group event counts
-    """
-    group_counts: ParsedGroupsCount = {}
-    group_ids_list = group_counts.keys()
-    for data in response:
-        group_id = data["group_id"]
-        if group_id not in group_ids_list:
-            group_counts[group_id] = {
-                "intervals": [data["hourBucket"]],
-                "data": [data["count()"]],
-            }
-        else:
-            group_counts[group_id]["intervals"].append(data["hourBucket"])
-            group_counts[group_id]["data"].append(data["count()"])
-    return group_counts
-
-
 def _generate_query(
-    category: str,
     project_ids: Sequence[int],
     group_ids: Sequence[int],
     offset: int,
     start_date: datetime,
     end_date: datetime,
+    category: Optional[GroupCategory],
 ) -> Query:
     """This simply generates a query based on the passed parameters"""
     group_id_col = Column("group_id")
     proj_id_col = Column("project_id")
     return Query(
-        match=Entity(issue_category_entity(category).value),
+        match=Entity(_issue_category_entity(category)),
         select=[
             proj_id_col,
             group_id_col,
@@ -244,6 +214,28 @@ def _extract_project_and_group_ids(groups: Sequence[Group]) -> Dict[int, List[in
     return group_ids_by_project
 
 
+def parse_groups_past_counts(response: Sequence[GroupsCountResponse]) -> ParsedGroupsCount:
+    """
+    Return the parsed snuba response for groups past counts to be used in generate_issue_forecast.
+    ParsedGroupCount is of the form {<group_id>: {"intervals": [str], "data": [int]}}.
+
+    `response`: Snuba response for group event counts
+    """
+    group_counts: ParsedGroupsCount = {}
+    group_ids_list = group_counts.keys()
+    for data in response:
+        group_id = data["group_id"]
+        if group_id not in group_ids_list:
+            group_counts[group_id] = {
+                "intervals": [data["hourBucket"]],
+                "data": [data["count()"]],
+            }
+        else:
+            group_counts[group_id]["intervals"].append(data["hourBucket"])
+            group_counts[group_id]["data"].append(data["count()"])
+    return group_counts
+
+
 def get_group_hourly_count(group: Group) -> int:
     """Return the number of events a group has had today in the last hour"""
     key = f"hourly-group-count:{group.project.id}:{group.id}"
@@ -253,7 +245,7 @@ def get_group_hourly_count(group: Group) -> int:
         now = datetime.now()
         current_hour = now.replace(minute=0, second=0, microsecond=0)
         query = Query(
-            match=Entity(issue_category_entity(group.issue_category).value),
+            match=Entity(_issue_category_entity(group.issue_category)),
             select=[
                 Function("count", []),
             ],
@@ -265,7 +257,7 @@ def get_group_hourly_count(group: Group) -> int:
             ],
         )
         request = Request(
-            dataset=issue_category_dataset(group.issue_category).value,
+            dataset=_issue_category_dataset(group.issue_category),
             app_id=IS_ESCALATING_REFERRER,
             query=query,
             tenant_ids={
@@ -298,3 +290,13 @@ def is_escalating(group: Group) -> bool:
         )
         return True
     return False
+
+
+def _issue_category_dataset(category: Optional[GroupCategory]) -> Dataset:
+    return Dataset.Events.value if category == GroupCategory.ERROR else Dataset.IssuePlatform.value
+
+
+def _issue_category_entity(category: Optional[GroupCategory]) -> EntityKey:
+    return (
+        EntityKey.Events.value if category == GroupCategory.ERROR else EntityKey.IssuePlatform.value
+    )
