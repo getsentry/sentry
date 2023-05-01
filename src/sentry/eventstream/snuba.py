@@ -424,6 +424,8 @@ class SnubaEventStream(SnubaProtocolEventStream):
         if event_type == EventStreamEventType.Generic:
             entity = "search_issues"
 
+        serialized_data = json.dumps(data)
+
         try:
             schema = sentry_kafka_schemas.get_schema(
                 topic={
@@ -442,16 +444,16 @@ class SnubaEventStream(SnubaProtocolEventStream):
         codec: JsonCodec[Any] = JsonCodec(schema=schema)
 
         try:
-            codec.validate(data)
+            codec.validate(json.loads(serialized_data))
         except Exception:
-            print(data)  # noqa
+            print(json.loads(serialized_data))  # noqa
             raise
 
         try:
             resp = snuba._snuba_pool.urlopen(
                 "POST",
                 f"/tests/{entity}/eventstream",
-                body=json.dumps(data),
+                body=serialized_data,
                 headers={f"X-Sentry-{k}": v for k, v in headers.items()},
             )
             if resp.status != 200:
