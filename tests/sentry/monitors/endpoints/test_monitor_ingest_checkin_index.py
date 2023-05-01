@@ -204,7 +204,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 == "Invalid monitor slug. Must match the pattern [a-zA-Z0-9_-]+"
             )
 
-    @override_settings(MAX_MONITORS_PER_ORG=10)
+    @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_creation_over_limit(self):
         for i, path_func in enumerate(self._get_path_functions()):
             for m in range(settings.MAX_MONITORS_PER_ORG):
@@ -237,7 +237,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             Monitor.objects.filter(organization_id=self.organization.id).delete()
 
-    @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=10)
+    @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
     def test_monitor_environment_creation_over_limit(self):
         for i, path_func in enumerate(self._get_path_functions()):
             slug = f"my-new-monitor-{i}"

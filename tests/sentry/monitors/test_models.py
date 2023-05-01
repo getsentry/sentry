@@ -119,7 +119,7 @@ class MonitorTestCase(TestCase):
 
         assert monitor.slug.startswith("my-awesome-monitor-")
 
-    @override_settings(MAX_MONITORS_PER_ORG=10)
+    @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_organization_limit(self):
         for i in range(settings.MAX_MONITORS_PER_ORG):
             Monitor.objects.create(
@@ -283,7 +283,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
-    @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=10)
+    @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
     def test_monitor_environment_limits(self):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,

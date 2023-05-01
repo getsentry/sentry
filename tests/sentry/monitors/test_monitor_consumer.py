@@ -259,7 +259,7 @@ class MonitorConsumerTest(TestCase):
         )
         assert monitor_environment is not None
 
-    @override_settings(MAX_MONITORS_PER_ORG=10)
+    @override_settings(MAX_MONITORS_PER_ORG=2)
     @pytest.mark.django_db
     def test_monitor_limits(self):
         for i in range(settings.MAX_MONITORS_PER_ORG + 2):
@@ -272,7 +272,7 @@ class MonitorConsumerTest(TestCase):
         monitors = Monitor.objects.filter(organization_id=self.organization.id)
         assert len(monitors) == settings.MAX_MONITORS_PER_ORG
 
-    @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=10)
+    @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
     @pytest.mark.django_db
     def test_monitor_environment_limits(self):
         for i in range(settings.MAX_ENVIRONMENTS_PER_MONITOR + 2):

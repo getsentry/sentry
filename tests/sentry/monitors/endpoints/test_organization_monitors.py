@@ -183,7 +183,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
 
         assert response.data["slug"] == "my-monitor"
 
-    @override_settings(MAX_MONITORS_PER_ORG=10)
+    @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_organization_limit(self):
         for i in range(settings.MAX_MONITORS_PER_ORG):
             data = {
