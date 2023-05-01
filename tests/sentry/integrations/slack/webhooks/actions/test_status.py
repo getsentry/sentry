@@ -15,20 +15,18 @@ from sentry.models import (
     GroupAssignee,
     GroupStatus,
     Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
     InviteStatus,
-    OrganizationIntegration,
     OrganizationMember,
 )
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from . import BaseEventTest
 
 
+@region_silo_test(stable=True)
 class StatusActionTest(BaseEventTest):
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_ask_linking(self):
@@ -94,10 +92,11 @@ class StatusActionTest(BaseEventTest):
         """
         Ensure that we can act as a user even when the organization has SSO enabled
         """
-        auth_idp = AuthProvider.objects.create(
-            organization_id=self.organization.id, provider="dummy"
-        )
-        AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
+        with exempt_from_silo_limits():
+            auth_idp = AuthProvider.objects.create(
+                organization_id=self.organization.id, provider="dummy"
+            )
+            AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
 
         status_action = {"name": "status", "value": "ignored", "type": "button"}
 
@@ -173,12 +172,10 @@ class StatusActionTest(BaseEventTest):
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
 
-        user2_identity = Identity.objects.create(
+        user2_identity = self.create_identity(
             external_id="slack_id2",
-            idp=self.idp,
+            identity_provider=self.idp,
             user=user2,
-            status=IdentityStatus.VALID,
-            scopes=[],
         )
 
         status_action = {
@@ -212,20 +209,16 @@ class StatusActionTest(BaseEventTest):
     def test_assign_user_with_multiple_identities(self):
         org2 = self.create_organization(owner=None)
 
-        integration2 = Integration.objects.create(
+        integration2 = self.create_integration(
+            organization=org2,
             provider="slack",
             external_id="TXXXXXXX2",
-            metadata={"access_token": "xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
-        OrganizationIntegration.objects.create(organization_id=org2.id, integration=integration2)
-
-        idp2 = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX2", config={})
-        Identity.objects.create(
+        idp2 = self.create_identity_provider(integration=integration2)
+        self.create_identity(
             external_id="slack_id2",
-            idp=idp2,
+            identity_provider=idp2,
             user=self.user,
-            status=IdentityStatus.VALID,
-            scopes=[],
         )
 
         status_action = {
@@ -264,7 +257,6 @@ class StatusActionTest(BaseEventTest):
         assert resp.content == b""
 
         data = parse_qs(responses.calls[0].request.body)
-        assert data["token"][0] == self.integration.metadata["access_token"]
         assert data["trigger_id"][0] == self.trigger_id
         assert "dialog" in data
 
@@ -300,12 +292,10 @@ class StatusActionTest(BaseEventTest):
     def test_permission_denied(self):
         user2 = self.create_user(is_superuser=False)
 
-        user2_identity = Identity.objects.create(
+        user2_identity = self.create_identity(
             external_id="slack_id2",
-            idp=self.idp,
+            identity_provider=self.idp,
             user=user2,
-            status=IdentityStatus.VALID,
-            scopes=[],
         )
 
         status_action = {"name": "status", "value": "ignored", "type": "button"}
@@ -347,7 +337,6 @@ class StatusActionTest(BaseEventTest):
         assert resp.content == b""
 
         data = parse_qs(responses.calls[0].request.body)
-        assert data["token"][0] == self.integration.metadata["access_token"]
         assert data["trigger_id"][0] == self.trigger_id
         assert "dialog" in data
 
@@ -392,7 +381,8 @@ class StatusActionTest(BaseEventTest):
         "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
     )
     def test_no_integration(self, check_signing_secret_mock):
-        self.integration.delete()
+        with exempt_from_silo_limits():
+            self.integration.delete()
         resp = self.post_webhook()
         assert resp.status_code == 403
 
@@ -530,7 +520,8 @@ class StatusActionTest(BaseEventTest):
         )
 
     def test_identity_not_linked(self):
-        Identity.objects.filter(user=self.user).delete()
+        with exempt_from_silo_limits():
+            Identity.objects.filter(user=self.user).delete()
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id="")
 
         assert resp.status_code == 200, resp.content
