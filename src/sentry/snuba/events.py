@@ -45,6 +45,7 @@ class Columns(Enum):
         event_name="group_ids",
         transaction_name="group_ids",
         discover_name="group_ids",
+        issue_platform_name=None,
         alias="performance.issue_ids",
     )
     OCCURRENCE_ID = Column(
@@ -147,6 +148,7 @@ class Columns(Enum):
         event_name="type",
         transaction_name=None,
         discover_name="type",
+        issue_platform_name=None,
         alias="event.type",
     )
     TAGS_KEY = Column(
@@ -186,6 +188,7 @@ class Columns(Enum):
         event_name="transaction",
         transaction_name="transaction_name",
         discover_name="transaction",
+        issue_platform_name="transaction_name",
         alias="transaction",
     )
     USER = Column(
@@ -233,6 +236,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name=None,
         discover_name="user.display",
+        issue_platform_name=None,
         alias="user.display",
     )
     SDK_NAME = Column(
@@ -465,6 +469,7 @@ class Columns(Enum):
         event_name="exception_stacks.type",
         transaction_name=None,
         discover_name="exception_stacks.type",
+        issue_platform_name=None,
         alias="error.type",
     )
     ERROR_VALUE = Column(
@@ -472,6 +477,7 @@ class Columns(Enum):
         event_name="exception_stacks.value",
         transaction_name=None,
         discover_name="exception_stacks.value",
+        issue_platform_name=None,
         alias="error.value",
     )
     ERROR_MECHANISM = Column(
@@ -479,6 +485,7 @@ class Columns(Enum):
         event_name="exception_stacks.mechanism_type",
         transaction_name=None,
         discover_name="exception_stacks.mechanism_type",
+        issue_platform_name=None,
         alias="error.mechanism",
     )
     ERROR_HANDLED = Column(
@@ -486,6 +493,7 @@ class Columns(Enum):
         event_name="exception_stacks.mechanism_handled",
         transaction_name=None,
         discover_name="exception_stacks.mechanism_handled",
+        issue_platform_name=None,
         alias="error.handled",
     )
     ERROR_MAIN_THREAD = Column(
@@ -501,7 +509,7 @@ class Columns(Enum):
         event_name="received",
         transaction_name=None,
         discover_name="received",
-        issue_platform_name="receive_timestamp",
+        issue_platform_name=None,
         alias="error.received",
     )
     STACK_ABS_PATH = Column(
@@ -509,6 +517,7 @@ class Columns(Enum):
         event_name="exception_frames.abs_path",
         transaction_name=None,
         discover_name="exception_frames.abs_path",
+        issue_platform_name=None,
         alias="stack.abs_path",
     )
     STACK_FILENAME = Column(
@@ -516,6 +525,7 @@ class Columns(Enum):
         event_name="exception_frames.filename",
         transaction_name=None,
         discover_name="exception_frames.filename",
+        issue_platform_name=None,
         alias="stack.filename",
     )
     STACK_PACKAGE = Column(
@@ -523,6 +533,7 @@ class Columns(Enum):
         event_name="exception_frames.package",
         transaction_name=None,
         discover_name="exception_frames.package",
+        issue_platform_name=None,
         alias="stack.package",
     )
     STACK_MODULE = Column(
@@ -530,6 +541,7 @@ class Columns(Enum):
         event_name="exception_frames.module",
         transaction_name=None,
         discover_name="exception_frames.module",
+        issue_platform_name=None,
         alias="stack.module",
     )
     STACK_FUNCTION = Column(
@@ -537,6 +549,7 @@ class Columns(Enum):
         event_name="exception_frames.function",
         transaction_name=None,
         discover_name="exception_frames.function",
+        issue_platform_name=None,
         alias="stack.function",
     )
     STACK_IN_APP = Column(
@@ -544,6 +557,7 @@ class Columns(Enum):
         event_name="exception_frames.in_app",
         transaction_name=None,
         discover_name="exception_frames.in_app",
+        issue_platform_name=None,
         alias="stack.in_app",
     )
     STACK_COLNO = Column(
@@ -551,6 +565,7 @@ class Columns(Enum):
         event_name="exception_frames.colno",
         transaction_name=None,
         discover_name="exception_frames.colno",
+        issue_platform_name=None,
         alias="stack.colno",
     )
     STACK_LINENO = Column(
@@ -558,6 +573,7 @@ class Columns(Enum):
         event_name="exception_frames.lineno",
         transaction_name=None,
         discover_name="exception_frames.lineno",
+        issue_platform_name=None,
         alias="stack.lineno",
     )
     STACK_STACK_LEVEL = Column(
@@ -565,6 +581,7 @@ class Columns(Enum):
         event_name="exception_frames.stack_level",
         transaction_name=None,
         discover_name="exception_frames.stack_level",
+        issue_platform_name=None,
         alias="stack.stack_level",
     )
     CONTEXTS_KEY = Column(
@@ -597,6 +614,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="transaction_op",
         discover_name="transaction_op",
+        issue_platform_name=None,
         alias="transaction.op",
     )
     TRANSACTION_DURATION = Column(
@@ -604,6 +622,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="duration",
         discover_name="duration",
+        issue_platform_name="transaction_duration",
         alias="transaction.duration",
     )
     TRANSACTION_STATUS = Column(
@@ -611,6 +630,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="transaction_status",
         discover_name="transaction_status",
+        issue_platform_name=None,
         alias="transaction.status",
     )
     TRANSACTION_SOURCE = Column(
@@ -618,6 +638,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="transaction_source",
         discover_name="transaction_source",
+        issue_platform_name=None,
         alias="transaction.source",
     )
     MEASUREMENTS_KEYS = Column(
@@ -625,6 +646,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="measurements.key",
         discover_name="measurements.key",
+        issue_platform_name=None,
         alias="measurements_key",
     )
     MEASUREMENTS_VALUES = Column(
@@ -632,6 +654,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="measurements.value",
         discover_name="measurements.value",
+        issue_platform_name=None,
         alias="measurements_value",
     )
     SPAN_OP_BREAKDOWNS_KEYS = Column(
@@ -639,6 +662,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="span_op_breakdowns.key",
         discover_name="span_op_breakdowns.key",
+        issue_platform_name=None,
         alias="span_op_breakdowns_key",
     )
     SPAN_OP_BREAKDOWNS_VALUES = Column(
@@ -646,6 +670,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="span_op_breakdowns.value",
         discover_name="span_op_breakdowns.value",
+        issue_platform_name=None,
         alias="span_op_breakdowns_value",
     )
     SPANS_OP = Column(
@@ -653,6 +678,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="spans.op",
         discover_name="spans.op",
+        issue_platform_name=None,
         alias="spans_op",
     )
     SPANS_GROUP = Column(
@@ -660,6 +686,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="spans.group",
         discover_name="spans.group",
+        issue_platform_name=None,
         alias="spans_group",
     )
     SPANS_EXCLUSIVE_TIME = Column(
@@ -667,6 +694,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="spans.exclusive_time",
         discover_name="spans.exclusive_time",
+        issue_platform_name=None,
         alias="spans_exclusive_time",
     )
     # Tracing context fields.
@@ -675,7 +703,7 @@ class Columns(Enum):
         event_name="contexts[trace.trace_id]",
         transaction_name="trace_id",
         discover_name="contexts[trace.trace_id]",
-        issue_platform_name="contexts[trace.trace_id]",
+        issue_platform_name="trace_id",
         alias="trace",
     )
     SPAN_ID = Column(
@@ -683,6 +711,7 @@ class Columns(Enum):
         event_name="contexts[trace.span_id]",
         transaction_name="span_id",
         discover_name="span_id",
+        issue_platform_name=None,
         alias="trace.span",
     )
     PARENT_SPAN_ID = Column(
@@ -690,6 +719,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="contexts[trace.parent_span_id]",
         discover_name="contexts[trace.parent_span_id]",
+        issue_platform_name=None,
         alias="trace.parent_span",
     )
 
@@ -699,6 +729,7 @@ class Columns(Enum):
         event_name="contexts[reprocessing.original_issue_id]",
         transaction_name="contexts[reprocessing.original_issue_id]",
         discover_name="contexts[reprocessing.original_issue_id]",
+        issue_platform_name=None,
         alias="reprocessing.original_issue_id",
     )
     TRACE_SAMPLE_RATE = Column(
@@ -706,7 +737,7 @@ class Columns(Enum):
         event_name="contexts[trace.client_sample_rate]",
         transaction_name="contexts[trace.client_sample_rate]",
         discover_name="contexts[trace.client_sample_rate]",
-        issue_platform_name="contexts[trace.client_sample_rate]",
+        issue_platform_name=None,
         alias="trace.client_sample_rate",
     )
 
@@ -715,6 +746,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="app_start_type",
         discover_name="app_start_type",
+        issue_platform_name=None,
         alias="app_start_type",
     )
 
@@ -723,5 +755,6 @@ class Columns(Enum):
         event_name=None,
         transaction_name="profile_id",
         discover_name="profile_id",
+        issue_platform_name=None,
         alias="profile.id",
     )
