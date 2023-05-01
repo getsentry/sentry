@@ -64,13 +64,14 @@ class SlackClientTest(TestCase):
     @responses.activate
     def test_integration_proxy_is_active(self):
         class SlackProxyTestClient(SlackClient):
-            use_proxy_url_for_tests = True
+            _use_proxy_url_for_tests = True
 
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
             client = SlackProxyTestClient(integration_id=self.integration.id)
             client.post("/chat.postMessage", data=self.payload)
             request_url = responses.calls[0].request.url
 
+            assert "/chat.postMessage" in request_url
             assert PROXY_BASE_PATH not in request_url
             assert client.base_url in request_url
 
@@ -80,6 +81,7 @@ class SlackClientTest(TestCase):
             client.post("/chat.postMessage", data=self.payload)
             request_url = responses.calls[0].request.url
 
+            assert "/chat.postMessage" in request_url
             assert PROXY_BASE_PATH not in request_url
             assert client.base_url in request_url
 
@@ -89,6 +91,7 @@ class SlackClientTest(TestCase):
             client.post("/chat.postMessage", data=self.payload)
             request_url = responses.calls[0].request.url
 
+            assert "/chat.postMessage" in request_url
             assert PROXY_BASE_PATH in request_url
             assert client.base_url not in request_url
 

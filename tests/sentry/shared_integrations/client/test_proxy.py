@@ -19,7 +19,7 @@ class IntegrationProxyClientTest(TestCase):
             integration_type = "integration"
             integration_name = "test"
             base_url = "https://example.com"
-            use_proxy_url_for_tests = True
+            _use_proxy_url_for_tests = True
 
         self.client_cls = TestClient
         self.oi_id = 24

@@ -27,12 +27,12 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
     Requests to third parties must always exit the Sentry subnet via the Control Silo, and only
     add sensitive credentials at that stage.
 
-    When testing, client requests will always go to the base_url unless `self.use_proxy_url_for_tests`
+    When testing, client requests will always go to the base_url unless `self._use_proxy_url_for_tests`
     is set to True.
     """
 
-    should_proxy_to_control = False
-    use_proxy_url_for_tests = False
+    _should_proxy_to_control = False
+    _use_proxy_url_for_tests = False
 
     def __init__(
         self,
@@ -50,10 +50,10 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
         is_test_environment = "pytest" in sys.modules
 
         if is_region_silo and subnet_secret and control_address:
-            self.should_proxy_to_control = True
+            self._should_proxy_to_control = True
             self.proxy_url = f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_BASE_PATH}"
 
-        if is_test_environment and not self.use_proxy_url_for_tests:
+        if is_test_environment and not self._use_proxy_url_for_tests:
             self.proxy_url = self.base_url
 
     @control_silo_function
@@ -72,7 +72,7 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
         stale tokens and centralize token refresh flows.
         """
 
-        if not self.should_proxy_to_control or not prepared_request.url:
+        if not self._should_proxy_to_control or not prepared_request.url:
             prepared_request = self.authorize_request(prepared_request=prepared_request)
             return prepared_request
 
