@@ -264,10 +264,8 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         payload = {
             "dialog": json.dumps(dialog),
             "trigger_id": slack_request.data["trigger_id"],
-            "token": slack_request.integration.metadata["access_token"],
         }
-
-        slack_client = SlackClient()
+        slack_client = SlackClient(integration_id=slack_request.integration.id)
         try:
             slack_client.post("/dialog.open", data=payload)
         except ApiError as e:
@@ -337,7 +335,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             )
 
             # use the original response_url to update the link attachment
-            slack_client = SlackClient()
+            slack_client = SlackClient(integration_id=slack_request.integration.id)
             try:
                 slack_client.post(
                     slack_request.callback_data["orig_response_url"], data=body, json=True

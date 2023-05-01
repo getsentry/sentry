@@ -70,6 +70,9 @@ metadata = IntegrationMetadata(
 
 
 class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):  # type: ignore
+    def get_client(self) -> SlackClient:
+        return SlackClient(org_integration_id=self.org_integration.id)
+
     def get_config_data(self) -> Mapping[str, str]:
         metadata_ = self.model.metadata
         # Classic bots had a user_access_token in the metadata.
@@ -144,12 +147,11 @@ class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
 
         return [identity_pipeline_view]
 
-    def get_team_info(self, access_token: str) -> JSONData:
+    def _get_team_info(self, access_token: str) -> JSONData:
+        # Manually add authorization since this method is part of slack installation
         headers = {"Authorization": f"Bearer {access_token}"}
-
-        client = SlackClient()
         try:
-            resp = client.get("/team.info", headers=headers)
+            resp = SlackClient().get("/team.info", headers=headers)
         except ApiError as e:
             logger.error("slack.team-info.response-error", extra={"error": str(e)})
             raise IntegrationError("Could not retrieve Slack team information.")
@@ -168,7 +170,7 @@ class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
         team_id = data["team"]["id"]
 
         scopes = sorted(self.identity_oauth_scopes)
-        team_data = self.get_team_info(access_token)
+        team_data = self._get_team_info(access_token)
 
         metadata = {
             "access_token": access_token,

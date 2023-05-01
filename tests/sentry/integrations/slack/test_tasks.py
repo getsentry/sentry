@@ -352,6 +352,7 @@ class SlackTasksTest(TestCase):
         with self.tasks():
             post_message.apply_async(
                 kwargs={
+                    "integration_id": self.integration.id,
                     "payload": {"key": ["val"]},
                     "log_error_message": "my_message",
                     "log_params": {"log_key": "log_value"},
@@ -371,6 +372,7 @@ class SlackTasksTest(TestCase):
         with self.tasks():
             post_message.apply_async(
                 kwargs={
+                    "integration_id": self.integration.id,
                     "payload": {"key": ["val"]},
                     "log_error_message": "my_message",
                     "log_params": {"log_key": "log_value"},

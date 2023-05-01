@@ -61,13 +61,12 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 attachments.append(additional_attachment)
 
             payload = {
-                "token": integration.metadata["access_token"],
                 "channel": channel,
                 "link_names": 1,
                 "attachments": json.dumps(attachments),
             }
 
-            client = SlackClient()
+            client = SlackClient(integration_id=integration.id)
             try:
                 client.post("/chat.postMessage", data=payload, timeout=5)
             except ApiError as e:
