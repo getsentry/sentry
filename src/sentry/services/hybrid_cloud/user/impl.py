@@ -12,6 +12,7 @@ from sentry.api.serializers import (
 from sentry.api.serializers.base import Serializer
 from sentry.db.models import BaseQuerySet
 from sentry.db.models.query import in_iexact
+from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
@@ -157,7 +158,7 @@ class DatabaseBackedUserService(UserService):
             return list(query)
 
         def base_query(self) -> QuerySet:
-            return User.objects.select_related("avatar").extra(
+            return User.objects.extra(
                 select={
                     "permissions": "select array_agg(permission) from sentry_userpermission where user_id=auth_user.id",
                     "roles": """
@@ -167,7 +168,8 @@ class DatabaseBackedUserService(UserService):
                           ON sentry_userrole_users.role_id=sentry_userrole.id
                        WHERE user_id=auth_user.id""",
                     "useremails": "select array_agg(row_to_json(sentry_useremail)) from sentry_useremail where user_id=auth_user.id",
-                    "authenticators": "select array_agg(row_to_json(auth_authenticator)) from auth_authenticator where user_id=auth_user.id",
+                    "authenticators": "SELECT array_agg(row_to_json(auth_authenticator)) FROM auth_authenticator WHERE user_id=auth_user.id",
+                    "useravatar": "SELECT array_agg(row_to_json(sentry_useravatar)) FROM sentry_useravatar WHERE user_id = auth_user.id",
                 }
             )
 
@@ -202,7 +204,12 @@ def serialize_rpc_user(user: User) -> RpcUser:
     args["is_superuser"] = user.is_superuser
     args["is_sentry_app"] = user.is_sentry_app or False
     args["password_usable"] = user.has_usable_password()
-    args["emails"] = frozenset([email.email for email in user.get_verified_emails()])
+
+    # Prefer eagerloaded attributes from _base_query
+    if hasattr(user, "useremails"):
+        args["emails"] = frozenset([e["email"] for e in user.useremails if e["is_verified"]])
+    else:
+        args["emails"] = frozenset([email.email for email in user.get_verified_emails()])
     args["session_nonce"] = user.session_nonce
 
     # And process the _base_query special data additions
@@ -223,14 +230,26 @@ def serialize_rpc_user(user: User) -> RpcUser:
         for e in (getattr(user, "useremails", None) or ())
     ]
 
-    avatar = user.avatar.first()
-    if avatar is not None:
+    avatar = None
+    # Use eagerloaded attributes from _base_query() if available.
+    if hasattr(user, "useravatar") and user.useravatar is not None:
+        avatar_dict = user.useravatar[0]
+        avatar_type_map = dict(UserAvatar.AVATAR_TYPES)
         avatar = RpcAvatar(
-            id=avatar.id,
-            file_id=avatar.file_id,
-            ident=avatar.ident,
-            avatar_type=avatar.get_avatar_type_display(),
+            id=avatar_dict["id"],
+            file_id=avatar_dict["file_id"],
+            ident=avatar_dict["ident"],
+            avatar_type=avatar_type_map.get(avatar_dict["avatar_type"], "letter_avatar"),
         )
+    else:
+        orm_avatar = user.avatar.first()
+        if orm_avatar is not None:
+            avatar = RpcAvatar(
+                id=orm_avatar.id,
+                file_id=orm_avatar.file_id,
+                ident=orm_avatar.ident,
+                avatar_type=orm_avatar.get_avatar_type_display(),
+            )
     args["avatar"] = avatar
 
     args["authenticators"] = [
