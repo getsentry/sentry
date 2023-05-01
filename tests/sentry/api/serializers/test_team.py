@@ -293,7 +293,7 @@ class TeamSCIMSerializerTest(TestCase):
 
         result = serialize(team, user, TeamSCIMSerializer(expand=["members"]))
         assert result == {
-            "displayName": team.name,
+            "displayName": team.slug,
             "id": str(team.id),
             "members": [
                 {"display": user.email, "value": str(team.member_set[0].id)},
@@ -309,7 +309,7 @@ class TeamSCIMSerializerTest(TestCase):
         team = self.create_team(organization=organization, members=[user])
         result = serialize(team, user, TeamSCIMSerializer())
         assert result == {
-            "displayName": team.name,
+            "displayName": team.slug,
             "id": str(team.id),
             "meta": {"resourceType": "Group"},
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],

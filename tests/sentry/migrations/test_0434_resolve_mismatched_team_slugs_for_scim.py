@@ -2,8 +2,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class ResolveMismatchedTeamSlugsForScimTest(TestMigrations):
-    migrate_from = "0428_backfill_denormalize_notification_actor"
-    migrate_to = "0429_resolve_mismatched_team_slugs_for_scim"
+    migrate_from = "0433_set_monitor_status_to_object_status_only"
+    migrate_to = "0434_resolve_mismatched_team_slugs_for_scim"
 
     def setup_before_migration(self, apps):
         self.idp_slug_matched = self.create_team(organization=self.organization, name="Foo Bar")

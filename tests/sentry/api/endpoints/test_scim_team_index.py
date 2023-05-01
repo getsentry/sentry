@@ -38,7 +38,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
             "id": team_id,
-            "displayName": "test-scimv2",
+            "displayName": "Test SCIMv2",
             "members": [],
             "meta": {"resourceType": "Group"},
         }

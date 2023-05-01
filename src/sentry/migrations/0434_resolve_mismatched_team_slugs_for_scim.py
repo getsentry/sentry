@@ -33,7 +33,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0428_backfill_denormalize_notification_actor"),
+        ("sentry", "0433_set_monitor_status_to_object_status_only"),
     ]
 
     operations = [
