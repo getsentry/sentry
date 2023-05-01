@@ -445,7 +445,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         codec: JsonCodec[Any] = JsonCodec(schema=schema)
 
         try:
-            codec.decode(serialized_data, validate=True)
+            codec.decode(serialized_data.encode("utf-8"), validate=True)
         except Exception:
             print(f"Error validating data for entity {entity}")  # noqa
             print(json.loads(serialized_data))  # noqa
