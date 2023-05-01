@@ -7,7 +7,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, options
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -251,9 +251,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         use_profiles = batch_features.get("organizations:profiling", False)
 
+        use_occurrences = options.get("performance.issues.create_issues_through_platform", False)
+
         use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
 
-        use_custom_dataset = use_metrics or use_profiles
+        use_custom_dataset = use_metrics or use_profiles or use_occurrences
         dataset = self.get_dataset(request) if use_custom_dataset else discover
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
