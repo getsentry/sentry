@@ -1,4 +1,6 @@
 import {useTheme} from '@emotion/react';
+import {LineSeriesOption} from 'echarts';
+import {YAXisOption} from 'echarts/types/dist/shared';
 import max from 'lodash/max';
 import min from 'lodash/min';
 
@@ -39,6 +41,7 @@ type Props = {
   scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
+  throughput?: {count: number; interval: string}[];
 };
 
 function computeMax(data: Series[]) {
@@ -101,6 +104,7 @@ function Chart({
   hideYAxisSplitLine,
   showLegend,
   scatterPlot,
+  throughput,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -130,6 +134,36 @@ function Chart({
 
   const durationUnit = getDurationUnit(data);
 
+  let transformedThroughput: LineSeriesOption[] | undefined = undefined;
+  const additionalAxis: YAXisOption[] = [];
+
+  if (throughput && throughput.length > 1) {
+    transformedThroughput = [
+      LineSeries({
+        name: 'Throughput',
+        data: throughput.map(({interval, count}) => [interval, count]),
+        yAxisIndex: 1,
+        lineStyle: {type: 'dashed', width: 1, opacity: 0.5},
+        animation: false,
+        animationThreshold: 1,
+        animationDuration: 0,
+      }),
+    ];
+    additionalAxis.push({
+      minInterval: durationUnit,
+      splitNumber: definedAxisTicks,
+      max: dataMax,
+      type: 'value',
+      axisLabel: {
+        color: theme.chartLabel,
+        formatter(value: number) {
+          return axisLabelFormatter(value, 'number', true);
+        },
+      },
+      splitLine: hideYAxisSplitLine ? {show: false} : undefined,
+    });
+  }
+
   const yAxes = [
     {
       minInterval: durationUnit,
@@ -149,6 +183,7 @@ function Chart({
       },
       splitLine: hideYAxisSplitLine ? {show: false} : undefined,
     },
+    ...additionalAxis,
   ];
 
   const areaChartProps = {
@@ -217,8 +252,9 @@ function Chart({
               {...zoomRenderProps}
               height={height}
               previousPeriod={previousData}
+              additionalSeries={transformedThroughput}
               xAxis={xAxis}
-              yAxis={areaChartProps.yAxes ? areaChartProps.yAxes[0] : []}
+              yAxes={areaChartProps.yAxes}
               tooltip={areaChartProps.tooltip}
               colors={colors}
               grid={grid}
@@ -253,7 +289,8 @@ function Chart({
               height={height}
               series={series}
               xAxis={xAxis}
-              yAxis={areaChartProps.yAxes ? areaChartProps.yAxes[0] : []}
+              additionalSeries={transformedThroughput}
+              yAxes={areaChartProps.yAxes}
               tooltip={areaChartProps.tooltip}
               colors={colors}
               grid={grid}
@@ -268,6 +305,7 @@ function Chart({
             {...zoomRenderProps}
             series={series}
             previousPeriod={previousData}
+            additionalSeries={transformedThroughput}
             xAxis={xAxis}
             stacked={stacked}
             {...areaChartProps}

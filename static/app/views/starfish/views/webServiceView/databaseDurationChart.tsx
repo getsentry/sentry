@@ -13,7 +13,11 @@ import {
   ModuleLinkButton,
 } from 'sentry/views/starfish/views/webServiceView/moduleLinkButton';
 
-export function DatabaseDurationChart({isDbDurationLoading, dbDurationData}) {
+export function DatabaseDurationChart({
+  isDbDurationLoading,
+  dbDurationData,
+  dbThroughputData,
+}) {
   const pageFilter = usePageFilters();
 
   const series: {[module: string]: Series} = {};
@@ -52,15 +56,16 @@ export function DatabaseDurationChart({isDbDurationLoading, dbDurationData}) {
         end=""
         loading={isDbDurationLoading}
         utc={false}
+        stacked
         grid={{
           left: '0',
-          right: '0',
+          right: '12px',
           top: '16px',
           bottom: '8px',
         }}
         definedAxisTicks={4}
-        stacked
         chartColors={['#444674', '#7a5088', '#b85586']}
+        throughput={dbThroughputData}
       />
     </ChartPanel>
   );

@@ -13,23 +13,24 @@ import {
 } from 'sentry/views/starfish/views/webServiceView/moduleLinkButton';
 
 export function HttpBreakdownChart({
-  isDurationDataLoading,
-  moduleDurationData,
-  isOtherDurationDataLoading,
-  moduleOtherDurationData,
+  isHttpDurationDataLoading,
+  httpDurationData,
+  isOtherHttpDurationDataLoading,
+  otherHttpDurationData,
+  httpThroughputData,
 }) {
   const seriesByDomain: {[module: string]: Series} = {};
   let start: moment.Moment | undefined = undefined;
   let end: moment.Moment | undefined = undefined;
-  if (!isDurationDataLoading && !isOtherDurationDataLoading) {
-    moduleDurationData.forEach(series => {
+  if (!isHttpDurationDataLoading && !isOtherHttpDurationDataLoading) {
+    httpDurationData.forEach(series => {
       seriesByDomain[series.domain] = {
         seriesName: `${series.domain}`,
         data: [],
       };
     });
 
-    moduleDurationData.forEach(value => {
+    httpDurationData.forEach(value => {
       if (isNil(start) || moment(value.inteval) < start) {
         start = moment(value.interval);
       }
@@ -44,7 +45,7 @@ export function HttpBreakdownChart({
       data: [],
     };
 
-    moduleOtherDurationData.forEach(value => {
+    otherHttpDurationData.forEach(value => {
       if (isNil(start) || moment(value.inteval) < start) {
         start = moment(value.interval);
       }
@@ -68,7 +69,7 @@ export function HttpBreakdownChart({
         data={data}
         start=""
         end=""
-        loading={isDurationDataLoading}
+        loading={isHttpDurationDataLoading}
         utc={false}
         grid={{
           left: '0',
@@ -79,6 +80,7 @@ export function HttpBreakdownChart({
         definedAxisTicks={4}
         stacked
         chartColors={['#444674', '#7a5088', '#b85586']}
+        throughput={httpThroughputData}
       />
     </ChartPanel>
   );
