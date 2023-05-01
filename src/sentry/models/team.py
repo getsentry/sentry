@@ -341,4 +341,5 @@ class Team(Model, SnowflakeIdMixin):
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             ExternalActor.objects.filter(actor_id=self.actor_id).delete()
             self.outbox_for_update().save()
+
             return super().delete(**kwargs)

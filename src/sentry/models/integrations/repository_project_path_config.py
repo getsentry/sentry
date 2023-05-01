@@ -7,6 +7,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     region_silo_only_model,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.integrations.organization_integrity_backfill_mixin import (
     OrganizationIntegrityBackfillMixin,
 )
@@ -19,7 +20,9 @@ class RepositoryProjectPathConfig(OrganizationIntegrityBackfillMixin, DefaultFie
     repository = FlexibleForeignKey("sentry.Repository")
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
 
-    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
+    organization_integration_id = HybridCloudForeignKey(
+        "sentry.OrganizationIntegration", on_delete="CASCADE"
+    )
     organization_id = BoundedBigIntegerField(db_index=True)
     # From a region point of view, you really only have per organization scoping.
     integration_id = BoundedBigIntegerField(db_index=False)
