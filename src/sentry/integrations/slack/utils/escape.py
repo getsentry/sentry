@@ -5,12 +5,12 @@ translator = str.maketrans({"&": "&amp;", "<": "&lt;", ">": "&gt;"})
 
 
 def escape_slack_text(txt: str | None) -> str:
-    if not txt:
-        return ""
     """
     When using user input inside slack links or slack "mrkdwn" special characters
     could break formatting.
 
     docs - https://api.slack.com/reference/surfaces/formatting#escaping
     """
+    if not txt:
+        return ""
     return txt.translate(translator)
