@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
@@ -31,6 +32,20 @@ function DatabaseModule() {
   const eventView = EventView.fromLocation(location);
   const [action, setAction] = useState<string>('ALL');
   const [table, setTable] = useState<string>('ALL');
+  const [filterNew, setFilterNew] = useState<boolean>(false);
+  const [filterOld, setFilterOld] = useState<boolean>(false);
+  const toggleFilterNew = () => {
+    setFilterNew(!filterNew);
+    if (!filterNew) {
+      setFilterOld(false);
+    }
+  };
+  const toggleFilterOld = () => {
+    setFilterOld(!filterOld);
+    if (!filterOld) {
+      setFilterNew(false);
+    }
+  };
   const [transaction, setTransaction] = useState<string>('');
   const [rows, setRows] = useState<{next?: DataRow; prev?: DataRow; selected?: DataRow}>({
     selected: undefined,
@@ -40,6 +55,8 @@ function DatabaseModule() {
 
   const tableFilter = table !== 'ALL' ? `domain = '${table}'` : undefined;
   const actionFilter = action !== 'ALL' ? `action = '${action}'` : undefined;
+  const newFilter = filterNew ? 'newish = 1' : null;
+  const oldFilter = filterOld ? 'retired = 1' : null;
 
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
@@ -79,7 +96,15 @@ function DatabaseModule() {
     data: tableData,
     isRefetching: isTableRefetching,
   } = useQuery<DataRow[]>({
-    queryKey: ['endpoints', action, table, pageFilter.selection.datetime, transaction],
+    queryKey: [
+      'endpoints',
+      action,
+      table,
+      pageFilter.selection.datetime,
+      transaction,
+      newFilter,
+      oldFilter,
+    ],
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getMainTable(
@@ -88,7 +113,9 @@ function DatabaseModule() {
           endTime,
           transactionFilter,
           tableFilter,
-          actionFilter
+          actionFilter,
+          newFilter,
+          oldFilter
         )}&format=sql`
       ).then(res => res.json()),
     retry: false,
@@ -151,6 +178,10 @@ function DatabaseModule() {
                 }
               }}
             />
+            Filter New Queries
+            <Switch isActive={filterNew} size="lg" toggle={toggleFilterNew} />
+            Filter Old Queries
+            <Switch isActive={filterOld} size="lg" toggle={toggleFilterOld} />
             <TransactionNameSearchBar
               organization={organization}
               eventView={eventView}

@@ -1,9 +1,8 @@
+import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import keyBy from 'lodash/keyBy';
-import merge from 'lodash/merge';
-import values from 'lodash/values';
 import moment from 'moment';
 import * as qs from 'query-string';
 
@@ -12,7 +11,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
-import {IconChevron} from 'sentry/icons';
+import {IconArrow, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
@@ -49,7 +48,11 @@ type TransactionListDataRow = {
   uniqueEvents: number;
 };
 
-const COLUMN_ORDER = [
+type Keys = 'transaction' | 'p75' | 'count' | 'frequency' | 'uniqueEvents';
+
+type TableColumnHeader = GridColumnHeader<Keys>;
+
+const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'transaction',
     name: 'Transaction',
@@ -146,6 +149,11 @@ function QueryDetailBody({
     less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
   `;
 
+  const [sort, setSort] = useState<{
+    direction: 'desc' | 'asc' | undefined;
+    sortHeader: TableColumnHeader | undefined;
+  }>({direction: undefined, sortHeader: undefined});
+
   const {isLoading, data: graphData} = useQuery({
     queryKey: ['dbQueryDetailsGraph', row.group_id, pageFilter.selection.datetime],
     queryFn: () =>
@@ -158,17 +166,30 @@ function QueryDetailBody({
 
   const {isLoading: isTableLoading, data: tableData} = useQuery<TransactionListDataRow[]>(
     {
-      queryKey: ['dbQueryDetailsTable', row.group_id, pageFilter.selection.datetime],
+      queryKey: [
+        'dbQueryDetailsTable',
+        row.group_id,
+        pageFilter.selection.datetime,
+        sort.sortHeader?.key,
+        sort.direction,
+      ],
       queryFn: () =>
-        fetch(`${HOST}/?query=${getPanelTableQuery(DATE_FILTERS, row)}`).then(res =>
-          res.json()
-        ),
+        fetch(
+          `${HOST}/?query=${getPanelTableQuery(
+            DATE_FILTERS,
+            row,
+            sort.sortHeader?.key,
+            sort.direction
+          )}`
+        ).then(res => res.json()),
       retry: true,
       initialData: [],
     }
   );
 
-  const {isLoading: isEventCountLoading, data: eventCountData} = useQuery({
+  const {isLoading: isEventCountLoading, data: eventCountData} = useQuery<
+    Partial<TransactionListDataRow>[]
+  >({
     queryKey: ['dbQueryDetailsEventCount', row.group_id, pageFilter.selection.datetime],
     queryFn: () =>
       fetch(`${HOST}/?query=${getPanelEventCount(DATE_FILTERS, row)}`).then(res =>
@@ -186,9 +207,16 @@ function QueryDetailBody({
       tableData.reduce((acc, transaction) => acc + transaction.p75, 0) / tableData.length;
   }
 
-  const mergedTableData = values(
-    merge(keyBy(eventCountData, 'transaction'), keyBy(tableData, 'transaction'))
-  ).filter((data: Partial<TransactionListDataRow>) => !!data.count && !!data.p75);
+  const eventCountMap = keyBy(eventCountData, 'transaction');
+
+  const mergedTableData: TransactionListDataRow[] = tableData.map(data => {
+    const {transaction} = data;
+    const eventData = eventCountMap[transaction];
+    if (eventData) {
+      return {...data, ...eventData};
+    }
+    return data;
+  });
 
   const [countSeries, p75Series] = throughputQueryToChartData(
     graphData,
@@ -196,19 +224,42 @@ function QueryDetailBody({
     endTime
   );
 
-  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    return <span>{column.name}</span>;
+  const onSortClick = (col: TableColumnHeader) => {
+    let direction: 'desc' | 'asc' | undefined = undefined;
+    if (sort.direction === 'desc') {
+      direction = 'asc';
+    } else if (!sort.direction) {
+      direction = 'desc';
+    }
+    setSort({direction, sortHeader: col});
+  };
+
+  function renderHeadCell(col: TableColumnHeader): React.ReactNode {
+    const {key, name} = col;
+    const sortableKeys: Keys[] = ['p75', 'count'];
+    if (sortableKeys.includes(key)) {
+      const isBeingSorted = col.key === sort.sortHeader?.key;
+      const direction = isBeingSorted ? sort.direction : undefined;
+      return (
+        <SortableHeader
+          onClick={() => onSortClick(col)}
+          direction={direction}
+          title={name}
+        />
+      );
+    }
+    return <span>{name}</span>;
   }
 
   const renderBodyCell = (
-    column: GridColumnHeader,
+    column: TableColumnHeader,
     dataRow: TransactionListDataRow
   ): React.ReactNode => {
-    if (column.key === 'frequency') {
-      return <span>{(dataRow.count / dataRow.uniqueEvents).toFixed(2)}</span>;
-    }
     const {key} = column;
     const value = dataRow[key];
+    if (key === 'frequency') {
+      return <span>{(dataRow.count / dataRow.uniqueEvents).toFixed(2)}</span>;
+    }
     if (key === 'transaction') {
       return (
         <Link
@@ -310,7 +361,7 @@ function QueryDetailBody({
         columnSortBy={[]}
         grid={{
           renderHeadCell,
-          renderBodyCell: (column: GridColumnHeader, dataRow: TransactionListDataRow) =>
+          renderBodyCell: (column: TableColumnHeader, dataRow: TransactionListDataRow) =>
             renderBodyCell(column, dataRow),
         }}
         location={location}
@@ -344,6 +395,22 @@ function SimplePagination(props: SimplePaginationProps) {
     </ButtonBar>
   );
 }
+
+const HeaderWrapper = styled('div')`
+  cursor: pointer;
+`;
+
+function SortableHeader({title, direction, onClick}) {
+  const arrow = !direction ? null : (
+    <StyledIconArrow size="xs" direction={direction === 'desc' ? 'down' : 'up'} />
+  );
+  return (
+    <HeaderWrapper onClick={onClick}>
+      {title} {arrow}
+    </HeaderWrapper>
+  );
+}
+
 const throughputQueryToChartData = (
   data: any,
   startTime: moment.Moment,
@@ -360,6 +427,10 @@ const throughputQueryToChartData = (
     zeroFillSeries(p75Series, moment.duration(INTERVAL, 'hours'), startTime, endTime),
   ];
 };
+
+const StyledIconArrow = styled(IconArrow)`
+  vertical-align: top;
+`;
 
 const SubHeader = styled('h3')`
   color: ${p => p.theme.gray300};
