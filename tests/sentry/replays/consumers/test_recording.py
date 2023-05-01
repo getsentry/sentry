@@ -203,18 +203,6 @@ class RecordingTestCaseMixin:
         )
 
 
-class T(RecordingTestCaseMixin, TransactionTestCase):
-    def setUp(self):
-        self.replay_id = uuid.uuid4().hex
-        self.replay_recording_id = uuid.uuid4().hex
-
-    def test(self):
-        self.submit(self.nonchunked_messages())
-
-        ReplayRecordingSegment.objects.first()
-        assert False
-
-
 # The "filestore" and "storage" drivers should behave identically barring some tweaks to how
 # metadata is tracked and where the data is stored.  The tests are abstracted into a mixin to
 # prevent accidental modification between the types.  The testsuite is run twice with different
