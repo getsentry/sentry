@@ -58,7 +58,6 @@ export function DatabaseDurationChart({isDbDurationLoading, dbDurationData}) {
           top: '16px',
           bottom: '8px',
         }}
-        disableMultiAxis
         definedAxisTicks={4}
         stacked
         chartColors={['#444674', '#7a5088', '#b85586']}

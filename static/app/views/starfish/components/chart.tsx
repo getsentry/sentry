@@ -28,7 +28,6 @@ type Props = {
   utc: boolean;
   chartColors?: string[];
   definedAxisTicks?: number;
-  disableMultiAxis?: boolean;
   disableXAxis?: boolean;
   grid?: AreaChartProps['grid'];
   height?: number;
@@ -92,7 +91,6 @@ function Chart({
   loading,
   height,
   grid,
-  disableMultiAxis,
   disableXAxis,
   definedAxisTicks,
   chartColors,
@@ -130,110 +128,34 @@ function Chart({
     dataMax += 1;
   }
 
-  const xAxes = disableMultiAxis
-    ? undefined
-    : [
-        {
-          gridIndex: 0,
-          type: 'time' as const,
-        },
-        {
-          gridIndex: 1,
-          type: 'time' as const,
-        },
-      ];
-
   const durationUnit = getDurationUnit(data);
 
-  const yAxes = disableMultiAxis
-    ? [
-        {
-          minInterval: durationUnit,
-          splitNumber: definedAxisTicks,
-          max: dataMax,
-          type: log ? 'log' : 'value',
-          axisLabel: {
-            color: theme.chartLabel,
-            formatter(value: number) {
-              return axisLabelFormatter(
-                value,
-                aggregateOutputType(data[0].seriesName),
-                undefined,
-                durationUnit
-              );
-            },
-          },
-          splitLine: hideYAxisSplitLine ? {show: false} : undefined,
+  const yAxes = [
+    {
+      minInterval: durationUnit,
+      splitNumber: definedAxisTicks,
+      max: dataMax,
+      type: log ? 'log' : 'value',
+      axisLabel: {
+        color: theme.chartLabel,
+        formatter(value: number) {
+          return axisLabelFormatter(
+            value,
+            aggregateOutputType(data[0].seriesName),
+            undefined,
+            durationUnit
+          );
         },
-      ]
-    : [
-        {
-          gridIndex: 0,
-          scale: true,
-          minInterval: durationUnit,
-          max: dataMax,
-          axisLabel: {
-            color: theme.chartLabel,
-            formatter(value: number) {
-              return axisLabelFormatter(
-                value,
-                aggregateOutputType(data[0].seriesName),
-                undefined,
-                durationUnit
-              );
-            },
-          },
-          splitLine: hideYAxisSplitLine ? {show: false} : undefined,
-        },
-        {
-          gridIndex: 1,
-          scale: true,
-          max: dataMax,
-          minInterval: durationUnit,
-          axisLabel: {
-            color: theme.chartLabel,
-            formatter(value: number) {
-              return axisLabelFormatter(
-                value,
-                aggregateOutputType(data[1].seriesName),
-                undefined,
-                durationUnit
-              );
-            },
-          },
-          splitLine: hideYAxisSplitLine ? {show: false} : undefined,
-        },
-      ];
-
-  const axisPointer = disableMultiAxis
-    ? undefined
-    : {
-        // Link the two series x-axis together.
-        link: [{xAxisIndex: [0, 1]}],
-      };
+      },
+      splitLine: hideYAxisSplitLine ? {show: false} : undefined,
+    },
+  ];
 
   const areaChartProps = {
     seriesOptions: {
       showSymbol: false,
     },
-    grid: disableMultiAxis
-      ? grid
-      : [
-          {
-            top: '8px',
-            left: '24px',
-            right: '52%',
-            bottom: '16px',
-          },
-          {
-            top: '8px',
-            left: '52%',
-            right: '24px',
-            bottom: '16px',
-          },
-        ],
-    axisPointer,
-    xAxes,
+    grid,
     yAxes,
     utc,
     legend: showLegend
@@ -287,14 +209,7 @@ function Chart({
     : undefined;
 
   return (
-    <ChartZoom
-      router={router}
-      period={statsPeriod}
-      start={start}
-      end={end}
-      utc={utc}
-      xAxisIndex={disableMultiAxis ? undefined : [0, 1]}
-    >
+    <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
       {zoomRenderProps => {
         if (isLineChart) {
           return (
