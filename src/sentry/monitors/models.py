@@ -78,6 +78,7 @@ class MonitorStatus(ObjectStatus):
     OK = 4
     ERROR = 5
     MISSED_CHECKIN = 6
+    TIMEOUT = 7
 
     @classmethod
     def as_choices(cls):
@@ -89,6 +90,7 @@ class MonitorStatus(ObjectStatus):
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
             (cls.MISSED_CHECKIN, "missed_checkin"),
+            (cls.TIMEOUT, "timeout"),
         )
 
 
@@ -108,7 +110,10 @@ class CheckInStatus:
     MISSED = 4
     """Monitor did not check in on time"""
 
-    FINISHED_VALUES = (OK, ERROR)
+    TIMEOUT = 5
+    """Checkin was left in-progress past max_runtime"""
+
+    FINISHED_VALUES = (OK, ERROR, TIMEOUT)
     """Sentient values used to indicate a monitor is finished running"""
 
     @classmethod
@@ -119,6 +124,7 @@ class CheckInStatus:
             (cls.ERROR, "error"),
             (cls.IN_PROGRESS, "in_progress"),
             (cls.MISSED, "missed"),
+            (cls.TIMEOUT, "timeout"),
         )
 
 
@@ -218,42 +224,20 @@ class Monitor(Model):
         )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
-    def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
-        if last_checkin is None:
-            next_checkin_base = timezone.now()
-            last_checkin = self.last_checkin or timezone.now()
-        else:
-            next_checkin_base = last_checkin
+    def get_status_display(self) -> str:
+        for status_id, display in MonitorStatus.as_choices():
+            if status_id == self.status:
+                if self.status in [
+                    MonitorStatus.ACTIVE,
+                    MonitorStatus.DISABLED,
+                    MonitorStatus.PENDING_DELETION,
+                    MonitorStatus.DELETION_IN_PROGRESS,
+                ]:
+                    return display
+                else:
+                    return "active"
 
-        new_status = MonitorStatus.ERROR
-        if reason == MonitorFailure.MISSED_CHECKIN:
-            new_status = MonitorStatus.MISSED_CHECKIN
-
-        affected = (
-            type(self)
-            .objects.filter(
-                Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
-            )
-            .update(
-                next_checkin=self.get_next_scheduled_checkin(next_checkin_base),
-                status=new_status,
-                last_checkin=last_checkin,
-            )
-        )
-        if not affected:
-            return False
-
-        return True
-
-    def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
-        params = {
-            "last_checkin": ts,
-            "next_checkin": self.get_next_scheduled_checkin(ts),
-        }
-        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
-            params["status"] = MonitorStatus.OK
-
-        Monitor.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
+        return "active"
 
 
 @region_silo_only_model
@@ -379,6 +363,8 @@ class MonitorEnvironment(Model):
         new_status = MonitorStatus.ERROR
         if reason == MonitorFailure.MISSED_CHECKIN:
             new_status = MonitorStatus.MISSED_CHECKIN
+        elif reason == MonitorFailure.DURATION:
+            new_status = MonitorStatus.TIMEOUT
 
         affected = (
             type(self)
@@ -417,7 +403,7 @@ class MonitorEnvironment(Model):
             "last_checkin": ts,
             "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
         }
-        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
+        if checkin.status == CheckInStatus.OK and self.monitor.status != MonitorStatus.DISABLED:
             params["status"] = MonitorStatus.OK
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)

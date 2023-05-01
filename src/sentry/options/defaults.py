@@ -697,3 +697,5 @@ register("dynamic-sampling.prioritise_transactions.num_explicit_large_transactio
 # the number of large transactions to retrieve from Snuba for transaction re-balancing
 register("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions", 0)
 register("hybrid_cloud.outbox_rate", default=0.0)
+# controls whether we allow people to upload artifact bundles instead of release bundles
+register("sourcemaps.enable-artifact-bundles", default=0.0)

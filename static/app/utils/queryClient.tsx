@@ -118,6 +118,11 @@ function useApiQuery<TResponseData, TError = RequestError>(
   };
 }
 
+/**
+ * Wraps React Query's queryClient.getQueryData to return only the cached API
+ * response data. This does not include the ApiResult type. For that you can
+ * manually call queryClient.getQueryData.
+ */
 export function getApiQueryData<TResponseData>(
   queryClient: reactQuery.QueryClient,
   queryKey: ApiQueryKey
@@ -125,6 +130,10 @@ export function getApiQueryData<TResponseData>(
   return queryClient.getQueryData<ApiResult<TResponseData>>(queryKey)?.[0];
 }
 
+/**
+ * Wraps React Query's queryClient.setQueryData to allow setting of API
+ * response data without needing to provide a request object.
+ */
 function setApiQueryData<TResponseData>(
   queryClient: reactQuery.QueryClient,
   queryKey: ApiQueryKey,

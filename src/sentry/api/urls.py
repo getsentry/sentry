@@ -418,7 +418,6 @@ from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_processingissues import (
     ProjectProcessingIssuesDiscardEndpoint,
     ProjectProcessingIssuesEndpoint,
-    ProjectProcessingIssuesFixEndpoint,
 )
 from .endpoints.project_profiling_profile import (
     ProjectProfilingEventEndpoint,
@@ -1368,6 +1367,9 @@ ORGANIZATION_URLS = [
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
+        # XXX(epurkhiser): When removing method dispatch (once the legacy
+        # ingest endpoints are removed) we need to update apidocs/hooks.py to
+        # remove these from the explicit endpoints
         method_dispatch(
             GET=OrganizationMonitorCheckInIndexEndpoint.as_view(),
             POST=MonitorIngestCheckInIndexEndpoint.as_view(),  # Legacy ingest endpoint
@@ -1377,6 +1379,9 @@ ORGANIZATION_URLS = [
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+        # XXX(epurkhiser): When removing method dispatch (once the legacy
+        # ingest endpoints are removed) we need to update apidocs/hooks.py to
+        # remove these from the explicit endpoints
         method_dispatch(
             PUT=MonitorIngestCheckInDetailsEndpoint.as_view(),  # Legacy ingest endpoint
             csrf_exempt=True,
@@ -2168,11 +2173,6 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/$",
         ProjectProcessingIssuesEndpoint.as_view(),
         name="sentry-api-0-project-processing-issues",
-    ),
-    url(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/fix$",
-        ProjectProcessingIssuesFixEndpoint.as_view(),
-        name="sentry-api-0-project-fix-processing-issues",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/reprocessing/$",
