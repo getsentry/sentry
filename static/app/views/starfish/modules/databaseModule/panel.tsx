@@ -6,6 +6,7 @@ import keyBy from 'lodash/keyBy';
 import moment from 'moment';
 import * as qs from 'query-string';
 
+import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -100,6 +101,36 @@ export default function QueryDetail({
       )}
     </Detail>
   );
+}
+
+function formatRow(description, queryDetail) {
+  let acc = '';
+  return description.split('').map((token, i) => {
+    acc += token;
+    let final: string | React.ReactElement | null = null;
+    if (acc === queryDetail.action) {
+      final = <Operation key={i}>{queryDetail.action} </Operation>;
+    } else if (acc === queryDetail.domain) {
+      final = <Domain key={i}>{queryDetail.domain} </Domain>;
+    } else if (
+      ['FROM', 'INNER', 'JOIN', 'WHERE', 'ON', 'AND', 'NOT', 'NULL', 'IS'].includes(acc)
+    ) {
+      final = <Keyword key={i}>{acc}</Keyword>;
+    } else if (['(', ')'].includes(acc)) {
+      final = <Bracket key={i}>{acc}</Bracket>;
+    } else if (token === ' ' || token === '\n' || description[i + 1] === ')') {
+      final = acc;
+    } else if (i === description.length - 1) {
+      final = acc;
+    }
+    if (final) {
+      acc = '';
+      const result = final;
+      final = null;
+      return result;
+    }
+    return null;
+  });
 }
 
 function QueryDetailBody({
@@ -253,20 +284,37 @@ function QueryDetailBody({
 
   return (
     <div>
+      <Paginator>
+        <SimplePagination
+          disableLeft={!prevRow}
+          disableRight={!nextRow}
+          onLeftClick={() => onRowChange(prevRow)}
+          onRightClick={() => onRowChange(nextRow)}
+        />
+      </Paginator>
       <h2>{t('Query Detail')}</h2>
-      <SimplePagination
-        disableLeft={!prevRow}
-        disableRight={!nextRow}
-        onLeftClick={() => onRowChange(prevRow)}
-        onRightClick={() => onRowChange(nextRow)}
-      />
-      <p>
-        {t(
-          'Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans.'
-        )}
-      </p>
+      <FlexRowContainer>
+        <FlexRowItem>
+          <SubHeader>
+            {t('First Seen')}
+            {row.newish === 1 && <Badge type="new" text="new" />}
+          </SubHeader>
+          <SubSubHeader>{row.firstSeen}</SubSubHeader>
+        </FlexRowItem>
+        <FlexRowItem>
+          <SubHeader>
+            {t('Last Seen')}
+            {row.retired === 1 && <Badge type="warning" text="old" />}
+          </SubHeader>
+          <SubSubHeader>{row.lastSeen}</SubSubHeader>
+        </FlexRowItem>
+        <FlexRowItem>
+          <SubHeader>{t('Total Time')}</SubHeader>
+          <SubSubHeader>{row.total_time.toFixed(2)}ms</SubSubHeader>
+        </FlexRowItem>
+      </FlexRowContainer>
       <SubHeader>{t('Query Description')}</SubHeader>
-      <FormattedCode>{row.formatted_desc}</FormattedCode>
+      <FormattedCode>{formatRow(row.formatted_desc, row)}</FormattedCode>
       <FlexRowContainer>
         <FlexRowItem>
           <SubHeader>{t('Throughput')}</SubHeader>
@@ -413,4 +461,27 @@ const FormattedCode = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   overflow-x: auto;
   white-space: pre;
+`;
+
+const Operation = styled('b')`
+  color: ${p => p.theme.blue400};
+`;
+
+const Domain = styled('b')`
+  color: ${p => p.theme.green400};
+  margin-right: -${space(0.5)};
+`;
+
+const Keyword = styled('b')`
+  color: ${p => p.theme.yellow400};
+`;
+
+const Bracket = styled('b')`
+  color: ${p => p.theme.pink400};
+`;
+
+const Paginator = styled('div')`
+  width: 33%;
+  position: absolute;
+  right: 0;
 `;

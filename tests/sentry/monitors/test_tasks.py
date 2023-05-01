@@ -23,7 +23,6 @@ class CheckMonitorsTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
             status=MonitorStatus.OK,
@@ -31,7 +30,7 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            next_checkin=monitor.next_checkin,
+            next_checkin=timezone.now() - timedelta(minutes=1),
             status=monitor.status,
         )
 
@@ -51,7 +50,6 @@ class CheckMonitorsTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
             status=MonitorStatus.DISABLED,
@@ -59,7 +57,7 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            next_checkin=monitor.next_checkin,
+            next_checkin=timezone.now() - timedelta(minutes=1),
             status=monitor.status,
         )
 
@@ -76,7 +74,6 @@ class CheckMonitorsTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
             status=MonitorStatus.PENDING_DELETION,
@@ -84,7 +81,7 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            next_checkin=monitor.next_checkin,
+            next_checkin=timezone.now() - timedelta(minutes=1),
             status=monitor.status,
         )
 
@@ -101,7 +98,6 @@ class CheckMonitorsTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
             status=MonitorStatus.DELETION_IN_PROGRESS,
@@ -109,7 +105,7 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            next_checkin=monitor.next_checkin,
+            next_checkin=timezone.now() - timedelta(minutes=1),
             status=monitor.status,
         )
 
@@ -126,7 +122,6 @@ class CheckMonitorsTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            next_checkin=timezone.now() + timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
             status=MonitorStatus.OK,
@@ -134,7 +129,7 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            next_checkin=monitor.next_checkin,
+            next_checkin=timezone.now() + timedelta(minutes=1),
             status=monitor.status,
         )
         MonitorCheckIn.objects.create(
