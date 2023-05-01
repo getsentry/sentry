@@ -11,7 +11,6 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
-    Union,
 )
 from uuid import uuid4
 
@@ -319,7 +318,7 @@ class SnubaProtocolEventStream(EventStream):
         self,
         project_id: int,
         event_ids: Sequence[str],
-        old_primary_hash: Union[str, bool] = False,
+        old_primary_hash: Optional[str] = None,
         from_timestamp: Optional[datetime] = None,
         to_timestamp: Optional[datetime] = None,
     ) -> None:

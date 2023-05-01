@@ -190,14 +190,19 @@ def test_basic(
     # Old event is actually getting tombstoned
     assert not get_event_by_processing_counter("x0")
     if change_groups:
+
+        extra_data = {
+            "from_timestamp": old_event.datetime,
+            "to_timestamp": old_event.datetime,
+        }
+
+        if old_event.get_primary_hash() is not None:
+            extra_data["old_primary_hash"] = old_event.get_primary_hash()
+
         assert tombstone_calls == [
             (
                 (default_project.id, [old_event.event_id]),
-                {
-                    "from_timestamp": old_event.datetime,
-                    "old_primary_hash": old_event.get_primary_hash(),
-                    "to_timestamp": old_event.datetime,
-                },
+                extra_data,
             )
         ]
     else:
