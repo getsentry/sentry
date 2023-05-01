@@ -3,6 +3,7 @@ import {Location} from 'history';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {AggregationKeyWithAlias, QueryFieldValue} from 'sentry/utils/discover/fields';
+import {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
   canUseMetricsData,
   MetricsEnhancedSettingContext,
@@ -11,22 +12,17 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
 
-export function canUseTransactionMetricsData(organization, location) {
+export function canUseTransactionMetricsData(
+  organization: Organization,
+  mepDataContext: MetricsEnhancedPerformanceDataContext
+) {
   const isUsingMetrics = canUseMetricsData(organization);
 
   if (!isUsingMetrics) {
     return false;
   }
 
-  // span op breakdown filters aren't compatible with metrics
-  const breakdown = decodeScalar(location.query.breakdown, '');
-  if (breakdown) {
-    return false;
-  }
-
-  // in the short term, using any filter will force indexed event search
-  const query = decodeScalar(location.query.query, '');
-  if (query) {
+  if (mepDataContext.isMetricsData === false) {
     return false;
   }
 
@@ -35,25 +31,13 @@ export function canUseTransactionMetricsData(organization, location) {
 
 export function getTransactionMEPParamsIfApplicable(
   mepContext: MetricsEnhancedSettingContext,
-  organization: Organization,
-  location: Location
-) {
-  if (!canUseTransactionMetricsData(organization, location)) {
-    return undefined;
-  }
-
-  return getMEPQueryParams(mepContext);
-}
-
-export function getTransactionTotalsMEPParamsIfApplicable(
-  mepContext: MetricsEnhancedSettingContext,
   organization: Organization
 ) {
   if (!canUseMetricsData(organization)) {
     return undefined;
   }
 
-  return getMEPQueryParams(mepContext);
+  return getMEPQueryParams(mepContext, true);
 }
 
 export function getUnfilteredTotalsEventView(
