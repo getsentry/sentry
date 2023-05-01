@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.models import Organization, Project
+from sentry.utils.safe import get_path
 
 from ..base import (
     DetectorType,
@@ -59,6 +60,8 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             < self.settings.get("max_duration_between_spans")
             for idx in range(1, len(self.consecutive_http_spans))
         )
+
+        # TODO(nar): Check here for total duration of all spans against % threshold
 
         if (
             exceeds_count_threshold
@@ -129,9 +132,17 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             return False
 
         # If the event is from a JS SDK and the span ends after the LCP, we don't want to count this span
-        breakpoint()
-        # if platform.sdk == "sentry.javascript.browser" and LCP < end_time:
-        #     return False
+        sdk_name = get_path(self._event, "sdk", "name")
+        lcp = get_path(self._event, "measurements", "lcp", "value")
+        span_occurs_after_lcp = (
+            datetime.fromtimestamp(span.get("timestamp"))
+            > datetime.fromtimestamp(self._event.get("start_timestamp"))
+            + timedelta(milliseconds=lcp)
+            if lcp is not None
+            else False
+        )
+        if sdk_name == "sentry.javascript.browser" and (lcp is None or span_occurs_after_lcp):
+            return False
 
         return True
 

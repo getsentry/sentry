@@ -207,4 +207,40 @@ class ConsecutiveDbDetectorTest(TestCase):
         assert not detector.is_creation_allowed_for_project(project)
 
     def test_only_triggers_for_frontend_events_when_spans_are_before_lcp(self):
-        pass
+        event = {
+            **self.create_issue_event(),
+            "sdk": {"name": "sentry.javascript.browser"},
+            "measurements": {"lcp": {"value": 1}},
+            "start_timestamp": 0,
+        }
+        problems = self.find_problems(event)
+        assert problems == []
+
+        event["measurements"]["lcp"]["value"] = 999999
+        problems = self.find_problems(event)
+        assert problems == [
+            PerformanceProblem(
+                fingerprint="1-1009-00b8644b56309c8391aa365783145162ab9c589a",
+                op="http",
+                desc="GET /api/0/organizations/endpoint1",
+                type=PerformanceConsecutiveHTTPQueriesGroupType,
+                parent_span_ids=None,
+                cause_span_ids=[],
+                offender_span_ids=[
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                ],
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                    ],
+                    "op": "http",
+                },
+                evidence_display=[],
+            )
+        ]
