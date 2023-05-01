@@ -5,12 +5,10 @@ class MonitorEnvironmentDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry.monitors import models
 
-        relations = [
+        return [
             ModelRelation(
                 models.MonitorCheckIn,
                 {"monitor_environment_id": instance.id},
                 BulkModelDeletionTask,
             ),
         ]
-
-        return relations

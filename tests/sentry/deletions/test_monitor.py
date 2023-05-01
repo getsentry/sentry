@@ -1,4 +1,4 @@
-from sentry.models import Environment, ScheduledDeletion
+from sentry.models import Environment, Project, ScheduledDeletion
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -45,3 +45,7 @@ class DeleteMonitorTest(APITestCase, TransactionTestCase):
         assert not Monitor.objects.filter(id=monitor.id).exists()
         assert not MonitorEnvironment.objects.filter(id=monitor_env.id).exists()
         assert not MonitorCheckIn.objects.filter(id=checkin.id).exists()
+
+        # Shared objects should continue to exist.
+        assert Environment.objects.filter(id=env.id).exists()
+        assert Project.objects.filter(id=project.id).exists()
