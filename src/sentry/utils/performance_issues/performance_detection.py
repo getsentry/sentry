@@ -239,7 +239,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         DetectorType.CONSECUTIVE_HTTP_OP: {
             "span_duration_threshold": 1000,  # ms
             "consecutive_count_threshold": 3,
-            "max_duration_between_spans": 10000,  # ms
+            "max_duration_between_spans": 5000,  # ms
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
             "lcp_ratio_threshold": settings["consecutive_http_spans_lcp_ratio_threshold"],
         },
