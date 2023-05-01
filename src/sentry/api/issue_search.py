@@ -6,6 +6,7 @@ from sentry.api.event_search import (
     AggregateFilter,
     SearchConfig,
     SearchFilter,
+    SearchKey,
     SearchValue,
     default_config,
 )
@@ -17,7 +18,7 @@ from sentry.issues.grouptype import (
     get_group_types_by_category,
 )
 from sentry.models import Environment, Organization, Project, Team, User
-from sentry.models.group import STATUS_QUERY_CHOICES, GroupStatus
+from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.events.filter import to_list
 from sentry.search.utils import (
@@ -25,8 +26,10 @@ from sentry.search.utils import (
     parse_actor_or_none_value,
     parse_release,
     parse_status_value,
+    parse_substatus_value,
     parse_user_value,
 )
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 
 is_filter_translation = {
     "assigned": ("unassigned", False),
@@ -38,6 +41,8 @@ is_filter_translation = {
 for status_key, status_value in STATUS_QUERY_CHOICES.items():
     is_filter_translation[status_key] = ("status", status_value)
 
+for substatus_key, substatus_value in SUBSTATUS_UPDATE_CHOICES.items():
+    is_filter_translation[substatus_key] = ("substatus", substatus_value)
 
 issue_search_config = SearchConfig.create_from(
     default_config,
@@ -64,7 +69,7 @@ parse_search_query = partial(base_parse_query, config=issue_search_config)
 
 ValueConverter = Callable[
     [
-        Iterable[Union[User, Team, str, GroupStatus]],
+        Iterable[Union[User, Team, str, GroupStatus, GroupSubStatus]],
         Sequence[Project],
         User,
         Optional[Sequence[Environment]],
@@ -124,6 +129,21 @@ def convert_first_release_value(
     for version in value:
         releases.update(parse_release(version, projects, environments))
     return list(releases)
+
+
+def convert_substatus_value(
+    value: Iterable[Union[str, int]],
+    projects: Sequence[Project],
+    user: User,
+    environments: Optional[Sequence[Environment]],
+) -> List[int]:
+    parsed = []
+    for status in value:
+        try:
+            parsed.append(parse_substatus_value(status))
+        except ValueError:
+            raise InvalidSearchQuery(f"invalid substatus value of '{status}'")
+    return parsed
 
 
 def convert_status_value(
@@ -201,6 +221,7 @@ value_converters: Mapping[str, ValueConverter] = {
     "issue.category": convert_category_value,
     "issue.type": convert_type_value,
     "device.class": convert_device_class_value,
+    "substatus": convert_substatus_value,
 }
 
 
@@ -240,6 +261,19 @@ def convert_query_values(
                 operator = "IN" if search_filter.operator in EQUALITY_OPERATORS else "NOT IN"
             else:
                 operator = "=" if search_filter.operator in EQUALITY_OPERATORS else "!="
+
+            if search_filter.key.name == "substatus":
+                if not features.has("organizations:issue-states", organization, actor=None):
+                    raise InvalidSearchQuery(
+                        "The substatus filter is not supported for this organization"
+                    )
+
+                status = GROUP_SUBSTATUS_TO_STATUS_MAP.get(search_filter.value.raw_value)
+                search_filters.append(
+                    SearchFilter(
+                        key=SearchKey(name="status"), operator="IN", value=SearchValue(status)
+                    ),
+                )
             search_filter = search_filter._replace(
                 value=SearchValue(new_value),
                 operator=operator,
