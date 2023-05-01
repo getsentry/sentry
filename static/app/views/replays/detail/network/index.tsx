@@ -32,6 +32,8 @@ import type {NetworkSpan} from 'sentry/views/replays/types';
 const HEADER_HEIGHT = 25;
 const BODY_HEIGHT = 28;
 
+const RESIZEABLE_HANDLE_HEIGHT = 90;
+
 type Props = {
   networkSpans: undefined | NetworkSpan[];
   startTimestampMs: number;
@@ -70,9 +72,13 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
       deps,
     });
 
+  // `initialSize` cannot depend on containerRef because the ref starts as
+  // `undefined` which then gets set into the hook and doesn't update.
+  const initialSize = Math.max(150, window.innerHeight * 0.4);
+
   const {size: containerSize, ...resizableDrawerProps} = useResizableDrawer({
     direction: 'up',
-    initialSize: Math.max(150, window.innerHeight * 0.4), // cannot depend on containerRef :(
+    initialSize,
     min: 0,
     onResize: () => {},
   });
@@ -84,7 +90,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   const detailRowIndex = Number(detailDataIndex) + 1;
 
   const maxContainerHeight =
-    (containerRef.current?.clientHeight || window.innerHeight) - 90;
+    (containerRef.current?.clientHeight || window.innerHeight) - RESIZEABLE_HANDLE_HEIGHT;
   const splitSize =
     networkSpans && detailDataIndex
       ? Math.min(maxContainerHeight, containerSize)
