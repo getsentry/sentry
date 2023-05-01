@@ -1,13 +1,18 @@
+from datetime import timedelta
 from unittest import mock
 
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
 from sentry.models import AuditLogEntry, ProjectOwnership
+from sentry.models.group import Group
+from sentry.models.groupowner import ISSUE_OWNERS_DEBOUNCE_DURATION, GroupOwner, GroupOwnerType
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.cache import cache
 
 
 @region_silo_test
@@ -356,3 +361,41 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
         assert resp.data["codeownersAutoSync"] is True
+
+    def test_turn_off_auto_assignment_clears_autoassignment_cache(self):
+        ProjectOwnership.objects.create(
+            project=self.project, raw="*.js member@localhost #tiger-team"
+        )
+        # Turn auto assignment on
+        self.client.put(self.path, {"autoAssignment": "Auto Assign to Issue Owner"})
+        auto_assignment_ownership = ProjectOwnership.objects.get(project=self.project)
+        auto_assignment_types = ProjectOwnership._get_autoassignment_types(
+            auto_assignment_ownership
+        )
+        # Get the cache keys
+        groups = Group.objects.filter(
+            project_id=self.project.id,
+            last_seen__gte=timezone.now() - timedelta(seconds=ISSUE_OWNERS_DEBOUNCE_DURATION),
+        ).values_list("id", flat=True)
+        auto_assignment_cache_keys = [
+            GroupOwner.get_autoassigned_cache_key(group.id, self.project.id, auto_assignment_types)
+            for group in groups
+        ]
+        assert auto_assignment_types == [
+            GroupOwnerType.OWNERSHIP_RULE.value,
+            GroupOwnerType.CODEOWNERS.value,
+        ]
+        # Assert the cache is set
+        for cache_key in auto_assignment_cache_keys:
+            assert cache.get(cache_key) is None
+
+        # Turn auto assignment off
+        self.client.put(self.path, {"autoAssignment": "Turn off Auto-Assignment"})
+        no_auto_assignment_ownership = ProjectOwnership.objects.get(project=self.project)
+        no_auto_assignment_types = ProjectOwnership._get_autoassignment_types(
+            no_auto_assignment_ownership
+        )
+        assert no_auto_assignment_types == []
+        # Assert that the autoassignment cache was cleared
+        for cache_key in auto_assignment_cache_keys:
+            assert cache.get(cache_key) is None

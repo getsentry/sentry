@@ -8,6 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectOwnershipPermission
 from sentry.api.serializers import serialize
 from sentry.models import ProjectOwnership
+from sentry.models.groupowner import GroupOwner
 from sentry.models.project import Project
 from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.signals import ownership_rule_created
@@ -133,6 +134,10 @@ class ProjectOwnershipSerializer(serializers.Serializer):
             new_values["auto_assignment"] = True
             new_values["suspect_committer_auto_assignment"] = False
         if auto_assignment == "Turn off Auto-Assignment":
+            autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
+            GroupOwner.invalidate_autoassigned_owner_cache(
+                ownership.project_id, autoassignment_types
+            )
             new_values["auto_assignment"] = False
             new_values["suspect_committer_auto_assignment"] = False
 
