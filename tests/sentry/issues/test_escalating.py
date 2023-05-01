@@ -7,6 +7,7 @@ from freezegun import freeze_time
 
 from sentry.eventstore.models import Event
 from sentry.issues.escalating import (
+    GroupCountProcessor,
     GroupsCountResponse,
     _start_and_end_dates,
     get_group_daily_count,
@@ -100,7 +101,7 @@ class HistoricGroupCounts(TestCase, BaseGroupCounts):  # type: ignore[misc]
 
         # Force pagination to only three elements per page
         # Once we get to Python 3.10+ the formating of this multiple with statement will not be an eye sore
-        with patch("sentry.issues.escalating._query_with_pagination") as query_mock, patch(
+        with patch.object(GroupCountProcessor, "_query_with_pagination") as query_mock, patch(
             "sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=3
         ), patch("sentry.issues.escalating.BUCKETS_PER_GROUP", new=2):
             query_groups_past_counts(groups)
@@ -248,4 +249,4 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         self.archive_until_escalating(event.group)
 
         # Events are aggregated in the daily count query by date rather than the last 24hrs
-        assert get_group_daily_count(group.project.organization.id, group.project.id, group.id) == 1
+        assert get_group_daily_count(group.project.organization.id, group.project.id, group) == 1
