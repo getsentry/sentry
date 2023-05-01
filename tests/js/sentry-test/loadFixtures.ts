@@ -113,6 +113,9 @@ const SPECIAL_MAPPING = {
   ReplaySegmentFullsnapshot: 'replaySegments.ts',
   ReplaySegmentInit: 'replaySegments.ts',
   ReplaySegmentNavigation: 'replaySegments.ts',
+  ReplaySegmentSpan: 'replaySegments.ts',
+  ReplaySpanPayload: 'replaySegments.ts',
+  ReplaySpanPayloadNavigate: 'replaySegments.ts',
 };
 
 function tryRequire(dir: string, name: string): any {
