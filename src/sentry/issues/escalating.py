@@ -23,6 +23,7 @@ from snuba_sdk import (
 
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
@@ -71,6 +72,28 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
         return all_results
 
     start_date, end_date = _start_and_end_dates()
+
+    # Error groups use the events dataset while profile and perf groups use the issue platform dataset
+    event_dataset_groups, issue_platform_dataset_groups = []
+    for g in groups:
+        if g.issue_category == GroupCategory.ERROR:
+            event_dataset_groups.append(g)
+        else:
+            issue_platform_dataset_groups.append(g)
+
+    all_results += _process_groups(event_dataset_groups, start_date, end_date)
+    all_results += _process_groups(issue_platform_dataset_groups, start_date, end_date)
+
+    return all_results
+
+
+def _process_groups(
+    groups: Sequence[Group], start_date: datetime, end_date: datetime
+) -> List[GroupsCountResponse]:
+    all_results = []  # type: ignore[var-annotated]
+    if not groups:
+        return all_results
+
     group_ids_by_project = _extract_project_and_group_ids(groups)
     proj_ids, group_ids = [], []
     processed_projects = 0
