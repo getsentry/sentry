@@ -313,7 +313,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
     const filtersEndpoint = `${projectEndpoint}filters/`;
 
     return (
-      <Access access={['project:write']}>
+      <Access access={['project:write']} project={project}>
         {({hasAccess}) => (
           <Fragment>
             <Panel>
