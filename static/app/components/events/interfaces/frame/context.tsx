@@ -4,9 +4,7 @@ import keyBy from 'lodash/keyBy';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {ExceptionGroupContext} from 'sentry/components/events/interfaces/frame/exceptionGroupContext';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
-import {hasExceptionGroupTree} from 'sentry/components/events/interfaces/frame/utils';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,7 +15,6 @@ import {
   LineCoverage,
   Organization,
   SentryAppComponent,
-  StackTraceMechanism,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -49,8 +46,6 @@ type Props = {
   hasContextVars?: boolean;
   isExpanded?: boolean;
   isFirst?: boolean;
-  isNewestFrame?: boolean;
-  mechanism?: StackTraceMechanism | null;
   organization?: Organization;
   registersMeta?: Record<any, any>;
 };
@@ -86,8 +81,6 @@ function Context({
   className,
   frameMeta,
   registersMeta,
-  mechanism,
-  isNewestFrame,
 }: Props) {
   const {projects} = useProjects();
   const project = useMemo(
@@ -135,13 +128,7 @@ function Context({
       : {}
   );
 
-  if (
-    !hasContextSource &&
-    !hasContextVars &&
-    !hasContextRegisters &&
-    !hasAssembly &&
-    !hasExceptionGroupTree({isNewestFrame, mechanism})
-  ) {
+  if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
       <EmptyContext>
         <StyledIconFlag size="xs" />
@@ -206,8 +193,6 @@ function Context({
             </ContextLine>
           );
         })}
-
-      <ExceptionGroupContext {...{event, isNewestFrame, mechanism}} />
 
       {hasContextVars && (
         <StyledClippedBox clipHeight={100}>

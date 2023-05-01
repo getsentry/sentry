@@ -393,7 +393,7 @@ class SqlFormatEventSerializer(EventSerializer):
                 return event_data
 
             for span in spans["data"]:
-                if span["op"] == "db":
+                if span["op"] in ("db", "db.query", "db.sql.query"):
                     span["description"] = self._format_sql_query(span["description"])
 
             return event_data

@@ -168,7 +168,14 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         group = groups[0]
 
         dts = [self.now + timedelta(hours=i) for i in range(4)]
-        assert self.db.get_range(TSDBModel.group, [group.id], dts[0], dts[-1], rollup=3600) == {
+        assert self.db.get_range(
+            TSDBModel.group,
+            [group.id],
+            dts[0],
+            dts[-1],
+            rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
+        ) == {
             group.id: [
                 (timestamp(dts[0]), 6 * 2),
                 (timestamp(dts[1]), 6 * 2),
@@ -180,7 +187,12 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
     def test_range_groups(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
-            TSDBModel.group, [self.proj1group1.id], dts[0], dts[-1], rollup=3600
+            TSDBModel.group,
+            [self.proj1group1.id],
+            dts[0],
+            dts[-1],
+            rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             self.proj1group1.id: [
                 (timestamp(dts[0]), 3),
@@ -197,6 +209,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             dts[0],
             dts[-1],
             rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             self.proj1group1.id: [
                 (timestamp(dts[0]), 3),
@@ -217,7 +230,12 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
     def test_range_releases(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
-            TSDBModel.release, [self.release1.id], dts[0], dts[-1], rollup=3600
+            TSDBModel.release,
+            [self.release1.id],
+            dts[0],
+            dts[-1],
+            rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             self.release1.id: [
                 (timestamp(dts[0]), 0),
@@ -230,7 +248,12 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
     def test_range_project(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
-            TSDBModel.project, [self.proj1.id], dts[0], dts[-1], rollup=3600
+            TSDBModel.project,
+            [self.proj1.id],
+            dts[0],
+            dts[-1],
+            rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 6),
@@ -249,6 +272,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             dts[-1],
             rollup=3600,
             environment_ids=[self.env1.id],
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 6),
@@ -266,6 +290,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             dts[-1],
             rollup=3600,
             environment_ids=[self.env2.id],
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 0),
@@ -283,6 +308,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             dts[-1],
             rollup=3600,
             environment_ids=[self.defaultenv.id],
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 0),
@@ -297,7 +323,12 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         daystart = self.now.replace(hour=0)  # day buckets start on day boundaries
         dts = [daystart + timedelta(days=i) for i in range(2)]
         assert self.db.get_range(
-            TSDBModel.project, [self.proj1.id], dts[0], dts[-1], rollup=86400
+            TSDBModel.project,
+            [self.proj1.id],
+            dts[0],
+            dts[-1],
+            rollup=86400,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {self.proj1.id: [(timestamp(dts[0]), 24), (timestamp(dts[1]), 0)]}
 
         # Minutely
@@ -306,13 +337,23 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         expected = [(to_timestamp(d), 1 if i % 10 == 0 else 0) for i, d in enumerate(dts)]
 
         assert self.db.get_range(
-            TSDBModel.project, [self.proj1.id], dts[0], dts[-1], rollup=60
+            TSDBModel.project,
+            [self.proj1.id],
+            dts[0],
+            dts[-1],
+            rollup=60,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {self.proj1.id: expected}
 
     def test_distinct_counts_series_users(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_distinct_counts_series(
-            TSDBModel.users_affected_by_group, [self.proj1group1.id], dts[0], dts[-1], rollup=3600
+            TSDBModel.users_affected_by_group,
+            [self.proj1group1.id],
+            dts[0],
+            dts[-1],
+            rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             self.proj1group1.id: [
                 (timestamp(dts[0]), 1),
@@ -324,7 +365,12 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
 
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_distinct_counts_series(
-            TSDBModel.users_affected_by_project, [self.proj1.id], dts[0], dts[-1], rollup=3600
+            TSDBModel.users_affected_by_project,
+            [self.proj1.id],
+            dts[0],
+            dts[-1],
+            rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 1),
@@ -336,7 +382,12 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
 
         assert (
             self.db.get_distinct_counts_series(
-                TSDBModel.users_affected_by_group, [], dts[0], dts[-1], rollup=3600
+                TSDBModel.users_affected_by_group,
+                [],
+                dts[0],
+                dts[-1],
+                rollup=3600,
+                tenant_ids={"referrer": "r", "organization_id": 1234},
             )
             == {}
         )
@@ -388,6 +439,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             self.now,
             self.now + timedelta(hours=4),
             rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) in [
             {self.proj1.id: [(self.proj1group1.id, 2.0), (self.proj1group2.id, 1.0)]},
             {self.proj1.id: [(self.proj1group2.id, 2.0), (self.proj1group1.id, 1.0)]},
@@ -400,6 +452,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                 self.now,
                 self.now + timedelta(hours=4),
                 rollup=3600,
+                tenant_ids={"referrer": "r", "organization_id": 1234},
             )
             == {}
         )
@@ -415,6 +468,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             dts[0],
             dts[-1],
             rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             self.proj1group1.id: [
                 (timestamp(dts[0]), {self.group1release1env1.id: 0, self.group1release2env1.id: 0}),
@@ -432,7 +486,12 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
 
         assert (
             self.db.get_frequency_series(
-                TSDBModel.frequent_releases_by_group, {}, dts[0], dts[-1], rollup=3600
+                TSDBModel.frequent_releases_by_group,
+                {},
+                dts[0],
+                dts[-1],
+                rollup=3600,
+                tenant_ids={"referrer": "r", "organization_id": 1234},
             )
             == {}
         )
@@ -446,12 +505,20 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
 
         results = self.db.get_most_frequent(
-            TSDBModel.frequent_issues_by_project, [project_id], dts[0], dts[0]
+            TSDBModel.frequent_issues_by_project,
+            [project_id],
+            dts[0],
+            dts[0],
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         )
         assert has_shape(results, {1: [(1, 1.0)]})
 
         results = self.db.get_most_frequent_series(
-            TSDBModel.frequent_issues_by_project, [project_id], dts[0], dts[0]
+            TSDBModel.frequent_issues_by_project,
+            [project_id],
+            dts[0],
+            dts[0],
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         )
         assert has_shape(results, {1: [(1, {1: 1.0})]})
 
@@ -460,30 +527,56 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             project_id: (self.proj1group1.id, self.proj1group2.id)
         }
         results = self.db.get_frequency_series(
-            TSDBModel.frequent_issues_by_project, items, dts[0], dts[-1]
+            TSDBModel.frequent_issues_by_project,
+            items,
+            dts[0],
+            dts[-1],
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         )
         assert has_shape(results, {1: [(1, {1: 1})]})
 
         results = self.db.get_frequency_totals(
-            TSDBModel.frequent_issues_by_project, items, dts[0], dts[-1]
+            TSDBModel.frequent_issues_by_project,
+            items,
+            dts[0],
+            dts[-1],
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         )
         assert has_shape(results, {1: {1: 1}})
 
-        results = self.db.get_range(TSDBModel.project, [project_id], dts[0], dts[-1])
+        results = self.db.get_range(
+            TSDBModel.project,
+            [project_id],
+            dts[0],
+            dts[-1],
+            tenant_ids={"referrer": "r", "organization_id": 1234},
+        )
         assert has_shape(results, {1: [(1, 1)]})
 
         results = self.db.get_distinct_counts_series(
-            TSDBModel.users_affected_by_project, [project_id], dts[0], dts[-1]
+            TSDBModel.users_affected_by_project,
+            [project_id],
+            dts[0],
+            dts[-1],
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         )
         assert has_shape(results, {1: [(1, 1)]})
 
         results = self.db.get_distinct_counts_totals(
-            TSDBModel.users_affected_by_project, [project_id], dts[0], dts[-1]
+            TSDBModel.users_affected_by_project,
+            [project_id],
+            dts[0],
+            dts[-1],
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         )
         assert has_shape(results, {1: 1})
 
         results = self.db.get_distinct_counts_union(
-            TSDBModel.users_affected_by_project, [project_id], dts[0], dts[-1]
+            TSDBModel.users_affected_by_project,
+            [project_id],
+            dts[0],
+            dts[-1],
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         )
         assert has_shape(results, 1)
 
@@ -592,6 +685,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
                 filter_keys={"project_id": [project.id], "event_id": [res.event_id]},
                 selected_columns=["event_id", "project_id", "group_ids"],
                 aggregations=None,
+                tenant_ids={"referrer": "r", "organization_id": 1234},
             )
 
             assert grouped_by_project["data"][0]["event_id"] == res.event_id
@@ -613,6 +707,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
             filter_keys={"project_id": [project.id]},
             selected_columns=["project_id", "event_id"],
             aggregations=None,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         )
         assert len(transactions_for_project["data"]) == times
 
@@ -629,6 +724,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
                 ["arrayJoin", ["group_ids"], "group_id"],
                 ["count()", "", "times_seen"],
             ],
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         )
 
         assert transactions_by_group["data"][0]["times_seen"] == times  # 1 + (times % 5)
@@ -639,6 +735,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
             dts[0],
             dts[-1],
             rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             group.id: [
                 # (timestamp(dts[0]), 1 + (times % 5)),
@@ -675,6 +772,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
             dts[0],
             dts[-1],
             rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             group.id: [
                 (timestamp(dts[0]), 6),
@@ -715,6 +813,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
             dts[0],
             dts[-1],
             rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             group.id: [
                 (timestamp(dts[0]), len(ids)),
@@ -733,6 +832,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
             dts[0],
             dts[-1],
             rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             self.proj1group1.id: [
                 (timestamp(dts[0]), 3),
@@ -749,7 +849,15 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         }
 
         assert (
-            self.db.get_range(TSDBModel.group_performance, [], dts[0], dts[-1], rollup=3600) == {}
+            self.db.get_range(
+                TSDBModel.group_performance,
+                [],
+                dts[0],
+                dts[-1],
+                rollup=3600,
+                tenant_ids={"referrer": "r", "organization_id": 1234},
+            )
+            == {}
         )
 
 

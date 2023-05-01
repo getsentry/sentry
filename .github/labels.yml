@@ -37,7 +37,7 @@
   color: '3C74DD'
   description: Automatically applied to PRs that change frontend components
 
-# Status for use with stalebot
+# Status for use with stalebot and routing/triage
 - name: 'Status: Backlog'
   color: '8D5494'
   description: stalebot will ignore
@@ -190,7 +190,7 @@
   color: '584774'
   description: ''
 
-# Product Areas - keep in sync with feature.yml and bug.yml issue templates
+# Product Areas - notion.so/sentry/473791bae5bf43399d46093050b77bf0
 - name: 'Product Area: Unknown'
   color: '8D5494'
 - name: 'Product Area: Sign in'
