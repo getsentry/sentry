@@ -85,12 +85,12 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         organization_integrations = integration_service.get_organization_integrations(
             providers=[self.provider], organization_id=self.project.organization_id
         )
+        integration_ids = [oi.integration_id for oi in organization_integrations]
 
         return [
-            x
-            for oi in organization_integrations
-            for x in PagerDutyService.objects.filter(
-                organization_id=self.project.organization_id, integration_id=oi.integration_id
+            service
+            for service in PagerDutyService.objects.filter(
+                organization_id=self.project.organization_id, integration_id__in=integration_ids
             )
         ]
 
