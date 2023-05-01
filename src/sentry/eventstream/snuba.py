@@ -430,12 +430,14 @@ class SnubaEventStream(SnubaProtocolEventStream):
             schema = sentry_kafka_schemas.get_schema(
                 topic={
                     "events": "events",
-                    "transactions": "transactions",
+                    # "transactions": "transactions",
                     "search_issues": "generic-events",
                 }[entity]
             )["schema"]
         except Exception:
             # Needed since "generic-events" does not have a schema yet
+            # and the "transactions" one is not compatible with
+            # existing test cases
             schema = None
 
         # The JsonCodec cannot be used since there are datetimes being passed here in unit tests which cannot
