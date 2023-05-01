@@ -64,7 +64,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         lcp = get_path(self._event, "measurements", "lcp", "value")
         exceeds_min_lcp_threshold = (
             self._sum_span_duration(self.consecutive_http_spans) / lcp
-            >= self.settings.get("lcp_percentage_min")
+            >= self.settings.get("lcp_ratio_threshold")
             if lcp and get_path(self._event, "sdk", "name") == "sentry.javascript.browser"
             else True
         )

@@ -211,7 +211,7 @@ class ConsecutiveDbDetectorTest(TestCase):
         self,
     ):
         # Set lcp percentage low to test that only spans before lcp are considered
-        options.set("performance.issues.consecutive_http.lcp_percentage_min", 0.0)
+        options.set("performance.issues.consecutive_http.lcp_ratio_threshold", 0.0)
         self.settings = get_detection_settings()
 
         # The total duration of the candidate spans is 6000ms
@@ -258,7 +258,7 @@ class ConsecutiveDbDetectorTest(TestCase):
     ):
         # Total duration of candidate spans is 6000ms, so the detector should only
         # trigger if LCP is less than or equal to 12000ms
-        options.set("performance.issues.consecutive_http.lcp_percentage_min", 0.5)
+        options.set("performance.issues.consecutive_http.lcp_ratio_threshold", 0.5)
         self.settings = get_detection_settings()
 
         event = {
