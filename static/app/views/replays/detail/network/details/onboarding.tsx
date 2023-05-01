@@ -140,12 +140,13 @@ function SetupInstructions({
 }
 
 const StyledInstructions = styled('div')`
-  margin-top: ${space(1)};
-  padding: ${space(2)} ${space(3)} ${space(3)};
   font-size: ${p => p.theme.fontSizeSmall};
 
+  margin-top: ${space(1)};
   border-top: 1px solid ${p => p.theme.border};
+  padding: ${space(2)};
   &:first-child {
+    margin-top: 0;
     border-top: none;
   }
 

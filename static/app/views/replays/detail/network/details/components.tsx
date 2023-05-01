@@ -2,6 +2,7 @@ import {Fragment, ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,7 +16,17 @@ const NotFoundText = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-export function keyValueTablOrNotFound(
+export function SizeTooltip({children}: {children: ReactNode}) {
+  return (
+    <Tooltip
+      title={t('It is possible the network transfer size is smaller due to compression.')}
+    >
+      {children}
+    </Tooltip>
+  );
+}
+
+export function keyValueTableOrNotFound(
   data: undefined | Record<string, string>,
   notFoundText: string
 ) {
@@ -33,6 +44,12 @@ export function keyValueTablOrNotFound(
 }
 
 const SectionTitle = styled('dt')``;
+
+const SectionTitleExtra = styled('span')`
+  flex-grow: 1;
+  text-align: right;
+  font-weight: normal;
+`;
 
 const SectionData = styled('dd')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
@@ -59,7 +76,15 @@ const ToggleButton = styled('button')`
   }
 `;
 
-export function SectionItem({children, title}: {children: ReactNode; title: string}) {
+export function SectionItem({
+  children,
+  title,
+  titleExtra,
+}: {
+  children: ReactNode;
+  title: ReactNode;
+  titleExtra?: ReactNode;
+}) {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
@@ -68,6 +93,7 @@ export function SectionItem({children, title}: {children: ReactNode; title: stri
         <ToggleButton aria-label={t('toggle section')} onClick={() => setIsOpen(!isOpen)}>
           <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
           {title}
+          {titleExtra ? <SectionTitleExtra>{titleExtra}</SectionTitleExtra> : null}
         </ToggleButton>
       </SectionTitle>
       <SectionData>{isOpen ? children : null}</SectionData>

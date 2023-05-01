@@ -139,13 +139,11 @@ export default class ReplayReader {
   isNetworkDetailsSetup = () => {
     if (this._isDetailsSetup === undefined) {
       // TODO(replay): there must be a better way
-      this._isDetailsSetup = this.networkSpans.some(span => {
-        return (
-          ('request' in span.data && 'headers' in span.data?.request) ||
-          ('response' in span.data && 'headers' in span.data?.response)
-        );
-      });
+      const hasHeaders = span =>
+        Object.keys(span.data.request?.headers || {}).length ||
+        Object.keys(span.data.response?.headers || {}).length;
+      this._isDetailsSetup = this.networkSpans.some(hasHeaders);
     }
-    this._isDetailsSetup;
+    return this._isDetailsSetup;
   };
 }

@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-const FluidHeight = styled('div')<{overflow?: 'hidden' | 'auto' | 'scroll'}>`
+const FluidHeight = styled('div')`
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
   flex-grow: 1;
-  overflow: ${p => p.overflow ?? 'hidden'};
+  overflow: hidden;
   height: 100%;
 `;
 

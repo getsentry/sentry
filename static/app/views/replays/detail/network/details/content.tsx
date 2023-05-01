@@ -14,7 +14,7 @@ import {
   ResponseHeadersSection,
   ResponsePayloadSection,
 } from 'sentry/views/replays/detail/network/details/sections';
-import {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
+import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 
 export default function NetworkDetailsContent({
   isSetup,
@@ -23,50 +23,71 @@ export default function NetworkDetailsContent({
 }: {isSetup: boolean; visibleTab: TabKey} & SectionProps) {
   const {item} = props;
 
+  const reqWarnings = item.data.request?._meta?.warnings as undefined | string[];
+  const respWarnings = item.data.response?._meta?.warnings as undefined | string[];
+  const isReqUrlSkipped = reqWarnings?.includes('URL_SKIPPED');
+  const isRespUrlSkipped = respWarnings?.includes('URL_SKIPPED');
+
   const isSupportedOp = ['resource.fetch', 'resource.xhr'].includes(item.op);
-  const showContent = isSupportedOp && isSetup;
-  const showSetup = isSupportedOp && !isSetup;
+  const showReqContent = isSupportedOp && isSetup && !isReqUrlSkipped;
+  const showRespContent = isSupportedOp && isSetup && !isRespUrlSkipped;
+  const showSetup = isSupportedOp && (!isSetup || isReqUrlSkipped || isRespUrlSkipped);
+
+  // console.log({
+  //   isSetup,
+  //   isSupportedOp,
+  //   reqWarnings,
+  //   respWarnings,
+  //   isReqUrlSkipped,
+  //   isRespUrlSkipped,
+  //   showReqContent,
+  //   showRespContent,
+  //   showSetup,
+  // });
 
   switch (visibleTab) {
     case 'request':
       return (
-        <FluidHeight overflow="auto">
+        <OverflowFluidHeight>
           <SectionList>
             <QueryParamsSection {...props} />
-            {showContent ? <RequestPayloadSection {...props} /> : null}
+            {showReqContent ? <RequestPayloadSection {...props} /> : null}
           </SectionList>
           {showSetup ? <Setup showSnippet="bodies" {...props} /> : null}
           {isSupportedOp ? null : <UnsupportedOp type="bodies" />}
-        </FluidHeight>
+        </OverflowFluidHeight>
       );
     case 'response':
       return (
-        <FluidHeight overflow="auto">
-          {showContent ? (
+        <OverflowFluidHeight>
+          {showRespContent ? (
             <SectionList>
               <ResponsePayloadSection {...props} />
             </SectionList>
           ) : null}
           {showSetup ? <Setup showSnippet="bodies" {...props} /> : null}
           {isSupportedOp ? null : <UnsupportedOp type="bodies" />}
-        </FluidHeight>
+        </OverflowFluidHeight>
       );
     case 'details':
     default:
       return (
-        <FluidHeight overflow="auto">
+        <OverflowFluidHeight>
           <SectionList>
             <GeneralSection {...props} />
-            {showContent ? <RequestHeadersSection {...props} /> : null}
-            {showContent ? <ResponseHeadersSection {...props} /> : null}
+            {showReqContent ? <RequestHeadersSection {...props} /> : null}
+            {showRespContent ? <ResponseHeadersSection {...props} /> : null}
           </SectionList>
           {showSetup ? <Setup showSnippet="headers" {...props} /> : null}
           {isSupportedOp ? null : <UnsupportedOp type="headers" />}
-        </FluidHeight>
+        </OverflowFluidHeight>
       );
   }
 }
 
+const OverflowFluidHeight = styled(FluidHeight)`
+  overflow: auto;
+`;
 const SectionList = styled('dl')`
   margin: 0;
 `;

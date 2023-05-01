@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
 import NetworkDetailsContent from 'sentry/views/replays/detail/network/details/content';
 import NetworkDetailsTabs, {
@@ -67,16 +66,15 @@ function NetworkDetails({
           />
         </CloseButtonWrapper>
       </StyledStacked>
-      <FluidHeight>
-        <NetworkDetailsContent
-          isSetup={isSetup}
-          item={item}
-          onScrollToRow={onScrollToRow}
-          projectId={projectId}
-          startTimestampMs={startTimestampMs}
-          visibleTab={visibleTab}
-        />
-      </FluidHeight>
+
+      <NetworkDetailsContent
+        isSetup={isSetup}
+        item={item}
+        onScrollToRow={onScrollToRow}
+        projectId={projectId}
+        startTimestampMs={startTimestampMs}
+        visibleTab={visibleTab}
+      />
     </Fragment>
   );
 }

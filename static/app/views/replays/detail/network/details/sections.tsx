@@ -9,8 +9,9 @@ import {formatBytesBase10} from 'sentry/utils';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {
   Indent,
-  keyValueTablOrNotFound,
+  keyValueTableOrNotFound,
   SectionItem,
+  SizeTooltip,
 } from 'sentry/views/replays/detail/network/details/components';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {NetworkSpan} from 'sentry/views/replays/types';
@@ -44,8 +45,12 @@ export function GeneralSection({item, onScrollToRow, startTimestampMs}: SectionP
     [t('Type')]: item.op,
     [t('Method')]: item.data.method,
     [t('Status Code')]: item.data.statusCode,
-    [t('Request Body Size')]: formatBytesBase10(item.data.request?.size ?? 0),
-    [t('Response Body Size')]: formatBytesBase10(item.data.response?.size ?? 0),
+    [t('Request Body Size')]: (
+      <SizeTooltip>{formatBytesBase10(item.data.request?.size ?? 0)}</SizeTooltip>
+    ),
+    [t('Response Body Size')]: (
+      <SizeTooltip>{formatBytesBase10(item.data.response?.size ?? 0)}</SizeTooltip>
+    ),
     [t('Duration')]: `${(endMs - startMs).toFixed(2)}ms`,
     [t('Timestamp')]: (
       <TimestampButton
@@ -62,7 +67,7 @@ export function GeneralSection({item, onScrollToRow, startTimestampMs}: SectionP
 
   return (
     <SectionItem title={t('General')}>
-      {keyValueTablOrNotFound(data, t('Missing request details'))}
+      {keyValueTableOrNotFound(data, t('Missing request details'))}
     </SectionItem>
   );
 }
@@ -70,7 +75,7 @@ export function GeneralSection({item, onScrollToRow, startTimestampMs}: SectionP
 export function RequestHeadersSection({item}: SectionProps) {
   return (
     <SectionItem title={t('Request Headers')}>
-      {keyValueTablOrNotFound(item.data.request?.headers, t('Headers not captured'))}
+      {keyValueTableOrNotFound(item.data.request?.headers, t('Headers not captured'))}
     </SectionItem>
   );
 }
@@ -78,7 +83,7 @@ export function RequestHeadersSection({item}: SectionProps) {
 export function ResponseHeadersSection({item}: SectionProps) {
   return (
     <SectionItem title={t('Response Headers')}>
-      {keyValueTablOrNotFound(item.data.request?.headers, t('Headers not captured'))}
+      {keyValueTableOrNotFound(item.data.request?.headers, t('Headers not captured'))}
     </SectionItem>
   );
 }
@@ -98,10 +103,17 @@ export function RequestPayloadSection({item}: SectionProps) {
   const hasRequest = 'request' in item.data;
 
   return (
-    <SectionItem title={t('Request Payload')}>
+    <SectionItem
+      title={t('Request Payload')}
+      titleExtra={
+        <SizeTooltip>
+          {t('Size:')} {formatBytesBase10(item.data.request?.size ?? 0)}
+        </SizeTooltip>
+      }
+    >
       <Indent>
         {hasRequest ? (
-          <ObjectInspector data={item.data?.request?.body} expandLevel={3} />
+          <ObjectInspector data={item.data?.request?.body} expandLevel={2} />
         ) : (
           tct('Request body not found.', item.data)
         )}
@@ -114,10 +126,17 @@ export function ResponsePayloadSection({item}: SectionProps) {
   const hasResponse = 'response' in item.data;
 
   return (
-    <SectionItem title={t('Response Body')}>
+    <SectionItem
+      title={t('Response Body')}
+      titleExtra={
+        <SizeTooltip>
+          {t('Size:')} {formatBytesBase10(item.data.response?.size ?? 0)}{' '}
+        </SizeTooltip>
+      }
+    >
       <Indent>
         {hasResponse ? (
-          <ObjectInspector data={item.data?.response?.body} expandLevel={3} />
+          <ObjectInspector data={item.data?.response?.body} expandLevel={2} />
         ) : (
           tct('Response body not found.', item.data)
         )}
