@@ -1417,6 +1417,8 @@ SENTRY_FEATURES = {
     "organizations:team-insights": True,
     # Enable u2f verification on superuser form
     "organizations:u2f-superuser-form": False,
+    # Enable project creation for all
+    "organizations:team-project-creation-all": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
     # Enable team member role provisioning through scim
