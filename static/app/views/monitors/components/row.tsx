@@ -142,10 +142,7 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
     <Fragment>
       <MonitorName>
         <MonitorBadge status={monitorStatus} />
-        <NameAndSlug>
-          <Link to={monitorDetailUrl}>{monitor.name}</Link>
-          <MonitorSlug>{monitor.slug}</MonitorSlug>
-        </NameAndSlug>
+        <Link to={monitorDetailUrl}>{monitor.name}</Link>
       </MonitorName>
       <MonitorColumn>
         <TextOverflow>
@@ -205,17 +202,6 @@ const MonitorName = styled('div')`
   align-items: center;
   gap: ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
-`;
-
-const NameAndSlug = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.25)};
-`;
-
-const MonitorSlug = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
 `;
 
 const MonitorColumn = styled('div')`
