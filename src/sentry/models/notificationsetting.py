@@ -59,8 +59,8 @@ class NotificationSetting(Model):
         null=False,
     )
     scope_identifier = BoundedBigIntegerField(null=False)
-    target = FlexibleForeignKey(
-        "sentry.Actor", db_index=True, unique=False, null=False, on_delete=models.CASCADE
+    target_id = HybridCloudForeignKey(
+        "sentry.Actor", db_index=True, unique=False, null=True, on_delete="CASCADE"
     )
     team_id = HybridCloudForeignKey("sentry.Team", null=True, db_index=True, on_delete="CASCADE")
     user = FlexibleForeignKey(
@@ -112,7 +112,7 @@ class NotificationSetting(Model):
             (
                 "scope_type",
                 "scope_identifier",
-                "target",
+                "target_id",
                 "provider",
                 "type",
             ),
