@@ -131,20 +131,24 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if any([x in description for x in ["_next/static/", "_next/data/"]]):
             return False
 
-        # If the event is from a JS SDK and the span ends after the LCP, we don't want to count this span
-        sdk_name = get_path(self._event, "sdk", "name")
+        # If the event is from a JS SDK and the span ends after the LCP, we ignore it
+        # because it won't be a candidate for improving LCP
+        if get_path(
+            self._event, "sdk", "name"
+        ) == "sentry.javascript.browser" and self._span_occurs_after_lcp(span):
+            return False
+
+        return True
+
+    def _span_occurs_after_lcp(self, span):
         lcp = get_path(self._event, "measurements", "lcp", "value")
-        span_occurs_after_lcp = (
+        return (
             datetime.fromtimestamp(span.get("timestamp"))
             > datetime.fromtimestamp(self._event.get("start_timestamp"))
             + timedelta(milliseconds=lcp)
             if lcp is not None
             else False
         )
-        if sdk_name == "sentry.javascript.browser" and (lcp is None or span_occurs_after_lcp):
-            return False
-
-        return True
 
     def _fingerprint(self) -> str:
         hashed_url_paths = fingerprint_http_spans(self.consecutive_http_spans)
