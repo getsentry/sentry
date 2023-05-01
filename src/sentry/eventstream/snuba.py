@@ -446,6 +446,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         try:
             codec.validate(json.loads(serialized_data))
         except Exception:
+            print(f"Error validating data for entity {entity}")  # noqa
             print(json.loads(serialized_data))  # noqa
             raise
 
