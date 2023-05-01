@@ -55,8 +55,8 @@ function DatabaseModule() {
 
   const tableFilter = table !== 'ALL' ? `domain = '${table}'` : undefined;
   const actionFilter = action !== 'ALL' ? `action = '${action}'` : undefined;
-  const newFilter = filterNew ? 'newish = 1' : null;
-  const oldFilter = filterOld ? 'retired = 1' : null;
+  const newFilter: string | undefined = filterNew ? 'newish = 1' : undefined;
+  const oldFilter: string | undefined = filterOld ? 'retired = 1' : undefined;
 
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
