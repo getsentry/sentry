@@ -205,7 +205,7 @@ def _extract_project_and_group_ids(groups: Sequence[Group]) -> Dict[int, List[in
 
 
 def get_group_hourly_count(organization_id: int, project_id: int, group_id: int) -> int:
-    """Return the number of events a group has had today"""
+    """Return the number of events a group has had today in the last hour"""
     key = f"hourly-group-count:{project_id}:{group_id}"
     hourly_count = cache.get(key)
 
