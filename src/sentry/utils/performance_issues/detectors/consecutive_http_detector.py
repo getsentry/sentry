@@ -70,7 +70,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         exceeds_min_lcp_threshold = (
             self._sum_span_duration(self.consecutive_http_spans) / self.lcp
             >= self.settings.get("lcp_ratio_threshold")
-            if self.lcp and get_path(self._event, "sdk", "name") == "sentry.javascript.browser"
+            if self.lcp and self._is_event_from_browser_javascript_sdk()
             else True
         )
 
@@ -145,9 +145,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
         # If the event is from a JS SDK and the span ends after the LCP, we ignore it
         # because it won't be a candidate for improving LCP
-        if get_path(
-            self._event, "sdk", "name"
-        ) == "sentry.javascript.browser" and self._span_occurs_after_lcp(span):
+        if self._is_event_from_browser_javascript_sdk() and self._span_occurs_after_lcp(span):
             return False
 
         return True
@@ -160,6 +158,26 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             if self.lcp is not None
             else True
         )
+
+    def _is_event_from_browser_javascript_sdk(self):
+        sdk_name = get_path(self.event(), "sdk", "name")
+        if sdk_name is None:
+            return False
+
+        # based on https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/version.ts
+        return sdk_name.lower() in [
+            "sentry.javascript.browser",
+            "sentry.javascript.react",
+            "sentry.javascript.gatsby",
+            "sentry.javascript.ember",
+            "sentry.javascript.vue",
+            "sentry.javascript.angular",
+            "sentry.javascript.angular-ivy",
+            "sentry.javascript.nextjs",
+            "sentry.javascript.electron",
+            "sentry.javascript.remix",
+            "sentry.javascript.svelte",
+        ]
 
     def _fingerprint(self) -> str:
         hashed_url_paths = fingerprint_http_spans(self.consecutive_http_spans)
