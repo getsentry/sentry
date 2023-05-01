@@ -57,6 +57,17 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             invite_status=org_member.invite_status,
         )
 
+    def delete_with_organization_member(
+        self,
+        *,
+        organizationmember_id: int,
+        organization_id: int,
+    ) -> None:
+        OrganizationMemberMapping.objects.filter(
+            organization_id=organization_id,
+            organizationmember_id=organizationmember_id,
+        ).delete()
+
     def close(self) -> None:
         pass
 
