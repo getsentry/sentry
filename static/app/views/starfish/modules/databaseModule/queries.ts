@@ -1,3 +1,5 @@
+import {Moment} from 'moment';
+
 const DEFAULT_WHERE = `
   startsWith(span_operation, 'db') and
   span_operation != 'db.redis' and
@@ -9,7 +11,7 @@ const ORDERBY = `
   -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
 `;
 
-const getActionSubquery = date_filters => {
+const getActionSubquery = (date_filters: string) => {
   return `
   select action
   from default.spans_experimental_starfish
@@ -22,7 +24,7 @@ const getActionSubquery = date_filters => {
   `;
 };
 
-const getDomainSubquery = (date_filters, action) => {
+const getDomainSubquery = (date_filters: string, action: string) => {
   return `
   select domain
   from default.spans_experimental_starfish
@@ -37,11 +39,41 @@ const getDomainSubquery = (date_filters, action) => {
   `;
 };
 
-const getActionQuery = action => (action !== 'ALL' ? `and action = '${action}'` : '');
+const getActionQuery = (action: string) =>
+  action !== 'ALL' ? `and action = '${action}'` : '';
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60;
 
-export const getOperations = date_filters => {
+const getNewColumn = (
+  duration: number,
+  startTime: {unix: () => number},
+  endTime: {unix: () => number}
+) =>
+  duration > SEVEN_DAYS
+    ? `(
+        greater(min(start_timestamp), fromUnixTimestamp(${
+          startTime.unix() + duration / 10
+        })) and
+        greater(max(start_timestamp), fromUnixTimestamp(${
+          endTime.unix() - duration / 10
+        }))
+      ) as newish`
+    : '0 as newish';
+const getRetiredColumn = (
+  duration: number,
+  startTime: {unix: () => number},
+  endTime: {unix: () => number}
+) =>
+  duration > SEVEN_DAYS
+    ? `(
+        less(max(start_timestamp), fromUnixTimestamp(${
+          endTime.unix() - duration / 10
+        })) and
+        less(min(start_timestamp), fromUnixTimestamp(${startTime.unix() + duration / 10}))
+      ) as retired`
+    : '0 as retired';
+
+export const getOperations = (date_filters: string) => {
   return `
   select
     action as key,
@@ -55,7 +87,7 @@ export const getOperations = date_filters => {
   `;
 };
 
-export const getTables = (date_filters, action) => {
+export const getTables = (date_filters: string, action: string) => {
   return `
   select
     domain as key,
@@ -70,7 +102,7 @@ export const getTables = (date_filters, action) => {
   `;
 };
 
-export const getTopOperationsChart = (date_filters, interval) => {
+export const getTopOperationsChart = (date_filters: string, interval: number) => {
   return `
   select
     floor(quantile(0.75)(exclusive_time), 5) as p75,
@@ -87,7 +119,11 @@ export const getTopOperationsChart = (date_filters, interval) => {
   `;
 };
 
-export const getTopTablesChart = (date_filters, action, interval) => {
+export const getTopTablesChart = (
+  date_filters: string,
+  action: string,
+  interval: number
+) => {
   return `
   select
     floor(quantile(0.75)(exclusive_time), 5) as p75,
@@ -105,7 +141,29 @@ export const getTopTablesChart = (date_filters, action, interval) => {
   `;
 };
 
-export const getPanelTableQuery = (date_filters, row, sortKey, sortDirection) => {
+export const getPanelTableQuery = (
+  date_filters: string,
+  row: {
+    group_id: string;
+    action?: string;
+    count?: number;
+    data_keys?: string[];
+    data_values?: string[];
+    description?: string;
+    domain?: string;
+    epm?: number;
+    firstSeen?: string;
+    formatted_desc?: string;
+    lastSeen?: string;
+    newish?: number;
+    p75?: number;
+    retired?: number;
+    total_time?: number;
+    transactions?: number;
+  },
+  sortKey: string | undefined,
+  sortDirection: string | undefined
+) => {
   const orderBy = getOrderByFromKey(sortKey, sortDirection) ?? ORDERBY;
   return `
     SELECT
@@ -123,7 +181,10 @@ export const getPanelTableQuery = (date_filters, row, sortKey, sortDirection) =>
   `;
 };
 
-const getOrderByFromKey = (sortKey, sortDirection) => {
+const getOrderByFromKey = (
+  sortKey: string | undefined,
+  sortDirection: string | undefined
+) => {
   if (!sortDirection || !sortKey) {
     return undefined;
   }
@@ -131,7 +192,28 @@ const getOrderByFromKey = (sortKey, sortDirection) => {
   return `${sortKey} ${sortDirection}`;
 };
 
-export const getPanelGraphQuery = (date_filters, row, interval) => {
+export const getPanelGraphQuery = (
+  date_filters: string,
+  row: {
+    group_id: string;
+    action?: string;
+    count?: number;
+    data_keys?: string[];
+    data_values?: string[];
+    description?: string;
+    domain?: string;
+    epm?: number;
+    firstSeen?: string;
+    formatted_desc?: string;
+    lastSeen?: string;
+    newish?: number;
+    p75?: number;
+    retired?: number;
+    total_time?: number;
+    transactions?: number;
+  },
+  interval: number
+) => {
   return `
     SELECT
       toStartOfInterval(start_timestamp, INTERVAL ${interval} HOUR) as interval,
@@ -147,7 +229,27 @@ export const getPanelGraphQuery = (date_filters, row, interval) => {
   `;
 };
 
-export const getPanelEventCount = (date_filters, row) => {
+export const getPanelEventCount = (
+  date_filters: string,
+  row: {
+    group_id: string;
+    action?: string;
+    count?: number;
+    data_keys?: string[];
+    data_values?: string[];
+    description?: string;
+    domain?: string;
+    epm?: number;
+    firstSeen?: string;
+    formatted_desc?: string;
+    lastSeen?: string;
+    newish?: number;
+    p75?: number;
+    retired?: number;
+    total_time?: number;
+    transactions?: number;
+  }
+) => {
   return `
     SELECT
       transaction,
@@ -163,14 +265,16 @@ export const getPanelEventCount = (date_filters, row) => {
 };
 
 export const getMainTable = (
-  startTime,
-  date_filters,
-  endTime,
-  transactionFilter,
-  tableFilter,
-  actionFilter,
-  sortKey,
-  sortDirection
+  startTime: Moment,
+  date_filters: string,
+  endTime: Moment,
+  transactionFilter: string | null,
+  tableFilter?: string,
+  actionFilter?: string,
+  sortKey?: string,
+  sortDirection?: string,
+  newFilter?: string,
+  oldFilter?: string
 ) => {
   const filters = [
     DEFAULT_WHERE,
@@ -180,18 +284,9 @@ export const getMainTable = (
     actionFilter,
   ].filter(fil => !!fil);
   const duration = endTime.unix() - startTime.unix();
-  const newColumn =
-    duration > SEVEN_DAYS
-      ? `greater(min(start_timestamp), fromUnixTimestamp(${
-          startTime.unix() + duration / 10
-        })) as newish`
-      : '0 as newish';
-  const retiredColumn =
-    duration > SEVEN_DAYS
-      ? `less(max(start_timestamp), fromUnixTimestamp(${
-          endTime.unix() - duration / 10
-        })) as retired`
-      : '0 as retired';
+  const newColumn = getNewColumn(duration, startTime, endTime);
+  const retiredColumn = getRetiredColumn(duration, startTime, endTime);
+  const havingFilters = [newFilter, oldFilter].filter(fil => !!fil);
 
   const orderBy = getOrderByFromKey(sortKey, sortDirection) ?? ORDERBY;
 
@@ -221,7 +316,9 @@ export const getMainTable = (
       domain,
       data_keys,
       data_values
-    order by ${orderBy}
+    ${havingFilters.length > 0 ? 'having' : ''}
+      ${havingFilters.join(' and ')}
+      order by ${orderBy}
     limit 100
   `;
 };
