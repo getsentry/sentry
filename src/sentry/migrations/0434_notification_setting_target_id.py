@@ -30,7 +30,7 @@ class Migration(CheckedMigration):
                     model_name="notificationsetting",
                     name="target_id",
                     field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Actor", db_index=True, null=True, on_delete="CASCADE"
+                        "sentry.Actor", db_index=True, null=False, on_delete="CASCADE"
                     ),
                 ),
                 migrations.RenameField(
