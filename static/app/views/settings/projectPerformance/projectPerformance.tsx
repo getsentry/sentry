@@ -25,7 +25,7 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 export const retentionPrioritiesLabels = {
   boostLatestRelease: t('Prioritize new releases'),
   boostEnvironments: t('Prioritize dev environments'),
-  boostKeyTransactions: t('Prioritize key transactions'),
+  boostLowVolumeTransactions: t('Prioritize low-volume transactions'),
   ignoreHealthChecks: t('Deprioritize health checks'),
 };
 
@@ -249,6 +249,12 @@ class ProjectPerformance extends AsyncView<Props, State> {
         step: 0.01,
         defaultValue: 0,
       },
+      {
+        name: 'consecutive_http_spans_detection_enabled',
+        type: 'boolean',
+        label: t('Consecutive HTTP Spans Detection Enabled'),
+        defaultValue: true,
+      },
     ];
   }
 
@@ -273,10 +279,13 @@ class ProjectPerformance extends AsyncView<Props, State> {
         getData: this.getRetentionPrioritiesData,
       },
       {
-        name: 'boostKeyTransactions',
+        name: 'boostLowVolumeTransactions',
         type: 'boolean',
-        label: retentionPrioritiesLabels.boostKeyTransactions,
-        help: t('Captures more of your most important (starred) transactions'),
+        label: retentionPrioritiesLabels.boostLowVolumeTransactions,
+        help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
+        visible: this.props.organization.features.includes(
+          'dynamic-sampling-transaction-name-priority'
+        ),
         getData: this.getRetentionPrioritiesData,
       },
       {

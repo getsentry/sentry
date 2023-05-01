@@ -114,10 +114,18 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         if not checkin_validator.is_valid():
             return self.respond(checkin_validator.errors, status=400)
 
+        result = checkin_validator.validated_data
+
+        # MonitorEnvironment.ensure_environment handles empty environments, but
+        # we don't wan to call that before the rate limit, for the rate limit
+        # key we don't care as much about a user not sending an environment, so
+        # let's be explicit about it not being production
+        env_rate_limit_key = result.get("environment", "-")
+
         if not monitor:
-            ratelimit_key = monitor_slug
+            ratelimit_key = f"{monitor_slug}:{env_rate_limit_key}"
         else:
-            ratelimit_key = monitor.id
+            ratelimit_key = f"{monitor.id}:{env_rate_limit_key}"
 
         if ratelimits.is_limited(
             f"monitor-checkins:{ratelimit_key}",
@@ -131,8 +139,6 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             raise Throttled(
                 detail="Rate limited, please send no more than 5 checkins per minute per monitor"
             )
-
-        result = checkin_validator.validated_data
 
         with transaction.atomic():
             monitor_data = result.get("monitor")
@@ -180,14 +186,12 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             signal_first_checkin(project, monitor)
 
             if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
-                monitor_failed = monitor.mark_failed(last_checkin=checkin.date_added)
-                monitor_environment.mark_failed(last_checkin=checkin.date_added)
+                monitor_failed = monitor_environment.mark_failed(last_checkin=checkin.date_added)
                 if not monitor_failed:
                     if isinstance(request.auth, ProjectKey):
                         return self.respond(status=200)
                     return self.respond(serialize(checkin, request.user), status=200)
             else:
-                monitor.mark_ok(checkin, checkin.date_added)
                 monitor_environment.mark_ok(checkin, checkin.date_added)
 
         if isinstance(request.auth, ProjectKey):

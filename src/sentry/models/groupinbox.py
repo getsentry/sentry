@@ -5,11 +5,13 @@ import jsonschema
 from django.db import models
 from django.utils import timezone
 
+from sentry import features
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_only_model
 from sentry.models import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import inbox_in, inbox_out
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 INBOX_REASON_DETAILS = {
     "type": ["object", "null"],
@@ -83,8 +85,15 @@ def add_group_to_inbox(group, reason, reason_details=None):
         },
     )
 
-    # Ignore new issues, too many events
-    if reason is not GroupInboxReason.NEW:
+    if reason == GroupInboxReason.REGRESSION:
+        group.substatus = GroupSubStatus.REGRESSED
+        group.save()
+
+    if reason is GroupInboxReason.NEW:
+        group.substatus = GroupSubStatus.NEW
+        group.save(update_fields=["substatus"])
+    else:
+        # Ignore new issues, too many events
         inbox_in.send_robust(
             project=group.project,
             user=None,
@@ -96,6 +105,12 @@ def add_group_to_inbox(group, reason, reason_details=None):
 
 
 def remove_group_from_inbox(group, action=None, user=None, referrer=None):
+    # The MARK_REVIEWED feature is going away as part of the issue states project
+    if action == GroupInboxRemoveAction.MARK_REVIEWED and features.has(
+        "organizations:remove-mark-reviewed", group.project.organization
+    ):
+        return
+
     try:
         group_inbox = GroupInbox.objects.get(group=group)
         group_inbox.delete()

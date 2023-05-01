@@ -39,8 +39,9 @@ def latest_release_only(default_project):
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
-            {"id": "boostEnvironments", "active": False},
-            {"id": "ignoreHealthChecks", "active": False},
+            {"id": e.value, "active": False}
+            for e in RuleType
+            if e.value != RuleType.BOOST_LATEST_RELEASES_RULE.value
         ],
     )
 
@@ -83,15 +84,6 @@ def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rule
     get_blended_sample_rate, default_project
 ):
     get_blended_sample_rate.return_value = 1.0
-    default_project.update_option(
-        "sentry:dynamic_sampling_biases",
-        [
-            {"id": "boostEnvironments", "active": True},
-            {"id": "ignoreHealthChecks", "active": True},
-            {"id": "boostLatestRelease", "active": True},
-            {"id": "boostKeyTransactions", "active": True},
-        ],
-    )
 
     assert generate_rules(default_project) == [
         {
@@ -132,6 +124,13 @@ def test_generate_rules_return_uniform_rules_with_rate(
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rate, default_project):
     get_blended_sample_rate.return_value = 0.1
+    default_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
+        ],
+    )
+
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
     assert generate_rules(default_project) == [
@@ -182,15 +181,7 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
     get_blended_sample_rate, default_project
 ):
     get_blended_sample_rate.return_value = 1.0
-    default_project.update_option(
-        "sentry:dynamic_sampling_biases",
-        [
-            {"id": "boostEnvironments", "active": False},
-            {"id": "ignoreHealthChecks", "active": False},
-            {"id": "boostLatestRelease", "active": False},
-            {"id": "boostKeyTransactions", "active": False},
-        ],
-    )
+
     assert generate_rules(default_project) == [
         {
             "condition": {"inner": [], "op": "and"},
@@ -199,7 +190,6 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
             "type": "trace",
         },
     ]
-
     _validate_rules(default_project)
 
 
@@ -452,15 +442,6 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, default_project):
     get_blended_sample_rate.return_value = 0.0
-    default_project.update_option(
-        "sentry:dynamic_sampling_biases",
-        [
-            {"id": "boostEnvironments", "active": True},
-            {"id": "ignoreHealthChecks", "active": True},
-            {"id": "boostLatestRelease", "active": True},
-            {"id": "boostKeyTransactions", "active": True},
-        ],
-    )
 
     assert generate_rules(default_project) == [
         {
@@ -494,11 +475,11 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
-            {"id": "boostEnvironments", "active": False},
-            {"id": "ignoreHealthChecks", "active": False},
-            {"id": "boostLatestRelease", "active": False},
-            {"id": "boostKeyTransactions", "active": False},
-            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": True},
+            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+            {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ],
     )
     default_project.add_team(default_team)
@@ -518,7 +499,7 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
             "condition": {
                 "inner": [
                     {
-                        "name": "event.transaction",
+                        "name": "trace.transaction",
                         "op": "eq",
                         "options": {"ignoreCase": True},
                         "value": ["t1"],
@@ -564,11 +545,12 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
-            {"id": "boostEnvironments", "active": False},
-            {"id": "ignoreHealthChecks", "active": False},
-            {"id": "boostLatestRelease", "active": False},
-            {"id": "boostKeyTransactions", "active": False},
+            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+            {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
             {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ],
     )
     default_project.add_team(default_team)
@@ -588,7 +570,7 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
 @pytest.mark.django_db
 @freeze_time("2022-10-21T18:50:25Z")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-def test_generate_rules_return_uniform_rules_and_adj_factor_rule(
+def test_generate_rules_return_uniform_rules_and_rebalance_factor_rule(
     get_blended_sample_rate, default_project
 ):
     get_blended_sample_rate.return_value = 0.1
@@ -597,19 +579,19 @@ def test_generate_rules_return_uniform_rules_and_adj_factor_rule(
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
-            {"id": "boostEnvironments", "active": False},
-            {"id": "ignoreHealthChecks", "active": False},
-            {"id": "boostLatestRelease", "active": False},
-            {"id": "boostKeyTransactions", "active": False},
+            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+            {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
             {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ],
     )
 
     # Set factor
     default_factor = 0.5
-    redis_client.hset(
-        f"ds::o:{default_project.organization.id}:rate_rebalance_factor",
-        f"{default_project.id}",
+    redis_client.set(
+        f"ds::o:{default_project.organization.id}:rate_rebalance_factor2",
         default_factor,
     )
     assert generate_rules(default_project) == [
@@ -621,4 +603,45 @@ def test_generate_rules_return_uniform_rules_and_adj_factor_rule(
             "type": "trace",
         },
     ]
+    _validate_rules(default_project)
+
+
+@pytest.mark.django_db
+@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+def test_generate_rules_return_boost_replay_id(get_blended_sample_rate, default_project):
+    get_blended_sample_rate.return_value = 0.5
+    default_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+            {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
+        ],
+    )
+
+    assert generate_rules(default_project) == [
+        {
+            "condition": {
+                "inner": {
+                    "name": "trace.replay_id",
+                    "op": "eq",
+                    "value": None,
+                    "options": {"ignoreCase": True},
+                },
+                "op": "not",
+            },
+            "id": 1005,
+            "samplingValue": {"type": "sampleRate", "value": 1.0},
+            "type": "trace",
+        },
+        {
+            "condition": {"inner": [], "op": "and"},
+            "id": 1000,
+            "samplingValue": {"type": "sampleRate", "value": 0.5},
+            "type": "trace",
+        },
+    ]
+
     _validate_rules(default_project)

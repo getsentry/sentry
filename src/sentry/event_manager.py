@@ -119,6 +119,7 @@ from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPIN
 from sentry.quotas.base import index_data_category
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import (
     first_event_received,
@@ -131,6 +132,7 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -818,9 +820,7 @@ def _is_commit_sha(version: str) -> bool:
 def _associate_commits_with_release(release: Release, project: Project) -> None:
     previous_release = release.get_previous_release(project)
     possible_repos = (
-        RepositoryProjectPathConfig.objects.select_related(
-            "repository", "organization_integration", "organization_integration__integration"
-        )
+        RepositoryProjectPathConfig.objects.select_related("repository")
         .filter(project=project, repository__provider="integrations:github")
         .all()
     )
@@ -828,11 +828,20 @@ def _associate_commits_with_release(release: Release, project: Project) -> None:
         # If it does exist, kick off a task to look if the commit exists in the repository
         target_repo = None
         for repo_proj_path_model in possible_repos:
-            integration_installation = (
-                repo_proj_path_model.organization_integration.integration.get_installation(
-                    organization_id=project.organization.id
-                )
+            ois = integration_service.get_organization_integrations(
+                org_integration_ids=[repo_proj_path_model.organization_integration_id]
             )
+            oi = ois[0]
+            if not oi:
+                continue
+            integration = integration_service.get_integration(integration_id=oi.integration_id)
+            if not integration:
+                continue
+            integration_installation = integration_service.get_installation(
+                integration=integration, organization_id=oi.organization_id
+            )
+            if not integration_installation:
+                continue
             repo_client = integration_installation.get_client()
             try:
                 repo_client.get_commit(
@@ -1778,6 +1787,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             # at the value
             last_seen=date,
             status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.REGRESSED,
         )
     )
     issue_unresolved.send_robust(
@@ -1790,6 +1800,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
 
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
+    group.substatus = GroupSubStatus.REGRESSED
 
     if is_regression and release:
         resolution = None

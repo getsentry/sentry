@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING, List, Optional, Sequence, cast
+from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, cast
 
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -96,6 +96,19 @@ class NotificationsService(RpcService):
         actor: RpcActor,
         project_id: Optional[int] = None,
         organization_id: Optional[int] = None,
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def bulk_update_settings(
+        self,
+        *,
+        notification_type_to_value_map: Mapping[
+            NotificationSettingTypes, NotificationSettingOptionValues
+        ],
+        external_provider: ExternalProviders,
+        actor: RpcActor,
     ) -> None:
         pass
 

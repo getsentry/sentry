@@ -328,6 +328,15 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         assert set(results) == set()
 
+    def test_query_timestamp(self):
+        results = self.make_query(
+            [self.project],
+            environments=[self.environments["production"]],
+            search_filter_query=f"timestamp:>{iso_format(self.event1.datetime)} timestamp:<{iso_format(self.event3.datetime)}",
+        )
+
+        assert set(results) == {self.group1}
+
     def test_sort(self):
         results = self.make_query(sort_by="date")
         assert list(results) == [self.group1, self.group2]
@@ -2510,7 +2519,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         group_type = PerformanceNPlusOneGroupType
         self.project.update_option("sentry:performance_issue_create_issue_through_platform", True)
 
-        with self.options(
+        with self.feature("organizations:issue-platform-search-perf-issues"), self.options(
             {"performance.issues.create_issues_through_platform": True}
         ), mock.patch.object(
             PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))

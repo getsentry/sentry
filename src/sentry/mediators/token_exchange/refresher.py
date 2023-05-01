@@ -4,6 +4,7 @@ from sentry.mediators import Mediator, Param
 from sentry.mediators.token_exchange.util import token_expiration
 from sentry.mediators.token_exchange.validator import Validator
 from sentry.models import ApiApplication, ApiToken, SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.utils.cache import memoize
 
 
@@ -12,7 +13,7 @@ class Refresher(Mediator):
     Exchanges a Refresh Token for a new Access Token
     """
 
-    install = Param("sentry.models.SentryAppInstallation")
+    install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
     refresh_token = Param((str,))
     client_id = Param((str,))
     user = Param("sentry.models.User")
@@ -48,7 +49,7 @@ class Refresher(Mediator):
             scope_list=self.sentry_app.scope_list,
             expires_at=token_expiration(),
         )
-        self.install.update(api_token=token)
+        SentryAppInstallation.objects.filter(id=self.install.id).update(api_token=token)
         return token
 
     @memoize

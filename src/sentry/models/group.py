@@ -19,7 +19,7 @@ from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import eventstore, eventtypes, tagstore
+from sentry import eventstore, eventtypes, features, tagstore
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BaseManager,
@@ -159,6 +159,7 @@ STATUS_QUERY_CHOICES: Mapping[str, int] = {
     "resolved": GroupStatus.RESOLVED,
     "unresolved": GroupStatus.UNRESOLVED,
     "ignored": GroupStatus.IGNORED,
+    "archived": GroupStatus.IGNORED,
     # TODO(dcramer): remove in 9.0
     "muted": GroupStatus.IGNORED,
     "reprocessing": GroupStatus.REPROCESSING,
@@ -197,24 +198,15 @@ def get_oldest_or_latest_event_for_environments(
     if len(environments) > 0:
         conditions.append(["environment", "IN", environments])
 
-    if group.issue_category == GroupCategory.PERFORMANCE:
-        from sentry import options
-
-        if not (
-            options.get("performance.issues.send_to_issues_platform", True)
-            and group.project.get_option("sentry:performance_issue_send_to_issues_platform", True)
-        ):
-            apply_performance_conditions(conditions, group)
-            _filter = eventstore.Filter(
-                conditions=conditions,
-                project_ids=[group.project_id],
-            )
-            dataset = Dataset.Transactions
-        else:
-            _filter = eventstore.Filter(
-                conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]
-            )
-            dataset = Dataset.IssuePlatform
+    if group.issue_category == GroupCategory.PERFORMANCE and not features.has(
+        "organizations:issue-platform-search-perf-issues", group.project.organization
+    ):
+        apply_performance_conditions(conditions, group)
+        _filter = eventstore.Filter(
+            conditions=conditions,
+            project_ids=[group.project_id],
+        )
+        dataset = Dataset.Transactions
     else:
         if group.issue_category == GroupCategory.ERROR:
             dataset = Dataset.Events
@@ -446,6 +438,8 @@ class Group(Model):
             (GroupSubStatus.UNTIL_ESCALATING, _("Until escalating")),
             (GroupSubStatus.ONGOING, _("Ongoing")),
             (GroupSubStatus.ESCALATING, _("Escalating")),
+            (GroupSubStatus.UNTIL_CONDITION_MET, _("Until condition met")),
+            (GroupSubStatus.FOREVER, _("Forever")),
         ),
     )
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)

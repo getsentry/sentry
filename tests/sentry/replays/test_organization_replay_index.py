@@ -385,6 +385,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Smallest duration first.
             response = self.client.get(self.url + "?sort=duration")
+            assert response.status_code == 200, response
             response_data = response.json()
             assert response_data["data"][0]["id"] == replay1_id
             assert response_data["data"][1]["id"] == replay2_id
@@ -475,6 +476,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_model="10",
                 tags={"a": "m", "b": "q", "c": "test"},
                 urls=["example.com"],
+                segment_id=0,
             )
         )
         self.store_replays(
@@ -496,6 +498,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_model=None,
                 tags={"a": "n", "b": "o"},
                 error_ids=[],
+                segment_id=1,
             )
         )
 
@@ -550,7 +553,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 # Tag filters.
                 "tags[a]:m",
                 "a:m",
-                "a:[n,o]",
                 "c:*st",
                 "!c:*zz",
                 "urls:example.com",
@@ -638,6 +640,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_brand="b",
                 device_family="b",
                 device_model="b",
+                segment_id=0,
             )
         )
         self.store_replays(
@@ -661,6 +664,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_brand="b",
                 device_family="b",
                 device_model="b",
+                segment_id=1,
             )
         )
 
@@ -689,6 +693,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_brand="a",
                 device_family="a",
                 device_model="a",
+                segment_id=0,
             )
         )
         self.store_replays(
@@ -712,6 +717,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_brand="a",
                 device_family="a",
                 device_model="a",
+                segment_id=1,
             )
         )
 
@@ -912,6 +918,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.selector:div[alt=Alt]",
                 "click.selector:div[title=MyTitle]",
                 "click.selector:div[data-testid='1']",
+                "click.selector:div[data-test-id='1']",
                 "click.selector:div[role=button]",
                 "click.selector:div#myid.class1.class2",
                 # Single quotes around attribute value.

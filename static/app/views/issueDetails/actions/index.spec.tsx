@@ -13,6 +13,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {IssueCategory} from 'sentry/types';
+import * as analytics from 'sentry/utils/analytics';
 import GroupActions from 'sentry/views/issueDetails/actions';
 
 const project = TestStubs.ProjectDetails({
@@ -36,10 +37,15 @@ const organization = TestStubs.Organization({
 });
 
 describe('GroupActions', function () {
+  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+
   beforeEach(function () {
     ConfigStore.init();
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => []);
+  });
+  afterEach(function () {
     MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
   describe('render()', function () {
@@ -269,6 +275,12 @@ describe('GroupActions', function () {
       `/projects/${organization.slug}/project/issues/`,
       expect.objectContaining({data: {status: 'resolved', statusDetails: {}}})
     );
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'issue_details.action_clicked',
+      expect.objectContaining({
+        action_type: 'resolved',
+      })
+    );
 
     rerender(
       <GroupActions
@@ -284,6 +296,41 @@ describe('GroupActions', function () {
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,
       expect.objectContaining({data: {status: 'unresolved', statusDetails: {}}})
+    );
+  });
+
+  it('can archive issue', async () => {
+    const org = {...organization, features: ['escalating-issues-ui']};
+    const issuesApi = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project/issues/`,
+      method: 'PUT',
+      body: {...group, status: 'resolved'},
+    });
+
+    render(
+      <GroupActions
+        group={group}
+        project={project}
+        organization={org}
+        disabled={false}
+      />,
+      {organization: org}
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));
+
+    expect(issuesApi).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {status: 'ignored', statusDetails: {}, substatus: 'until_escalating'},
+      })
+    );
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'issue_details.action_clicked',
+      expect.objectContaining({
+        action_substatus: 'until_escalating',
+        action_type: 'ignored',
+      })
     );
   });
 });

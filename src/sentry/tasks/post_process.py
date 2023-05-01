@@ -655,16 +655,27 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
+    from sentry.issues.escalating import is_escalating
     from sentry.models import (
         Activity,
         GroupInboxReason,
         GroupSnooze,
         GroupStatus,
+        GroupSubStatus,
         add_group_to_inbox,
     )
     from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 
     group = job["event"].group
+
+    # Check is group is escalating
+    if (
+        features.has("organizations:escalating-issues", group.organization)
+        and group.status == GroupStatus.IGNORED
+        and group.substatus == GroupSubStatus.UNTIL_ESCALATING
+    ):
+        job["has_reappeared"] = is_escalating(group)
+        return
 
     with metrics.timer("post_process.process_snoozes.duration"):
         key = GroupSnooze.get_cache_key(group.id)
@@ -699,7 +710,9 @@ def process_snoozes(job: PostProcessJob) -> None:
             )
 
             snooze.delete()
-            group.update(status=GroupStatus.UNRESOLVED)
+            group.status = GroupStatus.UNRESOLVED
+            group.substatus = GroupSubStatus.ONGOING
+            group.save(update_fields=["status", "substatus"])
             issue_unignored.send_robust(
                 project=group.project,
                 user_id=None,

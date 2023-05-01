@@ -1,11 +1,50 @@
-export const MODULE_DURATION_QUERY = `SELECT
- toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
- module,
- quantile(0.75)(exclusive_time) as p75
+export const MODULE_BREAKDOWN = `SELECT
+ sum(exclusive_time) as sum, module
  FROM spans_experimental_starfish
- WHERE module in ['http', 'db', 'cache']
- GROUP BY interval, module
- ORDER BY interval asc
+ WHERE module != 'none'
+ GROUP BY module
+ ORDER BY -sum
+`;
+
+export const TOP_DOMAINS = `SELECT
+ quantile(0.75)(exclusive_time) as p75, domain,
+ toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+ FROM default.spans_experimental_starfish
+ WHERE domain IN (
+  SELECT domain
+   FROM spans_experimental_starfish
+   WHERE startsWith(span_operation, 'http')
+   GROUP BY domain
+   ORDER BY -sum(exclusive_time)
+   LIMIT 2
+ ) AND startsWith(span_operation, 'http')
+ GROUP BY interval, domain
+ ORDER BY interval, domain
+ `;
+
+export const OTHER_DOMAINS = `SELECT
+ quantile(0.75)(exclusive_time) as p75,
+ toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+ FROM default.spans_experimental_starfish
+ WHERE domain NOT IN (
+  SELECT domain
+   FROM spans_experimental_starfish
+   WHERE startsWith(span_operation, 'http')
+   GROUP BY domain
+   ORDER BY -sum(exclusive_time)
+   LIMIT 2
+ ) AND startsWith(span_operation, 'http')
+ GROUP BY interval
+ ORDER BY interval
+ `;
+
+export const DB_TIME_SPENT = `SELECT
+ quantile(0.75)(exclusive_time) as p75,
+ toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+ FROM default.spans_experimental_starfish
+ WHERE startsWith(span_operation, 'db') and span_operation != 'db.redis'
+ GROUP BY interval
+ ORDER BY interval
  `;
 
 export const FAILURE_RATE_QUERY = `SELECT

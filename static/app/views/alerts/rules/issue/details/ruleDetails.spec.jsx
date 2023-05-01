@@ -19,17 +19,15 @@ describe('AlertRuleDetails', () => {
   });
   const member = TestStubs.Member();
 
-  const createWrapper = (props = {}, contextWithQueryParam) => {
+  const createWrapper = (props = {}, newContext, org = organization) => {
     const params = {
-      orgId: organization.slug,
+      orgId: org.slug,
       projectId: project.slug,
       ruleId: rule.id,
     };
 
-    const router = contextWithQueryParam ? contextWithQueryParam.router : context.router;
-    const routerContext = contextWithQueryParam
-      ? contextWithQueryParam.routerContext
-      : context.routerContext;
+    const router = newContext ? newContext.router : context.router;
+    const routerContext = newContext ? newContext.routerContext : context.routerContext;
 
     return render(
       <RuleDetailsContainer params={params} location={{query: {}}} router={router}>
@@ -40,7 +38,7 @@ describe('AlertRuleDetails', () => {
           {...props}
         />
       </RuleDetailsContainer>,
-      {context: routerContext, organization}
+      {context: routerContext, organization: org}
     );
   };
 
@@ -231,6 +229,21 @@ describe('AlertRuleDetails', () => {
 
     expect(await screen.findByText('Unmute')).toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('mute button is disabled if no alerts:write permission', async () => {
+    const orgWithoutAccess = {
+      features: ['issue-alert-incompatible-rules', 'mute-alerts'],
+      access: [],
+    };
+
+    const contextWithoutAccess = initializeOrg({
+      organization: orgWithoutAccess,
+    });
+
+    createWrapper({}, contextWithoutAccess, orgWithoutAccess);
+
+    expect(await screen.findByRole('button', {name: 'Mute'})).toBeDisabled();
   });
 
   it('inserts user email into rule notify action', async () => {
