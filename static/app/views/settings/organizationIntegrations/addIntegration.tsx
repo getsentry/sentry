@@ -2,7 +2,6 @@ import {Component} from 'react';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {IntegrationProvider, IntegrationWithConfig, Organization} from 'sentry/types';
