@@ -13,6 +13,7 @@ import {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {HostDetails} from 'sentry/views/starfish/modules/APIModule/hostDetails';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
@@ -214,6 +215,7 @@ export default function APIModuleView({location, onSelect}: Props) {
       </FilterOptionsContainer>
 
       <div ref={endpointTableRef}>
+        {state.domain && <HostDetails host={state.domain} />}
         <EndpointTable
           location={location}
           onSelect={onSelect}
