@@ -221,7 +221,7 @@ class GroupActivity extends Component<Props, State> {
                             <GroupActivityItem
                               author={<ActivityAuthor>{authorName}</ActivityAuthor>}
                               activity={item}
-                              orgSlug={organization.slug}
+                              organization={organization}
                               projectId={group.project.id}
                             />
                           }
