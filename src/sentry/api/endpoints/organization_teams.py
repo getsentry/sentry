@@ -4,10 +4,12 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 
 from sentry import audit_log, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer
@@ -47,7 +49,7 @@ class TeamPostSerializer(serializers.Serializer):
         },
     )
     idp_provisioned = serializers.BooleanField(required=False, default=False)
-    setTeamAdmin = serializers.BooleanField(required=False, default=False)
+    set_team_admin = serializers.BooleanField(required=False, default=False)
 
     def validate(self, attrs):
         if not (attrs.get("name") or attrs.get("slug")):
@@ -144,30 +146,28 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         :qparam string name: the optional name of the team.
         :qparam string slug: the optional slug for this team. If not provided it will be auto
                              generated from the name.
-        :qparam bool setTeamAdmin: If this is true, the user is added to the as a Team Admin
+        :qparam bool set_team_admin: If this is true, the user is added to the as a Team Admin
                                 instead of regular member
         :auth: required
         """
         serializer = TeamPostSerializer(data=request.data)
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            raise ValidationError(serializer.errors)
 
         result = serializer.validated_data
-        set_team_admin = result.get("setTeamAdmin")
+        set_team_admin = result.get("set_team_admin")
 
         if set_team_admin:
             if not features.has("organizations:team-roles", organization) or not features.has(
                 "organizations:team-project-creation-all", organization
             ):
-                return Response(
-                    {"detail": "You do not have permission to join a new team as a team admin"},
-                    status=status.HTTP_400_BAD_REQUEST,
+                raise ResourceDoesNotExist(
+                    detail="You do not have permission to join a new team as a team admin"
                 )
             if not self.should_add_creator_to_team(request):
-                return Response(
-                    {"detail": "You must be authenticated to join a new team as a Team Admin"},
-                    status=status.HTTP_401_UNAUTHORIZED,
+                raise ValidationError(
+                    {"detail": "You do not have permission to join a new team as a Team Admin"}
                 )
 
         # Wrap team creation and member addition in same transaction
