@@ -9,6 +9,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.monitors.consumers.check_in import StoreMonitorCheckInStrategyFactory, _process_message
 from sentry.monitors.models import (
     CheckInStatus,
@@ -94,11 +95,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.message_guid)
         assert checkin.status == CheckInStatus.OK
 
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.OK
-        assert monitor.last_checkin == checkin.date_added
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
-
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
@@ -114,11 +110,6 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
-
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.OK
-        assert monitor.last_checkin == checkin.date_added
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
@@ -136,11 +127,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.ERROR
 
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.ERROR
-        assert monitor.last_checkin == checkin.date_added
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
-
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
@@ -150,17 +136,12 @@ class MonitorConsumerTest(TestCase):
 
     @pytest.mark.django_db
     def test_disabled(self):
-        monitor = self._create_monitor(status=MonitorStatus.DISABLED)
+        monitor = self._create_monitor(status=ObjectStatus.DISABLED)
         message = self.get_message(monitor.slug, status="error")
         _process_message(message)
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.ERROR
-
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.DISABLED
-        assert monitor.last_checkin == checkin.date_added
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.DISABLED
@@ -188,11 +169,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.OK
-        assert monitor.last_checkin == checkin.date_added
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
-
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.environment.name == "jungle"
@@ -212,10 +188,15 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        monitor = Monitor.objects.get(slug="my-new-monitor")
-        assert monitor.status == MonitorStatus.OK
-        assert monitor.last_checkin == checkin.date_added
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        assert monitor_environment.monitor.name == "my-new-monitor"
+        assert monitor_environment.environment.name == "production"
+        assert monitor_environment.last_checkin == checkin.date_added
+        assert (
+            monitor_environment.next_checkin
+            == monitor_environment.monitor.get_next_scheduled_checkin(checkin.date_added)
+        )
 
     @pytest.mark.django_db
     def test_monitor_update(self):
@@ -231,9 +212,14 @@ class MonitorConsumerTest(TestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["schedule"] == "13 * * * *"
-        assert monitor.status == MonitorStatus.OK
-        assert monitor.last_checkin == checkin.date_added
-        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
+
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        assert monitor_environment.last_checkin == checkin.date_added
+        assert (
+            monitor_environment.next_checkin
+            == monitor_environment.monitor.get_next_scheduled_checkin(checkin.date_added)
+        )
 
     def test_rate_limit(self):
         monitor = self._create_monitor(slug="my-monitor")

@@ -58,12 +58,15 @@ def process_user_ip_event(payload: Any, **kwds: Any):
 def process_organization_member_updates(
     object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
 ):
-    if (org_member := maybe_process_tombstone(OrganizationMember, object_identifier)) is None:
+    if (org_member := OrganizationMember.objects.filter(id=object_identifier).last()) is None:
         # Delete all identities that may have been associated.  This is an implicit cascade.
         if payload and "user_id" in payload:
             identity_service.delete_identities(
                 user_id=payload["user_id"], organization_id=shard_identifier
             )
+        organizationmember_mapping_service.delete_with_organization_member(
+            organizationmember_id=object_identifier, organization_id=shard_identifier
+        )
         return
 
     organizationmember_mapping_service.create_with_organization_member(org_member=org_member)
@@ -79,6 +82,7 @@ def process_team_updates(
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_UPDATE)
 def process_organization_updates(object_identifier: int, **kwds: Any):
     if (org := maybe_process_tombstone(Organization, object_identifier)) is None:
+        organization_mapping_service.delete(organization_id=object_identifier)
         return
 
     update = update_organization_mapping_from_instance(org)

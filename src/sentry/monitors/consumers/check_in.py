@@ -11,6 +11,7 @@ from arroyo.types import Commit, Message, Partition
 from django.db import transaction
 
 from sentry import ratelimits
+from sentry.constants import ObjectStatus
 from sentry.models import Project
 from sentry.monitors.models import (
     CheckInStatus,
@@ -65,7 +66,7 @@ def _ensure_monitor_with_config(
             defaults={
                 "project_id": project.id,
                 "name": monitor_slug,
-                "status": MonitorStatus.ACTIVE,
+                "status": ObjectStatus.ACTIVE,
                 "type": MonitorType.CRON_JOB,
                 "config": validated_config,
             },
@@ -161,10 +162,8 @@ def _process_message(wrapper: Dict) -> None:
                 signal_first_checkin(project, monitor)
 
             if check_in.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
-                monitor.mark_failed(start_time)
                 monitor_environment.mark_failed(start_time)
             else:
-                monitor.mark_ok(check_in, start_time)
                 monitor_environment.mark_ok(check_in, start_time)
 
             metrics.incr(

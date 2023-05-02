@@ -56,6 +56,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
         if start is None or end is None:
             raise ParseError(detail="Invalid date range")
 
+        # TODO(rjo100): switch this to query monitor environment when hack is removed
         queryset = MonitorCheckIn.objects.filter(
             monitor_id=monitor.id, date_added__gte=start, date_added__lte=end
         )

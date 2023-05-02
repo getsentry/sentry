@@ -235,7 +235,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def remove_for_user(self, user: User, type: NotificationSettingTypes | None = None) -> None:
         """Bulk delete all Notification Settings for a USER, optionally by type."""
-        self._filter(target_ids=[user.actor_id], type=type).delete()
+        self._filter(target_ids=[get_actor_id_for_user(user)], type=type).delete()
 
     def remove_for_team(
         self,
@@ -405,8 +405,15 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             if value == NotificationSettingOptionValues.DEFAULT:
                 self._filter(provider, type, scope_type, scope_identifier, [target_id]).delete()
             else:
+                id_key = "user_id" if actor.actor_type == ActorType.USER else "team_id"
                 self._update_settings(
-                    provider, type, value, scope_type, scope_identifier, target_id
+                    provider,
+                    type,
+                    value,
+                    scope_type,
+                    scope_identifier,
+                    target_id,
+                    **{id_key: actor.id},
                 )
         analytics.record(
             "notifications.settings_updated",

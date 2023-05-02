@@ -45,6 +45,7 @@ type Props = {
   hasContextSource?: boolean;
   hasContextVars?: boolean;
   isExpanded?: boolean;
+  isFirst?: boolean;
   organization?: Organization;
   registersMeta?: Record<any, any>;
 };
@@ -148,6 +149,7 @@ function Context({
       start={startLineNo}
       startLineNo={startLineNo}
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
+      data-test-id="frame-context"
     >
       {defined(frame.errors) && (
         <li className={expandable ? 'expandable error' : 'error'} key="errors">

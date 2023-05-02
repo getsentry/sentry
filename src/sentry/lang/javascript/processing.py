@@ -9,6 +9,7 @@ from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import EventError
 from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.utils.http import get_origins
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -110,6 +111,8 @@ def map_symbolicator_process_js_errors(errors):
             mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
         elif ty == "missing_sourcemap" and not should_skip_missing_source_error(abs_path):
             mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
+        elif ty == "scraping_disabled":
+            mapped_errors.append({"type": EventError.JS_SCRAPING_DISABLED, "url": abs_path})
         elif ty == "malformed_sourcemap":
             mapped_errors.append({"type": EventError.JS_INVALID_SOURCEMAP, "url": error["url"]})
         elif ty == "missing_source_content":
@@ -133,18 +136,45 @@ def map_symbolicator_process_js_errors(errors):
     return mapped_errors
 
 
+def _handles_frame(frame):
+    if not frame:
+        return False
+
+    return frame.get("abs_path") is not None
+
+
 def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     project = symbolicator.project
     allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
     allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
     allow_scraping = allow_scraping_org_level and allow_scraping_project_level
 
+    allowed_origins = []
+    scraping_headers = {}
+    if allow_scraping:
+        allowed_origins = list(get_origins(project))
+
+        token = project.get_option("sentry:token")
+        if token:
+            token_header = project.get_option("sentry:token_header") or "X-Sentry-Token"
+            scraping_headers[token_header] = token
+
+    scraping_config = {
+        "enabled": allow_scraping,
+        "headers": scraping_headers,
+        "allowed_origins": allowed_origins,
+    }
+
     modules = sourcemap_images_from_data(data)
 
     stacktrace_infos = find_stacktraces_in_data(data)
     stacktraces = [
         {
-            "frames": [dict(frame) for frame in sinfo.stacktrace.get("frames") or ()],
+            "frames": [
+                dict(frame)
+                for frame in sinfo.stacktrace.get("frames") or ()
+                if _handles_frame(frame)
+            ],
         }
         for sinfo in stacktrace_infos
     ]
@@ -157,7 +187,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         modules=modules,
         release=data.get("release"),
         dist=data.get("dist"),
-        allow_scraping=allow_scraping,
+        scraping_config=scraping_config,
     )
 
     if not _handle_response_status(data, response):
@@ -175,14 +205,19 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     for sinfo, raw_stacktrace, complete_stacktrace in zip(
         stacktrace_infos, response["raw_stacktraces"], response["stacktraces"]
     ):
+        processed_frame_idx = 0
         new_frames = []
         new_raw_frames = []
+        for sinfo_frame in sinfo.stacktrace["frames"]:
+            if not _handles_frame(sinfo_frame):
+                new_raw_frames.append(sinfo_frame)
+                new_frames.append(sinfo_frame)
+                continue
 
-        for sinfo_frame, raw_frame, complete_frame in zip(
-            sinfo.stacktrace["frames"],
-            raw_stacktrace["frames"],
-            complete_stacktrace["frames"],
-        ):
+            raw_frame = raw_stacktrace["frames"][processed_frame_idx]
+            complete_frame = complete_stacktrace["frames"][processed_frame_idx]
+            processed_frame_idx += 1
+
             merged_context_frame = _merge_frame_context(sinfo_frame, raw_frame)
             new_raw_frames.append(merged_context_frame)
 

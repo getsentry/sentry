@@ -73,7 +73,7 @@ export function TransactionProfileIdProvider({
     }
   }, [status, error]);
 
-  const profileId = (data?.[0].data[0]?.[profileIdColumn] as string | undefined) ?? null;
+  const profileId = (data?.data[0]?.[profileIdColumn] as string | undefined) ?? null;
 
   return (
     <TransactionProfileContext.Provider value={profileId}>

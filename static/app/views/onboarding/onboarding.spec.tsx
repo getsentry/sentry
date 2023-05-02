@@ -6,11 +6,12 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {OnboardingProjectStatus, Project} from 'sentry/types';
 import Onboarding from 'sentry/views/onboarding/onboarding';
-import * as usePersistedOnboardingStateHook from 'sentry/views/onboarding/utils';
 
 describe('Onboarding', function () {
   afterEach(function () {
@@ -30,7 +31,7 @@ describe('Onboarding', function () {
     });
 
     render(
-      <PersistedStoreProvider>
+      <OnboardingContextProvider>
         <Onboarding
           router={router}
           location={router.location}
@@ -39,7 +40,7 @@ describe('Onboarding', function () {
           routeParams={router.params}
           route={route}
         />
-      </PersistedStoreProvider>,
+      </OnboardingContextProvider>,
       {
         context: routerContext,
       }
@@ -49,7 +50,7 @@ describe('Onboarding', function () {
     expect(screen.getByLabelText('Invite Team')).toBeInTheDocument();
   });
 
-  it('renders the select platform step', async () => {
+  it('renders the select platform step', async function () {
     const routeParams = {
       step: 'select-platform',
     };
@@ -61,15 +62,10 @@ describe('Onboarding', function () {
       },
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/client-state/`,
-      body: {},
-    });
-
     OrganizationStore.onUpdate(organization);
 
     render(
-      <PersistedStoreProvider>
+      <OnboardingContextProvider>
         <Onboarding
           router={router}
           location={router.location}
@@ -78,31 +74,23 @@ describe('Onboarding', function () {
           routeParams={router.params}
           route={route}
         />
-      </PersistedStoreProvider>,
+      </OnboardingContextProvider>,
       {
         context: routerContext,
       }
     );
 
     expect(
-      await screen.findByText('Select the platforms you want to monitor')
+      await screen.findByText('Select the platform you want to monitor')
     ).toBeInTheDocument();
   });
 
-  it('renders the setup docs step', async () => {
-    const projects = [
-      TestStubs.Project({
-        platform: 'javascript-react',
-        id: '4',
-        slug: 'javascript-reactslug',
-      }),
-      TestStubs.Project({platform: 'ruby', id: '5', slug: 'ruby-slug'}),
-      TestStubs.Project({
-        platform: 'javascript-nextjs',
-        id: '6',
-        slug: 'javascript-nextslug',
-      }),
-    ];
+  it('renders the setup docs step', async function () {
+    const nextJsProject: Project = TestStubs.Project({
+      platform: 'javascript-nextjs',
+      id: '2',
+      slug: 'javascript-nextjs-slug',
+    });
 
     const routeParams = {
       step: 'setup-docs',
@@ -116,55 +104,42 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/client-state/`,
-      body: {
-        onboarding: {
-          platformToProjectIdMap: {
-            'javascript-react': projects[0].slug,
-            ruby: projects[1].slug,
-            'javascript-nextjs': projects[2].slug,
-          },
-          selectedPlatforms: [
-            {key: 'ruby', type: 'language', language: 'ruby', category: 'server'},
-            {
-              key: 'javascript-nextjs',
-              type: 'framework',
-              language: 'javascript',
-              category: 'browser',
-            },
-          ],
-        },
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/ruby-slug/`,
-      body: {
-        firstEvent: false,
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/javascript-nextslug/docs/javascript-nextjs/`,
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/docs/javascript-nextjs-with-error-monitoring/`,
       body: null,
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/ruby-slug/docs/ruby/`,
-      body: null,
+      url: `/projects/org-slug/${nextJsProject.slug}/`,
+      body: [nextJsProject],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/ruby-slug/issues/`,
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/issues/`,
       body: [],
     });
 
-    ProjectsStore.loadInitialData(projects);
+    ProjectsStore.loadInitialData([nextJsProject]);
 
     OrganizationStore.onUpdate(organization);
 
     render(
-      <PersistedStoreProvider>
+      <OnboardingContextProvider
+        value={{
+          selectedSDK: {
+            key: nextJsProject.slug as PlatformKey,
+            type: 'framework',
+            language: 'javascript',
+            category: 'browser',
+          },
+          projects: {
+            [nextJsProject.id]: {
+              slug: nextJsProject.slug,
+              status: OnboardingProjectStatus.WAITING,
+              firstIssueId: undefined,
+            },
+          },
+        }}
+      >
         <Onboarding
           router={router}
           location={router.location}
@@ -173,35 +148,16 @@ describe('Onboarding', function () {
           routeParams={router.params}
           route={route}
         />
-      </PersistedStoreProvider>,
+      </OnboardingContextProvider>,
       {
         context: routerContext,
       }
     );
 
-    expect(await screen.findAllByTestId('sidebar-error-indicator')).toHaveLength(2);
+    expect(await screen.findByText('Configure Next.js SDK')).toBeInTheDocument();
   });
 
   it('renders framework selection modal if vanilla js is selected', async function () {
-    jest
-      .spyOn(usePersistedOnboardingStateHook, 'usePersistedOnboardingState')
-      .mockImplementation(() => [
-        {
-          platformToProjectIdMap: {
-            javascript: 'javascript',
-          },
-          selectedPlatforms: [
-            {
-              key: 'javascript',
-              type: 'language',
-              language: 'javascript',
-              category: 'browser',
-            },
-          ],
-        },
-        jest.fn(),
-      ]);
-
     const routeParams = {
       step: 'select-platform',
     };
@@ -210,34 +166,15 @@ describe('Onboarding', function () {
       ...initializeOrg(),
       organization: {
         ...initializeOrg().organization,
-        features: ['onboarding-remove-multiselect-platform', 'onboarding-sdk-selection'],
+        features: ['onboarding-sdk-selection'],
       },
       router: {
         params: routeParams,
       },
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/client-state/`,
-      body: {
-        onboarding: {
-          platformToProjectIdMap: {
-            javascript: 'javascript',
-          },
-          selectedPlatforms: [
-            {
-              key: 'javascript',
-              type: 'language',
-              language: 'javascript',
-              category: 'browser',
-            },
-          ],
-        },
-      },
-    });
-
     render(
-      <PersistedStoreProvider>
+      <OnboardingContextProvider>
         <Onboarding
           router={router}
           location={router.location}
@@ -246,7 +183,7 @@ describe('Onboarding', function () {
           routeParams={router.params}
           route={route}
         />
-      </PersistedStoreProvider>,
+      </OnboardingContextProvider>,
       {
         context: routerContext,
         organization,
@@ -269,25 +206,6 @@ describe('Onboarding', function () {
   });
 
   it('does not render framework selection modal if vanilla js is NOT selected', async function () {
-    jest
-      .spyOn(usePersistedOnboardingStateHook, 'usePersistedOnboardingState')
-      .mockImplementation(() => [
-        {
-          platformToProjectIdMap: {
-            'javascript-react': 'javascript-react',
-          },
-          selectedPlatforms: [
-            {
-              key: 'javascript-react',
-              type: 'framework',
-              language: 'javascript',
-              category: 'browser',
-            },
-          ],
-        },
-        jest.fn(),
-      ]);
-
     const routeParams = {
       step: 'select-platform',
     };
@@ -296,34 +214,15 @@ describe('Onboarding', function () {
       ...initializeOrg(),
       organization: {
         ...initializeOrg().organization,
-        features: ['onboarding-remove-multiselect-platform', 'onboarding-sdk-selection'],
+        features: ['onboarding-sdk-selection'],
       },
       router: {
         params: routeParams,
       },
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/client-state/`,
-      body: {
-        onboarding: {
-          platformToProjectIdMap: {
-            'javascript-react': 'javascript-react',
-          },
-          selectedPlatforms: [
-            {
-              key: 'javascript-react',
-              type: 'framework',
-              language: 'javascript',
-              category: 'browser',
-            },
-          ],
-        },
-      },
-    });
-
     render(
-      <PersistedStoreProvider>
+      <OnboardingContextProvider>
         <Onboarding
           router={router}
           location={router.location}
@@ -332,7 +231,7 @@ describe('Onboarding', function () {
           routeParams={router.params}
           route={route}
         />
-      </PersistedStoreProvider>,
+      </OnboardingContextProvider>,
       {
         context: routerContext,
         organization,

@@ -6,6 +6,7 @@ from freezegun import freeze_time
 from sentry.api.endpoints.integrations.sentry_apps.requests import INVALID_DATE_FORMAT_MESSAGE
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
@@ -34,6 +35,7 @@ class SentryAppRequestsTest(APITestCase):
         )
 
 
+@region_silo_test(stable=True)
 class GetSentryAppRequestsTest(SentryAppRequestsTest):
     def test_superuser_sees_unowned_published_requests(self):
         self.login_as(user=self.superuser, superuser=True)

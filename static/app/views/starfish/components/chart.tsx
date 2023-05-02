@@ -1,10 +1,16 @@
 import {useTheme} from '@emotion/react';
+import {LineSeriesOption} from 'echarts';
+import {YAXisOption} from 'echarts/types/dist/shared';
 import max from 'lodash/max';
 import min from 'lodash/min';
 
 import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
+import {BarChart} from 'sentry/components/charts/barChart';
+import BaseChart from 'sentry/components/charts/baseChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import LineSeries from 'sentry/components/charts/series/lineSeries';
+import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import {DateString} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {
@@ -24,16 +30,18 @@ type Props = {
   utc: boolean;
   chartColors?: string[];
   definedAxisTicks?: number;
-  disableMultiAxis?: boolean;
   disableXAxis?: boolean;
   grid?: AreaChartProps['grid'];
   height?: number;
   hideYAxisSplitLine?: boolean;
+  isBarChart?: boolean;
   isLineChart?: boolean;
   log?: boolean;
   previousData?: Series[];
+  scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
+  throughput?: {count: number; interval: string}[];
 };
 
 function computeMax(data: Series[]) {
@@ -86,15 +94,17 @@ function Chart({
   loading,
   height,
   grid,
-  disableMultiAxis,
   disableXAxis,
   definedAxisTicks,
   chartColors,
+  isBarChart,
   isLineChart,
   stacked,
   log,
   hideYAxisSplitLine,
   showLegend,
+  scatterPlot,
+  throughput,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -112,116 +122,75 @@ function Chart({
     value => aggregateOutputType(value.seriesName) === 'percentage'
   );
 
-  const dataMax = durationOnly
-    ? computeAxisMax(data)
+  let dataMax = durationOnly
+    ? computeAxisMax([...data, ...(scatterPlot ?? [])])
     : percentOnly
     ? computeMax(data)
     : undefined;
-
-  const xAxes = disableMultiAxis
-    ? undefined
-    : [
-        {
-          gridIndex: 0,
-          type: 'time' as const,
-        },
-        {
-          gridIndex: 1,
-          type: 'time' as const,
-        },
-      ];
+  // Fix an issue where max == 1 for duration charts would look funky cause we round
+  if (dataMax === 1 && durationOnly) {
+    dataMax += 1;
+  }
 
   const durationUnit = getDurationUnit(data);
 
-  const yAxes = disableMultiAxis
-    ? [
-        {
-          minInterval: durationUnit,
-          splitNumber: definedAxisTicks,
-          max: dataMax,
-          type: log ? 'log' : 'value',
-          axisLabel: {
-            color: theme.chartLabel,
-            formatter(value: number) {
-              return axisLabelFormatter(
-                value,
-                aggregateOutputType(data[0].seriesName),
-                undefined,
-                durationUnit
-              );
-            },
-          },
-          splitLine: hideYAxisSplitLine ? {show: false} : undefined,
-        },
-      ]
-    : [
-        {
-          gridIndex: 0,
-          scale: true,
-          minInterval: durationUnit,
-          max: dataMax,
-          axisLabel: {
-            color: theme.chartLabel,
-            formatter(value: number) {
-              return axisLabelFormatter(
-                value,
-                aggregateOutputType(data[0].seriesName),
-                undefined,
-                durationUnit
-              );
-            },
-          },
-          splitLine: hideYAxisSplitLine ? {show: false} : undefined,
-        },
-        {
-          gridIndex: 1,
-          scale: true,
-          max: dataMax,
-          minInterval: durationUnit,
-          axisLabel: {
-            color: theme.chartLabel,
-            formatter(value: number) {
-              return axisLabelFormatter(
-                value,
-                aggregateOutputType(data[1].seriesName),
-                undefined,
-                durationUnit
-              );
-            },
-          },
-          splitLine: hideYAxisSplitLine ? {show: false} : undefined,
-        },
-      ];
+  let transformedThroughput: LineSeriesOption[] | undefined = undefined;
+  const additionalAxis: YAXisOption[] = [];
 
-  const axisPointer = disableMultiAxis
-    ? undefined
-    : {
-        // Link the two series x-axis together.
-        link: [{xAxisIndex: [0, 1]}],
-      };
+  if (throughput && throughput.length > 1) {
+    transformedThroughput = [
+      LineSeries({
+        name: 'Throughput',
+        data: throughput.map(({interval, count}) => [interval, count]),
+        yAxisIndex: 1,
+        lineStyle: {type: 'dashed', width: 1, opacity: 0.5},
+        animation: false,
+        animationThreshold: 1,
+        animationDuration: 0,
+      }),
+    ];
+    additionalAxis.push({
+      minInterval: durationUnit,
+      splitNumber: definedAxisTicks,
+      max: dataMax,
+      type: 'value',
+      axisLabel: {
+        color: theme.chartLabel,
+        formatter(value: number) {
+          return axisLabelFormatter(value, 'number', true);
+        },
+      },
+      splitLine: hideYAxisSplitLine ? {show: false} : undefined,
+    });
+  }
+
+  const yAxes = [
+    {
+      minInterval: durationUnit,
+      splitNumber: definedAxisTicks,
+      max: dataMax,
+      type: log ? 'log' : 'value',
+      axisLabel: {
+        color: theme.chartLabel,
+        formatter(value: number) {
+          return axisLabelFormatter(
+            value,
+            aggregateOutputType(data[0].seriesName),
+            undefined,
+            durationUnit
+          );
+        },
+      },
+      splitLine: hideYAxisSplitLine ? {show: false} : undefined,
+    },
+    ...additionalAxis,
+  ];
 
   const areaChartProps = {
     seriesOptions: {
       showSymbol: false,
     },
-    grid: disableMultiAxis
-      ? grid
-      : [
-          {
-            top: '8px',
-            left: '24px',
-            right: '52%',
-            bottom: '16px',
-          },
-          {
-            top: '8px',
-            left: '52%',
-            right: '24px',
-            bottom: '16px',
-          },
-        ],
-    axisPointer,
-    xAxes,
+    grid,
     yAxes,
     utc,
     legend: showLegend
@@ -234,6 +203,11 @@ function Chart({
     showTimeInTooltip: true,
     colors,
     tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'cross',
+        label: {show: false},
+      },
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
           value,
@@ -249,6 +223,9 @@ function Chart({
   if (loading) {
     if (isLineChart) {
       return <LineChart height={height} series={[]} {...areaChartProps} />;
+    }
+    if (isBarChart) {
+      return <BarChart height={height} series={[]} {...areaChartProps} />;
     }
     return <AreaChart height={height} series={[]} {...areaChartProps} />;
   }
@@ -267,24 +244,53 @@ function Chart({
     : undefined;
 
   return (
-    <ChartZoom
-      router={router}
-      period={statsPeriod}
-      start={start}
-      end={end}
-      utc={utc}
-      xAxisIndex={disableMultiAxis ? undefined : [0, 1]}
-    >
+    <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
       {zoomRenderProps => {
         if (isLineChart) {
           return (
-            <LineChart
-              height={height}
+            <BaseChart
               {...zoomRenderProps}
-              series={series}
+              height={height}
               previousPeriod={previousData}
+              additionalSeries={transformedThroughput}
               xAxis={xAxis}
-              yAxis={areaChartProps.yAxes ? areaChartProps.yAxes[0] : []}
+              yAxes={areaChartProps.yAxes}
+              tooltip={areaChartProps.tooltip}
+              colors={colors}
+              grid={grid}
+              legend={showLegend ? {top: 0, right: 0} : undefined}
+              series={[
+                ...series.map(({seriesName, data: seriesData, ...options}) =>
+                  LineSeries({
+                    ...options,
+                    name: seriesName,
+                    data: seriesData?.map(({value, name}) => [name, value]),
+                    animation: false,
+                    animationThreshold: 1,
+                    animationDuration: 0,
+                  })
+                ),
+                ...(scatterPlot ?? []).map(({seriesName, data: seriesData, ...options}) =>
+                  ScatterSeries({
+                    ...options,
+                    name: seriesName,
+                    data: seriesData?.map(({value, name}) => [name, value]),
+                    animation: false,
+                  })
+                ),
+              ]}
+            />
+          );
+        }
+
+        if (isBarChart) {
+          return (
+            <BarChart
+              height={height}
+              series={series}
+              xAxis={xAxis}
+              additionalSeries={transformedThroughput}
+              yAxes={areaChartProps.yAxes}
               tooltip={areaChartProps.tooltip}
               colors={colors}
               grid={grid}
@@ -299,6 +305,7 @@ function Chart({
             {...zoomRenderProps}
             series={series}
             previousPeriod={previousData}
+            additionalSeries={transformedThroughput}
             xAxis={xAxis}
             stacked={stacked}
             {...areaChartProps}

@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.utils.http import urlquote
 from freezegun import freeze_time
 
+from sentry.constants import ObjectStatus
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -75,11 +76,6 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
             assert checkin.status == CheckInStatus.OK
 
-            monitor = Monitor.objects.get(id=monitor.id)
-            assert monitor.status == MonitorStatus.OK
-            assert monitor.last_checkin == checkin.date_added
-            assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
-
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.OK
             assert monitor_environment.last_checkin == checkin.date_added
@@ -109,11 +105,6 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
             assert checkin.status == CheckInStatus.ERROR
 
-            monitor = Monitor.objects.get(id=monitor.id)
-            assert monitor.status == MonitorStatus.ERROR
-            assert monitor.last_checkin == checkin.date_added
-            assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
-
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.ERROR
             assert monitor_environment.last_checkin == checkin.date_added
@@ -123,7 +114,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
     def test_disabled(self):
         for path_func in self._get_path_functions():
-            monitor = self._create_monitor(status=MonitorStatus.DISABLED)
+            monitor = self._create_monitor(status=ObjectStatus.DISABLED)
             path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"}, **self.token_auth_headers)
@@ -131,11 +122,6 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
             assert checkin.status == CheckInStatus.ERROR
-
-            monitor = Monitor.objects.get(id=monitor.id)
-            assert monitor.status == MonitorStatus.DISABLED
-            assert monitor.last_checkin == checkin.date_added
-            assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.DISABLED
@@ -145,7 +131,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             )
 
     def test_pending_deletion(self):
-        monitor = self._create_monitor(status=MonitorStatus.PENDING_DELETION)
+        monitor = self._create_monitor(status=ObjectStatus.PENDING_DELETION)
 
         for path_func in self._get_path_functions():
             path = path_func(monitor.guid)
@@ -154,7 +140,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             assert resp.status_code == 404
 
     def test_deletion_in_progress(self):
-        monitor = self._create_monitor(status=MonitorStatus.DELETION_IN_PROGRESS)
+        monitor = self._create_monitor(status=ObjectStatus.DELETION_IN_PROGRESS)
 
         for path_func in self._get_path_functions():
             path = path_func(monitor.guid)
