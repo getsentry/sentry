@@ -1634,7 +1634,6 @@ class DiscoverDatasetConfig(DatasetConfig):
                 general_group_filter_values.extend(general_groups)
                 perf_group_filter_values.extend(performance_groups)
 
-        # TODO (udameli): if both groups present, return data for both
         if general_group_filter_values:
             return self.builder.convert_search_filter_to_condition(
                 SearchFilter(
@@ -1648,7 +1647,6 @@ class DiscoverDatasetConfig(DatasetConfig):
                 )
             )
 
-        # TODO (udameli): handle the has:issue case for transactions
         if performance_groups:
             return self.builder.convert_search_filter_to_condition(
                 SearchFilter(
