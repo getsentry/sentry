@@ -167,9 +167,9 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(data={"account": self.integration.id})
 
         service_options = rule.get_services()
-        assert [(s.id, s.service_name) for s in service_options] == [
-            (new_service.id, new_service.service_name)
-        ]
+        assert service_options == [(new_service.id, new_service.service_name)]
+        assert "choice" == rule.form_fields["service"]["type"]
+        assert service_options == rule.form_fields["service"]["choices"]
 
     @responses.activate
     def test_valid_service_selected(self):

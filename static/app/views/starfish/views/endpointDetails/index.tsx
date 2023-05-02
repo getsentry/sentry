@@ -283,7 +283,6 @@ function APIDetailChart(props: {
       end=""
       loading={props.isLoading}
       utc={false}
-      disableMultiAxis
       stacked
       isLineChart
       disableXAxis
