@@ -1,4 +1,3 @@
-import {ForwardedRef, forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -10,15 +9,9 @@ type SlideOverPanelProps = {
   collapsed: boolean;
 };
 
-export default forwardRef(SlideOverPanel);
-
-function SlideOverPanel(
-  {collapsed, children}: SlideOverPanelProps,
-  ref: ForwardedRef<HTMLDivElement>
-) {
+export default function SlideOverPanel({collapsed, children}: SlideOverPanelProps) {
   return (
     <_SlideOverPanel
-      ref={ref}
       collapsed={collapsed}
       initial={{opacity: 0, x: PANEL_WIDTH}}
       animate={!collapsed ? {opacity: 1, x: 0} : {opacity: 0, x: PANEL_WIDTH}}
