@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from django.utils.functional import cached_property
 from rest_framework.response import Response
+from sentry_sdk.tracing import Span
 
 from sentry.utils import metrics
 
@@ -38,10 +38,14 @@ class TrackResponseMixin:
     def track_response_data(
         self,
         code: str | int,
-        span: Any,
+        span: Span | None = None,
         error: Exception | None = None,
         resp: Response | None = None,
     ) -> None:
+        # if no span was passed, create a dummy to which to add data to avoid having to wrap every
+        # span call in `if span`
+        span = span or Span()
+
         metrics.incr(
             f"{self.metrics_prefix}.http_response",
             sample_rate=1.0,
@@ -51,7 +55,7 @@ class TrackResponseMixin:
         try:
             span.set_http_status(int(code))
         except ValueError:
-            span.set_status(code)
+            span.set_status(str(code))
 
         span.set_tag(self.integration_type, self.name)
 

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from typing import Any, Mapping, Optional, Union
 
 from requests import PreparedRequest, Response
-from sentry_sdk.tracing import Transaction
+from sentry_sdk.tracing import Span
 
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.integration import Integration
@@ -47,10 +49,14 @@ class SlackClient(IntegrationProxyClient):
     def track_response_data(
         self,
         code: Union[str, int],
-        span: Transaction,
+        span: Span | None = None,
         error: Optional[str] = None,
         resp: Optional[Response] = None,
     ) -> None:
+        # if no span was passed, create a dummy to which to add data to avoid having to wrap every
+        # span call in `if span`
+        span = span or Span()
+
         try:
             span.set_http_status(int(code))
         except ValueError:
