@@ -1,8 +1,8 @@
-import {CSSProperties, forwardRef, MouseEvent} from 'react';
+import {CSSProperties, forwardRef, MouseEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 
 import FileSize from 'sentry/components/fileSize';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
@@ -16,11 +16,12 @@ const EMPTY_CELL = '\u00A0';
 
 type Props = {
   columnIndex: number;
-  handleClick: (span: NetworkSpan) => void;
+  currentHoverTime: number | undefined;
+  currentTime: number;
   handleMouseEnter: (span: NetworkSpan) => void;
   handleMouseLeave: (span: NetworkSpan) => void;
-  isCurrent: boolean;
-  isHovered: boolean;
+  onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
+  onClickTimestamp: (crumb: NetworkSpan) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortNetwork>['sortConfig'];
   span: NetworkSpan;
@@ -28,15 +29,25 @@ type Props = {
   style: CSSProperties;
 };
 
+type CellProps = {
+  hasOccurred: boolean | undefined;
+  isDetailsOpen: boolean;
+  isStatusError: boolean;
+  className?: string;
+  numeric?: boolean;
+  onClick?: undefined | (() => void);
+};
+
 const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
   (
     {
       columnIndex,
-      handleClick,
+      currentHoverTime,
+      currentTime,
       handleMouseEnter,
       handleMouseLeave,
-      isCurrent,
-      isHovered,
+      onClickCell,
+      onClickTimestamp,
       rowIndex,
       sortConfig,
       span,
@@ -46,32 +57,58 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     ref
   ) => {
     // Rows include the sortable header, the dataIndex does not
-    const dataIndex = String(rowIndex - 1);
+    const dataIndex = rowIndex - 1;
 
-    const {currentTime} = useReplayContext();
-    const {getParamValue, setParamValue} = useUrlParams('n_detail_row', '');
-    const isDetailsOpen = getParamValue() === dataIndex;
+    const {getParamValue} = useUrlParams('n_detail_row', '');
+    const isDetailsOpen = getParamValue() === String(dataIndex);
 
     const startMs = span.startTimestamp * 1000;
     const endMs = span.endTimestamp * 1000;
     const statusCode = span.data.statusCode;
 
+    const spanTime = useMemo(
+      () => relativeTimeInMs(span.startTimestamp * 1000, startTimestampMs),
+      [span.startTimestamp, startTimestampMs]
+    );
+    const hasOccurred = currentTime >= spanTime;
+    const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= spanTime;
+
     const isByTimestamp = sortConfig.by === 'startTimestamp';
+    const isAsc = isByTimestamp ? sortConfig.asc : undefined;
     const columnProps = {
-      hasOccurred: isByTimestamp
-        ? currentTime >= relativeTimeInMs(span.startTimestamp * 1000, startTimestampMs)
-        : undefined,
-      hasOccurredAsc: isByTimestamp ? sortConfig.asc : undefined,
-      isCurrent,
+      className: classNames({
+        beforeCurrentTime: isByTimestamp
+          ? isAsc
+            ? hasOccurred
+            : !hasOccurred
+          : undefined,
+        afterCurrentTime: isByTimestamp
+          ? isAsc
+            ? !hasOccurred
+            : hasOccurred
+          : undefined,
+        beforeHoverTime:
+          isByTimestamp && currentHoverTime !== undefined
+            ? isAsc
+              ? isBeforeHover
+              : !isBeforeHover
+            : undefined,
+        afterHoverTime:
+          isByTimestamp && currentHoverTime !== undefined
+            ? isAsc
+              ? !isBeforeHover
+              : isBeforeHover
+            : undefined,
+      }),
+      hasOccurred: isByTimestamp ? hasOccurred : undefined,
       isDetailsOpen,
-      isHovered,
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
-      onClick: () => setParamValue(dataIndex),
+      onClick: () => onClickCell({dataIndex, rowIndex}),
       onMouseEnter: () => handleMouseEnter(span),
       onMouseLeave: () => handleMouseLeave(span),
       ref,
       style,
-    };
+    } as CellProps;
 
     // `data.responseBodySize` is from SDK version 7.44-7.45
     const size = span.data.size ?? span.data.response?.size ?? span.data.responseBodySize;
@@ -119,7 +156,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
             format="mm:ss.SSS"
             onClick={(event: MouseEvent) => {
               event.stopPropagation();
-              handleClick(span);
+              onClickTimestamp(span);
             }}
             startTimestampMs={startTimestampMs}
             timestampMs={startMs}
@@ -144,20 +181,6 @@ const cellBackground = p => {
   return `background-color: ${color};`;
 };
 
-const cellBorder = p => {
-  if (p.hasOccurred === undefined) {
-    return null;
-  }
-  const color = p.isCurrent
-    ? p.theme.purple300
-    : p.isHovered
-    ? p.theme.purple200
-    : 'transparent';
-  return p.hasOccurredAsc
-    ? `border-bottom: 1px solid ${color};`
-    : `border-top: 1px solid ${color};`;
-};
-
 const cellColor = p => {
   if (p.isDetailsOpen) {
     const colors = p.isStatusError
@@ -172,24 +195,13 @@ const cellColor = p => {
   return `color: ${p.hasOccurred !== false ? colors[0] : colors[1]};`;
 };
 
-const Cell = styled('div')<{
-  hasOccurred: boolean | undefined;
-  hasOccurredAsc: boolean | undefined;
-  isCurrent: boolean;
-  isDetailsOpen: boolean;
-  isHovered: boolean;
-  isStatusError: boolean;
-  numeric?: boolean;
-  onClick?: undefined | (() => void);
-}>`
+const Cell = styled('div')<CellProps>`
   display: flex;
   align-items: center;
-  padding: ${space(0.75)} ${space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
 
   ${cellBackground}
-  ${cellBorder}
   ${cellColor}
 
   ${p =>
@@ -204,6 +216,7 @@ const Text = styled('div')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+  padding: ${space(0.75)} ${space(1.5)};
 `;
 
 export default NetworkTableCell;

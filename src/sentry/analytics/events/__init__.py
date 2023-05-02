@@ -24,6 +24,7 @@ from .integration_pipeline_step import *  # noqa: F401,F403
 from .integration_serverless_setup import *  # noqa: F401,F403
 from .internal_integration_created import *  # noqa: F401,F403
 from .issue_alert_fired import *  # noqa: F401,F403
+from .issue_archived import *  # noqa: F401,F403
 from .issue_assigned import *  # noqa: F401,F403
 from .issue_deleted import *  # noqa: F401,F403
 from .issue_ignored import *  # noqa: F401,F403

@@ -54,9 +54,9 @@
       "parent_span_id": "a0c39078d1570b00",
       "trace_id": "0102834d0bf74d388ce0b1e15329f731",
       "data": {
-        "Decoded Body Size": 3,
-        "Encoded Body Size": 2,
-        "Transfer Size": 3
+        "http.decoded_response_content_length": 3,
+        "http.response_content_length": 2,
+        "http.transfer_size": 3
       },
       "hash": "b2978b51d54d9078"
     },
@@ -70,9 +70,9 @@
       "parent_span_id": "a0c39078d1570b00",
       "trace_id": "0102834d0bf74d388ce0b1e15329f731",
       "data": {
-        "Decoded Body Size": 571733,
-        "Encoded Body Size": 571733,
-        "Transfer Size": 571833
+        "http.decoded_response_content_length": 571733,
+        "http.response_content_length": 571733,
+        "http.transfer_size": 571833
       },
       "hash": "a2978b51d54d9079"
     }

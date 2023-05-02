@@ -3,28 +3,50 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment';
 
+import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/formatters';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
-import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
 import {
   getEndpointDetailSeriesQuery,
   getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
+import {HOST} from 'sentry/views/starfish/utils/constants';
+import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import {getUniqueTransactionCountQuery} from 'sentry/views/starfish/views/spanSummary/queries';
+import {
+  getSidebarAggregatesQuery,
+  getSidebarSeriesQuery,
+  getUniqueTransactionCountQuery,
+} from 'sentry/views/starfish/views/spanSummary/queries';
 
-export default function Sidebar({description, transactionName}) {
+export default function Sidebar({
+  spanGroupOperation,
+  groupId,
+  description,
+  transactionName,
+  sampledSpanData,
+}) {
   const theme = useTheme();
-  const seriesQuery = getEndpointDetailSeriesQuery({
+  const pageFilter = usePageFilters();
+  const {getSeriesQuery, getAggregatesQuery} = getQueries(spanGroupOperation);
+  const module = spanGroupOperation;
+  const seriesQuery = getSeriesQuery({
     description,
     transactionName,
+    datetime: pageFilter.selection.datetime,
+    groupId,
+    module,
   });
-  const aggregatesQuery = getEndpointDetailTableQuery({
+  const aggregatesQuery = getAggregatesQuery({
     description,
     transactionName,
+    datetime: pageFilter.selection.datetime,
+    groupId,
+    module,
   });
 
   // This is supposed to a metrics span query that fetches aggregate metric data
@@ -46,7 +68,10 @@ export default function Sidebar({description, transactionName}) {
   // This is a metrics request on transactions data!
   // We're fetching the count of events on a specific transaction so we can
   // calculate span frequency using metrics spans vs metrics transactions
-  const countUniqueQuery = getUniqueTransactionCountQuery(transactionName);
+  const countUniqueQuery = getUniqueTransactionCountQuery({
+    transactionName,
+    datetime: pageFilter.selection.datetime,
+  });
   const {data: transactionData, isLoading: _isTransactionDataLoading} = useQuery({
     queryKey: [countUniqueQuery],
     queryFn: () =>
@@ -64,11 +89,20 @@ export default function Sidebar({description, transactionName}) {
     count,
     total_exclusive_time,
     count_unique_transaction_id,
+    first_seen,
+    last_seen,
   } = aggregateData[0] || {};
+
+  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
+  const startTime =
+    num && unit
+      ? moment().subtract(num, unit as 'h' | 'd')
+      : moment(pageFilter.selection.datetime.start);
+  const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
 
   const [p50Series, p95Series, countSeries, _errorCountSeries, errorRateSeries] =
     queryDataToChartData(seriesData).map(series =>
-      zeroFillSeries(series, moment.duration(12, 'hours'))
+      zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
     );
 
   // NOTE: This almost always calculates to 0.00% when using the scraped data.
@@ -87,8 +121,25 @@ export default function Sidebar({description, transactionName}) {
     ) / 100;
 
   const chartColors = theme.charts.getColorPalette(2);
+  const sampledSpanDataSeries = sampledSpanData.map(({timestamp, spanDuration}) => ({
+    name: timestamp,
+    value: spanDuration,
+  }));
+
   return (
     <FlexContainer>
+      <FlexItem>
+        <SidebarItemHeader>{t('First Seen')}</SidebarItemHeader>
+        <SidebarItemValueContainer>
+          <DateTime date={first_seen} timeZone seconds utc />
+        </SidebarItemValueContainer>
+      </FlexItem>
+      <FlexItem>
+        <SidebarItemHeader>{t('Last Seen')}</SidebarItemHeader>
+        <SidebarItemValueContainer>
+          <DateTime date={last_seen} timeZone seconds utc />
+        </SidebarItemValueContainer>
+      </FlexItem>
       <FlexItem>
         <SidebarItemHeader>{t('Total Self Time')}</SidebarItemHeader>
         <SidebarItemValueContainer>
@@ -127,6 +178,7 @@ export default function Sidebar({description, transactionName}) {
           series={p50Series}
           isLoading={isLoadingSeriesData}
           chartColor={chartColors[1]}
+          sampledSpanDataSeries={sampledSpanDataSeries}
         />
       </FlexFullWidthItem>
       <FlexFullWidthItem>
@@ -138,19 +190,25 @@ export default function Sidebar({description, transactionName}) {
           series={p95Series}
           isLoading={isLoadingSeriesData}
           chartColor={chartColors[2]}
+          sampledSpanDataSeries={sampledSpanDataSeries}
         />
       </FlexFullWidthItem>
-      <FlexFullWidthItem>
-        <SidebarItemHeader>{t('Error Rate')}</SidebarItemHeader>
-        <SidebarItemValueContainer>
-          {formatPercentage(failure_rate)}
-        </SidebarItemValueContainer>
-        <SidebarChart
-          series={errorRateSeries}
-          isLoading={isLoadingSeriesData}
-          chartColor={chartColors[3]}
-        />
-      </FlexFullWidthItem>
+      {
+        // This could be better. Improve later.
+        spanGroupOperation === 'http.client' && (
+          <FlexFullWidthItem>
+            <SidebarItemHeader>{t('Error Rate')}</SidebarItemHeader>
+            <SidebarItemValueContainer>
+              {formatPercentage(failure_rate)}
+            </SidebarItemValueContainer>
+            <SidebarChart
+              series={errorRateSeries}
+              isLoading={isLoadingSeriesData}
+              chartColor={chartColors[3]}
+            />
+          </FlexFullWidthItem>
+        )
+      }
     </FlexContainer>
   );
 }
@@ -205,6 +263,9 @@ function SidebarChart(props) {
         top: '8px',
         bottom: '16px',
       }}
+      scatterPlot={[
+        {data: props.sampledSpanDataSeries, seriesName: 'Sampled Span Duration'},
+      ]}
     />
   );
 }
@@ -231,4 +292,22 @@ function queryDataToChartData(data: any) {
     });
   });
   return series;
+}
+
+function getQueries(spanGroupOperation: string) {
+  switch (spanGroupOperation) {
+    case 'db':
+    case 'cache':
+      return {
+        getSeriesQuery: getSidebarSeriesQuery,
+        getAggregatesQuery: getSidebarAggregatesQuery,
+      };
+    case 'http.client':
+      return {
+        getSeriesQuery: getEndpointDetailSeriesQuery,
+        getAggregatesQuery: getEndpointDetailTableQuery,
+      };
+    default: // TODO: Need a cleaner default case, but we should never end up here anyways
+      return {getSeriesQuery: () => '', getAggregatesQuery: () => ''};
+  }
 }

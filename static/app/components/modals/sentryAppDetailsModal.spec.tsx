@@ -121,14 +121,17 @@ describe('SentryAppDetailsModal', function () {
   it('does not display the Install button, when the User does not have permission to install Integrations', function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
+    const noAccessOrg = TestStubs.Organization({access: []});
+
     render(
       <SentryAppDetailsModal
         closeModal={jest.fn()}
         isInstalled={false}
         onInstall={jest.fn()}
-        organization={TestStubs.Organization({access: []})}
+        organization={noAccessOrg}
         sentryApp={sentryApp}
-      />
+      />,
+      {organization: noAccessOrg}
     );
 
     expect(

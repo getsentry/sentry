@@ -21,6 +21,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import analytics
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.models import Group
@@ -41,6 +42,7 @@ ELEMENTS_PER_SNUBA_PAGE = 10000  # This is the maximum value for Snuba
 BUCKETS_PER_GROUP = 7 * 24
 ONE_WEEK_DURATION = 7
 IS_ESCALATING_REFERRER = "sentry.issues.escalating.is_escalating"
+GROUP_HOURLY_COUNT_TTL = 60
 
 GroupsCountResponse = TypedDict(
     "GroupsCountResponse",
@@ -74,6 +76,7 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
     proj_ids, group_ids = [], []
     processed_projects = 0
     total_projects_count = len(group_ids_by_project)
+    organization_id = groups[0].project.organization.id
 
     # This iteration guarantees that all groups for a project will be queried in the same call
     # and only one page where the groups could be mixed with groups from another project
@@ -93,7 +96,9 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
             continue
 
         # TODO: Write this as a dispatcher type task and fire off a separate task per proj_ids
-        all_results += _query_with_pagination(proj_ids, group_ids, start_date, end_date)
+        all_results += _query_with_pagination(
+            organization_id, proj_ids, group_ids, start_date, end_date
+        )
         # We're ready for a new set of projects and ids
         proj_ids, group_ids = [], []
 
@@ -101,7 +106,11 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
 
 
 def _query_with_pagination(
-    project_ids: Sequence[int], group_ids: Sequence[int], start_date: datetime, end_date: datetime
+    organization_id: int,
+    project_ids: Sequence[int],
+    group_ids: Sequence[int],
+    start_date: datetime,
+    end_date: datetime,
 ) -> List[GroupsCountResponse]:
     """Query Snuba for event counts for the given list of project ids and groups ids in
     a time range."""
@@ -109,7 +118,12 @@ def _query_with_pagination(
     offset = 0
     while True:
         query = _generate_query(project_ids, group_ids, offset, start_date, end_date)
-        request = Request(dataset=Dataset.Events.value, app_id=REFERRER, query=query)
+        request = Request(
+            dataset=Dataset.Events.value,
+            app_id=REFERRER,
+            query=query,
+            tenant_ids={"referrer": REFERRER, "organization_id": organization_id},
+        )
         results = raw_snql_query(request, referrer=REFERRER)["data"]
         all_results += results
         offset += ELEMENTS_PER_SNUBA_PAGE
@@ -191,51 +205,56 @@ def _extract_project_and_group_ids(groups: Sequence[Group]) -> Dict[int, List[in
     return group_ids_by_project
 
 
-def get_group_daily_count(project_id: int, group_id: int) -> int:
-    """Return the number of events a group has had today"""
-    date_now = datetime.now().date()
-    start_date = date_now
-    end_date = date_now + timedelta(days=1)
-    query = Query(
-        match=Entity(EntityKey.Events.value),
-        select=[
-            Function("count", []),
-        ],
-        where=[
-            Condition(Column("project_id"), Op.EQ, project_id),
-            Condition(Column("group_id"), Op.EQ, group_id),
-            Condition(Column("timestamp"), Op.GTE, start_date),
-            Condition(Column("timestamp"), Op.LT, end_date),
-        ],
-    )
-    request = Request(dataset=Dataset.Events.value, app_id=IS_ESCALATING_REFERRER, query=query)
-    return int(raw_snql_query(request, referrer=IS_ESCALATING_REFERRER)["data"][0]["count()"])
+def get_group_hourly_count(organization_id: int, project_id: int, group_id: int) -> int:
+    """Return the number of events a group has had today in the last hour"""
+    key = f"hourly-group-count:{project_id}:{group_id}"
+    hourly_count = cache.get(key)
+
+    if hourly_count is None:
+        now = datetime.now()
+        current_hour = now.replace(minute=0, second=0, microsecond=0)
+        query = Query(
+            match=Entity(EntityKey.Events.value),
+            select=[
+                Function("count", []),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.EQ, project_id),
+                Condition(Column("group_id"), Op.EQ, group_id),
+                Condition(Column("timestamp"), Op.GTE, current_hour),
+                Condition(Column("timestamp"), Op.LT, now),
+            ],
+        )
+        request = Request(
+            dataset=Dataset.Events.value,
+            app_id=IS_ESCALATING_REFERRER,
+            query=query,
+            tenant_ids={"referrer": IS_ESCALATING_REFERRER, "organization_id": organization_id},
+        )
+        hourly_count = int(
+            raw_snql_query(request, referrer=IS_ESCALATING_REFERRER)["data"][0]["count()"]
+        )
+        cache.set(key, hourly_count, GROUP_HOURLY_COUNT_TTL)
+    return int(hourly_count)
 
 
 def is_escalating(group: Group) -> bool:
     """Return boolean depending on if the group is escalating or not"""
-    forecast_cache_key = f"escalating-forecast:{group.id}"
-    escalating_forecast = cache.get(forecast_cache_key)
-    date_now = datetime.now().date()
-    if escalating_forecast is None:
-        escalating_forecast = EscalatingGroupForecast.fetch(group.project.id, group.id)
-        escalating_forecast = (
-            escalating_forecast.date_added,
-            escalating_forecast.forecast,
-        )
-
-        # Set the cache to be valid until the next weekly escalating forecast task is run
-        forecast_cache_duration = (
-            (escalating_forecast[0] + timedelta(days=ONE_WEEK_DURATION)).date() - date_now
-        ).total_seconds()
-        cache.set(forecast_cache_key, escalating_forecast, forecast_cache_duration)
-
+    group_hourly_count = get_group_hourly_count(
+        group.project.organization.id, group.project.id, group.id
+    )
+    forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
     # Check if current event occurance is greater than forecast for today's date
-    group_daily_count = get_group_daily_count(group.project.id, group.id)
-    forecast_today_index = (date_now - escalating_forecast[0].date()).days
-    if group_daily_count > escalating_forecast[1][forecast_today_index]:
+    if group_hourly_count > forecast_today:
         group.substatus = GroupSubStatus.ESCALATING
         group.status = GroupStatus.UNRESOLVED
         add_group_to_inbox(group, GroupInboxReason.ESCALATING)
+
+        analytics.record(
+            "issue.escalating",
+            organization_id=group.project.organization.id,
+            project_id=group.project.id,
+            group_id=group.id,
+        )
         return True
     return False

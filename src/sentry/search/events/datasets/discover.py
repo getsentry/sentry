@@ -17,6 +17,7 @@ from snuba_sdk import (
     OrderBy,
 )
 
+from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory
@@ -1617,8 +1618,13 @@ class DiscoverDatasetConfig(DatasetConfig):
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
+                org = None
+                if groups:
+                    org = groups[0].project.organization
                 for group in groups:
-                    if group.issue_category == GroupCategory.PERFORMANCE:
+                    if group.issue_category == GroupCategory.PERFORMANCE and not features.has(
+                        "organizations:issue-platform-search-perf-issues", org
+                    ):
                         performance_groups.append(group.id)
                     else:
                         general_groups.append(group.id)
@@ -1628,7 +1634,6 @@ class DiscoverDatasetConfig(DatasetConfig):
                 general_group_filter_values.extend(general_groups)
                 perf_group_filter_values.extend(performance_groups)
 
-        # TODO (udameli): if both groups present, return data for both
         if general_group_filter_values:
             return self.builder.convert_search_filter_to_condition(
                 SearchFilter(
@@ -1642,7 +1647,6 @@ class DiscoverDatasetConfig(DatasetConfig):
                 )
             )
 
-        # TODO (udameli): handle the has:issue case for transactions
         if performance_groups:
             return self.builder.convert_search_filter_to_condition(
                 SearchFilter(
