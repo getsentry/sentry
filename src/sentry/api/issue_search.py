@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import partial
 from typing import Callable, Iterable, List, Mapping, Optional, Sequence, Set, Union
 
@@ -132,17 +134,17 @@ def convert_first_release_value(
 
 
 def convert_substatus_value(
-    value: Iterable[Union[str, int]],
+    value: Iterable[str | int],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[int]:
+    environments: Sequence[Environment] | None,
+) -> list[int]:
     parsed = []
-    for status in value:
+    for substatus in value:
         try:
-            parsed.append(parse_substatus_value(status))
+            parsed.append(parse_substatus_value(substatus))
         except ValueError:
-            raise InvalidSearchQuery(f"invalid substatus value of '{status}'")
+            raise InvalidSearchQuery(f"invalid substatus value of '{substatus}'")
     return parsed
 
 
@@ -226,7 +228,7 @@ value_converters: Mapping[str, ValueConverter] = {
 
 
 def convert_query_values(
-    search_filters: List[SearchFilter],
+    search_filters: list[SearchFilter],
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
@@ -263,7 +265,7 @@ def convert_query_values(
                 operator = "=" if search_filter.operator in EQUALITY_OPERATORS else "!="
 
             if search_filter.key.name == "substatus":
-                if not features.has("organizations:issue-states", organization, actor=None):
+                if not features.has("organizations:issue-states", organization):
                     raise InvalidSearchQuery(
                         "The substatus filter is not supported for this organization"
                     )

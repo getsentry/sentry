@@ -409,7 +409,9 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             results = self.make_query(search_filter_query="is:ongoing")
             assert set(results) == {self.group1}
 
-        with pytest.raises(InvalidSearchQuery):
+        with pytest.raises(
+            InvalidSearchQuery, match="The substatus filter is not supported for this organization"
+        ):
             self.make_query(search_filter_query="is:ongoing")
 
     def test_category(self):

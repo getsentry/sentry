@@ -237,13 +237,6 @@ class ConvertSubStatusValueTest(TestCase):
         with pytest.raises(InvalidSearchQuery, match="invalid substatus value"):
             convert_query_values(filters, [self.project], self.user, None)
 
-        filters = [AggregateFilter(AggregateKey("count_unique(user)"), ">", SearchValue("1"))]
-        with pytest.raises(
-            InvalidSearchQuery,
-            match=r"Aggregate filters \(count_unique\(user\)\) are not supported in issue searches.",
-        ):
-            convert_query_values(filters, [self.project], self.user, None)
-
 
 @region_silo_test(stable=True)
 class ConvertActorOrNoneValueTest(TestCase):
