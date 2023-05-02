@@ -1,10 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useContext} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {Organization, Project, Scope, Team} from 'sentry/types';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
-import useOrganization from 'sentry/utils/useOrganization';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 // Props that function children will get.
 type ChildRenderProps = {
@@ -52,9 +52,10 @@ export type Props = {
  */
 function Access({children, isSuperuser = false, access = [], team, project}: Props) {
   const config = useLegacyStore(ConfigStore);
-  const organization = useOrganization();
+  const organization = useContext(OrganizationContext);
 
-  const {access: orgAccess} = organization || {access: []};
+  const {access: orgAccess} =
+    organization || ({access: []} as {access: Organization['access']});
   const {access: teamAccess} = team || {access: [] as Team['access']};
   const {access: projAccess} = project || {access: [] as Project['access']};
 
