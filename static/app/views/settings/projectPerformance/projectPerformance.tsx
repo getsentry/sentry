@@ -319,7 +319,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return (
       <Fragment>
         <SettingsPageHeader title={t('Performance')} />
-        <PermissionAlert access={requiredScopes} project={project} />
+        <PermissionAlert project={project} />
 
         <Form
           saveOnBlur
