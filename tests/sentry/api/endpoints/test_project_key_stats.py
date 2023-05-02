@@ -1,5 +1,8 @@
+from unittest.mock import MagicMock, patch
+
 import freezegun
 import pytest
+from rest_framework.request import Request
 
 from sentry.constants import DataCategory
 from sentry.models import ProjectKey
@@ -172,3 +175,34 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         assert result["dropped"] == 0, response.data
         assert result["accepted"] == 2, response.data
         assert len(response.data) == 2
+
+    @patch(
+        "sentry.api.endpoints.project_key_stats.massage_outcomes_result",
+        return_value={
+            "groups": [
+                {
+                    "by": {"outcome": "dogs are great"},
+                }
+            ],
+            "intervals": [],
+        },
+    )
+    @patch("sentry.api.endpoints.project_key_stats.capture_exception_with_scope_check")
+    def test_unknown_outcome(
+        self,
+        mock_capture_exception_wrapper: MagicMock,
+        mock_massage_outcomes_result: MagicMock,
+    ):
+        response = self.client.get(
+            self.path,
+        )
+
+        assert mock_capture_exception_wrapper.call_count == 1
+
+        error_arg = mock_capture_exception_wrapper.call_args.args[0]
+        request_arg = mock_capture_exception_wrapper.call_args.kwargs["request"]
+
+        assert isinstance(error_arg, ValueError)
+        assert str(error_arg) == "Unexpected outcome result in project key stats dogs are great"
+        assert isinstance(request_arg, Request)
+        assert len(response.data) == 0

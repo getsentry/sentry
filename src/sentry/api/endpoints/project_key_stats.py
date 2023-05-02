@@ -2,7 +2,6 @@ from django.db.models import F
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk.api import capture_exception
 
 from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -16,6 +15,7 @@ from sentry.snuba.outcomes import (
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.dates import parse_timestamp
 from sentry.utils.outcomes import Outcome
+from sentry.utils.sdk import capture_exception_with_scope_check
 
 
 @region_silo_endpoint
@@ -92,8 +92,9 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
             elif grouping == Outcome.ACCEPTED.api_name():
                 key = "accepted"
             else:
-                capture_exception(
-                    ValueError(f"Unexpected outcome result in project key stats {grouping}")
+                capture_exception_with_scope_check(
+                    ValueError(f"Unexpected outcome result in project key stats {grouping}"),
+                    request=request,
                 )
 
             if key:
