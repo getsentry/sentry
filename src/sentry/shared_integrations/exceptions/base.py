@@ -10,6 +10,10 @@ from sentry.utils import json
 
 
 class ApiError(Exception):
+    """
+    Base class for errors which arise while making outgoing requests to third-party APIs.
+    """
+
     code: int | None = None
 
     def __init__(

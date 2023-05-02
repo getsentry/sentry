@@ -35,6 +35,7 @@ class Rule(Model):
     project = FlexibleForeignKey("sentry.Project")
     environment_id = BoundedPositiveIntegerField(null=True)
     label = models.CharField(max_length=64)
+    # `data` contain all the specifics of the rule - conditions, actions, frequency, etc.
     data = GzippedDictField()
     status = BoundedPositiveIntegerField(
         default=RuleStatus.ACTIVE,

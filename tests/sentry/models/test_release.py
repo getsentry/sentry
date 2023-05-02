@@ -455,6 +455,7 @@ class SetCommitsTestCase(TestCase):
             group_id=group.id, linked_type=GroupLink.LinkedType.commit, linked_id=commit.id
         ).exists()
 
+        # Pull the object from the DB again to test updated attributes
         resolution = GroupResolution.objects.get(group=group)
         assert resolution.status == GroupResolution.Status.resolved
         assert resolution.release == release

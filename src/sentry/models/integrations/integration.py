@@ -47,8 +47,8 @@ class Integration(DefaultFieldsModel):
     external_id = models.CharField(max_length=64)
     name = models.CharField(max_length=200)
     # metadata might be used to store things like credentials, but it should NOT
-    # be used to store organization-specific information, as the Integration
-    # instance is shared among multiple organizations
+    # be used to store organization-specific information, as an Integration
+    # instance can be shared by multiple organizations
     metadata = JSONField(default=dict)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices(), null=True

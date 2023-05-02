@@ -25,7 +25,7 @@ except ModuleNotFoundError:
 
 text_type = str
 
-# git usurbs your bin path for hooks and will always run system python
+# git usurps your bin path for hooks and will always run system python
 if "VIRTUAL_ENV" in os.environ:
     # If pre-commit is not installed outside of the virtualenv, glob will return []
     try:
