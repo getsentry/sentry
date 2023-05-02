@@ -391,7 +391,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         query_params_for_categories = {
             gc: query_params
-            for gc, query_params in query_params_for_categories
+            for gc, query_params in query_params_for_categories.items()
             if query_params is not None
         }
 
@@ -402,7 +402,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         except Exception as e:
             metrics.incr(
                 "snuba.search.group_category_bulk",
-                tags={gc.name.lower(): True for gc, _ in query_params_for_categories},
+                tags={
+                    GroupCategory(gc_val).name.lower(): True
+                    for gc_val, _ in query_params_for_categories.items()
+                },
             )
             # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
             # we'll fallback to querying for errors only
