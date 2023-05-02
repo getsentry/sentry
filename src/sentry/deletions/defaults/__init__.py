@@ -4,6 +4,8 @@ from .commit import *  # noqa: F401,F403
 from .commitauthor import *  # noqa: F401,F403
 from .discoversavedquery import *  # noqa: F401,F403
 from .group import *  # noqa: F401,F403
+from .monitor import *  # noqa: F401,F403
+from .monitor_environment import *  # noqa: F401,F403
 from .organization import *  # noqa: F401,F403
 from .organizationintegration import *  # noqa: F401,F403
 from .platform_external_issue import *  # noqa: F401,F403
