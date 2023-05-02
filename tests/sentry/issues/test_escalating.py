@@ -245,10 +245,11 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             self.assert_is_escalating(group_escalating)
 
             # Test cache
-            assert (
-                cache.get(f"hourly-group-count:{group_escalating.project.id}:{group_escalating.id}")
-                == 6
-            )
+            key = f"hourly-group-count:{group_escalating.project.id}:{group_escalating.id}"
+            assert cache.get(key) == 6
+            # Adding more events will not change the hourly count for the next 60 seconds
+            self._create_events_for_group(count=10)
+            assert cache.get(key) == 6
 
     @freeze_time(TIME_YESTERDAY)
     def test_not_escalating_issue(self) -> None:
@@ -274,11 +275,8 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert group.status == GroupStatus.IGNORED
             assert not GroupInbox.objects.filter(group=group).exists()
 
-    @freeze_time(TIME_YESTERDAY.replace(minute=12, second=40, microsecond=0))
     def test_hourly_count_query(self) -> None:
         """Test the hourly count query only aggregates events from within the current hour"""
         self._create_events_for_group(count=2, hours_ago=1)  # An hour ago -> It will not count
         group = self._create_events_for_group(count=1).group  # This hour -> It will count
-
-        # Events are aggregated in the hourly count query by date rather than the last 24hrs
         assert get_group_hourly_count(group) == 1
