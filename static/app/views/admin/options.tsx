@@ -384,7 +384,7 @@ const performanceOptionDefinitions: Field[] = [
     key: 'performance.issues.consecutive_http.max_duration_between_spans',
     label: t('Time Between Spans'),
     help: t(
-      'Maximum time between consecutive HTTP spans to be considered part of the same problem.'
+      'Maximum time, in ms, between consecutive HTTP spans to be considered part of the same problem.'
     ),
     defaultValue: () => '5000',
     component: NumberField,
