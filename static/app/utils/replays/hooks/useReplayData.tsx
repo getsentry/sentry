@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {Client} from 'sentry/api';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
@@ -33,6 +34,12 @@ type Options = {
    * The projectSlug and replayId concatenated together
    */
   replaySlug: string;
+
+  /**
+   * Default: 50
+   * You can override this for testing
+   */
+  errorsPerPage?: number;
 
   /**
    * Default: 100
@@ -82,7 +89,12 @@ const INITIAL_STATE: State = Object.freeze({
  * @param {orgSlug, replaySlug} Where to find the root replay event
  * @returns An object representing a unified result of the network requests. Either a single `ReplayReader` data object or fetch errors.
  */
-function useReplayData({replaySlug, orgSlug, segmentsPerPage = 100}: Options): Result {
+function useReplayData({
+  replaySlug,
+  orgSlug,
+  errorsPerPage = 50,
+  segmentsPerPage = 100,
+}: Options): Result {
   const replayId = parseReplayId(replaySlug);
   const projects = useProjects();
 
@@ -159,19 +171,16 @@ function useReplayData({replaySlug, orgSlug, segmentsPerPage = 100}: Options): R
     const finishedAtClone = new Date(replayRecord.finished_at);
     finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
-    const response = await api.requestPromise(
-      `/organizations/${orgSlug}/replays-events-meta/`,
-      {
-        query: {
-          start: replayRecord.started_at.toISOString(),
-          end: finishedAtClone.toISOString(),
-          query: `replayId:[${replayRecord.id}]`,
-        },
-      }
-    );
-    setErrors(response.data);
+    const results = await fetchPaginatedReplayErrors(api, {
+      orgSlug,
+      replayId: replayRecord.id,
+      start: replayRecord.started_at,
+      end: finishedAtClone,
+      limit: errorsPerPage,
+    });
+    setErrors(results);
     setState(prev => ({...prev, fetchingErrors: false}));
-  }, [api, orgSlug, replayRecord]);
+  }, [api, orgSlug, replayRecord, errorsPerPage]);
 
   const onError = useCallback(error => {
     Sentry.captureException(error);
@@ -238,6 +247,92 @@ function parseReplayId(replaySlug: string) {
 
 function makeFetchReplayApiUrl(orgSlug: string, replayId: string) {
   return `/organizations/${orgSlug}/replays/${replayId}/`;
+}
+
+async function fetchReplayErrors(
+  api: Client,
+  {
+    orgSlug,
+    start,
+    end,
+    replayId,
+    limit = 50,
+    offset = 0,
+  }: {
+    end: Date;
+    orgSlug: string;
+    replayId: string;
+    start: Date;
+    limit?: number;
+    offset?: number;
+  }
+) {
+  const response = await api.requestPromise(
+    `/organizations/${orgSlug}/replays-events-meta/`,
+    {
+      query: {
+        start: start.toISOString(),
+        end: end.toISOString(),
+        query: `replayId:[${replayId}]`,
+        per_page: limit,
+        cursor: [0, offset, 0].join(':'),
+      },
+    }
+  );
+
+  return response;
+}
+
+async function fetchPaginatedReplayErrors(
+  api: Client,
+  {
+    orgSlug,
+    start,
+    end,
+    replayId,
+    limit = 50,
+  }: {
+    end: Date;
+    orgSlug: string;
+    replayId: string;
+    start: Date;
+    limit?: number;
+  }
+) {
+  function next(nextOffset: number) {
+    return fetchReplayErrors(api, {
+      orgSlug,
+      replayId,
+      start,
+      end,
+      limit,
+      offset: nextOffset,
+    });
+  }
+
+  const results: ReplayError[] = [];
+  const hasNext = true;
+  let offset = 0 - limit;
+
+  while (hasNext) {
+    offset += limit;
+    const response = await next(offset);
+    results.push(...response.data);
+
+    // TODO: there has to be a better way to paginate this endpoint
+    // we over fetch in instances where the last page data.length === limit
+    // example:
+    //  server: [1,2]
+    //  fetch(offset=0,limit=1) -> [1]
+    //  fetch(offset=1,limit=1) -> [2]
+    //  fetch(offset=2,limit=1) -> []
+    //  see also useReplayData.spec.tsx
+
+    if (response.data.length < limit) {
+      return results;
+    }
+  }
+  return results;
 }
 
 export default useReplayData;

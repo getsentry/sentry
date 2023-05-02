@@ -140,7 +140,7 @@ describe('useReplayData', () => {
     });
   });
 
-  it.skip('should concat N error responses and pass them through to Replay Reader', async () => {
+  it('should concat N error responses and pass them through to Replay Reader', async () => {
     const ERROR_IDS = [
       '5c83aaccfffb4a708ae893bad9be3a1c',
       '6d94aaccfffb4a708ae893bad9be3a1c',
@@ -179,12 +179,28 @@ describe('useReplayData', () => {
     const mockedErrorsCall1 = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays-events-meta/`,
       body: {data: mockErrorResponse1},
-      match: [(_url, options) => options.query?.query === `id:[${ERROR_IDS[0]}]`],
+      match: [
+        (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
+        (_url, options) => options.query?.cursor === '0:0:0',
+      ],
     });
     const mockedErrorsCall2 = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays-events-meta/`,
       body: {data: mockErrorResponse2},
-      match: [(_url, options) => options.query?.query === `id:[${ERROR_IDS[1]}]`],
+      match: [
+        (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
+        (_url, options) => options.query?.cursor === '0:1:0',
+      ],
+    });
+
+    // this third call is extraneous simply due to how we naively fetch all records based on asserting data.length
+    const mockedErrorsCall3 = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      body: {data: []},
+      match: [
+        (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
+        (_url, options) => options.query?.cursor === '0:2:0',
+      ],
     });
 
     const {waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
@@ -200,6 +216,7 @@ describe('useReplayData', () => {
 
     expect(mockedErrorsCall1).toHaveBeenCalledTimes(1);
     expect(mockedErrorsCall2).toHaveBeenCalledTimes(1);
+    expect(mockedErrorsCall3).toHaveBeenCalledTimes(1);
 
     expect(MockedReplayReaderFactory).toHaveBeenLastCalledWith({
       attachments: [],
