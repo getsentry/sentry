@@ -182,8 +182,10 @@ function useReplayData({
     let done = false;
     while (!done) {
       const pagedResults = await paginatedErrors.next();
-      setErrors(prev => [...prev, ...pagedResults.value]);
-      done = pagedResults.done ?? true;
+      done = pagedResults.done ?? false;
+      if (pagedResults.value && !done) {
+        setErrors(prev => [...prev, ...pagedResults.value]);
+      }
     }
     setState(prev => ({...prev, fetchingErrors: false}));
   }, [api, orgSlug, replayRecord, errorsPerPage]);
@@ -300,7 +302,7 @@ async function* fetchPaginatedReplayErrors(
     start: Date;
     limit?: number;
   }
-) {
+): AsyncGenerator<ReplayError[], ReplayError[]> {
   function next(nextCursor: string) {
     return fetchReplayErrors(api, {
       orgSlug,
@@ -311,18 +313,20 @@ async function* fetchPaginatedReplayErrors(
       cursor: nextCursor,
     });
   }
-
-  let cursor = {
+  let cursor: ParsedHeader = {
     cursor: '0:0:0',
     results: true,
     href: '',
   } as ParsedHeader;
+  const results: ReplayError[] = [];
   while (cursor.results) {
     const [{data}, , resp] = await next(cursor.cursor);
     const pageLinks = resp?.getResponseHeader('Link') ?? null;
     cursor = parseLinkHeader(pageLinks)?.next;
+    results.push(...data);
     yield data;
   }
+  return results;
 }
 
 export default useReplayData;
