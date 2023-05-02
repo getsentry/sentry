@@ -334,7 +334,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             sf
             for sf in search_filters or ()
             # remove any search_filters that are only available in postgres, we special case date
-            if not (sf.key.name in self.postgres_only_fields or sf.key.name == "date")
+            if not (sf.key.name in self.postgres_only_fields.union(["date", "timestamp"]))
         ]
 
         # common pinned parameters that won't change based off datasource
@@ -490,7 +490,15 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         now = timezone.now()
         end = None
         paginator_options = {} if paginator_options is None else paginator_options
-        end_params = [_f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f]
+        end_params = [
+            _f
+            for _f in [
+                date_to,
+                get_search_filter(search_filters, "date", "<"),
+                get_search_filter(search_filters, "timestamp", "<"),
+            ]
+            if _f
+        ]
         if end_params:
             end = min(end_params)
 
@@ -507,7 +515,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # apparently `retention_window_start` can be None(?), so we need a
         # fallback.
         retention_date = max(_f for _f in [retention_window_start, now - timedelta(days=90)] if _f)
-        start_params = [date_from, retention_date, get_search_filter(search_filters, "date", ">")]
+        start_params = [
+            date_from,
+            retention_date,
+            get_search_filter(search_filters, "date", ">"),
+            get_search_filter(search_filters, "timestamp", ">"),
+        ]
         start = max(_f for _f in start_params if _f)
         end = max([retention_date, end])
 
@@ -536,7 +549,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             not [
                 sf
                 for sf in (search_filters or ())
-                if sf.key.name not in self.postgres_only_fields.union(["date"])
+                if sf.key.name not in self.postgres_only_fields.union(["date", "timestamp"])
             ]
         ):
             group_queryset = (

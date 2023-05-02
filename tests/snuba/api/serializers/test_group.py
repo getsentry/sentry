@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytz
 from django.utils import timezone
 
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
 from sentry.issues.grouptype import (
@@ -441,6 +442,36 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             start = GroupSerializerSnuba._get_start_from_seen_stats({"": {"last_seen": last_seen}})
 
             assert iso_format(start) == iso_format(before_now(days=expected))
+
+    def test_skipped_date_timestamp_filters(self):
+        group = self.create_group()
+        serializer = GroupSerializerSnuba(
+            search_filters=[
+                SearchFilter(
+                    SearchKey("timestamp"),
+                    ">",
+                    SearchValue(before_now(hours=1).replace(tzinfo=pytz.UTC)),
+                ),
+                SearchFilter(
+                    SearchKey("timestamp"),
+                    "<",
+                    SearchValue(before_now(seconds=1).replace(tzinfo=pytz.UTC)),
+                ),
+                SearchFilter(
+                    SearchKey("date"),
+                    ">",
+                    SearchValue(before_now(hours=1).replace(tzinfo=pytz.UTC)),
+                ),
+                SearchFilter(
+                    SearchKey("date"),
+                    "<",
+                    SearchValue(before_now(seconds=1).replace(tzinfo=pytz.UTC)),
+                ),
+            ]
+        )
+        assert not serializer.conditions
+        result = serialize(group, self.user, serializer=serializer)
+        assert result["id"] == str(group.id)
 
 
 @region_silo_test
