@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+import petname
 import responses
 from django.test.utils import override_settings
 from rest_framework import status
@@ -165,6 +166,13 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
 
 
+class MockJiraWebhook(JiraWebhookBase):
+    permission_classes = ()
+
+    def get(self, request, *args, **kwargs):
+        return self.respond()
+
+
 class MockErroringJiraEndpoint(JiraWebhookBase):
     permission_classes = ()
     dummy_exception = Exception("whoops")
@@ -179,11 +187,31 @@ class MockErroringJiraEndpoint(JiraWebhookBase):
         self.error = error
         super().__init__(*args, **kwargs)
 
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         raise self.error
 
 
 class JiraWebhookBaseTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.org = self.create_organization()
+        self.integration = self.create_integration(self.org, external_id=petname.Generate())
+
+        patchers = [
+            patch("sentry.integrations.jira.webhooks.base.JiraWebhookBase.get_token"),
+            patch("sentry.integrations.jira.webhooks.base.bind_org_context_from_integration"),
+            patch(
+                "sentry.integrations.jira.webhooks.base.get_integration_from_jwt",
+                return_value=self.integration,
+            ),
+        ]
+
+        for patcher in patchers:
+            mock_function = patcher.start()
+            setattr(self, f"mock_{patcher.attribute}", mock_function)
+
+        self.addCleanup(patch.stopall)
+
     @patch("sentry.utils.sdk.capture_exception")
     def test_bad_request_errors(self, mock_capture_exception: MagicMock):
         for error_type in [AtlassianConnectValidationError, JiraTokenError]:
@@ -333,3 +361,22 @@ class JiraWebhookBaseTest(TestCase):
             assert mock_super_handle_exception.call_args.args[1] == unknown_error
             assert str(unknown_error) == expected_error_message
             assert mock_logger.exception.call_args.args[0] == "Unclear JIRA exception"
+
+    def test_gets_token_looks_up_integration_and_binds_org_context(self):
+        mock_endpoint = MockJiraWebhook.as_view()
+        mock_endpoint(self.make_request(method="GET"))
+
+        assert self.mock_get_token.call_count == 1
+        assert self.mock_get_integration_from_jwt.call_count == 1
+        self.mock_bind_org_context_from_integration.assert_called_with(self.integration.id)
+
+    def test_doesnt_look_up_integration_if_lookup_integration_from_token_is_False(
+        self,
+    ):
+        mock_endpoint = MockJiraWebhook.as_view()
+
+        with patch.object(mock_endpoint.view_class, "lookup_integration_from_token", False):
+            mock_endpoint(self.make_request(method="GET"))
+
+            assert self.mock_get_integration_from_jwt.call_count == 0
+            assert self.mock_bind_org_context_from_integration.call_count == 0
