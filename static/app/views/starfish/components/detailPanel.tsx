@@ -34,8 +34,8 @@ export default function Detail({children, detailKey, onClose}: DetailProps) {
   useOnClickOutside(panelRef, () => {
     if (!state.collapsed) {
       onClose?.();
+      setState({collapsed: true});
     }
-    setState({collapsed: true});
   });
 
   useEffect(() => {
