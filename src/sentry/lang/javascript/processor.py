@@ -2052,8 +2052,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             return sourcemap_cache
 
     def _fetch_sourcemap_cache_by_url(self, url, source=b"", use_url_new=False):
-        body = None
-
         if is_data_uri(url):
             try:
                 body = base64.b64decode(
@@ -2064,26 +2062,31 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 raise UnparseableSourcemap({"url": "<base64>", "reason": str(e)})
         else:
             # look in the database and, if not found, optionally try to scrape the web
-            with sentry_sdk.start_span(
-                op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_url.fetch_by_url"
-            ) as span:
-                span.set_data("url", url)
+            if use_url_new:
+                with sentry_sdk.start_span(
+                    op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_url.fetch_by_url_new"
+                ) as span:
+                    span.set_data("url", url)
 
-                if use_url_new:
                     result = self.fetcher.fetch_by_url_new(url)
                     # In case we are fetching with url new we want to early return None in case we didn't find a match.
                     # This is because we want to fallback to the old system "fetch_by_url" before throwing the
                     # definitive error "UnparseableSourcemap".
                     if result is None:
                         return None
-                else:
+            else:
+                with sentry_sdk.start_span(
+                    op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_url.fetch_by_url"
+                ) as span:
+                    span.set_data("url", url)
+
                     result = self.fetcher.fetch_by_url(url)
                     # In case we are fetching with url and we have a None result, then we can throw an error since we
                     # are not able to parce the sourcemap.
                     if result is None:
                         raise UnparseableSourcemap({"url": http.expose_url(url)})
 
-                body = result.body
+            body = result.body
 
         try:
             with sentry_sdk.start_span(
