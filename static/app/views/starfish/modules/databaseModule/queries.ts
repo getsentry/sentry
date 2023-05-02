@@ -1,10 +1,13 @@
-import {Moment} from 'moment';
+import {Moment, unix} from 'moment';
 
 import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {
+  datetimeToClickhouseFilterTimestamps,
+  getDateFilters,
+} from 'sentry/views/starfish/utils/dates';
 
 const DEFAULT_WHERE = `
   startsWith(span_operation, 'db') and
@@ -52,34 +55,32 @@ const getActionQuery = (action: string) =>
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60;
 
-const getNewColumn = (
-  duration: number,
-  startTime: {unix: () => number},
-  endTime: {unix: () => number}
-) =>
-  duration > SEVEN_DAYS
+const getNewColumn = (duration: number, startTime: Moment, endTime: Moment) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps({
+    start: unix(startTime.unix() + duration / 10).format('YYYY-MM-DD HH:mm:ss'),
+    end: unix(endTime.unix() - duration / 10).format('YYYY-MM-DD HH:mm:ss'),
+  });
+
+  return duration > SEVEN_DAYS
     ? `(
-        greater(min(start_timestamp), fromUnixTimestamp(${
-          startTime.unix() + duration / 10
-        })) and
-        greater(max(start_timestamp), fromUnixTimestamp(${
-          endTime.unix() - duration / 10
-        }))
+        greater(min(start_timestamp), '${start_timestamp}') and
+        greater(max(start_timestamp), '${end_timestamp}')
       ) as newish`
     : '0 as newish';
-const getRetiredColumn = (
-  duration: number,
-  startTime: {unix: () => number},
-  endTime: {unix: () => number}
-) =>
-  duration > SEVEN_DAYS
+};
+
+const getRetiredColumn = (duration: number, startTime: Moment, endTime: Moment) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps({
+    start: unix(startTime.unix() + duration / 10).format('YYYY-MM-DD HH:mm:ss'),
+    end: unix(endTime.unix() - duration / 10).format('YYYY-MM-DD HH:mm:ss'),
+  });
+  return duration > SEVEN_DAYS
     ? `(
-        less(max(start_timestamp), fromUnixTimestamp(${
-          endTime.unix() - duration / 10
-        })) and
-        less(min(start_timestamp), fromUnixTimestamp(${startTime.unix() + duration / 10}))
+        less(max(start_timestamp), '${end_timestamp}') and
+        less(min(start_timestamp), '${start_timestamp}')
       ) as retired`
     : '0 as retired';
+};
 
 export const getOperations = (date_filters: string) => {
   return `
@@ -150,25 +151,9 @@ export const getTopTablesChart = (
 };
 
 export const getPanelTableQuery = (
-  date_filters: string,
-  row: {
-    group_id: string;
-    action?: string;
-    count?: number;
-    data_keys?: string[];
-    data_values?: string[];
-    description?: string;
-    domain?: string;
-    epm?: number;
-    firstSeen?: string;
-    formatted_desc?: string;
-    lastSeen?: string;
-    newish?: number;
-    p75?: number;
-    retired?: number;
-    total_time?: number;
-    transactions?: number;
-  },
+  startTime: Moment,
+  endTime: Moment,
+  row: DataRow,
   sortKey: string | undefined,
   sortDirection: string | undefined
 ) => {
@@ -181,7 +166,7 @@ export const getPanelTableQuery = (
     FROM spans_experimental_starfish
     WHERE
       ${DEFAULT_WHERE}
-      ${date_filters} and
+      ${getDateQueryFilter(startTime, endTime)} AND
       group_id = '${row.group_id}'
     GROUP BY transaction
     ORDER BY ${orderBy}
@@ -201,7 +186,8 @@ const getOrderByFromKey = (
 };
 
 export const getPanelGraphQuery = (
-  date_filters: string,
+  startTime: Moment,
+  endTime: Moment,
   row: {
     group_id: string;
     action?: string;
@@ -222,6 +208,7 @@ export const getPanelGraphQuery = (
   },
   interval: number
 ) => {
+  const dateFilters = getDateQueryFilter(startTime, endTime);
   return `
     SELECT
       toStartOfInterval(start_timestamp, INTERVAL ${interval} HOUR) as interval,
@@ -230,7 +217,7 @@ export const getPanelGraphQuery = (
     FROM spans_experimental_starfish
     WHERE
       ${DEFAULT_WHERE}
-      ${date_filters} and
+      ${dateFilters} AND
       group_id = '${row.group_id}'
     GROUP BY interval
     ORDER BY interval
@@ -265,7 +252,7 @@ export const getPanelEventCount = (
     FROM spans_experimental_starfish
     WHERE
       ${DEFAULT_WHERE}
-      ${date_filters} and
+      ${date_filters} AND
       group_id = '${row.group_id}'
     GROUP BY transaction
     ORDER BY ${ORDERBY}
@@ -274,7 +261,6 @@ export const getPanelEventCount = (
 
 export const getMainTable = (
   startTime: Moment,
-  date_filters: string,
   endTime: Moment,
   transactionFilter: string | null,
   tableFilter?: string,
@@ -284,13 +270,10 @@ export const getMainTable = (
   newFilter?: string,
   oldFilter?: string
 ) => {
-  const filters = [
-    DEFAULT_WHERE,
-    date_filters,
-    transactionFilter,
-    tableFilter,
-    actionFilter,
-  ].filter(fil => !!fil);
+  const filters = [DEFAULT_WHERE, transactionFilter, tableFilter, actionFilter].filter(
+    fil => !!fil
+  );
+  const dateFilters = getDateQueryFilter(startTime, endTime);
   const duration = endTime.unix() - startTime.unix();
   const newColumn = getNewColumn(duration, startTime, endTime);
   const retiredColumn = getRetiredColumn(duration, startTime, endTime);
@@ -316,7 +299,8 @@ export const getMainTable = (
       ${retiredColumn}
     from default.spans_experimental_starfish
     where
-      ${filters.join(' and ')}
+      ${filters.join(' AND ')}
+      ${dateFilters}
     group by
       action,
       description,
@@ -334,10 +318,7 @@ export const getMainTable = (
 export const useQueryTransactionByTPM = (row: DataRow) => {
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
-  const dateFilters = `
-    greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
-    less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
-  `;
+  const dateFilters = getDateQueryFilter(startTime, endTime);
   const queryFilter = `group_id = '${row.group_id}'`;
 
   const query = `
@@ -369,4 +350,15 @@ export const useQueryTransactionByTPM = (row: DataRow) => {
     retry: false,
     initialData: [],
   });
+};
+
+const getDateQueryFilter = (startTime: Moment, endTime: Moment) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps({
+    start: startTime.format('YYYY-MM-DD HH:mm:ss'),
+    end: endTime.format('YYYY-MM-DD HH:mm:ss'),
+  });
+  return `
+  ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+  ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
+  `;
 };
