@@ -312,7 +312,6 @@ async function* fetchPaginatedReplayErrors(
     });
   }
 
-  const results: ReplayError[] = [];
   let cursor = {
     cursor: '0:0:0',
     results: true,
@@ -324,7 +323,6 @@ async function* fetchPaginatedReplayErrors(
     cursor = parseLinkHeader(pageLinks)?.next;
     yield data;
   }
-  return results;
 }
 
 export default useReplayData;
