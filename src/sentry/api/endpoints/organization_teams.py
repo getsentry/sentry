@@ -26,8 +26,6 @@ CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
 
 # OrganizationPermission + team:write
 class OrganizationTeamsPermission(OrganizationPermission):
-    # PUT and DELETE are irrelevant because they are handled by TeamDetailsEndpoint per the
-    # Sentry API: https://docs.sentry.io/api/teams/
     scope_map = {
         "GET": ["org:read", "org:write"],
         "POST": ["org:write", "team:write"],
@@ -159,25 +157,16 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         set_admin = result.get("set_admin")
 
         if set_admin:
-            if not features.has("organizations:team-roles", organization):
+            if not features.has("organizations:team-roles", organization) or not features.has(
+                "organizations:team-project-creation-all", organization
+            ):
                 return Response(
-                    {
-                        "detail": "Unable to set user as Team Admin because organization:team-roles flag is not enabled"
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            if not features.has("organizations:team-project-creation-all", organization):
-                return Response(
-                    {
-                        "detail": "Unable to set user as Team Admin because organization:team-project-creation-all flag is not enabled"
-                    },
+                    {"detail": "You do not have permission to join a new team as a team admin"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             if not self.should_add_creator_to_team(request):
                 return Response(
-                    {
-                        "detail": "Unable to set user as Team Admin because user is not authenticated"
-                    },
+                    {"detail": "You must be authenticated to join a new team as a Team Admin"},
                     status=status.HTTP_401_UNAUTHORIZED,
                 )
 
@@ -207,13 +196,13 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                         team=team, organizationmember=member, role="admin" if set_admin else None
                     )
                 except OrganizationMember.DoesNotExist:
-                    # Only delete team and return 400 if trying to set user as Team Admin but
-                    # creator is not a member of the organization
+                    # Only rollback team creation and return 400 if trying to set user as
+                    # Team Admin but creator is not a member of the organization
                     if set_admin:
-                        team.delete()
+                        transaction.set_rollback(True)
                         return Response(
                             {
-                                "detail": "Unable to set user as team admin because user is not a member of the organization",
+                                "detail": "You must be a member of the organization to join a new team as a Team Admin"
                             },
                             status=status.HTTP_400_BAD_REQUEST,
                         )
