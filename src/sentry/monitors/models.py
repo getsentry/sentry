@@ -264,6 +264,7 @@ class MonitorCheckIn(Model):
         app_label = "sentry"
         db_table = "sentry_monitorcheckin"
         indexes = [
+            models.Index(fields=["monitor_environment", "status"]),
             models.Index(fields=["monitor", "date_added", "status"]),
         ]
 
