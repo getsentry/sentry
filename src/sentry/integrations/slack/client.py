@@ -62,8 +62,6 @@ class SlackClient(IntegrationProxyClient):
         except ValueError:
             span.set_status(str(code))
 
-        span.set_tag("integration", "slack")
-
         is_ok = False
         # If Slack gives us back a 200 we still want to check the 'ok' param
         if resp:

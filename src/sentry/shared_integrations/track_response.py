@@ -57,8 +57,6 @@ class TrackResponseMixin:
         except ValueError:
             span.set_status(str(code))
 
-        span.set_tag(self.integration_type, self.name)
-
         extra = {
             "status_string": str(code),
             "error": str(error)[:256] if error else None,

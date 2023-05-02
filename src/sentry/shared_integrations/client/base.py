@@ -116,6 +116,9 @@ class BaseApiClient(TrackResponseMixin):
         currently_in_server_transaction = False
 
         with sentry_sdk.configure_scope() as scope:
+            if self.integration_type:
+                scope.set_tag(self.integration_type, self.name)
+
             if scope.span is not None:
                 parent_span_id = scope.span.span_id
                 trace_id = scope.span.trace_id
