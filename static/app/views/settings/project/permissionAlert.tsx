@@ -1,15 +1,17 @@
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import {t} from 'sentry/locale';
-import {Scope} from 'sentry/types';
+import {Project, Scope, Team} from 'sentry/types';
 
 interface Props extends React.ComponentPropsWithoutRef<typeof Alert> {
   access?: Scope[];
+  project?: Project | null | undefined;
+  team?: Team | null | undefined;
 }
 
-function PermissionAlert({access = ['project:write'], ...props}: Props) {
+function PermissionAlert({access = ['project:write'], project, team, ...props}: Props) {
   return (
-    <Access access={access}>
+    <Access access={access} project={project} team={team}>
       {({hasAccess}) =>
         !hasAccess && (
           <Alert data-test-id="project-permission-alert" type="warning" {...props}>

@@ -183,6 +183,7 @@ export function Control({
   isOpen,
   onClose,
   onInteractOutside,
+  shouldCloseOnInteractOutside,
   disabled,
   position = 'bottom-start',
   offset,
@@ -279,6 +280,7 @@ export function Control({
     offset,
     isOpen,
     onInteractOutside,
+    shouldCloseOnInteractOutside,
     onOpenChange: async open => {
       // On open
       if (open) {

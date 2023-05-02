@@ -1,6 +1,7 @@
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 
-export const getHostListQuery = () => {
+export const getHostListQuery = ({datetime}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
     domain,
     toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
@@ -11,6 +12,8 @@ export const getHostListQuery = () => {
     FROM spans_experimental_starfish
     WHERE module = 'http'
     AND domain != ''
+    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     GROUP BY domain, interval
     ORDER BY domain, interval asc
  `;
@@ -43,10 +46,18 @@ export const getEndpointListQuery = ({domain, action, datetime, transaction}) =>
   `;
 };
 
-export const getEndpointDomainsQuery = () => {
-  return `SELECT domain, count() as count
+export const getEndpointDomainsQuery = ({datetime}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
+  return `SELECT domain, count() as count,
+    sum(exclusive_time) as total_exclusive_time,
+    max(exclusive_time) as max,
+    quantile(0.99)(exclusive_time) as p99,
+    quantile(0.95)(exclusive_time) as p95,
+    quantile(0.50)(exclusive_time) as p50
     FROM spans_experimental_starfish
     WHERE module = 'http'
+    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     GROUP BY domain
     ORDER BY count DESC
   `;
@@ -152,4 +163,18 @@ export const getSpanFacetBreakdownQuery = ({groupId, datetime}) => {
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
  `;
+};
+
+export const getHostStatusBreakdownQuery = ({domain, datetime}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
+  return `
+    SELECT count() as count, status
+    FROM spans_experimental_starfish
+    WHERE module = 'http'
+    AND domain = '${domain}'
+    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
+    GROUP BY status
+    ORDER BY count DESC
+  `;
 };

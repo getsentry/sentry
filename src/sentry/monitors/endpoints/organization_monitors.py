@@ -1,4 +1,7 @@
+from typing import List
+
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
+from drf_spectacular.utils import extend_schema
 
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
@@ -6,10 +9,24 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOTFOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GLOBAL_PARAMS
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.query import in_iexact
 from sentry.models import Environment, Organization
-from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, MonitorType
-from sentry.monitors.serializers import MonitorSerializer
+from sentry.monitors.models import (
+    Monitor,
+    MonitorEnvironment,
+    MonitorLimitsExceeded,
+    MonitorStatus,
+    MonitorType,
+)
+from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.utils import signal_first_monitor_created
 from sentry.monitors.validators import MonitorValidator
 from sentry.search.utils import tokenize_query
@@ -44,16 +61,28 @@ MONITOR_ENVIRONMENT_ORDERING = Case(
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Crons"])
 class OrganizationMonitorsEndpoint(OrganizationEndpoint):
+    public = {"GET", "POST"}
     permission_classes = (OrganizationMonitorPermission,)
 
+    @extend_schema(
+        operation_id="Retrieve monitors for an organization",
+        parameters=[
+            GLOBAL_PARAMS.ORG_SLUG,
+            GLOBAL_PARAMS.PROJECT,
+            GLOBAL_PARAMS.ENVIRONMENT,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("MonitorList", List[MonitorSerializerResponse]),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Retrieve monitors for an organization
-        `````````````````````````````````````
-
-        :pparam string organization_slug: the slug of the organization
-        :auth: required
+        Lists monitors, including nested monitor enviroments. May be filtered to a project or environment.
         """
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -142,13 +171,21 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
+    @extend_schema(
+        operation_id="Create a monitor",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG],
+        request=MonitorValidator,
+        responses={
+            201: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+    )
     def post(self, request: Request, organization) -> Response:
         """
-        Create a monitor
-        ````````````````
-
-        :pparam string organization_slug: the slug of the organization
-        :auth: required
+        Create a new monitor.
         """
         validator = MonitorValidator(
             data=request.data, context={"organization": organization, "access": request.access}
@@ -158,15 +195,19 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
 
         result = validator.validated_data
 
-        monitor = Monitor.objects.create(
-            project_id=result["project"].id,
-            organization_id=organization.id,
-            name=result["name"],
-            slug=result.get("slug"),
-            status=result["status"],
-            type=result["type"],
-            config=result["config"],
-        )
+        try:
+            monitor = Monitor.objects.create(
+                project_id=result["project"].id,
+                organization_id=organization.id,
+                name=result["name"],
+                slug=result.get("slug"),
+                status=result["status"],
+                type=result["type"],
+                config=result["config"],
+            )
+        except MonitorLimitsExceeded as e:
+            return self.respond({type(e).__name__: str(e)}, status=403)
+
         self.create_audit_entry(
             request=request,
             organization=organization,

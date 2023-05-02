@@ -13,6 +13,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.models.actor import get_actor_id_for_user
 from sentry.types.activity import ActivityType
 from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS
 
@@ -93,6 +94,7 @@ ACTIONED_STATUSES = [
 
 UNRESOLVED_STATUSES = (
     GroupHistoryStatus.UNRESOLVED,
+    GroupHistoryStatus.ONGOING,
     GroupHistoryStatus.REGRESSED,
     GroupHistoryStatus.ESCALATING,
 )
@@ -106,6 +108,8 @@ RESOLVED_STATUSES = (
 
 PREVIOUS_STATUSES = {
     GroupHistoryStatus.UNRESOLVED: RESOLVED_STATUSES,
+    GroupHistoryStatus.ONGOING: RESOLVED_STATUSES
+    + (GroupHistoryStatus.REGRESSED, GroupHistoryStatus.ESCALATING, GroupHistoryStatus.IGNORED),
     GroupHistoryStatus.RESOLVED: UNRESOLVED_STATUSES,
     GroupHistoryStatus.SET_RESOLVED_IN_RELEASE: UNRESOLVED_STATUSES,
     GroupHistoryStatus.SET_RESOLVED_IN_COMMIT: UNRESOLVED_STATUSES,
@@ -125,6 +129,7 @@ ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
     ActivityType.SET_RESOLVED_IN_COMMIT.value: GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
     ActivityType.SET_RESOLVED_IN_RELEASE.value: GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
     ActivityType.SET_UNRESOLVED.value: GroupHistoryStatus.UNRESOLVED,
+    ActivityType.AUTO_SET_ONGOING: GroupHistoryStatus.UNRESOLVED,
 }
 
 
@@ -166,7 +171,7 @@ class GroupHistory(Model):
     status = BoundedPositiveIntegerField(
         default=0,
         choices=(
-            (GroupHistoryStatus.UNRESOLVED, _("Unresolved")),
+            (GroupHistoryStatus.ONGOING, _("Ongoing")),
             (GroupHistoryStatus.RESOLVED, _("Resolved")),
             (GroupHistoryStatus.AUTO_RESOLVED, _("Automatically Resolved")),
             (GroupHistoryStatus.IGNORED, _("Ignored")),
@@ -229,7 +234,7 @@ def record_group_history_from_activity_type(
     """
     status = ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS.get(activity_type, None)
 
-    # Substatus-based GroupHistory should overritde activity-based GroupHistory since it's more specific.
+    # Substatus-based GroupHistory should override activity-based GroupHistory since it's more specific.
     if group.substatus:
         status_str = GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS.get(group.substatus, None)
         status = STRING_TO_STATUS_LOOKUP.get(status_str, status)
@@ -241,16 +246,28 @@ def record_group_history_from_activity_type(
 def record_group_history(
     group: "Group",
     status: int,
-    actor: Optional[Union["RpcUser", "Team"]] = None,
+    actor: Optional[Union["User", "RpcUser", "Team"]] = None,
     release: Optional["Release"] = None,
 ):
+    from sentry.models import Team, User
+    from sentry.services.hybrid_cloud.user import RpcUser
+
     prev_history = get_prev_history(group, status)
+    actor_id = None
+    if actor:
+        if isinstance(actor, RpcUser) or isinstance(actor, User):
+            actor_id = get_actor_id_for_user(actor)
+        elif isinstance(actor, Team):
+            actor_id = actor.actor_id
+        else:
+            raise ValueError("record_group_history actor argument must be RPCUser or Team")
+
     return GroupHistory.objects.create(
         organization=group.project.organization,
         group=group,
         project=group.project,
         release=release,
-        actor_id=actor.actor_id if actor is not None else None,
+        actor_id=actor_id,
         status=status,
         prev_history=prev_history,
         prev_history_date=prev_history.date_added if prev_history else None,

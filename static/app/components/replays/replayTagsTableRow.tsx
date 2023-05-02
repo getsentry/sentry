@@ -40,14 +40,14 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
   return (
     <KeyValueTableRow
       keyName={
-        <KeyTooltip title={name} showOnlyOnOverflow>
+        <StyledTooltip title={name} showOnlyOnOverflow>
           {name}
-        </KeyTooltip>
+        </StyledTooltip>
       }
       value={
-        <ValueTooltip title={renderTagValue} isHoverable showOnlyOnOverflow>
+        <StyledTooltip title={renderTagValue} isHoverable showOnlyOnOverflow>
           {renderTagValue}
-        </ValueTooltip>
+        </StyledTooltip>
       }
     />
   );
@@ -55,11 +55,6 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
 
 export default ReplayTagsTableRow;
 
-const KeyTooltip = styled(Tooltip)`
+const StyledTooltip = styled(Tooltip)`
   ${p => p.theme.overflowEllipsis};
-`;
-
-const ValueTooltip = styled(KeyTooltip)`
-  display: flex;
-  justify-content: flex-end;
 `;

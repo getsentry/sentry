@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -91,30 +91,37 @@ export function StarfishView(props: BasePerformanceViewProps) {
           insertClickableAreasIntoSeries(transformedData, theme.red300);
 
           return (
-            <FailureRateChart
-              statsPeriod={eventView.statsPeriod}
-              height={120}
-              data={transformedData}
-              start={eventView.start as string}
-              end={eventView.end as string}
-              loading={eventData.loading}
-              utc={false}
-              grid={{
-                left: '0',
-                right: '0',
-                top: '16px',
-                bottom: '8px',
-              }}
-              definedAxisTicks={2}
-              handleSpikeAreaClick={e => {
-                if (e.componentType === 'markArea') {
-                  setSelectedSpike({
-                    startTimestamp: e.data.coord[0][0],
-                    endTimestamp: e.data.coord[1][0],
-                  });
-                }
-              }}
-            />
+            <Fragment>
+              <FailureDetailPanel
+                onClose={() => setSelectedSpike(null)}
+                chartData={transformedData}
+                spike={selectedSpike}
+              />
+              <FailureRateChart
+                statsPeriod={eventView.statsPeriod}
+                height={120}
+                data={transformedData}
+                start={eventView.start as string}
+                end={eventView.end as string}
+                loading={eventData.loading}
+                utc={false}
+                grid={{
+                  left: '0',
+                  right: '0',
+                  top: '16px',
+                  bottom: '8px',
+                }}
+                definedAxisTicks={2}
+                handleSpikeAreaClick={e => {
+                  if (e.componentType === 'markArea') {
+                    setSelectedSpike({
+                      startTimestamp: e.data.coord[0][0],
+                      endTimestamp: e.data.coord[1][0],
+                    });
+                  }
+                }}
+              />
+            </Fragment>
           );
         }}
       </EventsRequest>
@@ -172,7 +179,6 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 top: '8px',
                 bottom: '0',
               }}
-              disableMultiAxis
               definedAxisTicks={4}
               stacked
               isLineChart
@@ -187,7 +193,6 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
   return (
     <div data-test-id="starfish-view">
-      <FailureDetailPanel onClose={() => setSelectedSpike(null)} spike={selectedSpike} />
       <StyledRow minSize={200}>
         <ChartsContainer>
           <ChartsContainerItem>
@@ -212,7 +217,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           'endpoint',
           'tpm',
           'p50(duration)',
-          'p95(duration)',
+          'p50 change',
           'failure count',
           'cumulative time',
         ]}
