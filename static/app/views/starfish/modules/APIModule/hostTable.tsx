@@ -45,12 +45,12 @@ const COLUMN_ORDER = [
   {
     key: 'duration',
     name: 'Response Time',
-    width: 320,
+    width: 220,
   },
   {
     key: 'failure_rate',
     name: 'Failure Rate',
-    width: 320,
+    width: 220,
   },
   {
     key: 'p50',
