@@ -152,7 +152,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps} numeric>
-          <TimestampButton
+          <StyledTimestampButton
             format="mm:ss.SSS"
             onClick={(event: MouseEvent) => {
               event.stopPropagation();
@@ -217,6 +217,10 @@ const Text = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   padding: ${space(0.75)} ${space(1.5)};
+`;
+
+const StyledTimestampButton = styled(TimestampButton)`
+  padding-inline: ${space(1.5)};
 `;
 
 export default NetworkTableCell;
