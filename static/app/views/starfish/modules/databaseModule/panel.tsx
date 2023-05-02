@@ -345,7 +345,6 @@ function QueryDetailBody({
             end=""
             loading={isDataLoading}
             utc={false}
-            disableMultiAxis
             stacked
             isLineChart
             disableXAxis
@@ -364,7 +363,6 @@ function QueryDetailBody({
             loading={isDataLoading}
             utc={false}
             chartColors={[theme.charts.getColorPalette(4)[3]]}
-            disableMultiAxis
             stacked
             isLineChart
             disableXAxis
