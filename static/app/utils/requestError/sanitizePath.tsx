@@ -8,6 +8,7 @@ const SHORTENED_TYPE = {
   projects: 'projectSlug',
   teams: 'teamSlug',
   issues: 'issueId',
+  replays: 'replayId',
 };
 
 export function sanitizePath(path: string) {
@@ -41,10 +42,18 @@ export function sanitizePath(path: string) {
         // https://github.com/getsentry/sentry/blob/8d4482f01aa2122c6f6670ab84f9263e6f021467/src/sentry/api/urls.py#L1894
         // r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$",
         suffix = `${tertiarySlug}{teamSlug}/`;
-      } else if (isProject && tertiarySlug === 'replays/') {
+      } else if (
+        (isProject && tertiarySlug === 'replays/') ||
+        (isOrg && contentType === 'replays/')
+      ) {
+        // Projct replays endpoint
         // https://github.com/getsentry/sentry/blob/82074148753c21abf37f6f33408bb95691ed1597/src/sentry/api/urls.py#L2076
         // r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/$",
-        suffix = `${tertiarySlug}{replayId}/`;
+
+        // Org replays endpoint
+        // https://github.com/getsentry/sentry/blob/e45aafb8a62b5728129aed67574cb37a4bd69075/src/sentry/api/urls.py#L1658
+        // r"^(?P<organization_slug>[^/]+)/replays/(?P<replay_id>[\w-]+)/$"
+        suffix = isOrg ? `{replayId}/` : `replays/{replayId}/`;
       } else if (isRuleConditions) {
         // https://github.com/getsentry/sentry/blob/8d4482f01aa2122c6f6670ab84f9263e6f021467/src/sentry/api/urls.py#L1595
         // r"^(?P<organization_slug>[^\/]+)/rule-conditions/$",
