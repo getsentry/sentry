@@ -76,7 +76,7 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/measurements.time_to_full_display@millisecond": PREFIX + 127,
 }
 
-# 200 - 299
+# 200 - 399
 SHARED_TAG_STRINGS = {
     # release health
     "abnormal": PREFIX + 200,
@@ -134,7 +134,7 @@ SHARED_TAG_STRINGS = {
     "": PREFIX + 1000,
 }
 
-# 300-399
+# 400-499
 SPAN_METRICS_NAMES = {
     "s:spans/user@none": PREFIX + 300,
 }
