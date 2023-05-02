@@ -32,7 +32,9 @@ export default function Detail({children, detailKey, onClose}: DetailProps) {
 
   const panelRef = useRef<HTMLDivElement>(null);
   useOnClickOutside(panelRef, () => {
-    onClose?.();
+    if (!state.collapsed) {
+      onClose?.();
+    }
     setState({collapsed: true});
   });
 
