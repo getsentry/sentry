@@ -25,7 +25,10 @@ import {
   getPanelTableQuery,
   useQueryTransactionByTPM,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {
+  datetimeToClickhouseFilterTimestamps,
+  getDateFilters,
+} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 import {DataRow} from './databaseTableView';
@@ -146,9 +149,12 @@ function QueryDetailBody({
   const location = useLocation();
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
+    pageFilter.selection.datetime
+  );
   const DATE_FILTERS = `
-    greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
-    less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
+  ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+  ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
   `;
 
   const {isLoading: isP75GraphLoading, data: tpmTransactionGraphData} =
@@ -163,7 +169,12 @@ function QueryDetailBody({
     queryKey: ['dbQueryDetailsGraph', row.group_id, pageFilter.selection.datetime],
     queryFn: () =>
       fetch(
-        `${HOST}/?query=${getPanelGraphQuery(DATE_FILTERS, row, INTERVAL)}&format=sql`
+        `${HOST}/?query=${getPanelGraphQuery(
+          startTime,
+          endTime,
+          row,
+          INTERVAL
+        )}&format=sql`
       ).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -181,7 +192,8 @@ function QueryDetailBody({
       queryFn: () =>
         fetch(
           `${HOST}/?query=${getPanelTableQuery(
-            DATE_FILTERS,
+            startTime,
+            endTime,
             row,
             sort.sortHeader?.key,
             sort.direction

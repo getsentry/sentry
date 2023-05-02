@@ -17,7 +17,7 @@ import {
   getTopOperationsChart,
   getTopTablesChart,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 const INTERVAL = 12;
@@ -51,10 +51,12 @@ function parseOptions(options, label) {
 
 export default function APIModuleView({action, table, onChange}: Props) {
   const pageFilter = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilter);
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
+    pageFilter.selection.datetime
+  );
   const DATE_FILTERS = `
-    greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
-    less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
+    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
   `;
 
   const {data: operationData} = useQuery({
@@ -117,10 +119,20 @@ export default function APIModuleView({action, table, onChange}: Props) {
   }
 
   const topDomains = Object.values(seriesByDomain).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+    zeroFillSeries(
+      series,
+      moment.duration(INTERVAL, 'hours'),
+      moment(start_timestamp),
+      moment(end_timestamp)
+    )
   );
   const tpmDomains = Object.values(tpmByDomain).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+    zeroFillSeries(
+      series,
+      moment.duration(INTERVAL, 'hours'),
+      moment(start_timestamp),
+      moment(end_timestamp)
+    )
   );
 
   const tpmByQuery: {[query: string]: Series} = {};
@@ -151,10 +163,20 @@ export default function APIModuleView({action, table, onChange}: Props) {
   }
 
   const tpmData = Object.values(tpmByQuery).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+    zeroFillSeries(
+      series,
+      moment.duration(INTERVAL, 'hours'),
+      moment(start_timestamp),
+      moment(end_timestamp)
+    )
   );
   const topData = Object.values(seriesByQuery).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+    zeroFillSeries(
+      series,
+      moment.duration(INTERVAL, 'hours'),
+      moment(start_timestamp),
+      moment(end_timestamp)
+    )
   );
 
   return (
