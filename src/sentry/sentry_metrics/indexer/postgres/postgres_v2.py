@@ -131,7 +131,10 @@ class PGStringIndexerV2(StringIndexer):
             # After the DB has successfully committed writes, we exit this
             # context manager and consume quotas. If the DB crashes we
             # shouldn't consume quota.
-            filtered_db_write_keys = writes_limiter_state.accepted_keys
+            use_case_collection = writes_limiter_state.accepted_keys
+            # TODO: later we will use the whole use case collection instead
+            # of pulling out the key collection
+            filtered_db_write_keys = use_case_collection.mapping[new_use_case_id]
             del db_write_keys
 
             rate_limited_key_results = KeyResults()

@@ -98,7 +98,7 @@ class RateLimitState:
     _grants: Sequence[GrantedQuota]
     _timestamp: Timestamp
 
-    accepted_keys: KeyCollection
+    accepted_keys: UseCaseKeyCollection
     dropped_strings: Sequence[DroppedString]
 
     def __enter__(self) -> RateLimitState:
@@ -179,7 +179,9 @@ class WritesLimiter:
             _requests=requests,
             _grants=grants,
             _timestamp=timestamp,
-            accepted_keys=KeyCollection(granted_key_collection),
+            accepted_keys=UseCaseKeyCollection(
+                {use_case_id: KeyCollection(granted_key_collection)}
+            ),
             dropped_strings=dropped_strings,
         )
         return state
