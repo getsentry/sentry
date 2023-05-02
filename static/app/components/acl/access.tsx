@@ -1,10 +1,10 @@
-import {Fragment, useContext} from 'react';
+import {Fragment} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {Organization, Project, Scope, Team} from 'sentry/types';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import withOrganization from 'sentry/utils/withOrganization';
 
 // Props that function children will get.
 type ChildRenderProps = {
@@ -15,6 +15,7 @@ type ChildRenderProps = {
 type ChildFunction = (props: ChildRenderProps) => JSX.Element;
 
 export type Props = {
+  organization: Organization;
   /**
    * List of required access levels
    */
@@ -23,6 +24,7 @@ export type Props = {
    * Children can be a node or a function as child.
    */
   children?: React.ReactNode | ChildFunction;
+
   /**
    * Requires superuser
    */
@@ -36,7 +38,6 @@ export type Props = {
    * of a parent team, they will have appropriate scopes.
    */
   project?: Project | null | undefined;
-
   /**
    * Optional: To be used when you need to check for access to the Team
    *
@@ -50,12 +51,17 @@ export type Props = {
 /**
  * Component to handle access restrictions.
  */
-function Access({children, isSuperuser = false, access = [], team, project}: Props) {
+function Access({
+  children,
+  isSuperuser = false,
+  access = [],
+  team,
+  project,
+  organization,
+}: Props) {
   const config = useLegacyStore(ConfigStore);
-  const organization = useContext(OrganizationContext);
 
-  const {access: orgAccess} =
-    organization || ({access: []} as {access: Organization['access']});
+  const {access: orgAccess} = organization || {access: []};
   const {access: teamAccess} = team || {access: [] as Team['access']};
   const {access: projAccess} = project || {access: [] as Project['access']};
 
@@ -97,4 +103,4 @@ export function hasEveryAccess(
   );
 }
 
-export default Access;
+export default withOrganization(Access);
