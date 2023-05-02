@@ -74,9 +74,11 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
         mock_client._request = MagicMock(return_value=mock_response)
 
+        assert not mock_should_operate.called
         assert not mock_client.authorize_request.called
         assert not mock_client._request.called
         proxy_response = self.client.get(self.path, **self.valid_header_kwargs)
+        assert mock_should_operate.called
         assert mock_client.authorize_request.called
         assert mock_client._request.called
 
@@ -104,11 +106,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert self.endpoint_cls._validate_sender(self.valid_request)
 
     @patch.object(Integration, "get_installation")
-    @override_settings(
-        SENTRY_SUBNET_SECRET=secret,
-        SILO_MODE=SiloMode.CONTROL,
-        SENTRY_CONTROL_ADDRESS="https://sentry.io",
-    )
+    @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
     def test__validate_request(self, mock_get_installation):
         # Missing header data
         request = self.factory.get(self.path)
