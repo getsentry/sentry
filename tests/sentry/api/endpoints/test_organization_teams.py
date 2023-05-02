@@ -307,7 +307,7 @@ class OrganizationTeamsCreateTest(APITestCase):
 
     @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
     def test_team_admin_member_does_not_exist(self):
-        team_count = Team.objects.count()
+        prior_team_count = Team.objects.count()
 
         # Multiple calls are made to OrganizationMember.objects.get, so in order to only raise
         # OrganizationMember.DoesNotExist for the correct call, we set a reference to the actual
@@ -330,5 +330,4 @@ class OrganizationTeamsCreateTest(APITestCase):
             assert response.data == {
                 "detail": "You must be a member of the organization to join a new team as a Team Admin",
             }
-        # assert that the created team was deleted because adding the user a team admin failed
-        assert Team.objects.count() == team_count
+        assert Team.objects.count() == prior_team_count
