@@ -25,9 +25,7 @@ STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
     IndexerStorage.MOCK: MockIndexer,
 }
 
-_INGEST_SCHEMA: JsonCodec[Any] = JsonCodec(
-    schema=sentry_kafka_schemas.get_schema("ingest-metrics")["schema"]
-)
+_INGEST_SCHEMA: JsonCodec[Any] = sentry_kafka_schemas.get_codec("ingest-metrics")
 
 
 class MessageProcessor:
