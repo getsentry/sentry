@@ -13,7 +13,7 @@ from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
 if typing.TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models import Organization, Project
 
 
 logger = logging.getLogger(__name__)
@@ -484,7 +484,9 @@ class Quota(Service):
         """
         return (_limit_from_settings(options.get("system.rate-limit")), 60)
 
-    def get_blended_sample_rate(self, project: "Project") -> Optional[float]:
+    def get_blended_sample_rate(
+        self, organization: Optional["Organization"], project: Optional["Project"]
+    ) -> Optional[float]:
         """
         Returns the blended sample rate for an org based on the package that they are currently on. Returns ``None``
         if the creation of a uniform rule with blended sample rate is not supported for that project.
