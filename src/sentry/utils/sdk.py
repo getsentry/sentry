@@ -465,13 +465,35 @@ def check_tag(tag_key: str, expected_value: str) -> None:
     from what we want to set it to.
     """
     with configure_scope() as scope:
-        # First check that the tag exists, because though it's true that "no value yet" doesn't
-        # match "some new value," we don't want to flag that as a mismatch.
-        if tag_key in scope._tags and scope._tags[tag_key] != expected_value:
+        current_value = scope._tags.get(tag_key)
+
+        if not current_value:
+            return
+
+        # There are times where we can only narrow down the current org to a list, for example if
+        # we've derived it from an integration, since integrations can be shared across multiple orgs.
+        if tag_key == "organization.slug" and current_value == "[multiple orgs]":
+            # Currently, we don't have access in this function to the underlying slug list
+            # corresponding to an incoming "[multiple orgs]" tag, so we can't check it against the
+            # current list. Regardless of whether the lists would match, it's currently not flagged
+            # as scope bleed. (Fortunately, that version of scope bleed should be a pretty rare case,
+            # since only ~3% of integrations belong to multiple orgs, making the chance of it
+            # happening twice around 0.1%.) So for now, just skip that case.
+            if expected_value != "[multiple orgs]":
+                # If we've now figured out which of that list is correct, don't count it as a mismatch.
+                # But if it currently is a list and `expected_value` is something *not* in that list,
+                # we're almost certainly dealing with scope bleed, so we should continue with our check.
+                current_org_list = scope._contexts.get("organization", {}).get(
+                    "multiple possible", []
+                )
+                if current_org_list and expected_value in current_org_list:
+                    return
+
+        if current_value != expected_value:
             scope.set_tag("possible_mistag", True)
             scope.set_tag(f"scope_bleed.{tag_key}", True)
             extra = {
-                f"previous_{tag_key}_tag": scope._tags[tag_key],
+                f"previous_{tag_key}_tag": current_value,
                 f"new_{tag_key}_tag": expected_value,
             }
             merge_context_into_scope("scope_bleed", extra, scope)
