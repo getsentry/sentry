@@ -165,7 +165,7 @@ tags.sku_class:enterprise #enterprise`;
                       onSave: this.handleOwnershipSave,
                     })
                   }
-                  disabled={!!ownership && editOwnershipeRulesDisabled}
+                  disabled={!!ownership && editOwnershipRulesDisabled}
                 >
                   {t('Edit Rules')}
                 </Button>
@@ -186,7 +186,7 @@ tags.sku_class:enterprise #enterprise`;
         </p>
 
         <PermissionAlert
-          access={!editOwnershipeRulesDisabled ? ['project:read'] : ['project:write']}
+          access={!editOwnershipRulesDisabled ? ['project:read'] : ['project:write']}
           project={project}
         />
         <CodeOwnerErrors
@@ -221,7 +221,7 @@ tags.sku_class:enterprise #enterprise`;
                     onSave: this.handleOwnershipSave,
                   })
                 }
-                disabled={editOwnershipeRulesDisabled}
+                disabled={editOwnershipRulesDisabled}
               >
                 {t('Edit')}
               </Button>,
