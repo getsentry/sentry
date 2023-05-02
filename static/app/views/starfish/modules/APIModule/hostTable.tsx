@@ -1,3 +1,4 @@
+import {ReactNode} from 'react';
 import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
@@ -44,12 +45,12 @@ const COLUMN_ORDER = [
   {
     key: 'duration',
     name: 'Response Time',
-    width: 320,
+    width: 220,
   },
   {
     key: 'failure_rate',
     name: 'Failure Rate',
-    width: 320,
+    width: 220,
   },
   {
     key: 'p50',
@@ -264,18 +265,20 @@ function renderBodyCell({
   return row[column.key];
 }
 
-function MeterBar({
+export function MeterBar({
   minWidth,
   meterItems,
   row,
   total,
   color,
+  meterText,
 }: {
   color: string;
   meterItems: string[];
   minWidth: number;
-  row: HostTableRow;
+  row: any;
   total: number;
+  meterText?: ReactNode;
 }) {
   const widths = [] as number[];
   meterItems.reduce((acc, item, index) => {
@@ -292,7 +295,9 @@ function MeterBar({
   }, 0);
   return (
     <span>
-      <MeterText>{`${getDuration(row[meterItems[0]] / 1000, 0, true, true)}`}</MeterText>
+      <MeterText>
+        {meterText ?? `${getDuration(row[meterItems[0]] / 1000, 0, true, true)}`}
+      </MeterText>
       <MeterContainer width={100}>
         <Meter width={widths[0]} color={color} />
       </MeterContainer>

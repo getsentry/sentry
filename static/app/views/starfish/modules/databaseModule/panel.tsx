@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {CSSProperties, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
@@ -6,6 +6,7 @@ import keyBy from 'lodash/keyBy';
 import moment from 'moment';
 import * as qs from 'query-string';
 
+import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -22,6 +23,7 @@ import {
   getPanelEventCount,
   getPanelGraphQuery,
   getPanelTableQuery,
+  useQueryTransactionByTPM,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
@@ -41,6 +43,7 @@ type EndpointDetailBodyProps = {
 
 type TransactionListDataRow = {
   count: number;
+  frequency: number;
   group_id: string;
   p75: number;
   transaction: string;
@@ -102,6 +105,36 @@ export default function QueryDetail({
   );
 }
 
+function formatRow(description, queryDetail) {
+  let acc = '';
+  return description.split('').map((token, i) => {
+    acc += token;
+    let final: string | React.ReactElement | null = null;
+    if (acc === queryDetail.action) {
+      final = <Operation key={i}>{queryDetail.action} </Operation>;
+    } else if (acc === queryDetail.domain) {
+      final = <Domain key={i}>{queryDetail.domain} </Domain>;
+    } else if (
+      ['FROM', 'INNER', 'JOIN', 'WHERE', 'ON', 'AND', 'NOT', 'NULL', 'IS'].includes(acc)
+    ) {
+      final = <Keyword key={i}>{acc}</Keyword>;
+    } else if (['(', ')'].includes(acc)) {
+      final = <Bracket key={i}>{acc}</Bracket>;
+    } else if (token === ' ' || token === '\n' || description[i + 1] === ')') {
+      final = acc;
+    } else if (i === description.length - 1) {
+      final = acc;
+    }
+    if (final) {
+      acc = '';
+      const result = final;
+      final = null;
+      return result;
+    }
+    return null;
+  });
+}
+
 function QueryDetailBody({
   row,
   nextRow,
@@ -117,6 +150,9 @@ function QueryDetailBody({
     greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
     less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
   `;
+
+  const {isLoading: isP75GraphLoading, data: tpmTransactionGraphData} =
+    useQueryTransactionByTPM(row);
 
   const [sort, setSort] = useState<{
     direction: 'desc' | 'asc' | undefined;
@@ -169,26 +205,34 @@ function QueryDetailBody({
   });
 
   const isDataLoading =
-    isLoading || isTableLoading || isEventCountLoading || isRowLoading;
-  let avgP75 = 0;
-  if (!isDataLoading) {
-    avgP75 =
-      tableData.reduce((acc, transaction) => acc + transaction.p75, 0) / tableData.length;
-  }
+    isLoading ||
+    isTableLoading ||
+    isEventCountLoading ||
+    isRowLoading ||
+    isP75GraphLoading;
 
   const eventCountMap = keyBy(eventCountData, 'transaction');
 
   const mergedTableData: TransactionListDataRow[] = tableData.map(data => {
     const {transaction} = data;
     const eventData = eventCountMap[transaction];
-    if (eventData) {
-      return {...data, ...eventData};
+    if (eventData?.uniqueEvents) {
+      const frequency = data.count / eventData.uniqueEvents;
+      return {...data, frequency, ...eventData};
     }
     return data;
   });
 
+  const minMax = calculateOutlierMinMax(mergedTableData);
+
   const [countSeries, p75Series] = throughputQueryToChartData(
     graphData,
+    startTime,
+    endTime
+  );
+
+  const tpmTransactionSeries = tpmTransactionQueryToChartData(
+    tpmTransactionGraphData,
     startTime,
     endTime
   );
@@ -226,8 +270,14 @@ function QueryDetailBody({
   ): React.ReactNode => {
     const {key} = column;
     const value = dataRow[key];
-    if (key === 'frequency') {
-      return <span>{(dataRow.count / dataRow.uniqueEvents).toFixed(2)}</span>;
+    const style: CSSProperties = {};
+    let rendereredValue = value;
+
+    if (
+      minMax[key] &&
+      ((value as number) > minMax[key].max || (value as number) < minMax[key].min)
+    ) {
+      style.color = theme.red400;
     }
     if (key === 'transaction') {
       return (
@@ -241,32 +291,48 @@ function QueryDetailBody({
       );
     }
     if (key === 'p75') {
-      const p75threshold = 1.5 * avgP75;
-      return (
-        <span style={value > p75threshold ? {color: theme.red400} : {}}>
-          {value?.toFixed(2)}ms
-        </span>
-      );
+      rendereredValue = `${dataRow[key]?.toFixed(2)}ms`;
     }
-    return <span>{value}</span>;
+    if (key === 'frequency') {
+      rendereredValue = dataRow[key]?.toFixed(2);
+    }
+
+    return <span style={style}>{rendereredValue}</span>;
   };
 
   return (
     <div>
+      <Paginator>
+        <SimplePagination
+          disableLeft={!prevRow}
+          disableRight={!nextRow}
+          onLeftClick={() => onRowChange(prevRow)}
+          onRightClick={() => onRowChange(nextRow)}
+        />
+      </Paginator>
       <h2>{t('Query Detail')}</h2>
-      <SimplePagination
-        disableLeft={!prevRow}
-        disableRight={!nextRow}
-        onLeftClick={() => onRowChange(prevRow)}
-        onRightClick={() => onRowChange(nextRow)}
-      />
-      <p>
-        {t(
-          'Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans. Detailed summary of db query spans.'
-        )}
-      </p>
+      <FlexRowContainer>
+        <FlexRowItem>
+          <SubHeader>
+            {t('First Seen')}
+            {row.newish === 1 && <Badge type="new" text="new" />}
+          </SubHeader>
+          <SubSubHeader>{row.firstSeen}</SubSubHeader>
+        </FlexRowItem>
+        <FlexRowItem>
+          <SubHeader>
+            {t('Last Seen')}
+            {row.retired === 1 && <Badge type="warning" text="old" />}
+          </SubHeader>
+          <SubSubHeader>{row.lastSeen}</SubSubHeader>
+        </FlexRowItem>
+        <FlexRowItem>
+          <SubHeader>{t('Total Time')}</SubHeader>
+          <SubSubHeader>{row.total_time.toFixed(2)}ms</SubSubHeader>
+        </FlexRowItem>
+      </FlexRowContainer>
       <SubHeader>{t('Query Description')}</SubHeader>
-      <FormattedCode>{row.formatted_desc}</FormattedCode>
+      <FormattedCode>{formatRow(row.formatted_desc, row)}</FormattedCode>
       <FlexRowContainer>
         <FlexRowItem>
           <SubHeader>{t('Throughput')}</SubHeader>
@@ -279,7 +345,6 @@ function QueryDetailBody({
             end=""
             loading={isDataLoading}
             utc={false}
-            disableMultiAxis
             stacked
             isLineChart
             disableXAxis
@@ -298,10 +363,32 @@ function QueryDetailBody({
             loading={isDataLoading}
             utc={false}
             chartColors={[theme.charts.getColorPalette(4)[3]]}
-            disableMultiAxis
             stacked
             isLineChart
             disableXAxis
+            hideYAxisSplitLine
+          />
+        </FlexRowItem>
+      </FlexRowContainer>
+      <FlexRowContainer>
+        <FlexRowItem>
+          <SubHeader>{t('Highest throughput transactions')}</SubHeader>
+          <Chart
+            statsPeriod="24h"
+            height={140}
+            data={tpmTransactionSeries}
+            start=""
+            end=""
+            loading={isDataLoading}
+            grid={{
+              left: '0',
+              right: '0',
+              top: '16px',
+              bottom: '8px',
+            }}
+            utc={false}
+            disableXAxis
+            isLineChart
             hideYAxisSplitLine
           />
         </FlexRowItem>
@@ -352,7 +439,7 @@ const HeaderWrapper = styled('div')`
   cursor: pointer;
 `;
 
-function SortableHeader({title, direction, onClick}) {
+export function SortableHeader({title, direction, onClick}) {
   const arrow = !direction ? null : (
     <StyledIconArrow size="xs" direction={direction === 'desc' ? 'down' : 'up'} />
   );
@@ -380,6 +467,56 @@ const throughputQueryToChartData = (
   ];
 };
 
+// Calculates the outlier min max for all number based rows based on the IQR Method
+const calculateOutlierMinMax = (
+  data: TransactionListDataRow[]
+): Record<string, {max: number; min: number}> => {
+  const minMax: Record<string, {max: number; min: number}> = {};
+  if (data.length > 0) {
+    Object.entries(data[0]).forEach(([colKey, value]) => {
+      if (typeof value === 'number') {
+        minMax[colKey] = findOutlierMinMax(data, colKey);
+      }
+    });
+  }
+  return minMax;
+};
+
+function findOutlierMinMax(data: any[], property: string): {max: number; min: number} {
+  const sortedValues = [...data].sort((a, b) => a[property] - b[property]);
+
+  if (data.length < 4) {
+    return {min: data[0][property], max: data[data.length - 1][property]};
+  }
+
+  const q1 = sortedValues[Math.floor(sortedValues.length * (1 / 4))][property];
+  const q3 = sortedValues[Math.ceil(sortedValues.length * (3 / 4))][property];
+  const iqr = q3 - q1;
+
+  return {min: q1 - iqr * 1.5, max: q3 + iqr * 1.5};
+}
+
+const tpmTransactionQueryToChartData = (
+  data: {count: number; interval: string; transaction: string}[],
+  startTime: moment.Moment,
+  endTime: moment.Moment
+): Series[] => {
+  const seriesMap: Record<string, Series> = {};
+
+  data.forEach(row => {
+    const dataEntry = {value: row.count, name: row.interval};
+    if (!seriesMap[row.transaction]) {
+      seriesMap[row.transaction] = {
+        seriesName: row.transaction,
+        data: [],
+      };
+    }
+    seriesMap[row.transaction].data.push(dataEntry);
+  });
+  return Object.values(seriesMap).map(series =>
+    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+  );
+};
 const StyledIconArrow = styled(IconArrow)`
   vertical-align: top;
 `;
@@ -413,4 +550,27 @@ const FormattedCode = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   overflow-x: auto;
   white-space: pre;
+`;
+
+const Operation = styled('b')`
+  color: ${p => p.theme.blue400};
+`;
+
+const Domain = styled('b')`
+  color: ${p => p.theme.green400};
+  margin-right: -${space(0.5)};
+`;
+
+const Keyword = styled('b')`
+  color: ${p => p.theme.yellow400};
+`;
+
+const Bracket = styled('b')`
+  color: ${p => p.theme.pink400};
+`;
+
+const Paginator = styled('div')`
+  width: 33%;
+  position: absolute;
+  right: 0;
 `;

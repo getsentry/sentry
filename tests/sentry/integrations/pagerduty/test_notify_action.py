@@ -35,7 +35,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         self.service = PagerDutyService.objects.create(
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
-            organization_integration=self.integration.organizationintegration_set.first(),
+            organization_integration_id=self.integration.organizationintegration_set.first().id,
         )
         self.installation = self.integration.get_installation(self.organization.id)
 
@@ -144,7 +144,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
 
         label = rule.render_label()
-        assert label == "Send a notification to PagerDuty account [removed] and service [removed]"
+        assert label == "Send a notification to PagerDuty account [removed] and service Critical"
 
     def test_valid_service_options(self):
         # create new org that has the same pd account but different a service added
@@ -161,13 +161,15 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         new_service = PagerDutyService.objects.create(
             service_name="New Service",
             integration_key="new_service_key",
-            organization_integration=oi,
+            organization_integration_id=oi.id,
         )
 
         rule = self.get_rule(data={"account": self.integration.id})
 
         service_options = rule.get_services()
         assert service_options == [(new_service.id, new_service.service_name)]
+        assert "choice" == rule.form_fields["service"]["type"]
+        assert service_options == rule.form_fields["service"]["choices"]
 
     @responses.activate
     def test_valid_service_selected(self):
@@ -195,7 +197,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         service = PagerDutyService.objects.create(
             service_name=service_info["service_name"],
             integration_key=service_info["integration_key"],
-            organization_integration=integration.organizationintegration_set.first(),
+            organization_integration_id=integration.organizationintegration_set.first().id,
         )
         self.installation = integration.get_installation(self.organization.id)
 
@@ -239,7 +241,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         service = PagerDutyService.objects.create(
             service_name=service_info["service_name"],
             integration_key=service_info["integration_key"],
-            organization_integration=integration.organizationintegration_set.first(),
+            organization_integration_id=integration.organizationintegration_set.first().id,
         )
         self.installation = integration.get_installation(self.organization.id)
 
