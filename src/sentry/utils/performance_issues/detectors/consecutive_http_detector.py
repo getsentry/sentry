@@ -151,13 +151,12 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         return True
 
     def _span_occurs_after_lcp(self, span):
-        return (
-            datetime.fromtimestamp(span.get("timestamp"))
-            > datetime.fromtimestamp(self._event.get("start_timestamp"))
-            + timedelta(milliseconds=self.lcp)
-            if self.lcp is not None
-            else True
+        span_end = datetime.fromtimestamp(span.get("timestamp"))
+        lcp_timestamp = datetime.fromtimestamp(self._event.get("start_timestamp")) + timedelta(
+            milliseconds=self.lcp
         )
+
+        return span_end > lcp_timestamp if self.lcp is not None else True
 
     def _is_event_from_browser_javascript_sdk(self):
         sdk_name = get_path(self.event(), "sdk", "name")
