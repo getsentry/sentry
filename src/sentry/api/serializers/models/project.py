@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, cast
 
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.db.models.aggregates import Count
@@ -350,7 +351,10 @@ class ProjectSerializer(Serializer):  # type: ignore
 
         with measure_span("other"):
             # Avoid duplicate queries for actors.
-            recipient_actor = RpcActor.from_object(user)
+            if isinstance(user, AnonymousUser):
+                recipient_actor = user
+            else:
+                recipient_actor = RpcActor.from_object(user)
             for project, serialized in result.items():
                 value = get_most_specific_notification_setting_value(
                     notification_settings_by_scope,
