@@ -244,10 +244,8 @@ function ResolveActions({
         <ResolveButton
           priority={priority}
           size={size}
-          title={t(
-            'Resolves the issue. The issue will get unresolved if it happens again.'
-          )}
-          tooltipProps={{delay: 300, disabled: disabled || disableTooltip}}
+          title={t("We'll nag you with a notification if the issue's seen again.")}
+          tooltipProps={{delay: 1000, disabled: disabled || disableTooltip}}
           icon={hideIcon ? null : <IconCheckmark size={size} />}
           onClick={() =>
             openConfirmModal({

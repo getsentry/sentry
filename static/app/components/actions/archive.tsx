@@ -115,10 +115,8 @@ function ArchiveActions({
     <ButtonBar className={className} merged>
       <ArchiveButton
         size={size}
-        tooltipProps={{delay: 300, disabled: disabled || disableTooltip}}
-        title={t(
-          'Silences alerts for this issue and removes it from the issue stream by default.'
-        )}
+        tooltipProps={{delay: 1000, disabled: disabled || disableTooltip}}
+        title={t('Hides the issue until the sh*t hits the fan and events escalate.')}
         icon={hideIcon ? null : <IconArchive size={size} />}
         onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
         disabled={disabled}
