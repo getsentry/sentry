@@ -258,7 +258,7 @@ class SlackTasksTest(TestCase):
             integration_service._serialize_integration(self.integration), "my-channel", 180
         )
 
-        trigger_action = AlertRuleTriggerAction.objects.get(integration=self.integration.id)
+        trigger_action = AlertRuleTriggerAction.objects.get(integration_id=self.integration.id)
         assert trigger_action.target_identifier == "chan-id"
 
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
@@ -337,7 +337,7 @@ class SlackTasksTest(TestCase):
             integration_service._serialize_integration(self.integration), "my-channel", 180
         )
 
-        trigger_action = AlertRuleTriggerAction.objects.get(integration=self.integration.id)
+        trigger_action = AlertRuleTriggerAction.objects.get(integration_id=self.integration.id)
         assert trigger_action.target_identifier == "chan-id"
         assert AlertRule.objects.get(id=alert_rule.id)
 
@@ -352,6 +352,7 @@ class SlackTasksTest(TestCase):
         with self.tasks():
             post_message.apply_async(
                 kwargs={
+                    "integration_id": self.integration.id,
                     "payload": {"key": ["val"]},
                     "log_error_message": "my_message",
                     "log_params": {"log_key": "log_value"},
@@ -371,6 +372,7 @@ class SlackTasksTest(TestCase):
         with self.tasks():
             post_message.apply_async(
                 kwargs={
+                    "integration_id": self.integration.id,
                     "payload": {"key": ["val"]},
                     "log_error_message": "my_message",
                     "log_params": {"log_key": "log_value"},

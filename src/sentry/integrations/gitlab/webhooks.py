@@ -11,7 +11,7 @@ from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.integrations.utils.cleanup import clear_tags_and_context
+from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models import Commit, CommitAuthor, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.services.hybrid_cloud.integration import integration_service
