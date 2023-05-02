@@ -1,7 +1,6 @@
-import {useState} from 'react';
+import {CSSProperties, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import keyBy from 'lodash/keyBy';
 import moment from 'moment';
 import * as qs from 'query-string';
@@ -20,9 +19,9 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
 import {
-  getPanelEventCount,
-  getPanelGraphQuery,
-  getPanelTableQuery,
+  useQueryPanelEventCount,
+  useQueryPanelGraph,
+  useQueryPanelTable,
   useQueryTransactionByTPM,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
@@ -31,7 +30,6 @@ import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {DataRow} from './databaseTableView';
 
 const INTERVAL = 12;
-const HOST = 'http://localhost:8080';
 
 type EndpointDetailBodyProps = {
   isDataLoading: boolean;
@@ -41,8 +39,9 @@ type EndpointDetailBodyProps = {
   prevRow?: DataRow;
 };
 
-type TransactionListDataRow = {
+export type TransactionListDataRow = {
   count: number;
+  frequency: number;
   group_id: string;
   p75: number;
   transaction: string;
@@ -145,10 +144,6 @@ function QueryDetailBody({
   const location = useLocation();
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
-  const DATE_FILTERS = `
-    greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
-    less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
-  `;
 
   const {isLoading: isP75GraphLoading, data: tpmTransactionGraphData} =
     useQueryTransactionByTPM(row);
@@ -158,50 +153,16 @@ function QueryDetailBody({
     sortHeader: TableColumnHeader | undefined;
   }>({direction: undefined, sortHeader: undefined});
 
-  const {isLoading, data: graphData} = useQuery({
-    queryKey: ['dbQueryDetailsGraph', row.group_id, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getPanelGraphQuery(DATE_FILTERS, row, INTERVAL)}&format=sql`
-      ).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
+  const {isLoading, data: graphData} = useQueryPanelGraph(row, INTERVAL);
 
-  const {isLoading: isTableLoading, data: tableData} = useQuery<TransactionListDataRow[]>(
-    {
-      queryKey: [
-        'dbQueryDetailsTable',
-        row.group_id,
-        pageFilter.selection.datetime,
-        sort.sortHeader?.key,
-        sort.direction,
-      ],
-      queryFn: () =>
-        fetch(
-          `${HOST}/?query=${getPanelTableQuery(
-            DATE_FILTERS,
-            row,
-            sort.sortHeader?.key,
-            sort.direction
-          )}`
-        ).then(res => res.json()),
-      retry: true,
-      initialData: [],
-    }
+  const {isLoading: isTableLoading, data: tableData} = useQueryPanelTable(
+    row,
+    sort.sortHeader?.key,
+    sort.direction
   );
 
-  const {isLoading: isEventCountLoading, data: eventCountData} = useQuery<
-    Partial<TransactionListDataRow>[]
-  >({
-    queryKey: ['dbQueryDetailsEventCount', row.group_id, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getPanelEventCount(DATE_FILTERS, row)}`).then(res =>
-        res.json()
-      ),
-    retry: true,
-    initialData: [],
-  });
+  const {isLoading: isEventCountLoading, data: eventCountData} =
+    useQueryPanelEventCount(row);
 
   const isDataLoading =
     isLoading ||
@@ -209,22 +170,20 @@ function QueryDetailBody({
     isEventCountLoading ||
     isRowLoading ||
     isP75GraphLoading;
-  let avgP75 = 0;
-  if (!isDataLoading) {
-    avgP75 =
-      tableData.reduce((acc, transaction) => acc + transaction.p75, 0) / tableData.length;
-  }
 
   const eventCountMap = keyBy(eventCountData, 'transaction');
 
   const mergedTableData: TransactionListDataRow[] = tableData.map(data => {
     const {transaction} = data;
     const eventData = eventCountMap[transaction];
-    if (eventData) {
-      return {...data, ...eventData};
+    if (eventData?.uniqueEvents) {
+      const frequency = data.count / eventData.uniqueEvents;
+      return {...data, frequency, ...eventData} as TransactionListDataRow;
     }
-    return data;
+    return data as TransactionListDataRow;
   });
+
+  const minMax = calculateOutlierMinMax(mergedTableData);
 
   const [countSeries, p75Series] = throughputQueryToChartData(
     graphData,
@@ -271,8 +230,14 @@ function QueryDetailBody({
   ): React.ReactNode => {
     const {key} = column;
     const value = dataRow[key];
-    if (key === 'frequency') {
-      return <span>{(dataRow.count / dataRow.uniqueEvents).toFixed(2)}</span>;
+    const style: CSSProperties = {};
+    let rendereredValue = value;
+
+    if (
+      minMax[key] &&
+      ((value as number) > minMax[key].max || (value as number) < minMax[key].min)
+    ) {
+      style.color = theme.red400;
     }
     if (key === 'transaction') {
       return (
@@ -286,14 +251,13 @@ function QueryDetailBody({
       );
     }
     if (key === 'p75') {
-      const p75threshold = 1.5 * avgP75;
-      return (
-        <span style={value > p75threshold ? {color: theme.red400} : {}}>
-          {value?.toFixed(2)}ms
-        </span>
-      );
+      rendereredValue = `${dataRow[key]?.toFixed(2)}ms`;
     }
-    return <span>{value}</span>;
+    if (key === 'frequency') {
+      rendereredValue = dataRow[key]?.toFixed(2);
+    }
+
+    return <span style={style}>{rendereredValue}</span>;
   };
 
   return (
@@ -341,7 +305,6 @@ function QueryDetailBody({
             end=""
             loading={isDataLoading}
             utc={false}
-            disableMultiAxis
             stacked
             isLineChart
             disableXAxis
@@ -360,7 +323,6 @@ function QueryDetailBody({
             loading={isDataLoading}
             utc={false}
             chartColors={[theme.charts.getColorPalette(4)[3]]}
-            disableMultiAxis
             stacked
             isLineChart
             disableXAxis
@@ -464,6 +426,35 @@ const throughputQueryToChartData = (
     zeroFillSeries(p75Series, moment.duration(INTERVAL, 'hours'), startTime, endTime),
   ];
 };
+
+// Calculates the outlier min max for all number based rows based on the IQR Method
+const calculateOutlierMinMax = (
+  data: TransactionListDataRow[]
+): Record<string, {max: number; min: number}> => {
+  const minMax: Record<string, {max: number; min: number}> = {};
+  if (data.length > 0) {
+    Object.entries(data[0]).forEach(([colKey, value]) => {
+      if (typeof value === 'number') {
+        minMax[colKey] = findOutlierMinMax(data, colKey);
+      }
+    });
+  }
+  return minMax;
+};
+
+function findOutlierMinMax(data: any[], property: string): {max: number; min: number} {
+  const sortedValues = [...data].sort((a, b) => a[property] - b[property]);
+
+  if (data.length < 4) {
+    return {min: data[0][property], max: data[data.length - 1][property]};
+  }
+
+  const q1 = sortedValues[Math.floor(sortedValues.length * (1 / 4))][property];
+  const q3 = sortedValues[Math.ceil(sortedValues.length * (3 / 4))][property];
+  const iqr = q3 - q1;
+
+  return {min: q1 - iqr * 1.5, max: q3 + iqr * 1.5};
+}
 
 const tpmTransactionQueryToChartData = (
   data: {count: number; interval: string; transaction: string}[],

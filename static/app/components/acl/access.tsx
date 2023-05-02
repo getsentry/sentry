@@ -4,7 +4,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {Organization, Project, Scope, Team} from 'sentry/types';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
-import useOrganization from 'sentry/utils/useOrganization';
+import withOrganization from 'sentry/utils/withOrganization';
 
 // Props that function children will get.
 type ChildRenderProps = {
@@ -15,6 +15,7 @@ type ChildRenderProps = {
 type ChildFunction = (props: ChildRenderProps) => JSX.Element;
 
 export type Props = {
+  organization: Organization;
   /**
    * List of required access levels
    */
@@ -23,6 +24,7 @@ export type Props = {
    * Children can be a node or a function as child.
    */
   children?: React.ReactNode | ChildFunction;
+
   /**
    * Requires superuser
    */
@@ -36,7 +38,6 @@ export type Props = {
    * of a parent team, they will have appropriate scopes.
    */
   project?: Project | null | undefined;
-
   /**
    * Optional: To be used when you need to check for access to the Team
    *
@@ -50,19 +51,19 @@ export type Props = {
 /**
  * Component to handle access restrictions.
  */
-function Access({children, isSuperuser = false, access = [], team, project}: Props) {
+function Access({
+  children,
+  isSuperuser = false,
+  access = [],
+  team,
+  project,
+  organization,
+}: Props) {
   const config = useLegacyStore(ConfigStore);
-  const organization = useOrganization();
+  team = team ?? undefined;
+  project = project ?? undefined;
 
-  const {access: orgAccess} = organization || {access: []};
-  const {access: teamAccess} = team || {access: [] as Team['access']};
-  const {access: projAccess} = project || {access: [] as Project['access']};
-
-  const hasAccess =
-    !access ||
-    access.every(acc => orgAccess.includes(acc)) ||
-    access.every(acc => teamAccess?.includes(acc)) ||
-    access.every(acc => projAccess?.includes(acc));
+  const hasAccess = hasEveryAccess(access, {organization, team, project});
   const hasSuperuser = !!(config.user && config.user.isSuperuser);
 
   const renderProps: ChildRenderProps = {
@@ -96,4 +97,4 @@ export function hasEveryAccess(
   );
 }
 
-export default Access;
+export default withOrganization(Access);

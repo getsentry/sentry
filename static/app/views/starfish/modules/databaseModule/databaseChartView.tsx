@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import moment from 'moment';
 
@@ -12,16 +11,15 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {
-  getOperations,
-  getTables,
-  getTopOperationsChart,
-  getTopTablesChart,
+  useQueryDbOperations,
+  useQueryDbTables,
+  useQueryTopDbOperationsChart,
+  useQueryTopTablesChart,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 const INTERVAL = 12;
-const HOST = 'http://localhost:8080';
 
 type Props = {
   action: string;
@@ -51,44 +49,18 @@ function parseOptions(options, label) {
 
 export default function APIModuleView({action, table, onChange}: Props) {
   const pageFilter = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilter);
-  const DATE_FILTERS = `
-    greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
-    less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
-  `;
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
+    pageFilter.selection.datetime
+  );
 
-  const {data: operationData} = useQuery({
-    queryKey: ['operation', pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getOperations(DATE_FILTERS)}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-  const {data: tableData} = useQuery({
-    queryKey: ['table', action, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getTables(DATE_FILTERS, action)}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-  const {isLoading: isTopGraphLoading, data: topGraphData} = useQuery({
-    queryKey: ['topGraph', pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getTopOperationsChart(DATE_FILTERS, INTERVAL)}`).then(res =>
-        res.json()
-      ),
-    retry: false,
-    initialData: [],
-  });
-  const {isLoading: tableGraphLoading, data: tableGraphData} = useQuery({
-    queryKey: ['topTable', action, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getTopTablesChart(DATE_FILTERS, action, INTERVAL)}`).then(
-        res => res.json()
-      ),
-    retry: false,
-    initialData: [],
-  });
+  const {data: operationData} = useQueryDbOperations();
+  const {data: tableData} = useQueryDbTables(action);
+  const {isLoading: isTopGraphLoading, data: topGraphData} =
+    useQueryTopDbOperationsChart(INTERVAL);
+  const {isLoading: tableGraphLoading, data: tableGraphData} = useQueryTopTablesChart(
+    action,
+    INTERVAL
+  );
 
   const seriesByDomain: {[action: string]: Series} = {};
   const tpmByDomain: {[action: string]: Series} = {};
@@ -117,10 +89,20 @@ export default function APIModuleView({action, table, onChange}: Props) {
   }
 
   const topDomains = Object.values(seriesByDomain).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+    zeroFillSeries(
+      series,
+      moment.duration(INTERVAL, 'hours'),
+      moment(start_timestamp),
+      moment(end_timestamp)
+    )
   );
   const tpmDomains = Object.values(tpmByDomain).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+    zeroFillSeries(
+      series,
+      moment.duration(INTERVAL, 'hours'),
+      moment(start_timestamp),
+      moment(end_timestamp)
+    )
   );
 
   const tpmByQuery: {[query: string]: Series} = {};
@@ -151,10 +133,20 @@ export default function APIModuleView({action, table, onChange}: Props) {
   }
 
   const tpmData = Object.values(tpmByQuery).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+    zeroFillSeries(
+      series,
+      moment.duration(INTERVAL, 'hours'),
+      moment(start_timestamp),
+      moment(end_timestamp)
+    )
   );
   const topData = Object.values(seriesByQuery).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+    zeroFillSeries(
+      series,
+      moment.duration(INTERVAL, 'hours'),
+      moment(start_timestamp),
+      moment(end_timestamp)
+    )
   );
 
   return (
@@ -176,7 +168,6 @@ export default function APIModuleView({action, table, onChange}: Props) {
                 top: '16px',
                 bottom: '8px',
               }}
-              disableMultiAxis
               definedAxisTicks={4}
               isLineChart
               showLegend
@@ -199,7 +190,6 @@ export default function APIModuleView({action, table, onChange}: Props) {
                 top: '16px',
                 bottom: '8px',
               }}
-              disableMultiAxis
               definedAxisTicks={4}
               showLegend
               isLineChart
@@ -237,7 +227,6 @@ export default function APIModuleView({action, table, onChange}: Props) {
                     top: '16px',
                     bottom: '8px',
                   }}
-                  disableMultiAxis
                   definedAxisTicks={4}
                   isLineChart
                   showLegend
@@ -260,7 +249,6 @@ export default function APIModuleView({action, table, onChange}: Props) {
                     top: '16px',
                     bottom: '8px',
                   }}
-                  disableMultiAxis
                   definedAxisTicks={4}
                   showLegend
                   isLineChart

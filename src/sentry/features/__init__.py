@@ -14,10 +14,10 @@ from .manager import *  # NOQA
 #
 # Registering a new feature:
 #
-# - Determine what scope your feature falls under. By convention we have a
-#   organizations and project scope which map to the OrganizationFeature and
-#   ProjectFeature feature objects. Scoping will provide the feature with
-#   context.
+# - Determine what scope your feature falls under. By convention we have
+#   organization and project scopes, which map to the OrganizationFeature and
+#   ProjectFeature feature objects, respectively. Scoping will provide the feature
+#   with context.
 #
 #   Organization and Project scoped features will automatically be added into
 #   the Organization and Project serialized representations.
@@ -182,7 +182,6 @@ default_manager.add("organizations:set-grouping-config", OrganizationFeature, Fe
 default_manager.add("organizations:slack-escape-messages", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:span-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:streamline-targeting-context", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:symbol-sources", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:team-roles", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -251,6 +250,7 @@ default_manager.add("organizations:derive-code-mappings", OrganizationFeature, F
 default_manager.add("organizations:codecov-integration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:codecov-commit-sha-from-git-blame", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:artifact-bundles", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:ds-sliding-window", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
@@ -266,6 +266,7 @@ default_manager.add("projects:similarity-indexing-v2", ProjectFeature, FeatureHa
 default_manager.add("projects:similarity-view", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:similarity-view-v2", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:suspect-resolutions", ProjectFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL)
