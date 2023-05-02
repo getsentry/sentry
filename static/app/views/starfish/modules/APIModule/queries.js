@@ -178,3 +178,19 @@ export const getHostStatusBreakdownQuery = ({domain, datetime}) => {
     ORDER BY count DESC
   `;
 };
+
+export const getEndpointsTPMQuery = ({datetime}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
+  return `
+    SELECT
+    description,
+    toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
+    count() AS count
+    FROM spans_experimental_starfish
+    WHERE module = 'http'
+    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
+    GROUP BY description, interval
+    ORDER BY interval asc
+  `;
+};

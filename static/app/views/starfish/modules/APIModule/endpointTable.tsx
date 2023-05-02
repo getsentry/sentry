@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
+import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import Duration from 'sentry/components/duration';
@@ -9,10 +10,14 @@ import GridEditable, {
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {Series} from 'sentry/types/echarts';
+import Sparkline from 'sentry/views/starfish/components/sparkline';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
-import {getEndpointListQuery} from './queries';
+import {getEndpointListQuery, getEndpointsTPMQuery} from './queries';
 
 type Props = {
   filterOptions: {
@@ -86,10 +91,41 @@ export default function EndpointTable({
     initialData: [],
   });
 
+  const {isLoading: isEndpointsTPMLoading, data: endpointsTPMData} = useQuery({
+    queryKey: ['endpoints2', filterOptions],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getEndpointsTPMQuery(filterOptions)}`).then(res =>
+        res.json()
+      ),
+    retry: false,
+    initialData: [],
+  });
+
+  const tpmGroupedByURL = {};
+  endpointsTPMData.forEach(({description, interval, count}) => {
+    if (description in tpmGroupedByURL) {
+      tpmGroupedByURL[description].push({name: interval, value: count});
+    } else {
+      tpmGroupedByURL[description] = [{name: interval, value: count}];
+    }
+  });
+
+  const combinedEndpointData = endpointsData.map(data => {
+    const url = data.description;
+
+    const tpmSeries: Series = {
+      seriesName: 'tpm',
+      data: tpmGroupedByURL[url],
+    };
+
+    const zeroFilled = zeroFillSeries(tpmSeries, moment.duration(12, 'hours'));
+    return {...data, tpm: zeroFilled};
+  });
+
   return (
     <GridEditable
-      isLoading={areEndpointsLoading}
-      data={endpointsData}
+      isLoading={areEndpointsLoading || isEndpointsTPMLoading}
+      data={combinedEndpointData}
       columnOrder={columns ?? COLUMN_ORDER}
       columnSortBy={[]}
       grid={{
@@ -109,9 +145,9 @@ export function renderHeadCell(column: GridColumnHeader): React.ReactNode {
     !['description', 'transaction'].includes(column.key.toString())
   ) {
     return (
-      <TextAlignRight>
+      <TextAlignLeft>
         <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
-      </TextAlignRight>
+      </TextAlignLeft>
     );
   }
   return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
@@ -132,19 +168,23 @@ export function renderBodyCell(
     );
   }
 
+  if (column.key === 'tpm') {
+    return <Sparkline color={CHART_PALETTE[3][1]} series={row[column.key]} />;
+  }
+
   // TODO: come up with a better way to identify number columns to align to the right
   if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
     return (
-      <TextAlignRight>
+      <TextAlignLeft>
         <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />
-      </TextAlignRight>
+      </TextAlignLeft>
     );
   }
   if (!['description', 'transaction'].includes(column.key.toString())) {
     return (
-      <TextAlignRight>
+      <TextAlignLeft>
         <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
-      </TextAlignRight>
+      </TextAlignLeft>
     );
   }
 
@@ -157,7 +197,7 @@ export const OverflowEllipsisTextContainer = styled('span')`
   white-space: nowrap;
 `;
 
-export const TextAlignRight = styled('span')`
-  text-align: right;
+export const TextAlignLeft = styled('span')`
+  text-align: left;
   width: 100%;
 `;
