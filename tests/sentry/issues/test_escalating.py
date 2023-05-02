@@ -17,7 +17,7 @@ from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.models import Group
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInbox
-from sentry.testutils import TestCase
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
@@ -239,6 +239,4 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         group = self._create_events_for_group(count=1).group  # This hour -> It will count
 
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
-        assert (
-            get_group_hourly_count(group.project.organization.id, group.project.id, group.id) == 1
-        )
+        assert get_group_hourly_count(group) == 1
