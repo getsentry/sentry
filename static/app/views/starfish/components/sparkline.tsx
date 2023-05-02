@@ -8,10 +8,15 @@ import {Series} from 'sentry/types/echarts';
 type SparklineProps = {
   series: Series;
   color?: string | string[];
+  width?: number;
 };
 
-export default function Sparkline({series, color}: SparklineProps) {
+export default function Sparkline({series, width, color}: SparklineProps) {
   echarts.use([LineChart, SVGRenderer]);
+
+  if (!series.data) {
+    return null;
+  }
 
   const valueSeries = {
     data: series.data.map(datum => datum.value),
@@ -45,7 +50,7 @@ export default function Sparkline({series, color}: SparklineProps) {
       notMerge
       style={{
         height: 25,
-        width: 200,
+        width: width ?? 200,
       }}
       lazyUpdate
       theme="theme_name"
