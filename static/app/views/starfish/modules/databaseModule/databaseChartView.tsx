@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import moment from 'moment';
 
@@ -12,16 +11,15 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {
-  getOperations,
-  getTables,
-  getTopOperationsChart,
-  getTopTablesChart,
+  useQueryDbOperations,
+  useQueryDbTables,
+  useQueryTopDbOperationsChart,
+  useQueryTopTablesChart,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 const INTERVAL = 12;
-const HOST = 'http://localhost:8080';
 
 type Props = {
   action: string;
@@ -54,43 +52,15 @@ export default function APIModuleView({action, table, onChange}: Props) {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
     pageFilter.selection.datetime
   );
-  const DATE_FILTERS = `
-    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
-    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-  `;
 
-  const {data: operationData} = useQuery({
-    queryKey: ['operation', pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getOperations(DATE_FILTERS)}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-  const {data: tableData} = useQuery({
-    queryKey: ['table', action, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getTables(DATE_FILTERS, action)}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-  const {isLoading: isTopGraphLoading, data: topGraphData} = useQuery({
-    queryKey: ['topGraph', pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getTopOperationsChart(DATE_FILTERS, INTERVAL)}`).then(res =>
-        res.json()
-      ),
-    retry: false,
-    initialData: [],
-  });
-  const {isLoading: tableGraphLoading, data: tableGraphData} = useQuery({
-    queryKey: ['topTable', action, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getTopTablesChart(DATE_FILTERS, action, INTERVAL)}`).then(
-        res => res.json()
-      ),
-    retry: false,
-    initialData: [],
-  });
+  const {data: operationData} = useQueryDbOperations();
+  const {data: tableData} = useQueryDbTables(action);
+  const {isLoading: isTopGraphLoading, data: topGraphData} =
+    useQueryTopDbOperationsChart(INTERVAL);
+  const {isLoading: tableGraphLoading, data: tableGraphData} = useQueryTopTablesChart(
+    action,
+    INTERVAL
+  );
 
   const seriesByDomain: {[action: string]: Series} = {};
   const tpmByDomain: {[action: string]: Series} = {};
