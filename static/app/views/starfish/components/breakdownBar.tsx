@@ -32,7 +32,7 @@ type Props = {
   transaction?: string;
 };
 
-function FacetBreakdownBar({segments, title, transaction: maybeTrasaction}: Props) {
+function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Props) {
   const [hoveredValue, setHoveredValue] = useState<ModuleSegment | null>(null);
   const [currentSegment, setCurrentSegment] = useState<
     ModuleSegment['module'] | undefined
