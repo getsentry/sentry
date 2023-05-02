@@ -274,7 +274,7 @@ class OrganizationTeamsCreateTest(APITestCase):
             status_code=400,
         )
         assert response.data == {
-            "detail": "Unable to set user as Team Admin because organization:team-roles flag is not enabled"
+            "detail": "You do not have permission to join a new team as a team admin"
         }
 
     @with_feature("organizations:team-roles")
@@ -287,7 +287,7 @@ class OrganizationTeamsCreateTest(APITestCase):
             status_code=400,
         )
         assert response.data == {
-            "detail": "Unable to set user as Team Admin because organization:team-project-creation-all flag is not enabled"
+            "detail": "You do not have permission to join a new team as a team admin"
         }
 
     @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
@@ -301,7 +301,7 @@ class OrganizationTeamsCreateTest(APITestCase):
             status_code=401,
         )
         assert response.data == {
-            "detail": "Unable to set user as Team Admin because user is not authenticated"
+            "detail": "You must be authenticated to join a new team as a Team Admin"
         }
         mock_creator_check.assert_called_once()
 
@@ -328,7 +328,7 @@ class OrganizationTeamsCreateTest(APITestCase):
                 status_code=400,
             )
             assert response.data == {
-                "detail": "Unable to set user as team admin because user is not a member of the organization",
+                "detail": "You must be a member of the organization to join a new team as a Team Admin",
             }
         # assert that the created team was deleted because adding the user a team admin failed
         assert Team.objects.count() == team_count
