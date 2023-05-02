@@ -46,7 +46,7 @@ class SDKUtilsTest(TestCase):
 
 @patch("sentry.utils.sdk.logger.warning")
 class CheckTagTest(TestCase):
-    def test_no_exiting_tag(self, mock_logger_warning: MagicMock):
+    def test_no_existing_tag(self, mock_logger_warning: MagicMock):
         mock_scope = Scope()
         mock_scope._tags = {}
 
@@ -59,7 +59,7 @@ class CheckTagTest(TestCase):
         assert "scope_bleed" not in mock_scope._contexts
         assert mock_logger_warning.call_count == 0
 
-    def test_matching_exiting_tag(self, mock_logger_warning: MagicMock):
+    def test_matching_existing_tag(self, mock_logger_warning: MagicMock):
         mock_scope = Scope()
         mock_scope._tags = {"org.slug": "squirrel_chasers"}
 
@@ -72,7 +72,7 @@ class CheckTagTest(TestCase):
         assert "scope_bleed" not in mock_scope._contexts
         assert mock_logger_warning.call_count == 0
 
-    def test_different_exiting_tag(self, mock_logger_warning: MagicMock):
+    def test_different_existing_tag(self, mock_logger_warning: MagicMock):
         mock_scope = Scope()
         mock_scope._tags = {"org.slug": "good_dogs"}
 
