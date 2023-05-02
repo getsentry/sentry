@@ -18,6 +18,8 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
+    MonitorEnvironmentLimitsExceeded,
+    MonitorLimitsExceeded,
     MonitorStatus,
     MonitorType,
 )
@@ -106,19 +108,39 @@ def _process_message(wrapper: Dict) -> None:
     try:
         with transaction.atomic():
             monitor_config = params.get("monitor_config")
-            monitor = _ensure_monitor_with_config(project, params["monitor_slug"], monitor_config)
+            try:
+                monitor = _ensure_monitor_with_config(
+                    project, params["monitor_slug"], monitor_config
+                )
 
-            if not monitor:
+                if not monitor:
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={"source": "consumer", "status": "failed_validation"},
+                    )
+                    logger.debug("monitor does not exist: %s", params["monitor_slug"])
+                    return
+            except MonitorLimitsExceeded:
                 metrics.incr(
                     "monitors.checkin.result",
-                    tags={"source": "consumer", "status": "failed_validation"},
+                    tags={"source": "consumer", "status": "failed_monitor_limits"},
                 )
-                logger.debug("monitor does not exist: %s", params["monitor_slug"])
+                logger.debug("monitor exceeds limits for organization: %s", project.organization_id)
                 return
 
-            monitor_environment = MonitorEnvironment.objects.ensure_environment(
-                project, monitor, environment
-            )
+            try:
+                monitor_environment = MonitorEnvironment.objects.ensure_environment(
+                    project, monitor, environment
+                )
+            except MonitorEnvironmentLimitsExceeded:
+                metrics.incr(
+                    "monitors.checkin.result",
+                    tags={"source": "consumer", "status": "failed_monitor_environment_limits"},
+                )
+                logger.debug(
+                    "monitor environment exceeds limits for monitor: %s", params["monitor_slug"]
+                )
+                return
 
             status = getattr(CheckInStatus, params["status"].upper())
             duration = (

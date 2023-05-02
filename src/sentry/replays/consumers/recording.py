@@ -10,19 +10,11 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import RunTask, RunTaskWithMultiprocessing, TransformStep
 from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.processing.strategies.filter import FilterStep
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from sentry_sdk.tracing import Span
 
-from sentry.replays.usecases.ingest import (
-    RecordingMessage,
-    RecordingSegmentChunkMessage,
-    RecordingSegmentMessage,
-    ingest_chunk,
-    ingest_recording_chunked,
-    ingest_recording_not_chunked,
-)
+from sentry.replays.usecases.ingest import RecordingMessage, ingest_recording
 from sentry.snuba.utils import initialize_consumer_state
 
 logger = logging.getLogger(__name__)
@@ -84,19 +76,14 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
                 next_step=CommitOffsets(commit),
             )
 
-        step2: FilterStep[MessageContext] = FilterStep(
-            function=is_capstone_message,
+        return TransformStep(
+            function=initialize_message_context,
             next_step=step,
         )
 
-        return TransformStep(
-            function=move_chunks_to_cache_or_skip,
-            next_step=step2,
-        )
 
-
-def move_chunks_to_cache_or_skip(message: Message[KafkaPayload]) -> MessageContext:
-    """Move chunk messages to cache or skip."""
+def initialize_message_context(message: Message[KafkaPayload]) -> MessageContext:
+    """Initialize a Sentry transaction and unpack the message."""
     transaction = sentry_sdk.start_transaction(
         name="replays.consumer.process_recording",
         op="replays.consumer",
@@ -104,19 +91,8 @@ def move_chunks_to_cache_or_skip(message: Message[KafkaPayload]) -> MessageConte
         < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
     )
     current_hub = sentry_sdk.Hub(sentry_sdk.Hub.current)
-
     message_dict = msgpack.unpackb(message.payload.value)
-
-    if message_dict["type"] == "replay_recording_chunk":
-        ingest_chunk(cast(RecordingSegmentChunkMessage, message_dict), transaction, current_hub)
-
     return MessageContext(message_dict, transaction, current_hub)
-
-
-def is_capstone_message(message: Message[MessageContext]) -> Any:
-    """Return "True" if the message is a capstone and can be processed in parallel."""
-    message_type = message.payload.message["type"]
-    return message_type == "replay_recording_not_chunked" or message_type == "replay_recording"
 
 
 def move_replay_to_permanent_storage(message: Message[MessageContext]) -> Any:
@@ -126,12 +102,8 @@ def move_replay_to_permanent_storage(message: Message[MessageContext]) -> Any:
     message_type = message_dict["type"]
 
     if message_type == "replay_recording_not_chunked":
-        ingest_recording_not_chunked(
+        ingest_recording(
             cast(RecordingMessage, message_dict), context.transaction, context.current_hub
-        )
-    elif message_type == "replay_recording":
-        ingest_recording_chunked(
-            cast(RecordingSegmentMessage, message_dict), context.transaction, context.current_hub
         )
     else:
         raise ValueError(f"Invalid replays recording message type specified: {message_type}")
