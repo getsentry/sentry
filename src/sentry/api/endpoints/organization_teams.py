@@ -26,7 +26,8 @@ CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
 
 # OrganizationPermission + team:write
 class OrganizationTeamsPermission(OrganizationPermission):
-    # PUT and DELETE are irrelevant because they are handled by TeamDetailsEndpoint
+    # PUT and DELETE are irrelevant because they are handled by TeamDetailsEndpoint per the
+    # Sentry API: https://docs.sentry.io/api/teams/
     scope_map = {
         "GET": ["org:read", "org:write"],
         "POST": ["org:write", "team:write"],
@@ -145,7 +146,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         :qparam string name: the optional name of the team.
         :qparam string slug: the optional slug for this team. If not provided it will be auto
                              generated from the name.
-        :qparam bool set_admin: If this is true, the creator is added to the as a Team Admin
+        :qparam bool set_admin: If this is true, the user is added to the as a Team Admin
                                 instead of regular member
         :auth: required
         """
@@ -161,21 +162,21 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             if not features.has("organizations:team-roles", organization):
                 return Response(
                     {
-                        "detail": "Unable to set creator as team admin because organization:team-roles flag is not enabled"
+                        "detail": "Unable to set user as Team Admin because organization:team-roles flag is not enabled"
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             if not features.has("organizations:team-project-creation-all", organization):
                 return Response(
                     {
-                        "detail": "Unable to set creator as team admin because organization:team-project-creation-all flag is not enabled"
+                        "detail": "Unable to set user as Team Admin because organization:team-project-creation-all flag is not enabled"
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             if not self.should_add_creator_to_team(request):
                 return Response(
                     {
-                        "detail": "Unable to set creator as team admin because creator is not authenticated"
+                        "detail": "Unable to set user as Team Admin because user is not authenticated"
                     },
                     status=status.HTTP_401_UNAUTHORIZED,
                 )
@@ -197,23 +198,22 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                     },
                     status=409,
                 )
-
             if self.should_add_creator_to_team(request):
                 try:
                     member = OrganizationMember.objects.get(
                         user=request.user, organization=organization
                     )
-                    role = "admin" if set_admin else None
                     OrganizationMemberTeam.objects.create(
-                        team=team, organizationmember=member, role=role
+                        team=team, organizationmember=member, role="admin" if set_admin else None
                     )
                 except OrganizationMember.DoesNotExist:
+                    # Only delete team and return 400 if trying to set user as Team Admin but
+                    # creator is not a member of the organization
                     if set_admin:
-                        # Delete the created team if unable to set creator as team admin
                         team.delete()
                         return Response(
                             {
-                                "detail": "Unable to set creator as team admin because creator is not a member of the organization",
+                                "detail": "Unable to set user as team admin because user is not a member of the organization",
                             },
                             status=status.HTTP_400_BAD_REQUEST,
                         )
