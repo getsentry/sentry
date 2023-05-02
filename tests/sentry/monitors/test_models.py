@@ -1,12 +1,17 @@
 from datetime import datetime
 from unittest.mock import patch
 
+import pytest
+from django.conf import settings
+from django.test.utils import override_settings
 from django.utils import timezone
 
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
+    MonitorEnvironmentLimitsExceeded,
     MonitorFailure,
+    MonitorLimitsExceeded,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -113,6 +118,31 @@ class MonitorTestCase(TestCase):
         )
 
         assert monitor.slug.startswith("my-awesome-monitor-")
+
+    @override_settings(MAX_MONITORS_PER_ORG=2)
+    def test_monitor_organization_limit(self):
+        for i in range(settings.MAX_MONITORS_PER_ORG):
+            Monitor.objects.create(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                type=MonitorType.CRON_JOB,
+                name=f"Unicron-{i}",
+                slug=f"unicron-{i}",
+                config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            )
+
+        with pytest.raises(
+            MonitorLimitsExceeded,
+            match=f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization",
+        ):
+            Monitor.objects.create(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                type=MonitorType.CRON_JOB,
+                name=f"Unicron-{settings.MAX_MONITORS_PER_ORG}",
+                slug=f"unicron-{settings.MAX_MONITORS_PER_ORG}",
+                config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            )
 
 
 @region_silo_test(stable=True)
@@ -252,3 +282,25 @@ class MonitorEnvironmentTestCase(TestCase):
                 "type": "default",
             },
         ) == dict(event)
+
+    @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
+    def test_monitor_environment_limits(self):
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            name="Unicron",
+            slug="unicron",
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+
+        for i in range(settings.MAX_ENVIRONMENTS_PER_MONITOR):
+            MonitorEnvironment.objects.ensure_environment(self.project, monitor, f"space-{i}")
+
+        with pytest.raises(
+            MonitorEnvironmentLimitsExceeded,
+            match=f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor",
+        ):
+            MonitorEnvironment.objects.ensure_environment(
+                self.project, monitor, f"space-{settings.MAX_ENVIRONMENTS_PER_MONITOR}"
+            )
