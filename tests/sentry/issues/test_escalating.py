@@ -14,15 +14,28 @@ from sentry.issues.escalating import (
     query_groups_past_counts,
 )
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models import Group
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInbox
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
+
+
+def test_datetime_number_of_hours() -> None:
+    start, end = _start_and_end_dates(5)
+    assert (end - start).seconds / 3600 == 5
+
+
+def test_datetime_number_of_days() -> None:
+    start, end = _start_and_end_dates()
+    assert (end - start).days == 7
 
 
 class BaseGroupCounts(SnubaTestCase, TestCase):  # type: ignore[misc]
@@ -52,7 +65,9 @@ class BaseGroupCounts(SnubaTestCase, TestCase):  # type: ignore[misc]
         return last_event
 
 
-class HistoricGroupCounts(BaseGroupCounts):
+class HistoricGroupCounts(BaseGroupCounts, PerformanceIssueTestCase, SearchIssueTestMixin):
+    """Test that querying Snuba for the hourly counts for groups works as expected."""
+
     def _create_hourly_bucket(self, count: int, event: Event) -> GroupsCountResponse:
         """It simplifies writing the expected data structures"""
         return {
@@ -66,6 +81,31 @@ class HistoricGroupCounts(BaseGroupCounts):
         event = self._create_events_for_group()
         assert query_groups_past_counts(Group.objects.all()) == [
             self._create_hourly_bucket(1, event)
+        ]
+
+    def test_query_different_group_categories(self) -> None:
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            perf_event = self.create_performance_issue()
+
+        # TODO: Create a profile group
+        profile_event, _, _ = self.store_search_issue(
+            project_id=self.project.id,
+            user_id=0,
+            fingerprints=[f"{ProfileFileIOGroupType.type_id}-group1"],
+        )
+
+        error_event = self._create_events_for_group()
+
+        assert perf_event.group.issue_category == GroupCategory.PERFORMANCE
+        assert error_event.group.issue_category == GroupCategory.ERROR
+        # assert profile_event.group.issue_category == GroupCategory.PROFILE
+
+        # Error groups will show up at the beginning of the list even if they
+        # have higher primary keys
+        assert query_groups_past_counts(Group.objects.all()) == [
+            self._create_hourly_bucket(1, error_event),
+            self._create_hourly_bucket(1, perf_event),
+            # self._create_hourly_bucket(1, profile_event),
         ]
 
     def test_pagination(self) -> None:
@@ -143,58 +183,6 @@ class HistoricGroupCounts(BaseGroupCounts):
 
     def test_query_no_groups(self) -> None:
         assert query_groups_past_counts([]) == []
-
-    def test_perf_issue_on_issue_platform(self):
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            event_1 = self.create_performance_issue()
-            event_2 = self.create_performance_issue()
-
-        self.login_as(user=self.user)
-
-        url = f"/api/0/issues/{event_1.group.id}/events/"
-        with self.feature("organizations:issue-platform-search-perf-issues"):
-            response = self.do_request(url)
-
-        assert response.status_code == 200, response.content
-        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
-            [str(event_1.event_id), str(event_2.event_id)]
-        )
-
-    # def test_generic_issue(self):
-    #     event_1, _, group_info = self.store_search_issue(
-    #         self.project.id,
-    #         self.user.id,
-    #         [f"{ProfileFileIOGroupType.type_id}-group1"],
-    #         "prod",
-    #         before_now(hours=1).replace(tzinfo=timezone.utc),
-    #     )
-    #     event_2, _, _ = self.store_search_issue(
-    #         self.project.id,
-    #         self.user.id,
-    #         [f"{ProfileFileIOGroupType.type_id}-group1"],
-    #         "prod",
-    #         before_now(hours=1).replace(tzinfo=timezone.utc),
-    #     )
-
-    #     self.login_as(user=self.user)
-
-    #     url = f"/api/0/issues/{group_info.group.id}/events/"
-    #     response = self.do_request(url)
-
-    #     assert response.status_code == 200, response.content
-    #     assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
-    #         [str(event_1.event_id), str(event_2.event_id)]
-    #     )
-
-
-def test_datetime_number_of_hours() -> None:
-    start, end = _start_and_end_dates(5)
-    assert (end - start).seconds / 3600 == 5
-
-
-def test_datetime_number_of_days() -> None:
-    start, end = _start_and_end_dates()
-    assert (end - start).days == 7
 
 
 class DailyGroupCountsEscalating(BaseGroupCounts):
@@ -275,8 +263,12 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert group.status == GroupStatus.IGNORED
             assert not GroupInbox.objects.filter(group=group).exists()
 
+    @freeze_time(TIME_YESTERDAY.replace(minute=12, second=40, microsecond=0))
     def test_hourly_count_query(self) -> None:
         """Test the hourly count query only aggregates events from within the current hour"""
-        self._create_events_for_group(count=2, hours_ago=1)  # An hour ago -> It will not count
-        group = self._create_events_for_group(count=1).group  # This hour -> It will count
-        assert get_group_hourly_count(group) == 1
+        # An hour ago -> It will not count
+        event = self._create_events_for_group(count=2, hours_ago=1)
+        # Almost an hour ago -> It will count
+        self._create_events_for_group(count=5, hours_ago=0, min_ago=59)
+        self._create_events_for_group(count=1).group  # This hour -> It will count
+        assert get_group_hourly_count(event.group) == 6
