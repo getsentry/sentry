@@ -176,7 +176,6 @@ export default function APIModuleView({action, table, onChange}: Props) {
                 top: '16px',
                 bottom: '8px',
               }}
-              disableMultiAxis
               definedAxisTicks={4}
               isLineChart
               showLegend
@@ -199,7 +198,6 @@ export default function APIModuleView({action, table, onChange}: Props) {
                 top: '16px',
                 bottom: '8px',
               }}
-              disableMultiAxis
               definedAxisTicks={4}
               showLegend
               isLineChart
@@ -237,7 +235,6 @@ export default function APIModuleView({action, table, onChange}: Props) {
                     top: '16px',
                     bottom: '8px',
                   }}
-                  disableMultiAxis
                   definedAxisTicks={4}
                   isLineChart
                   showLegend
@@ -260,7 +257,6 @@ export default function APIModuleView({action, table, onChange}: Props) {
                     top: '16px',
                     bottom: '8px',
                   }}
-                  disableMultiAxis
                   definedAxisTicks={4}
                   showLegend
                   isLineChart

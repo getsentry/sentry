@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isNil from 'lodash/isNil';
+import * as qs from 'query-string';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
@@ -206,7 +207,6 @@ function EndpointDetailBody({
                     end=""
                     loading={loading}
                     utc={false}
-                    disableMultiAxis
                     stacked
                     isLineChart
                     disableXAxis
@@ -233,7 +233,6 @@ function EndpointDetailBody({
                     end=""
                     loading={loading}
                     utc={false}
-                    disableMultiAxis
                     stacked
                     isLineChart
                     disableXAxis
@@ -257,9 +256,9 @@ function EndpointDetailBody({
         location={location}
         onSelect={r => {
           browserHistory.push(
-            `/starfish/span/${encodeURIComponent(r.group_id)}:${encodeURIComponent(
-              row.transaction
-            )}`
+            `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
+              transaction: row.transaction,
+            })}`
           );
         }}
         columns={HTTP_SPAN_COLUMN_ORDER}
@@ -275,9 +274,9 @@ function EndpointDetailBody({
         location={location}
         onSelect={r => {
           browserHistory.push(
-            `/starfish/span/${encodeURIComponent(r.group_id)}:${encodeURIComponent(
-              row.transaction
-            )}`
+            `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
+              transaction: row.transaction,
+            })}`
           );
         }}
         isDataLoading={isTableDataLoading || isTableRefetching}

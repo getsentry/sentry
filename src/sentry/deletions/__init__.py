@@ -90,6 +90,7 @@ def load_defaults():
     from sentry import models
     from sentry.discover.models import DiscoverSavedQuery
     from sentry.incidents.models import AlertRule
+    from sentry.monitors import models as monitor_models
 
     from . import defaults
 
@@ -125,6 +126,10 @@ def load_defaults():
     default_manager.register(models.GroupShare, BulkModelDeletionTask)
     default_manager.register(models.GroupSnooze, BulkModelDeletionTask)
     default_manager.register(models.GroupSubscription, BulkModelDeletionTask)
+    default_manager.register(monitor_models.Monitor, defaults.MonitorDeletionTask)
+    default_manager.register(
+        monitor_models.MonitorEnvironment, defaults.MonitorEnvironmentDeletionTask
+    )
     default_manager.register(models.Organization, defaults.OrganizationDeletionTask)
     default_manager.register(
         models.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask

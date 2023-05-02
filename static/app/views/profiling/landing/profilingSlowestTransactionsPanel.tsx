@@ -29,6 +29,7 @@ import {
 import {useProfilingTransactionQuickSummary} from 'sentry/utils/profiling/hooks/useProfilingTransactionQuickSummary';
 import {generateProfileSummaryRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {makeFormatTo} from 'sentry/utils/profiling/units/units';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -127,6 +128,8 @@ function SlowestTransactionPanelItem({
   onOpen,
   units,
 }: SlowestTransactionPanelItemProps) {
+  const {query} = useLocation();
+
   const organization = useOrganization();
   const projects = useProjects();
   const transactionProject = useMemo(
@@ -162,6 +165,7 @@ function SlowestTransactionPanelItem({
           >
             <Link
               to={generateProfileSummaryRouteWithQuery({
+                query,
                 orgSlug: organization.slug,
                 projectSlug: transactionProject?.slug!,
                 transaction: transaction.transaction as string,
