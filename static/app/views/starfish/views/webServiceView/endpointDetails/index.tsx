@@ -17,6 +17,7 @@ import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
@@ -24,6 +25,7 @@ import DatabaseTableView from 'sentry/views/starfish/modules/databaseModule/data
 import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {getModuleBreakdown} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -58,6 +60,11 @@ const HTTP_SPAN_COLUMN_ORDER = [
     width: 400,
   },
   {
+    key: 'throughput',
+    name: 'Throughput',
+    width: 125,
+  },
+  {
     key: 'p50(exclusive_time)',
     name: 'p50',
     width: COL_WIDTH_UNDEFINED,
@@ -67,6 +74,7 @@ const HTTP_SPAN_COLUMN_ORDER = [
     name: 'Transactions',
     width: COL_WIDTH_UNDEFINED,
   },
+
   {
     key: 'total_exclusive_time',
     name: 'Total Time',
@@ -135,6 +143,17 @@ function EndpointDetailBody({
   const theme = useTheme();
   const pageFilter = usePageFilters();
   const {aggregateDetails} = row;
+
+  const {data: moduleBreakdown} = useQuery({
+    queryKey: [`moduleBreakdown${row.transaction}`],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getModuleBreakdown({transaction: row.transaction})}`).then(
+        res => res.json()
+      ),
+    retry: false,
+    initialData: [],
+  });
+
   const query = new MutableSearch([
     'has:http.method',
     'transaction.op:http.server',
@@ -142,10 +161,6 @@ function EndpointDetailBody({
     `http.method:${row.httpOp}`,
   ]);
   const {startTime, endTime} = getDateFilters(pageFilter);
-  const DATE_FILTERS = `
-  greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
-  less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
-`;
   const transactionFilter =
     row.transaction.length > 0 ? `transaction='${row.transaction}'` : null;
 
@@ -157,12 +172,7 @@ function EndpointDetailBody({
     queryKey: ['endpoints', pageFilter.selection.datetime, row.transaction],
     queryFn: () =>
       fetch(
-        `${HOST}/?query=${getMainTable(
-          startTime,
-          DATE_FILTERS,
-          endTime,
-          transactionFilter
-        )}&format=sql`
+        `${HOST}/?query=${getMainTable(startTime, endTime, transactionFilter)}&format=sql`
       ).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -251,6 +261,11 @@ function EndpointDetailBody({
           );
         }}
       </EventsRequest>
+      <FacetBreakdownBar
+        segments={moduleBreakdown}
+        title={t('Where is time spent in this endpoint?')}
+        transaction={row.transaction}
+      />
       <SubHeader>{t('HTTP Spans')}</SubHeader>
       <EndpointTable
         location={location}

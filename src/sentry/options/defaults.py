@@ -464,8 +464,8 @@ register("store.background-grouping-before", default=False)
 # Store release files bundled as zip files
 register("processing.save-release-archives", default=False)  # unused
 
-# Minimum number of files in an archive. Small archives are extracted and its contents
-# are stored as separate release files.
+# Minimum number of files in an archive. Archives with fewer files are extracted and have their
+# contents stored as separate release files.
 register("processing.release-archive-min-files", default=10)
 
 # Try to read release artifacts from zip archives
