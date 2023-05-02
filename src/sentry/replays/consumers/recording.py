@@ -1,10 +1,12 @@
 import dataclasses
+import functools
 import logging
 import random
 from typing import Any, Dict, Mapping, cast
 
 import msgpack
 import sentry_sdk
+from arroyo import configure_metrics
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import RunTask, RunTaskWithMultiprocessing, TransformStep
 from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
@@ -22,7 +24,7 @@ from sentry.replays.usecases.ingest import (
     ingest_recording_chunked,
     ingest_recording_not_chunked,
 )
-from sentry.runner import configure
+from sentry.snuba.utils import initialize_consumer_state
 
 logger = logging.getLogger(__name__)
 
@@ -47,15 +49,17 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
     def __init__(
         self,
+        input_block_size: int,
+        max_batch_size: int,
+        max_batch_time: int,
         num_processes: int,
-        input_block_size: int = 1024,
-        output_block_size: int = 1024,
-        use_multi_proc: bool = True,
+        output_block_size: int,
+        use_multi_proc: bool,
     ) -> None:
-        self.num_processes = num_processes
-        self.max_batch_size = 4
-        self.max_batch_time = 10
         self.input_block_size = input_block_size
+        self.max_batch_size = max_batch_size
+        self.max_batch_time = max_batch_time
+        self.num_processes = num_processes
         self.output_block_size = output_block_size
         self.use_multi_proc = use_multi_proc
 
@@ -73,7 +77,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
                 max_batch_time=self.max_batch_time,
                 input_block_size=self.input_block_size,
                 output_block_size=self.output_block_size,
-                initializer=configure,
+                initializer=functools.partial(initialize_consumer_state, [initialize_metrics]),
             )
         else:
             step = RunTask(
@@ -132,3 +136,11 @@ def move_replay_to_permanent_storage(message: Message[MessageContext]) -> Any:
         )
     else:
         raise ValueError(f"Invalid replays recording message type specified: {message_type}")
+
+
+def initialize_metrics() -> None:
+    from sentry.utils import metrics
+    from sentry.utils.arroyo import MetricsWrapper
+
+    metrics_wrapper = MetricsWrapper(metrics.backend, name="ingest_replays")
+    configure_metrics(metrics_wrapper)

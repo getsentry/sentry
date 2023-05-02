@@ -21,7 +21,14 @@ from sentry.testutils import TransactionTestCase
 class RecordingTestCaseMixin:
     @staticmethod
     def processing_factory():
-        return ProcessReplayRecordingStrategyFactory(1, use_multi_proc=False)
+        return ProcessReplayRecordingStrategyFactory(
+            input_block_size=1,
+            max_batch_size=1,
+            max_batch_time=1,
+            num_processes=1,
+            output_block_size=1,
+            use_multi_proc=False,
+        )
 
     def setUp(self):
         self.replay_id = uuid.uuid4().hex
