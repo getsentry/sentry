@@ -485,11 +485,12 @@ class Quota(Service):
         return (_limit_from_settings(options.get("system.rate-limit")), 60)
 
     def get_blended_sample_rate(
-        self, organization: Optional["Organization"], project: Optional["Project"]
+        self, project: Optional["Project"], organization: Optional["Organization"] = None
     ) -> Optional[float]:
         """
         Returns the blended sample rate for an org based on the package that they are currently on. Returns ``None``
-        if the creation of a uniform rule with blended sample rate is not supported for that project.
+        if the creation of a uniform rule with blended sample rate is not supported for that project or organization.
 
         :param project: The project model.
+        :param organization: The organization model.
         """
