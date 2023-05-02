@@ -11,7 +11,9 @@ import {useQuery} from 'sentry/utils/queryClient';
 import {DatabaseDurationChart} from 'sentry/views/starfish/views/webServiceView/databaseDurationChart';
 import {HttpBreakdownChart} from 'sentry/views/starfish/views/webServiceView/httpBreakdownChart';
 import {
+  DB_THROUGHPUT,
   DB_TIME_SPENT,
+  HTTP_THROUGHPUT,
   OTHER_DOMAINS,
   TOP_DOMAINS,
 } from 'sentry/views/starfish/views/webServiceView/queries';
@@ -36,25 +38,38 @@ function FacetBreakdownBar({segments, title}: Props) {
   >(segments[0]?.module);
   const totalValues = segments.reduce((acc, segment) => acc + segment.sum, 0);
 
-  const {isLoading: isDurationDataLoading, data: moduleDurationData} = useQuery({
+  const {isLoading: isHttpDurationDataLoading, data: httpDurationData} = useQuery({
     queryKey: ['topDomains'],
     queryFn: () => fetch(`${HOST}/?query=${TOP_DOMAINS}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
-  const {isLoading: isOtherDurationDataLoading, data: moduleOtherDurationData} = useQuery(
-    {
+  const {isLoading: isOtherHttpDurationDataLoading, data: otherHttpDurationData} =
+    useQuery({
       queryKey: ['otherDomains'],
       queryFn: () => fetch(`${HOST}/?query=${OTHER_DOMAINS}`).then(res => res.json()),
       retry: false,
       initialData: [],
-    }
-  );
+    });
 
   const {isLoading: isDbDurationLoading, data: dbDurationData} = useQuery({
     queryKey: ['databaseDuration'],
     queryFn: () => fetch(`${HOST}/?query=${DB_TIME_SPENT}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const {data: dbThroughputData} = useQuery({
+    queryKey: ['dbThroughputData'],
+    queryFn: () => fetch(`${HOST}/?query=${DB_THROUGHPUT}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const {data: httpThroughputData} = useQuery({
+    queryKey: ['httpThroughputData'],
+    queryFn: () => fetch(`${HOST}/?query=${HTTP_THROUGHPUT}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
@@ -150,10 +165,11 @@ function FacetBreakdownBar({segments, title}: Props) {
       case 'http':
         return (
           <HttpBreakdownChart
-            isDurationDataLoading={isDurationDataLoading}
-            isOtherDurationDataLoading={isOtherDurationDataLoading}
-            moduleDurationData={moduleDurationData}
-            moduleOtherDurationData={moduleOtherDurationData}
+            isHttpDurationDataLoading={isHttpDurationDataLoading}
+            isOtherHttpDurationDataLoading={isOtherHttpDurationDataLoading}
+            httpDurationData={httpDurationData}
+            otherHttpDurationData={otherHttpDurationData}
+            httpThroughputData={httpThroughputData}
           />
         );
       case 'db':
@@ -162,6 +178,7 @@ function FacetBreakdownBar({segments, title}: Props) {
           <DatabaseDurationChart
             isDbDurationLoading={isDbDurationLoading}
             dbDurationData={dbDurationData}
+            dbThroughputData={dbThroughputData}
           />
         );
     }

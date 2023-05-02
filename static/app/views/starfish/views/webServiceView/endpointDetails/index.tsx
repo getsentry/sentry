@@ -207,7 +207,6 @@ function EndpointDetailBody({
                     end=""
                     loading={loading}
                     utc={false}
-                    disableMultiAxis
                     stacked
                     isLineChart
                     disableXAxis
@@ -234,7 +233,6 @@ function EndpointDetailBody({
                     end=""
                     loading={loading}
                     utc={false}
-                    disableMultiAxis
                     stacked
                     isLineChart
                     disableXAxis
