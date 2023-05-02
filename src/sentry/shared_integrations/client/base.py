@@ -114,6 +114,7 @@ class BaseApiClient(TrackResponseMixin):
         parent_span_id = None
         trace_id = None
         currently_in_server_transaction = False
+        existing_transaction = None
 
         with sentry_sdk.configure_scope() as scope:
             if self.integration_type:
@@ -125,6 +126,11 @@ class BaseApiClient(TrackResponseMixin):
                 currently_in_server_transaction = (
                     scope.transaction and scope.transaction.op == sentry_sdk.consts.OP.HTTP_SERVER
                 )
+                if not currently_in_server_transaction and scope.transaction:
+                    existing_transaction = {
+                        "name": scope.transaction.name,
+                        "op": scope.transaction.op,
+                    }
 
         request = Request(
             method=method.upper(),
@@ -150,6 +156,12 @@ class BaseApiClient(TrackResponseMixin):
             # created attach themselves to the `http.server` transaction already in progress.)
             else nullcontext()
         ) as span:
+            # TODO: Examine the values we get back here to decide if there are any other
+            # existing transactions we should just let keep going rather than creating a new
+            # transaction here
+            if span and existing_transaction:
+                span.set_data("existing_transaction", existing_transaction)
+
             try:
                 with build_session() as session:
                     finalized_request = self.finalize_request(_prepared_request)
