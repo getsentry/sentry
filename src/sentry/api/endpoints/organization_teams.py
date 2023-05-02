@@ -47,7 +47,7 @@ class TeamPostSerializer(serializers.Serializer):
         },
     )
     idp_provisioned = serializers.BooleanField(required=False, default=False)
-    set_admin = serializers.BooleanField(required=False, default=False)
+    setTeamAdmin = serializers.BooleanField(required=False, default=False)
 
     def validate(self, attrs):
         if not (attrs.get("name") or attrs.get("slug")):
@@ -144,7 +144,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         :qparam string name: the optional name of the team.
         :qparam string slug: the optional slug for this team. If not provided it will be auto
                              generated from the name.
-        :qparam bool set_admin: If this is true, the user is added to the as a Team Admin
+        :qparam bool setTeamAdmin: If this is true, the user is added to the as a Team Admin
                                 instead of regular member
         :auth: required
         """
@@ -154,9 +154,9 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         result = serializer.validated_data
-        set_admin = result.get("set_admin")
+        set_team_admin = result.get("setTeamAdmin")
 
-        if set_admin:
+        if set_team_admin:
             if not features.has("organizations:team-roles", organization) or not features.has(
                 "organizations:team-project-creation-all", organization
             ):
@@ -193,12 +193,14 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                         user=request.user, organization=organization
                     )
                     OrganizationMemberTeam.objects.create(
-                        team=team, organizationmember=member, role="admin" if set_admin else None
+                        team=team,
+                        organizationmember=member,
+                        role="admin" if set_team_admin else None,
                     )
                 except OrganizationMember.DoesNotExist:
                     # Only rollback team creation and return 400 if trying to set user as
-                    # Team Admin but creator is not a member of the organization
-                    if set_admin:
+                    # Team Admin but user is not a member of the organization
+                    if set_team_admin:
                         transaction.set_rollback(True)
                         return Response(
                             {

@@ -243,12 +243,12 @@ class OrganizationTeamsCreateTest(APITestCase):
 
     @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
     def test_valid_team_admin(self):
-        team_count = Team.objects.count()
+        prior_team_count = Team.objects.count()
         resp = self.get_success_response(
             self.organization.slug,
             name="hello world",
             slug="foobar",
-            set_admin=True,
+            setTeamAdmin=True,
             status_code=201,
         )
 
@@ -263,14 +263,14 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=team, is_active=True, role="admin"
         ).exists()
-        assert Team.objects.count() == team_count + 1
+        assert Team.objects.count() == prior_team_count + 1
 
     def test_team_admin_missing_team_roles_flag(self):
         response = self.get_error_response(
             self.organization.slug,
             name="hello world",
             slug="foobar",
-            set_admin=True,
+            setTeamAdmin=True,
             status_code=400,
         )
         assert response.data == {
@@ -283,7 +283,7 @@ class OrganizationTeamsCreateTest(APITestCase):
             self.organization.slug,
             name="hello world",
             slug="foobar",
-            set_admin=True,
+            setTeamAdmin=True,
             status_code=400,
         )
         assert response.data == {
@@ -297,7 +297,7 @@ class OrganizationTeamsCreateTest(APITestCase):
             self.organization.slug,
             name="hello world",
             slug="foobar",
-            set_admin=True,
+            setTeamAdmin=True,
             status_code=401,
         )
         assert response.data == {
@@ -324,7 +324,7 @@ class OrganizationTeamsCreateTest(APITestCase):
                 self.organization.slug,
                 name="hello world",
                 slug="foobar",
-                set_admin=True,
+                setTeamAdmin=True,
                 status_code=400,
             )
             assert response.data == {
