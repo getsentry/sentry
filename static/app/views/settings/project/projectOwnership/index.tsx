@@ -121,7 +121,7 @@ tags.sku_class:enterprise #enterprise`;
     const {ownership, codeowners} = this.state;
 
     const disabled = !hasEveryAccess(['project:write'], {organization, project});
-    const editOwnershipeRulesDisabled = !hasEveryAccess(['project:read'], {
+    const editOwnershipRulesDisabled = !hasEveryAccess(['project:read'], {
       organization,
       project,
     });
