@@ -3,6 +3,7 @@ import re
 from django.urls import reverse
 
 import sentry.auth.idpmigration as idpmigration
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
@@ -22,7 +23,7 @@ class IDPMigrationTests(TestCase):
     IDENTITY_ID = "drgUQCLzOyfHxmTyVs0G"
 
     def test_send_one_time_account_confirm_link(self):
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
             om = OrganizationMember.objects.create(organization=self.org, user=self.user)
         link = idpmigration.send_one_time_account_confirm_link(
             self.user, self.org, self.provider, self.email, self.IDENTITY_ID
