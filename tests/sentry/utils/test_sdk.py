@@ -62,7 +62,7 @@ class CheckTagTest(TestCase):
         assert "scope_bleed" not in mock_scope._contexts
         assert mock_logger_warning.call_count == 0
 
-    def test_matching_existing_tag(self, mock_logger_warning: MagicMock):
+    def test_matching_existing_tag_single_org(self, mock_logger_warning: MagicMock):
         mock_scope = Scope()
         mock_scope._tags = {"org.slug": "squirrel_chasers"}
 
@@ -74,7 +74,20 @@ class CheckTagTest(TestCase):
         assert "scope_bleed" not in mock_scope._contexts
         assert mock_logger_warning.call_count == 0
 
-    def test_different_existing_tag(self, mock_logger_warning: MagicMock):
+    def test_matching_existing_tag_multiple_orgs(self, mock_logger_warning: MagicMock):
+        mock_scope = Scope()
+        mock_scope._tags = {"organization.slug": "[multiple orgs]"}
+        # We don't bother to add the underlying slug list here, since right now it's not checked
+
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+            check_tag("organization.slug", "[multiple orgs]")
+
+        assert "possible_mistag" not in mock_scope._tags
+        assert "scope_bleed.tag.organization.slug" not in mock_scope._tags
+        assert "scope_bleed" not in mock_scope._contexts
+        assert mock_logger_warning.call_count == 0
+
+    def test_different_existing_tag_single_org(self, mock_logger_warning: MagicMock):
         mock_scope = Scope()
         mock_scope._tags = {"org.slug": "good_dogs"}
 
@@ -90,6 +103,62 @@ class CheckTagTest(TestCase):
         assert mock_scope._contexts["scope_bleed"] == extra
         mock_logger_warning.assert_called_with(
             "Tag already set and different (org.slug).", extra=extra
+        )
+
+    def test_different_existing_tag_incoming_is_multiple_orgs(self, mock_logger_warning: MagicMock):
+        mock_scope = Scope()
+        mock_scope._tags = {"organization.slug": "good_dogs"}
+
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+            check_tag("organization.slug", "[multiple orgs]")
+
+        extra = {
+            "previous_organization.slug_tag": "good_dogs",
+            "new_organization.slug_tag": "[multiple orgs]",
+        }
+        assert "possible_mistag" in mock_scope._tags
+        assert "scope_bleed.organization.slug" in mock_scope._tags
+        assert mock_scope._contexts["scope_bleed"] == extra
+        mock_logger_warning.assert_called_with(
+            "Tag already set and different (organization.slug).", extra=extra
+        )
+
+    def test_getting_more_specific_doesnt_count_as_mismatch(self, mock_logger_warning: MagicMock):
+        orgs = [self.create_organization() for _ in [None] * 3]
+        mock_scope = Scope()
+        mock_scope.set_tag("organization.slug", "[multiple orgs]")
+        mock_scope.set_tag("organization", "[multiple orgs]")
+        mock_scope.set_context("organization", {"multiple possible": [org.slug for org in orgs]})
+
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+            check_tag("organization.slug", orgs[1].slug)
+
+        assert "possible_mistag" not in mock_scope._tags
+        assert "scope_bleed.tag.organization.slug" not in mock_scope._tags
+        assert "scope_bleed" not in mock_scope._contexts
+        assert mock_logger_warning.call_count == 0
+
+    def test_overwriting_list_with_non_member_single_org_counts_as_mismatch(
+        self, mock_logger_warning: MagicMock
+    ):
+        orgs = [self.create_organization() for _ in [None] * 3]
+        mock_scope = Scope()
+        mock_scope.set_tag("organization.slug", "[multiple orgs]")
+        mock_scope.set_tag("organization", "[multiple orgs]")
+        mock_scope.set_context("organization", {"multiple possible": [org.slug for org in orgs]})
+
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+            check_tag("organization.slug", "squirrel_chasers")
+
+        extra = {
+            "previous_organization.slug_tag": "[multiple orgs]",
+            "new_organization.slug_tag": "squirrel_chasers",
+        }
+        assert "possible_mistag" in mock_scope._tags
+        assert "scope_bleed.organization.slug" in mock_scope._tags
+        assert mock_scope._contexts["scope_bleed"] == extra
+        mock_logger_warning.assert_called_with(
+            "Tag already set and different (organization.slug).", extra=extra
         )
 
 
