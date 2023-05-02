@@ -27,9 +27,10 @@ type ModuleSegment = {
 type Props = {
   segments: ModuleSegment[];
   title: string;
+  transaction?: string;
 };
 
-function FacetBreakdownBar({segments, title}: Props) {
+function FacetBreakdownBar({segments, title, transaction}: Props) {
   const [hoveredValue, setHoveredValue] = useState<ModuleSegment | null>(null);
   const [currentSegment, setCurrentSegment] = useState<
     ModuleSegment['module'] | undefined
@@ -39,8 +40,8 @@ function FacetBreakdownBar({segments, title}: Props) {
   const {isLoading: isDurationDataLoading, data: moduleDurationData} = useQuery({
     queryKey: ['topDomains'],
     queryFn: () =>
-      fetch(`${HOST}/?query=${getTopHttpDomains({transaction: ''})}`).then(res =>
-        res.json()
+      fetch(`${HOST}/?query=${getTopHttpDomains({transaction: transaction ?? ''})}`).then(
+        res => res.json()
       ),
     retry: false,
     initialData: [],
@@ -50,8 +51,8 @@ function FacetBreakdownBar({segments, title}: Props) {
     {
       queryKey: ['otherDomains'],
       queryFn: () =>
-        fetch(`${HOST}/?query=${getOtherDomains({transaction: ''})}`).then(res =>
-          res.json()
+        fetch(`${HOST}/?query=${getOtherDomains({transaction: transaction ?? ''})}`).then(
+          res => res.json()
         ),
       retry: false,
       initialData: [],
@@ -61,9 +62,9 @@ function FacetBreakdownBar({segments, title}: Props) {
   const {isLoading: isDbDurationLoading, data: dbDurationData} = useQuery({
     queryKey: ['databaseDuration'],
     queryFn: () =>
-      fetch(`${HOST}/?query=${getDatabaseTimeSpent({transaction: ''})}`).then(res =>
-        res.json()
-      ),
+      fetch(
+        `${HOST}/?query=${getDatabaseTimeSpent({transaction: transaction ?? ''})}`
+      ).then(res => res.json()),
     retry: false,
     initialData: [],
   });
