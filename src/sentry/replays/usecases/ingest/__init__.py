@@ -70,15 +70,13 @@ class RecordingIngestMessage:
     payload_with_headers: bytes
 
 
-@metrics.wraps("replays.usecases.ingest.ingest_recording_not_chunked")
-def ingest_recording_not_chunked(
-    message_dict: RecordingMessage, transaction: Span, current_hub: Hub
-) -> None:
+@metrics.wraps("replays.usecases.ingest.ingest_recording")
+def ingest_recording(message_dict: RecordingMessage, transaction: Span, current_hub: Hub) -> None:
     """Ingest non-chunked recording messages."""
     with current_hub:
         with transaction.start_child(
-            op="replays.usecases.ingest.ingest_recording_not_chunked",
-            description="ingest_recording_not_chunked",
+            op="replays.usecases.ingest.ingest_recording",
+            description="ingest_recording",
         ):
             message = RecordingIngestMessage(
                 replay_id=message_dict["replay_id"],
@@ -89,10 +87,10 @@ def ingest_recording_not_chunked(
                 retention_days=message_dict["retention_days"],
                 payload_with_headers=message_dict["payload"],
             )
-            ingest_recording(message, transaction)
+            _ingest_recording(message, transaction)
 
 
-def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None:
+def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None:
     """Ingest recording messages."""
     try:
         headers, recording_segment = process_headers(message.payload_with_headers)

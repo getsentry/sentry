@@ -13,7 +13,7 @@ from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from sentry_sdk.tracing import Span
 
-from sentry.replays.usecases.ingest import RecordingMessage, ingest_recording_not_chunked
+from sentry.replays.usecases.ingest import RecordingMessage, ingest_recording
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
 
 def initialize_message_context(message: Message[KafkaPayload]) -> MessageContext:
-    """initialize a Sentry transaction and unpack the message."""
+    """Initialize a Sentry transaction and unpack the message."""
     transaction = sentry_sdk.start_transaction(
         name="replays.consumer.process_recording",
         op="replays.consumer",
@@ -74,7 +74,7 @@ def move_replay_to_permanent_storage(message: Message[MessageContext]) -> Any:
     message_type = message_dict["type"]
 
     if message_type == "replay_recording_not_chunked":
-        ingest_recording_not_chunked(
+        ingest_recording(
             cast(RecordingMessage, message_dict), context.transaction, context.current_hub
         )
     else:
