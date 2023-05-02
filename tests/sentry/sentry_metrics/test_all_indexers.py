@@ -16,6 +16,7 @@ from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCac
 from sentry.sentry_metrics.indexer.mock import RawSimpleIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PGStringIndexerV2
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS, StaticStringIndexer
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING
 from sentry.testutils.helpers.options import override_options
 
 BACKENDS = [
@@ -100,7 +101,7 @@ def test_indexer(indexer, indexer_cache):
     assert list(
         indexer_cache.get_many(
             [f"{org1_id}:{string}" for string in strings],
-            cache_namespace=use_case_id.value,
+            cache_namespace=REVERSE_METRIC_PATH_MAPPING[use_case_id].value,
         ).values()
     ) == [None, None, None]
 
@@ -124,13 +125,18 @@ def test_indexer(indexer, indexer_cache):
 
     for cache_value in indexer_cache.get_many(
         [f"{org1_id}:{string}" for string in strings],
-        cache_namespace=use_case_id.value,
+        cache_namespace=REVERSE_METRIC_PATH_MAPPING[use_case_id].value,
     ).values():
         assert cache_value in org1_string_ids
 
     # verify org2 results and cache values
     assert results[org2_id]["sup"] == org2_string_id
-    assert indexer_cache.get(f"{org2_id}:sup", cache_namespace=use_case_id.value) == org2_string_id
+    assert (
+        indexer_cache.get(
+            f"{org2_id}:sup", cache_namespace=REVERSE_METRIC_PATH_MAPPING[use_case_id].value
+        )
+        == org2_string_id
+    )
 
     # we should have no results for org_id 999
     assert not results.get(999)
@@ -213,7 +219,7 @@ def test_already_cached_plus_read_results(indexer, indexer_cache) -> None:
     """
     org_id = 8
     cached = {f"{org_id}:beep": 10, f"{org_id}:boop": 11}
-    indexer_cache.set_many(cached, use_case_id.value)
+    indexer_cache.set_many(cached, REVERSE_METRIC_PATH_MAPPING[use_case_id].value)
 
     raw_indexer = indexer
     indexer = CachingIndexer(indexer_cache, indexer)

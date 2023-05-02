@@ -5,7 +5,6 @@ from typing import Mapping, MutableMapping, Optional, Sequence, Set
 from django.conf import settings
 from django.core.cache import caches
 
-from sentry import options
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
@@ -84,15 +83,6 @@ class StringIndexerCache:
         )
         return self._format_results(keys, results, cache_namespace)
 
-    # TODO: Remove later once we are always writing new keys
-    def set_many_new(self, key_values: Mapping[str, int], cache_namespace: str) -> None:
-        new_namespace = REVERSE_METRIC_PATH_MAPPING[UseCaseKey(cache_namespace)]
-
-        cache_key_values = {
-            self.make_cache_key(k, new_namespace.value): v for k, v in key_values.items()
-        }
-        self.cache.set_many(cache_key_values, timeout=self.randomized_ttl, version=self.version)
-
     def set_many(self, key_values: Mapping[str, int], cache_namespace: str) -> None:
         cache_key_values = {
             self.make_cache_key(k, cache_namespace): v for k, v in key_values.items()
@@ -119,7 +109,9 @@ class CachingIndexer(StringIndexer):
         cache_keys = KeyCollection(org_strings)
         metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
         cache_key_strs = cache_keys.as_strings()
-        cache_results = self.cache.get_many(cache_key_strs, use_case_id.value)
+        cache_results = self.cache.get_many(
+            cache_key_strs, REVERSE_METRIC_PATH_MAPPING[use_case_id].value
+        )
 
         hits = [k for k, v in cache_results.items() if v is not None]
 
@@ -155,15 +147,9 @@ class CachingIndexer(StringIndexer):
         db_record_key_results = self.indexer.bulk_record(use_case_id, db_record_keys.mapping)
 
         self.cache.set_many(
-            db_record_key_results.get_mapped_key_strings_to_ints(), use_case_id.value
+            db_record_key_results.get_mapped_key_strings_to_ints(),
+            REVERSE_METRIC_PATH_MAPPING[use_case_id].value,
         )
-
-        double_write = options.get("sentry-metrics.indexer.cache-key-double-write")
-
-        if double_write:
-            self.cache.set_many_new(
-                db_record_key_results.get_mapped_key_strings_to_ints(), use_case_id.value
-            )
 
         return cache_key_results.merge(db_record_key_results)
 
