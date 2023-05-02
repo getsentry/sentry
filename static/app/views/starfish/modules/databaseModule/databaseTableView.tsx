@@ -76,6 +76,56 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   },
 ];
 
+function similarity(value: string, other: string): number {
+  // If they're identical we don't care
+  if (value === other || other === undefined || value === undefined) {
+    return -1;
+  }
+  const short_words = value.length < other.length ? value.split(' ') : other.split(' ');
+  const long_words = value.length > other.length ? value.split(' ') : other.split(' ');
+  const total = long_words.length;
+  let count = 0;
+  while (long_words.length > 0) {
+    const word = long_words.pop();
+    if (word && short_words.includes(word)) {
+      count += 1;
+      short_words.splice(short_words.indexOf(word), 1);
+    }
+  }
+  return count / total;
+}
+
+function renderBadge(row, selectedRow) {
+  const similar = similarity(selectedRow?.description, row.description) > 0.8;
+  const newish = row?.newish === 1;
+  const retired = row?.retired === 1;
+  let response: React.ReactNode | null = null;
+  if (similar) {
+    if (newish && selectedRow.newish !== 1) {
+      response = (
+        <span>
+          <StyledBadge type="new" text="new" />
+          <StyledBadge type="alpha" text="similar" />
+        </span>
+      );
+    } else if (retired && selectedRow.retired !== 1) {
+      response = (
+        <span>
+          <StyledBadge type="warning" text="old" />
+          <StyledBadge type="alpha" text="similar" />
+        </span>
+      );
+    } else {
+      response = <StyledBadge type="alpha" text="similar" />;
+    }
+  } else if (newish) {
+    response = <StyledBadge type="new" text="new" />;
+  } else if (retired) {
+    response = <StyledBadge type="warning" text="old" />;
+  }
+  return response;
+}
+
 export default function APIModuleView({
   location,
   data,
@@ -147,8 +197,7 @@ export default function APIModuleView({
             {value.length > 30 ? '...' : ''}
             {value.length > 30 ? value.substring(value.length - 30) : ''}
           </Link>
-          {row?.newish === 1 && <StyledBadge type="new" text="new" />}
-          {row?.retired === 1 && <StyledBadge type="warning" text="old" />}
+          {renderBadge(row, selectedRow)}
         </Hovercard>
       );
     }
