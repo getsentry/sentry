@@ -89,7 +89,7 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
           )}
         </TextBlock>
 
-        <PermissionAlert access={['project:write']} project={project} />
+        <PermissionAlert project={project} />
 
         <Form
           saveOnBlur
