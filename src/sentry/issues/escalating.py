@@ -214,28 +214,6 @@ def _extract_project_and_group_ids(groups: Sequence[Group]) -> Dict[int, List[in
     return group_ids_by_project
 
 
-def parse_groups_past_counts(response: Sequence[GroupsCountResponse]) -> ParsedGroupsCount:
-    """
-    Return the parsed snuba response for groups past counts to be used in generate_issue_forecast.
-    ParsedGroupCount is of the form {<group_id>: {"intervals": [str], "data": [int]}}.
-
-    `response`: Snuba response for group event counts
-    """
-    group_counts: ParsedGroupsCount = {}
-    group_ids_list = group_counts.keys()
-    for data in response:
-        group_id = data["group_id"]
-        if group_id not in group_ids_list:
-            group_counts[group_id] = {
-                "intervals": [data["hourBucket"]],
-                "data": [data["count()"]],
-            }
-        else:
-            group_counts[group_id]["intervals"].append(data["hourBucket"])
-            group_counts[group_id]["data"].append(data["count()"])
-    return group_counts
-
-
 def get_group_hourly_count(group: Group) -> int:
     """Return the number of events a group has had today in the last hour"""
     key = f"hourly-group-count:{group.project.id}:{group.id}"
@@ -290,6 +268,28 @@ def is_escalating(group: Group) -> bool:
         )
         return True
     return False
+
+
+def parse_groups_past_counts(response: Sequence[GroupsCountResponse]) -> ParsedGroupsCount:
+    """
+    Return the parsed snuba response for groups past counts to be used in generate_issue_forecast.
+    ParsedGroupCount is of the form {<group_id>: {"intervals": [str], "data": [int]}}.
+
+    `response`: Snuba response for group event counts
+    """
+    group_counts: ParsedGroupsCount = {}
+    group_ids_list = group_counts.keys()
+    for data in response:
+        group_id = data["group_id"]
+        if group_id not in group_ids_list:
+            group_counts[group_id] = {
+                "intervals": [data["hourBucket"]],
+                "data": [data["count()"]],
+            }
+        else:
+            group_counts[group_id]["intervals"].append(data["hourBucket"])
+            group_counts[group_id]["data"].append(data["count()"])
+    return group_counts
 
 
 def _issue_category_dataset(category: Optional[GroupCategory]) -> Dataset:

@@ -281,6 +281,4 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         group = self._create_events_for_group(count=1).group  # This hour -> It will count
 
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
-        assert (
-            get_group_hourly_count(group.project.organization.id, group.project.id, group.id) == 1
-        )
+        assert get_group_hourly_count(group) == 1
