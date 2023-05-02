@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {deleteMonitor} from 'sentry/actionCreators/monitors';
+import {deleteMonitor, deleteMonitorEnvironment} from 'sentry/actionCreators/monitors';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
@@ -25,7 +25,7 @@ import {MonitorBadge} from './monitorBadge';
 
 interface MonitorRowProps {
   monitor: Monitor;
-  onDelete: () => void;
+  onDelete: (monitorEnv?: string) => void;
   organization: Organization;
   monitorEnv?: MonitorEnvironment;
 }
@@ -79,8 +79,17 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
       onAction: () => {
         openConfirmModal({
           onConfirm: async () => {
-            await deleteMonitor(api, organization.slug, monitor.slug);
-            onDelete();
+            if (monitorEnv) {
+              await deleteMonitorEnvironment(
+                api,
+                organization.slug,
+                monitor.slug,
+                monitorEnv.name
+              );
+            } else {
+              await deleteMonitor(api, organization.slug, monitor.slug);
+            }
+            onDelete(monitorEnv?.name);
           },
           header: t('Delete Monitor?'),
           message: deletionModalMessage,
@@ -119,6 +128,10 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
             ? tct('Failed [lastCheckin]', {lastCheckin})
             : monitorStatus === MonitorStatus.TIMEOUT
             ? t('Timed out')
+            : monitorStatus === MonitorStatus.PENDING_DELETION
+            ? t('Pending Deletion')
+            : monitorStatus === MonitorStatus.DELETION_IN_PROGRESS
+            ? t('Deletion In Progress')
             : null}
         </TextOverflow>
       </MonitorColumn>
@@ -126,6 +139,8 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
       <MonitorColumn>
         {monitorEnv?.nextCheckIn &&
         monitorEnv.status !== MonitorStatus.DISABLED &&
+        monitorEnv.status !== MonitorStatus.PENDING_DELETION &&
+        monitorEnv.status !== MonitorStatus.DELETION_IN_PROGRESS &&
         monitorEnv.status !== MonitorStatus.ACTIVE ? (
           <TimeSince unitStyle="regular" date={monitorEnv.nextCheckIn} />
         ) : (

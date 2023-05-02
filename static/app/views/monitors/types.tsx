@@ -25,6 +25,8 @@ export enum MonitorStatus {
   ACTIVE = 'active',
   MISSED_CHECKIN = 'missed_checkin',
   TIMEOUT = 'timeout',
+  PENDING_DELETION = 'pending_deletion',
+  DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
 
 export enum CheckInStatus {

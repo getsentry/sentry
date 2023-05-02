@@ -65,6 +65,7 @@ export default function Monitors({location}: RouteComponentProps<{}, {}>) {
   const {
     data: monitorList,
     getResponseHeader: monitorListHeaders,
+    refetch,
     isLoading,
   } = useApiQuery<Monitor[]>(monitorListQueryKey, {
     staleTime: 0,
@@ -90,12 +91,16 @@ export default function Monitors({location}: RouteComponentProps<{}, {}>) {
       key={`${monitor.slug}-${monitorEnv?.name ?? 'no-env'}`}
       monitor={monitor}
       monitorEnv={monitorEnv}
-      onDelete={() => {
-        setApiQueryData(
-          queryClient,
-          monitorListQueryKey,
-          monitorList?.filter(m => m.slug !== monitor.slug)
-        );
+      onDelete={deletedEnv => {
+        if (deletedEnv) {
+          refetch();
+        } else {
+          setApiQueryData(
+            queryClient,
+            monitorListQueryKey,
+            monitorList?.filter(m => m.slug !== monitor.slug)
+          );
+        }
       }}
       organization={organization}
     />

@@ -53,6 +53,14 @@ const statusMap: Record<MonitorStatus, StatusData> = {
     Icon: (p: SVGIconProps) => <IconPause {...p} size="xs" />,
     color: 'subText',
   },
+  pending_deletion: {
+    Icon: (p: SVGIconProps) => <IconPause {...p} size="xs" />,
+    color: 'subText',
+  },
+  deletion_in_progress: {
+    Icon: (p: SVGIconProps) => <IconPause {...p} size="xs" />,
+    color: 'subText',
+  },
 };
 
 export {MonitorBadge};
