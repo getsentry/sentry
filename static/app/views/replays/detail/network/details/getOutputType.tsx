@@ -28,9 +28,15 @@ export default function getOutputType({isSetup, item, visibleTab}: Args): Output
   const request = item.data?.request ?? {};
   const response = item.data?.response ?? {};
 
-  const hasHeadersOrData =
-    request.headers || response.headers || request.body || response.body;
-  if (hasHeadersOrData) {
+  const hasHeaders =
+    Object.keys(request.headers || {}).length ||
+    Object.keys(response.headers || {}).length;
+  if (hasHeaders && visibleTab === 'details') {
+    return Output.data;
+  }
+
+  const hasBody = request.body || response.body;
+  if (hasBody && ['request', 'response'].includes(visibleTab)) {
     return Output.data;
   }
 

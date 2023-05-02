@@ -33,8 +33,8 @@ const mockItems = {
     data: {
       method: 'GET',
       statusCode: 200,
-      request: {_meta: {warnings: ['URL_SKIPPED']}},
-      response: {_meta: {warnings: ['URL_SKIPPED']}},
+      request: {_meta: {warnings: ['URL_SKIPPED']}, headers: {}},
+      response: {_meta: {warnings: ['URL_SKIPPED']}, headers: {}},
     },
   }),
   fetchBodySkipped: TestStubs.ReplaySpanPayload({
@@ -43,18 +43,30 @@ const mockItems = {
     data: {
       method: 'GET',
       statusCode: 200,
-      request: {_meta: {warnings: ['BODY_SKIPPED']}},
-      response: {_meta: {warnings: ['BODY_SKIPPED']}},
+      request: {
+        _meta: {warnings: ['BODY_SKIPPED']},
+        headers: {accept: 'application/json'},
+      },
+      response: {
+        _meta: {warnings: ['BODY_SKIPPED']},
+        headers: {'content-type': 'application/json'},
+      },
     },
   }),
-  fetchWithReqHeaders: TestStubs.ReplaySpanPayload({
+  fetchWithHeaders: TestStubs.ReplaySpanPayload({
     op: 'resource.fetch',
     description: '/api/0/issues/1234',
     data: {
       method: 'GET',
       statusCode: 200,
-      request: {_meta: {}, headers: {accept: 'application/json'}},
-      response: {_meta: {}},
+      request: {
+        _meta: {},
+        headers: {accept: 'application/json'},
+      },
+      response: {
+        _meta: {},
+        headers: {'content-type': 'application/json'},
+      },
     },
   }),
   fetchWithRespBody: TestStubs.ReplaySpanPayload({
@@ -63,8 +75,15 @@ const mockItems = {
     data: {
       method: 'GET',
       statusCode: 200,
-      request: {_meta: {}},
-      response: {_meta: {}, body: {success: true}},
+      request: {
+        _meta: {},
+        headers: {accept: 'application/json'},
+      },
+      response: {
+        _meta: {},
+        headers: {'content-type': 'application/json'},
+        body: {success: true},
+      },
     },
   }),
 };
@@ -98,7 +117,7 @@ describe('NetworkDetailsContent', () => {
         {isSetup: false, itemName: 'img'},
         {isSetup: true, itemName: 'img'},
       ])(
-        'should render the `general` & `unsupported` sections when the span is not FETCH or XHR and isSetup = %s',
+        'should render the `general` & `unsupported` sections when the span is not FETCH or XHR and isSetup=$isSetup. [$itemName]',
         ({isSetup}) => {
           render(
             <NetworkDetailsContent
@@ -123,10 +142,10 @@ describe('NetworkDetailsContent', () => {
         {isSetup: false, itemName: 'fetchNoDataObj'},
         {isSetup: false, itemName: 'fetchUrlSkipped'},
         {isSetup: false, itemName: 'fetchBodySkipped'},
-        {isSetup: false, itemName: 'fetchWithReqHeaders'},
+        {isSetup: false, itemName: 'fetchWithHeaders'},
         {isSetup: false, itemName: 'fetchWithRespBody'},
       ])(
-        'should render the `general` & `setup` sections when isSetup is false, no matter the item',
+        'should render the `general` & `setup` sections when isSetup=false, no matter the item. [$itemName]',
         ({isSetup, itemName}) => {
           render(
             <NetworkDetailsContent
@@ -149,7 +168,7 @@ describe('NetworkDetailsContent', () => {
         {isSetup: true, itemName: 'fetchNoDataObj'},
         {isSetup: true, itemName: 'fetchUrlSkipped'},
       ])(
-        'should render the `general` & `setup` sections when the item has no data',
+        'should render the `general` & `setup` sections when the item has no data. [$itemName]',
         ({isSetup, itemName}) => {
           render(
             <NetworkDetailsContent
@@ -170,10 +189,10 @@ describe('NetworkDetailsContent', () => {
 
       it.each([
         {isSetup: true, itemName: 'fetchBodySkipped'},
-        {isSetup: true, itemName: 'fetchWithReqHeaders'},
+        {isSetup: true, itemName: 'fetchWithHeaders'},
         {isSetup: true, itemName: 'fetchWithRespBody'},
       ])(
-        'should render the `general` & two `headers` sections, and always the setup section, when things are setup and the item has some data',
+        'should render the `general` & two `headers` sections, and always the setup section, when things are setup and the item has some data. [$itemName]',
         ({isSetup, itemName}) => {
           render(
             <NetworkDetailsContent
@@ -202,7 +221,7 @@ describe('NetworkDetailsContent', () => {
         {isSetup: false, itemName: 'img'},
         {isSetup: true, itemName: 'img'},
       ])(
-        'should render the `query params` & `unsupported` sections when the span is not FETCH or XHR and isSetup = %s',
+        'should render the `query params` & `unsupported` sections when the span is not FETCH or XHR and isSetup=$isSetup. [$itemName]',
         ({isSetup}) => {
           render(
             <NetworkDetailsContent
@@ -227,10 +246,10 @@ describe('NetworkDetailsContent', () => {
         {isSetup: false, itemName: 'fetchNoDataObj'},
         {isSetup: false, itemName: 'fetchUrlSkipped'},
         {isSetup: false, itemName: 'fetchBodySkipped'},
-        {isSetup: false, itemName: 'fetchWithReqHeaders'},
+        {isSetup: false, itemName: 'fetchWithHeaders'},
         {isSetup: false, itemName: 'fetchWithRespBody'},
       ])(
-        'should render the `query params` & `setup` sections when isSetup is false, no matter the item',
+        'should render the `query params` & `setup` sections when isSetup is false, no matter the item. [$itemName]',
         ({isSetup, itemName}) => {
           render(
             <NetworkDetailsContent
@@ -253,8 +272,9 @@ describe('NetworkDetailsContent', () => {
         {isSetup: true, itemName: 'fetchNoDataObj'},
         {isSetup: true, itemName: 'fetchUrlSkipped'},
         {isSetup: true, itemName: 'fetchBodySkipped'},
+        {isSetup: true, itemName: 'fetchWithHeaders'},
       ])(
-        'should render the `query params` & `setup` sections when the item has no data',
+        'should render the `query params` & `setup` sections when the item has no data. [$itemName]',
         ({isSetup, itemName}) => {
           render(
             <NetworkDetailsContent
@@ -273,11 +293,8 @@ describe('NetworkDetailsContent', () => {
         }
       );
 
-      it.each([
-        {isSetup: true, itemName: 'fetchWithReqHeaders'},
-        {isSetup: true, itemName: 'fetchWithRespBody'},
-      ])(
-        'should render the `query params` & `request payload` sections when things are setup and the item has some data',
+      it.each([{isSetup: true, itemName: 'fetchWithRespBody'}])(
+        'should render the `query params` & `request payload` sections when things are setup and the item has some data. [$itemName]',
         ({isSetup, itemName}) => {
           render(
             <NetworkDetailsContent
@@ -306,7 +323,7 @@ describe('NetworkDetailsContent', () => {
         {isSetup: false, itemName: 'img'},
         {isSetup: true, itemName: 'img'},
       ])(
-        'should render the `unsupported` section when the span is not FETCH or XHR and isSetup = %s',
+        'should render the `unsupported` section when the span is not FETCH or XHR and isSetup=$isSetup. [$itemName]',
         ({isSetup}) => {
           render(
             <NetworkDetailsContent
@@ -331,10 +348,10 @@ describe('NetworkDetailsContent', () => {
         {isSetup: false, itemName: 'fetchNoDataObj'},
         {isSetup: false, itemName: 'fetchUrlSkipped'},
         {isSetup: false, itemName: 'fetchBodySkipped'},
-        {isSetup: false, itemName: 'fetchWithReqHeaders'},
+        {isSetup: false, itemName: 'fetchWithHeaders'},
         {isSetup: false, itemName: 'fetchWithRespBody'},
       ])(
-        'should render the `setup` section when isSetup is false, no matter the item',
+        'should render the `setup` section when isSetup is false, no matter the item. [$itemName]',
         ({isSetup, itemName}) => {
           render(
             <NetworkDetailsContent
@@ -357,8 +374,9 @@ describe('NetworkDetailsContent', () => {
         {isSetup: true, itemName: 'fetchNoDataObj'},
         {isSetup: true, itemName: 'fetchUrlSkipped'},
         {isSetup: true, itemName: 'fetchBodySkipped'},
+        {isSetup: true, itemName: 'fetchWithHeaders'},
       ])(
-        'should render the `setup` section when the item has no data',
+        'should render the `setup` section when the item has no data. [$itemName]',
         ({isSetup, itemName}) => {
           render(
             <NetworkDetailsContent
@@ -377,11 +395,8 @@ describe('NetworkDetailsContent', () => {
         }
       );
 
-      it.each([
-        {isSetup: true, itemName: 'fetchWithReqHeaders'},
-        {isSetup: true, itemName: 'fetchWithRespBody'},
-      ])(
-        'should render the `response body` section when things are setup and the item has some data',
+      it.each([{isSetup: true, itemName: 'fetchWithRespBody'}])(
+        'should render the `response body` section when things are setup and the item has some data. [$itemName]',
         ({isSetup, itemName}) => {
           render(
             <NetworkDetailsContent
