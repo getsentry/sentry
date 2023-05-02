@@ -86,6 +86,15 @@ def get_monitor_environment_context(monitor_environment):
 
 
 class MonitorStatus(ObjectStatus):
+    """
+    The monitor status is an extension of the ObjectStatus constants. In this
+    extension the "status" of a monitor (passing, failing, timed out, etc) is
+    represented.
+
+    [!!]: This is NOT used for the status of the Monitor model itself. That is
+          simply an ObjectStatus.
+    """
+
     OK = 4
     ERROR = 5
     MISSED_CHECKIN = 6
@@ -94,8 +103,13 @@ class MonitorStatus(ObjectStatus):
     @classmethod
     def as_choices(cls):
         return (
+            # TODO: It is unlikely a MonitorEnvironment should ever be in the
+            # 'active' state, since for a monitor environmnent to be created
+            # some checkins must have been sent.
             (cls.ACTIVE, "active"),
+            # The DISABLED state is denormalized off of the parent Monitor.
             (cls.DISABLED, "disabled"),
+            # MonitorEnvironment's may be deleted
             (cls.PENDING_DELETION, "pending_deletion"),
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
             (cls.OK, "ok"),
@@ -187,7 +201,7 @@ class Monitor(Model):
     project_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=128)
     status = BoundedPositiveIntegerField(
-        default=MonitorStatus.ACTIVE, choices=MonitorStatus.as_choices()
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )
     type = BoundedPositiveIntegerField(
         default=MonitorType.UNKNOWN,
@@ -234,21 +248,6 @@ class Monitor(Model):
             last_checkin.astimezone(tz), schedule_type, self.config["schedule"]
         )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
-
-    def get_status_display(self) -> str:
-        for status_id, display in MonitorStatus.as_choices():
-            if status_id == self.status:
-                if self.status in [
-                    MonitorStatus.ACTIVE,
-                    MonitorStatus.DISABLED,
-                    MonitorStatus.PENDING_DELETION,
-                    MonitorStatus.DELETION_IN_PROGRESS,
-                ]:
-                    return display
-                else:
-                    return "active"
-
-        return "active"
 
 
 @receiver(pre_save, sender=Monitor)
