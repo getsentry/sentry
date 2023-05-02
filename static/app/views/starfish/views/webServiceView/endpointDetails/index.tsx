@@ -58,8 +58,8 @@ const HTTP_SPAN_COLUMN_ORDER = [
     width: 400,
   },
   {
-    key: 'tpm',
-    name: 'TPM',
+    key: 'throughput',
+    name: 'Throughput',
     width: 125,
   },
   {

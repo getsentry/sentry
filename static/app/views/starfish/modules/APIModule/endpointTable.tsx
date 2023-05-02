@@ -17,7 +17,7 @@ import {HOST} from 'sentry/views/starfish/utils/constants';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
-import {getEndpointListQuery, getEndpointsTPMQuery} from './queries';
+import {getEndpointListQuery, getEndpointsThroughputQuery} from './queries';
 
 type Props = {
   filterOptions: {
@@ -49,8 +49,8 @@ const COLUMN_ORDER = [
     width: 600,
   },
   {
-    key: 'tpm',
-    name: 'tpm',
+    key: 'throughput',
+    name: 'throughput',
     width: 200,
   },
   {
@@ -91,40 +91,41 @@ export default function EndpointTable({
     initialData: [],
   });
 
-  const {isLoading: isEndpointsTPMLoading, data: endpointsTPMData} = useQuery({
-    queryKey: ['endpoints2', filterOptions],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getEndpointsTPMQuery(filterOptions)}`).then(res =>
-        res.json()
-      ),
-    retry: false,
-    initialData: [],
-  });
+  const {isLoading: isEndpointsThroughputLoading, data: endpointsThroughputData} =
+    useQuery({
+      queryKey: ['endpoints2', filterOptions],
+      queryFn: () =>
+        fetch(`${HOST}/?query=${getEndpointsThroughputQuery(filterOptions)}`).then(res =>
+          res.json()
+        ),
+      retry: false,
+      initialData: [],
+    });
 
-  const tpmGroupedByURL = {};
-  endpointsTPMData.forEach(({description, interval, count}) => {
-    if (description in tpmGroupedByURL) {
-      tpmGroupedByURL[description].push({name: interval, value: count});
+  const throughputGroupedByURL = {};
+  endpointsThroughputData.forEach(({description, interval, count}) => {
+    if (description in throughputGroupedByURL) {
+      throughputGroupedByURL[description].push({name: interval, value: count});
     } else {
-      tpmGroupedByURL[description] = [{name: interval, value: count}];
+      throughputGroupedByURL[description] = [{name: interval, value: count}];
     }
   });
 
   const combinedEndpointData = endpointsData.map(data => {
     const url = data.description;
 
-    const tpmSeries: Series = {
-      seriesName: 'tpm',
-      data: tpmGroupedByURL[url],
+    const throughputSeries: Series = {
+      seriesName: 'throughput',
+      data: throughputGroupedByURL[url],
     };
 
-    const zeroFilled = zeroFillSeries(tpmSeries, moment.duration(12, 'hours'));
-    return {...data, tpm: zeroFilled};
+    const zeroFilled = zeroFillSeries(throughputSeries, moment.duration(12, 'hours'));
+    return {...data, throughput: zeroFilled};
   });
 
   return (
     <GridEditable
-      isLoading={areEndpointsLoading || isEndpointsTPMLoading}
+      isLoading={areEndpointsLoading || isEndpointsThroughputLoading}
       data={combinedEndpointData}
       columnOrder={columns ?? COLUMN_ORDER}
       columnSortBy={[]}
@@ -168,7 +169,7 @@ export function renderBodyCell(
     );
   }
 
-  if (column.key === 'tpm') {
+  if (column.key === 'throughput') {
     return (
       <Sparkline
         color={CHART_PALETTE[3][0]}

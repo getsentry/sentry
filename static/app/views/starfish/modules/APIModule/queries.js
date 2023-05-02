@@ -179,7 +179,7 @@ export const getHostStatusBreakdownQuery = ({domain, datetime}) => {
   `;
 };
 
-export const getEndpointsTPMQuery = ({datetime}) => {
+export const getEndpointsThroughputQuery = ({datetime}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `
     SELECT
