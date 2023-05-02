@@ -120,7 +120,7 @@ def _query_with_pagination(
     while True:
         query = _generate_query(project_ids, group_ids, offset, start_date, end_date)
         request = Request(
-            dataset=Dataset.Events.value,
+            dataset=_issue_category_dataset(GroupCategory.ERROR),
             app_id=REFERRER,
             query=query,
             tenant_ids={"referrer": REFERRER, "organization_id": organization_id},
@@ -145,7 +145,7 @@ def _generate_query(
     group_id_col = Column("group_id")
     proj_id_col = Column("project_id")
     return Query(
-        match=Entity(EntityKey.Events.value),
+        match=Entity(_issue_category_entity(GroupCategory.ERROR)),
         select=[
             proj_id_col,
             group_id_col,
