@@ -36,6 +36,11 @@ class JiraWebhookBase(Endpoint, abc.ABC):
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
+    def convert_args(self, request: Request, *args, **kwargs):
+        token = self.get_token(request)
+        kwargs["token"] = token
+        return super().convert_args(request, *args, **kwargs)
+
     def handle_exception(
         self,
         request: Request,
