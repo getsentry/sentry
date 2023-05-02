@@ -51,7 +51,7 @@ const COLUMN_ORDER = [
   {
     key: 'tpm',
     name: 'tpm',
-    width: COL_WIDTH_UNDEFINED,
+    width: 200,
   },
   {
     key: 'p50(exclusive_time)',
@@ -169,7 +169,13 @@ export function renderBodyCell(
   }
 
   if (column.key === 'tpm') {
-    return <Sparkline color={CHART_PALETTE[3][0]} series={row[column.key]} width={100} />;
+    return (
+      <Sparkline
+        color={CHART_PALETTE[3][0]}
+        series={row[column.key]}
+        width={column.width ? column.width - column.width / 5 : undefined}
+      />
+    );
   }
 
   // TODO: come up with a better way to identify number columns to align to the right
