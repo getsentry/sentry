@@ -394,11 +394,13 @@ def adjust_base_sample_rate_per_project(
 
         sampling_tier = quotas.get_transaction_sampling_tier_for_volume(project, forecasted_volume)
         # In case the sampling tier cannot be determined, we want to log it and try to get it for the next project.
+        #
         # There might be a situation in which the old key is set into Redis still and in that case, we prefer to keep it
         # instead of deleting it. This behavior can be changed anytime, by just doing an "HDEL" on the failing key.
         if sampling_tier is None:
             logger.info(
-                f"The sampling tier for org {org_id} and project {project.id} can't be determined."
+                f"The sampling tier for org {org_id} and project {project.id} can't be determined, either an error "
+                f"occurred or the org doesn't have dynamic sampling."
             )
             continue
 
