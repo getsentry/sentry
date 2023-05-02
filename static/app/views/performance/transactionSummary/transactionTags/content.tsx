@@ -17,7 +17,7 @@ import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import SegmentExplorerQuery, {
   TableData,
@@ -42,7 +42,7 @@ type Props = {
 
 type TagOption = string;
 
-const TagsPageContent = (props: Props) => {
+function TagsPageContent(props: Props) {
   const {eventView, location, organization, projects} = props;
 
   const [aggregateColumn, setAggregateColumn] = useState(
@@ -74,7 +74,7 @@ const TagsPageContent = (props: Props) => {
       </SegmentExplorerQuery>
     </Layout.Main>
   );
-};
+}
 
 function getTagKeyOptions(tableData: TableData) {
   const suspectTags: TagOption[] = [];
@@ -90,14 +90,14 @@ function getTagKeyOptions(tableData: TableData) {
   };
 }
 
-const InnerContent = (
+function InnerContent(
   props: Props & {
     aggregateColumn: string;
     onChangeAggregateColumn: (aggregateColumn: string) => void;
     tableData: TableData | null;
     isLoading?: boolean;
   }
-) => {
+) {
   const {
     eventView: _eventView,
     location,
@@ -166,7 +166,7 @@ const InnerContent = (
   };
 
   const changeTag = (tag: string, isOtherTag: boolean) => {
-    trackAdvancedAnalyticsEvent('performance_views.tags.change_tag', {
+    trackAnalytics('performance_views.tags.change_tag', {
       organization,
       from_tag: tagSelected!,
       to_tag: tag,
@@ -207,13 +207,10 @@ const InnerContent = (
             value={aggregateColumn}
             options={X_AXIS_SELECT_OPTIONS}
             onChange={opt => {
-              trackAdvancedAnalyticsEvent(
-                'performance_views.tags.change_aggregate_column',
-                {
-                  organization,
-                  value: opt.value,
-                }
-              );
+              trackAnalytics('performance_views.tags.change_aggregate_column', {
+                organization,
+                value: opt.value,
+              });
               onChangeAggregateColumn(opt.value);
             }}
             triggerProps={{prefix: t('X-Axis')}}
@@ -223,15 +220,15 @@ const InnerContent = (
       </StyledMain>
     </ReversedLayoutBody>
   );
-};
+}
 
-const TagsSideBar = (props: {
+function TagsSideBar(props: {
   changeTag: (tag: string, isOtherTag: boolean) => void;
   otherTags: TagOption[];
   suspectTags: TagOption[];
   isLoading?: boolean;
   tagSelected?: string;
-}) => {
+}) {
   const {suspectTags, otherTags, changeTag, tagSelected, isLoading} = props;
   return (
     <StyledSide>
@@ -288,7 +285,7 @@ const TagsSideBar = (props: {
       )}
     </StyledSide>
   );
-};
+}
 
 const RadioLabel = styled('label')`
   cursor: pointer;

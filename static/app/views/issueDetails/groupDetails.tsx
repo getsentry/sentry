@@ -6,7 +6,6 @@ import * as PropTypes from 'prop-types';
 
 import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
 import {Client} from 'sentry/api';
-import {shouldDisplaySetupSourceMapsAlert} from 'sentry/components/events/interfaces/crashContent/exception/setupSourceMapsAlert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -19,7 +18,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
   getAnalyticsDataForEvent,
@@ -86,15 +85,14 @@ class GroupDetails extends Component<Props, State> {
   }
 
   componentDidMount() {
-    // only track the view if we are loading the event early
-    this.fetchData(this.canLoadEventEarly(this.props));
+    this.fetchData(true);
     this.updateReprocessingProgress();
 
     // Fetch environments early - used in GroupEventDetailsContainer
     fetchOrganizationEnvironments(this.props.api, this.props.organization.slug);
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
+  componentDidUpdate(prevProps: Props) {
     const globalSelectionReadyChanged =
       prevProps.isGlobalSelectionReady !== this.props.isGlobalSelectionReady;
 
@@ -103,23 +101,7 @@ class GroupDetails extends Component<Props, State> {
       prevProps.location.pathname !== this.props.location.pathname
     ) {
       // Skip tracking for other navigation events like switching events
-      this.fetchData(globalSelectionReadyChanged && this.canLoadEventEarly(this.props));
-    }
-
-    if (
-      (!this.canLoadEventEarly(prevProps) && !prevState?.group && this.state.group) ||
-      (prevProps.params?.eventId !== this.props.params?.eventId && this.state.group)
-    ) {
-      // if we are loading events we should record analytics after it's loaded
-      this.getEvent(this.state.group).then(() => {
-        if (!this.state.group?.project) {
-          return;
-        }
-        const project = this.props.projects.find(
-          p => p.id === this.state.group?.project.id
-        );
-        project && this.trackView(project);
-      });
+      this.fetchData(globalSelectionReadyChanged);
     }
   }
 
@@ -148,7 +130,7 @@ class GroupDetails extends Component<Props, State> {
 
   trackView(project: Project) {
     const {group, event} = this.state;
-    const {location, organization, router} = this.props;
+    const {location} = this.props;
     const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
       location.query;
 
@@ -164,11 +146,6 @@ class GroupDetails extends Component<Props, State> {
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
-      has_setup_source_maps_alert: shouldDisplaySetupSourceMapsAlert(
-        organization,
-        router.location.query.project,
-        event
-      ),
       ref_fallback,
       // Will be updated by StacktraceLink if there is a stacktrace link
       stacktrace_link_viewed: false,
@@ -182,10 +159,6 @@ class GroupDetails extends Component<Props, State> {
     this.fetchData();
   };
 
-  canLoadEventEarly(props: Props) {
-    return !props.params.eventId || ['oldest', 'latest'].includes(props.params.eventId);
-  }
-
   get groupDetailsEndpoint() {
     return `/issues/${this.props.params.groupId}/`;
   }
@@ -194,25 +167,13 @@ class GroupDetails extends Component<Props, State> {
     return `/issues/${this.props.params.groupId}/first-last-release/`;
   }
 
-  async getEvent(group?: Group) {
-    if (group) {
-      this.setState({loadingEvent: true, eventError: false});
-    }
-
-    const {params, environments, api, organization} = this.props;
-    const orgSlug = organization.slug;
+  async getEvent() {
+    this.setState({loadingEvent: true, eventError: false});
+    const {params, environments, api} = this.props;
     const groupId = params.groupId;
     const eventId = params.eventId ?? 'latest';
-    const projectId = group?.project?.slug;
     try {
-      const event = await fetchGroupEvent(
-        api,
-        orgSlug,
-        groupId,
-        eventId,
-        environments,
-        projectId
-      );
+      const event = await fetchGroupEvent(api, groupId, eventId, environments);
 
       this.setState({event, loading: false, eventError: false, loadingEvent: false});
     } catch (err) {
@@ -414,9 +375,7 @@ class GroupDetails extends Component<Props, State> {
     }
 
     try {
-      const eventPromise = this.canLoadEventEarly(this.props)
-        ? this.getEvent()
-        : undefined;
+      const eventPromise = this.getEvent();
 
       const groupPromise = await api.requestPromise(this.groupDetailsEndpoint, {
         query: this.getGroupQuery(),
@@ -534,7 +493,7 @@ class GroupDetails extends Component<Props, State> {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('issue_details.tab_changed', {
+    trackAnalytics('issue_details.tab_changed', {
       organization,
       project_id: parseInt(project.id, 10),
       tab,
@@ -554,7 +513,7 @@ class GroupDetails extends Component<Props, State> {
           }, {})
       : {};
 
-    trackAdvancedAnalyticsEvent('issue_group_details.tab.clicked', {
+    trackAnalytics('issue_group_details.tab.clicked', {
       organization,
       tab,
       platform: project.platform,

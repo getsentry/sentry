@@ -13,7 +13,7 @@ describe('IntegrationListDirectory', function () {
     Client.clearMockResponses();
   });
 
-  const {org, routerContext} = initializeOrg();
+  const {organization: org, routerContext} = initializeOrg();
 
   describe('Renders view', function () {
     beforeEach(() => {

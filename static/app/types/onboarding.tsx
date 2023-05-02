@@ -1,7 +1,9 @@
 import {RouteContextInterface} from 'react-router';
 
-import {Organization, Project} from 'sentry/types';
-import {OnboardingState} from 'sentry/views/onboarding/types';
+import {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
+import {Category} from 'sentry/components/platformPicker';
+import {PlatformKey} from 'sentry/data/platformCategories';
+import {Organization, PlatformIntegration, Project} from 'sentry/types';
 
 import type {AvatarUser} from './user';
 
@@ -37,10 +39,9 @@ export type OnboardingSupplementComponentProps = {
 };
 
 export type OnboardingCustomComponentProps = {
-  onboardingState: OnboardingState | null;
+  onboardingContext: OnboardingContextProps;
   organization: Organization;
   projects: Project[];
-  setOnboardingState: (state: OnboardingState | null) => void;
   task: OnboardingTask;
 };
 
@@ -127,8 +128,15 @@ interface OnboardingTaskWithExternal
 
 export type OnboardingTask = OnboardingTaskWithAction | OnboardingTaskWithExternal;
 
-export enum OnboardingStatus {
+export enum OnboardingProjectStatus {
   WAITING = 'waiting',
   PROCESSING = 'processing',
   PROCESSED = 'processed',
 }
+
+export type OnboardingSelectedSDK = {
+  category: Category;
+  key: PlatformKey;
+  language: PlatformIntegration['language'];
+  type: PlatformIntegration['type'];
+};

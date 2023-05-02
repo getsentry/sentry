@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, List
+from typing import TYPE_CHECKING, Any, List
 
 from django.db import IntegrityError, models, transaction
 
@@ -17,6 +19,9 @@ from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
 from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
 
+if TYPE_CHECKING:
+    from sentry.integrations import IntegrationInstallation, IntegrationProvider
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,6 +36,11 @@ class IntegrationManager(BaseManager):
 
 @control_silo_only_model
 class Integration(DefaultFieldsModel):
+    """
+    An integration tied to a particular instance of a third-party provider (a single Slack
+    workspace, a single GH org, etc.), which can be shared by multiple Sentry orgs.
+    """
+
     __include_in_export__ = False
 
     provider = models.CharField(max_length=64)
@@ -51,13 +61,15 @@ class Integration(DefaultFieldsModel):
         db_table = "sentry_integration"
         unique_together = (("provider", "external_id"),)
 
-    def get_provider(self):
+    def get_provider(self) -> IntegrationProvider:
         from sentry import integrations
 
         return integrations.get(self.provider)
 
     def delete(self, *args, **kwds):
         with transaction.atomic(), in_test_psql_role_override("postgres"):
+            for organization_integration in self.organizationintegration_set.all():
+                organization_integration.delete()
             for outbox in Integration.outboxes_for_update(self.id):
                 outbox.save()
             return super().delete(*args, **kwds)
@@ -78,7 +90,7 @@ class Integration(DefaultFieldsModel):
             for region_name in find_regions_for_orgs(org_ids)
         ]
 
-    def get_installation(self, organization_id: int, **kwargs: Any) -> Any:
+    def get_installation(self, organization_id: int, **kwargs: Any) -> IntegrationInstallation:
         return self.get_provider().get_installation(self, organization_id, **kwargs)
 
     def has_feature(self, feature):

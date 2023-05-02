@@ -17,14 +17,14 @@ type Props = RouteComponentProps<{projectId?: string}, {}> & {
   organizations: Organization[];
 };
 
-const OrganizationCrumb = ({
+function OrganizationCrumb({
   organization,
   organizations,
   params,
   routes,
   route,
   ...props
-}: Props) => {
+}: Props) {
   const handleSelect = (item: {value: Organization}) => {
     // If we are currently in a project context, and we're attempting to switch organizations,
     // then we need to default to index route (e.g. `route`)
@@ -90,7 +90,7 @@ const OrganizationCrumb = ({
       {...props}
     />
   );
-};
+}
 
 const BadgeWrapper = styled('div')`
   display: flex;

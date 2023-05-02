@@ -1,22 +1,19 @@
-import {Fragment, useContext, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion, Variants} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Link from 'sentry/components/links/link';
-import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import {Group, OnboardingStatus, Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {Group, Organization, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
-
-import {usePersistedOnboardingState} from '../utils';
 
 import GenericFooter from './genericFooter';
 
@@ -38,24 +35,6 @@ export default function FirstEventFooter({
   handleFirstIssueReceived,
 }: FirstEventFooterProps) {
   const source = 'targeted_onboarding_first_event_footer';
-  const [clientState, setClientState] = usePersistedOnboardingState();
-  const onboardingContext = useContext(OnboardingContext);
-
-  useEffect(() => {
-    if (!project.slug) {
-      return;
-    }
-
-    if (onboardingContext.data[project.id]?.status === OnboardingStatus.WAITING) {
-      return;
-    }
-
-    onboardingContext.setProjectData({
-      projectId: project.id,
-      projectSlug: project.slug,
-      status: OnboardingStatus.WAITING,
-    });
-  }, [project.id, project.slug, onboardingContext]);
 
   const getSecondaryCta = () => {
     // if hasn't sent first event, allow skiping.
@@ -98,16 +77,10 @@ export default function FirstEventFooter({
     <GridFooter>
       <SkipOnboardingLink
         onClick={() => {
-          trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+          trackAnalytics('growth.onboarding_clicked_skip', {
             organization,
             source,
           });
-          if (clientState) {
-            setClientState({
-              ...clientState,
-              state: 'skipped',
-            });
-          }
         }}
         to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
       >

@@ -38,7 +38,7 @@ jest.mock('sentry/utils/analytics', () => ({
     mark: jest.fn(),
     measure: jest.fn(),
   },
-  trackAnalyticsEventV2: jest.fn(),
+  trackAnalytics: jest.fn(),
 }));
 
 const projectAlertRuleDetailsRoutes = [
@@ -88,7 +88,7 @@ const createWrapper = (props = {}) => {
   };
   const onChangeTitleMock = jest.fn();
   const wrapper = render(
-    <ProjectAlerts organization={organization} params={params}>
+    <ProjectAlerts organization={organization} project={project} params={params}>
       <IssueRuleEditor
         params={params}
         location={router.location}

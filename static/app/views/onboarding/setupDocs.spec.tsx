@@ -3,9 +3,8 @@ import {Location} from 'history';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {PRODUCT} from 'sentry/components/onboarding/productSelection';
-import {ReactDocVariant} from 'sentry/data/platforms';
-import {PersistedStoreContext} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
@@ -26,7 +25,7 @@ function renderMockRequests({
     body: project,
   });
 
-  if (project.slug === 'javascript-browser') {
+  if (project.slug === 'javascript') {
     MockApiClient.addMockResponse({
       url: `/projects/${orgSlug}/${project.slug}/keys/`,
       body: [PROJECT_KEY],
@@ -45,23 +44,23 @@ function renderMockRequests({
       products.includes(PRODUCT.SESSION_REPLAY)
     ) {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/${ReactDocVariant.ErrorMonitoringPerformanceAndReplay}/`,
-        body: {html: ReactDocVariant.ErrorMonitoringPerformanceAndReplay},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring-performance-and-replay/`,
+        body: {html: 'javascript-react-with-error-monitoring-performance-and-replay'},
       });
     } else if (products.includes(PRODUCT.PERFORMANCE_MONITORING)) {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/${ReactDocVariant.ErrorMonitoringAndPerformance}/`,
-        body: {html: ReactDocVariant.ErrorMonitoringAndPerformance},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring-and-performance/`,
+        body: {html: 'javascript-react-with-error-monitoring-and-performance'},
       });
     } else if (products.includes(PRODUCT.SESSION_REPLAY)) {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/${ReactDocVariant.ErrorMonitoringAndSessionReplay}/`,
-        body: {html: ReactDocVariant.ErrorMonitoringAndSessionReplay},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring-and-replay/`,
+        body: {html: 'javascript-react-with-error-monitoring-and-replay'},
       });
     } else {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/${ReactDocVariant.ErrorMonitoring}/`,
-        body: {html: ReactDocVariant.ErrorMonitoring},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring/`,
+        body: {html: 'javascript-react-with-error-monitoring'},
       });
     }
   } else {
@@ -76,13 +75,6 @@ describe('Onboarding Setup Docs', function () {
   it('does not render Product Selection', async function () {
     const {router, route, routerContext, organization, project} = initializeOrg({
       ...initializeOrg(),
-      organization: {
-        ...initializeOrg().organization,
-        features: [
-          'onboarding-remove-multiselect-platform',
-          'onboarding-docs-with-product-selection',
-        ],
-      },
       projects: [
         {
           ...initializeOrg().project,
@@ -98,19 +90,7 @@ describe('Onboarding Setup Docs', function () {
     renderMockRequests({project, orgSlug: organization.slug});
 
     render(
-      <PersistedStoreContext.Provider
-        value={[
-          {
-            onboarding: {
-              selectedPlatforms: ['python'],
-              platformToProjectIdMap: {
-                python: 'python',
-              },
-            },
-          },
-          jest.fn(),
-        ]}
-      >
+      <OnboardingContextProvider>
         <SetupDocs
           active
           onComplete={() => {}}
@@ -120,10 +100,10 @@ describe('Onboarding Setup Docs', function () {
           location={router.location}
           genSkipOnboardingLink={() => ''}
           orgId={organization.slug}
-          jumpToSetupProject={() => {}}
           search=""
+          selectedProjectSlug="python"
         />
-      </PersistedStoreContext.Provider>,
+      </OnboardingContextProvider>,
       {
         context: routerContext,
         organization,
@@ -145,13 +125,6 @@ describe('Onboarding Setup Docs', function () {
     it('all products checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
-        },
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]},
@@ -176,19 +149,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       render(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatforms: ['javascript-react'],
-                platformToProjectIdMap: {
-                  'javascript-react': 'javascript-react',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -198,10 +159,10 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
-        </PersistedStoreContext.Provider>,
+        </OnboardingContextProvider>,
         {
           context: routerContext,
           organization,
@@ -214,20 +175,15 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - default (all checked)
       expect(
-        await screen.findByText(ReactDocVariant.ErrorMonitoringPerformanceAndReplay)
+        await screen.findByText(
+          'javascript-react-with-error-monitoring-performance-and-replay'
+        )
       ).toBeInTheDocument();
     });
 
     it('only performance checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
-        },
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING]},
@@ -252,19 +208,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       render(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatforms: ['javascript-react'],
-                platformToProjectIdMap: {
-                  'javascript-react': 'javascript-react',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -274,10 +218,10 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
-        </PersistedStoreContext.Provider>,
+        </OnboardingContextProvider>,
         {
           context: routerContext,
           organization,
@@ -286,20 +230,13 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - error monitoring and performance doc
       expect(
-        await screen.findByText(ReactDocVariant.ErrorMonitoringAndPerformance)
+        await screen.findByText('javascript-react-with-error-monitoring-and-performance')
       ).toBeInTheDocument();
     });
 
     it('only session replay checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
-        },
         router: {
           location: {
             query: {product: [PRODUCT.SESSION_REPLAY]},
@@ -324,19 +261,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       render(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatforms: ['javascript-react'],
-                platformToProjectIdMap: {
-                  'javascript-react': 'javascript-react',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -346,10 +271,10 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
-        </PersistedStoreContext.Provider>,
+        </OnboardingContextProvider>,
         {
           context: routerContext,
           organization,
@@ -358,20 +283,13 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - error monitoring and replay doc
       expect(
-        await screen.findByText(ReactDocVariant.ErrorMonitoringAndSessionReplay)
+        await screen.findByText('javascript-react-with-error-monitoring-and-replay')
       ).toBeInTheDocument();
     });
 
     it('only error monitoring checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-          ],
-        },
         router: {
           location: {
             query: {product: []},
@@ -396,19 +314,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       render(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatforms: ['javascript-react'],
-                platformToProjectIdMap: {
-                  'javascript-react': 'javascript-react',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -418,10 +324,10 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript-react"
           />
-        </PersistedStoreContext.Provider>,
+        </OnboardingContextProvider>,
         {
           context: routerContext,
           organization,
@@ -430,7 +336,7 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - error monitoring doc
       expect(
-        await screen.findByText(ReactDocVariant.ErrorMonitoring)
+        await screen.findByText('javascript-react-with-error-monitoring')
       ).toBeInTheDocument();
     });
   });
@@ -439,15 +345,6 @@ describe('Onboarding Setup Docs', function () {
     it('renders Loader Script setup', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         ...initializeOrg(),
-        organization: {
-          ...initializeOrg().organization,
-          features: [
-            'onboarding-remove-multiselect-platform',
-            'onboarding-docs-with-product-selection',
-            'onboarding-project-loader',
-            'js-sdk-dynamic-loader',
-          ],
-        },
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]},
@@ -456,7 +353,7 @@ describe('Onboarding Setup Docs', function () {
         projects: [
           {
             ...initializeOrg().project,
-            slug: 'javascript-browser',
+            slug: 'javascript',
             platform: 'javascript',
           },
         ],
@@ -478,19 +375,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       const {rerender} = render(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatforms: ['javascript'],
-                platformToProjectIdMap: {
-                  javascript: 'javascript-browser',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -500,10 +385,10 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript"
           />
-        </PersistedStoreContext.Provider>,
+        </OnboardingContextProvider>,
         {
           context: routerContext,
           organization,
@@ -536,19 +421,7 @@ describe('Onboarding Setup Docs', function () {
         product: [PRODUCT.SESSION_REPLAY],
       };
       rerender(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatforms: ['javascript'],
-                platformToProjectIdMap: {
-                  javascript: 'javascript-browser',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -558,10 +431,10 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
+            selectedProjectSlug="javascript"
           />
-        </PersistedStoreContext.Provider>
+        </OnboardingContextProvider>
       );
 
       expect(updateLoaderMock).toHaveBeenCalledTimes(2);

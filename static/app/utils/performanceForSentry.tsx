@@ -117,13 +117,13 @@ export class PerformanceInteraction {
   }
 }
 
-export const CustomProfiler = ({id, children}: {children: ReactNode; id: string}) => {
+export function CustomProfiler({id, children}: {children: ReactNode; id: string}) {
   return (
     <Profiler id={id} onRender={onRenderCallback}>
       {children}
     </Profiler>
   );
-};
+}
 
 /**
  * This component wraps the main component on a page with a measurement checking for visual completedness.
@@ -132,7 +132,7 @@ export const CustomProfiler = ({id, children}: {children: ReactNode; id: string}
  *
  * Since this component is guaranteed to be part of the -real- critical path, it also wraps the component with the custom profiler.
  */
-export const VisuallyCompleteWithData = ({
+export function VisuallyCompleteWithData({
   id,
   hasData,
   children,
@@ -142,7 +142,7 @@ export const VisuallyCompleteWithData = ({
   hasData: boolean;
   id: string;
   disabled?: boolean;
-}) => {
+}) {
   const isDataCompleteSet = useRef(false);
 
   const num = useRef(1);
@@ -196,7 +196,7 @@ export const VisuallyCompleteWithData = ({
       <Fragment>{children}</Fragment>
     </Profiler>
   );
-};
+}
 
 interface OpAssetMeasurementDefinition {
   key: string;
@@ -234,11 +234,17 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
         )
     );
     const transfered = filtered.reduce(
-      (acc, curr) => acc + (curr.data['Transfer Size'] ?? 0),
+      (acc, curr) =>
+        acc +
+        (curr.data['http.response_transfer_size'] ?? curr.data['Transfer Size'] ?? 0),
       0
     );
     const encoded = filtered.reduce(
-      (acc, curr) => acc + (curr.data['Encoded Body Size'] ?? 0),
+      (acc, curr) =>
+        acc +
+        (curr.data['http.response_content_length'] ??
+          curr.data['Encoded Body Size'] ??
+          0),
       0
     );
 

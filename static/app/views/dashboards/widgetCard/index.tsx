@@ -281,6 +281,7 @@ class WidgetCard extends Component<Props, State> {
             )
         )
     );
+
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -296,13 +297,36 @@ class WidgetCard extends Component<Props, State> {
             >
               <WidgetCardPanel isDragging={false}>
                 <WidgetHeader>
-                  <Tooltip
-                    title={widget.title}
-                    containerDisplayMode="grid"
-                    showOnlyOnOverflow
-                  >
-                    <WidgetTitle>{widget.title}</WidgetTitle>
-                  </Tooltip>
+                  <WidgetHeaderDescription>
+                    <Tooltip
+                      title={widget.title}
+                      containerDisplayMode="grid"
+                      showOnlyOnOverflow
+                    >
+                      <WidgetTitle>{widget.title}</WidgetTitle>
+                    </Tooltip>
+                    <DashboardsMEPConsumer>
+                      {({}) => {
+                        // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
+                        // if (
+                        //   isMetricsData === false &&
+                        //   widget.widgetType === WidgetType.DISCOVER
+                        // ) {
+                        //   return (
+                        //     <Tooltip
+                        //       containerDisplayMode="inline-flex"
+                        //       title={t(
+                        //         'Based on your search criteria, the sampled events available may be limited and may not be representative of all events.'
+                        //       )}
+                        //     >
+                        //       <IconWarning color="warningText" />
+                        //     </Tooltip>
+                        //   );
+                        // }
+                        return null;
+                      }}
+                    </DashboardsMEPConsumer>
+                  </WidgetHeaderDescription>
                   {this.renderContextMenu()}
                 </WidgetHeader>
                 {hasSessionDuration && SESSION_DURATION_ALERT}
@@ -467,4 +491,10 @@ const StoredDataAlert = styled(Alert)`
 
 const StyledErrorPanel = styled(ErrorPanel)`
   padding: ${space(2)};
+`;
+
+const WidgetHeaderDescription = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
 `;

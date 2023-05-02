@@ -35,7 +35,7 @@ type Props = {
   titleAction?: React.ReactNode;
 };
 
-const SidebarPanelItem = ({
+function SidebarPanelItem({
   hasSeen,
   title,
   message,
@@ -43,25 +43,27 @@ const SidebarPanelItem = ({
   cta,
   titleAction,
   children,
-}: Props) => (
-  <SidebarPanelItemRoot>
-    {title && (
-      <TitleWrapper>
-        <Title hasSeen={hasSeen}>{title}</Title>
-        {titleAction}
-      </TitleWrapper>
-    )}
-    {message && <Message>{message}</Message>}
+}: Props) {
+  return (
+    <SidebarPanelItemRoot>
+      {title && (
+        <TitleWrapper>
+          <Title hasSeen={hasSeen}>{title}</Title>
+          {titleAction}
+        </TitleWrapper>
+      )}
+      {message && <Message>{message}</Message>}
 
-    {children}
+      {children}
 
-    {link && (
-      <Text>
-        <ExternalLink href={link}>{cta || t('Read More')}</ExternalLink>
-      </Text>
-    )}
-  </SidebarPanelItemRoot>
-);
+      {link && (
+        <Text>
+          <ExternalLink href={link}>{cta || t('Read More')}</ExternalLink>
+        </Text>
+      )}
+    </SidebarPanelItemRoot>
+  );
+}
 
 export default SidebarPanelItem;
 

@@ -25,7 +25,7 @@ type ThreadInfo = {
   state?: ThreadStates;
 };
 
-const Option = ({id, details, name, crashed, crashedInfo, hasThreadStates}: Props) => {
+function Option({id, details, name, crashed, crashedInfo, hasThreadStates}: Props) {
   const label = details.label ?? `<${t('unknown')}>`;
   const optionName = name || `<${t('unknown')}>`;
 
@@ -83,7 +83,7 @@ const Option = ({id, details, name, crashed, crashedInfo, hasThreadStates}: Prop
       )}
     </Grid>
   );
-};
+}
 
 export default Option;
 

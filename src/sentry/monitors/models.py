@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 import pytz
 from croniter import croniter
 from dateutil import rrule
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -23,8 +27,11 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models import Environment, Project
+from sentry.models import Environment
 from sentry.utils.retries import TimedRetryPolicy
+
+if TYPE_CHECKING:
+    from sentry.models import Project
 
 SCHEDULE_INTERVAL_MAP = {
     "year": rrule.YEARLY,
@@ -34,6 +41,14 @@ SCHEDULE_INTERVAL_MAP = {
     "hour": rrule.HOURLY,
     "minute": rrule.MINUTELY,
 }
+
+
+class MonitorLimitsExceeded(Exception):
+    pass
+
+
+class MonitorEnvironmentLimitsExceeded(Exception):
+    pass
 
 
 def get_next_schedule(last_checkin, schedule_type, schedule):
@@ -74,6 +89,7 @@ class MonitorStatus(ObjectStatus):
     OK = 4
     ERROR = 5
     MISSED_CHECKIN = 6
+    TIMEOUT = 7
 
     @classmethod
     def as_choices(cls):
@@ -85,6 +101,7 @@ class MonitorStatus(ObjectStatus):
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
             (cls.MISSED_CHECKIN, "missed_checkin"),
+            (cls.TIMEOUT, "timeout"),
         )
 
 
@@ -104,7 +121,10 @@ class CheckInStatus:
     MISSED = 4
     """Monitor did not check in on time"""
 
-    FINISHED_VALUES = (OK, ERROR)
+    TIMEOUT = 5
+    """Checkin was left in-progress past max_runtime"""
+
+    FINISHED_VALUES = (OK, ERROR, TIMEOUT)
     """Sentient values used to indicate a monitor is finished running"""
 
     @classmethod
@@ -115,6 +135,7 @@ class CheckInStatus:
             (cls.ERROR, "error"),
             (cls.IN_PROGRESS, "in_progress"),
             (cls.MISSED, "missed"),
+            (cls.TIMEOUT, "timeout"),
         )
 
 
@@ -214,42 +235,32 @@ class Monitor(Model):
         )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
-    def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
-        if last_checkin is None:
-            next_checkin_base = timezone.now()
-            last_checkin = self.last_checkin or timezone.now()
-        else:
-            next_checkin_base = last_checkin
+    def get_status_display(self) -> str:
+        for status_id, display in MonitorStatus.as_choices():
+            if status_id == self.status:
+                if self.status in [
+                    MonitorStatus.ACTIVE,
+                    MonitorStatus.DISABLED,
+                    MonitorStatus.PENDING_DELETION,
+                    MonitorStatus.DELETION_IN_PROGRESS,
+                ]:
+                    return display
+                else:
+                    return "active"
 
-        new_status = MonitorStatus.ERROR
-        if reason == MonitorFailure.MISSED_CHECKIN:
-            new_status = MonitorStatus.MISSED_CHECKIN
+        return "active"
 
-        affected = (
-            type(self)
-            .objects.filter(
-                Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
-            )
-            .update(
-                next_checkin=self.get_next_scheduled_checkin(next_checkin_base),
-                status=new_status,
-                last_checkin=last_checkin,
-            )
+
+@receiver(pre_save, sender=Monitor)
+def check_organization_monitor_limits(sender, instance, **kwargs):
+    if (
+        instance.pk is None
+        and sender.objects.filter(organization_id=instance.organization_id).count()
+        == settings.MAX_MONITORS_PER_ORG
+    ):
+        raise MonitorLimitsExceeded(
+            f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization"
         )
-        if not affected:
-            return False
-
-        return True
-
-    def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
-        params = {
-            "last_checkin": ts,
-            "next_checkin": self.get_next_scheduled_checkin(ts),
-        }
-        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
-            params["status"] = MonitorStatus.OK
-
-        Monitor.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
 
 
 @region_silo_only_model
@@ -357,6 +368,9 @@ class MonitorEnvironment(Model):
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 
+    def get_audit_log_data(self):
+        return {"name": self.environment.name, "status": self.status, "monitor": self.monitor.name}
+
     def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
         from sentry.coreapi import insert_data_to_database_legacy
         from sentry.event_manager import EventManager
@@ -372,6 +386,8 @@ class MonitorEnvironment(Model):
         new_status = MonitorStatus.ERROR
         if reason == MonitorFailure.MISSED_CHECKIN:
             new_status = MonitorStatus.MISSED_CHECKIN
+        elif reason == MonitorFailure.DURATION:
+            new_status = MonitorStatus.TIMEOUT
 
         affected = (
             type(self)
@@ -393,9 +409,9 @@ class MonitorEnvironment(Model):
                 "contexts": {"monitor": get_monitor_environment_context(self)},
                 "fingerprint": ["monitor", str(self.monitor.guid), reason],
                 "environment": self.environment.name,
-                "tags": {
-                    "monitor.id": str(self.monitor.guid),
-                },
+                # TODO: Both of these values should be get transformed from context to tags
+                # We should understand why that is not happening and remove these when it correctly is
+                "tags": {"monitor.id": str(self.monitor.guid), "monitor.slug": self.monitor.slug},
             },
             project=Project(id=self.monitor.project_id),
         )
@@ -410,7 +426,19 @@ class MonitorEnvironment(Model):
             "last_checkin": ts,
             "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
         }
-        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
+        if checkin.status == CheckInStatus.OK and self.monitor.status != MonitorStatus.DISABLED:
             params["status"] = MonitorStatus.OK
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
+
+
+@receiver(pre_save, sender=MonitorEnvironment)
+def check_monitor_environment_limits(sender, instance, **kwargs):
+    if (
+        instance.pk is None
+        and sender.objects.filter(monitor=instance.monitor).count()
+        == settings.MAX_ENVIRONMENTS_PER_MONITOR
+    ):
+        raise MonitorEnvironmentLimitsExceeded(
+            f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
+        )

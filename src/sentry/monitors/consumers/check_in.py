@@ -10,21 +10,28 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 from django.db import transaction
 
+from sentry import ratelimits
+from sentry.constants import ObjectStatus
 from sentry.models import Project
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
+    MonitorEnvironmentLimitsExceeded,
+    MonitorLimitsExceeded,
     MonitorStatus,
     MonitorType,
 )
-from sentry.monitors.utils import signal_first_checkin
-from sentry.monitors.validators import CronJobConfigValidator
-from sentry.utils import json
+from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created
+from sentry.monitors.validators import ConfigValidator
+from sentry.utils import json, metrics
 from sentry.utils.dates import to_datetime
 
 logger = logging.getLogger(__name__)
+
+CHECKIN_QUOTA_LIMIT = 5
+CHECKIN_QUOTA_WINDOW = 60
 
 
 def _ensure_monitor_with_config(
@@ -44,7 +51,7 @@ def _ensure_monitor_with_config(
     if not config:
         return monitor
 
-    validator = CronJobConfigValidator(data=config)
+    validator = ConfigValidator(data=config)
 
     if not validator.is_valid():
         logger.debug("monitor_config for %s is not valid", monitor_slug)
@@ -61,11 +68,12 @@ def _ensure_monitor_with_config(
             defaults={
                 "project_id": project.id,
                 "name": monitor_slug,
-                "status": MonitorStatus.ACTIVE,
+                "status": ObjectStatus.ACTIVE,
                 "type": MonitorType.CRON_JOB,
                 "config": validated_config,
             },
         )
+        signal_first_monitor_created(project, None, True)
 
     # Update existing monitor
     if monitor and not created and monitor.config != validated_config:
@@ -80,20 +88,59 @@ def _process_message(wrapper: Dict) -> None:
     start_time = to_datetime(float(wrapper["start_time"]))
     project_id = int(wrapper["project_id"])
 
+    environment = params.get("environment")
     project = Project.objects.get_from_cache(id=project_id)
+
+    ratelimit_key = f"{params['monitor_slug']}:{environment}"
+
+    if ratelimits.is_limited(
+        f"monitor-checkins:{ratelimit_key}",
+        limit=CHECKIN_QUOTA_LIMIT,
+        window=CHECKIN_QUOTA_WINDOW,
+    ):
+        metrics.incr(
+            "monitors.checkin.dropped.ratelimited",
+            tags={"source": "consumer"},
+        )
+        logger.debug("monitor check in rate limited: %s", params["monitor_slug"])
+        return
 
     try:
         with transaction.atomic():
             monitor_config = params.get("monitor_config")
-            monitor = _ensure_monitor_with_config(project, params["monitor_slug"], monitor_config)
+            try:
+                monitor = _ensure_monitor_with_config(
+                    project, params["monitor_slug"], monitor_config
+                )
 
-            if not monitor:
-                logger.debug("monitor does not exist: %s", params["monitor_slug"])
+                if not monitor:
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={"source": "consumer", "status": "failed_validation"},
+                    )
+                    logger.debug("monitor does not exist: %s", params["monitor_slug"])
+                    return
+            except MonitorLimitsExceeded:
+                metrics.incr(
+                    "monitors.checkin.result",
+                    tags={"source": "consumer", "status": "failed_monitor_limits"},
+                )
+                logger.debug("monitor exceeds limits for organization: %s", project.organization_id)
                 return
 
-            monitor_environment = MonitorEnvironment.objects.ensure_environment(
-                project, monitor, params.get("environment")
-            )
+            try:
+                monitor_environment = MonitorEnvironment.objects.ensure_environment(
+                    project, monitor, environment
+                )
+            except MonitorEnvironmentLimitsExceeded:
+                metrics.incr(
+                    "monitors.checkin.result",
+                    tags={"source": "consumer", "status": "failed_monitor_environment_limits"},
+                )
+                logger.debug(
+                    "monitor environment exceeds limits for monitor: %s", params["monitor_slug"]
+                )
+                return
 
             status = getattr(CheckInStatus, params["status"].upper())
             duration = (
@@ -137,13 +184,20 @@ def _process_message(wrapper: Dict) -> None:
                 signal_first_checkin(project, monitor)
 
             if check_in.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
-                monitor.mark_failed(start_time)
                 monitor_environment.mark_failed(start_time)
             else:
-                monitor.mark_ok(check_in, start_time)
                 monitor_environment.mark_ok(check_in, start_time)
+
+            metrics.incr(
+                "monitors.checkin.result",
+                tags={"source": "consumer", "status": "complete"},
+            )
     except Exception:
         # Skip this message and continue processing in the consumer.
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={"source": "consumer", "status": "error"},
+        )
         logger.exception("Failed to process check-in", exc_info=True)
 
 

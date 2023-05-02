@@ -13,7 +13,7 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   strokeWidth?: number;
 };
 
-const BaseOverlayArrow: React.ForwardRefRenderFunction<HTMLDivElement, Props> = (
+function BaseOverlayArrow(
   {
     size = 16,
     strokeWidth = 1,
@@ -21,9 +21,9 @@ const BaseOverlayArrow: React.ForwardRefRenderFunction<HTMLDivElement, Props> = 
     background = 'backgroundElevated',
     border = 'translucentBorder',
     ...props
-  },
-  ref
-) => {
+  }: Props,
+  ref: React.Ref<HTMLDivElement>
+) {
   /**
    * SVG height
    */
@@ -74,7 +74,7 @@ const BaseOverlayArrow: React.ForwardRefRenderFunction<HTMLDivElement, Props> = 
       </SVG>
     </Wrap>
   );
-};
+}
 
 const OverlayArrow = forwardRef(BaseOverlayArrow);
 

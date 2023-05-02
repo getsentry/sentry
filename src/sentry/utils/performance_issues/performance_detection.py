@@ -21,6 +21,7 @@ from .detectors import (
     ConsecutiveHTTPSpanDetector,
     DBMainThreadDetector,
     FileIOMainThreadDetector,
+    LargeHTTPPayloadDetector,
     MNPlusOneDBSpanDetector,
     NPlusOneAPICallsDetector,
     NPlusOneDBSpanDetector,
@@ -38,6 +39,12 @@ INTEGRATIONS_OF_INTEREST = [
     "sqlalchemy",
     "Mongo",  # Node
     "Postgres",  # Node
+    "Mysql",  # Node
+    "Prisma",  # Node
+    "GraphQL",  # Node
+]
+SDKS_OF_INTEREST = [
+    "sentry.javascript.node",
 ]
 
 
@@ -230,7 +237,9 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "span_duration_threshold": 1000,  # ms
             "consecutive_count_threshold": 3,
             "max_duration_between_spans": 10000,  # ms
+            "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
         },
+        DetectorType.LARGE_HTTP_PAYLOAD: {"payload_size_threshold": 10000000},  # 10mb
     }
 
 
@@ -253,6 +262,7 @@ def _detect_performance_problems(
         NPlusOneAPICallsDetector(detection_settings, data),
         MNPlusOneDBSpanDetector(detection_settings, data),
         UncompressedAssetSpanDetector(detection_settings, data),
+        LargeHTTPPayloadDetector(detection_settings, data),
     ]
 
     for detector in detectors:
@@ -360,9 +370,12 @@ def report_metrics_for_detectors(
     event_integrations = event.get("sdk", {}).get("integrations", []) or []
 
     for integration_name in INTEGRATIONS_OF_INTEREST:
-        detected_tags["integration_" + integration_name.lower()] = (
-            integration_name in event_integrations
-        )
+        if integration_name in event_integrations:
+            detected_tags["integration_" + integration_name.lower()] = True
+
+    for allowed_sdk_name in SDKS_OF_INTEREST:
+        if allowed_sdk_name == sdk_name:
+            detected_tags["sdk_" + allowed_sdk_name.lower()] = True
 
     for detector in detectors:
         detector_key = detector.type.value

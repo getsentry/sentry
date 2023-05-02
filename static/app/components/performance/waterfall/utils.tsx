@@ -1,7 +1,7 @@
 import {Theme} from '@emotion/react';
 
 import {DurationDisplay} from 'sentry/components/performance/waterfall/types';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 
 import {getSpanBarColours, SpanBarType} from './constants';

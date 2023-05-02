@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -15,7 +14,11 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
-import {ProfilingBetaAlertBanner} from 'sentry/components/profiling/billing/alerts';
+import {
+  ProfilingAM1OrMMXUpgrade,
+  ProfilingBetaAlertBanner,
+  ProfilingUpgradeButton,
+} from 'sentry/components/profiling/billing/alerts';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -26,7 +29,8 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   formatError,
@@ -61,7 +65,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
   const fields = profilingUsingTransactions ? ALL_FIELDS : BASE_FIELDS;
 
   const sort = formatSort<FieldType>(decodeScalar(location.query.sort), fields, {
-    key: 'p99()',
+    key: 'p95()',
     order: 'desc',
   });
 
@@ -84,7 +88,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
     transactions.status === 'error' ? formatError(transactions.error) : null;
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('profiling_views.landing', {
+    trackAnalytics('profiling_views.landing', {
       organization,
     });
   }, [organization]);
@@ -105,7 +109,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
 
   // Open the modal on demand
   const onSetupProfilingClick = useCallback(() => {
-    trackAdvancedAnalyticsEvent('profiling_views.onboarding', {
+    trackAnalytics('profiling_views.onboarding', {
       organization,
     });
     SidebarPanelStore.activatePanel(SidebarPanelKey.ProfilingOnboarding);
@@ -161,7 +165,9 @@ function ProfilingContent({location}: ProfilingContentProps) {
         <Layout.Page>
           {isProfilingGA ? (
             <ProfilingBetaAlertBanner organization={organization} />
-          ) : null}
+          ) : (
+            <ProfilingBetaEndAlertBanner organization={organization} />
+          )}
           <Layout.Header>
             <Layout.HeaderContent>
               <Layout.Title>
@@ -169,32 +175,16 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 <PageHeadingQuestionTooltip
                   docsUrl="https://docs.sentry.io/product/profiling/"
                   title={t(
-                    'A view of how your application performs in a variety of environments, based off of the performance profiles collected from real user devices in production.'
+                    'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
                   )}
                 />
-                <FeatureBadge type="beta" />
+                {isProfilingGA ? (
+                  <FeatureBadge type="new" />
+                ) : (
+                  <FeatureBadge type="beta" />
+                )}
               </Layout.Title>
             </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <ButtonBar gap={1}>
-                <Button size="sm" onClick={onSetupProfilingClick}>
-                  {t('Set Up Profiling')}
-                </Button>
-                <Button
-                  size="sm"
-                  priority="primary"
-                  href="https://discord.gg/zrMjKA4Vnz"
-                  external
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent('profiling_views.visit_discord_channel', {
-                      organization,
-                    });
-                  }}
-                >
-                  {t('Join Discord')}
-                </Button>
-              </ButtonBar>
-            </Layout.HeaderActions>
           </Layout.Header>
           <Layout.Body>
             <Layout.Main fullWidth>
@@ -231,14 +221,51 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 )}
               </ActionBar>
               {shouldShowProfilingOnboardingPanel ? (
-                <ProfilingOnboardingPanel>
-                  <Button onClick={onSetupProfilingClick} priority="primary">
-                    {t('Set Up Profiling')}
-                  </Button>
-                  <Button href="https://docs.sentry.io/product/profiling/" external>
-                    {t('Read Docs')}
-                  </Button>
-                </ProfilingOnboardingPanel>
+                isProfilingGA ? (
+                  // If user is on m2, show default
+                  <ProfilingOnboardingPanel
+                    content={
+                      <ProfilingAM1OrMMXUpgrade
+                        organization={organization}
+                        fallback={
+                          <Fragment>
+                            <h3>{t('Function level insights')}</h3>
+                            <p>
+                              {t(
+                                'Discover slow-to-execute or resource intensive functions within your application'
+                              )}
+                            </p>
+                          </Fragment>
+                        }
+                      />
+                    }
+                  >
+                    <ProfilingUpgradeButton
+                      organization={organization}
+                      priority="primary"
+                      fallback={
+                        <Button onClick={onSetupProfilingClick} priority="primary">
+                          {t('Set Up Profiling')}
+                        </Button>
+                      }
+                    >
+                      {t('Update plan')}
+                    </ProfilingUpgradeButton>
+                    <Button href="https://docs.sentry.io/product/profiling/" external>
+                      {t('Read Docs')}
+                    </Button>
+                  </ProfilingOnboardingPanel>
+                ) : (
+                  // show previous state
+                  <ProfilingOnboardingPanel>
+                    <Button onClick={onSetupProfilingClick} priority="primary">
+                      {t('Set Up Profiling')}
+                    </Button>
+                    <Button href="https://docs.sentry.io/product/profiling/" external>
+                      {t('Read Docs')}
+                    </Button>
+                  </ProfilingOnboardingPanel>
+                )
               ) : (
                 <Fragment>
                   <PanelsGrid>
@@ -247,7 +274,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   </PanelsGrid>
                   <ProfileEventsTable
                     columns={fields.slice()}
-                    data={transactions.status === 'success' ? transactions.data[0] : null}
+                    data={transactions.status === 'success' ? transactions.data : null}
                     error={
                       transactions.status === 'error'
                         ? t('Unable to load profiles')
@@ -260,7 +287,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <Pagination
                     pageLinks={
                       transactions.status === 'success'
-                        ? transactions.data?.[2]?.getResponseHeader('Link') ?? null
+                        ? transactions.getResponseHeader?.('Link') ?? null
                         : null
                     }
                   />
@@ -271,6 +298,21 @@ function ProfilingContent({location}: ProfilingContentProps) {
         </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
+  );
+}
+
+function ProfilingBetaEndAlertBanner({organization}: {organization: Organization}) {
+  // beta users will continue to have access
+  if (organization.features.includes('profiling-beta')) {
+    return null;
+  }
+
+  return (
+    <StyledAlert system type="info">
+      {t(
+        "The beta program for Profiling is now closed, but Profiling will become generally available soon. If you weren't part of the beta program, any Profiles sent during this time won't appear in your dashboard. Check out the What’s New tab for updates."
+      )}
+    </StyledAlert>
   );
 }
 
@@ -304,6 +346,10 @@ const PanelsGrid = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
   }
+`;
+
+const StyledAlert = styled(Alert)`
+  margin: 0;
 `;
 
 export default ProfilingContent;

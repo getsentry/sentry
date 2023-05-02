@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Sequence
@@ -27,6 +28,7 @@ from sentry.utils.safe import get_path
 CRASH_FILE_TYPES = {"event.minidump"}
 RESERVED_KEYS = frozenset(["user", "sdk", "device", "contexts"])
 FORMATTED_BREADCRUMB_CATEGORIES = frozenset(["query", "sql.query"])
+SQL_DOUBLEQUOTES_REGEX = re.compile(r"\"([a-zA-Z0-9_]+?)\"")
 
 
 def get_crash_files(events):
@@ -339,9 +341,76 @@ class EventSerializer(Serializer):
         }
 
 
-class DetailedEventSerializer(EventSerializer):
+class SqlFormatEventSerializer(EventSerializer):
     """
-    Adds release and user report info to the serialized event.
+    Applies formatting to SQL queries in the serialized event.
+    """
+
+    def _remove_doublequotes(self, message: str):
+        return SQL_DOUBLEQUOTES_REGEX.sub(r"\1", message)
+
+    def _format_sql_query(self, message: str):
+        formatted = sqlparse.format(message, reindent=True, wrap_after=80)
+        if formatted != message:
+            formatted = self._remove_doublequotes(formatted)
+        return formatted
+
+    def _format_breadcrumb_messages(
+        self, event_data: dict[str, Any], event: Event | GroupEvent, user: User
+    ):
+        try:
+            breadcrumbs = next(
+                filter(lambda entry: entry["type"] == "breadcrumbs", event_data.get("entries", ())),
+                None,
+            )
+
+            if not breadcrumbs or not features.has(
+                "organizations:sql-format", event.project.organization, actor=user
+            ):
+                return event_data
+
+            for breadcrumb_item in breadcrumbs["data"]["values"]:
+                if breadcrumb_item["category"] in FORMATTED_BREADCRUMB_CATEGORIES:
+                    breadcrumb_item["messageFormat"] = "sql"
+                    breadcrumb_item["messageRaw"] = breadcrumb_item["message"]
+                    breadcrumb_item["message"] = self._format_sql_query(breadcrumb_item["message"])
+
+            return event_data
+        except Exception as exc:
+            sentry_sdk.capture_exception(exc)
+            return event_data
+
+    def _format_db_spans(self, event_data: dict[str, Any], event: Event | GroupEvent, user: User):
+        try:
+            spans = next(
+                filter(lambda entry: entry["type"] == "spans", event_data.get("entries", ())),
+                None,
+            )
+
+            if not spans or not features.has(
+                "organizations:sql-format", event.project.organization, actor=user
+            ):
+                return event_data
+
+            for span in spans["data"]:
+                if span["op"] in ("db", "db.query", "db.sql.query"):
+                    span["description"] = self._format_sql_query(span["description"])
+
+            return event_data
+        except Exception as exc:
+            sentry_sdk.capture_exception(exc)
+            return event_data
+
+    def serialize(self, obj, attrs, user):
+        result = super().serialize(obj, attrs, user)
+        result = self._format_breadcrumb_messages(result, obj, user)
+        result = self._format_db_spans(result, obj, user)
+        return result
+
+
+class IssueEventSerializer(SqlFormatEventSerializer):
+    """
+    Adds release, user report, sdk updates, and perf issue info to the event.
     """
 
     def get_attrs(
@@ -370,38 +439,12 @@ class DetailedEventSerializer(EventSerializer):
         converted_problem["issueType"] = get_group_type_by_type_id(issue_type).slug
         return converted_problem
 
-    def _format_breadcrumb_messages(
-        self, event_data: dict[str, Any], event: Event | GroupEvent, user: User
-    ):
-        try:
-            breadcrumbs = next(
-                filter(lambda entry: entry["type"] == "breadcrumbs", event_data.get("entries", ())),
-                None,
-            )
-
-            if not breadcrumbs or not features.has(
-                "organizations:issue-breadcrumbs-sql-format", event.project.organization, actor=user
-            ):
-                return event_data
-
-            for breadcrumb_item in breadcrumbs["data"]["values"]:
-                if breadcrumb_item["category"] in FORMATTED_BREADCRUMB_CATEGORIES:
-                    breadcrumb_item["messageRaw"] = breadcrumb_item["message"]
-                    breadcrumb_item["message"] = sqlparse.format(
-                        breadcrumb_item["message"], reindent_aligned=True
-                    )
-            return event_data
-        except Exception as exc:
-            sentry_sdk.capture_exception(exc)
-            return event_data
-
     def serialize(self, obj, attrs, user):
         result = super().serialize(obj, attrs, user)
         result["release"] = self._get_release_info(user, obj)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
         result["perfProblem"] = self._get_perf_problem(attrs)
-        result = self._format_breadcrumb_messages(result, obj, user)
         return result
 
 

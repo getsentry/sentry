@@ -51,6 +51,7 @@ from sentry.search.events.constants import (
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -89,6 +90,24 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         response = self.get_success_response(sort_by="date", query="is:unresolved")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(group.id)
+
+    def test_query_for_archived(self):
+        event = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=self.project.id,
+        )
+        group = event.group
+        Group.objects.update_group_status(
+            groups=[group],
+            status=GroupStatus.IGNORED,
+            substatus=None,
+            activity_type=ActivityType.SET_IGNORED,
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(sort_by="date", query="is:archived")
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
@@ -723,9 +742,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
                     project_id=self.project.id,
                 )
             )
-        events[0].group.update(status=GroupStatus.PENDING_DELETION)
-        events[2].group.update(status=GroupStatus.DELETION_IN_PROGRESS)
-        events[3].group.update(status=GroupStatus.PENDING_MERGE)
+        events[0].group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
+        events[2].group.update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
+        events[3].group.update(status=GroupStatus.PENDING_MERGE, substatus=None)
 
         self.login_as(user=self.user)
 
@@ -821,7 +840,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         assigned_groups = groups[:2]
         for ag in assigned_groups:
-            ag.update(status=GroupStatus.RESOLVED, resolved_at=before_now(seconds=5))
+            ag.update(
+                status=GroupStatus.RESOLVED, resolved_at=before_now(seconds=5), substatus=None
+            )
             GroupAssignee.objects.assign(ag, self.user)
 
         # This side_effect is meant to override the `calculate_hits` snuba query specifically.
@@ -1640,6 +1661,39 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
         assert response.data[0]["inbox"]["reason_details"] == snooze_details
 
+    @with_feature("organizations:issue-states")
+    def test_inbox_fields_issue_states(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        add_group_to_inbox(event.group, GroupInboxReason.NEW)
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
+        remove_group_from_inbox(event.group)
+        snooze_details = {
+            "until": None,
+            "count": 3,
+            "window": None,
+            "user_count": None,
+            "user_window": 5,
+        }
+        add_group_to_inbox(event.group, GroupInboxReason.ONGOING, snooze_details)
+        response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["inbox"] is not None
+        assert response.data[0]["inbox"]["reason"] == GroupInboxReason.ONGOING.value
+        assert response.data[0]["inbox"]["reason_details"] == snooze_details
+
     def test_expand_string(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1730,7 +1784,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        event.group.update(status=GroupStatus.RESOLVED)
+        event.group.update(status=GroupStatus.RESOLVED, substatus=None)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="!is:unresolved", expand="inbox", collapse="stats"
@@ -2824,6 +2878,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = Group.objects.get(id=event.group.id)
         group.status = GroupStatus.RESOLVED
+        group.substatus = None
         group.save()
 
         self.login_as(user=self.user)
@@ -2974,9 +3029,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         r4 = GroupSeen.objects.filter(group=group4, user_id=self.user.id)
         assert not r4.exists()
 
-    @patch("sentry.api.helpers.group_index.update.uuid4")
-    @patch("sentry.api.helpers.group_index.update.merge_groups")
-    @patch("sentry.api.helpers.group_index.update.eventstream")
+    @patch("sentry.issues.merge.uuid4")
+    @patch("sentry.issues.merge.merge_groups")
+    @patch("sentry.issues.merge.eventstream")
     def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
@@ -3008,9 +3063,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             eventstream_state=eventstream_state,
         )
 
-    @patch("sentry.api.helpers.group_index.update.uuid4")
-    @patch("sentry.api.helpers.group_index.update.merge_groups")
-    @patch("sentry.api.helpers.group_index.update.eventstream")
+    @patch("sentry.issues.merge.uuid4")
+    @patch("sentry.issues.merge.merge_groups")
+    @patch("sentry.issues.merge.eventstream")
     def test_merge_performance_issues(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
