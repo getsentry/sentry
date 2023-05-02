@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
+import parseLinkHeader, {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
@@ -171,14 +172,19 @@ function useReplayData({
     const finishedAtClone = new Date(replayRecord.finished_at);
     finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
-    const results = await fetchPaginatedReplayErrors(api, {
+    const paginatedErrors = fetchPaginatedReplayErrors(api, {
       orgSlug,
       replayId: replayRecord.id,
       start: replayRecord.started_at,
       end: finishedAtClone,
       limit: errorsPerPage,
     });
-    setErrors(results);
+    let done = false;
+    while (!done) {
+      const pagedResults = await paginatedErrors.next();
+      setErrors(prev => [...prev, ...pagedResults.value]);
+      done = pagedResults.done ?? true;
+    }
     setState(prev => ({...prev, fetchingErrors: false}));
   }, [api, orgSlug, replayRecord, errorsPerPage]);
 
@@ -257,33 +263,29 @@ async function fetchReplayErrors(
     end,
     replayId,
     limit = 50,
-    offset = 0,
+    cursor = '0:0:0',
   }: {
     end: Date;
     orgSlug: string;
     replayId: string;
     start: Date;
+    cursor?: string;
     limit?: number;
-    offset?: number;
   }
 ) {
-  const response = await api.requestPromise(
-    `/organizations/${orgSlug}/replays-events-meta/`,
-    {
-      query: {
-        start: start.toISOString(),
-        end: end.toISOString(),
-        query: `replayId:[${replayId}]`,
-        per_page: limit,
-        cursor: [0, offset, 0].join(':'),
-      },
-    }
-  );
-
-  return response;
+  return await api.requestPromise(`/organizations/${orgSlug}/replays-events-meta/`, {
+    includeAllArgs: true,
+    query: {
+      start: start.toISOString(),
+      end: end.toISOString(),
+      query: `replayId:[${replayId}]`,
+      per_page: limit,
+      cursor,
+    },
+  });
 }
 
-async function fetchPaginatedReplayErrors(
+async function* fetchPaginatedReplayErrors(
   api: Client,
   {
     orgSlug,
@@ -299,38 +301,28 @@ async function fetchPaginatedReplayErrors(
     limit?: number;
   }
 ) {
-  function next(nextOffset: number) {
+  function next(nextCursor: string) {
     return fetchReplayErrors(api, {
       orgSlug,
       replayId,
       start,
       end,
       limit,
-      offset: nextOffset,
+      cursor: nextCursor,
     });
   }
 
   const results: ReplayError[] = [];
-  const hasNext = true;
-  let offset = 0 - limit;
-
-  while (hasNext) {
-    offset += limit;
-    const response = await next(offset);
-    results.push(...response.data);
-
-    // TODO: there has to be a better way to paginate this endpoint
-    // we over fetch in instances where the last page data.length === limit
-    // example:
-    //  server: [1,2]
-    //  fetch(offset=0,limit=1) -> [1]
-    //  fetch(offset=1,limit=1) -> [2]
-    //  fetch(offset=2,limit=1) -> []
-    //  see also useReplayData.spec.tsx
-
-    if (response.data.length < limit) {
-      return results;
-    }
+  let cursor = {
+    cursor: '0:0:0',
+    results: true,
+    href: '',
+  } as ParsedHeader;
+  while (cursor.results) {
+    const [{data}, , resp] = await next(cursor.cursor);
+    const pageLinks = resp?.getResponseHeader('Link') ?? null;
+    cursor = parseLinkHeader(pageLinks)?.next;
+    yield data;
   }
   return results;
 }

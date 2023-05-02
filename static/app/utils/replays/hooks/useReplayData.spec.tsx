@@ -179,6 +179,12 @@ describe('useReplayData', () => {
     const mockedErrorsCall1 = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays-events-meta/`,
       body: {data: mockErrorResponse1},
+      headers: {
+        Link: [
+          '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1"',
+          '<http://localhost/?cursor=0:2:0>; rel="next"; results="true"; cursor="0:1:0"',
+        ].join(','),
+      },
       match: [
         (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
         (_url, options) => options.query?.cursor === '0:0:0',
@@ -187,19 +193,15 @@ describe('useReplayData', () => {
     const mockedErrorsCall2 = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays-events-meta/`,
       body: {data: mockErrorResponse2},
+      headers: {
+        Link: [
+          '<http://localhost/?cursor=0:0:1>; rel="previous"; results="true"; cursor="0:1:0"',
+          '<http://localhost/?cursor=0:2:0>; rel="next"; results="false"; cursor="0:2:0"',
+        ].join(','),
+      },
       match: [
         (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
         (_url, options) => options.query?.cursor === '0:1:0',
-      ],
-    });
-
-    // this third call is extraneous simply due to how we naively fetch all records based on asserting data.length
-    const mockedErrorsCall3 = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays-events-meta/`,
-      body: {data: []},
-      match: [
-        (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
-        (_url, options) => options.query?.cursor === '0:2:0',
       ],
     });
 
@@ -216,7 +218,6 @@ describe('useReplayData', () => {
 
     expect(mockedErrorsCall1).toHaveBeenCalledTimes(1);
     expect(mockedErrorsCall2).toHaveBeenCalledTimes(1);
-    expect(mockedErrorsCall3).toHaveBeenCalledTimes(1);
 
     expect(MockedReplayReaderFactory).toHaveBeenLastCalledWith({
       attachments: [],
