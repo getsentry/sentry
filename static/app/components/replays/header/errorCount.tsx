@@ -1,17 +1,20 @@
 import styled from '@emotion/styled';
 
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconFire} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 
 type Props = {
   countErrors: number;
   className?: string;
+  project?: Project;
 };
 
-const ErrorCount = styled(({countErrors, className}: Props) =>
+const ErrorCount = styled(({countErrors, project, className}: Props) =>
   countErrors ? (
     <span className={className}>
-      <IconFire />
+      {project ? <ProjectBadge project={project} disableLink hideName /> : <IconFire />}
       {countErrors}
     </span>
   ) : (

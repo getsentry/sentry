@@ -1,5 +1,6 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import countBy from 'lodash/countBy';
 
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
@@ -10,14 +11,17 @@ import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import useProjects from 'sentry/utils/useProjects';
+import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
+  replayErrors: ReplayError[];
   replayRecord: ReplayRecord | undefined;
 };
 
-function ReplayMetaData({replayRecord}: Props) {
+function ReplayMetaData({replayRecord, replayErrors}: Props) {
   const {pathname, query} = useLocation();
+  const {projects} = useProjects();
 
   const errorsTabHref = {
     pathname,
@@ -28,6 +32,17 @@ function ReplayMetaData({replayRecord}: Props) {
       f_c_search: undefined,
     },
   };
+
+  const errorCountByProject = useMemo(
+    () =>
+      Object.entries(countBy(replayErrors, 'project.name')).map(
+        ([projectSlug, count]) => ({
+          project: projects.find(p => p.slug === projectSlug),
+          count,
+        })
+      ),
+    [replayErrors, projects]
+  );
 
   return (
     <KeyMetrics>
@@ -62,7 +77,9 @@ function ReplayMetaData({replayRecord}: Props) {
       <KeyMetricData>
         {replayRecord ? (
           <StyledLink to={errorsTabHref}>
-            <ErrorCount countErrors={replayRecord.count_errors} />
+            {errorCountByProject.map(({project, count}, idx) => (
+              <ErrorCount key={idx} countErrors={count} project={project} />
+            ))}
           </StyledLink>
         ) : (
           <HeaderPlaceholder width="80px" height="16px" />
