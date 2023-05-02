@@ -1365,8 +1365,6 @@ SENTRY_FEATURES = {
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
-    # Enable the new experimental metrics extraction on spans
-    "organizations:span-metrics-extraction": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -1433,6 +1431,8 @@ SENTRY_FEATURES = {
     "organizations:org-roles-for-teams": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
+    # Enable sliding window for dynamic sampling
+    "organizations:ds-sliding-window": False,
     # If true certain Slack messages will be escaped to prevent rendering markdown
     "organizations:slack-escape-messages": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -1462,6 +1462,8 @@ SENTRY_FEATURES = {
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
     "projects:auto-associate-commits-to-release": False,
+    # Starfish: extract metrics from the spans
+    "projects:span-metrics-extraction": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -3246,6 +3248,10 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
     "options": {"cluster": "default"},
 }
+
+# Monitor limits to prevent abuse
+MAX_MONITORS_PER_ORG = 10000
+MAX_ENVIRONMENTS_PER_MONITOR = 1000
 
 # Raise schema validation errors and make the indexer crash (only useful in
 # tests)
