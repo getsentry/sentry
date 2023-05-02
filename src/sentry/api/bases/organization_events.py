@@ -29,6 +29,7 @@ from sentry.snuba import (
     metrics_enhanced_performance,
     metrics_performance,
     profiles,
+    spans_indexed,
 )
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
@@ -45,7 +46,10 @@ DATASET_OPTIONS = {
     "profiles": profiles,
     "issuePlatform": issue_platform,
     "profile_functions": functions,
+    "spansIndexed": spans_indexed,
 }
+
+DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
 
 
 def resolve_axis_column(column: str, index: int = 0) -> str:
@@ -292,6 +296,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         organization: Organization,
         project_ids: Sequence[int],
         results: Dict[str, Any],
+        dataset: Optional[Any],
         standard_meta: Optional[bool] = False,
     ) -> Dict[str, Any]:
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
@@ -308,6 +313,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "isMetricsData": isMetricsData,
                     "tips": meta.get("tips", {}),
                 }
+                if dataset is not None:
+                    meta["dataset"] = DATASET_LABELS.get(dataset, "unknown")
             else:
                 meta = fields_meta
 

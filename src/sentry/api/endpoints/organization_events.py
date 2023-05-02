@@ -120,6 +120,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             "organizations:profiling",
             "organizations:dynamic-sampling",
             "organizations:use-metrics-layer",
+            "organizations:starfish-view",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -255,7 +256,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
 
-        use_custom_dataset = use_metrics or use_profiles or use_occurrences
+        starfish_view = batch_features.get("organizations:starfish-view", False)
+
+        use_custom_dataset = use_metrics or use_profiles or use_occurrences or starfish_view
         dataset = self.get_dataset(request) if use_custom_dataset else discover
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
@@ -297,6 +300,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         organization,
                         params["project_id"],
                         data_fn(0, self.get_per_page(request)),
+                        dataset,
                         standard_meta=True,
                     )
                 )
@@ -309,6 +313,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         organization,
                         params["project_id"],
                         results,
+                        dataset,
                         standard_meta=True,
                     ),
                 )
