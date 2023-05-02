@@ -21,7 +21,7 @@ from sentry.testutils import TransactionTestCase
 class RecordingTestCaseMixin:
     @staticmethod
     def processing_factory():
-        return ProcessReplayRecordingStrategyFactory(1)
+        return ProcessReplayRecordingStrategyFactory(1, use_multi_proc=False)
 
     def setUp(self):
         self.replay_id = uuid.uuid4().hex
