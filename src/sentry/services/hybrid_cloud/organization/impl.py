@@ -201,9 +201,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return [serialize_member(team_member.organizationmember) for team_member in team_members]
 
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
-        model = OrganizationMember.objects.get(id=organization_member.id)
-        model.flags = self._deserialize_member_flags(organization_member.flags)
-        model.save()
+        with in_test_psql_role_override("postgres"):
+            model = OrganizationMember.objects.get(id=organization_member.id)
+            model.flags = self._deserialize_member_flags(organization_member.flags)
+            model.save()
 
     @classmethod
     def _serialize_invite(cls, om: OrganizationMember) -> RpcOrganizationInvite:

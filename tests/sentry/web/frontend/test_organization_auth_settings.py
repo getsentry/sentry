@@ -7,6 +7,7 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.auth.authenticators import TotpInterface
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     AuthIdentity,
@@ -41,9 +42,10 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             user=user, organization=self.organization, role="owner", teams=[self.team]
         )
         AuthIdentity.objects.create(user=user, ident="foo2", auth_provider=self.auth_provider)
-        om = OrganizationMember.objects.get(user=user, organization=self.organization)
-        setattr(om.flags, "sso:linked", True)
-        om.save()
+        with in_test_psql_role_override("postgres"):
+            om = OrganizationMember.objects.get(user=user, organization=self.organization)
+            setattr(om.flags, "sso:linked", True)
+            om.save()
         return user
 
     def create_manager_and_attach_identity(self):
@@ -52,9 +54,10 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             user=user, organization=self.organization, role="manager", teams=[self.team]
         )
         AuthIdentity.objects.create(user=user, ident="foo3", auth_provider=self.auth_provider)
-        om = OrganizationMember.objects.get(user=user, organization=self.organization)
-        setattr(om.flags, "sso:linked", True)
-        om.save()
+        with in_test_psql_role_override("postgres"):
+            om = OrganizationMember.objects.get(user=user, organization=self.organization)
+            setattr(om.flags, "sso:linked", True)
+            om.save()
         return user
 
     def test_teamless_admin_cannot_load(self):
@@ -157,10 +160,11 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         return organization, auth_provider
 
     def create_om_and_link_sso(self, organization):
-        om = OrganizationMember.objects.get(user=self.user, organization=organization)
-        setattr(om.flags, "sso:linked", True)
-        om.save()
-        return om
+        with in_test_psql_role_override("postgres"):
+            om = OrganizationMember.objects.get(user=self.user, organization=organization)
+            setattr(om.flags, "sso:linked", True)
+            om.save()
+            return om
 
     def test_can_start_auth_flow(self):
         organization = self.create_organization(name="foo", owner=self.user)
@@ -448,19 +452,21 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         # "add" some scim users
         u1 = self.create_user()
-        not_scim_member = OrganizationMember.objects.create(user=u1, organization=organization)
-        not_scim_member.save()
+        with in_test_psql_role_override("postgres"):
+            not_scim_member = OrganizationMember.objects.create(user=u1, organization=organization)
+            not_scim_member.save()
         u2 = self.create_user()
-        scim_member = OrganizationMember.objects.create(user=u2, organization=organization)
-        scim_member.flags["idp:provisioned"] = True
-        scim_member.save()
-        u3 = self.create_user()
-        scim_role_restricted_user = OrganizationMember.objects.create(
-            user=u3, organization=organization
-        )
-        scim_role_restricted_user.flags["idp:provisioned"] = True
-        scim_role_restricted_user.flags["idp:role-restricted"] = True
-        scim_role_restricted_user.save()
+        with in_test_psql_role_override("postgres"):
+            scim_member = OrganizationMember.objects.create(user=u2, organization=organization)
+            scim_member.flags["idp:provisioned"] = True
+            scim_member.save()
+            u3 = self.create_user()
+            scim_role_restricted_user = OrganizationMember.objects.create(
+                user=u3, organization=organization
+            )
+            scim_role_restricted_user.flags["idp:provisioned"] = True
+            scim_role_restricted_user.flags["idp:role-restricted"] = True
+            scim_role_restricted_user.save()
 
         with self.feature({"organizations:sso-basic": True}):
             resp = self.client.post(
