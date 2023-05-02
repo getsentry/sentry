@@ -14,6 +14,10 @@ type SparklineProps = {
 export default function Sparkline({series, width, color}: SparklineProps) {
   echarts.use([LineChart, SVGRenderer]);
 
+  if (!series.data) {
+    return null;
+  }
+
   const valueSeries = {
     data: series.data.map(datum => datum.value),
     type: 'line',
