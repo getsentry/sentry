@@ -61,23 +61,29 @@ export const getDatabaseTimeSpent = ({transaction}) => {
   `;
 };
 
-export const DB_THROUGHPUT = `SELECT
- count() as count,
- toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
- FROM default.spans_experimental_starfish
- WHERE module = 'db'
- GROUP BY interval
- ORDER BY interval
- `;
+export const getDbThroughput = ({transaction}) => {
+  return `SELECT
+  count() as count,
+  toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+  FROM default.spans_experimental_starfish
+  WHERE module = 'db'
+  ${transaction ? `AND transaction = '${transaction}'` : ''}
+  GROUP BY interval
+  ORDER BY interval
+  `;
+};
 
-export const HTTP_THROUGHPUT = `SELECT
- count() as count,
- toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
- FROM default.spans_experimental_starfish
- WHERE module = 'http'
- GROUP BY interval
- ORDER BY interval
-`;
+export const getHttpThroughput = ({transaction}) => {
+  return `SELECT
+  count() as count,
+  toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+  FROM default.spans_experimental_starfish
+  WHERE module = 'http'
+  ${transaction ? `AND transaction = '${transaction}'` : ''}
+  GROUP BY interval
+  ORDER BY interval
+ `;
+};
 
 export const FAILURE_RATE_QUERY = `SELECT
  toStartOfInterval(start_timestamp, INTERVAL 5 MINUTE) as interval,
