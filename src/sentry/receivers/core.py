@@ -11,6 +11,7 @@ from packaging.version import parse as parse_version
 
 from sentry import options
 from sentry.db.models import get_model_if_available
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
 from sentry.models import Organization, OrganizationMember, Project, ProjectKey, Team, User
 from sentry.signals import project_created
@@ -73,7 +74,10 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
     org, _ = Organization.objects.get_or_create(slug="sentry", defaults={"name": "Sentry"})
 
     if user:
-        OrganizationMember.objects.get_or_create(user_id=user.id, organization=org, role="owner")
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.get_or_create(
+                user_id=user.id, organization=org, role="owner"
+            )
 
     team, _ = Team.objects.get_or_create(
         organization=org, slug="sentry", defaults={"name": "Sentry"}
