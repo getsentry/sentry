@@ -248,7 +248,7 @@ class OrganizationTeamsCreateTest(APITestCase):
             self.organization.slug,
             name="hello world",
             slug="foobar",
-            setTeamAdmin=True,
+            set_team_admin=True,
             status_code=201,
         )
 
@@ -270,8 +270,8 @@ class OrganizationTeamsCreateTest(APITestCase):
             self.organization.slug,
             name="hello world",
             slug="foobar",
-            setTeamAdmin=True,
-            status_code=400,
+            set_team_admin=True,
+            status_code=404,
         )
         assert response.data == {
             "detail": "You do not have permission to join a new team as a team admin"
@@ -283,8 +283,8 @@ class OrganizationTeamsCreateTest(APITestCase):
             self.organization.slug,
             name="hello world",
             slug="foobar",
-            setTeamAdmin=True,
-            status_code=400,
+            set_team_admin=True,
+            status_code=404,
         )
         assert response.data == {
             "detail": "You do not have permission to join a new team as a team admin"
@@ -297,11 +297,11 @@ class OrganizationTeamsCreateTest(APITestCase):
             self.organization.slug,
             name="hello world",
             slug="foobar",
-            setTeamAdmin=True,
-            status_code=401,
+            set_team_admin=True,
+            status_code=400,
         )
         assert response.data == {
-            "detail": "You must be authenticated to join a new team as a Team Admin"
+            "detail": "You do not have permission to join a new team as a Team Admin"
         }
         mock_creator_check.assert_called_once()
 
@@ -324,7 +324,7 @@ class OrganizationTeamsCreateTest(APITestCase):
                 self.organization.slug,
                 name="hello world",
                 slug="foobar",
-                setTeamAdmin=True,
+                set_team_admin=True,
                 status_code=400,
             )
             assert response.data == {
