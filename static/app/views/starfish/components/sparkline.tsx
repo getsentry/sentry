@@ -46,7 +46,7 @@ export default function Sparkline({series, width, color}: SparklineProps) {
       notMerge
       style={{
         height: 25,
-        width: width ?? 300,
+        width: width ?? 200,
       }}
       lazyUpdate
       theme="theme_name"

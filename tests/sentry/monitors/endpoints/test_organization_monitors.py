@@ -3,6 +3,9 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+from django.conf import settings
+from django.test.utils import override_settings
+
 from sentry.constants import ObjectStatus
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils import MonitorTestCase
@@ -182,3 +185,24 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug, **data)
 
         assert response.data["slug"] == "my-monitor"
+
+    @override_settings(MAX_MONITORS_PER_ORG=2)
+    def test_monitor_organization_limit(self):
+        for i in range(settings.MAX_MONITORS_PER_ORG):
+            data = {
+                "project": self.project.slug,
+                "name": f"Unicron-{i}",
+                "slug": f"unicron-{i}",
+                "type": "cron_job",
+                "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            }
+            self.get_success_response(self.organization.slug, **data)
+
+        data = {
+            "project": self.project.slug,
+            "name": f"Unicron-{settings.MAX_MONITORS_PER_ORG + 1}",
+            "slug": f"unicron-{settings.MAX_MONITORS_PER_ORG + 1}",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        self.get_error_response(self.organization.slug, status_code=403, **data)

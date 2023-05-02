@@ -6,8 +6,11 @@ from typing import TYPE_CHECKING
 import pytz
 from croniter import croniter
 from dateutil import rrule
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -38,6 +41,14 @@ SCHEDULE_INTERVAL_MAP = {
     "hour": rrule.HOURLY,
     "minute": rrule.MINUTELY,
 }
+
+
+class MonitorLimitsExceeded(Exception):
+    pass
+
+
+class MonitorEnvironmentLimitsExceeded(Exception):
+    pass
 
 
 def get_next_schedule(last_checkin, schedule_type, schedule):
@@ -240,6 +251,18 @@ class Monitor(Model):
         return "active"
 
 
+@receiver(pre_save, sender=Monitor)
+def check_organization_monitor_limits(sender, instance, **kwargs):
+    if (
+        instance.pk is None
+        and sender.objects.filter(organization_id=instance.organization_id).count()
+        == settings.MAX_MONITORS_PER_ORG
+    ):
+        raise MonitorLimitsExceeded(
+            f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization"
+        )
+
+
 @region_silo_only_model
 class MonitorCheckIn(Model):
     __include_in_export__ = False
@@ -407,3 +430,15 @@ class MonitorEnvironment(Model):
             params["status"] = MonitorStatus.OK
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
+
+
+@receiver(pre_save, sender=MonitorEnvironment)
+def check_monitor_environment_limits(sender, instance, **kwargs):
+    if (
+        instance.pk is None
+        and sender.objects.filter(monitor=instance.monitor).count()
+        == settings.MAX_ENVIRONMENTS_PER_MONITOR
+    ):
+        raise MonitorEnvironmentLimitsExceeded(
+            f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
+        )
