@@ -116,7 +116,7 @@ function ArchiveActions({
       <ArchiveButton
         size={size}
         tooltipProps={{delay: 1000, disabled: disabled || disableTooltip}}
-        title={t('Hides the issue until sh*t hits the fan and events escalate.')}
+        title={t('Hides the issue until the sh*t hits the fan and events escalate.')}
         icon={hideIcon ? null : <IconArchive size={size} />}
         onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
         disabled={disabled}
