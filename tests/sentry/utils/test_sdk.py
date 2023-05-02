@@ -133,7 +133,7 @@ class CheckScopeTransactionTest(TestCase):
 
 
 @patch("sentry_sdk.capture_exception")
-class CaptureExceptionTest(TestCase):
+class CaptureExceptionWithScopeCheckTest(TestCase):
     def test_passes_along_exception(self, mock_sdk_capture_exception: MagicMock):
         err = Exception()
 
