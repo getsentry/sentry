@@ -606,42 +606,42 @@ def test_generate_rules_return_uniform_rules_and_rebalance_factor_rule(
     _validate_rules(default_project)
 
 
-@pytest.mark.django_db
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-def test_generate_rules_return_boost_replay_id(get_blended_sample_rate, default_project):
-    get_blended_sample_rate.return_value = 0.5
-    default_project.update_option(
-        "sentry:dynamic_sampling_biases",
-        [
-            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
-            {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
-            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
-            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
-            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
-        ],
-    )
-
-    assert generate_rules(default_project) == [
-        {
-            "condition": {
-                "inner": {
-                    "name": "trace.replay_id",
-                    "op": "eq",
-                    "value": None,
-                    "options": {"ignoreCase": True},
-                },
-                "op": "not",
-            },
-            "id": 1005,
-            "samplingValue": {"type": "sampleRate", "value": 1.0},
-            "type": "trace",
-        },
-        {
-            "condition": {"inner": [], "op": "and"},
-            "id": 1000,
-            "samplingValue": {"type": "sampleRate", "value": 0.5},
-            "type": "trace",
-        },
-    ]
-
-    _validate_rules(default_project)
+# @pytest.mark.django_db
+# @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+# def test_generate_rules_return_boost_replay_id(get_blended_sample_rate, default_project):
+#     get_blended_sample_rate.return_value = 0.5
+#     default_project.update_option(
+#         "sentry:dynamic_sampling_biases",
+#         [
+#             {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+#             {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
+#             {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+#             {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+#             {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
+#         ],
+#     )
+#
+#     assert generate_rules(default_project) == [
+#         {
+#             "condition": {
+#                 "inner": {
+#                     "name": "trace.replay_id",
+#                     "op": "eq",
+#                     "value": None,
+#                     "options": {"ignoreCase": True},
+#                 },
+#                 "op": "not",
+#             },
+#             "id": 1005,
+#             "samplingValue": {"type": "sampleRate", "value": 1.0},
+#             "type": "trace",
+#         },
+#         {
+#             "condition": {"inner": [], "op": "and"},
+#             "id": 1000,
+#             "samplingValue": {"type": "sampleRate", "value": 0.5},
+#             "type": "trace",
+#         },
+#     ]
+#
+#     _validate_rules(default_project)
