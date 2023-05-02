@@ -101,7 +101,7 @@ def test_indexer(indexer, indexer_cache):
     assert list(
         indexer_cache.get_many(
             [f"{org1_id}:{string}" for string in strings],
-            cache_namespace=use_case_id.value,
+            cache_namespace=REVERSE_METRIC_PATH_MAPPING[use_case_id].value,
         ).values()
     ) == [None, None, None]
 
@@ -131,7 +131,12 @@ def test_indexer(indexer, indexer_cache):
 
     # verify org2 results and cache values
     assert results[org2_id]["sup"] == org2_string_id
-    assert indexer_cache.get(f"{org2_id}:sup", cache_namespace=use_case_id.value) == org2_string_id
+    assert (
+        indexer_cache.get(
+            f"{org2_id}:sup", cache_namespace=REVERSE_METRIC_PATH_MAPPING[use_case_id].value
+        )
+        == org2_string_id
+    )
 
     # we should have no results for org_id 999
     assert not results.get(999)
