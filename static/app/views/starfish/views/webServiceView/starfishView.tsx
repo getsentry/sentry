@@ -181,7 +181,6 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 top: '8px',
                 bottom: '0',
               }}
-              disableMultiAxis
               definedAxisTicks={4}
               stacked
               isLineChart
