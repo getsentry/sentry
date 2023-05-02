@@ -105,7 +105,12 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
         memberId: params.memberId,
         data: {orgRole, teamRoles} as any,
       });
-      this.setState({member: updatedMember, busy: false});
+      this.setState({
+        member: updatedMember,
+        orgRole: updatedMember.orgRole,
+        teamRoles: updatedMember.teamRoles,
+        busy: false,
+      });
       addSuccessMessage(t('Saved'));
     } catch (resp) {
       const errorMessage =
@@ -239,7 +244,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
       return false;
     }
 
-    if (orgRole !== member.orgRole || !isEqual(teamRoles, member?.teamRoles)) {
+    if (orgRole !== member.orgRole || !isEqual(teamRoles, member.teamRoles)) {
       return true;
     }
 
@@ -406,7 +411,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
               disabled={!canEdit}
               isOrgOwner={isOrgOwner}
               organization={organization}
-              member={member}
+              member={{...member, orgRole, teamRoles}}
               selectedOrgRole={orgRole}
               selectedTeamRoles={teamRoles}
               onChangeTeamRole={this.onChangeTeamRole}

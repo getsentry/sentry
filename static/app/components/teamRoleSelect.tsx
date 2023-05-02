@@ -32,7 +32,7 @@ function TeamRoleSelect({
     return null;
   }
 
-  // Determine the team-role, including if the current team has an org role
+  // Determine the org-role, including if the current team has an org role
   // and adding the user to the current team changes their minimum team-role
   const possibleOrgRoles = [member.orgRole];
   if (member.orgRolesFromTeams && member.orgRolesFromTeams.length > 0) {
@@ -43,19 +43,16 @@ function TeamRoleSelect({
   }
   const effectiveOrgRole = getEffectiveOrgRole(possibleOrgRoles, orgRoleList);
 
-  // The sequence to evalute teamRoleId is important. Org-roles with elevated
-  // permissions will have null/undefined for member.teamRole
-  const teamRoleId =
-    member.teamRole || // From TeamMemberEndpoint
-    member.teamRoles.find(tr => tr.teamSlug === team.slug)?.role || // From OrgMemberDetailEndpoint
-    effectiveOrgRole?.minimumTeamRole;
-  const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];
-
+  // If the member's org-role has elevated permission, their team-role will
+  // inherit scopes from it
   if (hasOrgRoleOverwrite({orgRole: effectiveOrgRole?.id, orgRoleList, teamRoleList})) {
+    const effectiveTeamRole = teamRoleList.find(
+      r => r.id === effectiveOrgRole?.minimumTeamRole
+    );
+
     return (
       <RoleName>
-        {teamRole.name}
-
+        {effectiveTeamRole?.name || effectiveOrgRole?.minimumTeamRole}
         <IconWrapper>
           <RoleOverwriteIcon
             orgRole={effectiveOrgRole?.id}
@@ -66,6 +63,11 @@ function TeamRoleSelect({
       </RoleName>
     );
   }
+
+  const teamRoleId =
+    member.teamRole || // From TeamMemberEndpoint
+    member.teamRoles.find(tr => tr.teamSlug === team.slug)?.role; // From OrgMemberDetailEndpoint
+  const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];
 
   return (
     <RoleSelectControl
