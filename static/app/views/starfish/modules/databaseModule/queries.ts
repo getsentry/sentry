@@ -24,7 +24,7 @@ const getActionSubquery = (date_filters: string) => {
   select action
   from default.spans_experimental_starfish
   where
-    ${DEFAULT_WHERE} and
+    ${DEFAULT_WHERE}
     ${date_filters}
   group by action
   order by ${ORDERBY}
@@ -37,7 +37,7 @@ const getDomainSubquery = (date_filters: string, action: string) => {
   select domain
   from default.spans_experimental_starfish
   where
-    ${DEFAULT_WHERE} and
+    ${DEFAULT_WHERE}
     ${date_filters} and
     domain != ''
     ${getActionQuery(action)}
@@ -88,7 +88,7 @@ export const getOperations = (date_filters: string) => {
     uniq(description) as value
   from default.spans_experimental_starfish
   where
-    ${DEFAULT_WHERE} and
+    ${DEFAULT_WHERE}
     ${date_filters}
   group by action
   order by ${ORDERBY}
@@ -102,7 +102,7 @@ export const getTables = (date_filters: string, action: string) => {
     quantile(0.75)(exclusive_time) as value
   from default.spans_experimental_starfish
   where
-    ${DEFAULT_WHERE} and
+    ${DEFAULT_WHERE}
     ${date_filters}
     ${getActionQuery(action)}
   group by domain
@@ -119,7 +119,7 @@ export const getTopOperationsChart = (date_filters: string, interval: number) =>
     toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
   from default.spans_experimental_starfish
   where
-    ${DEFAULT_WHERE} and
+    ${DEFAULT_WHERE}
     ${date_filters} and
     action in (${getActionSubquery(date_filters)})
   group by action, interval
@@ -140,7 +140,7 @@ export const getTopTablesChart = (
     toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
   from default.spans_experimental_starfish
   where
-    ${DEFAULT_WHERE} and
+    ${DEFAULT_WHERE}
     ${date_filters} and
     domain in (${getDomainSubquery(date_filters, action)})
     ${getActionQuery(action)}
@@ -180,7 +180,7 @@ export const getPanelTableQuery = (
       quantile(0.75)(exclusive_time) as p75
     FROM spans_experimental_starfish
     WHERE
-      ${DEFAULT_WHERE} and
+      ${DEFAULT_WHERE}
       ${date_filters} and
       group_id = '${row.group_id}'
     GROUP BY transaction
@@ -229,7 +229,7 @@ export const getPanelGraphQuery = (
       count() as count
     FROM spans_experimental_starfish
     WHERE
-      ${DEFAULT_WHERE} and
+      ${DEFAULT_WHERE}
       ${date_filters} and
       group_id = '${row.group_id}'
     GROUP BY interval
@@ -264,7 +264,7 @@ export const getPanelEventCount = (
       count(DISTINCT transaction_id) as uniqueEvents
     FROM spans_experimental_starfish
     WHERE
-      ${DEFAULT_WHERE} and
+      ${DEFAULT_WHERE}
       ${date_filters} and
       group_id = '${row.group_id}'
     GROUP BY transaction
@@ -347,7 +347,7 @@ export const useQueryTransactionByTPM = (row: DataRow) => {
     toStartOfInterval(start_timestamp, INTERVAL ${INTERVAL} hour) as interval
   FROM default.spans_experimental_starfish
   where
-    ${DEFAULT_WHERE} and
+    ${DEFAULT_WHERE}
     ${dateFilters} and
     ${queryFilter}
     and transaction IN (
