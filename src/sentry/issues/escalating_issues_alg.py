@@ -22,7 +22,7 @@ class GroupCount(TypedDict):
     data: List[int]
 
 
-def generate_issue_forecast(data: GroupCount, start_time: datetime) -> List[IssueForecast]:
+def generate_issue_forecast(data: GroupCount, start_time: datetime, version:str = "A") -> List[IssueForecast]:
     """
     Calculates daily issue spike limits, given an input dataset from snuba.
 
@@ -44,6 +44,28 @@ def generate_issue_forecast(data: GroupCount, start_time: datetime) -> List[Issu
     :param start_time: datetime indicating the first hour to calc spike protection for
     :return output: Dict containing a list of spike protection values
     """
+
+    # set thresholds based on version
+
+    if version == "A":
+        STANDARD_DEV_MULTIPLIER = 5
+        MIN_SPIKE_MULTIPLIER = 5
+        MAX_SPIKE_MULTIPLIER = 8
+        MIN_BURSTY_MULTIPLIER = 2
+        MAX_BURSTY_MULTIPLIER = 5
+    elif version == "B":  #tighter threshold version
+        STANDARD_DEV_MULTIPLIER = 4
+        MIN_SPIKE_MULTIPLIER = 4
+        MAX_SPIKE_MULTIPLIER = 7
+        MIN_BURSTY_MULTIPLIER = 2
+        MAX_BURSTY_MULTIPLIER = 4
+    else: #version C - looser threshold version
+        STANDARD_DEV_MULTIPLIER = 6
+        MIN_SPIKE_MULTIPLIER = 5
+        MAX_SPIKE_MULTIPLIER = 9
+        MIN_BURSTY_MULTIPLIER = 2
+        MAX_BURSTY_MULTIPLIER = 6
+
 
     # output list of dictionaries
     output: List[IssueForecast] = []
@@ -89,13 +111,13 @@ def generate_issue_forecast(data: GroupCount, start_time: datetime) -> List[Issu
     ts_cv = ts_std_dev / ts_avg
 
     # multiplier determined by exponential equation - bounded between [2,5]
-    regression_multiplier = min(max(2, 5 * ((math.e) ** (-0.65 * ts_cv))), 5)
+    regression_multiplier = min(max(MIN_BURSTY_MULTIPLIER, 5 * ((math.e) ** (-0.65 * ts_cv))), MAX_BURSTY_MULTIPLIER)
 
     # first ceiling calculation
     limit_v1 = ts_max * regression_multiplier
 
     # This second multiplier corresponds to 5 standard deviations above the avg ts value
-    ts_multiplier = min(max((ts_avg + (5 * ts_std_dev)) / ts_avg, 5), 8)
+    ts_multiplier = min(max((ts_avg + (STANDARD_DEV_MULTIPLIER * ts_std_dev)) / ts_avg, MIN_SPIKE_MULTIPLIER), MAX_SPIKE_MULTIPLIER)
 
     # Default upper limit is the truncated multiplier * avg value
     baseline = ts_multiplier * ts_avg
