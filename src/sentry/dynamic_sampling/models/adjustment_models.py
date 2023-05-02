@@ -19,4 +19,7 @@ class AdjustedModel:
                 self.projects[0].new_sample_rate = sample_rate
             return self.projects
 
-        return adjust_sample_rates_full(self.projects, sample_rate)
+        ret_val, _used_budget = adjust_sample_rates_full(
+            self.projects, sample_rate, intensity=1, min_budget=None
+        )
+        return ret_val

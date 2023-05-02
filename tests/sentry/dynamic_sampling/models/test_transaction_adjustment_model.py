@@ -28,6 +28,7 @@ excluded_transactions = [
     (0, -3),  # exclude last 3
     (3, -3),  # take 3 from both ends
 ]
+intensity = [0.0, 0.5, 1.0]
 
 
 def get_num_sampled_elements(
@@ -43,10 +44,11 @@ def get_num_sampled_elements(
     return num_transactions
 
 
+@pytest.mark.parametrize("intensity", intensity)
 @pytest.mark.parametrize("sample_rate", sample_rates)
 @pytest.mark.parametrize("transactions", test_resample_cases)
 @pytest.mark.parametrize("idx_low,idx_high", excluded_transactions)
-def test_maintains_overall_sample_rate(sample_rate, transactions, idx_low, idx_high):
+def test_maintains_overall_sample_rate(intensity, sample_rate, transactions, idx_low, idx_high):
     """
     Tests that the overall sampling rate is maintained after applying new rates
     """
@@ -55,7 +57,11 @@ def test_maintains_overall_sample_rate(sample_rate, transactions, idx_low, idx_h
     total_classes = len(transactions)
 
     trans, global_rate = adjust_sample_rates(
-        explict_transactions, sample_rate, total_num_classes=total_classes, total=total
+        explict_transactions,
+        sample_rate,
+        total_num_classes=total_classes,
+        total=total,
+        intensity=1,
     )
 
     trans_dict = {t.id: t.new_sample_rate for t in trans}
@@ -74,6 +80,7 @@ def test_explicit_elements_ideal_rate(sample_rate, transactions, idx_low, idx_hi
     """
     Tests that the explicitly specified elements are sampled at their ideal rate.
 
+    This test is performed at intensity=1.0
     Ideal sample rate means that the resulting number of sampled elements is the minimum between:
     * all transactions in the class (sampled at rate 1.0)
     * the budget per transaction
@@ -83,7 +90,11 @@ def test_explicit_elements_ideal_rate(sample_rate, transactions, idx_low, idx_hi
     total_classes = len(transactions)
 
     trans, global_rate = adjust_sample_rates(
-        explict_transactions, sample_rate, total_num_classes=total_classes, total=total
+        explict_transactions,
+        sample_rate,
+        total_num_classes=total_classes,
+        total=total,
+        intensity=1.0,
     )
 
     ideal_number_of_elements_per_class = total * sample_rate / total_classes

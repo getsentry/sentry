@@ -188,7 +188,6 @@ def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
     factor_key = generate_cache_key_rebalance_factor(org_volume.org_id)
     # we need a project from the current org... unfortunately get_blended_sample_rate
     # takes a project (not an org)
-    # TODO RaduW is there a better way to get an org Project than filtering ?
     org_projects = Project.objects.filter(organization__id=org_volume.org_id)
 
     desired_sample_rate = None
@@ -304,11 +303,13 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
         # no sampling => no rebalancing
         return
 
+    intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)
     named_rates, implicit_rate = utils.adjust_sample_rates(
         classes=transactions,
         rate=sample_rate,
         total_num_classes=total_num_classes,
         total=total_num_transactions,
+        intensity=intensity,
     )
 
     set_transactions_resampling_rates(
