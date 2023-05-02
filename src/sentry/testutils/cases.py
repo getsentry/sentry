@@ -36,6 +36,7 @@ import hashlib
 import inspect
 import os.path
 import time
+import unittest
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -947,7 +948,7 @@ class IntegrationTestCase(TestCase):
 
 @pytest.mark.snuba
 @requires_snuba
-class SnubaTestCase(BaseTestCase):
+class SnubaTestCase(BaseTestCase, unittest.TestCase):
     """
     Mixin for enabling test case classes to talk to snuba
     Useful when you are working on acceptance tests or integration
