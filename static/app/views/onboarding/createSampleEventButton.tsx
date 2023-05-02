@@ -16,13 +16,14 @@ import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type CreateSampleEventButtonProps = {
+type CreateSampleEventButtonProps = ButtonProps & {
   api: Client;
   organization: Organization;
   source: string;
+  onClick?: () => void;
   onCreateSampleGroup?: () => void;
   project?: Project;
-} & ButtonProps;
+};
 
 type State = {
   creating: boolean;
@@ -170,6 +171,8 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
       });
       return;
     }
+
+    this.props.onClick?.();
 
     browserHistory.push(
       normalizeUrl(

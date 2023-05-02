@@ -6,11 +6,12 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {OnboardingProjectStatus, Project} from 'sentry/types';
 import Onboarding from 'sentry/views/onboarding/onboarding';
-import * as usePersistedOnboardingStateHook from 'sentry/views/onboarding/utils';
 
 describe('Onboarding', function () {
   afterEach(function () {
@@ -30,7 +31,7 @@ describe('Onboarding', function () {
     });
 
     render(
-      <PersistedStoreProvider>
+      <OnboardingContextProvider>
         <Onboarding
           router={router}
           location={router.location}
@@ -39,7 +40,7 @@ describe('Onboarding', function () {
           routeParams={router.params}
           route={route}
         />
-      </PersistedStoreProvider>,
+      </OnboardingContextProvider>,
       {
         context: routerContext,
       }
@@ -61,15 +62,10 @@ describe('Onboarding', function () {
       },
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/client-state/`,
-      body: {},
-    });
-
     OrganizationStore.onUpdate(organization);
 
     render(
-      <PersistedStoreProvider>
+      <OnboardingContextProvider>
         <Onboarding
           router={router}
           location={router.location}
@@ -78,7 +74,7 @@ describe('Onboarding', function () {
           routeParams={router.params}
           route={route}
         />
-      </PersistedStoreProvider>,
+      </OnboardingContextProvider>,
       {
         context: routerContext,
       }
@@ -90,13 +86,7 @@ describe('Onboarding', function () {
   });
 
   it('renders the setup docs step', async function () {
-    const reactProject = TestStubs.Project({
-      platform: 'javascript-react',
-      id: '1',
-      slug: 'javascript-react-slug',
-    });
-
-    const nextJsProject = TestStubs.Project({
+    const nextJsProject: Project = TestStubs.Project({
       platform: 'javascript-nextjs',
       id: '2',
       slug: 'javascript-nextjs-slug',
@@ -110,24 +100,6 @@ describe('Onboarding', function () {
       ...initializeOrg(),
       router: {
         params: routeParams,
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/client-state/`,
-      body: {
-        onboarding: {
-          platformToProjectIdMap: {
-            'javascript-react': reactProject.slug,
-            [nextJsProject.slug]: nextJsProject.slug,
-          },
-          selectedPlatform: {
-            key: nextJsProject.slug,
-            type: 'framework',
-            language: 'javascript',
-            category: 'browser',
-          },
-        },
       },
     });
 
@@ -151,7 +123,23 @@ describe('Onboarding', function () {
     OrganizationStore.onUpdate(organization);
 
     render(
-      <PersistedStoreProvider>
+      <OnboardingContextProvider
+        value={{
+          selectedSDK: {
+            key: nextJsProject.slug as PlatformKey,
+            type: 'framework',
+            language: 'javascript',
+            category: 'browser',
+          },
+          projects: {
+            [nextJsProject.id]: {
+              slug: nextJsProject.slug,
+              status: OnboardingProjectStatus.WAITING,
+              firstIssueId: undefined,
+            },
+          },
+        }}
+      >
         <Onboarding
           router={router}
           location={router.location}
@@ -160,7 +148,7 @@ describe('Onboarding', function () {
           routeParams={router.params}
           route={route}
         />
-      </PersistedStoreProvider>,
+      </OnboardingContextProvider>,
       {
         context: routerContext,
       }
@@ -170,23 +158,6 @@ describe('Onboarding', function () {
   });
 
   it('renders framework selection modal if vanilla js is selected', async function () {
-    jest
-      .spyOn(usePersistedOnboardingStateHook, 'usePersistedOnboardingState')
-      .mockImplementation(() => [
-        {
-          platformToProjectIdMap: {
-            javascript: 'javascript',
-          },
-          selectedPlatform: {
-            key: 'javascript',
-            type: 'language',
-            language: 'javascript',
-            category: 'browser',
-          },
-        },
-        jest.fn(),
-      ]);
-
     const routeParams = {
       step: 'select-platform',
     };
@@ -202,27 +173,8 @@ describe('Onboarding', function () {
       },
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/client-state/`,
-      body: {
-        onboarding: {
-          platformToProjectIdMap: {
-            javascript: 'javascript',
-          },
-          selectedPlatform: [
-            {
-              key: 'javascript',
-              type: 'language',
-              language: 'javascript',
-              category: 'browser',
-            },
-          ],
-        },
-      },
-    });
-
     render(
-      <PersistedStoreProvider>
+      <OnboardingContextProvider>
         <Onboarding
           router={router}
           location={router.location}
@@ -231,7 +183,7 @@ describe('Onboarding', function () {
           routeParams={router.params}
           route={route}
         />
-      </PersistedStoreProvider>,
+      </OnboardingContextProvider>,
       {
         context: routerContext,
         organization,
@@ -254,23 +206,6 @@ describe('Onboarding', function () {
   });
 
   it('does not render framework selection modal if vanilla js is NOT selected', async function () {
-    jest
-      .spyOn(usePersistedOnboardingStateHook, 'usePersistedOnboardingState')
-      .mockImplementation(() => [
-        {
-          platformToProjectIdMap: {
-            'javascript-react': 'javascript-react',
-          },
-          selectedPlatform: {
-            key: 'javascript-react',
-            type: 'framework',
-            language: 'javascript',
-            category: 'browser',
-          },
-        },
-        jest.fn(),
-      ]);
-
     const routeParams = {
       step: 'select-platform',
     };
@@ -286,25 +221,8 @@ describe('Onboarding', function () {
       },
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/client-state/`,
-      body: {
-        onboarding: {
-          platformToProjectIdMap: {
-            'javascript-react': 'javascript-react',
-          },
-          selectedPlatform: {
-            key: 'javascript-react',
-            type: 'framework',
-            language: 'javascript',
-            category: 'browser',
-          },
-        },
-      },
-    });
-
     render(
-      <PersistedStoreProvider>
+      <OnboardingContextProvider>
         <Onboarding
           router={router}
           location={router.location}
@@ -313,7 +231,7 @@ describe('Onboarding', function () {
           routeParams={router.params}
           route={route}
         />
-      </PersistedStoreProvider>,
+      </OnboardingContextProvider>,
       {
         context: routerContext,
         organization,
