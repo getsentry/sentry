@@ -39,7 +39,7 @@ function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Pro
   >(segments[0]?.module);
   const totalValues = segments.reduce((acc, segment) => acc + segment.sum, 0);
 
-  const transaction = maybeTrasaction ?? '';
+  const transaction = maybeTransaction ?? '';
 
   const {isLoading: isHttpDurationDataLoading, data: httpDurationData} = useQuery({
     queryKey: [`topDomains${transaction}`],
