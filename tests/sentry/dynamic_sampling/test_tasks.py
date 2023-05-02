@@ -469,6 +469,7 @@ class TestSlidingWindowRebalancingTask(BaseMetricsLayerTestCase, TestCase, Snuba
     def test_sliding_window_rebalancing_with_forecasting_error(
         self, get_forecasted_monthly_volume, get_blended_sample_rate
     ):
+        # We want to make the forecasting call fail and return None.
         get_forecasted_monthly_volume.return_value = None
         get_blended_sample_rate.return_value = 0.9
 

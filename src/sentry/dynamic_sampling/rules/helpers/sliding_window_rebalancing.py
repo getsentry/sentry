@@ -33,7 +33,7 @@ def get_forecasted_monthly_volume(daily_volume: int) -> Optional[int]:
 
     try:
         # Get number of days in the month
-        _, days_in_month = monthrange(year, month)
+        _, days_in_month = monthrange(year=year, month=month)
         # Calculate and return forecasted monthly volume
         return daily_volume * days_in_month
     except IllegalMonthError:
