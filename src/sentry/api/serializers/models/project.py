@@ -46,6 +46,7 @@ from sentry.notifications.helpers import (
     transform_to_notification_settings_by_scope,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.snuba import discover
 from sentry.tasks.symbolication import should_demote_symbolication
@@ -348,10 +349,12 @@ class ProjectSerializer(Serializer):  # type: ignore
                 serialized["features"] = features_by_project[project]
 
         with measure_span("other"):
+            # Avoid duplicate queries for actors.
+            recipient_actor = RpcActor.from_object(user)
             for project, serialized in result.items():
                 value = get_most_specific_notification_setting_value(
                     notification_settings_by_scope,
-                    recipient=user,
+                    recipient=recipient_actor,
                     parent_id=project.id,
                     type=NotificationSettingTypes.ISSUE_ALERTS,
                 )
