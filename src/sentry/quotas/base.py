@@ -480,7 +480,7 @@ class Quota(Service):
 
     def get_transaction_sampling_tier_for_volume(
         self, project: "Project", volume: int
-    ) -> Optional[Tuple[int, int]]:
+    ) -> Optional[Tuple[int, float]]:
         """
         Returns the transaction sampling tier closest to a specific volume.
 
