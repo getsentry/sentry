@@ -26,7 +26,7 @@ class JiraSentryUIBaseView(View):
 
         settings.CSP_FRAME_ANCESTORS = [
             "'self'",
-        ] + [s for s in sources if s]
+        ] + [s for s in sources if s and ";" not in s]
 
         header = "Content-Security-Policy"
         if getattr(settings, "CSP_REPORT_ONLY", False):
