@@ -15,8 +15,6 @@ import EventWaiter from 'sentry/utils/eventWaiter';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
-import {usePersistedOnboardingState} from '../utils';
-
 import GenericFooter from './genericFooter';
 
 interface FirstEventFooterProps {
@@ -37,7 +35,6 @@ export default function FirstEventFooter({
   handleFirstIssueReceived,
 }: FirstEventFooterProps) {
   const source = 'targeted_onboarding_first_event_footer';
-  const [clientState, setClientState] = usePersistedOnboardingState();
 
   const getSecondaryCta = () => {
     // if hasn't sent first event, allow skiping.
@@ -84,12 +81,6 @@ export default function FirstEventFooter({
             organization,
             source,
           });
-          if (clientState) {
-            setClientState({
-              ...clientState,
-              state: 'skipped',
-            });
-          }
         }}
         to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
       >

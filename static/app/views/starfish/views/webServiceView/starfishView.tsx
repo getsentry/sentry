@@ -1,10 +1,10 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -91,30 +91,37 @@ export function StarfishView(props: BasePerformanceViewProps) {
           insertClickableAreasIntoSeries(transformedData, theme.red300);
 
           return (
-            <FailureRateChart
-              statsPeriod={eventView.statsPeriod}
-              height={120}
-              data={transformedData}
-              start={eventView.start as string}
-              end={eventView.end as string}
-              loading={eventData.loading}
-              utc={false}
-              grid={{
-                left: '0',
-                right: '0',
-                top: '16px',
-                bottom: '8px',
-              }}
-              definedAxisTicks={2}
-              handleSpikeAreaClick={e => {
-                if (e.componentType === 'markArea') {
-                  setSelectedSpike({
-                    startTimestamp: e.data.coord[0][0],
-                    endTimestamp: e.data.coord[1][0],
-                  });
-                }
-              }}
-            />
+            <Fragment>
+              <FailureDetailPanel
+                onClose={() => setSelectedSpike(null)}
+                chartData={transformedData}
+                spike={selectedSpike}
+              />
+              <FailureRateChart
+                statsPeriod={eventView.statsPeriod}
+                height={120}
+                data={transformedData}
+                start={eventView.start as string}
+                end={eventView.end as string}
+                loading={eventData.loading}
+                utc={false}
+                grid={{
+                  left: '0',
+                  right: '0',
+                  top: '16px',
+                  bottom: '8px',
+                }}
+                definedAxisTicks={2}
+                handleSpikeAreaClick={e => {
+                  if (e.componentType === 'markArea') {
+                    setSelectedSpike({
+                      startTimestamp: e.data.coord[0][0],
+                      endTimestamp: e.data.coord[1][0],
+                    });
+                  }
+                }}
+              />
+            </Fragment>
           );
         }}
       </EventsRequest>
@@ -122,7 +129,11 @@ export function StarfishView(props: BasePerformanceViewProps) {
   }
 
   function renderThroughputChart() {
-    const query = new MutableSearch(['event.type:transaction']);
+    const query = new MutableSearch([
+      'event.type:transaction',
+      'has:http.method',
+      'transaction.op:http.server',
+    ]);
 
     return (
       <EventsRequest
@@ -140,6 +151,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         end={eventView.end}
         organization={organization}
         yAxis="tpm()"
+        queryExtras={{dataset: 'metrics'}}
       >
         {({loading, timeseriesData}) => {
           const transformedData: Series[] | undefined = timeseriesData?.map(series => ({
@@ -182,7 +194,6 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
   return (
     <div data-test-id="starfish-view">
-      <FailureDetailPanel onClose={() => setSelectedSpike(null)} spike={selectedSpike} />
       <StyledRow minSize={200}>
         <ChartsContainer>
           <ChartsContainerItem>
@@ -207,7 +218,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           'endpoint',
           'tpm',
           'p50(duration)',
-          'p95(duration)',
+          'p50 change',
           'failure count',
           'cumulative time',
         ]}

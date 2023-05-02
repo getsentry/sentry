@@ -454,7 +454,7 @@ class UsageStatsOrganization<
 
   renderChart() {
     const {loading} = this.state;
-    return loading ? null : <UsageChart {...this.chartProps} />;
+    return <UsageChart {...this.chartProps} isLoading={loading} />;
   }
 
   renderChartFooter = () => {

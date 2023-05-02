@@ -18,9 +18,10 @@ type Props = {
   columnIndex: number;
   currentHoverTime: number | undefined;
   currentTime: number;
-  handleClick: (span: NetworkSpan) => void;
   handleMouseEnter: (span: NetworkSpan) => void;
   handleMouseLeave: (span: NetworkSpan) => void;
+  onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
+  onClickTimestamp: (crumb: NetworkSpan) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortNetwork>['sortConfig'];
   span: NetworkSpan;
@@ -43,9 +44,10 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       columnIndex,
       currentHoverTime,
       currentTime,
-      handleClick,
       handleMouseEnter,
       handleMouseLeave,
+      onClickCell,
+      onClickTimestamp,
       rowIndex,
       sortConfig,
       span,
@@ -55,10 +57,10 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     ref
   ) => {
     // Rows include the sortable header, the dataIndex does not
-    const dataIndex = String(rowIndex - 1);
+    const dataIndex = rowIndex - 1;
 
-    const {getParamValue, setParamValue} = useUrlParams('n_detail_row', '');
-    const isDetailsOpen = getParamValue() === dataIndex;
+    const {getParamValue} = useUrlParams('n_detail_row', '');
+    const isDetailsOpen = getParamValue() === String(dataIndex);
 
     const startMs = span.startTimestamp * 1000;
     const endMs = span.endTimestamp * 1000;
@@ -101,7 +103,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       hasOccurred: isByTimestamp ? hasOccurred : undefined,
       isDetailsOpen,
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
-      onClick: () => setParamValue(dataIndex),
+      onClick: () => onClickCell({dataIndex, rowIndex}),
       onMouseEnter: () => handleMouseEnter(span),
       onMouseLeave: () => handleMouseLeave(span),
       ref,
@@ -154,7 +156,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
             format="mm:ss.SSS"
             onClick={(event: MouseEvent) => {
               event.stopPropagation();
-              handleClick(span);
+              onClickTimestamp(span);
             }}
             startTimestampMs={startTimestampMs}
             timestampMs={startMs}
@@ -196,7 +198,6 @@ const cellColor = p => {
 const Cell = styled('div')<CellProps>`
   display: flex;
   align-items: center;
-  padding: ${space(0.75)} ${space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
 
@@ -215,6 +216,7 @@ const Text = styled('div')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+  padding: ${space(0.75)} ${space(1.5)};
 `;
 
 export default NetworkTableCell;
