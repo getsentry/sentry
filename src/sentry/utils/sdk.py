@@ -4,7 +4,7 @@ import copy
 import inspect
 import logging
 import random
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
 import sentry_sdk
 from django.conf import settings
@@ -24,6 +24,10 @@ from sentry import options
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
+
+# Can't import models in utils because utils should be the bottom of the food chain
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
 
@@ -569,6 +573,43 @@ def bind_organization_context(organization):
                     "internal-error.organization-context",
                     extra={"organization_id": organization.id},
                 )
+
+
+def bind_ambiguous_org_context(orgs: list[Organization], source: str | None = None) -> None:
+    """
+    Add org context information to the scope in the case where the current org might be one of a
+    number of known orgs (for example, if we've attempted to derive the current org from an
+    Integration instance, which can be shared by multiple orgs).
+    """
+
+    MULTIPLE_ORGS_TAG = "[multiple orgs]"
+
+    org_slugs = [org.slug for org in orgs]
+
+    # Right now there is exactly one Integration instance shared by more than 30 orgs (the generic
+    # GitLab integration, at the moment shared by ~500 orgs), so 50 should be plenty for all but
+    # that one instance
+    if len(orgs) > 50:
+        org_slugs = org_slugs[:49] + [f"... ({len(orgs) - 49} more)"]
+
+    with configure_scope() as scope:
+        # It's possible we've already set the org context with one of the orgs in our list,
+        # somewhere we could narrow it down to one org. In that case, we don't want to overwrite
+        # that specific data with this ambiguous data.
+        current_org_slug_tag = scope._tags.get("organization.slug")
+        if current_org_slug_tag and current_org_slug_tag in org_slugs:
+            return
+
+        # It's also possible that the org seems already to be set but it's just a case of scope
+        # bleed. In that case, we want to test for that and proceed.
+        check_tag("organization.slug", MULTIPLE_ORGS_TAG)
+
+        scope.set_tag("organization", MULTIPLE_ORGS_TAG)
+        scope.set_tag("organization.slug", MULTIPLE_ORGS_TAG)
+
+        scope.set_context(
+            "organization", {"multiple possible": org_slugs, "source": source or "unknown"}
+        )
 
 
 def set_measurement(measurement_name, value, unit=None):
