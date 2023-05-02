@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from random import random
 from typing import Any, Callable, Mapping, Sequence, Type, Union
 
@@ -110,13 +111,17 @@ class BaseApiClient(TrackResponseMixin):
             tags={str(self.integration_type): self.name},
         )
 
+        parent_span_id = None
+        trace_id = None
+        currently_in_server_transaction = False
+
         with sentry_sdk.configure_scope() as scope:
             if scope.span is not None:
-                parent_span_id: str | None = scope.span.span_id
-                trace_id: str | None = scope.span.trace_id
-            else:
-                parent_span_id = None
-                trace_id = None
+                parent_span_id = scope.span.span_id
+                trace_id = scope.span.trace_id
+                currently_in_server_transaction = (
+                    scope.transaction and scope.transaction.op == sentry_sdk.consts.OP.HTTP_SERVER
+                )
 
         request = Request(
             method=method.upper(),
@@ -129,12 +134,18 @@ class BaseApiClient(TrackResponseMixin):
         )
         _prepared_request = prepared_request if prepared_request is not None else request.prepare()
 
-        with sentry_sdk.start_transaction(
-            op=f"{self.integration_type}.http",
-            name=f"{self.integration_type}.http_response.{self.name}",
-            parent_span_id=parent_span_id,
-            trace_id=trace_id,
-            sampled=random() < 0.05,
+        with (
+            sentry_sdk.start_transaction(
+                op=f"{self.integration_type}.http",
+                name=f"{self.integration_type}.http_response.{self.name}",
+                parent_span_id=parent_span_id,
+                trace_id=trace_id,
+                sampled=random() < 0.05,
+            )
+            if not currently_in_server_transaction
+            # `nullcontext()` results in `span` being None. (We do this so that any spans or errors
+            # created attach themselves to the `http.server` transaction already in progress.)
+            else nullcontext()
         ) as span:
             try:
                 with build_session() as session:
