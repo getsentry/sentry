@@ -6,6 +6,7 @@ from packaging.version import Version
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.loader.browsersdkversion import get_browser_sdk_version
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
 from sentry.models import Project, ProjectKey
@@ -26,6 +27,14 @@ class SdkConfig(TypedDict):
     debug: Optional[bool]
 
 
+class LoaderInternalConfig(TypedDict):
+    bundleKindModifier: str
+    isLazy: bool
+    hasPerformance: bool
+    hasReplay: bool
+    hasDebug: bool
+
+
 class LoaderContext(TypedDict):
     config: SdkConfig
     jsSdkUrl: Optional[str]
@@ -42,10 +51,19 @@ class JavaScriptSdkLoader(BaseView):
     def determine_active_organization(self, request: Request, organization_slug=None) -> None:
         pass
 
-    def _get_bundle_kind_modifier(
-        self, key: ProjectKey, sdk_version: str
-    ) -> Tuple[str, bool, bool, bool, bool]:
+    def _get_loader_config(
+        self, key: Optional[ProjectKey], sdk_version: Optional[str]
+    ) -> LoaderInternalConfig:
         """Returns a string that is used to modify the bundle name"""
+
+        if not key or not sdk_version:
+            return {
+                "bundleKindModifier": "",
+                "isLazy": True,
+                "hasPerformance": False,
+                "hasReplay": False,
+                "hasDebug": False,
+            }
 
         is_v7_sdk = sdk_version >= Version("7.0.0")
 
@@ -80,11 +98,20 @@ class JavaScriptSdkLoader(BaseView):
         if has_debug:
             bundle_kind_modifier += ".debug"
 
-        return bundle_kind_modifier, is_lazy, has_performance, has_replay, has_debug
+        return {
+            "bundleKindModifier": bundle_kind_modifier,
+            "isLazy": is_lazy,
+            "hasPerformance": has_performance,
+            "hasReplay": has_replay,
+            "hasDebug": has_debug,
+        }
 
     def _get_context(
-        self, key: Optional[ProjectKey]
-    ) -> Tuple[LoaderContext, Optional[str], Optional[str]]:
+        self,
+        key: Optional[ProjectKey],
+        sdk_version: Optional[str],
+        loader_config: LoaderInternalConfig,
+    ) -> Tuple[LoaderContext, Optional[str]]:
         """Sets context information needed to render the loader"""
         if not key:
             return (
@@ -92,18 +119,7 @@ class JavaScriptSdkLoader(BaseView):
                     "isLazy": True,
                 },
                 None,
-                None,
             )
-
-        sdk_version = get_browser_sdk_version(key)
-
-        (
-            bundle_kind_modifier,
-            is_lazy,
-            has_performance,
-            has_replay,
-            has_debug,
-        ) = self._get_bundle_kind_modifier(key, sdk_version)
 
         js_sdk_loader_default_sdk_url_template_slot_count = (
             settings.JS_SDK_LOADER_DEFAULT_SDK_URL.count("%s")
@@ -113,7 +129,7 @@ class JavaScriptSdkLoader(BaseView):
             if js_sdk_loader_default_sdk_url_template_slot_count == 2:
                 sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL % (
                     sdk_version,
-                    bundle_kind_modifier,
+                    loader_config["bundleKindModifier"],
                 )
             elif js_sdk_loader_default_sdk_url_template_slot_count == 1:
                 sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL % (sdk_version,)
@@ -124,13 +140,13 @@ class JavaScriptSdkLoader(BaseView):
 
         config: SdkConfig = {"dsn": key.dsn_public}
 
-        if has_debug:
+        if loader_config["hasDebug"]:
             config["debug"] = True
 
-        if has_performance:
+        if loader_config["hasPerformance"]:
             config["tracesSampleRate"] = 1
 
-        if has_replay:
+        if loader_config["hasReplay"]:
             config["replaysSessionSampleRate"] = 0.1
             config["replaysOnErrorSampleRate"] = 1
 
@@ -139,9 +155,8 @@ class JavaScriptSdkLoader(BaseView):
                 "config": config,
                 "jsSdkUrl": sdk_url,
                 "publicKey": key.public_key,
-                "isLazy": is_lazy,
+                "isLazy": loader_config["isLazy"],
             },
-            sdk_version,
             sdk_url,
         )
 
@@ -157,7 +172,9 @@ class JavaScriptSdkLoader(BaseView):
         else:
             key.project = Project.objects.get_from_cache(id=key.project_id)
 
-        context, sdk_version, sdk_url = self._get_context(key)
+        sdk_version = get_browser_sdk_version(key) if key else None
+        loader_config = self._get_loader_config(key, sdk_version)
+        context, sdk_url = self._get_context(key, sdk_version, loader_config)
 
         instance = "default"
         if not sdk_url:
@@ -170,6 +187,18 @@ class JavaScriptSdkLoader(BaseView):
             tmpl = "sentry/js-sdk-loader.js.tmpl"
 
         metrics.incr("js-sdk-loader.rendered", instance=instance, skip_internal=False)
+
+        analytics.record(
+            "js_sdk_loader.rendered",
+            organization_id=key.project.organization_id,
+            project_id=key.project_id,
+            is_lazy=loader_config["isLazy"],
+            has_performance=loader_config["hasPerformance"],
+            has_replay=loader_config["hasReplay"],
+            has_debug=loader_config["hasDebug"],
+            sdk_version=sdk_version,
+            tmpl=tmpl,
+        ) if key else None
 
         response = render_to_response(tmpl, context, content_type="text/javascript")
 
