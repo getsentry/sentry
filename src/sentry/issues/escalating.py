@@ -35,7 +35,7 @@ from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["parse_groups_past_counts", "is_escalating", "_start_and_end_dates"]
+__all__ = ["query_groups_past_counts", "parse_groups_past_counts"]
 
 REFERRER = "sentry.issues.escalating"
 ELEMENTS_PER_SNUBA_PAGE = 10000  # This is the maximum value for Snuba
