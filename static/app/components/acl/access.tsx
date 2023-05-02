@@ -60,16 +60,10 @@ function Access({
   organization,
 }: Props) {
   const config = useLegacyStore(ConfigStore);
+  team = team ?? undefined;
+  project = project ?? undefined;
 
-  const {access: orgAccess} = organization || {access: []};
-  const {access: teamAccess} = team || {access: [] as Team['access']};
-  const {access: projAccess} = project || {access: [] as Project['access']};
-
-  const hasAccess =
-    !access ||
-    access.every(acc => orgAccess.includes(acc)) ||
-    access.every(acc => teamAccess?.includes(acc)) ||
-    access.every(acc => projAccess?.includes(acc));
+  const hasAccess = hasEveryAccess(access, {organization, team, project});
   const hasSuperuser = !!(config.user && config.user.isSuperuser);
 
   const renderProps: ChildRenderProps = {
