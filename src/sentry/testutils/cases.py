@@ -57,7 +57,8 @@ from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import TestCase as DjangoTestCase
+from django.test import TransactionTestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
@@ -408,7 +409,7 @@ class _AssertQueriesContext(CaptureQueriesContext):
 
 
 @override_settings(ROOT_URLCONF="sentry.web.urls")
-class TestCase(BaseTestCase, TestCase):
+class TestCase(BaseTestCase, DjangoTestCase):
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
     if DETECT_TESTCASE_MISUSE:
@@ -947,7 +948,7 @@ class IntegrationTestCase(TestCase):
 
 @pytest.mark.snuba
 @requires_snuba
-class SnubaTestCase(BaseTestCase):
+class SnubaTestCase(BaseTestCase, DjangoTestCase):
     """
     Mixin for enabling test case classes to talk to snuba
     Useful when you are working on acceptance tests or integration
@@ -1502,7 +1503,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         )
 
 
-class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
+class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, DjangoTestCase):
     TYPE_MAP = {
         "metrics_distributions": "distribution",
         "metrics_sets": "set",
