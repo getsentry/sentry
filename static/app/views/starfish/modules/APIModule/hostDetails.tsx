@@ -6,62 +6,13 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  ERROR_CODE_DESCRIPTIONS,
+  EXTERNAL_APIS,
+} from 'sentry/views/starfish/modules/APIModule/constants';
 import {MeterBar} from 'sentry/views/starfish/modules/APIModule/hostTable';
 import {getHostStatusBreakdownQuery} from 'sentry/views/starfish/modules/APIModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-
-const EXTERNAL_APIS = {
-  stripe: {
-    statusPage: 'https://status.stripe.com/',
-    faviconLink: 'https://stripe.com/favicon.ico',
-    description: t(
-      'Stripe is a suite of payment APIs that powers commerce for online businesses of all sizes'
-    ),
-  },
-  twilio: {
-    statusPage: 'https://status.twilio.com/',
-    faviconLink: 'https://www.twilio.com/favicon.ico',
-  },
-  sendgrid: {
-    statusPage: 'https://status.sendgrid.com/',
-    faviconLink: 'https://sendgrid.com/favicon.ico',
-    description: t(
-      'SendGrid is a cloud-based SMTP provider that allows you to send email without having to maintain email servers.'
-    ),
-  },
-  plaid: {statusPage: 'https://status.plaid.com/'},
-  paypal: {statusPage: 'https://www.paypal-status.com/'},
-  braintree: {statusPage: 'https://status.braintreepayments.com/'},
-  clickup: {
-    statusPage: 'https://clickup.statuspage.io/',
-    faviconLink: 'https://clickup.com/favicon.ico',
-    description: t(
-      'ClickUp is a productivity platform that provides a fundamentally new way to work.'
-    ),
-  },
-  github: {statusPage: 'https://www.githubstatus.com/'},
-  gitlab: {statusPage: 'https://status.gitlab.com/'},
-  bitbucket: {statusPage: 'https://bitbucket.status.atlassian.com/'},
-  jira: {statusPage: 'https://jira.status.atlassian.com/'},
-  asana: {statusPage: 'https://trust.asana.com/'},
-  trello: {statusPage: 'https://trello.status.atlassian.com/'},
-  zendesk: {statusPage: 'https://status.zendesk.com/'},
-  intercom: {statusPage: 'https://www.intercomstatus.com/'},
-  freshdesk: {statusPage: 'https://status.freshdesk.com/'},
-  linear: {statusPage: 'https://status.linear.app/'},
-  gaussMoney: {},
-};
-
-const ERROR_CODE_DESCRIPTIONS = {
-  400: 'Bad Request',
-  401: 'Unauthorized',
-  403: 'Forbidden',
-  404: 'Not Found',
-  405: 'Method Not Allowed',
-  408: 'Request Timeout',
-  429: 'Too Many Requests',
-  500: 'Internal Server Error',
-};
 
 type Props = {
   host: string;
