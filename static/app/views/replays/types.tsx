@@ -116,7 +116,7 @@ export type ReplayListRecord = Pick<
   | 'started_at'
   | 'user'
 > &
-  Partial<Pick<ReplayRecord, 'browser' | 'count_urls' | 'os' | 'urls'>>;
+  Partial<Pick<ReplayRecord, 'browser' | 'os' | 'urls'>>;
 
 // Sync with ReplayListRecord above
 export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
@@ -124,7 +124,6 @@ export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
   'browser.name',
   'browser.version',
   'count_errors',
-  'count_urls',
   'duration',
   'finished_at',
   'id',
