@@ -19,7 +19,7 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
     """
 
     def post(self, request: Request, *args, **kwargs) -> Response:
-        token = self.get_token(request)
+        token = kwargs["token"]
 
         state = request.data
         if not state:
