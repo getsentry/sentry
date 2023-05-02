@@ -1,5 +1,6 @@
 from django.core import mail
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.testutils import TestCase
@@ -8,6 +9,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class EmailMissingLinksTest(TestCase):
+    @in_test_psql_role_override("postgres")
     def setUp(self):
         super().setUp()
         self.user = self.create_user(email="bar@example.com")
