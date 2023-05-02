@@ -101,7 +101,7 @@ const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
     padding-left: ${space(2)};
   }
   & > li:last-child {
-    padding-right: 0;
+    padding-right: ${space(1)};
   }
 
   & > li > a {

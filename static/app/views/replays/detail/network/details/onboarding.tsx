@@ -16,7 +16,7 @@ export function UnsupportedOp({type}: {type: 'headers' | 'bodies'}) {
       : t('Capture Request and Response Headers');
 
   return (
-    <StyledInstructions>
+    <StyledInstructions data-test-id="network-op-unsupported">
       <h1>{title}</h1>
       <p>
         {tct(
@@ -105,7 +105,7 @@ function SetupInstructions({
       ? t('Capture Request and Response Payloads')
       : t('Capture Request and Response Headers');
   return (
-    <StyledInstructions>
+    <StyledInstructions data-test-id="network-setup-steps">
       <h1>{title}</h1>
       <p>
         {tct(

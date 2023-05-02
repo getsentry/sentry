@@ -16,34 +16,61 @@ import {
 } from 'sentry/views/replays/detail/network/details/sections';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 
-export default function NetworkDetailsContent({
-  isSetup,
-  visibleTab,
-  ...props
-}: {isSetup: boolean; visibleTab: TabKey} & SectionProps) {
-  const {item} = props;
+type Props = {
+  isSetup: boolean;
+  visibleTab: TabKey;
+} & SectionProps;
 
-  const reqWarnings = item.data.request?._meta?.warnings as undefined | string[];
-  const respWarnings = item.data.response?._meta?.warnings as undefined | string[];
+enum Output {
+  setup = 'setup',
+  unsupported = 'unsupported',
+  urlSkipped = 'urlSkipped',
+  bodySkipped = 'bodySkipped',
+  data = 'data',
+}
+
+function getOutputType({isSetup, item, visibleTab}: Props): Output {
+  const isSupportedOp = ['resource.fetch', 'resource.xhr'].includes(item.op);
+  if (!isSupportedOp) {
+    return Output.unsupported;
+  }
+
+  if (!isSetup) {
+    return Output.setup;
+  }
+
+  const request = item.data?.request ?? {};
+  const response = item.data?.response ?? {};
+
+  const hasHeadersOrData =
+    request.headers || response.headers || request.body || response.body;
+  if (hasHeadersOrData) {
+    return Output.data;
+  }
+
+  const reqWarnings = request._meta?.warnings ?? ['URL_SKIPPED'];
+  const respWarnings = response._meta?.warnings ?? ['URL_SKIPPED'];
   const isReqUrlSkipped = reqWarnings?.includes('URL_SKIPPED');
   const isRespUrlSkipped = respWarnings?.includes('URL_SKIPPED');
+  if (isReqUrlSkipped || isRespUrlSkipped) {
+    return Output.urlSkipped;
+  }
 
-  const isSupportedOp = ['resource.fetch', 'resource.xhr'].includes(item.op);
-  const showReqContent = isSupportedOp && isSetup && !isReqUrlSkipped;
-  const showRespContent = isSupportedOp && isSetup && !isRespUrlSkipped;
-  const showSetup = isSupportedOp && (!isSetup || isReqUrlSkipped || isRespUrlSkipped);
+  if (['request', 'response'].includes(visibleTab)) {
+    const isReqBodySkipped = reqWarnings?.includes('BODY_SKIPPED');
+    const isRespBodySkipped = respWarnings?.includes('BODY_SKIPPED');
+    if (isReqBodySkipped || isRespBodySkipped) {
+      return Output.bodySkipped;
+    }
+  }
 
-  // console.log({
-  //   isSetup,
-  //   isSupportedOp,
-  //   reqWarnings,
-  //   respWarnings,
-  //   isReqUrlSkipped,
-  //   isRespUrlSkipped,
-  //   showReqContent,
-  //   showRespContent,
-  //   showSetup,
-  // });
+  return Output.data;
+}
+
+export default function NetworkDetailsContent(props: Props) {
+  const {visibleTab} = props;
+
+  const output = getOutputType(props);
 
   switch (visibleTab) {
     case 'request':
@@ -51,22 +78,26 @@ export default function NetworkDetailsContent({
         <OverflowFluidHeight>
           <SectionList>
             <QueryParamsSection {...props} />
-            {showReqContent ? <RequestPayloadSection {...props} /> : null}
+            {output === Output.data && <RequestPayloadSection {...props} />}
           </SectionList>
-          {showSetup ? <Setup showSnippet="bodies" {...props} /> : null}
-          {isSupportedOp ? null : <UnsupportedOp type="bodies" />}
+          {[Output.setup, Output.urlSkipped, Output.bodySkipped].includes(output) && (
+            <Setup showSnippet="bodies" {...props} />
+          )}
+          {output === Output.unsupported && <UnsupportedOp type="bodies" />}
         </OverflowFluidHeight>
       );
     case 'response':
       return (
         <OverflowFluidHeight>
-          {showRespContent ? (
+          {output === Output.data && (
             <SectionList>
               <ResponsePayloadSection {...props} />
             </SectionList>
-          ) : null}
-          {showSetup ? <Setup showSnippet="bodies" {...props} /> : null}
-          {isSupportedOp ? null : <UnsupportedOp type="bodies" />}
+          )}
+          {[Output.setup, Output.urlSkipped, Output.bodySkipped].includes(output) && (
+            <Setup showSnippet="bodies" {...props} />
+          )}
+          {output === Output.unsupported && <UnsupportedOp type="bodies" />}
         </OverflowFluidHeight>
       );
     case 'details':
@@ -75,11 +106,13 @@ export default function NetworkDetailsContent({
         <OverflowFluidHeight>
           <SectionList>
             <GeneralSection {...props} />
-            {showReqContent ? <RequestHeadersSection {...props} /> : null}
-            {showRespContent ? <ResponseHeadersSection {...props} /> : null}
+            {output === Output.data && <RequestHeadersSection {...props} />}
+            {output === Output.data && <ResponseHeadersSection {...props} />}
           </SectionList>
-          {showSetup ? <Setup showSnippet="headers" {...props} /> : null}
-          {isSupportedOp ? null : <UnsupportedOp type="headers" />}
+          {[Output.setup, Output.urlSkipped].includes(output) && (
+            <Setup showSnippet="headers" {...props} />
+          )}
+          {output === Output.unsupported && <UnsupportedOp type="headers" />}
         </OverflowFluidHeight>
       );
   }

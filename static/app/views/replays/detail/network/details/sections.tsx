@@ -43,13 +43,13 @@ export function GeneralSection({item, onScrollToRow, startTimestampMs}: SectionP
       </Fragment>
     ),
     [t('Type')]: item.op,
-    [t('Method')]: item.data.method,
-    [t('Status Code')]: item.data.statusCode,
+    [t('Method')]: item.data?.method ?? '',
+    [t('Status Code')]: item.data?.statusCode ?? '',
     [t('Request Body Size')]: (
-      <SizeTooltip>{formatBytesBase10(item.data.request?.size ?? 0)}</SizeTooltip>
+      <SizeTooltip>{formatBytesBase10(item.data?.request?.size ?? 0)}</SizeTooltip>
     ),
     [t('Response Body Size')]: (
-      <SizeTooltip>{formatBytesBase10(item.data.response?.size ?? 0)}</SizeTooltip>
+      <SizeTooltip>{formatBytesBase10(item.data?.response?.size ?? 0)}</SizeTooltip>
     ),
     [t('Duration')]: `${(endMs - startMs).toFixed(2)}ms`,
     [t('Timestamp')]: (
@@ -130,7 +130,7 @@ export function ResponsePayloadSection({item}: SectionProps) {
       title={t('Response Body')}
       titleExtra={
         <SizeTooltip>
-          {t('Size:')} {formatBytesBase10(item.data.response?.size ?? 0)}{' '}
+          {t('Size:')} {formatBytesBase10(item.data.response?.size ?? 0)}
         </SizeTooltip>
       }
     >
