@@ -17,7 +17,7 @@ from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.models import Group
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInbox
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils import TestCase
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
@@ -25,7 +25,7 @@ from sentry.utils.snuba import to_start_of_hour
 TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 
 
-class BaseGroupCounts(SnubaTestCase):  # type: ignore[misc]
+class BaseGroupCounts(TestCase):  # type: ignore[misc]
     def _create_events_for_group(
         self,
         project_id: Optional[int] = None,
@@ -52,7 +52,7 @@ class BaseGroupCounts(SnubaTestCase):  # type: ignore[misc]
         return last_event
 
 
-class HistoricGroupCounts(TestCase, BaseGroupCounts):  # type: ignore[misc]
+class HistoricGroupCounts(BaseGroupCounts):
     def setUp(self) -> None:
         super().setUp()
 
@@ -189,18 +189,17 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
     def test_is_escalating_issue(self, record_mock: MagicMock) -> None:
         """Test when an archived until escalating issue starts escalating"""
         with self.feature("organizations:escalating-issues"):
-            # The group had 6 events today
+            # The group had 6 events in the last hour
             event = self._create_events_for_group(count=6)
             group_escalating = event.group
             self.archive_until_escalating(group_escalating)
 
-            # The escalating forecast for today is 5
+            # The escalating forecast for today is 5, thus, it should escalate
             forecast_values = [5] + [6] * 13
             self.save_mock_escalating_group_forecast(
                 group=group_escalating, forecast_values=forecast_values, date_added=datetime.now()
             )
-            group_is_escalating = is_escalating(group_escalating)
-            assert group_is_escalating
+            assert is_escalating(group_escalating)
             record_mock.assert_called_with(
                 "issue.escalating",
                 organization_id=group_escalating.project.organization.id,
@@ -211,7 +210,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
             # Test cache
             assert (
-                cache.get(f"daily-group-count:{group_escalating.project.id}:{group_escalating.id}")
+                cache.get(f"hourly-group-count:{group_escalating.project.id}:{group_escalating.id}")
                 == 6
             )
 
@@ -241,18 +240,11 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
     @freeze_time(TIME_YESTERDAY.replace(minute=12, second=40, microsecond=0))
     def test_hourly_count_query(self) -> None:
-        """Test the hourly count query only aggregates events from today"""
-        # TIME_YESTERDAY is at 6 in the morning
-        event_1 = self._create_events_for_group(count=2, hours_ago=7)  # Yesterday
-        self.archive_until_escalating(event_1.group)
+        """Test the hourly count query only aggregates events from within the current hour"""
+        self._create_events_for_group(count=2, hours_ago=1)  # An hour ago -> It will not count
+        group = self._create_events_for_group(count=1).group  # This hour -> It will count
 
-        # Create event 2 min ago
-        event_2 = self._create_events_for_group(count=1, min_ago=2)
-
-        group_2 = event_2.group
-        self.archive_until_escalating(event_2.group)
-
+        # Events are aggregated in the hourly count query by date rather than the last 24hrs
         assert (
-            get_group_hourly_count(group_2.project.organization.id, group_2.project.id, group_2.id)
-            == 1
+            get_group_hourly_count(group.project.organization.id, group.project.id, group.id) == 1
         )
