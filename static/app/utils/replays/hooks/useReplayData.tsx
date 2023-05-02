@@ -179,14 +179,11 @@ function useReplayData({
       end: finishedAtClone,
       limit: errorsPerPage,
     });
-    let done = false;
-    while (!done) {
-      const pagedResults = await paginatedErrors.next();
-      done = pagedResults.done ?? false;
-      if (pagedResults.value && !done) {
-        setErrors(prev => [...prev, ...pagedResults.value]);
-      }
+
+    for await (const pagedResults of paginatedErrors) {
+      setErrors(prev => [...prev, ...pagedResults]);
     }
+
     setState(prev => ({...prev, fetchingErrors: false}));
   }, [api, orgSlug, replayRecord, errorsPerPage]);
 
@@ -302,7 +299,7 @@ async function* fetchPaginatedReplayErrors(
     start: Date;
     limit?: number;
   }
-): AsyncGenerator<ReplayError[], ReplayError[]> {
+): AsyncGenerator<ReplayError[]> {
   function next(nextCursor: string) {
     return fetchReplayErrors(api, {
       orgSlug,
@@ -317,7 +314,7 @@ async function* fetchPaginatedReplayErrors(
     cursor: '0:0:0',
     results: true,
     href: '',
-  } as ParsedHeader;
+  };
   const results: ReplayError[] = [];
   while (cursor.results) {
     const [{data}, , resp] = await next(cursor.cursor);
@@ -326,7 +323,6 @@ async function* fetchPaginatedReplayErrors(
     results.push(...data);
     yield data;
   }
-  return results;
 }
 
 export default useReplayData;
