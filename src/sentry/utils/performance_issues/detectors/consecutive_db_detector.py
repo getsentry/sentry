@@ -216,6 +216,8 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
         if request:
             url = request.get("url", "") or ""
+            # TODO(nar): `method` can be removed once SDK adoption has increased and
+            # we are receiving `http.method` consistently, likely beyond October 2023
             method = request.get("http.method", "") or request.get("method", "") or ""
             if url.endswith("/graphql") and method.lower() in ["post", "get"]:
                 return False
