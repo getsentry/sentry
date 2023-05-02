@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Mapping, Optional
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.api.serializers import serialize
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
@@ -54,7 +54,9 @@ def get_query_builder_for_group(
     query: str, snuba_params: Mapping[str, Any], group: Group, limit: int, offset: int
 ) -> QueryBuilder:
     dataset = Dataset.IssuePlatform
-    if group.issue_category == GroupCategory.PERFORMANCE:
+    if group.issue_category == GroupCategory.PERFORMANCE and not features.has(
+        "organizations:issue-platform-search-perf-issues", group.project.organization
+    ):
         dataset = Dataset.Transactions
     elif group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
