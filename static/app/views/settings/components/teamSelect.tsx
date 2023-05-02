@@ -13,7 +13,7 @@ import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
-import RoleSelectControl from 'sentry/components/roleSelectControl';
+import TeamRoleSelect from 'sentry/components/teamRoleSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconSubtract} from 'sentry/icons';
@@ -22,10 +22,7 @@ import {space} from 'sentry/styles/space';
 import {Member, Organization, Team} from 'sentry/types';
 import {getEffectiveOrgRole} from 'sentry/utils/orgRole';
 import useTeams from 'sentry/utils/useTeams';
-import {
-  hasOrgRoleOverwrite,
-  RoleOverwritePanelAlert,
-} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
+import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 type Props = {
@@ -38,6 +35,10 @@ type Props = {
    * Prevent changes to a SCIM-provisioned member
    */
   enforceIdpProvisioned: boolean;
+  /**
+   * The OrganizationMember that we are acting on
+   */
+  member: Member;
   /**
    * callback when teams are added
    */
@@ -88,6 +89,7 @@ function TeamSelect({
   isOrgOwner,
   loadingTeams,
   enforceIdpProvisioned,
+  member,
   menuHeader,
   confirmLastTeamRemoveMessage,
   selectedOrgRole,
@@ -174,9 +176,8 @@ function TeamSelect({
                 confirmMessage={confirmMessage}
                 organization={organization}
                 team={team}
+                member={member}
                 isOrgOwner={isOrgOwner ?? false}
-                selectedOrgRole={effectiveOrgRole}
-                selectedTeamRole={r.role}
                 onChangeTeamRole={onChangeTeamRole}
                 onRemoveTeam={slug => onRemoveTeam(slug)}
               />
@@ -260,6 +261,10 @@ type TeamRowProps = {
 
 type ProjectTeamRowProps = {} & TeamRowProps;
 
+/**
+ * Used on ProjectTeam page to add/remove Teams from Project
+ * http://default.dev.getsentry.net:8000/settings/projects/earth/teams/
+ */
 function ProjectTeamRow({
   organization,
   team,
@@ -290,16 +295,18 @@ function ProjectTeamRow({
 type MemberTeamRowProps = {
   enforceIdpProvisioned: boolean;
   isOrgOwner: boolean;
+  member: Member;
   onChangeTeamRole: Props['onChangeTeamRole'];
-  selectedOrgRole: Member['orgRole'];
-  selectedTeamRole: Member['teamRoles'][0]['role'];
 } & TeamRowProps;
 
+/**
+ * Used on OrgMemberDetails page to add/remove Teams from Member
+ * http://default.dev.getsentry.net:8000/settings/members/1/
+ */
 function MemberTeamRow({
   organization,
   team,
-  selectedOrgRole,
-  selectedTeamRole,
+  member,
   onRemoveTeam,
   onChangeTeamRole,
   isOrgOwner,
@@ -307,17 +314,6 @@ function MemberTeamRow({
   confirmMessage,
   enforceIdpProvisioned,
 }: MemberTeamRowProps) {
-  const {teamRoleList, orgRoleList} = organization;
-  const isRoleOverwritten = hasOrgRoleOverwrite({
-    orgRole: selectedOrgRole,
-    orgRoleList,
-    teamRoleList,
-  });
-
-  const teamRoleObj = isRoleOverwritten
-    ? teamRoleList[1] // set as team admin
-    : teamRoleList.find(r => r.id === selectedTeamRole) || teamRoleList[0];
-
   const orgRoleFromTeam = team.orgRole ? `${startCase(team.orgRole)} Team` : null;
 
   const isIdpProvisioned = enforceIdpProvisioned && team.flags['idp:provisioned'];
@@ -335,28 +331,27 @@ function MemberTeamRow({
       <TeamOrgRole>{orgRoleFromTeam}</TeamOrgRole>
 
       {organization.features.includes('team-roles') && onChangeTeamRole && (
-        <React.Fragment>
-          <StyledRoleSelectControl
-            disabled={disabled || isRoleOverwritten}
-            disableUnallowed={false}
+        <RoleSelectWrapper>
+          <TeamRoleSelect
+            disabled={disabled}
             size="xs"
-            roles={teamRoleList}
-            value={teamRoleObj?.id}
-            onChange={option => onChangeTeamRole(team.slug, option.value)}
+            organization={organization}
+            team={team}
+            member={member}
+            onChangeTeamRole={newRole => onChangeTeamRole(team.slug, newRole)}
           />
-        </React.Fragment>
+        </RoleSelectWrapper>
       )}
 
       <Confirm
         message={confirmMessage}
         bypass={!confirmMessage}
         onConfirm={() => onRemoveTeam(team.slug)}
-        disabled={isRemoveDisabled}
+        disableConfirmButton={isRemoveDisabled}
       >
         <Button
           size="xs"
           icon={<IconSubtract isCircled size="xs" />}
-          disabled={isRemoveDisabled}
           title={buttonHelpText}
         >
           {t('Remove')}
@@ -396,7 +391,7 @@ const TeamOrgRole = styled('div')`
   justify-content: center;
 `;
 
-const StyledRoleSelectControl = styled(RoleSelectControl)`
+const RoleSelectWrapper = styled('div')`
   min-width: 200px;
   margin-right: ${space(2)};
 `;

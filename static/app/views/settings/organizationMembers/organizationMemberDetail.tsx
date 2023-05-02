@@ -406,6 +406,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
               disabled={!canEdit}
               isOrgOwner={isOrgOwner}
               organization={organization}
+              member={member}
               selectedOrgRole={orgRole}
               selectedTeamRoles={teamRoles}
               onChangeTeamRole={this.onChangeTeamRole}
