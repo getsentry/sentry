@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import chunk from 'lodash/chunk';
 
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import ReplayReader from 'sentry/utils/replays/replayReader';
@@ -35,14 +34,6 @@ type Options = {
    */
   replaySlug: string;
 
-  /**
-   * Default: 50
-   * You can override this for testing
-   *
-   * Be mindful that the list of error-ids will appear in the GET request url,
-   * so don't make the url string too large!
-   */
-  errorsPerPage?: number;
   /**
    * Default: 100
    * You can override this for testing
@@ -91,12 +82,7 @@ const INITIAL_STATE: State = Object.freeze({
  * @param {orgSlug, replaySlug} Where to find the root replay event
  * @returns An object representing a unified result of the network requests. Either a single `ReplayReader` data object or fetch errors.
  */
-function useReplayData({
-  replaySlug,
-  orgSlug,
-  errorsPerPage = 50,
-  segmentsPerPage = 100,
-}: Options): Result {
+function useReplayData({replaySlug, orgSlug, segmentsPerPage = 100}: Options): Result {
   const replayId = parseReplayId(replaySlug);
   const projects = useProjects();
 
@@ -173,27 +159,19 @@ function useReplayData({
     const finishedAtClone = new Date(replayRecord.finished_at);
     finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
-    const chunks = chunk(replayRecord.error_ids, errorsPerPage);
-    await Promise.allSettled(
-      chunks.map(errorIds => {
-        const promise = api.requestPromise(
-          `/organizations/${orgSlug}/replays-events-meta/`,
-          {
-            query: {
-              start: replayRecord.started_at.toISOString(),
-              end: finishedAtClone.toISOString(),
-              query: `id:[${String(errorIds)}]`,
-            },
-          }
-        );
-        promise.then(response => {
-          setErrors(prev => (prev ?? []).concat(response.data || []));
-        });
-        return promise;
-      })
+    const response = await api.requestPromise(
+      `/organizations/${orgSlug}/replays-events-meta/`,
+      {
+        query: {
+          start: replayRecord.started_at.toISOString(),
+          end: finishedAtClone.toISOString(),
+          query: `replayId:[${replayRecord.id}]`,
+        },
+      }
     );
+    setErrors(response.data);
     setState(prev => ({...prev, fetchingErrors: false}));
-  }, [errorsPerPage, api, orgSlug, replayRecord]);
+  }, [api, orgSlug, replayRecord]);
 
   const onError = useCallback(error => {
     Sentry.captureException(error);

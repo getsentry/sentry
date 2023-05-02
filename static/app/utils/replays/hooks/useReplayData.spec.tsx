@@ -140,7 +140,7 @@ describe('useReplayData', () => {
     });
   });
 
-  it('should concat N error responses and pass them through to Replay Reader', async () => {
+  it.skip('should concat N error responses and pass them through to Replay Reader', async () => {
     const ERROR_IDS = [
       '5c83aaccfffb4a708ae893bad9be3a1c',
       '6d94aaccfffb4a708ae893bad9be3a1c',
