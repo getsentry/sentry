@@ -1,6 +1,6 @@
 import typing
 from enum import IntEnum, unique
-from typing import Optional
+from typing import Optional, Tuple
 
 from django.conf import settings
 from django.core.cache import cache
@@ -475,4 +475,14 @@ class Quota(Service):
 
         :param project: The project model.
         :param organization_id: The organization id.
+        """
+
+    def get_transaction_sampling_tier_for_volume(
+        self, project: "Project", volume: int
+    ) -> Optional[Tuple[int, int]]:
+        """
+        Returns the transaction sampling tier closest to a specific volume.
+
+        :param project: The project model.
+        :param volume: The volume of transaction of the given project.
         """
