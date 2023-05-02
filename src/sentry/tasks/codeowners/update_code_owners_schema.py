@@ -4,6 +4,7 @@ from typing import Any, Iterable
 
 from sentry import features
 from sentry.models import Integration, Organization, Project
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.tasks.base import instrumented_task, load_model_from_db
 
 
@@ -15,7 +16,7 @@ from sentry.tasks.base import instrumented_task, load_model_from_db
 )
 def update_code_owners_schema(
     organization: Organization | int,
-    integration: Integration | int | None = None,
+    integration: Integration | RpcIntegration | int | None = None,
     projects: Iterable[Project | int] | None = None,
     **kwargs: Any,
 ) -> None:
@@ -51,7 +52,7 @@ def update_code_owners_schema(
         return
 
 
-def _unpack_integration_id(integration: Integration | int | None) -> int | None:
-    if isinstance(integration, Integration):
+def _unpack_integration_id(integration: Integration | RpcIntegration | int | None) -> int | None:
+    if isinstance(integration, (Integration, RpcIntegration)):
         return integration.id
     return integration
