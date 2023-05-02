@@ -8,7 +8,7 @@ from sentry_sdk import configure_scope
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.utils.sdk import bind_organization_context
+from sentry.utils.sdk import bind_ambiguous_org_context, bind_organization_context
 
 logger = logging.getLogger(__name__)
 
@@ -67,5 +67,4 @@ def bind_org_context_from_integration(integration_id: int) -> None:
     elif len(orgs) == 1:
         bind_organization_context(orgs[0])
     else:
-        # skip this case for now
-        pass
+        bind_ambiguous_org_context(orgs, f"integration (id={integration_id})")
