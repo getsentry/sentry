@@ -491,6 +491,10 @@ class Quota(Service):
         Returns the blended sample rate for an org based on the package that they are currently on. Returns ``None``
         if the creation of a uniform rule with blended sample rate is not supported for that project or organization.
 
+        The reasoning for having two params as `Optional` is because this method was first designed to work with
+        `Project` but due to requirements change the `Organization` was needed and since we can get the `Organization`
+        from the `Project` we allow one or the other to be passed.
+
         :param project: The project model.
         :param organization: The organization model.
         """
