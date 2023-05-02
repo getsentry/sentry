@@ -42,8 +42,8 @@ export default function Detail({children, detailKey, onClose}: DetailProps) {
     if (escapeKeyPressed) {
       if (!state.collapsed) {
         onClose?.();
+        setState({collapsed: true});
       }
-      setState({collapsed: true});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [escapeKeyPressed]);
