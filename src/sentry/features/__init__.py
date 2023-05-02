@@ -14,10 +14,10 @@ from .manager import *  # NOQA
 #
 # Registering a new feature:
 #
-# - Determine what scope your feature falls under. By convention we have a
-#   organizations and project scope which map to the OrganizationFeature and
-#   ProjectFeature feature objects. Scoping will provide the feature with
-#   context.
+# - Determine what scope your feature falls under. By convention we have
+#   organization and project scopes, which map to the OrganizationFeature and
+#   ProjectFeature feature objects, respectively. Scoping will provide the feature
+#   with context.
 #
 #   Organization and Project scoped features will automatically be added into
 #   the Organization and Project serialized representations.
