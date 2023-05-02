@@ -376,6 +376,7 @@ class Organization(Model, SnowflakeIdMixin):
             id__in=members_with_role.union(members_on_teams_with_role)
         )
 
+    @in_test_psql_role_override("postgres")
     def merge_to(from_org, to_org):
         from sentry.models import (
             ApiKey,
