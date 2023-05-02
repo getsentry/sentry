@@ -126,17 +126,19 @@ SHARED_TAG_STRINGS = {
     "decision": PREFIX + 240,
     "keep": PREFIX + 241,
     # Spans
-    "span.op": PREFIX + 242,
-    "span.description": PREFIX + 243,
-    "span.module": PREFIX + 244,
-    "span.domain": PREFIX + 245,
+    "spans.op": PREFIX + 242,
+    "spans.module": PREFIX + 243,
+    "spans.action": PREFIX + 244,
+    "spans.system": PREFIX + 245,
+    "spans.status": PREFIX + 246,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
 
 # 400-499
 SPAN_METRICS_NAMES = {
-    "s:spans/user@none": PREFIX + 300,
+    "s:transactions/spans.user@none": PREFIX + 400,
+    "s:transactions/spans.duration@millisecond": PREFIX + 401,
 }
 
 SHARED_STRINGS = {
