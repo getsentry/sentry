@@ -69,16 +69,25 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
             if serializer.is_valid():
                 data = serializer.validated_data
 
+                # TODO(mjq-sentry): remove this quick and dirty hack. Want to
+                # test accuracy of histograms in the metrics dataset, which
+                # requires this query. Applying server-side so that queries
+                # outside the metrics dataset are unaffected.
+                data_filter = data.get("dataFilter")
+                query = data.get("query")
+                if data_filter == "exclude_outliers" and metrics_enhanced:
+                    query += " histogram_outlier:inlier"
+
                 with self.handle_query_errors():
                     results = dataset.histogram_query(
                         data["field"],
-                        data.get("query"),
+                        query,
                         params,
                         data["numBuckets"],
                         data["precision"],
                         min_value=data.get("min"),
                         max_value=data.get("max"),
-                        data_filter=data.get("dataFilter"),
+                        data_filter=data_filter,
                         referrer="api.organization-events-histogram",
                         use_metrics_layer=use_metrics_layer,
                     )
