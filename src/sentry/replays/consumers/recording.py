@@ -1,7 +1,7 @@
 import dataclasses
 import logging
 import random
-from typing import Any, Dict, Mapping, cast
+from typing import Any, Dict, Mapping, Union, cast
 
 import msgpack
 import sentry_sdk
@@ -59,6 +59,9 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> Any:
+        # Give mypy some help.
+        step: Union[RunTaskWithMultiprocessing[MessageContext, Any], RunTask[MessageContext, Any]]
+
         if self.use_multi_proc:
             step = RunTaskWithMultiprocessing(
                 function=move_replay_to_permanent_storage,
