@@ -144,6 +144,48 @@ class HistoricGroupCounts(BaseGroupCounts):
     def test_query_no_groups(self) -> None:
         assert query_groups_past_counts([]) == []
 
+    def test_perf_issue_on_issue_platform(self):
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            event_1 = self.create_performance_issue()
+            event_2 = self.create_performance_issue()
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{event_1.group.id}/events/"
+        with self.feature("organizations:issue-platform-search-perf-issues"):
+            response = self.do_request(url)
+
+        assert response.status_code == 200, response.content
+        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
+            [str(event_1.event_id), str(event_2.event_id)]
+        )
+
+    # def test_generic_issue(self):
+    #     event_1, _, group_info = self.store_search_issue(
+    #         self.project.id,
+    #         self.user.id,
+    #         [f"{ProfileFileIOGroupType.type_id}-group1"],
+    #         "prod",
+    #         before_now(hours=1).replace(tzinfo=timezone.utc),
+    #     )
+    #     event_2, _, _ = self.store_search_issue(
+    #         self.project.id,
+    #         self.user.id,
+    #         [f"{ProfileFileIOGroupType.type_id}-group1"],
+    #         "prod",
+    #         before_now(hours=1).replace(tzinfo=timezone.utc),
+    #     )
+
+    #     self.login_as(user=self.user)
+
+    #     url = f"/api/0/issues/{group_info.group.id}/events/"
+    #     response = self.do_request(url)
+
+    #     assert response.status_code == 200, response.content
+    #     assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
+    #         [str(event_1.event_id), str(event_2.event_id)]
+    #     )
+
 
 def test_datetime_number_of_hours() -> None:
     start, end = _start_and_end_dates(5)
