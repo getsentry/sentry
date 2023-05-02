@@ -93,7 +93,7 @@ export default function EndpointTable({
 
   const {isLoading: isEndpointsThroughputLoading, data: endpointsThroughputData} =
     useQuery({
-      queryKey: ['endpoints2', filterOptions],
+      queryKey: ['endpointsThroughput', filterOptions],
       queryFn: () =>
         fetch(`${HOST}/?query=${getEndpointsThroughputQuery(filterOptions)}`).then(res =>
           res.json()
