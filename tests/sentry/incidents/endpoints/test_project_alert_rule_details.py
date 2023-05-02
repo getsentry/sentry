@@ -107,7 +107,9 @@ class AlertRuleDetailsBase(APITestCase):
     def test_no_feature(self):
         self.login_as(self.owner_user)
         resp = self.get_response(self.organization.slug, self.project.slug, self.alert_rule.id)
-        assert resp.status_code == 404
+        # Without incidents feature flag, allow delete
+        status = 204 if self.method == "delete" else 404
+        assert resp.status_code == status
 
 
 @region_silo_test(stable=True)
