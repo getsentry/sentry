@@ -15,6 +15,7 @@ from sentry.dynamic_sampling.tasks import (
     prioritise_projects,
     prioritise_transactions,
     recalibrate_orgs,
+    sliding_window_rebalancing,
 )
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
@@ -336,3 +337,81 @@ class TestRecalibrateOrganisationsTask(BaseMetricsLayerTestCase, TestCase, Snuba
                             "id": 1004,
                         }
                     ]
+
+
+@freeze_time(MOCK_DATETIME)
+class TestSlidingWindowRebalancingTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    @property
+    def now(self):
+        return MOCK_DATETIME
+
+    def create_project_and_add_metrics(self, name, count, org, tags=None):
+        if tags is None:
+            tags = {"transaction": "foo_transaction"}
+
+        proj = self.create_project(name=name, organization=org)
+
+        proj.update_option(
+            "sentry:dynamic_sampling_biases",
+            [
+                {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
+                {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+                {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+                {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
+            ],
+        )
+
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags=tags,
+            minutes_before_now=30,
+            value=count,
+            project_id=proj.id,
+            org_id=org.id,
+        )
+
+        return proj
+
+    @staticmethod
+    def sampling_tier_side_effect(*args, **kwargs):
+        volume = args[1]
+
+        if volume == 100:
+            return 100, 0.8
+        elif volume == 100_000:
+            return 100_000, 0.4
+        elif volume == 100_000_000:
+            return 100_000_000, 0.2
+
+        return volume, 1.0
+
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    def test_sliding_window_rebalancing_with_multiple_projects(
+        self, get_transaction_sampling_tier_for_volume
+    ):
+        get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
+
+        org = self.create_organization(name="sample-org")
+
+        project_a = self.create_project_and_add_metrics("a", 100, org)
+        project_b = self.create_project_and_add_metrics("b", 100_000, org)
+        project_c = self.create_project_and_add_metrics("c", 100_000_000, org)
+
+        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
+            with self.tasks():
+                sliding_window_rebalancing()
+
+        assert generate_rules(project_a)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.8),
+        }
+        assert generate_rules(project_b)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.4),
+        }
+        assert generate_rules(project_c)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.2),
+        }
