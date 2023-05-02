@@ -1,4 +1,8 @@
-from typing import TYPE_CHECKING
+from calendar import IllegalMonthError, monthrange
+from datetime import datetime
+from typing import TYPE_CHECKING, Optional
+
+import pytz
 
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 
@@ -20,3 +24,17 @@ def get_sliding_window_rebalancing_sample_rate(
         return float(redis_client.hget(cache_key, project.id))
     except (TypeError, ValueError):
         return default_sample_rate
+
+
+def get_forecasted_monthly_volume(daily_volume: int) -> Optional[int]:
+    # Get current year and month
+    year = datetime.now(tz=pytz.UTC).year
+    month = datetime.now(tz=pytz.UTC).month
+
+    try:
+        # Get number of days in the month
+        _, days_in_month = monthrange(year, month)
+        # Calculate and return forecasted monthly volume
+        return daily_volume * days_in_month
+    except IllegalMonthError:
+        return None

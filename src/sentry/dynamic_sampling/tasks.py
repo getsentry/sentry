@@ -27,6 +27,7 @@ from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
 )
 from sentry.dynamic_sampling.rules.helpers.sliding_window_rebalancing import (
     generate_sliding_window_rebalancing_cache_key,
+    get_forecasted_monthly_volume,
 )
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
@@ -384,16 +385,20 @@ def adjust_base_sample_rate_per_project(
     project_ids_with_sample_rates = {}
     for project in Project.objects.get_many_from_cache(project_ids_with_counts.keys()):
         project_total_root_count = project_ids_with_counts[project.id]
-        sampling_tier = quotas.get_transaction_sampling_tier_for_volume(
-            project, project_total_root_count
-        )
+        forecasted_volume = get_forecasted_monthly_volume(daily_volume=project_total_root_count)
+        if forecasted_volume is None:
+            logger.info(
+                f"The volume of the current month can't be forecasted for org {org_id} and project {project.id}."
+            )
+            continue
 
+        sampling_tier = quotas.get_transaction_sampling_tier_for_volume(project, forecasted_volume)
         # In case the sampling tier cannot be determined, we want to log it and try to get it for the next project.
         # There might be a situation in which the old key is set into Redis still and in that case, we prefer to keep it
         # instead of deleting it. This behavior can be changed anytime, by just doing an "HDEL" on the failing key.
         if sampling_tier is None:
             logger.info(
-                f"The sampling tier for org {org_id} and project {project.id} cannot be determined."
+                f"The sampling tier for org {org_id} and project {project.id} can't be determined."
             )
             continue
 
