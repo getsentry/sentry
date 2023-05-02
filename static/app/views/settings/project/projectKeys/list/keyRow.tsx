@@ -60,7 +60,7 @@ function KeyRow({
             {t('Configure')}
           </Button>
           <Confirm
-            disableConfirmButton={!hasWriteAccess}
+            disabled={!hasWriteAccess}
             onConfirm={data.isActive ? handleDisable : handleEnable}
             confirmText={data.isActive ? t('Disable Key') : t('Enable Key')}
             message={
@@ -72,7 +72,7 @@ function KeyRow({
             <Button size="sm">{data.isActive ? t('Disable') : t('Enable')}</Button>
           </Confirm>
           <Confirm
-            disableConfirmButton={!hasWriteAccess}
+            disabled={!hasWriteAccess}
             priority="danger"
             onConfirm={() => onRemove(data)}
             confirmText={t('Remove Key')}
