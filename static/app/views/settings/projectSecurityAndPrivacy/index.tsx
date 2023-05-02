@@ -40,7 +40,7 @@ export default function ProjectSecurityAndPrivacy({organization, project}: Props
     <Fragment>
       <SentryDocumentTitle title={title} projectSlug={projectSlug} />
       <SettingsPageHeader title={title} />
-      <PermissionAlert access={['project:write']} project={project} />
+      <PermissionAlert project={project} />
 
       <Form
         saveOnBlur
