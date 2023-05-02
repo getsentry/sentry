@@ -17,7 +17,7 @@ from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.models import Group
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInbox
-from sentry.testutils import TestCase
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
@@ -25,7 +25,7 @@ from sentry.utils.snuba import to_start_of_hour
 TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 
 
-class BaseGroupCounts(TestCase):  # type: ignore[misc]
+class BaseGroupCounts(SnubaTestCase, TestCase):  # type: ignore[misc]
     def _create_events_for_group(
         self,
         project_id: Optional[int] = None,
@@ -53,9 +53,6 @@ class BaseGroupCounts(TestCase):  # type: ignore[misc]
 
 
 class HistoricGroupCounts(BaseGroupCounts):
-    def setUp(self) -> None:
-        super().setUp()
-
     def _create_hourly_bucket(self, count: int, event: Event) -> GroupsCountResponse:
         """It simplifies writing the expected data structures"""
         return {
@@ -159,9 +156,6 @@ def test_datetime_number_of_days() -> None:
 
 
 class DailyGroupCountsEscalating(BaseGroupCounts):
-    def setUp(self) -> None:
-        super().setUp()
-
     def save_mock_escalating_group_forecast(  # type: ignore[no-untyped-def]
         self, group: Group, forecast_values=List[int], date_added=datetime
     ) -> None:
