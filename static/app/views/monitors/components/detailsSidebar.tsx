@@ -14,29 +14,16 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import {DEFAULT_MAX_RUNTIME} from 'sentry/views/monitors/components/monitorForm';
 import MonitorIcon from 'sentry/views/monitors/components/monitorIcon';
 import {
-  IntervalConfig,
   Monitor,
   MonitorEnvironment,
   MonitorStatus,
   ScheduleType,
 } from 'sentry/views/monitors/types';
+import {scheduleAsText} from 'sentry/views/monitors/utils';
 
 interface Props {
   monitor: Monitor;
   monitorEnv?: MonitorEnvironment;
-}
-
-function getIntervalScheduleText(schedule: IntervalConfig['schedule']) {
-  const [n, period] = schedule;
-  const intervalTextMap = {
-    minute: tn('Every %s minute', 'Every %s minutes', n),
-    hour: tn('Every %s hour', 'Every %s hours', n),
-    day: tn('Every %s day', 'Every %s days', n),
-    week: tn('Every %s week', 'Every %s weeks', n),
-    month: tn('Every %s month', 'Every %s months', n),
-    year: tn('Every %s year', 'Every %s years', n),
-  };
-  return intervalTextMap[period];
 }
 
 export default function DetailsSidebar({monitorEnv, monitor}: Props) {
@@ -81,12 +68,13 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
       </CheckIns>
       <SectionHeading>{t('Schedule')}</SectionHeading>
       <Schedule>
-        <MonitorIcon status={MonitorStatus.OK} size={12} />
-        <Text>
-          {schedule_type === ScheduleType.CRONTAB
-            ? schedule
-            : getIntervalScheduleText(schedule as IntervalConfig['schedule'])}
-        </Text>
+        <Text>{scheduleAsText(monitor.config)}</Text>
+        {schedule_type === ScheduleType.CRONTAB && (
+          <CrontabText>({schedule})</CrontabText>
+        )}
+      </Schedule>
+      <SectionHeading>{t('Thresholds')}</SectionHeading>
+      <Thresholds>
         <MonitorIcon status={MonitorStatus.MISSED_CHECKIN} size={12} />
         <Text>
           {defined(checkin_margin)
@@ -101,7 +89,7 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
             max_runtime ?? DEFAULT_MAX_RUNTIME
           )}
         </Text>
-      </Schedule>
+      </Thresholds>
       <SectionHeading>{t('Cron Details')}</SectionHeading>
       <KeyValueTable>
         <KeyValueTableRow keyName={t('Monitor Slug')} value={slug} />
@@ -124,6 +112,18 @@ const CheckIns = styled('div')`
 `;
 
 const Schedule = styled('div')`
+  margin-bottom: ${space(2)};
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(1)};
+`;
+
+const CrontabText = styled(Text)`
+  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.subText};
+`;
+
+const Thresholds = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   margin-bottom: ${space(2)};
