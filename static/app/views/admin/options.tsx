@@ -386,7 +386,7 @@ const performanceOptionDefinitions: Field[] = [
     help: t(
       'Maximum time, in ms, between consecutive HTTP spans to be considered part of the same problem.'
     ),
-    defaultValue: () => '5000',
+    defaultValue: () => '1000',
     component: NumberField,
     min: 0,
     max: Number.MAX_SAFE_INTEGER,
