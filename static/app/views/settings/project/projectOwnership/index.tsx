@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
-import Access from 'sentry/components/acl/access';
+import Access, {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -120,8 +120,11 @@ tags.sku_class:enterprise #enterprise`;
     const {project, organization} = this.props;
     const {ownership, codeowners} = this.state;
 
-    const disabled = !organization.access.includes('project:write');
-    const editOwnershipeRulesDisabled = !organization.access.includes('project:read');
+    const disabled = !hasEveryAccess(['project:write'], {organization, project});
+    const editOwnershipRulesDisabled = !hasEveryAccess(['project:read'], {
+      organization,
+      project,
+    });
     const hasStreamlineTargetingContext = organization.features?.includes(
       'streamline-targeting-context'
     );
@@ -134,7 +137,7 @@ tags.sku_class:enterprise #enterprise`;
           action={
             <ButtonBar gap={1}>
               {hasCodeowners && (
-                <Access access={['org:integrations']}>
+                <Access access={['org:integrations']} project={project}>
                   {({hasAccess}) =>
                     hasAccess ? (
                       <Button
@@ -162,7 +165,7 @@ tags.sku_class:enterprise #enterprise`;
                       onSave: this.handleOwnershipSave,
                     })
                   }
-                  disabled={!!ownership && editOwnershipeRulesDisabled}
+                  disabled={!!ownership && editOwnershipRulesDisabled}
                 >
                   {t('Edit Rules')}
                 </Button>
@@ -183,7 +186,8 @@ tags.sku_class:enterprise #enterprise`;
         </p>
 
         <PermissionAlert
-          access={!editOwnershipeRulesDisabled ? ['project:read'] : ['project:write']}
+          access={!editOwnershipRulesDisabled ? ['project:read'] : ['project:write']}
+          project={project}
         />
         <CodeOwnerErrors
           orgSlug={organization.slug}
@@ -217,14 +221,14 @@ tags.sku_class:enterprise #enterprise`;
                     onSave: this.handleOwnershipSave,
                   })
                 }
-                disabled={editOwnershipeRulesDisabled}
+                disabled={editOwnershipRulesDisabled}
               >
                 {t('Edit')}
               </Button>,
             ]}
           />
         )}
-        <PermissionAlert />
+        <PermissionAlert project={project} />
         {hasCodeowners &&
           (hasStreamlineTargetingContext ? (
             <CodeOwnerFileTable
