@@ -101,7 +101,7 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
           )}
         </TextBlock>
 
-        <PermissionAlert access={['project:write']} project={project} />
+        <PermissionAlert project={project} />
 
         <Form
           saveOnBlur
