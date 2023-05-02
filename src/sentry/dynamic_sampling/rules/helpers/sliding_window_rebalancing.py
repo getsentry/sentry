@@ -10,11 +10,13 @@ def generate_sliding_window_rebalancing_cache_key(org_id: int) -> str:
     return f"ds::o:{org_id}:sliding_window_rebalancing"
 
 
-def get_rebalanced_sample_rate(project: "Project", base_sample_rate: float) -> float:
+def get_sliding_window_rebalancing_sample_rate(
+    project: "Project", default_sample_rate: float
+) -> float:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_sliding_window_rebalancing_cache_key(project.organization.id)
 
     try:
         return float(redis_client.hget(cache_key, project.id))
     except (TypeError, ValueError):
-        return base_sample_rate
+        return default_sample_rate

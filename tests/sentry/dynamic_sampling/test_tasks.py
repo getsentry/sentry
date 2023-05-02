@@ -403,15 +403,16 @@ class TestSlidingWindowRebalancingTask(BaseMetricsLayerTestCase, TestCase, Snuba
             with self.tasks():
                 sliding_window_rebalancing()
 
-        assert generate_rules(project_a)[0]["samplingValue"] == {
-            "type": "sampleRate",
-            "value": pytest.approx(0.8),
-        }
-        assert generate_rules(project_b)[0]["samplingValue"] == {
-            "type": "sampleRate",
-            "value": pytest.approx(0.4),
-        }
-        assert generate_rules(project_c)[0]["samplingValue"] == {
-            "type": "sampleRate",
-            "value": pytest.approx(0.2),
-        }
+        with self.feature("organizations:ds-sliding-window"):
+            assert generate_rules(project_a)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": pytest.approx(0.8),
+            }
+            assert generate_rules(project_b)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": pytest.approx(0.4),
+            }
+            assert generate_rules(project_c)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": pytest.approx(0.2),
+            }
