@@ -384,14 +384,19 @@ class TestSlidingWindowRebalancingTask(BaseMetricsLayerTestCase, TestCase, Snuba
             return 100_000, 0.4
         elif volume == 100_000_000:
             return 100_000_000, 0.2
+        # We want to also hardcode the error case, to test how the system reacts to errors.
+        elif volume == 0:
+            return None
 
         return volume, 1.0
 
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
     def test_sliding_window_rebalancing_with_multiple_projects(
-        self, get_transaction_sampling_tier_for_volume
+        self, get_transaction_sampling_tier_for_volume, get_blended_sample_rate
     ):
         get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
+        get_blended_sample_rate.return_value = 1.0
 
         org = self.create_organization(name="sample-org")
 
@@ -399,20 +404,48 @@ class TestSlidingWindowRebalancingTask(BaseMetricsLayerTestCase, TestCase, Snuba
         project_b = self.create_project_and_add_metrics("b", 100_000, org)
         project_c = self.create_project_and_add_metrics("c", 100_000_000, org)
 
-        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
+        with self.options({"dynamic-sampling.sliding_window_rebalancing.sample_rate": 1.0}):
             with self.tasks():
                 sliding_window_rebalancing()
 
         with self.feature("organizations:ds-sliding-window"):
             assert generate_rules(project_a)[0]["samplingValue"] == {
                 "type": "sampleRate",
-                "value": pytest.approx(0.8),
+                "value": 0.8,
             }
             assert generate_rules(project_b)[0]["samplingValue"] == {
                 "type": "sampleRate",
-                "value": pytest.approx(0.4),
+                "value": 0.4,
             }
             assert generate_rules(project_c)[0]["samplingValue"] == {
                 "type": "sampleRate",
-                "value": pytest.approx(0.2),
+                "value": 0.2,
+            }
+
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    def test_sliding_window_rebalancing_with_none_sampling_tier(
+        self, get_transaction_sampling_tier_for_volume, get_blended_sample_rate
+    ):
+        get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
+        get_blended_sample_rate.return_value = 1.0
+
+        org = self.create_organization(name="sample-org")
+
+        project_a = self.create_project_and_add_metrics("a", 100, org)
+        # In this case we expect that the base sample rate will be used from "get_blended_sample_rate".
+        project_b = self.create_project_and_add_metrics("b", 0, org)
+
+        with self.options({"dynamic-sampling.sliding_window_rebalancing.sample_rate": 1.0}):
+            with self.tasks():
+                sliding_window_rebalancing()
+
+        with self.feature("organizations:ds-sliding-window"):
+            assert generate_rules(project_a)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": 0.8,
+            }
+            assert generate_rules(project_b)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": 1.0,
             }

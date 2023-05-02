@@ -25,6 +25,9 @@ from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_c
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     set_transactions_resampling_rates,
 )
+from sentry.dynamic_sampling.rules.helpers.sliding_window_rebalancing import (
+    generate_sliding_window_rebalancing_cache_key,
+)
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
     DecisionKeepCount,
@@ -384,17 +387,29 @@ def adjust_base_sample_rate_per_project(
         sampling_tier = quotas.get_transaction_sampling_tier_for_volume(
             project, project_total_root_count
         )
-        # TODO: in case we have at least one failure for the "get_transaction_sampling_tier_for_volume" should we bail
-        #  for each project or use a best effort mechanism?
-        if sampling_tier is not None:
-            # We unpack the tuple containing the sampling tier information in the form (volume, sample_rate).
-            _, sample_rate = sampling_tier
-            project_ids_with_sample_rates[project.id] = sample_rate
+
+        # In case the sampling tier cannot be determined, we want to log it and try to get it for the next project.
+        # There might be a situation in which the old key is set into Redis still and in that case, we prefer to keep it
+        # instead of deleting it. This behavior can be changed anytime, by just doing an "HDEL" on the failing key.
+        if sampling_tier is None:
+            logger.info(
+                f"The sampling tier for org {org_id} and project {project.id} cannot be determined."
+            )
+            continue
+
+        # We unpack the tuple containing the sampling tier information in the form (volume, sample_rate). This is done
+        # under the assumption that the sampling_tier tuple contains both non-null values.
+        _, sample_rate = sampling_tier
+        project_ids_with_sample_rates[project.id] = sample_rate
+
+    # In cas we failed to get the sampling tier of all the projects, we don't even want to start a Redis pipeline.
+    if len(project_ids_with_sample_rates) == 0:
+        return
 
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:
-        for project_id, sample_rate in project_ids_with_sample_rates:
-            cache_key = _generate_cache_key(org_id=org_id)
+        for project_id, sample_rate in project_ids_with_sample_rates.items():
+            cache_key = generate_sliding_window_rebalancing_cache_key(org_id=org_id)
             pipeline.hset(cache_key, project_id, sample_rate)
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
 
