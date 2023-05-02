@@ -360,7 +360,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders ignored until escalating', function () {
+  it('renders archived until escalating if org has `escalating-issues-ui` feature', function () {
     createWrapper({
       activity: [
         {
