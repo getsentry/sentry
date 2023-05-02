@@ -14,8 +14,8 @@ class DSElement:
 def adjust_sample_rates(
     classes: List[DSElement],
     rate: float,
-    total_num_classes: int,
-    total: float,
+    total_num_classes: Optional[int],
+    total: Optional[float],
     intensity: float,
 ) -> Tuple[List[DSElement], float]:
     """
@@ -38,6 +38,13 @@ def adjust_sample_rates(
 
     # total count for the explicitly specified classes
     total_explicit = get_total(classes)
+
+    if total is None:
+        total = total_explicit
+
+    if total_num_classes is None:
+        total_num_classes = len(classes)
+
     # total count for the unspecified classes
     total_implicit = total - total_explicit
     # total number of specified classes
@@ -142,7 +149,7 @@ def _adjust_sample_rates_full(
     assert total >= min_budget
     ideal = total * rate / num_classes
 
-    used_budget = 0
+    used_budget: float = 0.0
 
     ret_val = []
     while classes:
