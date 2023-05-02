@@ -140,15 +140,23 @@ export default function EndpointTable({
 }
 
 export function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+  if (column.key === 'throughput') {
+    return (
+      <TextAlignLeft>
+        <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
+      </TextAlignLeft>
+    );
+  }
+
   // TODO: come up with a better way to identify number columns to align to the right
   if (
     column.key.toString().match(/^p\d\d/) ||
     !['description', 'transaction'].includes(column.key.toString())
   ) {
     return (
-      <TextAlignLeft>
+      <TextAlignRight>
         <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
-      </TextAlignLeft>
+      </TextAlignRight>
     );
   }
   return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
@@ -180,11 +188,16 @@ export function renderBodyCell(
   }
 
   // TODO: come up with a better way to identify number columns to align to the right
-  if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
+  if (
+    column.key.toString().match(/^p\d\d/) ||
+    column.key === 'total_exclusive_time' ||
+    column.key === 'user_count' ||
+    column.key === 'transaction_count'
+  ) {
     return (
-      <TextAlignLeft>
+      <TextAlignRight>
         <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />
-      </TextAlignLeft>
+      </TextAlignRight>
     );
   }
   if (!['description', 'transaction'].includes(column.key.toString())) {
@@ -202,6 +215,11 @@ export const OverflowEllipsisTextContainer = styled('span')`
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+`;
+
+export const TextAlignRight = styled('span')`
+  text-align: right;
+  width: 100%;
 `;
 
 export const TextAlignLeft = styled('span')`

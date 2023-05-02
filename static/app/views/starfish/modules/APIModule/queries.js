@@ -179,7 +179,7 @@ export const getHostStatusBreakdownQuery = ({domain, datetime}) => {
   `;
 };
 
-export const getEndpointsThroughputQuery = ({datetime}) => {
+export const getEndpointsThroughputQuery = ({datetime, transaction}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `
     SELECT
@@ -188,6 +188,7 @@ export const getEndpointsThroughputQuery = ({datetime}) => {
     count() AS count
     FROM spans_experimental_starfish
     WHERE module = 'http'
+    ${transaction ? `AND transaction = '${transaction}'` : ''}
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     GROUP BY description, interval
