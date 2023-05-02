@@ -79,9 +79,19 @@ export function getTitle(crumb: Crumb) {
   return `${type} ${action || ''}`;
 }
 
+export function getProjectSlug(crumb: Crumb) {
+  if (typeof crumb.data === 'object' && crumb.data !== null && 'project' in crumb.data) {
+    return crumb.data.project;
+  }
+  return null;
+}
 /**
  * Generate breadcrumb title + descriptions
  */
 export function getDetails(crumb: Crumb) {
-  return {title: getTitle(crumb), description: getDescription(crumb)};
+  return {
+    title: getTitle(crumb),
+    description: getDescription(crumb),
+    projectSlug: getProjectSlug(crumb),
+  };
 }
