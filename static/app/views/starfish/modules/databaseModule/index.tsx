@@ -64,10 +64,6 @@ function DatabaseModule() {
 
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
-  const DATE_FILTERS = `
-  greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
-  less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
-`;
   const transactionFilter =
     transaction.length > 0 ? `transaction='${transaction}'` : null;
 
@@ -115,7 +111,6 @@ function DatabaseModule() {
       fetch(
         `${HOST}/?query=${getMainTable(
           startTime,
-          DATE_FILTERS,
           endTime,
           transactionFilter,
           tableFilter,

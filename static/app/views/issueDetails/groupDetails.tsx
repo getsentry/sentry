@@ -85,15 +85,14 @@ class GroupDetails extends Component<Props, State> {
   }
 
   componentDidMount() {
-    // only track the view if we are loading the event early
-    this.fetchData(this.canLoadEventEarly(this.props));
+    this.fetchData(true);
     this.updateReprocessingProgress();
 
     // Fetch environments early - used in GroupEventDetailsContainer
     fetchOrganizationEnvironments(this.props.api, this.props.organization.slug);
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
+  componentDidUpdate(prevProps: Props) {
     const globalSelectionReadyChanged =
       prevProps.isGlobalSelectionReady !== this.props.isGlobalSelectionReady;
 
@@ -102,23 +101,7 @@ class GroupDetails extends Component<Props, State> {
       prevProps.location.pathname !== this.props.location.pathname
     ) {
       // Skip tracking for other navigation events like switching events
-      this.fetchData(globalSelectionReadyChanged && this.canLoadEventEarly(this.props));
-    }
-
-    if (
-      (!this.canLoadEventEarly(prevProps) && !prevState?.group && this.state.group) ||
-      (prevProps.params?.eventId !== this.props.params?.eventId && this.state.group)
-    ) {
-      // if we are loading events we should record analytics after it's loaded
-      this.getEvent(this.state.group).then(() => {
-        if (!this.state.group?.project) {
-          return;
-        }
-        const project = this.props.projects.find(
-          p => p.id === this.state.group?.project.id
-        );
-        project && this.trackView(project);
-      });
+      this.fetchData(globalSelectionReadyChanged);
     }
   }
 
@@ -176,10 +159,6 @@ class GroupDetails extends Component<Props, State> {
     this.fetchData();
   };
 
-  canLoadEventEarly(props: Props) {
-    return !props.params.eventId || ['oldest', 'latest'].includes(props.params.eventId);
-  }
-
   get groupDetailsEndpoint() {
     return `/issues/${this.props.params.groupId}/`;
   }
@@ -188,25 +167,13 @@ class GroupDetails extends Component<Props, State> {
     return `/issues/${this.props.params.groupId}/first-last-release/`;
   }
 
-  async getEvent(group?: Group) {
-    if (group) {
-      this.setState({loadingEvent: true, eventError: false});
-    }
-
-    const {params, environments, api, organization} = this.props;
-    const orgSlug = organization.slug;
+  async getEvent() {
+    this.setState({loadingEvent: true, eventError: false});
+    const {params, environments, api} = this.props;
     const groupId = params.groupId;
     const eventId = params.eventId ?? 'latest';
-    const projectId = group?.project?.slug;
     try {
-      const event = await fetchGroupEvent(
-        api,
-        orgSlug,
-        groupId,
-        eventId,
-        environments,
-        projectId
-      );
+      const event = await fetchGroupEvent(api, groupId, eventId, environments);
 
       this.setState({event, loading: false, eventError: false, loadingEvent: false});
     } catch (err) {
@@ -408,9 +375,7 @@ class GroupDetails extends Component<Props, State> {
     }
 
     try {
-      const eventPromise = this.canLoadEventEarly(this.props)
-        ? this.getEvent()
-        : undefined;
+      const eventPromise = this.getEvent();
 
       const groupPromise = await api.requestPromise(this.groupDetailsEndpoint, {
         query: this.getGroupQuery(),

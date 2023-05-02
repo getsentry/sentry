@@ -142,10 +142,6 @@ function EndpointDetailBody({
     `http.method:${row.httpOp}`,
   ]);
   const {startTime, endTime} = getDateFilters(pageFilter);
-  const DATE_FILTERS = `
-  greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
-  less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
-`;
   const transactionFilter =
     row.transaction.length > 0 ? `transaction='${row.transaction}'` : null;
 
@@ -157,12 +153,7 @@ function EndpointDetailBody({
     queryKey: ['endpoints', pageFilter.selection.datetime, row.transaction],
     queryFn: () =>
       fetch(
-        `${HOST}/?query=${getMainTable(
-          startTime,
-          DATE_FILTERS,
-          endTime,
-          transactionFilter
-        )}&format=sql`
+        `${HOST}/?query=${getMainTable(startTime, endTime, transactionFilter)}&format=sql`
       ).then(res => res.json()),
     retry: false,
     initialData: [],
