@@ -17,16 +17,11 @@ import {Event} from 'sentry/types/event';
  */
 export async function fetchGroupEvent(
   api: Client,
-  orgId: string,
   groupId: string,
   eventId: string,
-  envNames: string[],
-  projectId?: string
+  envNames: string[]
 ): Promise<Event> {
-  const url =
-    eventId === 'latest' || eventId === 'oldest'
-      ? `/issues/${groupId}/events/${eventId}/`
-      : `/projects/${orgId}/${projectId}/events/${eventId}/?group_id=${groupId}`;
+  const url = `/issues/${groupId}/events/${eventId}/`;
 
   const query: {environment?: string[]} = {};
   if (envNames.length !== 0) {
