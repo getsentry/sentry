@@ -17,13 +17,7 @@ import {IconChevron, IconRefresh, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import {
-  Frame,
-  Organization,
-  PlatformType,
-  SentryAppComponent,
-  StackTraceMechanism,
-} from 'sentry/types';
+import {Frame, Organization, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
@@ -63,10 +57,8 @@ type Props = {
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
-  isNewestFrame?: boolean;
   isOnlyFrame?: boolean;
   maxLengthOfRelativeAddress?: number;
-  mechanism?: StackTraceMechanism | null;
   nextFrame?: Frame;
   onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
@@ -153,23 +145,13 @@ export class DeprecatedLine extends Component<Props, State> {
   }
 
   isExpandable() {
-    const {
-      registers,
-      platform,
-      emptySourceNotation,
-      isOnlyFrame,
-      data,
-      isNewestFrame,
-      mechanism,
-    } = this.props;
+    const {registers, platform, emptySourceNotation, isOnlyFrame, data} = this.props;
     return isExpandable({
       frame: data,
       registers,
       platform,
       emptySourceNotation,
       isOnlyFrame,
-      isNewestFrame,
-      mechanism,
     });
   }
 
@@ -415,8 +397,6 @@ export class DeprecatedLine extends Component<Props, State> {
           isExpanded={this.state.isExpanded}
           registersMeta={this.props.registersMeta}
           frameMeta={this.props.frameMeta}
-          mechanism={this.props.mechanism}
-          isNewestFrame={this.props.isNewestFrame}
         />
       </StyledLi>
     );

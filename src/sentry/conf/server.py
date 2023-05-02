@@ -940,10 +940,16 @@ CELERYBEAT_SCHEDULE = {
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
-    "schedule_auto_transition": {
-        "task": "sentry.tasks.schedule_auto_transition",
+    "schedule_auto_transition_new": {
+        "task": "sentry.tasks.schedule_auto_transition_new",
         # Run job once a day at 00:30
         "schedule": crontab(minute=30, hour="0"),
+        "options": {"expires": 3600},
+    },
+    "schedule_auto_transition_regressed": {
+        "task": "sentry.tasks.schedule_auto_transition_regressed",
+        # Run job once a day at 02:30
+        "schedule": crontab(minute=30, hour="2"),
         "options": {"expires": 3600},
     },
 }
@@ -1143,6 +1149,8 @@ SENTRY_FEATURES = {
     "organizations:issue-states": False,
     # Enable the task to transition new issues that are 3+ days old to (Unresolved, Ongoing) state
     "organizations:issue-states-auto-transition-new-ongoing": False,
+    # Enable the task to transition regressed issues that are 14+ days old to (Unresolved, Ongoing) state
+    "organizations:issue-states-auto-transition-regressed-ongoing": False,
     # Enable the new issue states and substates
     "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1357,8 +1365,6 @@ SENTRY_FEATURES = {
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
-    # Enable the new experimental metrics extraction on spans
-    "organizations:span-metrics-extraction": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -1425,6 +1431,10 @@ SENTRY_FEATURES = {
     "organizations:org-roles-for-teams": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
+    # Enable sliding window for dynamic sampling
+    "organizations:ds-sliding-window": False,
+    # If true certain Slack messages will be escaped to prevent rendering markdown
+    "organizations:slack-escape-messages": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1452,6 +1462,8 @@ SENTRY_FEATURES = {
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
     "projects:auto-associate-commits-to-release": False,
+    # Starfish: extract metrics from the spans
+    "projects:span-metrics-extraction": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -3236,9 +3248,6 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
     "options": {"cluster": "default"},
 }
-
-# Killswitch to ignore checkins for explicit monitors
-SENTRY_MONITORS_IGNORED_MONITORS = []
 
 # Raise schema validation errors and make the indexer crash (only useful in
 # tests)

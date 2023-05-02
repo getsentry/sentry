@@ -74,11 +74,7 @@ function UserStats({
   });
 
   const mepSetting = useMEPSettingContext();
-  const queryExtras = getTransactionMEPParamsIfApplicable(
-    mepSetting,
-    organization,
-    location
-  );
+  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, organization);
 
   return (
     <Fragment>
