@@ -349,7 +349,9 @@ class SqlFormatEventSerializer(EventSerializer):
     Applies formatting to SQL queries in the serialized event.
     """
 
-    formatted_sql_cache: Dict[str, str] = {}
+    def __init__(self) -> None:
+        super().__init__()
+        self.formatted_sql_cache: Dict[str, str] = {}
 
     # Various checks to ensure that we don't spend too much time formatting
     def _should_skip_formatting(self, query: str):
