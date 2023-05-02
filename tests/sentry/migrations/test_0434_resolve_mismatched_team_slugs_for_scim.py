@@ -40,9 +40,9 @@ class ResolveMismatchedTeamSlugsForScimTest(TestMigrations):
         assert self.idp_slug_mismatched.slug == "foo-bar-2"
 
         self.not_idp_slug_matched.refresh_from_db()
-        assert self.not_idp_slug_matched.name == ""
+        assert self.not_idp_slug_matched.name == "Foo Bar 3"
         assert self.not_idp_slug_matched.slug == "foo-bar-3"
 
         self.not_idp_slug_mismatched.refresh_from_db()
-        assert self.not_idp_slug_mismatched.name == ""
+        assert self.not_idp_slug_mismatched.name == "Foo Bar 4"
         assert self.not_idp_slug_mismatched.slug == "not-another-match"

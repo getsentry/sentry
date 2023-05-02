@@ -14,9 +14,6 @@ def resolve_mismatched_team_slugs_for_scim(apps, schema_editor):
         if team.idp_provisioned and team.slug != slugify(team.name):
             team.slug = slugify(team.name)
             team.save()
-        elif not team.idp_provisioned and team.name != "":
-            team.name = ""
-            team.save()
 
 
 class Migration(CheckedMigration):
