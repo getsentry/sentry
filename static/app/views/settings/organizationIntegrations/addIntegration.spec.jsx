@@ -6,7 +6,18 @@ describe('AddIntegration', function () {
   const provider = TestStubs.GitHubIntegrationProvider();
   const integration = TestStubs.GitHubIntegration();
 
-  beforeAll(function () {
+  function interceptMessageEvent(event) {
+    if (event.origin === '') {
+      event.stopImmediatePropagation();
+      const eventWithOrigin = new MessageEvent('message', {
+        data: event.data,
+        origin: 'https://foobar.sentry.io',
+      });
+      window.dispatchEvent(eventWithOrigin);
+    }
+  }
+
+  beforeEach(function () {
     window.__initialData = {
       customerDomain: {
         subdomain: 'foobar',
@@ -18,16 +29,11 @@ describe('AddIntegration', function () {
       },
     };
     window.location = 'https://foobar.sentry.io';
-    window.addEventListener('message', event => {
-      if (event.origin === '') {
-        event.stopImmediatePropagation();
-        const eventWithOrigin = new MessageEvent('message', {
-          data: event.data,
-          origin: 'https://foobar.sentry.io',
-        });
-        window.dispatchEvent(eventWithOrigin);
-      }
-    });
+    window.addEventListener('message', interceptMessageEvent);
+  });
+
+  afterEach(function () {
+    window.removeEventListener('message', interceptMessageEvent);
   });
 
   it('Adds an integration on dialog completion', async function () {
