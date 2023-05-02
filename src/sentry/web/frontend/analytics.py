@@ -5,7 +5,8 @@ class JsSdkLoaderRendered(analytics.Event):
     type = "js_sdk_loader.rendered"
 
     attributes = (
-        analytics.Attribute("org_id"),
+        analytics.Attribute("organization_id"),
+        analytics.Attribute("project_id"),
         analytics.Attribute("is_lazy"),
         analytics.Attribute("has_performance"),
         analytics.Attribute("has_replay"),

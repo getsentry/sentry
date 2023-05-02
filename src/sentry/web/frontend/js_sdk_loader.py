@@ -190,7 +190,8 @@ class JavaScriptSdkLoader(BaseView):
 
         analytics.record(
             "js_sdk_loader.rendered",
-            org_id=key.project.organization_id,
+            organization_id=key.project.organization_id,
+            project_id=key.project_id,
             is_lazy=loader_config["isLazy"],
             has_performance=loader_config["hasPerformance"],
             has_replay=loader_config["hasReplay"],
