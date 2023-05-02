@@ -203,6 +203,7 @@ jobs:
         with:
           files: .artifacts/coverage/*
           type: frontend
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)

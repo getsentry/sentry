@@ -53,6 +53,3 @@ jobs:
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           make test-python-ci
-
-      - name: Handle artifacts
-        uses: ./.github/actions/artifacts
