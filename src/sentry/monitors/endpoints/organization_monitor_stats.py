@@ -30,7 +30,7 @@ class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
             duration_stats[current] = {"sum": 0, "num_checkins": 0}
             current += args["rollup"]
 
-        # retrieve the list of checkins in the time range and count success/failure/missed/timeout
+        # retrieve the list of checkins in the time range and count success/failure/missed/duration
         history = MonitorCheckIn.objects.filter(
             monitor=monitor,
             status__in=tracked_statuses,
