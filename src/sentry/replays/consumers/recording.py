@@ -1,5 +1,4 @@
 import dataclasses
-import functools
 import logging
 import random
 from typing import Any, Dict, Mapping, cast
@@ -77,7 +76,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
                 max_batch_time=self.max_batch_time,
                 input_block_size=self.input_block_size,
                 output_block_size=self.output_block_size,
-                initializer=functools.partial(initialize_consumer_state, [initialize_metrics]),
+                initializer=initialize_consumer_state,
             )
         else:
             step = RunTask(

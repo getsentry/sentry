@@ -653,14 +653,34 @@ def profiles_consumer(**options):
 @run.command("ingest-replay-recordings")
 @log_options()
 @configuration
-@kafka_options("ingest-replay-recordings")
+@kafka_options("ingest-replay-recordings", include_batching_options=True)
 @click.option(
     "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
 )
+@click.option(
+    "--processes",
+    default=1,
+    type=int,
+)
+@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--use-multi-processing", type=bool, default=True)
 def replays_recordings_consumer(**options):
     from sentry.replays.consumers import get_replays_recordings_consumer
 
-    consumer = get_replays_recordings_consumer(**options)
+    consumer = get_replays_recordings_consumer(
+        auto_offset_reset=options["auto_offset_reset"],
+        force_cluster=options["force_cluster"],
+        force_topic=options["force_topic"],
+        group_id=options["group_id"],
+        input_block_size=options["input_block_size"],
+        max_batch_size=options["max_batch_size"],
+        max_batch_time=int(options["max_batch_time"] / 1000),
+        num_processes=options["processes"],
+        output_block_size=options["output_block_size"],
+        topic=options["topic"],
+        use_multi_proc=options["use_multi_processing"],
+    )
     run_processor_with_signals(consumer)
 
 
