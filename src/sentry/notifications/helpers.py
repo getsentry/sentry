@@ -325,12 +325,16 @@ def get_groups_for_query(
     that to know if a user is subscribed or not, as long as notifications aren't
     disabled for the project.
     """
+
+    # Avoid n queries for actors.
+    actor = RpcActor.from_object(user)
+
     # Although this can be done with a comprehension, looping for clarity.
     output = set()
     for project_id, groups in groups_by_project.items():
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope,
-            recipient=user,
+            recipient=actor,
             parent_id=project_id,
             type=NotificationSettingTypes.WORKFLOW,
         )
