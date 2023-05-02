@@ -381,6 +381,18 @@ const performanceOptionDefinitions: Field[] = [
     defaultValue: () => '0.33',
   },
   {
+    key: 'performance.issues.consecutive_http.max_duration_between_spans',
+    label: t('Time Between Spans'),
+    help: t(
+      'Maximum time between consecutive HTTP spans to be considered part of the same problem.'
+    ),
+    defaultValue: () => '5000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
     key: 'profile.issues.blocked_main_thread-ingest.la-rollout',
     label: t('Limited Availability Detection Rate'),
     help: t(
