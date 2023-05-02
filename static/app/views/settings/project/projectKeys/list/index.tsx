@@ -210,7 +210,7 @@ class ProjectKeys extends AsyncView<Props, State> {
           )}
         </TextBlock>
 
-        <PermissionAlert access={['project:write']} project={project} />
+        <PermissionAlert project={project} />
 
         {isEmpty ? this.renderEmpty() : this.renderResults()}
       </div>

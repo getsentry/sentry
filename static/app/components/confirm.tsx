@@ -164,7 +164,6 @@ export const openConfirmModal = ({
 function Confirm({
   disabled,
   children,
-  disableConfirmButton,
   stopPropagation = false,
   ...openConfirmOptions
 }: Props) {
@@ -189,10 +188,7 @@ function Confirm({
   }
 
   // TODO(ts): Understand why the return type of `cloneElement` is strange
-  return cloneElement(children, {
-    disabled: disableConfirmButton,
-    onClick: triggerModal,
-  }) as any;
+  return cloneElement(children, {disabled, onClick: triggerModal}) as any;
 }
 
 type ModalProps = ModalRenderProps &
