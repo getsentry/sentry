@@ -93,6 +93,11 @@ def _process_message(wrapper: Dict) -> None:
 
     ratelimit_key = f"{params['monitor_slug']}:{environment}"
 
+    metric_kwargs = {
+        "source": "consumer",
+        "source_sdk": params.get("sdk", {}).get("name", "unknown"),
+    }
+
     if ratelimits.is_limited(
         f"monitor-checkins:{ratelimit_key}",
         limit=CHECKIN_QUOTA_LIMIT,
@@ -100,7 +105,7 @@ def _process_message(wrapper: Dict) -> None:
     ):
         metrics.incr(
             "monitors.checkin.dropped.ratelimited",
-            tags={"source": "consumer"},
+            tags={**metric_kwargs},
         )
         logger.debug("monitor check in rate limited: %s", params["monitor_slug"])
         return
@@ -123,7 +128,7 @@ def _process_message(wrapper: Dict) -> None:
             except MonitorLimitsExceeded:
                 metrics.incr(
                     "monitors.checkin.result",
-                    tags={"source": "consumer", "status": "failed_monitor_limits"},
+                    tags={**metric_kwargs, "status": "failed_monitor_limits"},
                 )
                 logger.debug("monitor exceeds limits for organization: %s", project.organization_id)
                 return
@@ -190,13 +195,13 @@ def _process_message(wrapper: Dict) -> None:
 
             metrics.incr(
                 "monitors.checkin.result",
-                tags={"source": "consumer", "status": "complete"},
+                tags={**metric_kwargs, "status": "complete"},
             )
     except Exception:
         # Skip this message and continue processing in the consumer.
         metrics.incr(
             "monitors.checkin.result",
-            tags={"source": "consumer", "status": "error"},
+            tags={**metric_kwargs, "status": "error"},
         )
         logger.exception("Failed to process check-in", exc_info=True)
 
