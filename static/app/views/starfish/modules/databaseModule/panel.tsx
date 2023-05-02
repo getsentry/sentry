@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {CSSProperties, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
@@ -43,6 +43,7 @@ type EndpointDetailBodyProps = {
 
 type TransactionListDataRow = {
   count: number;
+  frequency: number;
   group_id: string;
   p75: number;
   transaction: string;
@@ -209,22 +210,20 @@ function QueryDetailBody({
     isEventCountLoading ||
     isRowLoading ||
     isP75GraphLoading;
-  let avgP75 = 0;
-  if (!isDataLoading) {
-    avgP75 =
-      tableData.reduce((acc, transaction) => acc + transaction.p75, 0) / tableData.length;
-  }
 
   const eventCountMap = keyBy(eventCountData, 'transaction');
 
   const mergedTableData: TransactionListDataRow[] = tableData.map(data => {
     const {transaction} = data;
     const eventData = eventCountMap[transaction];
-    if (eventData) {
-      return {...data, ...eventData};
+    if (eventData?.uniqueEvents) {
+      const frequency = data.count / eventData.uniqueEvents;
+      return {...data, frequency, ...eventData};
     }
     return data;
   });
+
+  const minMax = calculateOutlierMinMax(mergedTableData);
 
   const [countSeries, p75Series] = throughputQueryToChartData(
     graphData,
@@ -271,8 +270,14 @@ function QueryDetailBody({
   ): React.ReactNode => {
     const {key} = column;
     const value = dataRow[key];
-    if (key === 'frequency') {
-      return <span>{(dataRow.count / dataRow.uniqueEvents).toFixed(2)}</span>;
+    const style: CSSProperties = {};
+    let rendereredValue = value;
+
+    if (
+      minMax[key] &&
+      ((value as number) > minMax[key].max || (value as number) < minMax[key].min)
+    ) {
+      style.color = theme.red400;
     }
     if (key === 'transaction') {
       return (
@@ -286,14 +291,13 @@ function QueryDetailBody({
       );
     }
     if (key === 'p75') {
-      const p75threshold = 1.5 * avgP75;
-      return (
-        <span style={value > p75threshold ? {color: theme.red400} : {}}>
-          {value?.toFixed(2)}ms
-        </span>
-      );
+      rendereredValue = `${dataRow[key]?.toFixed(2)}ms`;
     }
-    return <span>{value}</span>;
+    if (key === 'frequency') {
+      rendereredValue = dataRow[key]?.toFixed(2);
+    }
+
+    return <span style={style}>{rendereredValue}</span>;
   };
 
   return (
@@ -464,6 +468,35 @@ const throughputQueryToChartData = (
     zeroFillSeries(p75Series, moment.duration(INTERVAL, 'hours'), startTime, endTime),
   ];
 };
+
+// Calculates the outlier min max for all number based rows based on the IQR Method
+const calculateOutlierMinMax = (
+  data: TransactionListDataRow[]
+): Record<string, {max: number; min: number}> => {
+  const minMax: Record<string, {max: number; min: number}> = {};
+  if (data.length > 0) {
+    Object.entries(data[0]).forEach(([colKey, value]) => {
+      if (typeof value === 'number') {
+        minMax[colKey] = findOutlierMinMax(data, colKey);
+      }
+    });
+  }
+  return minMax;
+};
+
+function findOutlierMinMax(data: any[], property: string): {max: number; min: number} {
+  const sortedValues = [...data].sort((a, b) => a[property] - b[property]);
+
+  if (data.length < 4) {
+    return {min: data[0][property], max: data[data.length - 1][property]};
+  }
+
+  const q1 = sortedValues[Math.floor(sortedValues.length * (1 / 4))][property];
+  const q3 = sortedValues[Math.ceil(sortedValues.length * (3 / 4))][property];
+  const iqr = q3 - q1;
+
+  return {min: q1 - iqr * 1.5, max: q3 + iqr * 1.5};
+}
 
 const tpmTransactionQueryToChartData = (
   data: {count: number; interval: string; transaction: string}[],
