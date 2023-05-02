@@ -17,6 +17,7 @@ import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
@@ -24,6 +25,7 @@ import DatabaseTableView from 'sentry/views/starfish/modules/databaseModule/data
 import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {getModuleBreakdown} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -135,6 +137,17 @@ function EndpointDetailBody({
   const theme = useTheme();
   const pageFilter = usePageFilters();
   const {aggregateDetails} = row;
+
+  const {data: moduleBreakdown} = useQuery({
+    queryKey: [`moduleBreakdown${row.transaction}`],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getModuleBreakdown({transaction: row.transaction})}`).then(
+        res => res.json()
+      ),
+    retry: false,
+    initialData: [],
+  });
+
   const query = new MutableSearch([
     'has:http.method',
     'transaction.op:http.server',
@@ -242,6 +255,11 @@ function EndpointDetailBody({
           );
         }}
       </EventsRequest>
+      <FacetBreakdownBar
+        segments={moduleBreakdown}
+        title={t('Where is time spent in this endpoint?')}
+        transaction={row.transaction}
+      />
       <SubHeader>{t('HTTP Spans')}</SubHeader>
       <EndpointTable
         location={location}

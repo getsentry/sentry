@@ -11,11 +11,11 @@ import {useQuery} from 'sentry/utils/queryClient';
 import {DatabaseDurationChart} from 'sentry/views/starfish/views/webServiceView/databaseDurationChart';
 import {HttpBreakdownChart} from 'sentry/views/starfish/views/webServiceView/httpBreakdownChart';
 import {
-  DB_THROUGHPUT,
-  DB_TIME_SPENT,
-  HTTP_THROUGHPUT,
-  OTHER_DOMAINS,
-  TOP_DOMAINS,
+  getDatabaseTimeSpent,
+  getDbThroughput,
+  getHttpThroughput,
+  getOtherDomains,
+  getTopHttpDomains,
 } from 'sentry/views/starfish/views/webServiceView/queries';
 
 const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
@@ -29,47 +29,57 @@ type ModuleSegment = {
 type Props = {
   segments: ModuleSegment[];
   title: string;
+  transaction?: string;
 };
 
-function FacetBreakdownBar({segments, title}: Props) {
+function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Props) {
   const [hoveredValue, setHoveredValue] = useState<ModuleSegment | null>(null);
   const [currentSegment, setCurrentSegment] = useState<
     ModuleSegment['module'] | undefined
   >(segments[0]?.module);
   const totalValues = segments.reduce((acc, segment) => acc + segment.sum, 0);
 
+  const transaction = maybeTransaction ?? '';
+
   const {isLoading: isHttpDurationDataLoading, data: httpDurationData} = useQuery({
-    queryKey: ['topDomains'],
-    queryFn: () => fetch(`${HOST}/?query=${TOP_DOMAINS}`).then(res => res.json()),
+    queryKey: [`topDomains${transaction}`],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getTopHttpDomains({transaction})}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
   const {isLoading: isOtherHttpDurationDataLoading, data: otherHttpDurationData} =
     useQuery({
-      queryKey: ['otherDomains'],
-      queryFn: () => fetch(`${HOST}/?query=${OTHER_DOMAINS}`).then(res => res.json()),
+      queryKey: [`otherDomains${transaction}`],
+      queryFn: () =>
+        fetch(`${HOST}/?query=${getOtherDomains({transaction})}`).then(res => res.json()),
       retry: false,
       initialData: [],
     });
 
   const {isLoading: isDbDurationLoading, data: dbDurationData} = useQuery({
-    queryKey: ['databaseDuration'],
-    queryFn: () => fetch(`${HOST}/?query=${DB_TIME_SPENT}`).then(res => res.json()),
+    queryKey: [`databaseDuration${transaction}`],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getDatabaseTimeSpent({transaction})}`).then(res =>
+        res.json()
+      ),
     retry: false,
     initialData: [],
   });
 
   const {data: dbThroughputData} = useQuery({
-    queryKey: ['dbThroughputData'],
-    queryFn: () => fetch(`${HOST}/?query=${DB_THROUGHPUT}`).then(res => res.json()),
+    queryKey: [`dbThroughputData${transaction}`],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getDbThroughput({transaction})}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
   const {data: httpThroughputData} = useQuery({
-    queryKey: ['httpThroughputData'],
-    queryFn: () => fetch(`${HOST}/?query=${HTTP_THROUGHPUT}`).then(res => res.json()),
+    queryKey: [`httpThroughputData${transaction}`],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getHttpThroughput({transaction})}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
