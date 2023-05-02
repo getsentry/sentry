@@ -139,18 +139,18 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         full_url = f"{self.client.base_url}/{self.proxy_path}"
         headers = clean_outbound_headers(request.headers)
 
-        proxy_request = Request(
+        prepared_request = Request(
             method=request.method,
             url=full_url,
             headers=headers,
             data=request.body,
-        )
-        prepared_request = self.client.authorize_request(proxy_request).prepare()
+        ).prepare()
+        authorized_request = self.client.authorize_request(prepared_request)
         raw_response: Response = self.client._request(
             request.method,
             self.proxy_path,
             allow_text=True,
-            prepared_request=prepared_request,
+            prepared_request=authorized_request,
             raw_response=True,
         )
         response = HttpResponse(
