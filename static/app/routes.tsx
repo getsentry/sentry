@@ -1714,6 +1714,12 @@ function buildRoutes() {
         )}
       />
       <Route
+        path="endpoint-overview/:slug/"
+        component={make(
+          () => import('sentry/views/starfish/views/webServiceView/endpointOverview')
+        )}
+      />
+      <Route
         path="database/"
         component={make(() => import('sentry/views/starfish/modules/databaseModule'))}
       />
