@@ -797,6 +797,20 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 400
             assert response.data["detail"] == "You cannot view events from multiple projects."
 
+    def test_get_replays_no_multi_project_select_query_referrer(self):
+        self.create_project(teams=[self.team])
+        self.create_project(teams=[self.team])
+
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(user)
+
+        with self.feature(REPLAYS_FEATURES), self.feature({"organizations:global-views": False}):
+            response = self.client.get(self.url + "?queryReferrer=issueReplays")
+            assert response.status_code == 200
+
     def test_get_replays_unknown_field(self):
         """Test replays unknown fields raise a 400 error."""
         project = self.create_project(teams=[self.team])

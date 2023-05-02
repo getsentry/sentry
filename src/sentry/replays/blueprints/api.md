@@ -31,7 +31,7 @@ This document is structured by resource with each resource having actions that c
   - offset (optional, number)
     Default: 0
   - query (optional, string) - Search query with space-separated field/value pairs. ie: `?query=count_errors:>2 AND duration:<1h`.
-
+  - queryReferrer(optional, string) - Specify the page which this query is being made from. Used for cross project query on issue replays page. pass `queryReferrer=issueReplays` for this query.
     Some fields in the API response have their own dedicated parameters, or are otherwide not supported in the `query` param. They are:
 
     | Response Field      | Parameter       |
