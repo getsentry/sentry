@@ -326,20 +326,16 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
 
 
 @instrumented_task(
-    name="sentry.dynamic_sampling.run_sliding_window_rebalancing",
+    name="sentry.dynamic_sampling.tasks.sliding_window_rebalancing",
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
     soft_time_limit=2 * 60 * 60,  # 2 hours
     time_limit=2 * 60 * 60 + 5,
 )  # type: ignore
-def run_sliding_window_rebalancing() -> None:
-    metrics.incr(
-        "sentry.tasks.dynamic_sampling.run_sliding_window_rebalancing.start", sample_rate=1.0
-    )
-    with metrics.timer(
-        "sentry.tasks.dynamic_sampling.run_sliding_window_rebalancing", sample_rate=1.0
-    ):
+def sliding_window_rebalancing() -> None:
+    metrics.incr("sentry.dynamic_sampling.tasks.sliding_window_rebalancing.start", sample_rate=1.0)
+    with metrics.timer("sentry.dynamic_sampling.tasks.sliding_window_rebalancing", sample_rate=1.0):
         for orgs in get_orgs_with_project_counts_without_modulo(
             MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY
         ):

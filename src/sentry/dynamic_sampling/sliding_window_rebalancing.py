@@ -59,7 +59,7 @@ def fetch_projects_with_total_root_transactions_count(
 
     # Since we want a uniform distribution of samples, we use the modulo operator and sample with a given sample rate
     # the orgs.
-    sample_rate = int(options.get("dynamic-sampling.prioritise_projects.sample_rate") * 100)
+    sample_rate = int(options.get("dynamic-sampling.sliding_window_rebalancing.sample_rate") * 100)
     if sample_rate != 100:
         where += [Condition(Function("modulo", [Column("org_id"), 100]), Op.LT, sample_rate)]
 
