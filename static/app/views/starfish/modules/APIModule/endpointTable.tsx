@@ -169,7 +169,7 @@ export function renderBodyCell(
   }
 
   if (column.key === 'tpm') {
-    return <Sparkline color={CHART_PALETTE[3][1]} series={row[column.key]} />;
+    return <Sparkline color={CHART_PALETTE[3][0]} series={row[column.key]} width={100} />;
   }
 
   // TODO: come up with a better way to identify number columns to align to the right
