@@ -82,7 +82,7 @@ function TeamDetails({children}: Props) {
   if (!team) {
     return (
       <Alert type="warning">
-        <div>{t('404: This team does not exist, or you do not have access to it.')}</div>
+        <div>{t('This team does not exist, or you do not have access to it.')}</div>
       </Alert>
     );
   }
