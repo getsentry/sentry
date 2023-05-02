@@ -44,11 +44,12 @@ export function sanitizePath(path: string) {
         suffix = `${tertiarySlug}{teamSlug}/`;
       } else if (
         (isProject && tertiarySlug === 'replays/') ||
-        contentType === 'replays/'
+        (isOrg && contentType === 'replays/')
       ) {
         // Projct replays endpoint
         // https://github.com/getsentry/sentry/blob/82074148753c21abf37f6f33408bb95691ed1597/src/sentry/api/urls.py#L2076
         // r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/$",
+
         // Org replays endpoint
         // https://github.com/getsentry/sentry/blob/e45aafb8a62b5728129aed67574cb37a4bd69075/src/sentry/api/urls.py#L1658
         // r"^(?P<organization_slug>[^/]+)/replays/(?P<replay_id>[\w-]+)/$"
