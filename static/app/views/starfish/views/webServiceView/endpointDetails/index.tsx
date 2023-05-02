@@ -60,6 +60,11 @@ const HTTP_SPAN_COLUMN_ORDER = [
     width: 400,
   },
   {
+    key: 'throughput',
+    name: 'Throughput',
+    width: 125,
+  },
+  {
     key: 'p50(exclusive_time)',
     name: 'p50',
     width: COL_WIDTH_UNDEFINED,
@@ -69,6 +74,7 @@ const HTTP_SPAN_COLUMN_ORDER = [
     name: 'Transactions',
     width: COL_WIDTH_UNDEFINED,
   },
+
   {
     key: 'total_exclusive_time',
     name: 'Total Time',
