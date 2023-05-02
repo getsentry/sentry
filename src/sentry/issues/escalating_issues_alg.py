@@ -22,7 +22,7 @@ class GroupCount(TypedDict):
     data: List[int]
 
 
-def generate_issue_forecast(data: GroupCount, start_time: datetime, version:str) -> List[IssueForecast]:
+def generate_issue_forecast(data: GroupCount, start_time: datetime, version:str = "A") -> List[IssueForecast]:
     """
     Calculates daily issue spike limits, given an input dataset from snuba.
 
@@ -53,13 +53,13 @@ def generate_issue_forecast(data: GroupCount, start_time: datetime, version:str)
         MAX_SPIKE_MULTIPLIER = 8
         MIN_BURSTY_MULTIPLIER = 2
         MAX_BURSTY_MULTIPLIER = 5
-    elif version == "B":
+    elif version == "B":  #tighter threshold version
         standard_dev_multiplier = 4
         MIN_SPIKE_MULTIPLIER = 4
         MAX_SPIKE_MULTIPLIER = 7
         MIN_BURSTY_MULTIPLIER = 2
         MAX_BURSTY_MULTIPLIER = 4
-    elif version == "C":
+    else: #version C - looser threshold version
         standard_dev_multiplier = 6
         MIN_SPIKE_MULTIPLIER = 5
         MAX_SPIKE_MULTIPLIER = 9
