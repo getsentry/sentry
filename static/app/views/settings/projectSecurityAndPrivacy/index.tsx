@@ -75,7 +75,7 @@ export default function ProjectSecurityAndPrivacy({organization, project}: Props
         }
         endpoint={endpoint}
         relayPiiConfig={relayPiiConfig}
-        disabled={hasAccess}
+        disabled={!hasAccess}
         organization={organization}
         project={project}
         onSubmitSuccess={data => handleUpdateProject({...project, ...data})}
