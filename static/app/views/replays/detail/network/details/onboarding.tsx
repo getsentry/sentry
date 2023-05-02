@@ -1,12 +1,14 @@
-import {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
+import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 export function UnsupportedOp({type}: {type: 'headers' | 'bodies'}) {
@@ -40,10 +42,12 @@ export function Setup({
   item,
   projectId,
   showSnippet,
+  visibleTab,
 }: {
   item: NetworkSpan;
   projectId: string;
-  showSnippet: ComponentProps<typeof SetupInstructions>['showSnippet'];
+  showSnippet: Output;
+  visibleTab: TabKey;
 }) {
   const minVersion = '7.50.0';
 
@@ -63,6 +67,7 @@ export function Setup({
       sdkNeedsUpdate={sdkNeedsUpdate}
       showSnippet={showSnippet}
       url={url}
+      visibleTab={visibleTab}
     />
   );
 }
@@ -72,38 +77,46 @@ function SetupInstructions({
   sdkNeedsUpdate,
   showSnippet,
   url,
+  visibleTab,
 }: {
   minVersion: string;
   sdkNeedsUpdate: boolean;
-  showSnippet: 'headers' | 'bodies' | 'both';
+  showSnippet: Output;
   url: string;
+  visibleTab: TabKey;
 }) {
   const urlSnippet = `
       networkDetailAllowUrls: ['${url}'],`;
   const bodiesSnippet = `
       networkCaptureBodies: true,`;
-
   const headersSnippet = `
       networkRequestHeaders: ['X-Custom-Header'],
       networkResponseHeaders: ['X-Custom-Header'],`;
+
+  const includeHeadersSnippet =
+    showSnippet === Output.setup ||
+    ([Output.urlSkipped, Output.data].includes(showSnippet) && visibleTab === 'details');
+  const includeBodiesSnippet =
+    [Output.setup, Output.bodySkipped].includes(showSnippet) ||
+    (showSnippet === Output.urlSkipped && visibleTab !== 'details');
 
   const code = `Sentry.init({
   integrations: [
     new Replay({${
       urlSnippet +
-      (['bodies', 'both'].includes(showSnippet) ? bodiesSnippet : '') +
-      (['header', 'both'].includes(showSnippet) ? headersSnippet : '')
+      (includeBodiesSnippet ? bodiesSnippet : '') +
+      (includeHeadersSnippet ? headersSnippet : '')
     }
     }),
   ],
 })`;
 
   const title =
-    showSnippet === 'both'
+    showSnippet === Output.setup
       ? t('Capture Request and Response Headers and Payloads')
-      : showSnippet === 'bodies'
-      ? t('Capture Request and Response Payloads')
-      : t('Capture Request and Response Headers');
+      : visibleTab === 'details'
+      ? t('Capture Request and Response Headers')
+      : t('Capture Request and Response Payloads');
   return (
     <StyledInstructions data-test-id="network-setup-steps">
       <h1>{title}</h1>
@@ -119,6 +132,20 @@ function SetupInstructions({
           }
         )}
       </p>
+
+      {showSnippet === Output.urlSkipped && (
+        <Alert type="warning">
+          Add <kbd>{url}</kbd> to your <kbd>networkDetailAllowUrls</kbd> list to start
+          capturing data.
+        </Alert>
+      )}
+
+      {showSnippet === Output.bodySkipped && (
+        <Alert type="warning">
+          Enable <kbd>networkCaptureBodies: true</kbd> to capture both Request and
+          Response payloads.
+        </Alert>
+      )}
 
       <h1>{t('Prerequisites')}</h1>
       <ol>

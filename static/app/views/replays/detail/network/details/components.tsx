@@ -16,6 +16,24 @@ const NotFoundText = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
+const WarningText = styled('span')`
+  color: ${p => p.theme.errorText};
+`;
+
+export function Warning({warnings}: {warnings: undefined | string[]}) {
+  if (warnings?.includes('JSON_TRUNCATED') || warnings?.includes('TEXT_TRUNCATED')) {
+    return (
+      <WarningText>{t('Truncated (~~) due to exceeding 150k characters')}</WarningText>
+    );
+  }
+
+  if (warnings?.includes('INVALID_JSON')) {
+    return <WarningText>{t('Invalid JSON')}</WarningText>;
+  }
+
+  return null;
+}
+
 export function SizeTooltip({children}: {children: ReactNode}) {
   return (
     <Tooltip

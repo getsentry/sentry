@@ -12,6 +12,7 @@ import {
   keyValueTableOrNotFound,
   SectionItem,
   SizeTooltip,
+  Warning,
 } from 'sentry/views/replays/detail/network/details/components';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {NetworkSpan} from 'sentry/views/replays/types';
@@ -101,7 +102,6 @@ export function QueryParamsSection({item}: SectionProps) {
 
 export function RequestPayloadSection({item}: SectionProps) {
   const hasRequest = 'request' in item.data;
-
   return (
     <SectionItem
       title={t('Request Payload')}
@@ -112,6 +112,7 @@ export function RequestPayloadSection({item}: SectionProps) {
       }
     >
       <Indent>
+        <Warning warnings={item.data?.request?.warnings} />
         {hasRequest ? (
           <ObjectInspector data={item.data?.request?.body} expandLevel={2} />
         ) : (
@@ -135,6 +136,7 @@ export function ResponsePayloadSection({item}: SectionProps) {
       }
     >
       <Indent>
+        <Warning warnings={item.data?.request?.warnings} />
         {hasResponse ? (
           <ObjectInspector data={item.data?.response?.body} expandLevel={2} />
         ) : (

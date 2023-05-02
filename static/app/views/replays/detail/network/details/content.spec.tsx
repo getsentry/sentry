@@ -17,7 +17,7 @@ function mockNeedsUpdate(needsUpdate: boolean) {
 const mockItems = {
   img: TestStubs.ReplaySpanPayload({
     op: 'resource.img',
-    id: '/static/img/logo.png',
+    description: '/static/img/logo.png',
     data: {
       method: 'GET',
       statusCode: 200,
@@ -25,11 +25,11 @@ const mockItems = {
   }),
   fetchNoDataObj: TestStubs.ReplaySpanPayload({
     op: 'resource.fetch',
-    id: '/api/0/issues/1234',
+    description: '/api/0/issues/1234',
   }),
   fetchUrlSkipped: TestStubs.ReplaySpanPayload({
     op: 'resource.fetch',
-    id: '/api/0/issues/1234',
+    description: '/api/0/issues/1234',
     data: {
       method: 'GET',
       statusCode: 200,
@@ -39,7 +39,7 @@ const mockItems = {
   }),
   fetchBodySkipped: TestStubs.ReplaySpanPayload({
     op: 'resource.fetch',
-    id: '/api/0/issues/1234',
+    description: '/api/0/issues/1234',
     data: {
       method: 'GET',
       statusCode: 200,
@@ -49,7 +49,7 @@ const mockItems = {
   }),
   fetchWithReqHeaders: TestStubs.ReplaySpanPayload({
     op: 'resource.fetch',
-    id: '/api/0/issues/1234',
+    description: '/api/0/issues/1234',
     data: {
       method: 'GET',
       statusCode: 200,
@@ -59,7 +59,7 @@ const mockItems = {
   }),
   fetchWithRespBody: TestStubs.ReplaySpanPayload({
     op: 'resource.fetch',
-    id: '/api/0/issues/1234',
+    description: '/api/0/issues/1234',
     data: {
       method: 'GET',
       statusCode: 200,
@@ -173,7 +173,7 @@ describe('NetworkDetailsContent', () => {
         {isSetup: true, itemName: 'fetchWithReqHeaders'},
         {isSetup: true, itemName: 'fetchWithRespBody'},
       ])(
-        'should render the `general` & two `headers` sections when things are setup and the item has some data',
+        'should render the `general` & two `headers` sections, and always the setup section, when things are setup and the item has some data',
         ({isSetup, itemName}) => {
           render(
             <NetworkDetailsContent
@@ -187,7 +187,7 @@ describe('NetworkDetailsContent', () => {
           expect(queryScreenState()).toStrictEqual({
             dataSectionHeaders: ['General', 'Request Headers', 'Response Headers'],
             isShowingUnsupported: false,
-            isShowingSetup: false,
+            isShowingSetup: true,
           });
         }
       );
