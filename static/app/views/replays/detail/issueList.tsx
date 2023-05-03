@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -17,7 +17,6 @@ import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
   projectId: string;
@@ -35,8 +34,6 @@ function IssueList({projectId, replayId}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.large})`);
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === projectId);
 
   const [state, setState] = useState<State>({
     fetchError: undefined,
@@ -54,8 +51,6 @@ function IssueList({projectId, replayId}: Props) {
         `/organizations/${organization.slug}/issues/`,
         {
           query: {
-            // TODO(replays): What about backend issues?
-            project: projectId,
             query: `replayId:${replayId}`,
           },
         }
@@ -73,20 +68,15 @@ function IssueList({projectId, replayId}: Props) {
         issues: [],
       });
     }
-  }, [api, organization.slug, replayId, projectId]);
+  }, [api, organization.slug, replayId]);
 
   useEffect(() => {
     fetchIssueData();
   }, [fetchIssueData]);
 
-  const projectIds = useMemo(
-    () => (project?.id ? [Number(project.id)] : []),
-    [project?.id]
-  );
   const counts = useReplaysCount({
     groupIds: state.issues.map(issue => issue.id),
     organization,
-    projectIds,
   });
 
   return (
@@ -99,14 +89,17 @@ function IssueList({projectId, replayId}: Props) {
           isScreenLarge ? columns : columns.filter(column => column !== t('Graph'))
         }
       >
-        {state.issues.map(issue => (
-          <TableRow
-            key={issue.id}
-            isScreenLarge={isScreenLarge}
-            issue={issue}
-            organization={organization}
-          />
-        )) || null}
+        {state.issues
+          // prioritize the replay issues first
+          .sort(a => (a.project.id === projectId ? -1 : 1))
+          .map(issue => (
+            <TableRow
+              key={issue.id}
+              isScreenLarge={isScreenLarge}
+              issue={issue}
+              organization={organization}
+            />
+          )) || null}
       </StyledPanelTable>
     </ReplayCountContext.Provider>
   );
