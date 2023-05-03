@@ -47,7 +47,7 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
-    "organizations:span-metrics-extraction",
+    "projects:span-metrics-extraction",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
     "organizations:profiling",
@@ -523,9 +523,6 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 TRANSACTION_METRICS_EXTRACTION_VERSION = 1
 
 
-
-
-
 class CustomMeasurementSettings(TypedDict):
     limit: int
 
@@ -556,7 +553,6 @@ def get_transaction_metrics_settings(
     See _should_extract_transaction_metrics.
     """
     custom_tags: List[str] = []
-
 
     if breakdowns_config is not None:
         # we already have a breakdown configuration that tells relay which
