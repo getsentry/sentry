@@ -89,14 +89,15 @@ const DATABASE_SPAN_COLUMN_ORDER = [
 
 export default function EndpointOverview() {
   const location = useLocation();
-  const pageFilter = usePageFilters();
   const organization = useOrganization();
   const theme = useTheme();
 
-  const {endpoint, method} = location.query;
+  const {endpoint: transaction, method, statsPeriod, start, end} = location.query;
+  const pageFilter = usePageFilters();
 
-  const transaction =
-    endpoint && typeof endpoint === 'string' ? endpoint.split('=')[1] : undefined;
+  pageFilter.selection.datetime.period = (statsPeriod as string) ?? null;
+  pageFilter.selection.datetime.start = (start as string) ?? null;
+  pageFilter.selection.datetime.end = (end as string) ?? null;
 
   const {
     isLoading: isTableDataLoading,
@@ -174,7 +175,7 @@ export default function EndpointOverview() {
             includeTransformedData
             environment={eventView.environment}
             project={eventView.project}
-            period={eventView.statsPeriod}
+            period={pageFilter.selection.datetime.period}
             referrer="starfish-endpoint-overview"
             start={pageFilter.selection.datetime.start}
             end={pageFilter.selection.datetime.end}
@@ -189,7 +190,7 @@ export default function EndpointOverview() {
                     <FlexRowItem>
                       <SubHeader>{t('Throughput')}</SubHeader>
                       <Chart
-                        statsPeriod="24h"
+                        statsPeriod={(statsPeriod as string) ?? '24h'}
                         height={110}
                         data={results?.[0] ? [results?.[0]] : []}
                         start=""
@@ -212,7 +213,7 @@ export default function EndpointOverview() {
                     <FlexRowItem>
                       <SubHeader>{t('p50(duration)')}</SubHeader>
                       <Chart
-                        statsPeriod="24h"
+                        statsPeriod={(statsPeriod as string) ?? '24h'}
                         height={110}
                         data={results?.[1] ? [results?.[1]] : []}
                         start=""
@@ -240,7 +241,7 @@ export default function EndpointOverview() {
           <FacetBreakdownBar
             segments={moduleBreakdown}
             title={t('Where is time spent in this endpoint?')}
-            transaction={transaction}
+            transaction={transaction as string}
           />
           <SubHeader>{t('HTTP Spans')}</SubHeader>
           <EndpointTable

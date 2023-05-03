@@ -99,9 +99,13 @@ function EndpointDetailBody({row, eventView, organization}: EndpointDetailBodyPr
       <OverviewButton
         to={`/organizations/${
           organization.slug
-        }/starfish/endpoint-overview/?endpoint=${qs.stringify({
-          transaction,
+        }/starfish/endpoint-overview/?${qs.stringify({
+          endpoint: transaction,
           method: httpOp,
+          statsPeriod: eventView.statsPeriod,
+          project: eventView.project,
+          start: eventView.start,
+          end: eventView.end,
         })}`}
       >
         {t('Go to Endpoint Overview')}
