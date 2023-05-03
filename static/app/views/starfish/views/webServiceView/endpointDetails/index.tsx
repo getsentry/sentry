@@ -164,7 +164,7 @@ function EndpointDetailBody({
     isLoading: isTableDataLoading,
     data: tableData,
     isRefetching: isTableRefetching,
-  } = useQueryMainTable(row.transaction);
+  } = useQueryMainTable({transaction: row.transaction});
   return (
     <div>
       <h2>{t('Endpoint Detail')}</h2>
