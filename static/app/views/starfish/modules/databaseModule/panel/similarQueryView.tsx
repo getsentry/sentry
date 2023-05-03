@@ -2,11 +2,9 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import GridEditable from 'sentry/components/gridEditable';
-import {Hovercard} from 'sentry/components/hovercard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   DataRow,
-  MainTableSort,
   similarity,
   TableColumnHeader,
 } from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
@@ -14,7 +12,6 @@ import {useQueryMainTable} from 'sentry/views/starfish/modules/databaseModule/qu
 
 type Props = {
   mainTableRow: DataRow;
-  mainTableSort: MainTableSort;
 };
 
 const COLUMN_ORDER: TableColumnHeader[] = [
@@ -38,10 +35,8 @@ const COLUMN_ORDER: TableColumnHeader[] = [
 ];
 
 function SimilarQueryView(props: Props) {
-  const {mainTableRow, mainTableSort} = props;
+  const {mainTableRow} = props;
   const {isLoading, data} = useQueryMainTable({
-    sortDirection: mainTableSort.direction,
-    sortKey: mainTableSort.sortHeader?.key,
     limit: 410,
   });
   const location = useLocation();
@@ -74,7 +69,7 @@ function SimilarQueryView(props: Props) {
           })}
         </div>
       );
-      renderedValue = <Hovercard body={diffQuery}>{diffQuery}</Hovercard>;
+      renderedValue = diffQuery;
     }
     if (key === 'epm' || key === 'p75' || key === 'total_time') {
       const val = row[key];

@@ -84,7 +84,6 @@ function QueryDetailBody({
   nextRow,
   prevRow,
   onRowChange,
-  mainTableSort,
   isDataLoading: isRowLoading,
 }: DbQueryDetailProps) {
   const theme = useTheme();
@@ -250,7 +249,7 @@ function QueryDetailBody({
       <FlexRowContainer>
         <FlexRowItem>
           <SubHeader>{t('Similar Queries')}</SubHeader>
-          <SimilarQueryView mainTableRow={row} mainTableSort={mainTableSort} />
+          <SimilarQueryView mainTableRow={row} />
         </FlexRowItem>
       </FlexRowContainer>
     </div>
