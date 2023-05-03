@@ -31,7 +31,7 @@ function TeamMembersRow({
   removeMember,
   updateMemberRole,
 }: Props) {
-  const isSelf = user.id === member.user.id || user.email === member.email;
+  const isSelf = user.email === member.email;
 
   return (
     <TeamRolesPanelItem key={member.id}>
@@ -106,6 +106,7 @@ function RemoveButton(props: {
   const buttonRemoveText = isSelf ? t('Leave') : t('Remove');
   return (
     <Button
+      data-test-id={`button-remove-${member.id}`}
       size="xs"
       disabled={!canRemoveMember}
       icon={<IconSubtract size="xs" isCircled />}
