@@ -418,7 +418,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
-        has_project_write = request.access and request.access.has_scope("project:write")
+        has_project_write = request.access and (
+            request.access.has_scope("project:write")
+            or request.access.has_project_scope(project, "project:write")
+        )
 
         if has_project_write:
             serializer_cls = ProjectAdminSerializer
