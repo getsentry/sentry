@@ -1,7 +1,8 @@
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
-from rest_framework import serializers, status
+from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -170,25 +171,22 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                     {"detail": "You do not have permission to join a new team as a Team Admin"}
                 )
 
-        # Wrap team creation and member addition in same transaction
-        with transaction.atomic():
-            try:
+        try:
+            # Wrap team creation and member addition in same transaction
+            with transaction.atomic():
                 team = Team.objects.create(
                     name=result.get("name") or result["slug"],
                     slug=result.get("slug"),
                     idp_provisioned=result.get("idp_provisioned", False),
                     organization=organization,
                 )
-            except IntegrityError:
-                return Response(
-                    {
-                        "non_field_errors": [CONFLICTING_SLUG_ERROR],
-                        "detail": CONFLICTING_SLUG_ERROR,
-                    },
-                    status=409,
+                team_created.send_robust(
+                    organization=organization,
+                    user=request.user,
+                    team=team,
+                    sender=self.__class__,
                 )
-            if self.should_add_creator_to_team(request):
-                try:
+                if self.should_add_creator_to_team(request):
                     member = OrganizationMember.objects.get(
                         user=request.user, organization=organization
                     )
@@ -197,31 +195,29 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                         organizationmember=member,
                         role="admin" if set_team_admin else None,
                     )
-                except OrganizationMember.DoesNotExist:
-                    # Only rollback team creation and return 400 if trying to set user as
-                    # Team Admin but user is not a member of the organization
-                    if set_team_admin:
-                        transaction.set_rollback(True)
-                        return Response(
-                            {
-                                "detail": "You must be a member of the organization to join a new team as a Team Admin"
-                            },
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-
-        # We only want to robustly log team creation once both the team has been created
-        # and the member has been added as needed
-        team_created.send_robust(
-            organization=organization, user=request.user, team=team, sender=self.__class__
-        )
-        self.create_audit_entry(
-            request=request,
-            organization=organization,
-            target_object=team.id,
-            event=audit_log.get_event_id("TEAM_ADD"),
-            data=team.get_audit_log_data(),
-        )
-        return Response(
-            serialize(team, request.user, self.team_serializer_for_post()),
-            status=201,
-        )
+        except IntegrityError:
+            return Response(
+                {
+                    "non_field_errors": [CONFLICTING_SLUG_ERROR],
+                    "detail": CONFLICTING_SLUG_ERROR,
+                },
+                status=409,
+            )
+        except OrganizationMember.DoesNotExist:
+            # team is automatically rolledback if exception raised in atomic block
+            if set_team_admin:
+                raise PermissionDenied(
+                    detail="You must be a member of the organization to join a new team as a Team Admin"
+                )
+        else:
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=team.id,
+                event=audit_log.get_event_id("TEAM_ADD"),
+                data=team.get_audit_log_data(),
+            )
+            return Response(
+                serialize(team, request.user, self.team_serializer_for_post()),
+                status=201,
+            )

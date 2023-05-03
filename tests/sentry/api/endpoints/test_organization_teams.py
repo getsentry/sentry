@@ -325,7 +325,7 @@ class OrganizationTeamsCreateTest(APITestCase):
                 name="hello world",
                 slug="foobar",
                 set_team_admin=True,
-                status_code=400,
+                status_code=403,
             )
             assert response.data == {
                 "detail": "You must be a member of the organization to join a new team as a Team Admin",
