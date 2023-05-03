@@ -29,7 +29,7 @@ from sentry.models import (
     ReleaseFile,
     create_files_from_dif_zip,
 )
-from sentry.models.debugfile import ProguardArtifact
+from sentry.models.debugfile import ProguardArtifactRelease
 from sentry.models.release import get_artifact_counts
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -83,7 +83,7 @@ def has_download_permission(request, project):
 
 
 @region_silo_endpoint
-class ProguardArtifactEndpoint(ProjectEndpoint):
+class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     def post(self, request: Request, project) -> Response:
@@ -94,7 +94,7 @@ class ProguardArtifactEndpoint(ProjectEndpoint):
                 data={"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        ProguardArtifact.objects.create(
+        ProguardArtifactRelease.objects.create(
             organization_id=project.organization_id,
             release_name=release_name,
             proguard_uuid=proguard_uuid,
@@ -209,7 +209,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         def on_results(results):
             for result in results:
                 if result.object_name == "proguard-mapping":
-                    bundles = ProguardArtifact.objects.filter(proguard_uuid=result.debug_id)
+                    bundles = ProguardArtifactRelease.objects.filter(proguard_uuid=result.debug_id)
                     associated_releases = [str(bundle.release_name) for bundle in bundles]
                     if associated_releases:
                         result_dict = serialize(result, request.user)

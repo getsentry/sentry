@@ -26,7 +26,7 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.CreateModel(
-            name="ProguardArtifact",
+            name="ProguardArtifactRelease",
             fields=[
                 (
                     "id",
@@ -47,7 +47,7 @@ class Migration(CheckedMigration):
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
             ],
             options={
-                "db_table": "sentry_releaseproguardartifact",
+                "db_table": "sentry_proguardartifactrelease",
                 "unique_together": {("organization_id", "project_id", "release_name")},
             },
         ),

@@ -363,7 +363,7 @@ def _analyze_progard_filename(filename: str) -> Optional[str]:
 
 
 @region_silo_only_model
-class ProguardArtifact(Model):
+class ProguardArtifactRelease(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
@@ -373,7 +373,7 @@ class ProguardArtifact(Model):
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_releaseproguardartifact"
+        db_table = "sentry_proguardartifactrelease"
 
         unique_together = (("organization_id", "release_name"),)
 

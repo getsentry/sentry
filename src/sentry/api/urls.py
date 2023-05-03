@@ -131,7 +131,7 @@ from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
     DebugFilesEndpoint,
     DifAssembleEndpoint,
-    ProguardArtifactEndpoint,
+    ProguardArtifactReleasesEndpoint,
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
@@ -1908,9 +1908,9 @@ PROJECT_URLS = [
         name="sentry-api-0-artifact-bundles",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/proguard-artifacts",
-        ProguardArtifactEndpoint.as_view(),
-        name="sentry-api-0-proguard-artifacts",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/proguard-artifact-releases",
+        ProguardArtifactReleasesEndpoint.as_view(),
+        name="sentry-api-0-proguard-artifacts-releases",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/difs/assemble/$",
