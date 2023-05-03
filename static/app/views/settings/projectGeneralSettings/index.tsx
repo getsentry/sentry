@@ -70,7 +70,12 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       return;
     }
 
-    removeProject(this.api, organization.slug, project.slug)
+    removeProject({
+      api: this.api,
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+      origin: 'settings',
+    })
       .then(
         () => {
           addSuccessMessage(

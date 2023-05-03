@@ -198,7 +198,12 @@ function Onboarding(props: Props) {
     );
 
     try {
-      await removeProject(api, organization.slug, recentCreatedProject.slug);
+      await removeProject({
+        api,
+        orgSlug: organization.slug,
+        projectSlug: recentCreatedProject.slug,
+        origin: 'onboarding',
+      });
       onboardingContext.setData({
         ...onboardingContext.data,
         projects: newProjects,
