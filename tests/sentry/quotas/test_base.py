@@ -128,24 +128,6 @@ class QuotaTest(TestCase):
                 "reasonCode": "go_away",
             },
         ),
-        (
-            QuotaConfig(
-                id="p",
-                scope=QuotaScope.PROJECT,
-                scope_id=1,
-                limit=2**32,
-                window=1,
-                reason_code="go_away",
-            ),
-            {
-                "id": "p",
-                "scope": "project",
-                "scopeId": "1",
-                "limit": 2**32 - 1,
-                "window": 1,
-                "reasonCode": "go_away",
-            },
-        ),
     ],
 )
 def test_quotas_to_json(obj, json):

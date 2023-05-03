@@ -332,7 +332,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 scope_identifier__in=team_ids,
             ),
             type=type_.value,
-            target__in=actor_ids,
+            target_id__in=actor_ids,
         )
 
     def filter_to_accepting_recipients(
