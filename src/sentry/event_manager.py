@@ -2471,7 +2471,6 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
         project = event.project
         event_id = event.event_id
 
-        print("PERF PORBL", job["performance_problems"])
         performance_problems = job["performance_problems"]
         for problem in performance_problems:
             if write_occurrence_to_platform(problem, project):

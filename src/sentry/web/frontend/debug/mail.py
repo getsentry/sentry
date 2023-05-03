@@ -221,7 +221,7 @@ def make_performance_event(project, sample_name: str):
         perf_event.data["timestamp"] = timestamp.timestamp()
         perf_event.data["start_timestamp"] = start_timestamp.timestamp()
 
-    perf_event = perf_event.for_group(perf_event.groups[0])
+    # perf_event = perf_event.for_group(perf_event.groups[0])
     return perf_event
 
 

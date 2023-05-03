@@ -32,7 +32,9 @@ def get_occurrence_producer() -> KafkaProducer:
 
 
 def produce_occurrence_to_kafka(occurrence: IssueOccurrence) -> None:
+    print("hAI")
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
+        print("zhere??")
         # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
         # write to the issue platform directly
         from sentry.issues.occurrence_consumer import lookup_event_and_process_issue_occurrence
