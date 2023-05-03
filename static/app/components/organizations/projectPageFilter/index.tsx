@@ -146,7 +146,7 @@ export function ProjectPageFilter({
 
   const handleChange = useCallback(
     async (newValue: number[]) => {
-      if (isEqual(newValue, pageFilterValue)) {
+      if (isEqual(newValue, value)) {
         return;
       }
 
