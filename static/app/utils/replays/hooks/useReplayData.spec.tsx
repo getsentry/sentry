@@ -75,7 +75,6 @@ describe('useReplayData', () => {
     await waitForNextUpdate();
 
     expect(result.current).toEqual({
-      replayErrors: expect.any(Array),
       fetchError: undefined,
       fetching: false,
       onRetry: expect.any(Function),
@@ -275,7 +274,6 @@ describe('useReplayData', () => {
     });
 
     const expectedReplayData = {
-      replayErrors: expect.any(Array),
       fetchError: undefined,
       fetching: true,
       onRetry: expect.any(Function),
@@ -356,7 +354,6 @@ describe('useReplayData', () => {
     await waitForNextUpdate();
 
     expect(result.current).toEqual({
-      replayErrors: expect.any(Array),
       fetchError: undefined,
       fetching: false,
       onRetry: expect.any(Function),

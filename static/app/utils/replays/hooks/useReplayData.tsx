@@ -315,12 +315,10 @@ async function* fetchPaginatedReplayErrors(
     results: true,
     href: '',
   };
-  const results: ReplayError[] = [];
   while (cursor.results) {
     const [{data}, , resp] = await next(cursor.cursor);
     const pageLinks = resp?.getResponseHeader('Link') ?? null;
     cursor = parseLinkHeader(pageLinks)?.next;
-    results.push(...data);
     yield data;
   }
 }
