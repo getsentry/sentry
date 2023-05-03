@@ -91,18 +91,14 @@ export default function EndpointOverview() {
   const organization = useOrganization();
   const theme = useTheme();
 
-  const {endpoint: transaction, method, statsPeriod, start, end} = location.query;
+  const {endpoint: transaction, method, statsPeriod} = location.query;
   const pageFilter = usePageFilters();
-
-  pageFilter.selection.datetime.period = (statsPeriod as string) ?? null;
-  pageFilter.selection.datetime.start = (start as string) ?? null;
-  pageFilter.selection.datetime.end = (end as string) ?? null;
 
   const {
     isLoading: isTableDataLoading,
     data: tableData,
     isRefetching: isTableRefetching,
-  } = useQueryMainTable(transaction as string);
+  } = useQueryMainTable(transaction as string, 'ALL');
 
   const {data: moduleBreakdown} = useQuery({
     queryKey: [`moduleBreakdown${transaction}`],
