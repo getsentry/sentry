@@ -1,5 +1,5 @@
-import styled from '@emotion/styled';
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import {Role} from 'sentry/components/acl/role';
