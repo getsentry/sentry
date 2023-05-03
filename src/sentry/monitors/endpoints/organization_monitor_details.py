@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ObjectStatus
 from sentry.models import Rule, RuleStatus, ScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
@@ -162,8 +163,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     Monitor.objects.filter(id=monitor.id)
                     .exclude(
                         status__in=[
-                            MonitorStatus.PENDING_DELETION,
-                            MonitorStatus.DELETION_IN_PROGRESS,
+                            ObjectStatus.PENDING_DELETION,
+                            ObjectStatus.DELETION_IN_PROGRESS,
                         ]
                     )
                     .first()
@@ -173,7 +174,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     Rule.objects.filter(id=alert_rule_id).update(status=RuleStatus.PENDING_DELETION)
 
             if not monitor_object or not monitor_object.update(
-                status=MonitorStatus.PENDING_DELETION
+                status=ObjectStatus.PENDING_DELETION
             ):
                 return self.respond(status=404)
 

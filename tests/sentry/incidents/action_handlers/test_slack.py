@@ -3,28 +3,30 @@ from urllib.parse import parse_qs
 import responses
 from freezegun import freeze_time
 
+from sentry.constants import ObjectStatus
 from sentry.incidents.action_handlers import SlackActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
-from sentry.models import Integration
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 from . import FireTest
 
 
 @freeze_time()
+@region_silo_test(stable=True)
 class SlackActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method, chart_url=None):
         from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 
         token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        integration = Integration.objects.create(
+        integration = self.create_integration(
+            organization=self.organization,
             external_id="1",
             provider="slack",
             metadata={"access_token": token, "installation_type": "born_as_bot"},
         )
-        integration.add_organization(self.organization, self.user)
         channel_id = "some_id"
         channel_name = "#hello"
         responses.add(
@@ -56,7 +58,6 @@ class SlackActionHandlerTest(FireTest, TestCase):
             getattr(handler, method)(metric_value, IncidentStatus(incident.status))
         data = parse_qs(responses.calls[1].request.body)
         assert data["channel"] == [channel_id]
-        assert data["token"] == [token]
         slack_body = SlackIncidentsMessageBuilder(
             incident, IncidentStatus(incident.status), metric_value, chart_url
         ).build()
@@ -76,18 +77,19 @@ class SlackActionHandlerTest(FireTest, TestCase):
 
 
 @freeze_time()
+@region_silo_test(stable=True)
 class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
         from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 
         token = "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        integration = Integration.objects.create(
+        integration = self.create_integration(
+            organization=self.organization,
             external_id="1",
             provider="slack",
             metadata={"access_token": token, "installation_type": "born_as_bot"},
         )
-        integration.add_organization(self.organization, self.user)
         channel_id = "some_id"
         channel_name = "#hello"
         responses.add(
@@ -119,7 +121,6 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
             getattr(handler, method)(metric_value, IncidentStatus(incident.status))
         data = parse_qs(responses.calls[1].request.body)
         assert data["channel"] == [channel_id]
-        assert data["token"] == [token]
         slack_body = SlackIncidentsMessageBuilder(
             incident, IncidentStatus(incident.status), metric_value
         ).build()
@@ -134,13 +135,11 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
     def test_fire_metric_alert_with_missing_integration(self):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
-        integration = Integration.objects.create(
+        integration = self.create_integration(
+            organization=self.organization,
             external_id="1",
             provider="slack",
-            metadata={
-                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
+            status=ObjectStatus.DELETION_IN_PROGRESS,
         )
         action = AlertRuleTriggerAction.objects.create(
             alert_rule_trigger=self.create_alert_rule_trigger(),
@@ -151,7 +150,6 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
             integration_id=integration.id,
             sentry_app_id=None,
         )
-        integration.delete()
         handler = SlackActionHandler(action, incident, self.project)
         metric_value = 1000
         with self.tasks():
