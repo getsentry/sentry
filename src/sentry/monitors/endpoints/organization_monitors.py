@@ -306,4 +306,6 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
                     rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
                 )
 
+                monitor.config = monitor.config["alert_rule_id"] = rule.id
+
         return self.respond(serialize(monitor, request.user), status=201)
