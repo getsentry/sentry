@@ -2,7 +2,6 @@ import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {Group, Organization, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
@@ -81,8 +80,6 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
       const resp = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`
       );
-      // update the project independently of an event of the defined type was received
-      ProjectsStore.onUpdateSuccess(resp);
       firstEvent = getFirstEvent(eventType, resp);
     } catch (resp) {
       if (!resp) {
