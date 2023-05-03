@@ -3,7 +3,6 @@ from datetime import timedelta
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
 from sentry.dynamic_sampling.sliding_window_rebalancing import (
     fetch_projects_with_total_root_transactions_count,
 )
@@ -34,6 +33,14 @@ class SlidingWindowRebalancingSnubaQueryTest(BaseMetricsLayerTestCase, TestCase,
             project_id=project_1.id,
             org_id=org_1.id,
         )
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction"},
+            minutes_before_now=60,
+            value=50,
+            project_id=project_1.id,
+            org_id=org_1.id,
+        )
 
         self.store_performance_metric(
             name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
@@ -44,10 +51,8 @@ class SlidingWindowRebalancingSnubaQueryTest(BaseMetricsLayerTestCase, TestCase,
             org_id=org_1.id,
         )
 
-        with self.options({"dynamic-sampling.sliding_window_rebalancing.sample_rate": 1.0}):
-            results = fetch_projects_with_total_root_transactions_count(org_ids=[org_1.id])
-
-        assert results[org_1.id] == [(project_1.id, 100), (project_2.id, 200)]
+        results = fetch_projects_with_total_root_transactions_count(org_ids=[org_1.id])
+        assert results[org_1.id] == [(project_1.id, 150), (project_2.id, 200)]
 
     def test_query_with_multiple_orgs_and_multiple_projects(self):
         org_1 = self.create_organization("test-org-1")
@@ -84,28 +89,6 @@ class SlidingWindowRebalancingSnubaQueryTest(BaseMetricsLayerTestCase, TestCase,
             org_id=org_2.id,
         )
 
-        with self.options({"dynamic-sampling.sliding_window_rebalancing.sample_rate": 1.0}):
-            results = fetch_projects_with_total_root_transactions_count(
-                org_ids=[org_1.id, org_2.id]
-            )
-
+        results = fetch_projects_with_total_root_transactions_count(org_ids=[org_1.id, org_2.id])
         assert results[org_1.id] == [(project_1.id, 100), (project_2.id, 200)]
         assert results[org_2.id] == [(project_3.id, 300)]
-
-    def test_query_with_zero_sample_rate(self):
-        org_1 = self.create_organization("test-org")
-        project_1 = self.create_project(organization=org_1)
-
-        self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo_transaction"},
-            minutes_before_now=30,
-            value=1,
-            project_id=project_1.id,
-            org_id=org_1.id,
-        )
-
-        with self.options({"dynamic-sampling.sliding_window_rebalancing.sample_rate": 0.0}):
-            results = fetch_projects_with_total_volumes(org_ids=[org_1.id])
-
-        assert results == {}

@@ -413,9 +413,8 @@ class TestSlidingWindowRebalancingTask(BaseMetricsLayerTestCase, TestCase, Snuba
         project_b = self.create_project_and_add_metrics("b", 10, org)
         project_c = self.create_project_and_add_metrics("c", 100, org)
 
-        with self.options({"dynamic-sampling.sliding_window_rebalancing.sample_rate": 1.0}):
-            with self.tasks():
-                sliding_window_rebalancing()
+        with self.tasks():
+            sliding_window_rebalancing()
 
         with self.feature("organizations:ds-sliding-window"):
             assert generate_rules(project_a)[0]["samplingValue"] == {
@@ -450,9 +449,8 @@ class TestSlidingWindowRebalancingTask(BaseMetricsLayerTestCase, TestCase, Snuba
         # In this case we expect that the base sample rate will be used from "get_blended_sample_rate".
         project_b = self.create_project_and_add_metrics("b", 0, org)
 
-        with self.options({"dynamic-sampling.sliding_window_rebalancing.sample_rate": 1.0}):
-            with self.tasks():
-                sliding_window_rebalancing()
+        with self.tasks():
+            sliding_window_rebalancing()
 
         with self.feature("organizations:ds-sliding-window"):
             assert generate_rules(project_a)[0]["samplingValue"] == {
@@ -477,9 +475,8 @@ class TestSlidingWindowRebalancingTask(BaseMetricsLayerTestCase, TestCase, Snuba
 
         project_a = self.create_project_and_add_metrics("a", 100, org)
 
-        with self.options({"dynamic-sampling.sliding_window_rebalancing.sample_rate": 1.0}):
-            with self.tasks():
-                sliding_window_rebalancing()
+        with self.tasks():
+            sliding_window_rebalancing()
 
         with self.feature("organizations:ds-sliding-window"):
             assert generate_rules(project_a)[0]["samplingValue"] == {

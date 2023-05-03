@@ -11,16 +11,13 @@ from snuba_sdk import (
     Entity,
     Function,
     Granularity,
-    LimitBy,
     Op,
     OrderBy,
     Query,
     Request,
 )
 
-from sentry import options
 from sentry.dynamic_sampling.rules.utils import OrganizationId, ProjectId
-from sentry.dynamic_sampling.snuba_utils import MAX_TRANSACTIONS_PER_PROJECT
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -57,12 +54,6 @@ def fetch_projects_with_total_root_transactions_count(
         Condition(Column("org_id"), Op.IN, list(org_ids)),
     ]
 
-    # Since we want a uniform distribution of samples, we use the modulo operator and sample with a given sample rate
-    # the orgs.
-    sample_rate = int(options.get("dynamic-sampling.sliding_window_rebalancing.sample_rate") * 100)
-    if sample_rate != 100:
-        where += [Condition(Function("modulo", [Column("org_id"), 100]), Op.LT, sample_rate)]
-
     start_time = time.time()
     offset = 0
     aggregated_projects = defaultdict(list)
@@ -82,12 +73,6 @@ def fetch_projects_with_total_root_transactions_count(
                     OrderBy(Column("project_id"), Direction.ASC),
                 ],
                 granularity=granularity,
-            )
-            .set_limitby(
-                LimitBy(
-                    columns=[Column("org_id"), Column("project_id")],
-                    count=MAX_TRANSACTIONS_PER_PROJECT,
-                )
             )
             .set_limit(CHUNK_SIZE + 1)
             .set_offset(offset)
