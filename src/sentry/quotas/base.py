@@ -479,11 +479,14 @@ class Quota(Service):
         """
 
     def get_transaction_sampling_tier_for_volume(
-        self, project: "Project", volume: int
+        self, organization_id: int, volume: int
     ) -> Optional[Tuple[int, float]]:
         """
         Returns the transaction sampling tier closest to a specific volume.
 
-        :param project: The project model.
+        The organization_id is required because the tier is based on the organization's plan, and we have to check
+        whether the organization has dynamic sampling.
+
+        :param organization_id: The organization id.
         :param volume: The volume of transaction of the given project.
         """

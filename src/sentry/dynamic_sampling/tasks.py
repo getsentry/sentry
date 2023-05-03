@@ -378,28 +378,23 @@ def adjust_base_sample_rate_per_project(
     Adjusts the base sample rate per project by considering its volume and how it fits w.r.t. to the sampling tiers
     defined on the billing side.
     """
-    project_ids_with_counts = {}
+    projects_with_rebalanced_sample_rate = []
     for project_id, total_root_count in projects_with_total_root_count:
-        project_ids_with_counts[project_id] = total_root_count
-
-    project_ids_with_sample_rates = {}
-    for project in Project.objects.get_many_from_cache(project_ids_with_counts.keys()):
-        project_total_root_count = project_ids_with_counts[project.id]
-        forecasted_volume = get_forecasted_monthly_volume(daily_volume=project_total_root_count)
+        forecasted_volume = get_forecasted_monthly_volume(daily_volume=total_root_count)
         if forecasted_volume is None:
             logger.info(
-                f"The volume of the current month can't be forecasted for org {org_id} and project {project.id}."
+                f"The volume of the current month can't be forecasted for org {org_id} and project {project_id}."
             )
             continue
 
-        sampling_tier = quotas.get_transaction_sampling_tier_for_volume(project, forecasted_volume)
+        sampling_tier = quotas.get_transaction_sampling_tier_for_volume(org_id, forecasted_volume)
         # In case the sampling tier cannot be determined, we want to log it and try to get it for the next project.
         #
         # There might be a situation in which the old key is set into Redis still and in that case, we prefer to keep it
         # instead of deleting it. This behavior can be changed anytime, by just doing an "HDEL" on the failing key.
         if sampling_tier is None:
             logger.info(
-                f"The sampling tier for org {org_id} and project {project.id} can't be determined, either an error "
+                f"The sampling tier for org {org_id} and project {project_id} can't be determined, either an error "
                 f"occurred or the org doesn't have dynamic sampling."
             )
             continue
@@ -407,15 +402,15 @@ def adjust_base_sample_rate_per_project(
         # We unpack the tuple containing the sampling tier information in the form (volume, sample_rate). This is done
         # under the assumption that the sampling_tier tuple contains both non-null values.
         _, sample_rate = sampling_tier
-        project_ids_with_sample_rates[project.id] = sample_rate
+        projects_with_rebalanced_sample_rate.append((project_id, sample_rate))
 
-    # In cas we failed to get the sampling tier of all the projects, we don't even want to start a Redis pipeline.
-    if len(project_ids_with_sample_rates) == 0:
+    # In case we failed to get the sampling tier of all the projects, we don't even want to start a Redis pipeline.
+    if len(projects_with_rebalanced_sample_rate) == 0:
         return
 
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:
-        for project_id, sample_rate in project_ids_with_sample_rates.items():
+        for project_id, sample_rate in projects_with_rebalanced_sample_rate:
             cache_key = generate_sliding_window_rebalancing_cache_key(org_id=org_id)
             pipeline.hset(cache_key, project_id, sample_rate)
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
