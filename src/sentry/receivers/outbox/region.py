@@ -104,7 +104,7 @@ def process_organization_updates(object_identifier: int, **kwds: Any):
         organization_mapping_service.delete(organization_id=object_identifier)
         return
 
-    rpc_org_update = RpcOrganizationMappingUpdate.from_orm(organization=org)
+    rpc_org_update = RpcOrganizationMappingUpdate.from_orm(org)
     organization_mapping_service.update(organization_id=org.id, update=rpc_org_update)
 
 
