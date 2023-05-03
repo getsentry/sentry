@@ -47,7 +47,7 @@ class ExternalActor(DefaultFieldsModel):
     def delete(self, **kwargs):
         from sentry.services.hybrid_cloud.integration import integration_service
 
-        integration = integration_service.get_integration(organization_id=self.organization.id)
+        integration = integration_service.get_integration(integration_id=self.integration_id)
         install = integration_service.get_installation(
             integration=integration, organization_id=self.organization.id
         )
