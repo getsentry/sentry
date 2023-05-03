@@ -58,11 +58,11 @@ function SimilarQueryView(props: Props) {
 
     let renderedValue: React.ReactNode = row[key];
     if (key === 'description') {
-      const mainTableRowWords = new Set(mainTableRow.description.split(' '));
+      const mainTableQueryWords = new Set(mainTableRow.description.split(' '));
       renderedValue = (
         <Fragment>
           {row.description.split(' ').map(word => {
-            if (mainTableRowWords.has(word)) {
+            if (mainTableQueryWords.has(word)) {
               return <span key={word}>{word}</span>;
             }
             return (
