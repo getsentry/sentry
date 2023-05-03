@@ -262,15 +262,20 @@ function QueryDetailBody({
 
   return (
     <div>
-      <Paginator>
-        <SimplePagination
-          disableLeft={!prevRow}
-          disableRight={!nextRow}
-          onLeftClick={() => onRowChange(prevRow)}
-          onRightClick={() => onRowChange(nextRow)}
-        />
-      </Paginator>
-      <h2>{t('Query Detail')}</h2>
+      <FlexRowContainer>
+        <FlexRowItem>
+          <h2>{t('Query Detail')}</h2>
+        </FlexRowItem>
+        <FlexRowItem>
+          <SimplePagination
+            disableLeft={!prevRow}
+            disableRight={!nextRow}
+            onLeftClick={() => onRowChange(prevRow)}
+            onRightClick={() => onRowChange(nextRow)}
+          />
+        </FlexRowItem>
+      </FlexRowContainer>
+
       <FlexRowContainer>
         <FlexRowItem>
           <SubHeader>
@@ -291,6 +296,7 @@ function QueryDetailBody({
           <SubSubHeader>{row.total_time.toFixed(2)}ms</SubSubHeader>
         </FlexRowItem>
       </FlexRowContainer>
+
       <SubHeader>{t('Query Description')}</SubHeader>
       <FormattedCode>{formatRow(row.formatted_desc, row)}</FormattedCode>
       <FlexRowContainer>
@@ -496,6 +502,7 @@ const FlexRowContainer = styled('div')`
   & > div:last-child {
     padding-right: ${space(1)};
   }
+  padding-bottom: ${space(2)};
 `;
 
 const FlexRowItem = styled('div')`
@@ -527,10 +534,4 @@ const Keyword = styled('b')`
 
 const Bracket = styled('b')`
   color: ${p => p.theme.pink400};
-`;
-
-const Paginator = styled('div')`
-  width: 33%;
-  position: absolute;
-  right: 0;
 `;
