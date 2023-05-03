@@ -199,10 +199,10 @@ function QueryDetailBody({
 
   const onSortClick = (col: TableColumnHeader) => {
     let direction: 'desc' | 'asc' | undefined = undefined;
-    if (sort.direction === 'desc') {
-      direction = 'asc';
-    } else if (!sort.direction) {
+    if (!sort.direction || col.key !== sort.sortHeader?.key) {
       direction = 'desc';
+    } else if (sort.direction === 'desc') {
+      direction = 'asc';
     }
     setSort({direction, sortHeader: col});
   };
