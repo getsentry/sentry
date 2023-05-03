@@ -198,7 +198,6 @@ describe('TimeRangeSelector', function () {
       utc: true,
     });
   });
-  ``;
 
   it('uses the default absolute date', async function () {
     renderComponent({
