@@ -69,9 +69,11 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         )
 
         exceeds_min_lcp_threshold = (
-            self._sum_span_duration(self.consecutive_http_spans) / self.lcp
+            self.lcp is not None
+            and self.lcp > 0
+            and self._sum_span_duration(self.consecutive_http_spans) / self.lcp
             >= self.settings.get("lcp_ratio_threshold")
-            if self.lcp and is_event_from_browser_javascript_sdk(self.event())
+            if is_event_from_browser_javascript_sdk(self.event())
             else True
         )
 
