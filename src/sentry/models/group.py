@@ -168,6 +168,16 @@ QUERY_STATUS_LOOKUP = {
     status: query for query, status in STATUS_QUERY_CHOICES.items() if query != "muted"
 }
 
+GROUP_SUBSTATUS_TO_STATUS_MAP = {
+    GroupSubStatus.ESCALATING: GroupStatus.UNRESOLVED,
+    GroupSubStatus.REGRESSED: GroupStatus.UNRESOLVED,
+    GroupSubStatus.ONGOING: GroupStatus.UNRESOLVED,
+    GroupSubStatus.NEW: GroupStatus.UNRESOLVED,
+    GroupSubStatus.UNTIL_ESCALATING: GroupStatus.IGNORED,
+    GroupSubStatus.FOREVER: GroupStatus.IGNORED,
+    GroupSubStatus.UNTIL_CONDITION_MET: GroupStatus.IGNORED,
+}
+
 # Statuses that can be updated from the regular "update group" API
 #
 # Differences over STATUS_QUERY_CHOICES:

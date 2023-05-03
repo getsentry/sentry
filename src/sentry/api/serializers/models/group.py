@@ -880,6 +880,7 @@ class SharedGroupSerializer(GroupSerializer):
 SKIP_SNUBA_FIELDS = frozenset(
     (
         "status",
+        "substatus",
         "bookmarked_by",
         "assigned_to",
         "for_review",
