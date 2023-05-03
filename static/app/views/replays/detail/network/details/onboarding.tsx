@@ -85,6 +85,20 @@ function SetupInstructions({
   url: string;
   visibleTab: TabKey;
 }) {
+  if (showSnippet === Output.data && visibleTab === 'details') {
+    return (
+      <NoMarginAlert type="muted" system data-test-id="network-setup-steps">
+        {tct(
+          'You can capture more customer headers by adding them to the [requestConfig] and [responseConfig] lists in your SDK config.',
+          {
+            requestConfig: <kbd>networkRequestHeaders</kbd>,
+            responseConfig: <kbd>networkResponseHeaders</kbd>,
+          }
+        )}
+      </NoMarginAlert>
+    );
+  }
+
   const urlSnippet = `
       networkDetailAllowUrls: ['${url}'],`;
   const bodiesSnippet = `
@@ -117,6 +131,7 @@ function SetupInstructions({
       : visibleTab === 'details'
       ? t('Capture Request and Response Headers')
       : t('Capture Request and Response Payloads');
+
   return (
     <StyledInstructions data-test-id="network-setup-steps">
       <h1>{title}</h1>
@@ -135,15 +150,18 @@ function SetupInstructions({
 
       {showSnippet === Output.urlSkipped && (
         <Alert type="warning">
-          Add <kbd>{url}</kbd> to your <kbd>networkDetailAllowUrls</kbd> list to start
-          capturing data.
+          {tct('Add [url] to your [field] list to start capturing data.', {
+            url: <kbd>{url}</kbd>,
+            field: <kbd>networkDetailAllowUrls</kbd>,
+          })}
         </Alert>
       )}
 
       {showSnippet === Output.bodySkipped && (
         <Alert type="warning">
-          Enable <kbd>networkCaptureBodies: true</kbd> to capture both Request and
-          Response payloads.
+          {tct('Enable [field] to capture both Request and Response payloads.', {
+            field: <kbd>networkCaptureBodies: true</kbd>,
+          })}
         </Alert>
       )}
 
@@ -159,12 +177,18 @@ function SetupInstructions({
         <li>{t('Edit the Replay integration configuration to allow this URL.')}</li>
         <li>{t('That’s it!')}</li>
       </ol>
+
       <CodeSnippet filename="JavaScript" language="javascript">
         {code}
       </CodeSnippet>
     </StyledInstructions>
   );
 }
+
+const NoMarginAlert = styled(Alert)`
+  margin: 0;
+  border-width: 1px 0 0 0;
+`;
 
 const StyledInstructions = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
