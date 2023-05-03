@@ -270,6 +270,9 @@ def convert_query_values(
                         "The substatus filter is not supported for this organization"
                     )
 
+                if isinstance(new_value, list) and len(new_value) > 1:
+                    raise InvalidSearchQuery("The substatus filter only supports a single value")
+
                 status = GROUP_SUBSTATUS_TO_STATUS_MAP.get(
                     new_value[0] if isinstance(new_value, list) else new_value
                 )
