@@ -1,8 +1,16 @@
+import styled from '@emotion/styled';
+
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+
+import {
+  DesyncedFilterIndicator,
+  DesyncedFilterMessage,
+} from './pageFilters/desyncedFilter';
 
 interface DatePageFilterProps {
   /**
@@ -13,8 +21,9 @@ interface DatePageFilterProps {
 
 export function DatePageFilter({resetParamsOnChange}: DatePageFilterProps) {
   const router = useRouter();
-  const {selection} = usePageFilters();
+  const {selection, desyncedFilters} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
+  const desynced = desyncedFilters.has('datetime');
 
   return (
     <TimeRangeSelector
@@ -32,6 +41,20 @@ export function DatePageFilter({resetParamsOnChange}: DatePageFilterProps) {
         });
       }}
       menuTitle={t('Filter Time Range')}
+      menuWidth={desynced ? '22em' : undefined}
+      menuBody={desynced && <DesyncedFilterMessage />}
+      triggerProps={{
+        icon: (
+          <TriggerIconWrap>
+            <IconCalendar />
+            {desynced && <DesyncedFilterIndicator />}
+          </TriggerIconWrap>
+        ),
+      }}
     />
   );
 }
+
+const TriggerIconWrap = styled('div')`
+  position: relative;
+`;

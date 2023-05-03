@@ -482,6 +482,15 @@ async function updateDesyncedUrlState(router?: Router, shouldForceProject?: bool
 }
 
 /**
+ * Commits the new desynced filter values and clears the desynced filters list.
+ */
+export function saveDesyncedFilters() {
+  const {desyncedFilters} = PageFiltersStore;
+  [...desyncedFilters].forEach(filter => persistPageFilters(filter, {save: true}));
+  PageFiltersStore.updateDesyncedFilters(new Set());
+}
+
+/**
  * Merges an UpdateParams object into a Location['query'] object. Results in a
  * PageFilterQuery
  *

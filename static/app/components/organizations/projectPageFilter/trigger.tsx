@@ -10,7 +10,10 @@ import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {trimSlug} from 'sentry/utils/trimSlug';
 
+import {DesyncedFilterIndicator} from '../pageFilters/desyncedFilter';
+
 interface ProjectPageFilterTriggerProps extends Omit<DropdownButtonProps, 'value'> {
+  desynced: boolean;
   memberProjects: Project[];
   nonMemberProjects: Project[];
   ready: boolean;
@@ -23,6 +26,7 @@ function BaseProjectPageFilterTrigger(
     memberProjects,
     nonMemberProjects,
     ready,
+    desynced,
     ...props
   }: ProjectPageFilterTriggerProps,
   forwardedRef: React.ForwardedRef<HTMLButtonElement>
@@ -75,13 +79,16 @@ function BaseProjectPageFilterTrigger(
       {...props}
       ref={forwardedRef}
       icon={
-        !ready || isAllProjectsSelected || isMyProjectsSelected ? (
-          <IconProject />
-        ) : (
-          <PlatformList
-            platforms={projectsToShow.map(p => p.platform ?? 'other').reverse()}
-          />
-        )
+        <TriggerIconWrap>
+          {!ready || isAllProjectsSelected || isMyProjectsSelected ? (
+            <IconProject />
+          ) : (
+            <PlatformList
+              platforms={projectsToShow.map(p => p.platform ?? 'other').reverse()}
+            />
+          )}
+          {desynced && <DesyncedFilterIndicator role="presentation" />}
+        </TriggerIconWrap>
       }
     >
       <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
@@ -94,7 +101,12 @@ export const ProjectPageFilterTrigger = forwardRef(BaseProjectPageFilterTrigger)
 
 const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis};
+  position: relative;
   width: auto;
+`;
+
+const TriggerIconWrap = styled('div')`
+  position: relative;
 `;
 
 const StyledBadge = styled(Badge)`

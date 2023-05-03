@@ -1,5 +1,6 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
@@ -27,6 +28,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
+
+import {DesyncedFilterMessage} from '../pageFilters/desyncedFilter';
 
 import {ProjectPageFilterMenuFooter} from './menuFooter';
 import {ProjectPageFilterTrigger} from './trigger';
@@ -81,6 +84,7 @@ export function ProjectPageFilter({
   const {
     selection: {projects: pageFilterValue},
     isReady: pageFilterIsReady,
+    desyncedFilters,
   } = usePageFilters();
 
   /**
@@ -135,12 +139,18 @@ export function ProjectPageFilter({
     [memberProjects]
   );
 
-  const [value, setValue] = useState<number[]>(mapURLValueToNormalValue(pageFilterValue));
+  const value = useMemo<number[]>(
+    () => mapURLValueToNormalValue(pageFilterValue),
+    [mapURLValueToNormalValue, pageFilterValue]
+  );
 
   const handleChange = useCallback(
     async (newValue: number[]) => {
+      if (isEqual(newValue, pageFilterValue)) {
+        return;
+      }
+
       onChange?.(newValue);
-      setValue(newValue);
 
       trackAnalytics('projectselector.update', {
         count: newValue.length,
@@ -159,6 +169,7 @@ export function ProjectPageFilter({
       });
     },
     [
+      pageFilterValue,
       resetParamsOnChange,
       router,
       allowMultiple,
@@ -274,6 +285,7 @@ export function ProjectPageFilter({
     pageFilterValue,
   ]);
 
+  const desynced = desyncedFilters.has('projects');
   const menuWidth = useMemo(() => {
     const flatOptions: SelectOption<number>[] = options.flatMap(item =>
       'options' in item ? item.options : [item]
@@ -287,14 +299,18 @@ export function ProjectPageFilter({
         0
       );
 
-    // Calculate an appropriate width for the menu. It should be between 20 and 28em.
-    // Within that range, the width is a function of the length of the longest slug. The
-    // project slugs take up to (longestSlugLength * 0.6)em of horizontal space (each
-    // character occupies roughly 0.6em). We also need to add 12em to account for padding,
-    // trailing buttons, and the checkbox.
-    return `${Math.max(20, Math.min(28, longestSlugLength * 0.6 + 12))}em`;
-  }, [options]);
+    // Calculate an appropriate width for the menu. It should be between 20 (22 if
+    // there's a desynced message) and 28em. Within that range, the width is a function
+    // of the length of the longest slug. The project slugs take up to (longestSlugLength
+    // * 0.6)em of horizontal space (each character occupies roughly 0.6em). We also need
+    // to add 12em to account for padding, trailing buttons, and the checkbox.
+    return `${Math.max(
+      desynced ? 22 : 20,
+      Math.min(28, longestSlugLength * 0.6 + 12)
+    )}em`;
+  }, [options, desynced]);
 
+  const hasProjectWrite = organization.access.includes('project:write');
   return (
     <HybridFilter
       {...selectProps}
@@ -312,11 +328,14 @@ export function ProjectPageFilter({
       emptyMessage={t('No projects found')}
       menuTitle={t('Filter Projects')}
       menuWidth={menuWidth}
+      menuBody={desynced && <DesyncedFilterMessage />}
       menuFooter={
-        <ProjectPageFilterMenuFooter
-          handleChange={handleChange}
-          showNonMemberProjects={showNonMemberProjects}
-        />
+        hasProjectWrite && (
+          <ProjectPageFilterMenuFooter
+            handleChange={handleChange}
+            showNonMemberProjects={showNonMemberProjects}
+          />
+        )
       }
       menuFooterMessage={footerMessage}
       trigger={triggerProps => (
@@ -325,6 +344,7 @@ export function ProjectPageFilter({
           memberProjects={memberProjects}
           nonMemberProjects={nonMemberProjects}
           ready={projectsLoaded && pageFilterIsReady}
+          desynced={desynced}
           {...triggerProps}
         />
       )}

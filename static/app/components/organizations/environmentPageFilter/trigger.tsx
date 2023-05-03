@@ -8,14 +8,17 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/trimSlug';
 
+import {DesyncedFilterIndicator} from '../pageFilters/desyncedFilter';
+
 interface EnvironmentPageFilterTriggerProps extends Omit<DropdownButtonProps, 'value'> {
+  desynced: boolean;
   environments: string[];
   ready: boolean;
   value: string[];
 }
 
 function BaseEnvironmentPageFilterTrigger(
-  {value, environments, ready, ...props}: EnvironmentPageFilterTriggerProps,
+  {value, environments, ready, desynced, ...props}: EnvironmentPageFilterTriggerProps,
   forwardedRef: React.ForwardedRef<HTMLButtonElement>
 ) {
   const isAllEnvironmentsSelected =
@@ -35,7 +38,16 @@ function BaseEnvironmentPageFilterTrigger(
   const remainingCount = isAllEnvironmentsSelected ? 0 : value.length - envsToShow.length;
 
   return (
-    <DropdownButton {...props} ref={forwardedRef} icon={<IconWindow />}>
+    <DropdownButton
+      {...props}
+      ref={forwardedRef}
+      icon={
+        <TriggerIconWrap>
+          <IconWindow />
+          {desynced && <DesyncedFilterIndicator role="presentation" />}
+        </TriggerIconWrap>
+      }
+    >
       <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
       {remainingCount > 0 && <StyledBadge text={`+${remainingCount}`} />}
     </DropdownButton>
@@ -47,6 +59,10 @@ export const EnvironmentPageFilterTrigger = forwardRef(BaseEnvironmentPageFilter
 const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis};
   width: auto;
+`;
+
+const TriggerIconWrap = styled('div')`
+  position: relative;
 `;
 
 const StyledBadge = styled(Badge)`
