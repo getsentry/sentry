@@ -148,16 +148,28 @@ function DatabaseModule() {
                 }
               }}
             />
-            Filter New Queries
-            <Switch isActive={filterNew} size="lg" toggle={toggleFilterNew} />
-            Filter Old Queries
-            <Switch isActive={filterOld} size="lg" toggle={toggleFilterOld} />
-            <TransactionNameSearchBar
-              organization={organization}
-              eventView={eventView}
-              onSearch={(query: string) => handleSearch(query)}
-              query={transaction}
-            />
+            <SearchFilterContainer>
+              <LabelledSwitch
+                label="Filter New Queries"
+                isActive={filterNew}
+                size="lg"
+                toggle={toggleFilterNew}
+              />
+              <LabelledSwitch
+                label="Filter Old Queries"
+                isActive={filterOld}
+                size="lg"
+                toggle={toggleFilterOld}
+              />
+            </SearchFilterContainer>
+            <SearchFilterContainer>
+              <TransactionNameSearchBar
+                organization={organization}
+                eventView={eventView}
+                onSearch={(query: string) => handleSearch(query)}
+                query={transaction}
+              />
+            </SearchFilterContainer>
             <DatabaseTableView
               location={location}
               data={tableData}
@@ -192,3 +204,23 @@ const FilterOptionsContainer = styled('div')`
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 `;
+
+const SearchFilterContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
+function LabelledSwitch(props) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        gap: space(1),
+        paddingRight: space(2),
+        alignItems: 'center',
+      }}
+    >
+      <span>{props.label}</span>
+      <Switch {...props} />
+    </span>
+  );
+}
