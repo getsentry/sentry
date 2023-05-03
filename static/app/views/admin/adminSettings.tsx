@@ -49,6 +49,8 @@ const optionsAvailable = [
   'performance.issues.m_n_plus_one_db.ga-rollout',
   'performance.issues.consecutive_http.lcp_ratio_threshold',
   'performance.issues.consecutive_http.max_duration_between_spans',
+  'performance.issues.consecutive_http.consecutive_count_threshold',
+  'performance.issues.consecutive_http.span_duration_threshold',
   'profile.issues.blocked_main_thread-ingest.la-rollout',
   'profile.issues.blocked_main_thread-ingest.ea-rollout',
   'profile.issues.blocked_main_thread-ingest.ga-rollout',
@@ -193,6 +195,8 @@ export default class AdminSettings extends AsyncView<{}, State> {
               </PanelHeader>
               {fields['performance.issues.consecutive_http.lcp_ratio_threshold']}
               {fields['performance.issues.consecutive_http.max_duration_between_spans']}
+              {fields['performance.issues.consecutive_http.consecutive_count_threshold']}
+              {fields['performance.issues.consecutive_http.span_duration_threshold']}
             </Panel>
             <Panel>
               <PanelHeader>
