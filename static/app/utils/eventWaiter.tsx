@@ -81,8 +81,6 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
       const resp = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`
       );
-      // update the project independently of an event of the defined type was received
-      ProjectsStore.onUpdateSuccess(resp);
       firstEvent = getFirstEvent(eventType, resp);
     } catch (resp) {
       if (!resp) {
