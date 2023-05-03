@@ -1,8 +1,8 @@
 from datetime import timedelta
 
-from django.test import override_settings
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -25,13 +25,12 @@ class CheckMonitorsTest(TestCase):
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
-            status=MonitorStatus.OK,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
             next_checkin=timezone.now() - timedelta(minutes=1),
-            status=monitor.status,
+            status=MonitorStatus.OK,
         )
 
         check_monitors()
@@ -52,7 +51,7 @@ class CheckMonitorsTest(TestCase):
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
-            status=MonitorStatus.DISABLED,
+            status=ObjectStatus.DISABLED,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -76,7 +75,7 @@ class CheckMonitorsTest(TestCase):
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
-            status=MonitorStatus.PENDING_DELETION,
+            status=ObjectStatus.PENDING_DELETION,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -100,7 +99,7 @@ class CheckMonitorsTest(TestCase):
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
-            status=MonitorStatus.DELETION_IN_PROGRESS,
+            status=ObjectStatus.DELETION_IN_PROGRESS,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -124,13 +123,12 @@ class CheckMonitorsTest(TestCase):
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
-            status=MonitorStatus.OK,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
             next_checkin=timezone.now() + timedelta(minutes=1),
-            status=monitor.status,
+            status=MonitorStatus.OK,
         )
         MonitorCheckIn.objects.create(
             monitor=monitor, project_id=project.id, status=CheckInStatus.OK
@@ -153,7 +151,6 @@ class CheckMonitorsTest(TestCase):
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": "0 0 * * *"},
-            status=MonitorStatus.OK,
             date_added=current_datetime,
         )
         monitor_environment = MonitorEnvironment.objects.create(
@@ -161,7 +158,7 @@ class CheckMonitorsTest(TestCase):
             environment=self.environment,
             next_checkin=current_datetime + timedelta(hours=12, minutes=1),
             last_checkin=current_datetime + timedelta(hours=12),
-            status=monitor.status,
+            status=MonitorStatus.OK,
         )
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
@@ -205,7 +202,6 @@ class CheckMonitorsTest(TestCase):
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": "0 0 * * *"},
-            status=MonitorStatus.OK,
             date_added=current_datetime,
         )
         monitor_environment = MonitorEnvironment.objects.create(
@@ -213,7 +209,7 @@ class CheckMonitorsTest(TestCase):
             environment=self.environment,
             next_checkin=current_datetime + timedelta(hours=12, minutes=1),
             last_checkin=current_datetime + timedelta(hours=12),
-            status=monitor.status,
+            status=MonitorStatus.OK,
         )
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
@@ -255,7 +251,6 @@ class CheckMonitorsTest(TestCase):
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": "0 0 * * *", "max_runtime": 60},
-            status=MonitorStatus.OK,
             date_added=current_datetime,
         )
         monitor_environment = MonitorEnvironment.objects.create(
@@ -263,7 +258,7 @@ class CheckMonitorsTest(TestCase):
             environment=self.environment,
             next_checkin=current_datetime + timedelta(hours=1, minutes=1),
             last_checkin=current_datetime + timedelta(hours=1),
-            status=monitor.status,
+            status=MonitorStatus.OK,
         )
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
@@ -283,44 +278,3 @@ class CheckMonitorsTest(TestCase):
         assert MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.TIMEOUT
         ).exists()
-
-    def test_killswitch(self):
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-
-        current_datetime = timezone.now() - timedelta(hours=24)
-
-        monitor = Monitor.objects.create(
-            organization_id=org.id,
-            project_id=project.id,
-            type=MonitorType.CRON_JOB,
-            config={"schedule": "0 0 * * *"},
-            status=MonitorStatus.OK,
-            date_added=current_datetime,
-        )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment=self.environment,
-            next_checkin=current_datetime + timedelta(hours=12, minutes=1),
-            last_checkin=current_datetime + timedelta(hours=12),
-            status=monitor.status,
-        )
-        checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
-            project_id=project.id,
-            status=CheckInStatus.IN_PROGRESS,
-            date_added=current_datetime,
-            date_updated=current_datetime,
-        )
-
-        # Killswitch on the monitor
-        with override_settings(SENTRY_MONITORS_IGNORED_MONITORS=[monitor.id]):
-            assert checkin.date_added == checkin.date_updated == current_datetime
-
-            check_monitors(current_datetime=current_datetime + timedelta(hours=12, minutes=1))
-
-            # Monitor was untouched and is still in progress
-            assert MonitorCheckIn.objects.filter(
-                id=checkin.id, status=CheckInStatus.IN_PROGRESS
-            ).exists()

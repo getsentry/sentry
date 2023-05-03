@@ -20,7 +20,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
-import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 export type OnboardingState = {
   status: OnboardingProjectStatus;
@@ -36,28 +35,18 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'route' | 'location'> 
 };
 
 async function openChangeRouteModal({
-  clientState,
   nextLocation,
   router,
-  setClientState,
 }: {
-  clientState: ReturnType<typeof usePersistedOnboardingState>[0];
   nextLocation: Location;
   router: RouteComponentProps<{}, {}>['router'];
-  setClientState: ReturnType<typeof usePersistedOnboardingState>[1];
 }) {
   const mod = await import('sentry/components/onboarding/changeRouteModal');
 
   const {ChangeRouteModal} = mod;
 
   openModal(deps => (
-    <ChangeRouteModal
-      {...deps}
-      router={router}
-      nextLocation={nextLocation}
-      clientState={clientState}
-      setClientState={setClientState}
-    />
+    <ChangeRouteModal {...deps} router={router} nextLocation={nextLocation} />
   ));
 }
 
@@ -66,7 +55,6 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
   const preferences = useLegacyStore(PreferencesStore);
   const [firstError, setFirstError] = useState<string | null>(null);
   const [firstIssue, setFirstIssue] = useState<Group | undefined>(undefined);
-  const [clientState, setClientState] = usePersistedOnboardingState();
   const {projects} = useProjects();
   const onboardingContext = useContext(OnboardingContext);
   const projectData = projectId ? onboardingContext.data.projects[projectId] : undefined;
@@ -104,10 +92,15 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       return;
     }
 
-    onboardingContext.setProject({
-      id: projectId,
-      slug: projectSlug,
-      status: OnboardingProjectStatus.WAITING,
+    onboardingContext.setData({
+      ...onboardingContext.data,
+      projects: {
+        ...onboardingContext.data.projects,
+        [projectId]: {
+          slug: projectSlug,
+          status: OnboardingProjectStatus.WAITING,
+        },
+      },
     });
   }, [projectData, onboardingContext, projectSlug, projectId]);
 
@@ -131,10 +124,15 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       platform: selectedProject?.platform ?? 'other',
     });
 
-    onboardingContext.setProject({
-      id: projectId,
-      slug: projectSlug,
-      status: OnboardingProjectStatus.PROCESSING,
+    onboardingContext.setData({
+      ...onboardingContext.data,
+      projects: {
+        ...onboardingContext.data.projects,
+        [projectId]: {
+          slug: projectSlug,
+          status: OnboardingProjectStatus.PROCESSING,
+        },
+      },
     });
 
     addSuccessMessage(t('First error received'));
@@ -169,11 +167,16 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       platform: selectedProject?.platform ?? 'other',
     });
 
-    onboardingContext.setProject({
-      id: projectId,
-      slug: projectSlug,
-      status: OnboardingProjectStatus.PROCESSED,
-      firstIssueId: firstIssue.id,
+    onboardingContext.setData({
+      ...onboardingContext.data,
+      projects: {
+        ...onboardingContext.data.projects,
+        [projectId]: {
+          slug: projectSlug,
+          status: OnboardingProjectStatus.PROCESSED,
+          firstIssueId: firstIssue.id,
+        },
+      },
     });
 
     addSuccessMessage(t('First error processed'));
@@ -207,26 +210,11 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       platform: selectedProject?.platform ?? 'other',
     });
 
-    if (clientState) {
-      setClientState({
-        ...clientState,
-        state: 'finished',
-      });
-    }
-
     router.push({
       ...router.location,
       pathname: `/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer`,
     });
-  }, [
-    organization,
-    projectId,
-    onboardingContext,
-    clientState,
-    router,
-    setClientState,
-    selectedProject,
-  ]);
+  }, [organization, projectId, router, onboardingContext, selectedProject]);
 
   const handleSkipOnboarding = useCallback(() => {
     if (!projectId) {
@@ -258,18 +246,8 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
         ...router.location,
         pathname: (pathname += `referrer=onboarding-first-event-footer-skip`),
       },
-      setClientState,
-      clientState,
     });
-  }, [
-    router,
-    organization,
-    setClientState,
-    clientState,
-    selectedProject,
-    onboardingContext,
-    projectId,
-  ]);
+  }, [router, organization, selectedProject, onboardingContext, projectId]);
 
   const handleViewError = useCallback(() => {
     if (!projectId) {
@@ -283,27 +261,11 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       platform: selectedProject?.platform ?? 'other',
     });
 
-    if (clientState) {
-      setClientState({
-        ...clientState,
-        state: 'finished',
-      });
-    }
-
     router.push({
       ...router.location,
       pathname: `/organizations/${organization.slug}/issues/${onboardingContext.data.projects[projectId].firstIssueId}/?referrer=onboarding-first-event-footer`,
     });
-  }, [
-    organization,
-    newOrg,
-    router,
-    clientState,
-    setClientState,
-    onboardingContext,
-    projectId,
-    selectedProject,
-  ]);
+  }, [organization, newOrg, router, onboardingContext, projectId, selectedProject]);
 
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>

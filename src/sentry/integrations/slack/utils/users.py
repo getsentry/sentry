@@ -11,11 +11,7 @@ SLACK_GET_USERS_PAGE_SIZE = 200
 
 
 def get_users(integration: Integration, organization: Organization) -> Sequence[Mapping[str, Any]]:
-    access_token = (
-        integration.metadata.get("user_access_token") or integration.metadata["access_token"]
-    )
-    headers = {"Authorization": f"Bearer {access_token}"}
-    client = SlackClient()
+    client = SlackClient(integration_id=integration.id)
 
     user_list = []
     next_cursor = None
@@ -23,7 +19,6 @@ def get_users(integration: Integration, organization: Organization) -> Sequence[
         try:
             next_users = client.get(
                 "/users.list",
-                headers=headers,
                 params={"limit": SLACK_GET_USERS_PAGE_SIZE, "cursor": next_cursor},
             )
         except ApiError as e:

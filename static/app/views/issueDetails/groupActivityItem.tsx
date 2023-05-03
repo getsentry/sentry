@@ -23,26 +23,30 @@ import {
 type Props = {
   activity: GroupActivity;
   author: React.ReactNode;
-  orgSlug: Organization['slug'];
+  organization: Organization;
   projectId: Project['id'];
 };
 
-function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
-  const issuesLink = `/organizations/${orgSlug}/issues/`;
+function GroupActivityItem({activity, organization, projectId, author}: Props) {
+  const issuesLink = `/organizations/${organization.slug}/issues/`;
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']) {
+    const ignoredOrArchived = hasEscalatingIssuesUi ? t('archived') : t('ignored');
     if (data.ignoreDuration) {
-      return tct('[author] ignored this issue for [duration]', {
+      return tct('[author] [action] this issue for [duration]', {
         author,
+        action: ignoredOrArchived,
         duration: <Duration seconds={data.ignoreDuration * 60} />,
       });
     }
 
     if (data.ignoreCount && data.ignoreWindow) {
       return tct(
-        '[author] ignored this issue until it happens [count] time(s) in [duration]',
+        '[author] [action] this issue until it happens [count] time(s) in [duration]',
         {
           author,
+          action: ignoredOrArchived,
           count: data.ignoreCount,
           duration: <Duration seconds={data.ignoreWindow * 60} />,
         }
@@ -50,17 +54,19 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
     }
 
     if (data.ignoreCount) {
-      return tct('[author] ignored this issue until it happens [count] time(s)', {
+      return tct('[author] [action] this issue until it happens [count] time(s)', {
         author,
+        action: ignoredOrArchived,
         count: data.ignoreCount,
       });
     }
 
     if (data.ignoreUserCount && data.ignoreUserWindow) {
       return tct(
-        '[author] ignored this issue until it affects [count] user(s) in [duration]',
+        '[author] [action] this issue until it affects [count] user(s) in [duration]',
         {
           author,
+          action: ignoredOrArchived,
           count: data.ignoreUserCount,
           duration: <Duration seconds={data.ignoreUserWindow * 60} />,
         }
@@ -68,13 +74,20 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
     }
 
     if (data.ignoreUserCount) {
-      return tct('[author] ignored this issue until it affects [count] user(s)', {
+      return tct('[author] [action] this issue until it affects [count] user(s)', {
         author,
+        action: ignoredOrArchived,
         count: data.ignoreUserCount,
       });
     }
 
-    return tct('[author] ignored this issue', {author});
+    if (hasEscalatingIssuesUi && data.ignoreUntilEscalating) {
+      return tct('[author] archived this issue until it escalates', {
+        author,
+      });
+    }
+
+    return tct('[author] [action] this issue', {author, action: ignoredOrArchived});
   }
 
   function getAssignedMessage(data: GroupActivityAssigned['data']) {
@@ -331,7 +344,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           author,
           ['new-events']: (
             <Link
-              to={`/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}&referrer=group-activity-reprocesses`}
+              to={`/organizations/${organization.slug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}&referrer=group-activity-reprocesses`}
             >
               {tn('See %s new event', 'See %s new events', eventCount)}
             </Link>
