@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0433_set_monitor_status_to_object_status_only"),
+        ("sentry", "0434_notification_setting_target_id"),
     ]
 
     operations = [

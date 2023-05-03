@@ -198,7 +198,12 @@ function Onboarding(props: Props) {
     );
 
     try {
-      await removeProject(api, organization.slug, recentCreatedProject.slug);
+      await removeProject({
+        api,
+        orgSlug: organization.slug,
+        projectSlug: recentCreatedProject.slug,
+        origin: 'onboarding',
+      });
       onboardingContext.setData({
         ...onboardingContext.data,
         projects: newProjects,
@@ -311,7 +316,7 @@ function Onboarding(props: Props) {
       "Hey, just a heads up - we haven't received any data for this SDK yet and by going back all changes will be discarded. Are you sure you want to head back?"
     ),
     priority: 'danger',
-    confirmText: t("Yes I'm sure. Take me back"),
+    confirmText: t("Yes I'm sure"),
     onConfirm: handleGoBack,
     onClose: () => {
       if (!recentCreatedProject) {

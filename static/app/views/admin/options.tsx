@@ -372,6 +372,27 @@ const performanceOptionDefinitions: Field[] = [
     ),
   },
   {
+    key: 'performance.issues.consecutive_http.lcp_ratio_threshold',
+    label: t('LCP Ratio Threshold'),
+    help: t(
+      'The sum of consecutive HTTP spans must be larger than this percentage of the LCP to be considered a problem.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+    defaultValue: () => '0.33',
+  },
+  {
+    key: 'performance.issues.consecutive_http.max_duration_between_spans',
+    label: t('Time Between Spans'),
+    help: t(
+      'Maximum time, in ms, between consecutive HTTP spans to be considered part of the same problem.'
+    ),
+    defaultValue: () => '1000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
     key: 'profile.issues.blocked_main_thread-ingest.la-rollout',
     label: t('Limited Availability Detection Rate'),
     help: t(
