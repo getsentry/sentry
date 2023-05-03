@@ -1,7 +1,6 @@
 import logging
 from datetime import timedelta
 
-from django.conf import settings
 from django.utils import timezone
 
 from sentry.tasks.base import instrumented_task
@@ -72,11 +71,9 @@ def check_monitors(current_datetime=None):
         )
         monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
 
-    qs = (
-        MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS)
-        .select_related("monitor")
-        .exclude(monitor_id__in=settings.SENTRY_MONITORS_IGNORED_MONITORS)[:CHECKINS_LIMIT]
-    )
+    qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related(
+        "monitor", "monitor_environment"
+    )[:CHECKINS_LIMIT]
     metrics.gauge("sentry.monitors.tasks.check_monitors.timeout_count", qs.count())
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
@@ -100,7 +97,7 @@ def check_monitors(current_datetime=None):
         # we only mark the monitor as failed if a newer checkin wasn't responsible for the state
         # change
         has_newer_result = MonitorCheckIn.objects.filter(
-            monitor=monitor_environment.id,
+            monitor_environment=monitor_environment,
             date_added__gt=checkin.date_added,
             status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
         ).exists()

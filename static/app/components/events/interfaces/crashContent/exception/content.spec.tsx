@@ -161,7 +161,7 @@ describe('Exception Content', function () {
       projectSlug: project.slug,
     };
 
-    it('displays exception group tree in first frame', function () {
+    it('displays exception group tree under first exception', function () {
       render(<Content {...defaultProps} />);
 
       const exceptions = screen.getAllByTestId('exception-value');
@@ -169,14 +169,10 @@ describe('Exception Content', function () {
       // There are 4 exceptions in the exception group fixture
       expect(exceptions).toHaveLength(4);
 
-      // First exception should be the parent ExceptionGroup and the tree should be visible
-      // in the top frame context
+      // First exception should be the parent ExceptionGroup
+      expect(within(exceptions[0]).getByText('ExceptionGroup 1')).toBeInTheDocument();
       expect(
         within(exceptions[0]).getByRole('heading', {name: 'ExceptionGroup 1'})
-      ).toBeInTheDocument();
-      const exception1FrameContext = within(exceptions[0]).getByTestId('frame-context');
-      expect(
-        within(exception1FrameContext).getByRole('cell', {name: 'Related Exceptions'})
       ).toBeInTheDocument();
     });
 
@@ -185,14 +181,10 @@ describe('Exception Content', function () {
 
       const exceptions = screen.getAllByTestId('exception-value');
 
-      // Last exception should be the parent ExceptionGroup and the tree should be visible
-      // in the top frame context
+      // Last exception should be the parent ExceptionGroup
+      expect(within(exceptions[3]).getByText('ExceptionGroup 1')).toBeInTheDocument();
       expect(
         within(exceptions[3]).getByRole('heading', {name: 'ExceptionGroup 1'})
-      ).toBeInTheDocument();
-      const exception1FrameContext = within(exceptions[3]).getByTestId('frame-context');
-      expect(
-        within(exception1FrameContext).getByRole('cell', {name: 'Related Exceptions'})
       ).toBeInTheDocument();
     });
 
@@ -203,9 +195,7 @@ describe('Exception Content', function () {
 
       const exceptionGroupWithNoContext = exceptions[2];
       expect(
-        within(exceptionGroupWithNoContext).getByRole('cell', {
-          name: 'Related Exceptions',
-        })
+        within(exceptionGroupWithNoContext).getByText('Related Exceptions')
       ).toBeInTheDocument();
     });
   });

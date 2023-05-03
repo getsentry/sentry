@@ -69,7 +69,7 @@ class JiraIssueHookTest(APITestCase):
         self.properties_url = "https://getsentry.atlassian.net/rest/api/3/issue/%s/properties/%s"
 
     @patch(
-        "sentry.integrations.jira.views.issue_hook.get_integration_from_request",
+        "sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request",
         side_effect=ExpiredSignatureError(),
     )
     def test_expired_signature_error(self, mock_get_integration_from_request):
@@ -78,7 +78,7 @@ class JiraIssueHookTest(APITestCase):
         assert REFRESH_REQUIRED in response.content
 
     @patch(
-        "sentry.integrations.jira.views.issue_hook.get_integration_from_request",
+        "sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request",
         side_effect=AtlassianConnectValidationError(),
     )
     def test_expired_invalid_installation_error(self, mock_get_integration_from_request):
@@ -87,7 +87,7 @@ class JiraIssueHookTest(APITestCase):
         assert UNABLE_TO_VERIFY_INSTALLATION.encode() in response.content
 
     @patch.object(Group, "get_last_release")
-    @patch("sentry.integrations.jira.views.issue_hook.get_integration_from_request")
+    @patch("sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request")
     @responses.activate
     def test_simple_get(self, mock_get_integration_from_request, mock_get_last_release):
         responses.add(
@@ -107,7 +107,7 @@ class JiraIssueHookTest(APITestCase):
         assert self.last_release.version in resp_content
 
     @patch.object(Group, "get_last_release")
-    @patch("sentry.integrations.jira.views.issue_hook.get_integration_from_request")
+    @patch("sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request")
     @responses.activate
     def test_multiple_issues(self, mock_get_integration_from_request, mock_get_last_release):
         responses.add(
@@ -137,7 +137,7 @@ class JiraIssueHookTest(APITestCase):
         assert group_url in resp_content
         assert new_group_url in resp_content
 
-    @patch("sentry.integrations.jira.views.issue_hook.get_integration_from_request")
+    @patch("sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request")
     @responses.activate
     def test_simple_not_linked(self, mock_get_integration_from_request):
         issue_key = "bad-key"

@@ -262,7 +262,12 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         assert {
             (gtv.value, gtv.times_seen)
-            for gtv in tagstore.get_group_tag_values(source, production_environment.id, "color")
+            for gtv in tagstore.get_group_tag_values(
+                source,
+                production_environment.id,
+                "color",
+                tenant_ids={"referrer": "get_tag_values", "organization_id": 1},
+            )
         } == {("red", 6), ("green", 5), ("blue", 5)}
 
         similar_items = features.compare(source)
@@ -318,7 +323,10 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert {
             (gtv.value, gtv.times_seen)
             for gtv in tagstore.get_group_tag_values(
-                destination, production_environment.id, "color"
+                destination,
+                production_environment.id,
+                "color",
+                tenant_ids={"referrer": "get_tag_values", "organization_id": 1},
             )
         } == {("red", 4), ("green", 3), ("blue", 3)}
 
@@ -346,7 +354,10 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert {
             (gtk.value, gtk.times_seen)
             for gtk in tagstore.get_group_tag_values(
-                destination, production_environment.id, "color"
+                destination,
+                production_environment.id,
+                "color",
+                tenant_ids={"referrer": "get_tag_values", "organization_id": 1},
             )
         } == {("red", 4), ("blue", 3), ("green", 3)}
 
@@ -358,6 +369,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             now - timedelta(seconds=rollup_duration),
             time_from_now(17),
             rollup_duration,
+            tenant_ids={"referrer": "get_range", "organization_id": 1},
         )
 
         environment_time_series = tsdb.get_range(
@@ -367,6 +379,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             time_from_now(17),
             rollup_duration,
             environment_ids=[production_environment.id],
+            tenant_ids={"referrer": "get_range", "organization_id": 1},
         )
 
         def get_expected_series_values(rollup, events, function=None):
@@ -425,6 +438,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             now - timedelta(seconds=rollup_duration),
             time_from_now(17),
             rollup_duration,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         )
 
         environment_time_series = tsdb.get_distinct_counts_series(
@@ -434,6 +448,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             time_from_now(17),
             rollup_duration,
             environment_id=production_environment.id,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         )
 
         def collect_by_user_tag(aggregate, event):
@@ -499,6 +514,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 now - timedelta(seconds=rollup_duration),
                 time_from_now(17),
                 rollup_duration,
+                tenant_ids={"referrer": "r", "organization_id": 1234},
             )
         )
 
@@ -533,6 +549,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 now - timedelta(seconds=rollup_duration),
                 time_from_now(17),
                 rollup_duration,
+                tenant_ids={"referrer": "r", "organization_id": 1234},
             )
         )
 
