@@ -15,14 +15,14 @@ export const KeyValueTable = styled('dl')<{noMargin?: boolean}>`
   ${p => (p.noMargin ? 'margin-bottom: 0;' : null)}
 `;
 
-export const KeyValueTableRow = ({keyName, value}: Props) => {
+export function KeyValueTableRow({keyName, value}: Props) {
   return (
     <Fragment>
       <Key>{keyName}</Key>
       <Value>{value}</Value>
     </Fragment>
   );
-};
+}
 
 const commonStyles = ({theme}: {theme: Theme}) => `
 font-size: ${theme.fontSizeMedium};

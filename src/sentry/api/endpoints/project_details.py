@@ -128,6 +128,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
+    performanceIssueSendToPlatform = serializers.BooleanField(required=False)
 
     def validate(self, data):
         max_delay = (
@@ -621,10 +622,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "performanceIssueSendToPlatform" in result:
             if project.update_option(
                 "sentry:performance_issue_send_to_issues_platform",
-                result["performanceIssueCreationThroughPlatform"],
+                result["performanceIssueSendToPlatform"],
             ):
                 changed_proj_settings["sentry:performance_issue_send_to_issues_platform"] = result[
-                    "performanceIssueCreationThroughPlatform"
+                    "performanceIssueSendToPlatform"
                 ]
         if "performanceIssueCreationThroughPlatform" in result:
             if project.update_option(
@@ -812,8 +813,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 organization=project.organization,
                 target_object=project.id,
                 event=audit_log.get_event_id("PROJECT_REMOVE"),
-                data=project.get_audit_log_data(),
                 transaction_id=scheduled.id,
+                data={
+                    **project.get_audit_log_data(),
+                    "origin": request.data.get("origin") or "unknown",
+                },
             )
             project.rename_on_pending_deletion()
 

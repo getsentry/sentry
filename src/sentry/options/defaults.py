@@ -358,6 +358,8 @@ register("symbolicator.minidump-refactor-random-sampling", default=0.0)  # unuse
 register("symbolicator.sourcemaps-processing-projects", type=Sequence, default=[])
 # Enable use of Symbolicator Source Maps processing for fraction of projects.
 register("symbolicator.sourcemaps-processing-sample-rate", default=0.0)
+# Use a fraction of Symbolicator Source Maps processing events for A/B testing.
+register("symbolicator.sourcemaps-processing-ab-test", default=0.0)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0)  # unused
@@ -462,8 +464,8 @@ register("store.background-grouping-before", default=False)
 # Store release files bundled as zip files
 register("processing.save-release-archives", default=False)  # unused
 
-# Minimum number of files in an archive. Small archives are extracted and its contents
-# are stored as separate release files.
+# Minimum number of files in an archive. Archives with fewer files are extracted and have their
+# contents stored as separate release files.
 register("processing.release-archive-min-files", default=10)
 
 # Try to read release artifacts from zip archives
@@ -575,6 +577,15 @@ register("api.deprecation.brownout-duration", default="PT1M")
 # values or not
 register("sentry-metrics.performance.index-tag-values", default=True)
 
+
+# A slow rollout option for writing "new" cache keys
+# as the transition from UseCaseKey to UseCaseID occurs
+register("sentry-metrics.indexer.cache-key-rollout-rate", default=0.0)
+
+# A option for double writing old and new cache keys
+# for the same transition
+register("sentry-metrics.indexer.cache-key-double-write", default=False)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -613,9 +624,7 @@ register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 register("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", default=0.0)
 
 register("sentry-metrics.producer-schema-validation.release-health.rollout-rate", default=0.0)
-register("sentry-metrics.consumer-schema-validation.release-health.rollout-rate", default=0.0)
 register("sentry-metrics.producer-schema-validation.performance.rollout-rate", default=0.0)
-register("sentry-metrics.consumer-schema-validation.performance.rollout-rate", default=0.0)
 
 # Flag to determine whether abnormal_mechanism tag should be extracted
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
@@ -688,3 +697,5 @@ register("dynamic-sampling.prioritise_transactions.num_explicit_large_transactio
 # the number of large transactions to retrieve from Snuba for transaction re-balancing
 register("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions", 0)
 register("hybrid_cloud.outbox_rate", default=0.0)
+# controls whether we allow people to upload artifact bundles instead of release bundles
+register("sourcemaps.enable-artifact-bundles", default=0.0)

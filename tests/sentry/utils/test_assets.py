@@ -42,8 +42,8 @@ def getsentry(tmp_path):
     ):
         conf_dir = tmp_path.joinpath("conf")
         conf_dir.mkdir()
-        conf_dir.joinpath("settings").mkdir()
-        conf_dir.joinpath("settings/frontend-versions.json").write_text(
+        conf_dir.joinpath("settings/frontend").mkdir(parents=True)
+        conf_dir.joinpath("settings/frontend/frontend-versions.json").write_text(
             '{"app.js": "app-deadbeef.js", "app.css": "app-cafecafe.css"}'
         )
         with mock.patch.object(settings, "CONF_DIR", conf_dir):

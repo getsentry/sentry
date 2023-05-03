@@ -11,7 +11,7 @@ import {FormSize} from 'sentry/utils/theme';
 import {SelectContext} from './control';
 import {GridList} from './gridList';
 import {ListBox} from './listBox';
-import {SelectOption, SelectOptionOrSectionWithKey} from './types';
+import {SelectOption, SelectOptionOrSectionWithKey, SelectSection} from './types';
 import {
   getDisabledOptions,
   getHiddenOptions,
@@ -32,11 +32,6 @@ interface BaseListProps<Value extends React.Key>
       'disabledKeys' | 'selectedKeys' | 'defaultSelectedKeys' | 'onSelectionChange'
     > {
   items: SelectOptionOrSectionWithKey<Value>[];
-  /**
-   * Whether the menu should close upon selection/deselection. In general, only
-   * single-selection menus should close on select (this is the default behavior).
-   */
-  closeOnSelect?: boolean;
   /**
    * This list's index number inside composite select menus.
    */
@@ -60,6 +55,12 @@ interface BaseListProps<Value extends React.Key>
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
+  /**
+   * To be called when the user toggle-selects a whole section (applicable when sections
+   * have `showToggleAllButton` set to true.) Note: this will be called in addition to
+   * and before `onChange`.
+   */
+  onSectionToggle?: (section: SelectSection<React.Key>) => void;
   size?: FormSize;
   /**
    * Upper limit for the number of options to display in the menu at a time. Users can
@@ -75,6 +76,11 @@ interface BaseListProps<Value extends React.Key>
 }
 
 export interface SingleListProps<Value extends React.Key> extends BaseListProps<Value> {
+  /**
+   * Whether to close the menu. Accepts either a boolean value or a callback function
+   * that receives the newly selected option and returns whether to close the menu.
+   */
+  closeOnSelect?: boolean | ((selectedOption: SelectOption<Value>) => boolean);
   defaultValue?: Value;
   multiple?: false;
   onChange?: (selectedOption: SelectOption<Value>) => void;
@@ -83,6 +89,11 @@ export interface SingleListProps<Value extends React.Key> extends BaseListProps<
 
 export interface MultipleListProps<Value extends React.Key> extends BaseListProps<Value> {
   multiple: true;
+  /**
+   * Whether to close the menu. Accepts either a boolean value or a callback function
+   * that receives the newly selected options and returns whether to close the menu.
+   */
+  closeOnSelect?: boolean | ((selectedOptions: SelectOption<Value>[]) => boolean);
   defaultValue?: Value[];
   onChange?: (selectedOptions: SelectOption<Value>[]) => void;
   value?: Value[];
@@ -145,7 +156,11 @@ function List<Value extends React.Key>({
           onChange?.(selectedOptions);
 
           // Close menu if closeOnSelect is true
-          if (closeOnSelect) {
+          if (
+            typeof closeOnSelect === 'function'
+              ? closeOnSelect(selectedOptions)
+              : closeOnSelect
+          ) {
             overlayState?.close();
           }
         },
@@ -168,7 +183,12 @@ function List<Value extends React.Key>({
 
         // Close menu if closeOnSelect is true or undefined (by default single-selection
         // menus will close on selection)
-        if (closeOnSelect || !defined(closeOnSelect)) {
+        if (
+          !defined(closeOnSelect) ||
+          (typeof closeOnSelect === 'function'
+            ? closeOnSelect(selectedOption)
+            : closeOnSelect)
+        ) {
           overlayState?.close();
         }
       },
@@ -330,14 +350,18 @@ function List<Value extends React.Key>({
       )}
 
       {multiple &&
-        sections.map(section => (
-          <HiddenSectionToggle
-            key={section.key}
-            item={section}
-            listState={listState}
-            listId={listId}
-          />
-        ))}
+        sections.map(
+          section =>
+            section.value.showToggleAllButton && (
+              <HiddenSectionToggle
+                key={section.key}
+                item={section}
+                listState={listState}
+                listId={listId}
+                onToggle={props.onSectionToggle}
+              />
+            )
+        )}
     </SelectFilterContext.Provider>
   );
 }

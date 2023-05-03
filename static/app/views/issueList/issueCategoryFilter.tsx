@@ -1,11 +1,12 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {IssueCategory} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -29,16 +30,16 @@ function IssueCategoryFilter({
     (issueCategory?: IssueCategory, isTriggerLabel?: boolean) => {
       switch (issueCategory) {
         case IssueCategory.ERROR:
-          return t('Errors');
+          return <LabelWrapper>{t('Errors')}</LabelWrapper>;
         case IssueCategory.PERFORMANCE:
           return (
-            <React.Fragment>
+            <LabelWrapper>
               {t('Performance')}
               {!isTriggerLabel && !isPerformanceSeen && <FeatureBadge type="new" />}
-            </React.Fragment>
+            </LabelWrapper>
           );
         default:
-          return t('All Categories');
+          return <LabelWrapper>{t('All Categories')}</LabelWrapper>;
       }
     },
     [isPerformanceSeen]
@@ -95,7 +96,7 @@ function IssueCategoryFilter({
       setIsPerformanceSeen(true);
     }
 
-    trackAdvancedAnalyticsEvent('issues_stream.issue_category_dropdown_changed', {
+    trackAnalytics('issues_stream.issue_category_dropdown_changed', {
       organization,
       category: option.value,
     });
@@ -117,5 +118,10 @@ function IssueCategoryFilter({
     />
   );
 }
+
+const LabelWrapper = styled('div')`
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
 
 export default IssueCategoryFilter;

@@ -205,13 +205,15 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
   );
 }
 
-const OrganizationDashboard = (props: Props) => (
-  <Layout.Page>
-    <NoProjectMessage organization={props.organization}>
-      <Dashboard {...props} />
-    </NoProjectMessage>
-  </Layout.Page>
-);
+function OrganizationDashboard(props: Props) {
+  return (
+    <Layout.Page>
+      <NoProjectMessage organization={props.organization}>
+        <Dashboard {...props} />
+      </NoProjectMessage>
+    </Layout.Page>
+  );
+}
 
 const SearchAndSelectorWrapper = styled('div')`
   display: flex;

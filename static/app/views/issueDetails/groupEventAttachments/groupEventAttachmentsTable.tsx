@@ -11,14 +11,14 @@ type Props = {
   projectSlug: string;
 };
 
-const GroupEventAttachmentsTable = ({
+function GroupEventAttachmentsTable({
   attachments,
   orgId,
   projectSlug,
   groupId,
   onDelete,
   deletedAttachments,
-}: Props) => {
+}: Props) {
   const tableRowNames = [t('Name'), t('Type'), t('Size'), t('Actions')];
 
   return (
@@ -45,6 +45,6 @@ const GroupEventAttachmentsTable = ({
       </tbody>
     </table>
   );
-};
+}
 
 export default GroupEventAttachmentsTable;

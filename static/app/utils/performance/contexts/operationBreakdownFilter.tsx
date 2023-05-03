@@ -10,13 +10,13 @@ const OpBreakdownFilterContext = createContext<{
   setOpBreakdownFilter: (_: SpanOperationBreakdownFilter) => {},
 });
 
-export const OpBreakdownFilterProvider = ({
+export function OpBreakdownFilterProvider({
   filter,
   children,
 }: {
   children: React.ReactNode;
   filter?: SpanOperationBreakdownFilter;
-}) => {
+}) {
   const [opBreakdownFilter, setOpBreakdownFilter] = useState(filter);
   return (
     <OpBreakdownFilterContext.Provider
@@ -28,6 +28,6 @@ export const OpBreakdownFilterProvider = ({
       {children}
     </OpBreakdownFilterContext.Provider>
   );
-};
+}
 
 export const useOpBreakdownFilter = () => useContext(OpBreakdownFilterContext);

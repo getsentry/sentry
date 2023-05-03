@@ -17,40 +17,42 @@ type Props = Pick<CommonSidebarProps, 'collapsed' | 'hidePanel' | 'orientation'>
   organization: Organization;
 };
 
-const SidebarHelp = ({orientation, collapsed, hidePanel, organization}: Props) => (
-  <DeprecatedDropdownMenu>
-    {({isOpen, getActorProps, getMenuProps}) => (
-      <HelpRoot>
-        <HelpActor {...getActorProps({onClick: hidePanel})}>
-          <SidebarItem
-            data-test-id="help-sidebar"
-            orientation={orientation}
-            collapsed={collapsed}
-            hasPanel={false}
-            icon={<IconQuestion size="md" />}
-            label={t('Help')}
-            id="help"
-          />
-        </HelpActor>
+function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
+  return (
+    <DeprecatedDropdownMenu>
+      {({isOpen, getActorProps, getMenuProps}) => (
+        <HelpRoot>
+          <HelpActor {...getActorProps({onClick: hidePanel})}>
+            <SidebarItem
+              data-test-id="help-sidebar"
+              orientation={orientation}
+              collapsed={collapsed}
+              hasPanel={false}
+              icon={<IconQuestion size="md" />}
+              label={t('Help')}
+              id="help"
+            />
+          </HelpActor>
 
-        {isOpen && (
-          <HelpMenu {...getMenuProps({})} orientation={orientation}>
-            <SidebarMenuItem
-              data-test-id="search-docs-and-faqs"
-              onClick={() => openHelpSearchModal({organization})}
-            >
-              {t('Search Support, Docs and More')}
-            </SidebarMenuItem>
-            <SidebarMenuItem href="https://help.sentry.io/">
-              {t('Visit Help Center')}
-            </SidebarMenuItem>
-            <Hook name="sidebar:help-menu" organization={organization} />
-          </HelpMenu>
-        )}
-      </HelpRoot>
-    )}
-  </DeprecatedDropdownMenu>
-);
+          {isOpen && (
+            <HelpMenu {...getMenuProps({})} orientation={orientation}>
+              <SidebarMenuItem
+                data-test-id="search-docs-and-faqs"
+                onClick={() => openHelpSearchModal({organization})}
+              >
+                {t('Search Support, Docs and More')}
+              </SidebarMenuItem>
+              <SidebarMenuItem href="https://help.sentry.io/">
+                {t('Visit Help Center')}
+              </SidebarMenuItem>
+              <Hook name="sidebar:help-menu" organization={organization} />
+            </HelpMenu>
+          )}
+        </HelpRoot>
+      )}
+    </DeprecatedDropdownMenu>
+  );
+}
 
 export default SidebarHelp;
 

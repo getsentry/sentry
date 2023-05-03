@@ -117,13 +117,13 @@ export class PerformanceInteraction {
   }
 }
 
-export const CustomProfiler = ({id, children}: {children: ReactNode; id: string}) => {
+export function CustomProfiler({id, children}: {children: ReactNode; id: string}) {
   return (
     <Profiler id={id} onRender={onRenderCallback}>
       {children}
     </Profiler>
   );
-};
+}
 
 /**
  * This component wraps the main component on a page with a measurement checking for visual completedness.
@@ -132,27 +132,32 @@ export const CustomProfiler = ({id, children}: {children: ReactNode; id: string}
  *
  * Since this component is guaranteed to be part of the -real- critical path, it also wraps the component with the custom profiler.
  */
-export const VisuallyCompleteWithData = ({
+export function VisuallyCompleteWithData({
   id,
   hasData,
   children,
+  disabled,
 }: {
   children: ReactNode;
   hasData: boolean;
   id: string;
-}) => {
+  disabled?: boolean;
+}) {
   const isDataCompleteSet = useRef(false);
 
   const num = useRef(1);
 
   const isVCDSet = useRef(false);
 
-  if (isVCDSet && hasData && performance && performance.mark) {
+  if (isVCDSet && hasData && performance && performance.mark && !disabled) {
     performance.mark(`${id}-vcsd-start`);
     isVCDSet.current = true;
   }
 
   useEffect(() => {
+    if (disabled) {
+      return;
+    }
     try {
       const transaction: any = getCurrentSentryReactTransaction(); // Using any to override types for private api.
       if (!transaction) {
@@ -180,14 +185,18 @@ export const VisuallyCompleteWithData = ({
     } catch (_) {
       // Defensive catch since this code is auxiliary.
     }
-  }, [hasData, id]);
+  }, [hasData, disabled, id]);
+
+  if (disabled) {
+    return <Fragment>{children}</Fragment>;
+  }
 
   return (
     <Profiler id={id} onRender={onRenderCallback}>
       <Fragment>{children}</Fragment>
     </Profiler>
   );
-};
+}
 
 interface OpAssetMeasurementDefinition {
   key: string;
@@ -225,11 +234,17 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
         )
     );
     const transfered = filtered.reduce(
-      (acc, curr) => acc + (curr.data['Transfer Size'] ?? 0),
+      (acc, curr) =>
+        acc +
+        (curr.data['http.response_transfer_size'] ?? curr.data['Transfer Size'] ?? 0),
       0
     );
     const encoded = filtered.reduce(
-      (acc, curr) => acc + (curr.data['Encoded Body Size'] ?? 0),
+      (acc, curr) =>
+        acc +
+        (curr.data['http.response_content_length'] ??
+          curr.data['Encoded Body Size'] ??
+          0),
       0
     );
 

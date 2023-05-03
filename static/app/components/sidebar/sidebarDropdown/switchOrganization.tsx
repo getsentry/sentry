@@ -76,55 +76,57 @@ type Props = {
 /**
  * Switch Organization Menu Label + Sub Menu
  */
-const SwitchOrganization = ({organizations, canCreateOrganization}: Props) => (
-  <DeprecatedDropdownMenu isNestedDropdown>
-    {({isOpen, getMenuProps, getActorProps}) => (
-      <Fragment>
-        <SwitchOrganizationMenuActor
-          data-test-id="sidebar-switch-org"
-          {...getActorProps({})}
-          onClick={e => {
-            // This overwrites `DropdownMenu.getActorProps.onClick` which normally handles clicks on actor
-            // to toggle visibility of menu. Instead, do nothing because it is nested and we only want it
-            // to appear when hovered on. Will also stop menu from closing when clicked on (which seems to be common
-            // behavior);
+function SwitchOrganization({organizations, canCreateOrganization}: Props) {
+  return (
+    <DeprecatedDropdownMenu isNestedDropdown>
+      {({isOpen, getMenuProps, getActorProps}) => (
+        <Fragment>
+          <SwitchOrganizationMenuActor
+            data-test-id="sidebar-switch-org"
+            {...getActorProps({})}
+            onClick={e => {
+              // This overwrites `DropdownMenu.getActorProps.onClick` which normally handles clicks on actor
+              // to toggle visibility of menu. Instead, do nothing because it is nested and we only want it
+              // to appear when hovered on. Will also stop menu from closing when clicked on (which seems to be common
+              // behavior);
 
-            // Stop propagation so that dropdown menu doesn't close here
-            e.stopPropagation();
-          }}
-        >
-          {t('Switch organization')}
-
-          <SubMenuCaret>
-            <IconChevron size="xs" direction="right" />
-          </SubMenuCaret>
-        </SwitchOrganizationMenuActor>
-
-        {isOpen && (
-          <SwitchOrganizationMenu
-            data-test-id="sidebar-switch-org-menu"
-            {...getMenuProps({})}
+              // Stop propagation so that dropdown menu doesn't close here
+              e.stopPropagation();
+            }}
           >
-            <OrganizationList role="list">
-              {sortBy(organizations, ['status.id']).map(organization => {
-                return (
-                  <OrganizationMenuItem
-                    key={organization.slug}
-                    organization={organization}
-                  />
-                );
-              })}
-            </OrganizationList>
-            {organizations && !!organizations.length && canCreateOrganization && (
-              <Divider css={{marginTop: 0}} />
-            )}
-            <CreateOrganization canCreateOrganization={canCreateOrganization} />
-          </SwitchOrganizationMenu>
-        )}
-      </Fragment>
-    )}
-  </DeprecatedDropdownMenu>
-);
+            {t('Switch organization')}
+
+            <SubMenuCaret>
+              <IconChevron size="xs" direction="right" />
+            </SubMenuCaret>
+          </SwitchOrganizationMenuActor>
+
+          {isOpen && (
+            <SwitchOrganizationMenu
+              data-test-id="sidebar-switch-org-menu"
+              {...getMenuProps({})}
+            >
+              <OrganizationList role="list">
+                {sortBy(organizations, ['status.id']).map(organization => {
+                  return (
+                    <OrganizationMenuItem
+                      key={organization.slug}
+                      organization={organization}
+                    />
+                  );
+                })}
+              </OrganizationList>
+              {organizations && !!organizations.length && canCreateOrganization && (
+                <Divider css={{marginTop: 0}} />
+              )}
+              <CreateOrganization canCreateOrganization={canCreateOrganization} />
+            </SwitchOrganizationMenu>
+          )}
+        </Fragment>
+      )}
+    </DeprecatedDropdownMenu>
+  );
+}
 
 const SwitchOrganizationContainer = withOrganizations(SwitchOrganization);
 

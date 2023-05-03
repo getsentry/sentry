@@ -3,6 +3,7 @@ from datetime import timedelta
 from functools import cached_property
 from unittest import mock
 
+from django.conf import settings
 from django.db.models import F
 from django.utils import timezone
 
@@ -24,9 +25,13 @@ from sentry.models import (
     UserReport,
 )
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
+
+TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
+TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
 @region_silo_test
@@ -40,16 +45,15 @@ class ProjectSerializerTest(TestCase):
 
     def test_simple(self):
         result = serialize(self.project, self.user)
-
         assert result["slug"] == self.project.slug
         assert result["name"] == self.project.name
         assert result["id"] == str(self.project.id)
 
-    def test_member_access(self):
+    def test_member(self):
         self.create_member(user=self.user, organization=self.organization)
 
         result = serialize(self.project, self.user)
-
+        assert result["access"] == TEAM_CONTRIBUTOR["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
@@ -57,21 +61,46 @@ class ProjectSerializerTest(TestCase):
         self.organization.save()
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
+        assert result["access"] == set()
         assert result["hasAccess"] is False
         assert result["isMember"] is False
 
         self.create_team_membership(user=self.user, team=self.team)
         result = serialize(self.project, self.user)
         # after giving them access to team
+        assert result["access"] == TEAM_CONTRIBUTOR["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
-    def test_admin_access(self):
+    @with_feature("organizations:team-roles")
+    def test_member_with_team_role(self):
+        self.create_member(user=self.user, organization=self.organization)
+
+        result = serialize(self.project, self.user)
+        assert result["access"] == TEAM_CONTRIBUTOR["scopes"]
+        assert result["hasAccess"] is True
+        assert result["isMember"] is False
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        result = serialize(self.project, self.user)
+        # after changing to allow_joinleave=False
+        assert result["access"] == set()
+        assert result["hasAccess"] is False
+        assert result["isMember"] is False
+
+        self.create_team_membership(user=self.user, team=self.team, role="admin")
+        result = serialize(self.project, self.user)
+        # after giving them access to team
+        assert result["access"] == TEAM_ADMIN["scopes"]
+        assert result["hasAccess"] is True
+        assert result["isMember"] is True
+
+    def test_admin(self):
         self.create_member(user=self.user, organization=self.organization, role="admin")
 
         result = serialize(self.project, self.user)
-        result.pop("dateCreated")
-
+        assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
@@ -79,20 +108,22 @@ class ProjectSerializerTest(TestCase):
         self.organization.save()
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
+        assert result["access"] == set()
         assert result["hasAccess"] is False
         assert result["isMember"] is False
 
         self.create_team_membership(user=self.user, team=self.team)
         result = serialize(self.project, self.user)
         # after giving them access to team
+        assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
-    def test_manager_access(self):
+    def test_manager(self):
         self.create_member(user=self.user, organization=self.organization, role="manager")
 
         result = serialize(self.project, self.user)
-
+        assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
@@ -100,20 +131,22 @@ class ProjectSerializerTest(TestCase):
         self.organization.save()
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
+        assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
         self.create_team_membership(user=self.user, team=self.team)
         result = serialize(self.project, self.user)
         # after giving them access to team
+        assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
-    def test_owner_access(self):
+    def test_owner(self):
         self.create_member(user=self.user, organization=self.organization, role="owner")
 
         result = serialize(self.project, self.user)
-
+        assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
@@ -121,16 +154,18 @@ class ProjectSerializerTest(TestCase):
         self.organization.save()
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
+        assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
         self.create_team_membership(user=self.user, team=self.team)
         result = serialize(self.project, self.user)
         # after giving them access to team
+        assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
-    def test_member_on_owner_team_access(self):
+    def test_member_on_owner_team(self):
         organization = self.create_organization()
         manager_team = self.create_team(organization=organization, org_role="manager")
         owner_team = self.create_team(organization=organization, org_role="owner")
@@ -142,7 +177,7 @@ class ProjectSerializerTest(TestCase):
         )
 
         result = serialize(self.project, self.user)
-
+        assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
@@ -150,12 +185,14 @@ class ProjectSerializerTest(TestCase):
         self.organization.save()
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
+        assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
         self.create_team_membership(user=self.user, team=self.team)
         result = serialize(self.project, self.user)
         # after giving them access to team
+        assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
@@ -366,6 +403,16 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasReplays"] is True
+
+    def test_has_monitors_flag(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasMonitors"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_cron_monitors))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasMonitors"] is True
 
     def test_has_minified_stracktrace_flag(self):
         result = serialize(self.project, self.user, ProjectSummarySerializer())

@@ -22,12 +22,7 @@ type Props = {
   className?: string;
 };
 
-const RecoveryCodes = ({
-  className,
-  isEnrolled,
-  codes,
-  onRegenerateBackupCodes,
-}: Props) => {
+function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: Props) {
   const printCodes = () => {
     // eslint-disable-next-line dot-notation
     const iframe = window.frames['printable'];
@@ -90,7 +85,7 @@ const RecoveryCodes = ({
       <iframe data-test-id="frame" name="printable" style={{display: 'none'}} />
     </CodeContainer>
   );
-};
+}
 
 export default RecoveryCodes;
 

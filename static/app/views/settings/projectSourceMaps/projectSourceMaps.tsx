@@ -72,7 +72,9 @@ function SourceMapsTableRow({
       <ArtifactsTotalColumn>
         {isEmptyReleaseBundle ? (
           <Tooltip title={t('No bundle connected to this release')}>
-            <IconWarning color="warning" size="sm" />
+            <IconWrapper>
+              <IconWarning color="warning" size="sm" />
+            </IconWrapper>
           </Tooltip>
         ) : (
           <Count value={fileCount} />
@@ -150,21 +152,16 @@ export function ProjectSourceMaps({location, router, project}: Props) {
 
   const {
     data: archivesData,
+    getResponseHeader: archivesHeaders,
     isLoading: archivesLoading,
     refetch: archivesRefetch,
-  } = useApiQuery<[SourceMapsArchive[], any, any]>(
+  } = useApiQuery<SourceMapsArchive[]>(
     [
       sourceMapsEndpoint,
       {
         query: {query, cursor, sortBy},
       },
     ],
-    () => {
-      return api.requestPromise(sourceMapsEndpoint, {
-        query: {query, cursor, sortBy},
-        includeAllArgs: true,
-      });
-    },
     {
       staleTime: 0,
       keepPreviousData: true,
@@ -174,21 +171,16 @@ export function ProjectSourceMaps({location, router, project}: Props) {
 
   const {
     data: debugIdBundlesData,
+    getResponseHeader: debugIdBundlesHeaders,
     isLoading: debugIdBundlesLoading,
     refetch: debugIdBundlesRefetch,
-  } = useApiQuery<[DebugIdBundle[], any, any]>(
+  } = useApiQuery<DebugIdBundle[]>(
     [
       debugIdBundlesEndpoint,
       {
         query: {query, cursor, sortBy},
       },
     ],
-    () => {
-      return api.requestPromise(debugIdBundlesEndpoint, {
-        query: {query, cursor, sortBy},
-        includeAllArgs: true,
-      });
-    },
     {
       staleTime: 0,
       keepPreviousData: true,
@@ -310,15 +302,13 @@ export function ProjectSourceMaps({location, router, project}: Props) {
               })
         }
         isEmpty={
-          (tabDebugIdBundlesActive
-            ? debugIdBundlesData?.[0] ?? []
-            : archivesData?.[0] ?? []
-          ).length === 0
+          (tabDebugIdBundlesActive ? debugIdBundlesData ?? [] : archivesData ?? [])
+            .length === 0
         }
         isLoading={tabDebugIdBundlesActive ? debugIdBundlesLoading : archivesLoading}
       >
         {tabDebugIdBundlesActive
-          ? debugIdBundlesData?.[0].map(data => (
+          ? debugIdBundlesData?.map(data => (
               <SourceMapsTableRow
                 key={data.bundleId}
                 bundleType={SourceMapsBundleType.DebugId}
@@ -334,7 +324,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                 }
               />
             ))
-          : archivesData?.[0].map(data => (
+          : archivesData?.map(data => (
               <SourceMapsTableRow
                 key={data.name}
                 bundleType={SourceMapsBundleType.Release}
@@ -351,8 +341,8 @@ export function ProjectSourceMaps({location, router, project}: Props) {
       <Pagination
         pageLinks={
           tabDebugIdBundlesActive
-            ? debugIdBundlesData?.[2]?.getResponseHeader('Link') ?? ''
-            : archivesData?.[2]?.getResponseHeader('Link') ?? ''
+            ? debugIdBundlesHeaders?.('Link') ?? ''
+            : archivesHeaders?.('Link') ?? ''
         }
       />
     </Fragment>
@@ -407,4 +397,8 @@ const ActionsColumn = styled(Column)`
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${space(3)};
+`;
+
+const IconWrapper = styled('div')`
+  display: flex;
 `;

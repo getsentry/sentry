@@ -31,7 +31,7 @@ This document is structured by resource with each resource having actions that c
   - offset (optional, number)
     Default: 0
   - query (optional, string) - Search query with space-separated field/value pairs. ie: `?query=count_errors:>2 AND duration:<1h`.
-
+  - queryReferrer(optional, string) - Specify the page which this query is being made from. Used for cross project query on issue replays page. pass `queryReferrer=issueReplays` for this query.
     Some fields in the API response have their own dedicated parameters, or are otherwide not supported in the `query` param. They are:
 
     | Response Field      | Parameter       |
@@ -53,17 +53,18 @@ This document is structured by resource with each resource having actions that c
 
     Additionally, you can filter by these hidden fields.
 
-    | Field                    | Type          | Description                                                    |
-    | ------------------------ | ------------- | -------------------------------------------------------------- |
-    | replay_click.alt         | string        | The alt attribute of the HTML element.                         |
-    | replay_click.class       | array[string] | An array of HTML element classes.                              |
-    | replay_click.id          | string        | The ID of an HTML element.                                     |
-    | replay_click.label       | string        | The aria-label attribute of an HTML element.                   |
-    | replay_click.role        | string        | The role of an HTML element.                                   |
-    | replay_click.tag         | string        | Valid HTML5 tag name.                                          |
-    | replay_click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
-    | replay_click.textContent | string        | The text-content of an HTML element.                           |
-    | replay_click.title       | string        | The title attribute of an HTML element.                        |
+    | Field             | Type          | Description                                                    |
+    | ----------------- | ------------- | -------------------------------------------------------------- |
+    | click.alt         | string        | The alt attribute of the HTML element.                         |
+    | click.class       | array[string] | An array of HTML element classes.                              |
+    | click.id          | string        | The ID of an HTML element.                                     |
+    | click.label       | string        | The aria-label attribute of an HTML element.                   |
+    | click.role        | string        | The role of an HTML element.                                   |
+    | click.tag         | string        | Valid HTML5 tag name.                                          |
+    | click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
+    | click.textContent | string        | The text-content of an HTML element.                           |
+    | click.title       | string        | The title attribute of an HTML element.                        |
+    | click.selector    | string        | A valid CSS selector.                                          |
 
 ### Browse Replays [GET]
 
@@ -89,6 +90,7 @@ Retrieve a collection of replays.
 | error_ids         | array[string]                 | -                                                      |
 | finished_at       | string                        | The **latest** timestamp received.                     |
 | id                | string                        | The ID of the Replay instance.                         |
+| is_archived       | bool                          | Whether the replay was deleted or not.                 |
 | os.name           | optional[string]              | -                                                      |
 | os.version        | optional[string]              | -                                                      |
 | platform          | string                        | -                                                      |
@@ -132,6 +134,7 @@ Retrieve a collection of replays.
         "error_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
         "finished_at": "2022-07-07T14:15:33.201019",
         "id": "7e07485f-12f9-416b-8b14-26260799b51f",
+        "is_archived": false,
         "os": {
           "name": "iOS",
           "version": "16.2"
@@ -147,7 +150,6 @@ Retrieve a collection of replays.
         "tags": {
           "hello": ["world", "Lionel Richie"]
         },
-        "title": "My cool replay",
         "trace_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
         "urls": ["/organizations/abc123/issues"],
         "user": {
@@ -364,4 +366,51 @@ Retrieve a collection of tag values associated with a tag key on the replays dat
       "firstSeen": "2022-11-25T19:40:39Z"
     }
   ]
+  ```
+
+## Replay Click [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/clicks/]
+
+Parameters:
+
+| Parameter | Type   | Default | Description                                  |
+| --------- | ------ | ------- | -------------------------------------------- |
+| limit     | number | 100     |                                              |
+| offset    | number | 0       |                                              |
+| query     | string | 0       | Space-separated string of field, value pairs |
+
+Queryable fields:
+
+| Field             | Type          | Description                                                    |
+| ----------------- | ------------- | -------------------------------------------------------------- |
+| click.alt         | string        | The alt attribute of the HTML element.                         |
+| click.class       | array[string] | An array of HTML element classes.                              |
+| click.id          | string        | The ID of an HTML element.                                     |
+| click.label       | string        | The aria-label attribute of an HTML element.                   |
+| click.role        | string        | The role of an HTML element.                                   |
+| click.selector    | string        | A valid CSS selector.                                          |
+| click.tag         | string        | Valid HTML5 tag name.                                          |
+| click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
+| click.textContent | string        | The text-content of an HTML element.                           |
+| click.title       | string        | The title attribute of an HTML element.                        |
+
+### Fetch Replay Clicks [GET]
+
+Retrieve a collection of click events associated with a replay.
+
+| Column    | Type   | Description                    |
+| --------- | ------ | ------------------------------ |
+| node_id   | number | RRWeb node id.                 |
+| timestamp | number | Unix timestamp of click event. |
+
+- Response 200
+
+  ```json
+  {
+    "data": [
+      {
+        "node_id": 339,
+        "timestamp": 1681226444
+      }
+    ]
+  }
   ```

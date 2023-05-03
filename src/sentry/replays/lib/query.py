@@ -9,6 +9,8 @@ from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.event_search import ParenExpression, SearchFilter
+from sentry.replays.lib.selector.parse import QueryType, parse_selector
+from sentry.replays.lib.selector.query import union_find
 
 OPERATOR_MAP = {
     "=": Op.EQ,
@@ -119,6 +121,25 @@ class UUIDField(Field):
         return super().as_condition(field_alias, operator, value)
 
 
+class IPAddress(Field):
+    _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
+    _python_type = str
+
+    def as_condition(
+        self,
+        field_alias: str,
+        operator: Op,
+        value: Union[List[str], str],
+        is_wildcard: bool = False,
+    ) -> Condition:
+        if isinstance(value, list):
+            value = [Function("IPv4StringToNum", parameters=[v]) for v in value]
+        else:
+            value = Function("IPv4StringToNum", parameters=[value])
+
+        return Condition(Column(self.query_alias or self.attribute_name), operator, value)
+
+
 class String(Field):
     _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
     _python_type = str
@@ -134,6 +155,62 @@ class String(Field):
             )
 
         return super().as_condition(field_alias, operator, value, is_wildcard)
+
+
+class Selector(Field):
+    _operators = [Op.EQ, Op.NEQ]
+    _python_type = str
+
+    def as_condition(
+        self, field_alias: str, operator: Op, value: Union[List[str], str], is_wildcard: bool
+    ) -> Condition:
+        # This list of queries implies an `OR` operation between each item in the set. To `AND`
+        # selector queries apply them separately.
+        queries: List[QueryType] = parse_selector(value)
+
+        # A valid selector will always return at least one query condition. If this did not occur
+        # then the selector was not well-formed. We return an empty resultset.
+        if len(queries) == 0:
+            return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+
+        # Conditions are pre-made and intended for application in the HAVING clause.
+        conditions: List[Condition] = []
+
+        for query in queries:
+            columns, values = [], []
+
+            if query.alt:
+                columns.append(Column("click_alt"))
+                values.append(query.alt)
+            if query.aria_label:
+                columns.append(Column("click_aria_label"))
+                values.append(query.aria_label)
+            if query.classes:
+                columns.append(Column("click_classes"))
+                values.append(query.classes)
+            if query.id:
+                columns.append(Column("click_id"))
+                values.append(query.id)
+            if query.role:
+                columns.append(Column("click_role"))
+                values.append(query.role)
+            if query.tag:
+                columns.append(Column("click_tag"))
+                values.append(query.tag)
+            if query.testid:
+                columns.append(Column("click_testid"))
+                values.append(query.testid)
+            if query.title:
+                columns.append(Column("click_title"))
+                values.append(query.title)
+
+            if columns and values:
+                conditions.append(Condition(union_find(columns, values), operator, 1))
+
+        if len(conditions) == 1:
+            return conditions[0]
+        else:
+            return Or(conditions)
 
 
 class Number(Field):
@@ -231,7 +308,9 @@ class Tag(Field):
     _negation_map = [False, True, False, True]
     _python_type = str
 
-    def __init__(self, **kwargs):
+    def __init__(self, tag_key_alias="tk", tag_value_alias="tv", **kwargs):
+        self.tag_key_alias = tag_key_alias
+        self.tag_value_alias = tag_value_alias
         kwargs.pop("operators", None)
         return super().__init__(**kwargs)
 
@@ -265,7 +344,9 @@ class Tag(Field):
                     Lambda(
                         ["tag_value"], _wildcard_search_function(value, Identifier("tag_value"))
                     ),
-                    all_values_for_tag_key(field_alias, Column("tk"), Column("tv")),
+                    all_values_for_tag_key(
+                        field_alias, Column(self.tag_key_alias), Column(self.tag_value_alias)
+                    ),
                 ],
             ),
             operator,
@@ -281,11 +362,43 @@ class Tag(Field):
         return Condition(
             Function(
                 function,
-                parameters=[all_values_for_tag_key(key, Column("tk"), Column("tv")), values],
+                parameters=[
+                    all_values_for_tag_key(
+                        key, Column(self.tag_key_alias), Column(self.tag_value_alias)
+                    ),
+                    values,
+                ],
             ),
             Op.EQ,
             expected,
         )
+
+
+class InvalidField(Field):
+    _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
+    _python_type = str
+
+    def as_condition(
+        self, _: str, operator: Op, value: Union[List[str], str], is_wildcard: bool = False
+    ) -> Condition:
+        raise ParseError()
+
+    def _wildcard_condition(self, operator: Op, value: str):
+        raise ParseError()
+
+    def _has_condition(
+        self,
+        operator: Op,
+        value: Union[List[str], str],
+    ) -> Condition:
+        raise ParseError()
+
+    def _has_any_condition(
+        self,
+        operator: Op,
+        values: Union[List[str], str],
+    ) -> Condition:
+        raise ParseError()
 
 
 class QueryConfig:
@@ -421,6 +534,10 @@ def get_valid_sort_commands(
     field = query_config.get(field_name)
     if not field:
         raise ParseError(f"Invalid field specified: {field_name}.")
+
+    if isinstance(field, InvalidField):
+        raise ParseError("field can't be used to sort query")
+
     else:
         return [OrderBy(Column(field.query_alias or field.attribute_name), strategy)]
 

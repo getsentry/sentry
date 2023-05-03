@@ -9,6 +9,7 @@ import {FormSize} from 'sentry/utils/theme';
 import {SelectContext} from '../control';
 import {SelectFilterContext} from '../list';
 import {ListLabel, ListSeparator, ListWrap, SizeLimitMessage} from '../styles';
+import {SelectSection} from '../types';
 
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';
@@ -40,6 +41,15 @@ interface ListBoxProps
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
+  /**
+   * To be called when the user toggle-selects a whole section (applicable when sections
+   * have `showToggleAllButton` set to true.) Note: this will be called in addition to
+   * and before `onChange`.
+   */
+  onSectionToggle?: (
+    section: SelectSection<React.Key>,
+    type: 'select' | 'unselect'
+  ) => void;
   size?: FormSize;
   /**
    * Message to be displayed when some options are hidden due to `sizeLimit`.
@@ -62,6 +72,7 @@ function ListBox({
   size = 'md',
   shouldFocusWrap = true,
   shouldFocusOnHover = true,
+  onSectionToggle,
   sizeLimitMessage,
   keyDownHandler,
   label,
@@ -118,6 +129,7 @@ function ListBox({
                   key={item.key}
                   item={item}
                   listState={listState}
+                  onToggle={onSectionToggle}
                   size={size}
                 />
               );

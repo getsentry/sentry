@@ -1,5 +1,5 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
 import Access from 'sentry/components/acl/access';
 import {Role} from 'sentry/components/acl/role';
@@ -24,13 +24,13 @@ type Props = {
   orgSlug: string;
 };
 
-const ProjectProguardRow = ({
+function ProjectProguardRow({
   mapping,
   onDelete,
   downloadUrl,
   downloadRole,
   orgSlug,
-}: Props) => {
+}: Props) {
   const {id, debugId, uuid, size, dateCreated} = mapping;
 
   const associatedReleases = (mapping as any).associated_releases as string[];
@@ -111,7 +111,7 @@ const ProjectProguardRow = ({
       </ActionsColumn>
     </Fragment>
   );
-};
+}
 
 const AssociatedReleaseRow = styled('div')`
   display: flex;

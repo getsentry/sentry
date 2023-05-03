@@ -1,10 +1,15 @@
 import logging
+from typing import Any, Callable, Optional
 
-from sentry.lang.javascript.utils import should_use_symbolicator_for_sourcemaps
+from sentry.lang.javascript.utils import (
+    do_sourcemaps_processing_ab_test,
+    should_use_symbolicator_for_sourcemaps,
+)
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
-from sentry.models import EventError, Project
+from sentry.models import EventError
 from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.utils.http import get_origins
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -44,11 +49,12 @@ def _merge_frame(new_frame, symbolicated):
         new_frame["context_line"] = symbolicated["context_line"]
     if symbolicated.get("post_context"):
         new_frame["post_context"] = symbolicated["post_context"]
-    if symbolicated.get("status"):
-        new_frame.setdefault("data", {})
-        # NOTE: We don't need this currently, and it's not clear whether we'll use it at all.
-        # frame_meta = new_frame.setdefault("data", {})
-        # frame_meta["symbolicator_status"] = symbolicated["status"]
+    if data_sourcemap := get_path(symbolicated, "data", "sourcemap"):
+        frame_meta = new_frame.setdefault("data", {})
+        frame_meta["sourcemap"] = data_sourcemap
+    # if symbolicated.get("status"):
+    # NOTE: We don't need this currently, and it's not clear whether we'll use it at all.
+    # frame_meta["symbolicator_status"] = symbolicated["status"]
 
     return new_frame
 
@@ -101,10 +107,22 @@ def map_symbolicator_process_js_errors(errors):
 
         if ty == "invalid_abs_path" and not should_skip_missing_source_error(abs_path):
             mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
+        elif ty == "missing_source" and not should_skip_missing_source_error(abs_path):
+            mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
         elif ty == "missing_sourcemap" and not should_skip_missing_source_error(abs_path):
             mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
+        elif ty == "scraping_disabled":
+            mapped_errors.append({"type": EventError.JS_SCRAPING_DISABLED, "url": abs_path})
         elif ty == "malformed_sourcemap":
-            mapped_errors.append({"type": EventError.JS_INVALID_SOURCEMAP, "url": abs_path})
+            mapped_errors.append({"type": EventError.JS_INVALID_SOURCEMAP, "url": error["url"]})
+        elif ty == "missing_source_content":
+            mapped_errors.append(
+                {
+                    "type": EventError.JS_MISSING_SOURCES_CONTENT,
+                    "source": error["source"],
+                    "sourcemap": error["sourcemap"],
+                }
+            )
         elif ty == "invalid_location":
             mapped_errors.append(
                 {
@@ -118,21 +136,45 @@ def map_symbolicator_process_js_errors(errors):
     return mapped_errors
 
 
-def process_payload(data):
-    project = Project.objects.get_from_cache(id=data.get("project"))
+def _handles_frame(frame):
+    if not frame:
+        return False
 
+    return frame.get("abs_path") is not None
+
+
+def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
+    project = symbolicator.project
     allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
     allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
     allow_scraping = allow_scraping_org_level and allow_scraping_project_level
 
-    symbolicator = Symbolicator(project=project, event_id=data["event_id"])
+    allowed_origins = []
+    scraping_headers = {}
+    if allow_scraping:
+        allowed_origins = list(get_origins(project))
+
+        token = project.get_option("sentry:token")
+        if token:
+            token_header = project.get_option("sentry:token_header") or "X-Sentry-Token"
+            scraping_headers[token_header] = token
+
+    scraping_config = {
+        "enabled": allow_scraping,
+        "headers": scraping_headers,
+        "allowed_origins": allowed_origins,
+    }
 
     modules = sourcemap_images_from_data(data)
 
     stacktrace_infos = find_stacktraces_in_data(data)
     stacktraces = [
         {
-            "frames": [dict(frame) for frame in sinfo.stacktrace.get("frames") or ()],
+            "frames": [
+                dict(frame)
+                for frame in sinfo.stacktrace.get("frames") or ()
+                if _handles_frame(frame)
+            ],
         }
         for sinfo in stacktrace_infos
     ]
@@ -145,46 +187,64 @@ def process_payload(data):
         modules=modules,
         release=data.get("release"),
         dist=data.get("dist"),
-        allow_scraping=allow_scraping,
+        scraping_config=scraping_config,
     )
 
     if not _handle_response_status(data, response):
         return data
 
+    should_do_ab_test = do_sourcemaps_processing_ab_test()
+    symbolicator_stacktraces = []
+
     processing_errors = response.get("errors", [])
-    if len(processing_errors) > 0:
+    if len(processing_errors) > 0 and not should_do_ab_test:
         data.setdefault("errors", []).extend(map_symbolicator_process_js_errors(processing_errors))
 
-    # TODO: should this really be a hard assert? Or rather an internal log?
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 
     for sinfo, raw_stacktrace, complete_stacktrace in zip(
         stacktrace_infos, response["raw_stacktraces"], response["stacktraces"]
     ):
+        processed_frame_idx = 0
         new_frames = []
         new_raw_frames = []
+        for sinfo_frame in sinfo.stacktrace["frames"]:
+            if not _handles_frame(sinfo_frame):
+                new_raw_frames.append(sinfo_frame)
+                new_frames.append(sinfo_frame)
+                continue
 
-        for sinfo_frame, raw_frame, complete_frame in zip(
-            sinfo.stacktrace["frames"],
-            raw_stacktrace["frames"],
-            complete_stacktrace["frames"],
-        ):
+            raw_frame = raw_stacktrace["frames"][processed_frame_idx]
+            complete_frame = complete_stacktrace["frames"][processed_frame_idx]
+            processed_frame_idx += 1
+
             merged_context_frame = _merge_frame_context(sinfo_frame, raw_frame)
             new_raw_frames.append(merged_context_frame)
 
             merged_frame = _merge_frame(merged_context_frame, complete_frame)
             new_frames.append(merged_frame)
 
-        if sinfo.container is not None:
-            sinfo.container["raw_stacktrace"] = {
-                "frames": new_raw_frames,
-            }
+        # NOTE: we do *not* write the symbolicated frames into `data` (via the `sinfo` indirection)
+        # but we rather write that to a different event property that we will use for A/B testing.
+        if should_do_ab_test:
+            symbolicator_stacktraces.append(new_frames)
+        else:
+            sinfo.stacktrace["frames"] = new_frames
 
-        sinfo.stacktrace["frames"] = new_frames
+            if sinfo.container is not None:
+                sinfo.container["raw_stacktrace"] = {
+                    "frames": new_raw_frames,
+                }
+
+    if should_do_ab_test:
+        data["symbolicator_stacktraces"] = symbolicator_stacktraces
+    else:
+        data["processed_by_symbolicator"] = True
 
     return data
 
 
-def get_symbolication_function(data):
+def get_js_symbolication_function(data: Any) -> Optional[Callable[[Symbolicator, Any], Any]]:
     if should_use_symbolicator_for_sourcemaps(data.get("project")):
-        return process_payload
+        return process_js_stacktraces
+    return None

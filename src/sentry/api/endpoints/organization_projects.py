@@ -46,6 +46,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     {
                         "dateCreated": "2018-11-06T21:19:58.536Z",
                         "firstEvent": None,
+                        "access": [],
                         "hasAccess": True,
                         "id": "3",
                         "isBookmarked": False,
@@ -73,8 +74,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                         "hasSessions": True,
                         "hasProfiles": True,
                         "hasReplays": True,
-                        "latestRelease": None,
+                        "hasMonitors": True,
                         "hasUserReports": False,
+                        "latestRelease": None,
                     }
                 ],
             )

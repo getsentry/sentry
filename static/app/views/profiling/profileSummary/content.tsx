@@ -18,7 +18,6 @@ import {
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useOrganization from 'sentry/utils/useOrganization';
 import {ProfileCharts} from 'sentry/views/profiling/landing/profileCharts';
 
 interface ProfileSummaryContentProps {
@@ -30,7 +29,6 @@ interface ProfileSummaryContentProps {
 }
 
 function ProfileSummaryContent(props: ProfileSummaryContentProps) {
-  const organization = useOrganization();
   const fields = useMemo(
     () => getProfilesTableFields(props.project.platform),
     [props.project]
@@ -69,21 +67,11 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     [props.location]
   );
 
-  const isAggregateFlamegraphEnabled = organization.features.includes(
-    'profiling-aggregate-flamegraph'
-  );
-
   return (
     <Fragment>
       <Layout.Main fullWidth>
-        <ProfileCharts
-          query={props.query}
-          hideCount
-          compact={isAggregateFlamegraphEnabled}
-        />
-        {isAggregateFlamegraphEnabled && (
-          <AggregateFlamegraphPanel transaction={props.transaction} />
-        )}
+        <ProfileCharts query={props.query} hideCount compact />
+        <AggregateFlamegraphPanel transaction={props.transaction} />
         <TableHeader>
           <CompactSelect
             triggerProps={{prefix: t('Filter'), size: 'xs'}}
@@ -94,7 +82,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
           <StyledPagination
             pageLinks={
               profiles.status === 'success'
-                ? profiles.data?.[2]?.getResponseHeader('Link') ?? null
+                ? profiles.getResponseHeader?.('Link') ?? null
                 : null
             }
             size="xs"
@@ -102,7 +90,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
         </TableHeader>
         <ProfileEventsTable
           columns={fields}
-          data={profiles.status === 'success' ? profiles.data[0] : null}
+          data={profiles.status === 'success' ? profiles.data : null}
           error={profiles.status === 'error' ? t('Unable to load profiles') : null}
           isLoading={profiles.status === 'loading'}
           sort={sort}

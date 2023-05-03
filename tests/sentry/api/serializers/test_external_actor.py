@@ -5,7 +5,7 @@ from sentry.api.bases.external_actor import (
 )
 from sentry.api.serializers import serialize
 from sentry.models import ExternalActor, Integration
-from sentry.models.actor import ACTOR_TYPES, Actor, get_actor_id_for_user
+from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders, get_provider_name
@@ -30,8 +30,6 @@ class ExternalActorSerializerTest(TestCase):
     def test_idempotent_actor(self):
         get_actor_id_for_user(self.user)
         self.user.actor_id = None
-        Actor.objects.create(user_id=self.user.id, type=ACTOR_TYPES["user"])
-        Actor.objects.create(user_id=self.user.id, type=ACTOR_TYPES["user"])
         get_actor_id_for_user(self.user)
         self.user.refresh_from_db()
         assert self.user.actor_id

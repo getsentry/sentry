@@ -26,7 +26,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import analytics, tagstore
+from sentry import analytics, features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -435,6 +435,8 @@ class GroupSerializerBase(Serializer, ABC):
                 organization_id=obj.project.organization_id,
                 group_id=obj.id,
                 resolution_type="automatic",
+                issue_type=obj.issue_type.slug,
+                issue_category=obj.issue_category.name.lower(),
             )
         if status == GroupStatus.RESOLVED:
             status_label = "resolved"
@@ -473,16 +475,26 @@ class GroupSerializerBase(Serializer, ABC):
         if self._collapse("stats"):
             return None
 
+        if not item_list:
+            return
+
+        organization = item_list[0].organization
+        search_perf_issues = features.has(
+            "organizations:issue-platform-search-perf-issues", organization, actor=user
+        )
         # partition the item_list by type
         error_issues = [group for group in item_list if GroupCategory.ERROR == group.issue_category]
         perf_issues = [
-            group for group in item_list if GroupCategory.PERFORMANCE == group.issue_category
+            group
+            for group in item_list
+            if GroupCategory.PERFORMANCE == group.issue_category and not search_perf_issues
         ]
         generic_issues = [
             group
             for group in item_list
             if group.issue_category
-            and group.issue_category not in (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
+            and group.issue_category != GroupCategory.ERROR
+            and (group.issue_category != GroupCategory.PERFORMANCE or search_perf_issues)
         ]
 
         # bulk query for the seen_stats by type
@@ -888,7 +900,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
         *SKIP_SNUBA_FIELDS,
         "last_seen",
         "times_seen",
-        "date",  # We merge this with start/end, so don't want to include it as its own
+        "date",
+        "timestamp",  # We merge this with start/end, so don't want to include it as its own
         # condition
         # We don't need to filter by release stage again here since we're
         # filtering to specific groups. Saves us making a second query to
@@ -916,12 +929,28 @@ class GroupSerializerSnuba(GroupSerializerBase):
         # should try and encapsulate this logic, but if you're changing this, change it
         # there as well.
         self.start = None
-        start_params = [_f for _f in [start, get_search_filter(search_filters, "date", ">")] if _f]
+        start_params = [
+            _f
+            for _f in [
+                start,
+                get_search_filter(search_filters, "date", ">"),
+                get_search_filter(search_filters, "timestamp", ">"),
+            ]
+            if _f
+        ]
         if start_params:
             self.start = max(_f for _f in start_params if _f)
 
         self.end = None
-        end_params = [_f for _f in [end, get_search_filter(search_filters, "date", "<")] if _f]
+        end_params = [
+            _f
+            for _f in [
+                end,
+                get_search_filter(search_filters, "date", "<"),
+                get_search_filter(search_filters, "timestamp", "<"),
+            ]
+            if _f
+        ]
         if end_params:
             self.end = min(end_params)
 

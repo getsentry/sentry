@@ -379,6 +379,11 @@ def to_naive_timestamp(value):
     return (value - epoch_naive).total_seconds()
 
 
+def to_start_of_hour(dt: datetime) -> datetime:
+    """This is a function that mimics toStartOfHour from Clickhouse"""
+    return dt.replace(minute=0, second=0, microsecond=0).isoformat()
+
+
 def get_snuba_column_name(name, dataset=Dataset.Events):
     """
     Get corresponding Snuba column name from Sentry snuba map, if not found
@@ -812,7 +817,6 @@ def _apply_cache_and_build_results(
     validate_referrer(referrer)
     if referrer:
         headers["referer"] = referrer
-
     # Store the original position of the query so that we can maintain the order
     query_param_list = list(enumerate(snuba_param_list))
 

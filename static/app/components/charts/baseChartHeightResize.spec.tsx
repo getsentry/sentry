@@ -17,9 +17,11 @@ jest.mock('echarts-for-react/lib/core', () => {
   };
 });
 
-const TestContainer = ({children}) => (
-  <div style={{height: '500px', background: 'yellow', padding: '20px'}}>{children}</div>
-);
+function TestContainer({children}) {
+  return (
+    <div style={{height: '500px', background: 'yellow', padding: '20px'}}>{children}</div>
+  );
+}
 
 describe('BaseChart', function () {
   it('can scale to full parent height when given autoHeightResize', () => {

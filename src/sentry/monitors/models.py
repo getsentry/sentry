@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 import pytz
 from croniter import croniter
 from dateutil import rrule
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -23,8 +27,11 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models import Environment, Project
+from sentry.models import Environment
 from sentry.utils.retries import TimedRetryPolicy
+
+if TYPE_CHECKING:
+    from sentry.models import Project
 
 SCHEDULE_INTERVAL_MAP = {
     "year": rrule.YEARLY,
@@ -34,6 +41,14 @@ SCHEDULE_INTERVAL_MAP = {
     "hour": rrule.HOURLY,
     "minute": rrule.MINUTELY,
 }
+
+
+class MonitorLimitsExceeded(Exception):
+    pass
+
+
+class MonitorEnvironmentLimitsExceeded(Exception):
+    pass
 
 
 def get_next_schedule(last_checkin, schedule_type, schedule):
@@ -55,36 +70,52 @@ def get_next_schedule(last_checkin, schedule_type, schedule):
     return next_schedule
 
 
-def get_monitor_context(monitor):
-    config = monitor.config.copy()
+def get_monitor_environment_context(monitor_environment):
+    config = monitor_environment.monitor.config.copy()
     if "schedule_type" in config:
-        config["schedule_type"] = monitor.get_schedule_type_display()
+        config["schedule_type"] = monitor_environment.monitor.get_schedule_type_display()
 
     return {
-        "id": str(monitor.guid),
-        "slug": monitor.slug,
-        "name": monitor.name,
-        "config": monitor.config,
-        "status": monitor.get_status_display(),
-        "type": monitor.get_type_display(),
+        "id": str(monitor_environment.monitor.guid),
+        "slug": monitor_environment.monitor.slug,
+        "name": monitor_environment.monitor.name,
+        "config": monitor_environment.monitor.config,
+        "status": monitor_environment.get_status_display(),
+        "type": monitor_environment.monitor.get_type_display(),
     }
 
 
 class MonitorStatus(ObjectStatus):
+    """
+    The monitor status is an extension of the ObjectStatus constants. In this
+    extension the "status" of a monitor (passing, failing, timed out, etc) is
+    represented.
+
+    [!!]: This is NOT used for the status of the Monitor model itself. That is
+          simply an ObjectStatus.
+    """
+
     OK = 4
     ERROR = 5
     MISSED_CHECKIN = 6
+    TIMEOUT = 7
 
     @classmethod
     def as_choices(cls):
         return (
+            # TODO: It is unlikely a MonitorEnvironment should ever be in the
+            # 'active' state, since for a monitor environmnent to be created
+            # some checkins must have been sent.
             (cls.ACTIVE, "active"),
+            # The DISABLED state is denormalized off of the parent Monitor.
             (cls.DISABLED, "disabled"),
+            # MonitorEnvironment's may be deleted
             (cls.PENDING_DELETION, "pending_deletion"),
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
             (cls.MISSED_CHECKIN, "missed_checkin"),
+            (cls.TIMEOUT, "timeout"),
         )
 
 
@@ -104,7 +135,10 @@ class CheckInStatus:
     MISSED = 4
     """Monitor did not check in on time"""
 
-    FINISHED_VALUES = (OK, ERROR)
+    TIMEOUT = 5
+    """Checkin was left in-progress past max_runtime"""
+
+    FINISHED_VALUES = (OK, ERROR, TIMEOUT)
     """Sentient values used to indicate a monitor is finished running"""
 
     @classmethod
@@ -115,6 +149,7 @@ class CheckInStatus:
             (cls.ERROR, "error"),
             (cls.IN_PROGRESS, "in_progress"),
             (cls.MISSED, "missed"),
+            (cls.TIMEOUT, "timeout"),
         )
 
 
@@ -166,7 +201,7 @@ class Monitor(Model):
     project_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=128)
     status = BoundedPositiveIntegerField(
-        default=MonitorStatus.ACTIVE, choices=MonitorStatus.as_choices()
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )
     type = BoundedPositiveIntegerField(
         default=MonitorType.UNKNOWN,
@@ -214,60 +249,17 @@ class Monitor(Model):
         )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
-    def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
-        from sentry.coreapi import insert_data_to_database_legacy
-        from sentry.event_manager import EventManager
-        from sentry.models import Project
-        from sentry.signals import monitor_failed
 
-        if last_checkin is None:
-            next_checkin_base = timezone.now()
-            last_checkin = self.last_checkin or timezone.now()
-        else:
-            next_checkin_base = last_checkin
-
-        new_status = MonitorStatus.ERROR
-        if reason == MonitorFailure.MISSED_CHECKIN:
-            new_status = MonitorStatus.MISSED_CHECKIN
-
-        affected = (
-            type(self)
-            .objects.filter(
-                Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
-            )
-            .update(
-                next_checkin=self.get_next_scheduled_checkin(next_checkin_base),
-                status=new_status,
-                last_checkin=last_checkin,
-            )
+@receiver(pre_save, sender=Monitor)
+def check_organization_monitor_limits(sender, instance, **kwargs):
+    if (
+        instance.pk is None
+        and sender.objects.filter(organization_id=instance.organization_id).count()
+        == settings.MAX_MONITORS_PER_ORG
+    ):
+        raise MonitorLimitsExceeded(
+            f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization"
         )
-        if not affected:
-            return False
-
-        event_manager = EventManager(
-            {
-                "logentry": {"message": f"Monitor failure: {self.name} ({reason})"},
-                "contexts": {"monitor": get_monitor_context(self)},
-                "fingerprint": ["monitor", str(self.guid), reason],
-                "tags": {"monitor.id": str(self.guid)},
-            },
-            project=Project(id=self.project_id),
-        )
-        event_manager.normalize()
-        data = event_manager.get_data()
-        insert_data_to_database_legacy(data)
-        monitor_failed.send(monitor=self, sender=type(self))
-        return True
-
-    def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
-        params = {
-            "last_checkin": ts,
-            "next_checkin": self.get_next_scheduled_checkin(ts),
-        }
-        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
-            params["status"] = MonitorStatus.OK
-
-        Monitor.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
 
 
 @region_silo_only_model
@@ -375,7 +367,15 @@ class MonitorEnvironment(Model):
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 
+    def get_audit_log_data(self):
+        return {"name": self.environment.name, "status": self.status, "monitor": self.monitor.name}
+
     def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
+        from sentry.coreapi import insert_data_to_database_legacy
+        from sentry.event_manager import EventManager
+        from sentry.models import Project
+        from sentry.signals import monitor_environment_failed
+
         if last_checkin is None:
             next_checkin_base = timezone.now()
             last_checkin = self.last_checkin or timezone.now()
@@ -385,6 +385,8 @@ class MonitorEnvironment(Model):
         new_status = MonitorStatus.ERROR
         if reason == MonitorFailure.MISSED_CHECKIN:
             new_status = MonitorStatus.MISSED_CHECKIN
+        elif reason == MonitorFailure.DURATION:
+            new_status = MonitorStatus.TIMEOUT
 
         affected = (
             type(self)
@@ -400,6 +402,22 @@ class MonitorEnvironment(Model):
         if not affected:
             return False
 
+        event_manager = EventManager(
+            {
+                "logentry": {"message": f"Monitor failure: {self.monitor.name} ({reason})"},
+                "contexts": {"monitor": get_monitor_environment_context(self)},
+                "fingerprint": ["monitor", str(self.monitor.guid), reason],
+                "environment": self.environment.name,
+                # TODO: Both of these values should be get transformed from context to tags
+                # We should understand why that is not happening and remove these when it correctly is
+                "tags": {"monitor.id": str(self.monitor.guid), "monitor.slug": self.monitor.slug},
+            },
+            project=Project(id=self.monitor.project_id),
+        )
+        event_manager.normalize()
+        data = event_manager.get_data()
+        insert_data_to_database_legacy(data)
+        monitor_environment_failed.send(monitor_environment=self, sender=type(self))
         return True
 
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
@@ -407,7 +425,19 @@ class MonitorEnvironment(Model):
             "last_checkin": ts,
             "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
         }
-        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
+        if checkin.status == CheckInStatus.OK and self.monitor.status != MonitorStatus.DISABLED:
             params["status"] = MonitorStatus.OK
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
+
+
+@receiver(pre_save, sender=MonitorEnvironment)
+def check_monitor_environment_limits(sender, instance, **kwargs):
+    if (
+        instance.pk is None
+        and sender.objects.filter(monitor=instance.monitor).count()
+        == settings.MAX_ENVIRONMENTS_PER_MONITOR
+    ):
+        raise MonitorEnvironmentLimitsExceeded(
+            f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
+        )

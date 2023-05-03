@@ -134,7 +134,16 @@ def process_commit_context(
                     extra={
                         **basic_logging_details,
                         "reason": "could_not_find_in_app_stacktrace_frame",
+                        "fallback": True,
                     },
+                )
+                process_suspect_commits.delay(
+                    event_id=event_id,
+                    event_platform=event_platform,
+                    event_frames=event_frames,
+                    group_id=group_id,
+                    project_id=project_id,
+                    sdk_name=sdk_name,
                 )
                 return
 
@@ -163,7 +172,16 @@ def process_commit_context(
                         **basic_logging_details,
                         "reason": "could_not_fetch_commit_context",
                         "code_mappings_count": len(code_mappings),
+                        "fallback": True,
                     },
+                )
+                process_suspect_commits.delay(
+                    event_id=event_id,
+                    event_platform=event_platform,
+                    event_frames=event_frames,
+                    group_id=group_id,
+                    project_id=project_id,
+                    sdk_name=sdk_name,
                 )
                 return
 
@@ -177,6 +195,9 @@ def process_commit_context(
                         repository_id=code_mapping.repository_id,
                         key=commit_context.get("commitId"),
                     )
+                    if commit.message == "":
+                        commit.message = commit_context.get("commitMessage")
+                        commit.save()
                     selected_code_mapping = code_mapping
                     break
                 except Commit.DoesNotExist:
@@ -214,7 +235,7 @@ def process_commit_context(
                         key=context.get("commitId"),
                         date_added=context.get("committedDate"),
                         author=commit_author,
-                        message=context.get("message"),
+                        message=context.get("commitMessage"),
                     )
 
                     logger.info(

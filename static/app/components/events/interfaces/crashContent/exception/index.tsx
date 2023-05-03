@@ -18,7 +18,7 @@ type Props = {
   stackView?: STACK_VIEW;
 } & Pick<ExceptionType, 'values'>;
 
-function Exception({
+export function ExceptionContent({
   stackView,
   stackType,
   projectSlug,
@@ -57,5 +57,3 @@ function Exception({
     </ErrorBoundary>
   );
 }
-
-export default Exception;

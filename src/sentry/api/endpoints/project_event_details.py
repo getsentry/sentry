@@ -8,14 +8,14 @@ from rest_framework.response import Response
 from sentry import eventstore
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import DetailedEventSerializer, serialize
+from sentry.api.serializers import IssueEventSerializer, serialize
 from sentry.eventstore.models import Event
 from sentry.issues.query import apply_performance_conditions
 from sentry.models.project import Project
 
 
 def wrap_event_response(request_user: Any, event: Event, project: Project, environments: List[str]):
-    event_data = serialize(event, request_user, DetailedEventSerializer())
+    event_data = serialize(event, request_user, IssueEventSerializer())
     # Used for paginating through events of a single issue in group details
     # Skip next/prev for issueless events
     next_event_id = None

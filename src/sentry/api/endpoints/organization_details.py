@@ -120,6 +120,12 @@ ORG_OPTIONS = (
     ("relayPiiConfig", "sentry:relay_pii_config", str, None),
     ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
+    (
+        "aiSuggestedSolution",
+        "sentry:ai_suggested_solution",
+        bool,
+        org_serializers.AI_SUGGESTED_SOLUTION,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -161,6 +167,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
+    aiSuggestedSolution = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
@@ -516,7 +523,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
                     if "slug" in changed_data:
                         organization_mapping_service.create(
-                            user=request.user,
                             organization_id=organization.id,
                             slug=organization.slug,
                             name=organization.name,

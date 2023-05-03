@@ -15,7 +15,7 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project, Scope} from 'sentry/types';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -25,7 +25,6 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 export const retentionPrioritiesLabels = {
   boostLatestRelease: t('Prioritize new releases'),
   boostEnvironments: t('Prioritize dev environments'),
-  boostKeyTransactions: t('Prioritize key transactions'),
   boostLowVolumeTransactions: t('Prioritize low-volume transactions'),
   ignoreHealthChecks: t('Deprioritize health checks'),
 };
@@ -109,10 +108,9 @@ class ProjectPerformance extends AsyncView<Props, State> {
       {
         method: 'DELETE',
         success: () => {
-          trackAdvancedAnalyticsEvent(
-            'performance_views.project_transaction_threshold.clear',
-            {organization}
-          );
+          trackAnalytics('performance_views.project_transaction_threshold.clear', {
+            organization,
+          });
         },
         complete: () => this.fetchData(),
       }
@@ -251,6 +249,12 @@ class ProjectPerformance extends AsyncView<Props, State> {
         step: 0.01,
         defaultValue: 0,
       },
+      {
+        name: 'consecutive_http_spans_detection_enabled',
+        type: 'boolean',
+        label: t('Consecutive HTTP Spans Detection Enabled'),
+        defaultValue: true,
+      },
     ];
   }
 
@@ -270,15 +274,8 @@ class ProjectPerformance extends AsyncView<Props, State> {
         type: 'boolean',
         label: retentionPrioritiesLabels.boostEnvironments,
         help: t(
-          'Captures more traces from environments that contain "dev", "test", "qa", and "local"'
+          'Captures more traces from environments that contain "debug", "dev", "local", "qa", and "test"'
         ),
-        getData: this.getRetentionPrioritiesData,
-      },
-      {
-        name: 'boostKeyTransactions',
-        type: 'boolean',
-        label: retentionPrioritiesLabels.boostKeyTransactions,
-        help: t('Captures more of your most important (starred) transactions'),
         getData: this.getRetentionPrioritiesData,
       },
       {
@@ -322,7 +319,8 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return (
       <Fragment>
         <SettingsPageHeader title={t('Performance')} />
-        <PermissionAlert access={requiredScopes} />
+        <PermissionAlert project={project} />
+
         <Form
           saveOnBlur
           allowUndo
@@ -332,19 +330,16 @@ class ProjectPerformance extends AsyncView<Props, State> {
           onSubmitSuccess={resp => {
             const initial = this.initialData;
             const changedThreshold = initial.metric === resp.metric;
-            trackAdvancedAnalyticsEvent(
-              'performance_views.project_transaction_threshold.change',
-              {
-                organization,
-                from: changedThreshold ? initial.threshold : initial.metric,
-                to: changedThreshold ? resp.threshold : resp.metric,
-                key: changedThreshold ? 'threshold' : 'metric',
-              }
-            );
+            trackAnalytics('performance_views.project_transaction_threshold.change', {
+              organization,
+              from: changedThreshold ? initial.threshold : initial.metric,
+              to: changedThreshold ? resp.threshold : resp.metric,
+              key: changedThreshold ? 'threshold' : 'metric',
+            });
             this.setState({threshold: resp});
           }}
         >
-          <Access access={requiredScopes}>
+          <Access access={requiredScopes} project={project}>
             {({hasAccess}) => (
               <JsonForm
                 title={t('General')}
@@ -371,7 +366,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             }
             onSubmitSuccess={(response, _instance, id, change) => {
               ProjectsStore.onUpdateSuccess(response);
-              trackAdvancedAnalyticsEvent(
+              trackAnalytics(
                 change?.new === true
                   ? 'dynamic_sampling_settings.priority_enabled'
                   : 'dynamic_sampling_settings.priority_disabled',
@@ -385,7 +380,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             apiMethod="PUT"
             apiEndpoint={projectEndpoint}
           >
-            <Access access={requiredScopes}>
+            <Access access={requiredScopes} project={project}>
               {({hasAccess}) => (
                 <JsonForm
                   title={t('Retention Priorities')}
@@ -414,11 +409,15 @@ class ProjectPerformance extends AsyncView<Props, State> {
               initialData={{
                 performanceIssueCreationRate:
                   this.state.project.performanceIssueCreationRate,
+                performanceIssueSendToPlatform:
+                  this.state.project.performanceIssueSendToPlatform,
+                performanceIssueCreationThroughPlatform:
+                  this.state.project.performanceIssueCreationThroughPlatform,
               }}
               apiMethod="PUT"
               apiEndpoint={projectEndpoint}
             >
-              <Access access={requiredScopes}>
+              <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (
                   <JsonForm
                     title={t('Performance Issues - All')}
@@ -435,7 +434,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
               apiMethod="PUT"
               apiEndpoint={performanceIssuesEndpoint}
             >
-              <Access access={requiredScopes}>
+              <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (
                   <JsonForm
                     title={t('Performance Issues - Detector Settings')}

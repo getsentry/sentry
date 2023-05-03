@@ -188,7 +188,9 @@ def describe_event_for_ai(event):
         if idx > 0:
             exception["raised_during_handling_of_previous_exception"] = True
         exception["num"] = idx + 1
-        exception["type"] = exc["type"]
+        exc_type = exc.get("type")
+        if exc_type:
+            exception["type"] = exc_type
         exception["message"] = exc.get("value")
         mechanism = exc.get("mechanism") or {}
         exc_meta = mechanism.get("meta")
@@ -315,7 +317,15 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         cache_key = "ai:" + event.get_primary_hash()
         suggestion = cache.get(cache_key)
         if suggestion is None:
-            suggestion = suggest_fix(event.data)
+            try:
+                suggestion = suggest_fix(event.data)
+            except openai.error.RateLimitError as err:
+                return HttpResponse(
+                    json.dumps({"error": err.json_body["error"]}),
+                    content_type="application/json",
+                    status=429,
+                )
+
             cache.set(cache_key, suggestion, 300)
 
         return HttpResponse(

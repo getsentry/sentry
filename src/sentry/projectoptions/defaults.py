@@ -1,7 +1,7 @@
 from sentry.projectoptions import register
 
 # latest epoch
-LATEST_EPOCH = 9
+LATEST_EPOCH = 11
 
 # grouping related configs
 #
@@ -103,7 +103,7 @@ register(key="sentry:performance_issue_creation_rate", default=1.0)
 
 # Rate at which performance problems are sent to issues platform. Defaults to False, system flags and options will determine if an organization sends perf problems to platform.
 # Can be used to turn off writing occurrences for users if there is a project-specific issue.
-register(key="sentry:performance_issue_send_to_issues_platform", default=False)
+register(key="sentry:performance_issue_send_to_issues_platform", default=True)
 
 # Rate at which performance issues are created through issues platform per project. Defaults to False, system flags and options will determine if an organization creates issues through platform.
 # Can be used to turn off issue creation for users if there is a project-specific issue.
@@ -114,6 +114,7 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "n_plus_one_api_calls_detection_rate": 1.0,
     "consecutive_db_queries_detection_rate": 1.0,
     "uncompressed_assets_detection_enabled": True,
+    "consecutive_http_spans_detection_enabled": True,
 }
 # A dict containing all the specific detection thresholds and rates.
 register(
@@ -125,3 +126,20 @@ register(
 # Contains a mapping from rule to last seen timestamp,
 # for example `{"/organizations/*/**": 1334318402}`
 register(key="sentry:transaction_name_cluster_rules", default={})
+
+# The JavaScript loader dynamic SDK options that are the project defaults.
+register(
+    key="sentry:default_loader_options",
+    epoch_defaults={
+        10: {
+            "hasPerformance": True,
+            "hasReplay": True,
+        }
+    },
+)
+
+# The available loader SDK versions
+register(
+    key="sentry:loader_available_sdk_versions",
+    epoch_defaults={1: ["latest", "7.x", "6.x", "5.x", "4.x"], 11: ["latest", "7.x"]},
+)

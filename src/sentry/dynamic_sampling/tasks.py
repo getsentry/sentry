@@ -1,5 +1,7 @@
 import logging
-from typing import Sequence, Tuple
+from collections import namedtuple
+from datetime import timedelta
+from typing import Dict, Optional, Sequence, Tuple
 
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -15,6 +17,10 @@ from sentry.dynamic_sampling.prioritise_transactions import (
     get_orgs_with_project_counts,
     transactions_zip,
 )
+from sentry.dynamic_sampling.recalibrate_transactions import (
+    OrganizationDataVolume,
+    fetch_org_volumes,
+)
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_cache_key
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     set_transactions_resampling_rates,
@@ -24,9 +30,14 @@ from sentry.dynamic_sampling.rules.utils import (
     DecisionKeepCount,
     OrganizationId,
     ProjectId,
+    adjusted_factor,
+    generate_cache_key_rebalance_factor,
     get_redis_client_for_ds,
 )
-from sentry.dynamic_sampling.snuba_utils import get_orgs_with_project_counts_without_modulo
+from sentry.dynamic_sampling.snuba_utils import (
+    get_active_orgs,
+    get_orgs_with_project_counts_without_modulo,
+)
 from sentry.models import Project
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -37,6 +48,10 @@ CACHE_KEY_TTL = 24 * 60 * 60 * 1000  # in milliseconds
 MAX_ORGS_PER_QUERY = 100
 MAX_PROJECTS_PER_QUERY = 5000
 MAX_TRANSACTIONS_PER_PROJECT = 20
+
+# MIN and MAX rebalance factor ( make sure we don't go crazy when rebalancing)
+MIN_REBALANCE_FACTOR = 0.1
+MAX_REBALANCE_FACTOR = 10
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +74,33 @@ def prioritise_projects() -> None:
                 org_ids=orgs
             ).items():
                 process_projects_sample_rates.delay(org_id, projects_with_tx_count_and_rates)
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.tasks.recalibrate_orgs",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=2 * 60 * 60,  # 2hours
+    time_limit=2 * 60 * 60 + 5,
+)  # type: ignore
+def recalibrate_orgs() -> None:
+    query_interval = timedelta(minutes=5)
+    metrics.incr("sentry.tasks.dynamic_sampling.recalibrate_orgs.start", sample_rate=1.0)
+
+    # use a dict instead of a list to easily pass it to the logger in the extra field
+    errors: Dict[str, str] = {}
+
+    with metrics.timer("sentry.tasks.dynamic_sampling.recalibrate_orgs", sample_rate=1.0):
+        for orgs in get_active_orgs(1000, query_interval):
+            for org_volume in fetch_org_volumes(orgs, query_interval):
+                error = rebalance_org(org_volume)
+                if error and len(errors) < 100:
+                    error_message = f"organisation:{org_volume.org_id} with {org_volume.total} transactions from which {org_volume.indexed} indexed, generated error:{error}"
+                    errors[str(org_volume.org_id)] = error_message
+
+        if errors:
+            logger.info("Dynamic sampling organization recalibration failed", extra=errors)
 
 
 @instrumented_task(
@@ -92,20 +134,21 @@ def adjust_sample_rates(
     so relay can reread it, and we'll inject it from redis cache.
     """
     projects = []
+    Counter = namedtuple("Counter", ["count", "count_keep", "count_drop"])
     project_ids_with_counts = {}
-    # TODO: replace it in another PR with calculating actual sample rate
-    for project_id, count_per_root, _, _ in projects_with_tx_count:
-        project_ids_with_counts[project_id] = count_per_root
+    for project_id, count_per_root, count_keep, count_drop in projects_with_tx_count:
+        project_ids_with_counts[project_id] = Counter(count_per_root, count_keep, count_drop)
 
     sample_rate = None
     for project in Project.objects.get_many_from_cache(project_ids_with_counts.keys()):
         sample_rate = quotas.get_blended_sample_rate(project)
         if sample_rate is None:
             continue
+        counts = project_ids_with_counts[project.id]
         projects.append(
             DSElement(
                 id=project.id,
-                count=project_ids_with_counts[project.id],
+                count=counts.count,
             )
         )
 
@@ -131,6 +174,61 @@ def adjust_sample_rates(
                 project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
             )
         pipeline.execute()
+
+
+def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
+    """
+    Calculates the rebalancing factor for an org
+
+    It takes the last interval total number of transactions and kept transactions, and
+    it figures out how far it is from the desired rate ( i.e. the blended rate)
+    """
+
+    redis_client = get_redis_client_for_ds()
+    factor_key = generate_cache_key_rebalance_factor(org_volume.org_id)
+    # we need a project from the current org... unfortunately get_blended_sample_rate
+    # takes a project (not an org)
+    # TODO RaduW is there a better way to get an org Project than filtering ?
+    org_projects = Project.objects.filter(organization__id=org_volume.org_id)
+
+    desired_sample_rate = None
+    for project in org_projects:
+        desired_sample_rate = quotas.get_blended_sample_rate(project)
+        break
+    else:
+        redis_client.delete(factor_key)  # cleanup just to be sure
+        # org with no project this shouldn't happen
+        return "no project found"
+
+    if desired_sample_rate is None:
+        return f"project with desired_sample_rate==None for {org_volume.org_id}"
+
+    if org_volume.total == 0 or org_volume.indexed == 0:
+        # not enough info to make adjustments ( we don't consider this an error)
+        return None
+
+    previous_interval_sample_rate = org_volume.indexed / org_volume.total
+    try:
+        previous_factor = float(redis_client.get(factor_key))
+    except (TypeError, ValueError):
+        previous_factor = 1.0
+
+    new_factor = adjusted_factor(
+        previous_factor, previous_interval_sample_rate, desired_sample_rate
+    )
+
+    if new_factor < MIN_REBALANCE_FACTOR or new_factor > MAX_REBALANCE_FACTOR:
+        # whatever we did before didn't help, give up
+        redis_client.delete(factor_key)
+        return f"factor:{new_factor} outside of the acceptable range [0.1..10.0]"
+
+    if new_factor != 1.0:
+        # Finally got a good key, save it to be used in rule generation
+        redis_client.set(factor_key, new_factor)
+    else:
+        # we are either at 1.0 no point creating an adjustment rule
+        redis_client.delete(factor_key)
+    return None
 
 
 @instrumented_task(

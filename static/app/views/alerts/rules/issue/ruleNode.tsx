@@ -25,7 +25,10 @@ import {
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
-import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
+import {
+  EVENT_FREQUENCY_PERCENT_CONDITION,
+  REAPPEARED_EVENT_CONDITION,
+} from 'sentry/views/projectInstall/issueAlertOptions';
 import {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 const NOTIFY_EMAIL_ACTION = 'sentry.mail.actions.NotifyEmailAction';
@@ -316,6 +319,13 @@ function RuleNode({
     ) {
       // Hide the fallback options when targeting team or member
       label = 'Send a notification to {targetType}';
+    }
+
+    if (
+      data.id === REAPPEARED_EVENT_CONDITION &&
+      organization.features.includes('escalating-issues-ui')
+    ) {
+      label = t('The issue changes state from archived to escalating');
     }
 
     const parts = label.split(/({\w+})/).map((part, i) => {

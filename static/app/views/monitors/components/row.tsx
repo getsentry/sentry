@@ -6,17 +6,20 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import Text from 'sentry/components/text';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
-import {t, tct, tn} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {crontabAsText} from 'sentry/views/monitors/utils';
+import {scheduleAsText} from 'sentry/views/monitors/utils';
 
-import {Monitor, MonitorConfig, MonitorStatus, ScheduleType} from '../types';
+import {Monitor, MonitorEnvironment, MonitorStatus} from '../types';
 
 import {MonitorBadge} from './monitorBadge';
 
@@ -24,50 +27,50 @@ interface MonitorRowProps {
   monitor: Monitor;
   onDelete: () => void;
   organization: Organization;
+  monitorEnv?: MonitorEnvironment;
 }
 
-function scheduleAsText(config: MonitorConfig) {
-  // Crontab format uses cronstrue
-  if (config.schedule_type === ScheduleType.CRONTAB) {
-    const parsedSchedule = crontabAsText(config.schedule);
-    return parsedSchedule ?? t('Unknown schedule');
-  }
-
-  // Interval format is simpler
-  const [value, timeUnit] = config.schedule;
-
-  if (timeUnit === 'minute') {
-    return tn('Every minute', 'Every %s minutes', value);
-  }
-
-  if (timeUnit === 'hour') {
-    return tn('Every hour', 'Every %s hours', value);
-  }
-
-  if (timeUnit === 'day') {
-    return tn('Every day', 'Every %s days', value);
-  }
-
-  if (timeUnit === 'week') {
-    return tn('Every week', 'Every %s weeks', value);
-  }
-
-  if (timeUnit === 'month') {
-    return tn('Every month', 'Every %s months', value);
-  }
-
-  return t('Unknown schedule');
-}
-
-function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
+function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowProps) {
   const api = useApi();
-  const lastCheckin = <TimeSince unitStyle="regular" date={monitor.lastCheckIn} />;
+  const lastCheckin = monitorEnv?.lastCheckIn ? (
+    <TimeSince unitStyle="regular" date={monitorEnv.lastCheckIn} />
+  ) : null;
 
+  const deletionModalMessage = (
+    <Fragment>
+      <Text>
+        {tct('Are you sure you want to permanently delete "[name]"?', {
+          name: monitor.name,
+        })}
+      </Text>
+      {monitor.environments.length > 1 && (
+        <AdditionalEnvironmentWarning>
+          <Text>
+            {t(
+              `This will delete check-in data for this monitor associated with these environments:`
+            )}
+          </Text>
+          <List symbol="bullet">
+            {monitor.environments.map(environment => (
+              <ListItem key={environment.name}>{environment.name}</ListItem>
+            ))}
+          </List>
+        </AdditionalEnvironmentWarning>
+      )}
+    </Fragment>
+  );
   const actions: MenuItemProps[] = [
     {
       key: 'edit',
       label: t('Edit'),
-      to: normalizeUrl(`/organizations/${organization.slug}/crons/${monitor.slug}/edit/`),
+      // TODO(davidenwang): Right now we have to pass the environment
+      // through the URL so that when we save the monitor and are
+      // redirected back to the details page it queries the backend
+      // for a monitor environment with check-in data
+      to: normalizeUrl({
+        pathname: `/organizations/${organization.slug}/crons/${monitor.slug}/edit/`,
+        query: {environment: monitorEnv?.name},
+      }),
     },
     {
       key: 'delete',
@@ -80,9 +83,7 @@ function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
             onDelete();
           },
           header: t('Delete Monitor?'),
-          message: tct('Are you sure you want to permanently delete [name]?', {
-            name: monitor.name,
-          }),
+          message: deletionModalMessage,
           confirmText: t('Delete Monitor'),
           priority: 'danger',
         });
@@ -90,49 +91,58 @@ function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
     },
   ];
 
+  const monitorDetailUrl = `/organizations/${organization.slug}/crons/${monitor.slug}/${
+    monitorEnv ? `?environment=${monitorEnv.name}` : ''
+  }`;
+
+  // TODO(davidenwang): Change accordingly when we have ObjectStatus on monitor
+  const monitorStatus =
+    monitor.status !== 'disabled' && monitorEnv ? monitorEnv.status : monitor.status;
+
   return (
     <Fragment>
       <MonitorName>
-        <MonitorBadge status={monitor.status} />
+        <MonitorBadge status={monitorStatus} />
         <NameAndSlug>
-          <Link to={`/organizations/${organization.slug}/crons/${monitor.slug}/`}>
-            {monitor.name}
-          </Link>
+          <Link to={monitorDetailUrl}>{monitor.name}</Link>
           <MonitorSlug>{monitor.slug}</MonitorSlug>
         </NameAndSlug>
       </MonitorName>
-      <StatusColumn>
+      <MonitorColumn>
         <TextOverflow>
-          {monitor.status === MonitorStatus.DISABLED
+          {monitorStatus === MonitorStatus.DISABLED
             ? t('Paused')
-            : monitor.status === MonitorStatus.ACTIVE
+            : monitorStatus === MonitorStatus.ACTIVE || !lastCheckin
             ? t('Waiting for first check-in')
-            : monitor.status === MonitorStatus.OK
+            : monitorStatus === MonitorStatus.OK
             ? tct('Check-in [lastCheckin]', {lastCheckin})
-            : monitor.status === MonitorStatus.MISSED_CHECKIN
+            : monitorStatus === MonitorStatus.MISSED_CHECKIN
             ? tct('Missed [lastCheckin]', {lastCheckin})
-            : monitor.status === MonitorStatus.ERROR
+            : monitorStatus === MonitorStatus.ERROR
             ? tct('Failed [lastCheckin]', {lastCheckin})
+            : monitorStatus === MonitorStatus.TIMEOUT
+            ? t('Timed out')
             : null}
         </TextOverflow>
-      </StatusColumn>
-      <ScheduleColumn>{scheduleAsText(monitor.config)}</ScheduleColumn>
-      <NextCheckin>
-        {monitor.nextCheckIn &&
-        monitor.status !== MonitorStatus.DISABLED &&
-        monitor.status !== MonitorStatus.ACTIVE ? (
-          <TimeSince unitStyle="regular" date={monitor.nextCheckIn} />
+      </MonitorColumn>
+      <MonitorColumn>{scheduleAsText(monitor.config)}</MonitorColumn>
+      <MonitorColumn>
+        {monitorEnv?.nextCheckIn &&
+        monitorEnv.status !== MonitorStatus.DISABLED &&
+        monitorEnv.status !== MonitorStatus.ACTIVE ? (
+          <TimeSince unitStyle="regular" date={monitorEnv.nextCheckIn} />
         ) : (
           '\u2014'
         )}
-      </NextCheckin>
-      <ProjectColumn>
+      </MonitorColumn>
+      <MonitorColumn>
         <IdBadge
           project={monitor.project}
           avatarSize={18}
           avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
         />
-      </ProjectColumn>
+      </MonitorColumn>
+      <MonitorColumn>{monitorEnv?.name ?? '\u2014'}</MonitorColumn>
       <ActionsColumn>
         <DropdownMenu
           items={actions}
@@ -169,22 +179,7 @@ const MonitorSlug = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const StatusColumn = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const ScheduleColumn = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const NextCheckin = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const ProjectColumn = styled('div')`
+const MonitorColumn = styled('div')`
   display: flex;
   align-items: center;
 `;
@@ -193,4 +188,8 @@ const ActionsColumn = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const AdditionalEnvironmentWarning = styled('div')`
+  margin: ${space(1)} 0;
 `;
