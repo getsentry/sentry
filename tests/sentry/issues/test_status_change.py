@@ -10,7 +10,7 @@ from sentry.types.group import GroupSubStatus
 
 
 class HandleStatusChangeTest(TestCase):  # type:ignore
-    def create_issue(self, status: str) -> None:
+    def create_issue(self, status: GroupStatus, substatus: GroupSubStatus = None) -> None:
         self.group = self.create_group(status=status)
         self.group_list = [self.group]
         self.group_ids = [self.group]
