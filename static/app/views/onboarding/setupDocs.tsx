@@ -32,7 +32,6 @@ import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 import FirstEventFooter from './components/firstEventFooter';
 import IntegrationSetup from './integrationSetup';
 import {StepProps} from './types';
-import {usePersistedOnboardingState} from './utils';
 /**
  * The documentation will include the following string should it be missing the
  * verification example, which currently a lot of docs are.
@@ -205,7 +204,6 @@ function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
   const api = useApi();
   const organization = useOrganization();
   const {projects: rawProjects} = useProjects();
-  const [clientState, setClientState] = usePersistedOnboardingState();
 
   const {
     logExperiment: newFooterLogExperiment,
@@ -399,14 +397,6 @@ function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
                 platform: currentPlatform,
                 project_index: projectIndex ?? 0,
               });
-              if (!project.platform || !clientState) {
-                browserHistory.push(orgIssuesURL);
-                return;
-              }
-              setClientState({
-                ...clientState,
-                state: 'finished',
-              });
               browserHistory.push(orgIssuesURL);
             }}
             handleFirstIssueReceived={() => {
@@ -426,14 +416,6 @@ function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
               organization,
               platform: currentPlatform,
               project_index: projectIndex ?? 0,
-            });
-            if (!project.platform || !clientState) {
-              browserHistory.push(orgIssuesURL);
-              return;
-            }
-            setClientState({
-              ...clientState,
-              state: 'finished',
             });
             browserHistory.push(orgIssuesURL);
           }}

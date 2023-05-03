@@ -19,7 +19,13 @@ from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.query import in_iexact
 from sentry.models import Environment, Organization
-from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, MonitorType
+from sentry.monitors.models import (
+    Monitor,
+    MonitorEnvironment,
+    MonitorLimitsExceeded,
+    MonitorStatus,
+    MonitorType,
+)
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.utils import signal_first_monitor_created
 from sentry.monitors.validators import MonitorValidator
@@ -189,15 +195,19 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
 
         result = validator.validated_data
 
-        monitor = Monitor.objects.create(
-            project_id=result["project"].id,
-            organization_id=organization.id,
-            name=result["name"],
-            slug=result.get("slug"),
-            status=result["status"],
-            type=result["type"],
-            config=result["config"],
-        )
+        try:
+            monitor = Monitor.objects.create(
+                project_id=result["project"].id,
+                organization_id=organization.id,
+                name=result["name"],
+                slug=result.get("slug"),
+                status=result["status"],
+                type=result["type"],
+                config=result["config"],
+            )
+        except MonitorLimitsExceeded as e:
+            return self.respond({type(e).__name__: str(e)}, status=403)
+
         self.create_audit_entry(
             request=request,
             organization=organization,

@@ -14,7 +14,7 @@ import {Panel, PanelItem} from 'sentry/components/panels';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {GroupTombstone} from 'sentry/types';
+import {GroupTombstone, Organization, Project} from 'sentry/types';
 
 type RowProps = {
   data: GroupTombstone;
@@ -72,8 +72,8 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: RowProps) {
 }
 
 type Props = AsyncComponent['props'] & {
-  orgId: string;
-  projectId: string;
+  organization: Organization;
+  project: Project;
 };
 
 type State = {
@@ -83,15 +83,20 @@ type State = {
 
 class GroupTombstones extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, projectId} = this.props;
+    const {organization, project} = this.props;
     return [
-      ['tombstones', `/projects/${orgId}/${projectId}/tombstones/`, {}, {paginate: true}],
+      [
+        'tombstones',
+        `/projects/${organization.slug}/${project.slug}/tombstones/`,
+        {},
+        {paginate: true},
+      ],
     ];
   }
 
   handleUndiscard = (tombstoneId: GroupTombstone['id']) => {
-    const {orgId, projectId} = this.props;
-    const path = `/projects/${orgId}/${projectId}/tombstones/${tombstoneId}/`;
+    const {organization, project} = this.props;
+    const path = `/projects/${organization.slug}/${project.slug}/tombstones/${tombstoneId}/`;
     this.api
       .requestPromise(path, {
         method: 'DELETE',
@@ -115,10 +120,11 @@ class GroupTombstones extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
+    const {project} = this.props;
     const {tombstones, tombstonesPageLinks} = this.state;
 
     return tombstones.length ? (
-      <Access access={['project:write']}>
+      <Access access={['project:write']} project={project}>
         {({hasAccess}) => (
           <Fragment>
             <Panel>

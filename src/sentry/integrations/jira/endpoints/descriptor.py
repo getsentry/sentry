@@ -35,7 +35,7 @@ class JiraDescriptorEndpoint(Endpoint):
         return self.respond(
             {
                 "name": "Sentry",
-                "description": "Connect your Sentry organization into one or more of your Jira cloud instances. Get started streamlining your bug squashing workflow by unifying your Sentry and Jira instances together.",
+                "description": "Connect your Sentry organization to one or more of your Jira cloud instances. Get started streamlining your bug-squashing workflow by allowing your Sentry and Jira instances to work together.",
                 "key": JIRA_KEY,
                 "baseUrl": absolute_uri(),
                 "vendor": {"name": "Sentry", "url": "https://sentry.io"},

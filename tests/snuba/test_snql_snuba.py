@@ -57,7 +57,12 @@ class SnQLTest(TestCase, SnubaTestCase):
                 ]
             )
         )
-        request = Request(dataset="events", app_id="tests", query=query)
+        request = Request(
+            dataset="events",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "testing.test", "organization_id": 1},
+        )
         result = snuba.raw_snql_query(request, referrer="referrer_not_in_enum")
         assert len(result["data"]) == 1
         assert result["data"][0] == {"count": 1, "project_id": self.project.id}
@@ -71,6 +76,7 @@ class SnQLTest(TestCase, SnubaTestCase):
             Request(
                 dataset="events",
                 app_id="tests",
+                tenant_ids={"referrer": "testing.test", "organization_id": 1},
                 query=Query(
                     Entity("events"),
                     select=[Column("event_id")],
