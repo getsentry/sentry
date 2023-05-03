@@ -11,9 +11,11 @@ from sentry.sentry_metrics.indexer.base import (
     KeyCollection,
     KeyResult,
     KeyResults,
+    OrgId,
     StringIndexer,
+    UseCaseKeyResults,
 )
-from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
@@ -156,6 +158,14 @@ class CachingIndexer(StringIndexer):
     def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
         return result[org_id][string]
+
+    def _uca_bulk_record(
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+    ) -> UseCaseKeyResults:
+        return super()._uca_bulk_record(strings)
+
+    def _uca_record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        return super()._uca_record(use_case_id, org_id, string)
 
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         key = f"{org_id}:{string}"
