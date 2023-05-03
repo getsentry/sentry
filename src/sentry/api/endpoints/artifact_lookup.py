@@ -19,16 +19,12 @@ from sentry.models.project import Project
 
 logger = logging.getLogger("sentry.api")
 
-
-# The number of ArtifactBundles we open up and parse to look for files inside.
-MAX_SCANNED_BUNDLES = 2
-
-
+# The marker for "release" bundles
+RELEASE_BUNDLE_TYPE = "release.bundle"
+# The number of bundles ("artifact" or "release") that we query
+MAX_BUNDLES_QUERY = 2
 # The number of files returned by the `get_releasefiles` query
 MAX_RELEASEFILES_QUERY = 10
-
-
-RELEASE_BUNDLE_TYPE = "release.bundle"
 
 
 @region_silo_endpoint
@@ -184,7 +180,7 @@ def get_release_artifacts(
         )
         .select_related("artifact_bundle__file_id")
         .values_list("artifact_bundle__file_id", flat=True)
-        .order_by("-date_added")[:MAX_SCANNED_BUNDLES]
+        .order_by("-date_added")[:MAX_BUNDLES_QUERY]
     )
 
 
@@ -220,7 +216,7 @@ def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]):
             file__type=RELEASE_BUNDLE_TYPE,
         )
         .values_list("file_id", flat=True)
-        .order_by("-file__timestamp")[:MAX_SCANNED_BUNDLES]
+        .order_by("-file__timestamp")[:MAX_BUNDLES_QUERY]
     )
 
 
@@ -236,37 +232,6 @@ def get_releasefiles_matching_url(
         .exclude(artifact_count=0)
         .select_related("file")
     ).filter(name__icontains=url)[:MAX_RELEASEFILES_QUERY]
-
-
-def url_exists_in_manifest(manifest: dict, url: str) -> bool:
-    """
-    Looks through all the files in the `ArtifactBundle` manifest and see if the
-    `url` matches any of the files.
-    """
-    try:
-        # TODO: Should this be a partial match?
-        files = manifest.get("files", dict())
-        for file in files.values():
-            if url in file.get("url", ""):
-                return True
-        return False
-    except Exception:
-        return False
-
-
-def find_file_in_archive_index(archive_index: dict, url: str) -> Optional[File]:
-    """
-    Looks through all the files in the `ArtifactIndex` and see if the
-    `url` matches any of the files.
-    """
-    try:
-        files = archive_index.get("files", dict())
-        for key in files.keys():
-            if url in key:
-                return files[key]
-        return None
-    except Exception:
-        return None
 
 
 class UrlConstructor:
