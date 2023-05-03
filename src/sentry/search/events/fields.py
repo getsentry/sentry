@@ -1067,7 +1067,7 @@ class NumericColumn(ColumnArg):
         # Shortcutting this for now
         # TODO: handle different datasets better here
         if self.spans and value in ["span.duration", "span.self_time"]:
-            return True
+            return value
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_measurement(value):
             return value
