@@ -167,14 +167,14 @@ class ArtifactLookupTest(APITestCase):
         assert response[0]["type"] == "bundle"
         self.assert_download_matches_file(response[0]["url"], file_ab)
 
-        # query by another debug-ids pointing to the same bundle
+        # query by another debug-id pointing to the same bundle
         response = self.client.get(f"{url}?debug_id={debug_id_b}").json()
 
         assert len(response) == 1
         assert response[0]["type"] == "bundle"
         self.assert_download_matches_file(response[0]["url"], file_ab)
 
-        # query by another debug-ids pointing to different bundles
+        # query by another debug-id pointing to different bundles
         response = self.client.get(f"{url}?debug_id={debug_id_c}").json()
 
         assert len(response) == 1

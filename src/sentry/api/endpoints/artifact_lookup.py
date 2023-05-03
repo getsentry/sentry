@@ -104,7 +104,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
         bundle_file_ids = set()
         if debug_id:
-            bundle_file_ids = get_artifact_bundle_containing_debug_id(debug_id, project)
+            bundle_file_ids = get_artifact_bundles_containing_debug_id(debug_id, project)
 
         individual_files = set()
         if url and release_name and not bundle_file_ids:
@@ -152,7 +152,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         return Response(serialize(found_artifacts, request.user))
 
 
-def get_artifact_bundle_containing_debug_id(debug_id: str, project: Project) -> Set[int]:
+def get_artifact_bundles_containing_debug_id(debug_id: str, project: Project) -> Set[int]:
     # We want to have the newest `File` for each `debug_id`.
     return set(
         DebugIdArtifactBundle.objects.filter(
