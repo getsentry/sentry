@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -32,6 +32,7 @@ import fetchSentryAppInstallations from 'sentry/utils/fetchSentryAppInstallation
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import usePrevious from 'sentry/utils/usePrevious';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
@@ -61,37 +62,61 @@ export interface GroupEventDetailsProps
   event?: Event;
 }
 
-type State = {
-  eventNavLinks: string;
-};
+function GroupEventDetails(props: GroupEventDetailsProps) {
+  const {
+    group,
+    project,
+    organization,
+    environments,
+    location,
+    event,
+    groupReprocessingStatus,
+    loadingEvent,
+    onRetry,
+    eventError,
+    api,
+    params,
+  } = props;
+  const eventWithMeta = withMeta(event);
 
-class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
-  state: State = {
-    eventNavLinks: '',
-  };
+  // Reprocessing
+  const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
+  const {activity: activities} = group;
+  const mostRecentActivity = getGroupMostRecentActivity(activities);
+  const orgSlug = organization.slug;
+  const projectId = project.id;
+  const prevEnvironment = usePrevious(environments);
+  const prevEvent = usePrevious(event);
 
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  componentDidUpdate(prevProps: GroupEventDetailsProps) {
-    const {environments, params, location, organization, project} = this.props;
-
-    const environmentsHaveChanged = !isEqual(prevProps.environments, environments);
-
+  // load the data
+  useEffect(() => {
+    fetchSentryAppInstallations(api, orgSlug);
+    // TODO(marcos): Sometimes PageFiltersStore cannot pick a project.
+    if (projectId) {
+      fetchSentryAppComponents(api, orgSlug, projectId);
+    } else {
+      Sentry.withScope(scope => {
+        scope.setExtra('orgSlug', orgSlug);
+        scope.setExtra('projectId', projectId);
+        Sentry.captureMessage('Project ID was not set');
+      });
+    }
+  }, [api, orgSlug, projectId]);
+  // If environments are being actively changed and will no longer contain the
+  // current event's environment, redirect to latest
+  useEffect(() => {
+    const environmentsHaveChanged = !isEqual(prevEnvironment, environments);
     // If environments are being actively changed and will no longer contain the
     // current event's environment, redirect to latest
     if (
       environmentsHaveChanged &&
-      prevProps.event &&
+      prevEvent &&
       params.eventId &&
       !['latest', 'oldest'].includes(params.eventId)
     ) {
       const shouldRedirect =
         environments.length > 0 &&
-        !environments.find(
-          env => env.name === getEventEnvironment(prevProps.event as Event)
-        );
+        !environments.find(env => env.name === getEventEnvironment(prevEvent as Event));
 
       if (shouldRedirect) {
         browserHistory.replace(
@@ -103,41 +128,66 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
         return;
       }
     }
+  }, [
+    prevEnvironment,
+    environments,
+    location.query,
+    organization.slug,
+    params,
+    prevEvent,
+  ]);
 
-    if (
-      prevProps.organization.slug !== organization.slug ||
-      prevProps.project.slug !== project.slug
-    ) {
-      this.fetchData();
+  const renderGroupStatusBanner = () => {
+    const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
+    if (group.status === 'ignored') {
+      return (
+        <GroupStatusBannerWrapper>
+          {hasEscalatingIssuesUi ? (
+            <ArchivedBox statusDetails={group.statusDetails} />
+          ) : (
+            <MutedBox statusDetails={group.statusDetails} />
+          )}
+        </GroupStatusBannerWrapper>
+      );
     }
-  }
 
-  componentWillUnmount() {
-    this.props.api.clear();
-  }
-
-  fetchData = () => {
-    const {api, project, organization} = this.props;
-    const orgSlug = organization.slug;
-    const projectId = project.id;
-
-    fetchSentryAppInstallations(api, orgSlug);
-
-    // TODO(marcos): Sometimes PageFiltersStore cannot pick a project.
-    if (projectId) {
-      fetchSentryAppComponents(api, orgSlug, projectId);
-    } else {
-      Sentry.withScope(scope => {
-        scope.setExtra('props', this.props);
-        scope.setExtra('state', this.state);
-        Sentry.captureMessage('Project ID was not set');
-      });
+    if (group.status === 'resolved') {
+      return (
+        <GroupStatusBannerWrapper>
+          <ResolutionBox
+            statusDetails={group.statusDetails}
+            activities={group.activity}
+            projectId={project.id}
+          />
+        </GroupStatusBannerWrapper>
+      );
     }
+
+    return null;
   };
 
-  renderContent(eventWithMeta?: Event) {
-    const {group, project, environments, loadingEvent, onRetry, eventError} = this.props;
+  const renderReprocessedBox = () => {
+    if (
+      groupReprocessingStatus !== ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
+      groupReprocessingStatus !== ReprocessingStatus.REPROCESSED_AND_HAS_EVENT
+    ) {
+      return null;
+    }
 
+    const {count, id: groupId} = group;
+    const groupCount = Number(count);
+
+    return (
+      <ReprocessedBox
+        reprocessActivity={mostRecentActivity as GroupActivityReprocess}
+        groupCount={groupCount}
+        groupId={groupId}
+        orgSlug={organization.slug}
+      />
+    );
+  };
+
+  const renderContent = () => {
     if (loadingEvent) {
       return <LoadingIndicator />;
     }
@@ -151,154 +201,70 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
     return (
       <GroupEventDetailsContent group={group} event={eventWithMeta} project={project} />
     );
-  }
+  };
 
-  renderReprocessedBox(
-    reprocessStatus: ReprocessingStatus,
-    mostRecentActivity: GroupActivityReprocess
-  ) {
-    if (
-      reprocessStatus !== ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-      reprocessStatus !== ReprocessingStatus.REPROCESSED_AND_HAS_EVENT
-    ) {
-      return null;
-    }
-
-    const {group, organization} = this.props;
-    const {count, id: groupId} = group;
-    const groupCount = Number(count);
-
-    return (
-      <ReprocessedBox
-        reprocessActivity={mostRecentActivity}
-        groupCount={groupCount}
-        groupId={groupId}
-        orgSlug={organization.slug}
-      />
-    );
-  }
-
-  renderGroupStatusBanner() {
-    const hasEscalatingIssuesUi =
-      this.props.organization.features.includes('escalating-issues-ui');
-    if (this.props.group.status === 'ignored') {
-      return (
-        <GroupStatusBannerWrapper>
-          {hasEscalatingIssuesUi ? (
-            <ArchivedBox statusDetails={this.props.group.statusDetails} />
-          ) : (
-            <MutedBox statusDetails={this.props.group.statusDetails} />
-          )}
-        </GroupStatusBannerWrapper>
-      );
-    }
-
-    if (this.props.group.status === 'resolved') {
-      return (
-        <GroupStatusBannerWrapper>
-          <ResolutionBox
-            statusDetails={this.props.group.statusDetails}
-            activities={this.props.group.activity}
-            projectId={this.props.project.id}
-          />
-        </GroupStatusBannerWrapper>
-      );
-    }
-
-    return null;
-  }
-
-  render() {
-    const {
-      group,
-      project,
-      organization,
-      environments,
-      location,
-      event,
-      groupReprocessingStatus,
-      loadingEvent,
-      eventError,
-    } = this.props;
-
-    const eventWithMeta = withMeta(event);
-
-    // Reprocessing
-    const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
-    const {activity: activities} = group;
-    const mostRecentActivity = getGroupMostRecentActivity(activities);
-
-    return (
-      <TransactionProfileIdProvider
-        projectId={event?.projectID}
-        transactionId={event?.type === 'transaction' ? event.id : undefined}
-        timestamp={event?.dateReceived}
+  return (
+    <TransactionProfileIdProvider
+      projectId={event?.projectID}
+      transactionId={event?.type === 'transaction' ? event.id : undefined}
+      timestamp={event?.dateReceived}
+    >
+      <VisuallyCompleteWithData
+        id="IssueDetails-EventBody"
+        hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
       >
-        <VisuallyCompleteWithData
-          id="IssueDetails-EventBody"
-          hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
-        >
-          <StyledLayoutBody data-test-id="group-event-details">
-            {hasReprocessingV2Feature &&
-            groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
-              <ReprocessingProgress
-                totalEvents={
-                  (mostRecentActivity as GroupActivityReprocess).data.eventCount
-                }
-                pendingEvents={
-                  (group.statusDetails as BaseGroupStatusReprocessing['statusDetails'])
-                    .pendingEvents
-                }
-              />
-            ) : (
-              <Fragment>
-                <QuickTraceQuery
+        <StyledLayoutBody data-test-id="group-event-details">
+          {hasReprocessingV2Feature &&
+          groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
+            <ReprocessingProgress
+              totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
+              pendingEvents={
+                (group.statusDetails as BaseGroupStatusReprocessing['statusDetails'])
+                  .pendingEvents
+              }
+            />
+          ) : (
+            <Fragment>
+              <QuickTraceQuery
+                event={eventWithMeta}
+                location={location}
+                orgSlug={organization.slug}
+              >
+                {results => {
+                  return (
+                    <StyledLayoutMain>
+                      {renderGroupStatusBanner()}
+                      <IssuePriorityFeedback organization={organization} group={group} />
+                      <QuickTraceContext.Provider value={results}>
+                        {eventWithMeta && (
+                          <GroupEventHeader
+                            group={group}
+                            event={eventWithMeta}
+                            project={project}
+                          />
+                        )}
+                        {renderReprocessedBox()}
+                        {renderContent()}
+                      </QuickTraceContext.Provider>
+                    </StyledLayoutMain>
+                  );
+                }}
+              </QuickTraceQuery>
+              <StyledLayoutSide>
+                <GroupSidebar
+                  organization={organization}
+                  project={project}
+                  group={group}
                   event={eventWithMeta}
-                  location={location}
-                  orgSlug={organization.slug}
-                >
-                  {results => {
-                    return (
-                      <StyledLayoutMain>
-                        {this.renderGroupStatusBanner()}
-                        <IssuePriorityFeedback
-                          organization={organization}
-                          group={group}
-                        />
-                        <QuickTraceContext.Provider value={results}>
-                          {eventWithMeta && (
-                            <GroupEventHeader
-                              group={group}
-                              event={eventWithMeta}
-                              project={project}
-                            />
-                          )}
-                          {this.renderReprocessedBox(
-                            groupReprocessingStatus,
-                            mostRecentActivity as GroupActivityReprocess
-                          )}
-                          {this.renderContent(eventWithMeta)}
-                        </QuickTraceContext.Provider>
-                      </StyledLayoutMain>
-                    );
-                  }}
-                </QuickTraceQuery>
-                <StyledLayoutSide>
-                  <GroupSidebar
-                    organization={organization}
-                    project={project}
-                    group={group}
-                    event={eventWithMeta}
-                    environments={environments}
-                  />
-                </StyledLayoutSide>
-              </Fragment>
-            )}
-          </StyledLayoutBody>
-        </VisuallyCompleteWithData>
-      </TransactionProfileIdProvider>
-    );
-  }
+                  environments={environments}
+                />
+              </StyledLayoutSide>
+            </Fragment>
+          )}
+        </StyledLayoutBody>
+      </VisuallyCompleteWithData>
+    </TransactionProfileIdProvider>
+  );
 }
 
 const StyledLayoutBody = styled(Layout.Body)`
