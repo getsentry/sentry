@@ -457,6 +457,43 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
+    def _uca_bulk_record(
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+    ) -> UseCaseKeyResults:
+        """
+        Takes in a mapping with use case IDs mapped to Org IDs mapped to set of strings.
+        Ultimately returns a mapping of those use case IDs mapped to Org IDs mapped to
+        string -> ID mapping, for each string in the each set.
+        There are three steps to getting the ids for strings:
+            0. ids from static strings (StaticStringIndexer)
+            1. ids from cache (CachingIndexer)
+            2. ids from existing db records (postgres/spanner)
+            3. ids that have been rate limited (postgres/spanner)
+            4. ids from newly created db records (postgres/spanner)
+        Each step will start off with a UseCaseKeyCollection and UseCaseKeyResults:
+            keys = UseCaseKeyCollection(mapping)
+            results = UseCaseKeyResults()
+        Then the work to get the ids (either from cache, db, etc)
+            .... # work to add results to UseCaseKeyResults()
+        Those results will be added to `mapped_results` which can
+        be retrieved
+            results.get_mapped_results()
+        Remaining unmapped keys get turned into a new
+        UseCaseKeyCollection for the next step:
+            new_keys = results.get_unmapped_keys(mapping)
+        When the last step is reached or a step resolves all the remaining
+        unmapped keys the key_results objects are merged and returned:
+            e.g. return cache_key_results.merge(db_read_key_results)
+        """
+        raise NotImplementedError()
+
+    def _uca_record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        """Store a string and return the integer ID generated for it
+        With every call to this method, the lifetime of the entry will be
+        prolonged.
+        """
+        raise NotImplementedError()
+
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 

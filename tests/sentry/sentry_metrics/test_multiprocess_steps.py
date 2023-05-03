@@ -21,6 +21,7 @@ from sentry.sentry_metrics.indexer.limiters.cardinality import (
     cardinality_limiter_factory,
 )
 from sentry.sentry_metrics.indexer.mock import MockIndexer
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
 
@@ -479,7 +480,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
         get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.MOCK)
     )
     # Insert a None-value into the mock-indexer to simulate a rate-limit.
-    message_processor._indexer.indexer._strings[1]["rate_limited_test"] = None
+    message_processor._indexer.indexer._strings[UseCaseID.SESSIONS][1]["rate_limited_test"] = None
 
     with caplog.at_level(logging.ERROR):
         new_batch = message_processor.process_messages(outer_message=outer_message)
