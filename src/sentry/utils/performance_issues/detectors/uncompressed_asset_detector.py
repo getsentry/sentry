@@ -36,6 +36,8 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         data = span.get("data", None)
+        # TODO(nar): The sentence-style keys can be removed once SDK adoption has increased and
+        # we are receiving snake_case keys consistently, likely beyond October 2023
         transfer_size = data and (
             data.get("http.transfer_size", None) or data.get("Transfer Size", None)
         )
