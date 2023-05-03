@@ -1722,6 +1722,10 @@ function buildRoutes() {
         component={make(() => import('sentry/views/starfish/modules/APIModule'))}
       />
       <Route
+        path="spans/"
+        component={make(() => import('sentry/views/starfish/views/spans'))}
+      />
+      <Route
         path="span/:groupId/"
         component={make(() => import('sentry/views/starfish/views/spanSummary'))}
       />
