@@ -36,10 +36,6 @@ type Props = {
    */
   enforceIdpProvisioned: boolean;
   /**
-   * The OrganizationMember that we are acting on
-   */
-  member: Member;
-  /**
    * callback when teams are added
    */
   onAddTeam: (teamSlug: string) => void;
@@ -62,6 +58,10 @@ type Props = {
    * Used to determine whether we should show a loading state while waiting for teams
    */
   loadingTeams?: boolean;
+  /**
+   * The OrganizationMember that we are acting on
+   */
+  member?: Member;
   /**
    * Optional menu header.
    */
@@ -153,7 +153,7 @@ function TeamSelect({
             />
           ))}
 
-        {effectiveOrgRole &&
+        {member &&
           selectedTeamRoles &&
           /**
            * "Map + Find" operation is O(n * n), leaving it as it us because it is unlikely to cause performance issues because a Member is unlikely to be in 1000+ teams
@@ -347,7 +347,7 @@ function MemberTeamRow({
         message={confirmMessage}
         bypass={!confirmMessage}
         onConfirm={() => onRemoveTeam(team.slug)}
-        disableConfirmButton={isRemoveDisabled}
+        disabled={isRemoveDisabled}
       >
         <Button
           size="xs"
