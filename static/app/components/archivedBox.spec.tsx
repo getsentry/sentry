@@ -47,18 +47,20 @@ describe('ArchivedBox', function () {
     expect(screen.getByText(/This issue has been archived/)).toBeInTheDocument();
     expect(container).toSnapshot();
   });
-  it('swaps archived for archived', function () {
+  it('handles archived forever', function () {
     render(<ArchivedBox statusDetails={{}} />, {
       organization: TestStubs.Organization({features: ['escalating-issues-ui']}),
     });
-    expect(screen.getByText(/This issue has been archived/)).toBeInTheDocument();
+    expect(screen.getByText(/This issue has been archived forever/)).toBeInTheDocument();
   });
   it('handes archived until escalating', function () {
-    render(<ArchivedBox statusDetails={{untilEscalating: true}} />, {
+    render(<ArchivedBox statusDetails={{ignoreUntilEscalating: true}} />, {
       organization: TestStubs.Organization({features: ['escalating-issues-ui']}),
     });
     expect(
-      screen.getByText(/This issue has been archived until it escalates/)
+      screen.getByText(
+        /This issue has been archived\. It'll return to your inbox if it escalates/
+      )
     ).toBeInTheDocument();
   });
 });
