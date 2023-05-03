@@ -144,6 +144,12 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         "render_blocking_bytes_min": options.get(
             "performance.issues.render_blocking_assets.size_threshold"
         ),
+        "consecutive_http_spans_lcp_ratio_threshold": options.get(
+            "performance.issues.consecutive_http.lcp_ratio_threshold"
+        ),
+        "consecutive_http_spans_max_duration_between_spans": options.get(
+            "performance.issues.consecutive_http.max_duration_between_spans"
+        ),
     }
 
     default_project_settings = (
@@ -236,8 +242,11 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         DetectorType.CONSECUTIVE_HTTP_OP: {
             "span_duration_threshold": 1000,  # ms
             "consecutive_count_threshold": 3,
-            "max_duration_between_spans": 10000,  # ms
+            "max_duration_between_spans": settings[
+                "consecutive_http_spans_max_duration_between_spans"
+            ],
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
+            "lcp_ratio_threshold": settings["consecutive_http_spans_lcp_ratio_threshold"],
         },
         DetectorType.LARGE_HTTP_PAYLOAD: {"payload_size_threshold": 10000000},  # 10mb
     }
