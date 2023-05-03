@@ -86,21 +86,14 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             else:
                 return Response(status=403)
 
-        debug_ids = []
-        for debug_id in request.GET.getlist("debug_id"):
-            try:
-                debug_ids.append(normalize_debug_id(debug_id))
-            except SymbolicError:
-                pass
-
-        urls = request.GET.getlist("url")
+        debug_id = request.GET.get("debug_id")
+        try:
+            debug_id = normalize_debug_id(debug_id)
+        except SymbolicError:
+            pass
+        url = request.GET.get("url")
         release_name = request.GET.get("release")
         dist_name = request.GET.get("dist")
-
-        url = next(iter(urls), None)
-        debug_id = next(iter(debug_ids), None)
-        # TODO: should we validate the list of `debug_ids`/`urls` we get?
-        # by validation I mean making sure we only get a single item, and the `url` is always defined?
 
         bundle_file_ids = set()
         if debug_id:
