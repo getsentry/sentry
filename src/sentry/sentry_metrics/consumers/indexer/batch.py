@@ -87,9 +87,6 @@ def extract_use_case_id(mri: str) -> Optional[UseCaseID]:
     raise ValidationError(f"Invalid mri: {mri}")
 
 
-default_codec: Codec[Any] = JsonCodec(None)
-
-
 class IndexerBatch:
     def __init__(
         self,
@@ -101,7 +98,7 @@ class IndexerBatch:
         self.outer_message = outer_message
         self.__should_index_tag_values = should_index_tag_values
         self.is_output_sliced = is_output_sliced
-        self.__input_codec = input_codec
+        self.__input_codec = input_codec or JsonCodec(None)
 
         self._extract_messages()
 
@@ -114,10 +111,7 @@ class IndexerBatch:
             assert isinstance(msg.value, BrokerValue)
             partition_offset = PartitionIdxOffset(msg.value.partition.index, msg.value.offset)
             try:
-                parsed_payload = self.__input_codec.decode(
-                    msg.payload.value,
-                    validate=settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS,
-                )
+                parsed_payload = self.__input_codec.decode(msg.payload.value, validate=False)
             except rapidjson.JSONDecodeError:
                 self.skipped_offsets.add(partition_offset)
                 logger.error(
@@ -126,6 +120,13 @@ class IndexerBatch:
                     exc_info=True,
                 )
                 continue
+
+            try:
+                if self.__input_codec is not None:
+                    self.__input_codec.validate(parsed_payload)
+            except ValidationError:
+                if settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS:
+                    raise
 
                 # For now while this is still experimental, those errors are
                 # not supposed to be fatal.
