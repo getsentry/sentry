@@ -8,7 +8,7 @@ from sentry.services.hybrid_cloud.organization_mapping import (
 )
 from sentry.testutils import TransactionTestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
 @control_silo_test(stable=True)
@@ -95,9 +95,12 @@ class OrganizationMappingTest(TransactionTestCase):
         org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert org_mapping.customer_id == "test"
 
+        with exempt_from_silo_limits():
+            self.organization.update(name="new name!")
+
         organization_mapping_service.update(
             organization_id=self.organization.id,
-            update=RpcOrganizationMappingUpdate(name="new name!", customer_id="test"),
+            update=RpcOrganizationMappingUpdate.from_orm(self.organization),
         )
         org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert org_mapping.customer_id == "test"
