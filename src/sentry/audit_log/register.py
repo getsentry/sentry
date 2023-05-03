@@ -70,6 +70,14 @@ default_manager.add(
         event_id=32,
         name="PROJECT_REMOVE",
         api_name="project.remove",
+        template="removed project {slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=33,
+        name="PROJECT_REMOVE_WITH_ORIGIN",
+        api_name="project.remove-with-origin",
         template="removed project {slug} in {origin}",
     )
 )
