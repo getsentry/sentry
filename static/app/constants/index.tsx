@@ -2,7 +2,6 @@
 
 import {t} from 'sentry/locale';
 import {
-  DataCategory,
   DataCategoryExact,
   DataCategoryInfo,
   OrgRole,
