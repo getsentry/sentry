@@ -8,15 +8,13 @@ from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
     Model,
+    ProjectStatus,
     region_silo_only_model,
     sane_repr,
 )
 
 if TYPE_CHECKING:
     from sentry.models import Team
-
-# TODO(dcramer): pull in enum library
-ProjectStatus = ObjectStatus
 
 
 class ProjectTeamManager(BaseManager):
