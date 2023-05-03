@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import chunk from 'lodash/chunk';
 
+import {Client} from 'sentry/api';
+import parseLinkHeader, {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
@@ -38,11 +39,9 @@ type Options = {
   /**
    * Default: 50
    * You can override this for testing
-   *
-   * Be mindful that the list of error-ids will appear in the GET request url,
-   * so don't make the url string too large!
    */
   errorsPerPage?: number;
+
   /**
    * Default: 100
    * You can override this for testing
@@ -173,27 +172,20 @@ function useReplayData({
     const finishedAtClone = new Date(replayRecord.finished_at);
     finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
-    const chunks = chunk(replayRecord.error_ids, errorsPerPage);
-    await Promise.allSettled(
-      chunks.map(errorIds => {
-        const promise = api.requestPromise(
-          `/organizations/${orgSlug}/replays-events-meta/`,
-          {
-            query: {
-              start: replayRecord.started_at.toISOString(),
-              end: finishedAtClone.toISOString(),
-              query: `id:[${String(errorIds)}]`,
-            },
-          }
-        );
-        promise.then(response => {
-          setErrors(prev => (prev ?? []).concat(response.data || []));
-        });
-        return promise;
-      })
-    );
+    const paginatedErrors = fetchPaginatedReplayErrors(api, {
+      orgSlug,
+      replayId: replayRecord.id,
+      start: replayRecord.started_at,
+      end: finishedAtClone,
+      limit: errorsPerPage,
+    });
+
+    for await (const pagedResults of paginatedErrors) {
+      setErrors(prev => [...prev, ...pagedResults]);
+    }
+
     setState(prev => ({...prev, fetchingErrors: false}));
-  }, [errorsPerPage, api, orgSlug, replayRecord]);
+  }, [api, orgSlug, replayRecord, errorsPerPage]);
 
   const onError = useCallback(error => {
     Sentry.captureException(error);
@@ -260,6 +252,75 @@ function parseReplayId(replaySlug: string) {
 
 function makeFetchReplayApiUrl(orgSlug: string, replayId: string) {
   return `/organizations/${orgSlug}/replays/${replayId}/`;
+}
+
+async function fetchReplayErrors(
+  api: Client,
+  {
+    orgSlug,
+    start,
+    end,
+    replayId,
+    limit = 50,
+    cursor = '0:0:0',
+  }: {
+    end: Date;
+    orgSlug: string;
+    replayId: string;
+    start: Date;
+    cursor?: string;
+    limit?: number;
+  }
+) {
+  return await api.requestPromise(`/organizations/${orgSlug}/replays-events-meta/`, {
+    includeAllArgs: true,
+    query: {
+      start: start.toISOString(),
+      end: end.toISOString(),
+      query: `replayId:[${replayId}]`,
+      per_page: limit,
+      cursor,
+    },
+  });
+}
+
+async function* fetchPaginatedReplayErrors(
+  api: Client,
+  {
+    orgSlug,
+    start,
+    end,
+    replayId,
+    limit = 50,
+  }: {
+    end: Date;
+    orgSlug: string;
+    replayId: string;
+    start: Date;
+    limit?: number;
+  }
+): AsyncGenerator<ReplayError[]> {
+  function next(nextCursor: string) {
+    return fetchReplayErrors(api, {
+      orgSlug,
+      replayId,
+      start,
+      end,
+      limit,
+      cursor: nextCursor,
+    });
+  }
+  let cursor: ParsedHeader = {
+    cursor: '0:0:0',
+    results: true,
+    href: '',
+  };
+  while (cursor.results) {
+    const [{data}, , resp] = await next(cursor.cursor);
+    const pageLinks = resp?.getResponseHeader('Link') ?? null;
+    cursor = parseLinkHeader(pageLinks)?.next;
+    yield data;
+  }
 }
 
 export default useReplayData;
