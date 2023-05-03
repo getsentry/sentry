@@ -325,5 +325,10 @@ class OrganizationService(RpcService):
     def get_top_dog_team_member_ids(self, *, organization_id: int) -> List[int]:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
+        pass
+
 
 organization_service = cast(OrganizationService, OrganizationService.create_delegation())

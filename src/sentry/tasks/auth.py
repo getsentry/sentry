@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import logging
 
@@ -9,6 +11,7 @@ from sentry import audit_log, features, options
 from sentry.auth import manager
 from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models import ApiKey, AuditLogEntry, Organization, OrganizationMember, User, UserEmail
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.tasks.base import instrumented_task
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -67,18 +70,18 @@ class OrganizationComplianceTask(abc.ABC):
         """Prompt a member to comply with the new requirement."""
         raise NotImplementedError()
 
-    def remove_non_compliant_members(self, org_id, actor_id, actor_key_id, ip_address):
-        org = Organization.objects.get_from_cache(id=org_id)
+    def remove_non_compliant_members(
+        self, org_id: int, actor_id: int | None, actor_key_id: int | None, ip_address: str | None
+    ):
         actor = User.objects.get(id=actor_id) if actor_id else None
         actor_key = ApiKey.objects.get(id=actor_key_id) if actor_key_id else None
 
         def remove_member(member):
             user = member.user
-            logging_data = {"organization_id": org.id, "user_id": user.id, "member_id": member.id}
+            logging_data = {"organization_id": org_id, "user_id": user.id, "member_id": member.id}
 
             try:
-                member.remove_user()
-                member.save()
+                organization_service.remove_user(organization_id=org_id, user_id=user.id)
             except (AssertionError, IntegrityError):
                 logger.warning(
                     f"Could not remove {self.log_label} noncompliant user from org",
@@ -94,15 +97,15 @@ class OrganizationComplianceTask(abc.ABC):
                     ip_address=ip_address,
                     event=audit_log.get_event_id("MEMBER_PENDING"),
                     data=member.get_audit_log_data(),
-                    organization_id=org.id,
-                    target_object=org.id,
+                    organization_id=org_id,
+                    target_object=org_id,
                     target_user=user,
                 )
-
+                org = Organization.objects.get_from_cache(id=org_id)
                 self.call_to_action(org, user, member)
 
         for member in OrganizationMember.objects.select_related("user").filter(
-            organization=org, user__isnull=False
+            organization_id=org_id, user__isnull=False
         ):
             if not self.is_compliant(member):
                 remove_member(member)
