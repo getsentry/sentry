@@ -38,13 +38,17 @@ class Migration(CheckedMigration):
                     "organization_id",
                     sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
                 ),
+                (
+                    "project_id",
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
                 ("release_name", models.CharField(max_length=250)),
                 ("proguard_uuid", models.UUIDField()),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
             ],
             options={
                 "db_table": "sentry_releaseproguardartifact",
-                "unique_together": {("organization_id", "release_name")},
+                "unique_together": {("organization_id", "project_id", "release_name")},
             },
         ),
     ]
