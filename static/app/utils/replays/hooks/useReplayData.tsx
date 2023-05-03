@@ -55,6 +55,7 @@ interface Result {
   onRetry: () => void;
   projectSlug: string | null;
   replay: ReplayReader | null;
+  replayErrors: ReplayError[];
   replayId: string;
   replayRecord: ReplayRecord | undefined;
 }
@@ -224,6 +225,7 @@ function useReplayData({
   }, [attachments, errors, replayRecord]);
 
   return {
+    replayErrors: errors,
     fetchError: state.fetchError,
     fetching: state.fetchingAttachments || state.fetchingErrors || state.fetchingReplay,
     onRetry: loadData,
