@@ -30,7 +30,7 @@ const HTTP_SPAN_COLUMN_ORDER = [
   {
     key: 'throughput',
     name: 'Throughput',
-    width: 125,
+    width: 350,
   },
   {
     key: 'p50(exclusive_time)',
