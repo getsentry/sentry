@@ -85,7 +85,7 @@ def get_monitor_environment_context(monitor_environment):
     }
 
 
-class MonitorStatus(ObjectStatus):
+class MonitorStatus:
     """
     The monitor status is an extension of the ObjectStatus constants. In this
     extension the "status" of a monitor (passing, failing, timed out, etc) is
@@ -94,6 +94,11 @@ class MonitorStatus(ObjectStatus):
     [!!]: This is NOT used for the status of the Monitor model itself. That is
           simply an ObjectStatus.
     """
+
+    ACTIVE = 0
+    DISABLED = 1
+    PENDING_DELETION = 2
+    DELETION_IN_PROGRESS = 3
 
     OK = 4
     ERROR = 5
