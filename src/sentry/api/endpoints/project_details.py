@@ -828,7 +828,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 self.create_audit_entry(
                     **common_audit_data,
                     event=audit_log.get_event_id("PROJECT_REMOVE"),
-                    data={project.get_audit_log_data()},
+                    data={**project.get_audit_log_data()},
                 )
 
             project.rename_on_pending_deletion()
