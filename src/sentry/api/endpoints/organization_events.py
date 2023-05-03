@@ -300,8 +300,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         organization,
                         params["project_id"],
                         data_fn(0, self.get_per_page(request)),
-                        dataset,
                         standard_meta=True,
+                        dataset=dataset,
                     )
                 )
             else:
@@ -313,8 +313,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         organization,
                         params["project_id"],
                         results,
-                        dataset,
                         standard_meta=True,
+                        dataset=dataset,
                     ),
                 )
 

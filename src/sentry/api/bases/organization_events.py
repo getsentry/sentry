@@ -296,8 +296,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         organization: Organization,
         project_ids: Sequence[int],
         results: Dict[str, Any],
-        dataset: Optional[Any] = None,
         standard_meta: Optional[bool] = False,
+        dataset: Optional[Any] = None,
     ) -> Dict[str, Any]:
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
