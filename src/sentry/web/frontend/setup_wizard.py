@@ -13,6 +13,7 @@ from sentry import roles
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
+from sentry.constants import ObjectStatus
 from sentry.models import (
     ApiToken,
     Organization,
@@ -20,7 +21,6 @@ from sentry.models import (
     Project,
     ProjectKey,
     ProjectKeyStatus,
-    ProjectStatus,
 )
 from sentry.utils.http import absolute_uri
 from sentry.utils.urls import add_params_to_url
@@ -67,7 +67,7 @@ class SetupWizardView(BaseView):
 
         for org in orgs:
             projects = list(
-                Project.objects.filter(organization=org, status=ProjectStatus.VISIBLE).order_by(
+                Project.objects.filter(organization=org, status=ObjectStatus.ACTIVE).order_by(
                     "-date_added"
                 )[:50]
             )
