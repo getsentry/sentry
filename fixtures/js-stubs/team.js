@@ -3,7 +3,7 @@ export function Team(params = {}) {
     id: '1',
     slug: 'team-slug',
     name: 'Team Name',
-    access: [],
+    access: ['team:read'],
     orgRole: null, // TODO(cathy): Rename this
     teamRole: null,
     isMember: true,
