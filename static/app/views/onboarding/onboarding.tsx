@@ -313,7 +313,7 @@ function Onboarding(props: Props) {
     priority: 'danger',
     confirmText: t("Yes I'm sure. Take me back"),
     onConfirm: handleGoBack,
-    onCancel: () => {
+    onClose: () => {
       if (!recentCreatedProject) {
         return;
       }

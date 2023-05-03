@@ -82,6 +82,10 @@ export type OpenConfirmOptions = {
    */
   onCancel?: () => void;
   /**
+   * User closes the modal
+   */
+  onClose?: () => void;
+  /**
    * Callback when user confirms
    */
   onConfirm?: () => void;
@@ -140,6 +144,7 @@ export const openConfirmModal = ({
   cancelText = t('Cancel'),
   confirmText = t('Confirm'),
   disableConfirmButton = false,
+  onClose,
   ...rest
 }: OpenConfirmOptions) => {
   if (bypass) {
@@ -156,7 +161,7 @@ export const openConfirmModal = ({
   };
 
   onConfirming?.();
-  openModal(renderProps => <ConfirmModal {...renderProps} {...modalProps} />);
+  openModal(renderProps => <ConfirmModal {...renderProps} {...modalProps} />, {onClose});
 };
 
 /**
