@@ -14,13 +14,16 @@ from sentry.issues.escalating import (
     query_groups_past_counts,
 )
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models import Group
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInbox
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 
@@ -52,7 +55,13 @@ class BaseGroupCounts(SnubaTestCase, TestCase):  # type: ignore[misc]
         return last_event
 
 
-class HistoricGroupCounts(BaseGroupCounts):
+class HistoricGroupCounts(
+    BaseGroupCounts,
+    PerformanceIssueTestCase,  # type: ignore[misc]
+    SearchIssueTestMixin,
+):
+    """Test that querying Snuba for the hourly counts for groups works as expected."""
+
     def _create_hourly_bucket(self, count: int, event: Event) -> GroupsCountResponse:
         """It simplifies writing the expected data structures"""
         return {
@@ -66,6 +75,47 @@ class HistoricGroupCounts(BaseGroupCounts):
         event = self._create_events_for_group()
         assert query_groups_past_counts(Group.objects.all()) == [
             self._create_hourly_bucket(1, event)
+        ]
+
+    @freeze_time(TIME_YESTERDAY)
+    def test_query_different_group_categories(self) -> None:
+        from django.utils import timezone
+
+        # This builds an error group and a profiling group
+        profile_error_event, _, profile_issue_occurrence = self.store_search_issue(
+            project_id=self.project.id,
+            user_id=0,
+            fingerprints=[f"{ProfileFileIOGroupType.type_id}-group1"],
+            insert_time=timezone.now() - timedelta(minutes=1),
+        )
+        assert len(Group.objects.all()) == 2
+
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            perf_event = self.create_performance_issue()
+
+        error_event = self._create_events_for_group()
+
+        # store_search_issue created two groups
+        assert len(Group.objects.all()) == 4
+        assert profile_error_event.group.issue_category == GroupCategory.ERROR
+        assert error_event.group.issue_category == GroupCategory.ERROR
+        assert profile_issue_occurrence.group.issue_category == GroupCategory.PROFILE  # type: ignore[union-attr]
+        assert perf_event.group.issue_category == GroupCategory.PERFORMANCE
+
+        profile_issue_occurrence_bucket = {
+            "count()": 1,
+            "group_id": profile_issue_occurrence.group.id,  # type: ignore[union-attr]
+            "hourBucket": to_start_of_hour(profile_issue_occurrence.group.first_seen),  # type: ignore[union-attr]
+            "project_id": self.project.id,
+        }
+
+        # Error groups will show up at the beginning of the list even if they
+        # were created later
+        assert query_groups_past_counts(Group.objects.all()) == [
+            self._create_hourly_bucket(1, profile_error_event),
+            self._create_hourly_bucket(1, error_event),
+            profile_issue_occurrence_bucket,
+            self._create_hourly_bucket(1, perf_event),
         ]
 
     def test_pagination(self) -> None:
