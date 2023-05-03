@@ -450,14 +450,14 @@ def get_performance_issue_alert_subtitle(event: Event) -> str:
 def get_notification_group_title(
     group: Group, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
 ) -> str:
-    if group.issue_category == GroupCategory.PERFORMANCE:
+    if isinstance(event, GroupEvent) and event.occurrence is not None:
+        issue_title: str = event.occurrence.issue_title
+        return issue_title
+    elif group.issue_category == GroupCategory.PERFORMANCE:
         issue_type = group.issue_type.description
         transaction = get_performance_issue_alert_subtitle(event)
         title = f"{issue_type}: {transaction}"
         return (title[: max_length - 2] + "..") if len(title) > max_length else title
-    elif isinstance(event, GroupEvent) and event.occurrence is not None:
-        issue_title: str = event.occurrence.issue_title
-        return issue_title
     else:
         event_title: str = event.title
         return event_title
