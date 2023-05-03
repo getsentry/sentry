@@ -1,3 +1,5 @@
+from csp.middleware import CSPMiddleware
+from django.conf import settings
 from django.views.generic import View
 
 from sentry import options
@@ -21,6 +23,20 @@ class JiraSentryUIBaseView(View):
             self.request.GET.get("xdm_e"),
             options.get("system.url-prefix"),
         ]
-        sources_string = " ".join(s for s in sources if s)  # Filter out None
-        response["Content-Security-Policy"] = f"frame-ancestors 'self' {sources_string}"
+
+        settings.CSP_FRAME_ANCESTORS = [
+            "'self'",
+        ] + [s for s in sources if s and ";" not in s]
+        settings.CSP_SCRIPT_SRC = [
+            "'self'",
+            "'unsafe-inline'",
+            "connect-cdn.atl-paas.net",
+        ]
+
+        header = "Content-Security-Policy"
+        if getattr(settings, "CSP_REPORT_ONLY", False):
+            header += "-Report-Only"
+
+        middleware = CSPMiddleware()
+        response[header] = middleware.build_policy(request=self.request, response=response)
         return response
