@@ -1,5 +1,6 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.dynamic_sampling_simulate import DynamicSamplingSimulateEndpoint
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
 from sentry.api.utils import method_dispatch
@@ -2546,6 +2547,11 @@ INTERNAL_URLS = [
         r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",
         RpcServiceEndpoint.as_view(),
         name="sentry-api-0-rpc-service",
+    ),
+    url(
+        r"^dynamic-sampling/simulate$",
+        DynamicSamplingSimulateEndpoint.as_view(),
+        name="sentry-api-0-internal-dynamic-sampling-simulate",
     ),
 ]
 
