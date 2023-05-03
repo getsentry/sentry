@@ -69,7 +69,10 @@ export function getTitle(crumb: Crumb) {
     return crumb.data.label;
   }
 
-  const [type, action] = crumb.category?.split('.') || [];
+  if (!crumb.category) {
+    return crumb.message ?? crumb.description;
+  }
+  const [type, action] = crumb.category.split('.') || [];
   if (type === 'ui') {
     return `User ${action || ''}`;
   }
