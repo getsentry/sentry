@@ -673,6 +673,8 @@ register("performance.issues.render_blocking_assets.fcp_ratio_threshold", defaul
 register("performance.issues.render_blocking_assets.size_threshold", default=1000000)
 register("performance.issues.consecutive_http.lcp_ratio_threshold", default=0.33)
 register("performance.issues.consecutive_http.max_duration_between_spans", default=1000)
+register("performance.issues.consecutive_http.consecutive_count_threshold", default=3)
+register("performance.issues.consecutive_http.span_duration_threshold", default=1000)
 
 # System-wide option for sending occurrences to the issues platform
 register("performance.issues.send_to_issues_platform", default=False, flags=FLAG_MODIFIABLE_BOOL)
