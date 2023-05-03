@@ -90,7 +90,7 @@ export function CreateProjectsFooter({
       }
 
       try {
-        addLoadingMessage(t('Creating project'));
+        addLoadingMessage(t('Loading SDK configuration\u2026'));
 
         const response = (await createProject({
           api,
@@ -105,11 +105,23 @@ export function CreateProjectsFooter({
 
         ProjectsStore.onCreateSuccess(response, organization.slug);
 
+        // Measure to filter out projects that might have been created during the onboarding and not deleted from the session due to an error
+        // Note: in the onboarding flow the projects are created based on the platform slug
+        const newProjects = Object.keys(onboardingContext.data.projects).reduce(
+          (acc, key) => {
+            if (onboardingContext.data.projects[key].slug !== response.slug) {
+              acc[key] = onboardingContext.data.projects[key];
+            }
+            return acc;
+          },
+          {}
+        );
+
         onboardingContext.setData({
           selectedSDK: createProjectForPlatform,
           projects: {
-            ...onboardingContext.data.projects,
-            [response.slug]: {
+            ...newProjects,
+            [response.id]: {
               slug: response.slug,
               status: OnboardingProjectStatus.WAITING,
             },
@@ -124,7 +136,7 @@ export function CreateProjectsFooter({
         clearIndicators();
         setTimeout(() => onComplete(createProjectForPlatform!));
       } catch (err) {
-        addErrorMessage(t('Failed to create project'));
+        addErrorMessage(t('Failed to load SDK configuration'));
         Sentry.captureException(err);
       }
     },
@@ -204,7 +216,7 @@ export function CreateProjectsFooter({
           disabled={!selectedPlatform}
           data-test-id="platform-select-next"
         >
-          {t('Create Project')}
+          {t('Configure SDK')}
         </Button>
       </ButtonWrapper>
     </GenericFooter>
