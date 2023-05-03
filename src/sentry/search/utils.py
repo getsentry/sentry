@@ -58,7 +58,7 @@ def get_user_tag(projects: Sequence[Project], key: str, value: str) -> str:
 
 
 def parse_status_value(status: Union[str, int]) -> int:
-    if status in STATUS_QUERY_CHOICES.keys():
+    if status in STATUS_QUERY_CHOICES:
         return int(STATUS_QUERY_CHOICES[status])
     if status in STATUS_QUERY_CHOICES.values():
         return int(status)
@@ -66,7 +66,7 @@ def parse_status_value(status: Union[str, int]) -> int:
 
 
 def parse_substatus_value(substatus: Union[str, int]) -> int:
-    if substatus in SUBSTATUS_UPDATE_CHOICES.keys():
+    if substatus in SUBSTATUS_UPDATE_CHOICES:
         return int(SUBSTATUS_UPDATE_CHOICES[substatus])
     if substatus in SUBSTATUS_UPDATE_CHOICES.values():
         return int(substatus)
