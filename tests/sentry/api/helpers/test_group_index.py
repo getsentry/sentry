@@ -178,7 +178,7 @@ class UpdateGroupsTest(TestCase):  # type: ignore[misc]
         assert GroupSnooze.objects.filter(group=group).exists()
 
     @patch("sentry.signals.issue_unignored.send_robust")
-    def test_unignoring_group(self, send_robust) -> None:
+    def test_unignoring_group(self, send_robust: Mock) -> None:
         for group, request_data in [
             (self.create_group(status=GroupStatus.IGNORED), {"status": "unresolved"}),
             (
