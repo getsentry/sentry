@@ -436,6 +436,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     onboardingTasks: OnboardingTasksSerializerResponse
     codecovAccess: bool
     aiSuggestedSolution: bool
+    isDynamicallySampled: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -555,6 +556,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             team__organization=obj
         ).count()
         context["onboardingTasks"] = serialize(tasks_to_serialize, user)
+        context["isDynamicallySampled"] = quotas.get_blended_sample_rate(None, obj.id) is not None
+
         return context
 
 
