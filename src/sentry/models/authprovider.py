@@ -19,7 +19,7 @@ logger = logging.getLogger("sentry.authprovider")
 
 SCIM_INTERNAL_INTEGRATION_OVERVIEW = (
     "This internal integration was auto-generated during the installation process of your SCIM "
-    "integration. It is needed to provide the token used provision members and teams. If this integration is "
+    "integration. It is needed to provide the token used to provision members and teams. If this integration is "
     "deleted, your SCIM integration will stop working!"
 )
 
