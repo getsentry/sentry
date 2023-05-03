@@ -28,7 +28,7 @@ class BaseRequestParser(abc.ABC):
     """Base Class for Integration Request Parsers"""
 
     @property
-    def provider() -> str:
+    def provider(self) -> str:
         raise NotImplementedError("'provider' property is required by IntegrationControlMiddleware")
 
     def __init__(self, request: HttpRequest, response_handler: Callable):
