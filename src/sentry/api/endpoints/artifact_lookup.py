@@ -118,7 +118,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             release, dist = try_resolve_release_dist(project, release_name, dist_name)
             if release:
                 bundle_file_ids |= get_legacy_release_bundles(release, dist)
-                individual_files = get_releasefiles_matching_url(release, dist, url)
+                individual_files = get_legacy_releasefile_by_file_url(release, dist, url)
 
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
@@ -212,7 +212,10 @@ def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]):
         .filter(
             release_id=release.id,
             dist_id=dist.id if dist else None,
+            # a `ReleaseFile` with `0` artifacts represents a release archive,
+            # see the comment above the definition of `artifact_count`.
             artifact_count=0,
+            # similarly the special `type` is also used for release archives.
             file__type=RELEASE_BUNDLE_TYPE,
         )
         .values_list("file_id", flat=True)
@@ -220,7 +223,7 @@ def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]):
     )
 
 
-def get_releasefiles_matching_url(
+def get_legacy_releasefile_by_file_url(
     release: Release, dist: Optional[Distribution], url: List[str]
 ) -> Sequence[ReleaseFile]:
     # Exclude files which are also present in archive:
