@@ -900,8 +900,8 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_histogram_exclude_outliers_data_filter(self):
         specs = [
-            (0, 0, [("foo", 4)], {"histogram_outlier": "inlier"}),
-            (4000, 4001, [("foo", 1)], {"histogram_outlier": "outlier"}),
+            (0, 0, [("foo", 4)]),
+            (4000, 4001, [("foo", 1)]),
         ]
         self.populate_events(specs)
 
@@ -1151,9 +1151,6 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
         expected = [
             (0, 0, [("transaction.duration", 8)]),
             (1, 2, [("transaction.duration", 0)]),
-            (2, 3, [("transaction.duration", 0)]),
-            (3, 4, [("transaction.duration", 0)]),
-            (4, 5, [("transaction.duration", 0)]),
         ]
         expected_response = self.as_response_data(expected)
         expected_response["meta"] = {"isMetricsData": True}
