@@ -7,6 +7,7 @@ from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.role import OrganizationRoleSerializer
 from sentry.models import ExternalActor, OrganizationMember, User
+from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.team import Team
 from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.user import user_service
@@ -72,8 +73,9 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         users_by_id: Mapping[str, Any] = {
             u["id"]: u for u in user_service.serialize_many(filter={"user_ids": users_set})
         }
-        # TODO(hybridcloud) Make this a local query to Actor?
-        actor_ids = [u.actor_id for u in user_service.get_many(filter={"user_ids": users_set})]
+        actor_ids = Actor.objects.filter(
+            user_id__in=users_set, type=ACTOR_TYPES["user"]
+        ).values_list("id", flat=True)
         external_users_map = defaultdict(list)
 
         if "externalUsers" in self.expand:

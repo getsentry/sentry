@@ -38,9 +38,10 @@ def fetch_actors_by_actor_ids(cls, actor_ids: List[int]) -> Union[List["Team"], 
     from sentry.models import Team, User
 
     if cls is User:
-        # TODO(hybridcloud) This could be a local query to get users/teams
-        # changing this function to return a list of Actors could be good.
-        return user_service.get_by_actor_ids(actor_ids=actor_ids)
+        user_ids = Actor.objects.filter(type=ACTOR_TYPES["user"], id__in=actor_ids).values_list(
+            "user_id", flat=True
+        )
+        return user_service.get_many(filter={"user_ids": user_ids})
     if cls is Team:
         return Team.objects.filter(actor_id__in=actor_ids).all()
 
@@ -119,7 +120,7 @@ def get_actor_for_user(user: Union["User", RpcUser]) -> "Actor":
         with transaction.atomic():
             actor, created = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user.id)
             if created:
-                # TODO(hybridcloud) This RPC call should be removed once all reads to
+                # TODO(actorid) This RPC call should be removed once all reads to
                 # User.actor_id have been removed.
                 user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
     except IntegrityError as err:
@@ -185,9 +186,8 @@ class ActorTuple(namedtuple("Actor", "id type")):
 
     def resolve_to_actor(self) -> Actor:
         obj = self.resolve()
-        # TODO(hybridcloud) If this is RpcUser do we just use a different query?
         if obj.actor_id is None or isinstance(obj, RpcUser):
-            return Actor.objects.get(id=get_actor_id_for_user(obj))
+            return get_actor_for_user(obj)
         # Team case
         return Actor.objects.get(id=obj.actor_id)
 

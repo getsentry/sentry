@@ -7,7 +7,6 @@ from sentry.services.hybrid_cloud.user import user_service
 @register(GroupTombstone)
 class GroupTombstoneSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        # TODO(hybridcloud) Make this an Actor query that feeds into user_service
         user_list = user_service.serialize_many(
             filter={"user_ids": [item.actor_id for item in item_list]}
         )

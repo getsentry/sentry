@@ -74,7 +74,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         users: List[RpcUser],
         value: NotificationSettingOptionValues,
     ) -> List[RpcNotificationSetting]:
-        # TODO(hybridcloud) Adapt this to use Actor lookups.
+        # TODO(actorid) Adapt this to use Actor lookups.
         settings = NotificationSetting.objects.filter(
             target__in=[u.actor_id for u in users],
             type__in=types,
@@ -88,7 +88,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
     ) -> List[RpcNotificationSetting]:
         team_ids = [r.id for r in recipients if r.actor_type == ActorType.TEAM]
         user_ids = [r.id for r in recipients if r.actor_type == ActorType.USER]
-        # TODO(hybridcloud) This could be tricky to solve.
+        # TODO(actorid) In tests recipients is sometimes a User. This needs to be solved.
         actor_ids: List[int] = [r.actor_id for r in recipients if r.actor_id is not None]
 
         parent_specific_scope_type = get_scope_type(type)

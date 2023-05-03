@@ -51,8 +51,6 @@ class ExternalActorSerializer(Serializer):  # type: ignore
             cls = actor_type_to_class(type_id)
             actor_ids = actor_ids_by_type[type_str]
 
-            # TODO(hybridcloud) This will need to be reworked. Could do
-            # separate branch for user/team.
             for model in fetch_actors_by_actor_ids(cls, actor_ids):
                 resolved_actors[model.actor_id] = {type_str: model}
 

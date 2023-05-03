@@ -103,7 +103,7 @@ class DatabaseBackedUserService(UserService):
         ]
 
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
-        # TODO this method needs to be removed too
+        # TODO(actorid) this method needs to be removed too
         return [
             self._FQ.serialize_rpc(u) for u in self._FQ.base_query().filter(actor_id__in=actor_ids)
         ]

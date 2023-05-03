@@ -172,7 +172,6 @@ class DigestNotification(ProjectNotification):
         # Get every actor ID for every provider as a set.
         actor_ids = set()
         combined_participants_by_provider = defaultdict(set)
-        # TODO(hybridcloud) Is participants Actor or User?
         for participants_by_provider in participants_by_provider_by_event.values():
             for provider, participants in participants_by_provider.items():
                 for participant in participants:

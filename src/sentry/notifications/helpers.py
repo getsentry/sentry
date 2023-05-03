@@ -192,7 +192,6 @@ def transform_to_notification_settings_by_recipient(
     Given an unsorted list of notification settings, create a mapping of users
     to a map of notification scopes to setting values.
     """
-    # TODO(hybridcloud) Verify that these are RpcActor
     actor_mapping = {recipient.actor_id: recipient for recipient in recipients}
     notification_settings_by_recipient: MutableMapping[
         RpcActor,
