@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -8,13 +9,22 @@ import {Project} from 'sentry/types';
 type Props = {
   countErrors: number;
   className?: string;
+  hideIcon?: boolean;
   project?: Project;
 };
 
-const ErrorCount = styled(({countErrors, project, className}: Props) =>
+const ErrorCount = styled(({countErrors, project, className, hideIcon}: Props) =>
   countErrors ? (
     <span className={className}>
-      {project ? <ProjectBadge project={project} disableLink hideName /> : <IconFire />}
+      {!hideIcon && (
+        <Fragment>
+          {project ? (
+            <ProjectBadge project={project} disableLink hideName />
+          ) : (
+            <IconFire />
+          )}
+        </Fragment>
+      )}
       {countErrors}
     </span>
   ) : (
