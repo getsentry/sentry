@@ -70,7 +70,7 @@ default_manager.add(
         event_id=32,
         name="PROJECT_REMOVE",
         api_name="project.remove",
-        template="removed project {slug}",
+        template="removed project {slug} in {origin}",
     )
 )
 default_manager.add(

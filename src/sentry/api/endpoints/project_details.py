@@ -813,8 +813,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 organization=project.organization,
                 target_object=project.id,
                 event=audit_log.get_event_id("PROJECT_REMOVE"),
-                data=project.get_audit_log_data(),
                 transaction_id=scheduled.id,
+                data={
+                    **project.get_audit_log_data(),
+                    "origin": request.data.get("origin") or "unknown",
+                },
             )
             project.rename_on_pending_deletion()
 
