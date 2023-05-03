@@ -1,4 +1,5 @@
-from enum import Enum
+from enum import Enum, IntEnum
+from typing import Sequence, Tuple
 
 from django.db import models
 from django.utils import timezone
@@ -24,6 +25,18 @@ class RuleStatus:
     DELETION_IN_PROGRESS = 3
 
 
+class RuleSource(IntEnum):
+    ISSUE = 0
+    CRON_MONITOR = 1
+
+    @classmethod
+    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+        return (
+            (cls.ISSUE, "issue"),
+            (cls.CRON_MONITOR, "cron_monitor"),
+        )
+
+
 @region_silo_only_model
 class Rule(Model):
     __include_in_export__ = True
@@ -42,6 +55,12 @@ class Rule(Model):
         choices=((RuleStatus.ACTIVE, "Active"), (RuleStatus.INACTIVE, "Inactive")),
         db_index=True,
     )
+    # source is currently used as a way to distinguish rules created specificly
+    # for use in other parts of the product (e.g. cron monitor alerting rules)
+    source = BoundedPositiveIntegerField(
+        default=RuleSource.ISSUE,
+        choices=RuleSource.as_choices(),
+    )
     owner = FlexibleForeignKey("sentry.Actor", null=True, on_delete=models.SET_NULL)
 
     date_added = models.DateTimeField(default=timezone.now)
@@ -51,7 +70,7 @@ class Rule(Model):
     class Meta:
         db_table = "sentry_rule"
         app_label = "sentry"
-        index_together = (("project", "status", "owner"),)
+        index_together = ("project", "status", "owner")
 
     __repr__ = sane_repr("project_id", "label")
 
