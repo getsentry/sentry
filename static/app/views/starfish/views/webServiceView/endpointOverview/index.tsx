@@ -23,9 +23,8 @@ import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import DatabaseTableView from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
-import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {useQueryMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getModuleBreakdown} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
@@ -103,15 +102,7 @@ export default function EndpointOverview() {
     isLoading: isTableDataLoading,
     data: tableData,
     isRefetching: isTableRefetching,
-  } = useQuery({
-    queryKey: ['endpoints', pageFilter.selection.datetime, transaction],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getMainTable(startTime, endTime, transactionFilter)}&format=sql`
-      ).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
+  } = useQueryMainTable(transaction as string);
 
   const {data: moduleBreakdown} = useQuery({
     queryKey: [`moduleBreakdown${transaction}`],
@@ -126,9 +117,6 @@ export default function EndpointOverview() {
   if (!transaction) {
     return null;
   }
-
-  const {startTime, endTime} = getDateFilters(pageFilter);
-  const transactionFilter = `transaction='${transaction}'`;
 
   const query = new MutableSearch([
     'has:http.method',
