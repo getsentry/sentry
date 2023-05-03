@@ -203,11 +203,18 @@ function Onboarding(props: Props) {
         ...onboardingContext.data,
         projects: newProjects,
       });
+
+      trackAnalytics('onboarding.data_removed', {
+        organization,
+        date_created: recentCreatedProject.dateCreated,
+        platform: recentCreatedProject.slug,
+        project_id: recentCreatedProject.id,
+      });
     } catch (error) {
       handleXhrErrorResponse(t('Unable to delete project in onboarding'))(error);
       // we don't give the user any feedback regarding this error as this shall be silent
     }
-  }, [api, organization.slug, recentCreatedProject?.slug, onboardingContext]);
+  }, [api, organization, recentCreatedProject, onboardingContext]);
 
   const handleGoBack = useCallback(
     (goToStepIndex?: number) => {
@@ -245,6 +252,11 @@ function Onboarding(props: Props) {
 
       // from setup docs to selected platform
       if (onboardingSteps[stepIndex].id === 'setup-docs' && shallProjectBeDeleted) {
+        trackAnalytics('onboarding.data_removal_modal_confirm_button_clicked', {
+          organization,
+          platform: recentCreatedProject.slug,
+          project_id: recentCreatedProject.id,
+        });
         deleteRecentCreatedProject();
       }
 
@@ -262,6 +274,7 @@ function Onboarding(props: Props) {
       onboardingContext,
       shallProjectBeDeleted,
       deleteRecentCreatedProject,
+      recentCreatedProject,
     ]
   );
 
@@ -300,6 +313,28 @@ function Onboarding(props: Props) {
     priority: 'danger',
     confirmText: t("Yes I'm sure. Take me back"),
     onConfirm: handleGoBack,
+    onClose: () => {
+      if (!recentCreatedProject) {
+        return;
+      }
+
+      trackAnalytics('onboarding.data_removal_modal_dismissed', {
+        organization,
+        platform: recentCreatedProject.slug,
+        project_id: recentCreatedProject.id,
+      });
+    },
+    onRender: () => {
+      if (!recentCreatedProject) {
+        return;
+      }
+
+      trackAnalytics('onboarding.data_removal_modal_rendered', {
+        organization,
+        platform: recentCreatedProject.slug,
+        project_id: recentCreatedProject.id,
+      });
+    },
   };
 
   return (
