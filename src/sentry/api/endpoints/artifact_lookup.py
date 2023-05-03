@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional, Sequence, Set, Tuple
+from typing import List, Optional, Sequence, Set
 
 from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
@@ -15,7 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.auth.system import is_system_auth
 from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
 from sentry.models import DebugIdArtifactBundle, Distribution, File, Release, ReleaseFile
-from sentry.models.artifactbundle import ArtifactBundleArchive, ReleaseArtifactBundle
+from sentry.models.artifactbundle import ReleaseArtifactBundle
 from sentry.models.project import Project
 from sentry.models.releasefile import read_artifact_index
 
@@ -72,11 +72,11 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization to query.
         :pparam string project_slug: the slug of the project to query.
-        :qparam string debug_id: if set, will query and return all the artifact
-                                  bundles that match one of the given `debug_id`s.
+        :qparam string debug_id: if set, will query and return the artifact
+                                 bundle that matches the given `debug_id`.
         :qparam string url: if set, will query and return all the individual
-                             artifacts, or artifact bundles that contain files
-                             that match the `url`. This is using a substring-match.
+                            artifacts, or artifact bundles that contain files
+                            that match the `url`. This is using a substring-match.
         :qparam string release: used in conjunction with `url`.
         :qparam string dist: used in conjunction with `url`.
 
@@ -100,24 +100,27 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         release_name = request.GET.get("release")
         dist_name = request.GET.get("dist")
 
-        url = next(urls)
-        debug_id = next(debug_ids)
+        url = next(iter(urls), None)
+        debug_id = next(iter(debug_ids), None)
         # TODO: should we validate the list of `debug_ids`/`urls` we get?
+        # by validation I mean making sure we only get a single item, and the `url` is always defined?
 
-        bundle_file_ids = ()
+        bundle_file_ids = set()
         if debug_id:
             bundle_file_ids = get_artifact_bundle_containing_debug_id(debug_id, project)
 
-        individual_files = ()
+        individual_files = set()
         if url and release_name and not bundle_file_ids:
             # Get both the newest X release artifact bundles,
             # and also query the legacy artifact bundles. One of those should have the
             # file we are looking for. We want to return more here, even bundles that
             # do *not* contain the file, rather than opening up each bundle. We want to
             # avoid opening up bundles at all cost.
-            bundle_file_ids += get_release_artifacts(project, release_name, dist_name)
+            bundle_file_ids |= get_release_artifacts(project, release_name, dist_name)
 
-            individual_files = try_resolve_url(url, project, release_name, dist_name)
+            individual_files = try_resolve_url(
+                url, project, release_name, dist_name, bundle_file_ids
+            )
 
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
@@ -153,14 +156,13 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
 def get_artifact_bundle_containing_debug_id(debug_id: str, project: Project) -> Set[int]:
     # We want to have the newest `File` for each `debug_id`.
-    # Hopefully that will end up being only a single `File` in the end containing all the `debug_id`s.
     return set(
         DebugIdArtifactBundle.objects.filter(
             organization_id=project.organization.id,
             debug_id=debug_id,
         )
         .select_related("artifact_bundle__file_id")
-        .values_list("artifact_bundle__file_id")
+        .values_list("artifact_bundle__file_id", flat=True)
         .order_by("-date_added")[:1]
     )
 
@@ -179,7 +181,7 @@ def get_release_artifacts(
             dist_name=dist_name or "",
         )
         .select_related("artifact_bundle__file_id")
-        .values_list("artifact_bundle__file_id")
+        .values_list("artifact_bundle__file_id", flat=True)
         .order_by("-date_added")[:MAX_SCANNED_BUNDLES]
     )
 
@@ -213,45 +215,33 @@ def try_resolve_url(
     if release is None:
         return list()
 
-    # TODO:
-    # collect_legacy_artifact_bundles_containing_urls(url, release, dist, bundle_file_ids)
+    collect_legacy_artifact_bundles_containing_url(url, release, dist, bundle_file_ids)
 
     # And last but not least, we want to look up legacy individual release files
     return get_releasefiles_matching_url(url, release)
 
 
-# TODO:
-# def collect_legacy_artifact_bundles_containing_urls(
-#     url: str, release: Release, dist: Optional[Distribution], bundle_file_ids: Set[int]
-# ) -> List[str]:
-#     artifact_index = None
-#     try:
-#         artifact_index = read_artifact_index(release, dist, artifact_count__gt=0)
-#     except Exception as exc:
-#         logger.error("Failed to read artifact index", exc_info=exc)
-#     if not artifact_index:
-#         return url
+def collect_legacy_artifact_bundles_containing_url(
+    url: str, release: Release, dist: Optional[Distribution], bundle_file_ids: Set[int]
+):
+    artifact_index = None
+    try:
+        # TODO: can we avoid fetching / reading the artifact index?
+        # In theory a file in the index can be in any kind of archive
+        # referenced by the `archive_ident`.
+        artifact_index = read_artifact_index(release, dist, artifact_count__gt=0)
+    except Exception as exc:
+        logger.error("Failed to read artifact index", exc_info=exc)
+    if not artifact_index:
+        return url
 
-#     artifact_archives = dict()
-
-#     def url_in_any_artifact_index(url: str):
-#         file = find_file_in_archive_index(artifact_index, url)
-#         if file is not None:
-#             ident = file["archive_ident"]
-#             archive = artifact_archives.get(ident)
-
-#             if archive is not None:
-#                 bundle_file_ids.add(archive)
-#             else:
-#                 artifact_file_id = ReleaseFile.objects.filter(
-#                     release_id=release.id, ident=ident
-#                 ).values("file_id")[0]["file_id"]
-#                 artifact_archives[ident] = artifact_file_id
-#                 bundle_file_ids.add(artifact_file_id)
-#             return True
-#         return False
-
-#     return [url for url in urls if not url_in_any_artifact_index(url)]
+    file = find_file_in_archive_index(artifact_index, url)
+    if file is not None:
+        ident = file["archive_ident"]
+        artifact_file_id = ReleaseFile.objects.filter(
+            release_id=release.id, ident=ident
+        ).values_list("file_id", flat=True)[0]
+        bundle_file_ids.add(artifact_file_id)
 
 
 def get_releasefiles_matching_url(urls: List[str], release: Release) -> Sequence[ReleaseFile]:
