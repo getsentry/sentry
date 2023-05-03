@@ -1,8 +1,9 @@
 from collections import defaultdict, namedtuple
 from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union
 
+import sentry_sdk
 from django.conf import settings
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.db.models.signals import post_save
 from rest_framework import serializers
 
@@ -112,14 +113,18 @@ def get_actor_id_for_user(user: Union["User", RpcUser]):
     return get_actor_for_user(user).id
 
 
-def get_actor_for_user(user: Union["User", RpcUser]):
-    with transaction.atomic():
+def get_actor_for_user(user: Union["User", RpcUser]) -> "Actor":
+    try:
+        with transaction.atomic():
+            actor, created = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user.id)
+            if created:
+                # TODO(hybridcloud) This RPC call should be removed once all reads to
+                # User.actor_id have been removed.
+                user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
+    except IntegrityError as err:
+        # Likely a race condition. Long term these need to be eliminated.
+        sentry_sdk.capture_exception(err)
         actor = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).first()
-        if not actor:
-            actor = Actor.objects.create(type=ACTOR_TYPES["user"], user_id=user.id)
-            # TODO(hybridcloud) This RPC call should be removed once all reads to User.actor_id have
-            # been removed.
-            user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
     return actor
 
 
