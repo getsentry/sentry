@@ -301,6 +301,8 @@ USE_TZ = True
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE = (
+    # Uncomment to enable Content Security Policy on this Sentry installation (experimental)
+    # "csp.middleware.CSPMiddleware",
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -406,6 +408,62 @@ SILENCED_SYSTEM_CHECKS = (
     # It's not our problem; refer to Django issue 32260.
     "urls.E007",
 )
+
+CSP_INCLUDE_NONCE_IN = [
+    "script-src",
+]
+
+CSP_DEFAULT_SRC = [
+    "'none'",
+]
+CSP_SCRIPT_SRC = [
+    "'self'",
+    "'unsafe-inline'",
+]
+CSP_FONT_SRC = [
+    "'self'",
+    "data:",
+]
+CSP_CONNECT_SRC = [
+    "'self'",
+]
+CSP_FRAME_ANCESTORS = [
+    "'none'",
+]
+CSP_OBJECT_SRC = [
+    "'none'",
+]
+CSP_BASE_URI = [
+    "'none'",
+]
+CSP_STYLE_SRC = [
+    "'self'",
+    "'unsafe-inline'",
+]
+CSP_IMG_SRC = [
+    "'self'",
+    "blob:",
+    "data:",
+    "https://secure.gravatar.com",
+]
+
+if ENVIRONMENT == "development":
+    CSP_SCRIPT_SRC += [
+        "'unsafe-eval'",
+    ]
+    CSP_CONNECT_SRC += [
+        "ws://127.0.0.1:8000",
+    ]
+
+# Before enforcing Content Security Policy, we recommend creating a separate
+# Sentry project and collecting CSP violations in report only mode:
+# https://docs.sentry.io/product/security-policy-reporting/
+
+# Point this parameter to your Sentry installation:
+# CSP_REPORT_URI = "https://example.com/api/{PROJECT_ID}/security/?sentry_key={SENTRY_KEY}"
+
+# To enforce CSP (block violated resources), update the following parameter to False
+CSP_REPORT_ONLY = True
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
