@@ -19,12 +19,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import DatabaseTableView from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {getModuleBreakdown} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -106,6 +108,16 @@ export default function EndpointOverview() {
       fetch(
         `${HOST}/?query=${getMainTable(startTime, endTime, transactionFilter)}&format=sql`
       ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const {data: moduleBreakdown} = useQuery({
+    queryKey: [`moduleBreakdown${transaction}`],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getModuleBreakdown({transaction})}`).then(res =>
+        res.json()
+      ),
     retry: false,
     initialData: [],
   });
@@ -225,6 +237,11 @@ export default function EndpointOverview() {
               );
             }}
           </EventsRequest>
+          <FacetBreakdownBar
+            segments={moduleBreakdown}
+            title={t('Where is time spent in this endpoint?')}
+            transaction={transaction}
+          />
           <SubHeader>{t('HTTP Spans')}</SubHeader>
           <EndpointTable
             location={location}
