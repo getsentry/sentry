@@ -2164,6 +2164,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 "function",
                 "context_line",
                 "module",
+                "in_app",
             }
 
             def filtered_frame(frame: dict) -> dict:
