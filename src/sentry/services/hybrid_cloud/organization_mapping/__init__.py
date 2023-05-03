@@ -9,7 +9,6 @@ from typing import Optional, cast
 
 from django.utils import timezone
 from pydantic.fields import Field
-from typing_extensions import TypedDict
 
 from sentry.models import Organization
 from sentry.services.hybrid_cloud import RpcModel
@@ -27,7 +26,7 @@ class RpcOrganizationMapping(RpcModel):
     customer_id: Optional[str] = None
 
 
-class RpcOrganizationMappingUpdate(TypedDict):
+class RpcOrganizationMappingUpdate(RpcModel):
     """A set of values to be updated on an OrganizationMapping.
 
     An absent key indicates that the attribute should not be updated. (Compare to a
@@ -38,15 +37,13 @@ class RpcOrganizationMappingUpdate(TypedDict):
     name: str
     customer_id: Optional[str]
 
-
-def update_organization_mapping_from_instance(
-    organization: Organization,
-) -> RpcOrganizationMappingUpdate:
-    attributes = {
-        attr_name: getattr(organization, attr_name)
-        for attr_name in RpcOrganizationMappingUpdate.__annotations__.keys()
-    }
-    return RpcOrganizationMappingUpdate(**attributes)  # type: ignore
+    @classmethod
+    def from_orm(cls, organization: Organization) -> "RpcOrganizationMappingUpdate":
+        attributes = {
+            attr_name: getattr(organization, attr_name)
+            for attr_name in RpcOrganizationMappingUpdate.__annotations__.keys()
+        }
+        return RpcOrganizationMappingUpdate(**attributes)
 
 
 class OrganizationMappingService(RpcService):
