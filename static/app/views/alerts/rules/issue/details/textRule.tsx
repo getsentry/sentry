@@ -3,9 +3,13 @@ import {Fragment} from 'react';
 import {t} from 'sentry/locale';
 import type {Member, Team} from 'sentry/types';
 import type {IssueAlertRule} from 'sentry/types/alerts';
+import useOrganization from 'sentry/utils/useOrganization';
 import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/types';
 import {CHANGE_ALERT_CONDITION_IDS} from 'sentry/views/alerts/utils/constants';
-import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
+import {
+  EVENT_FREQUENCY_PERCENT_CONDITION,
+  REAPPEARED_EVENT_CONDITION,
+} from 'sentry/views/projectInstall/issueAlertOptions';
 
 /**
  * Translate Issue Alert Conditions to text
@@ -15,6 +19,8 @@ export function TextCondition({
 }: {
   condition: IssueAlertRule['conditions'][number];
 }) {
+  const organization = useOrganization();
+
   if (CHANGE_ALERT_CONDITION_IDS.includes(condition.id)) {
     if (condition.comparisonType === AlertRuleComparisonType.PERCENT) {
       if (condition.id === EVENT_FREQUENCY_PERCENT_CONDITION) {
@@ -30,7 +36,6 @@ export function TextCondition({
           </Fragment>
         );
       }
-
       return (
         <Fragment>
           {t(
@@ -54,7 +59,14 @@ export function TextCondition({
       </Fragment>
     );
   }
-
+  if (
+    condition.id === REAPPEARED_EVENT_CONDITION &&
+    organization.features.includes('escalating-issues-ui')
+  ) {
+    return (
+      <Fragment>{t('The issue changes state from archived to escalating')}</Fragment>
+    );
+  }
   return <Fragment>{condition.name}</Fragment>;
 }
 
