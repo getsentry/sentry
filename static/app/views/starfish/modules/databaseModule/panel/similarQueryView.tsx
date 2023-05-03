@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import GridEditable from 'sentry/components/gridEditable';
+import {Hovercard} from 'sentry/components/hovercard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   DataRow,
@@ -59,20 +60,21 @@ function SimilarQueryView(props: Props) {
     let renderedValue: React.ReactNode = row[key];
     if (key === 'description') {
       const mainTableQueryWords = new Set(mainTableRow.description.split(' '));
-      renderedValue = (
-        <Fragment>
+      const diffQuery = (
+        <div>
           {row.description.split(' ').map(word => {
             if (mainTableQueryWords.has(word)) {
-              return <span key={word}>{word}</span>;
+              return `${word} `;
             }
             return (
               <span style={{color: theme.green400}} key={word}>
-                {word}{' '}
+                {`${word} `}
               </span>
             );
           })}
-        </Fragment>
+        </div>
       );
+      renderedValue = <Hovercard body={diffQuery}>{diffQuery}</Hovercard>;
     }
     if (key === 'epm' || key === 'p75' || key === 'total_time') {
       const val = row[key];
