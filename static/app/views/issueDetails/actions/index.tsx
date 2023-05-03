@@ -342,7 +342,7 @@ export function Actions(props: Props) {
         return;
       }
 
-      innerEvent && onClick(innerEvent);
+      onClick(innerEvent);
     };
   };
 
