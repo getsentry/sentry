@@ -3,7 +3,7 @@
     "tags": [
       "Releases"
     ],
-    "description": "Returns a time series of release health session statistics for projects bound to an organization.\n\nThe interval and date range are subject to certain restrictions and rounding rules.\n\nThe date range is rounded to align with the interval, and is rounded to at least one hour. The interval can at most be one day and at least one hour currently. It has to cleanly divide one day, for rounding reasons.\n\nApart from the query parameters listed below, this endpoint also supports the usual [pagination parameters](https://docs.sentry.io/api/pagination/).",
+    "description": "Returns a time series of release health session statistics for projects bound to an organization.\n\nThe interval and date range are subject to certain restrictions and rounding rules.\n\nThe date range is rounded to align with the interval, and is rounded to at least one hour. The interval can at most be one day and at least one hour currently. It has to cleanly divide one day, for rounding reasons.",
     "operationId": "Retrieve Release Health Session Statistics",
     "parameters": [
       {
@@ -13,6 +13,15 @@
         "required": true,
         "schema": {
           "type": "string"
+        }
+      },
+      {
+        "name": "per_page",
+        "in": "query",
+        "description": "The maximum number of groups to be returned (see [pagination parameters](https://docs.sentry.io/api/pagination/)). Because of internal limits, the maximum number of groups returned in a single response is `5000 / num_intervals`.\n\nFor example, a request with `&statsPeriod=90d&interval=1d&groupBy=release` will return at most `floor(5000 / 90)` == 55 releases. To get the rest of the results, use the `link` header as described [here](https://docs.sentry.io/api/pagination).",
+        "required": false,
+        "schema": {
+          "type": "integer"
         }
       },
       {
