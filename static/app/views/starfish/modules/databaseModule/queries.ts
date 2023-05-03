@@ -1,8 +1,9 @@
 import {Moment, unix} from 'moment';
 
-import {useQuery} from 'sentry/utils/queryClient';
+import {DefinedUseQueryResult, useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
+import {TransactionListDataRow} from 'sentry/views/starfish/modules/databaseModule/panel';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {
   datetimeToClickhouseFilterTimestamps,
@@ -82,37 +83,66 @@ const getRetiredColumn = (duration: number, startTime: Moment, endTime: Moment) 
     : '0 as retired';
 };
 
-export const getOperations = (date_filters: string) => {
-  return `
+export const useQueryDbOperations = (): DefinedUseQueryResult<
+  {key: string; value: string}[]
+> => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+  const query = `
   select
     action as key,
     uniq(description) as value
   from default.spans_experimental_starfish
   where
     ${DEFAULT_WHERE}
-    ${date_filters}
+    ${dateFilters}
   group by action
   order by ${ORDERBY}
   `;
+  return useQuery({
+    queryKey: ['operation', pageFilter.selection.datetime],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
 };
 
-export const getTables = (date_filters: string, action: string) => {
-  return `
+export const useQueryDbTables = (
+  action: string
+): DefinedUseQueryResult<{key: string; value: string}[]> => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+  const query = `
   select
     domain as key,
     quantile(0.75)(exclusive_time) as value
   from default.spans_experimental_starfish
   where
     ${DEFAULT_WHERE}
-    ${date_filters}
+    ${dateFilters}
     ${getActionQuery(action)}
   group by domain
   order by ${ORDERBY}
   `;
+  return useQuery({
+    queryKey: ['table', action, pageFilter.selection.datetime],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
 };
 
-export const getTopOperationsChart = (date_filters: string, interval: number) => {
-  return `
+export const useQueryTopDbOperationsChart = (
+  interval: number
+): DefinedUseQueryResult<
+  {action: string; count: number; interval: string; p75: number}[]
+> => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+  const query = `
   select
     floor(quantile(0.75)(exclusive_time), 5) as p75,
     action,
@@ -121,19 +151,29 @@ export const getTopOperationsChart = (date_filters: string, interval: number) =>
   from default.spans_experimental_starfish
   where
     ${DEFAULT_WHERE}
-    ${date_filters} and
-    action in (${getActionSubquery(date_filters)})
+    ${dateFilters} and
+    action in (${getActionSubquery(dateFilters)})
   group by action, interval
   order by action, interval
   `;
+  return useQuery({
+    queryKey: ['topGraph', pageFilter.selection.datetime],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
 };
 
-export const getTopTablesChart = (
-  date_filters: string,
+export const useQueryTopTablesChart = (
   action: string,
   interval: number
-) => {
-  return `
+): DefinedUseQueryResult<
+  {count: number; domain: string; interval: string; p75: number}[]
+> => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+  const query = `
   select
     floor(quantile(0.75)(exclusive_time), 5) as p75,
     domain,
@@ -142,23 +182,32 @@ export const getTopTablesChart = (
   from default.spans_experimental_starfish
   where
     ${DEFAULT_WHERE}
-    ${date_filters} and
-    domain in (${getDomainSubquery(date_filters, action)})
+    ${dateFilters} and
+    domain in (${getDomainSubquery(dateFilters, action)})
     ${getActionQuery(action)}
   group by interval, domain
   order by interval, domain
   `;
+  return useQuery({
+    queryKey: ['topTable', action, pageFilter.selection.datetime],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
 };
 
-export const getPanelTableQuery = (
-  startTime: Moment,
-  endTime: Moment,
+export const useQueryPanelTable = (
   row: DataRow,
   sortKey: string | undefined,
   sortDirection: string | undefined
-) => {
+): DefinedUseQueryResult<
+  Pick<TransactionListDataRow, 'transaction' | 'count' | 'p75'>[]
+> => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
   const orderBy = getOrderByFromKey(sortKey, sortDirection) ?? ORDERBY;
-  return `
+  const query = `
     SELECT
       transaction,
       count() AS count,
@@ -166,50 +215,31 @@ export const getPanelTableQuery = (
     FROM spans_experimental_starfish
     WHERE
       ${DEFAULT_WHERE}
-      ${getDateQueryFilter(startTime, endTime)} AND
+      ${dateFilters} AND
       group_id = '${row.group_id}'
     GROUP BY transaction
     ORDER BY ${orderBy}
     LIMIT 10
   `;
+  return useQuery({
+    queryKey: [
+      'dbQueryDetailsTable',
+      row.group_id,
+      pageFilter.selection.datetime,
+      sortKey,
+      sortDirection,
+    ],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: true,
+    initialData: [],
+  });
 };
 
-const getOrderByFromKey = (
-  sortKey: string | undefined,
-  sortDirection: string | undefined
-) => {
-  if (!sortDirection || !sortKey) {
-    return undefined;
-  }
-  sortDirection ??= '';
-  return `${sortKey} ${sortDirection}`;
-};
-
-export const getPanelGraphQuery = (
-  startTime: Moment,
-  endTime: Moment,
-  row: {
-    group_id: string;
-    action?: string;
-    count?: number;
-    data_keys?: string[];
-    data_values?: string[];
-    description?: string;
-    domain?: string;
-    epm?: number;
-    firstSeen?: string;
-    formatted_desc?: string;
-    lastSeen?: string;
-    newish?: number;
-    p75?: number;
-    retired?: number;
-    total_time?: number;
-    transactions?: number;
-  },
-  interval: number
-) => {
+export const useQueryPanelGraph = (row: DataRow, interval: number) => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
-  return `
+  const query = `
     SELECT
       toStartOfInterval(start_timestamp, INTERVAL ${interval} HOUR) as interval,
       quantile(0.75)(exclusive_time) as p75,
@@ -222,97 +252,121 @@ export const getPanelGraphQuery = (
     GROUP BY interval
     ORDER BY interval
   `;
+  return useQuery({
+    queryKey: ['dbQueryDetailsGraph', row.group_id, pageFilter.selection.datetime],
+    queryFn: () => fetch(`${HOST}/?query=${query}&format=sql`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
 };
 
-export const getPanelEventCount = (
-  date_filters: string,
-  row: {
-    group_id: string;
-    action?: string;
-    count?: number;
-    data_keys?: string[];
-    data_values?: string[];
-    description?: string;
-    domain?: string;
-    epm?: number;
-    firstSeen?: string;
-    formatted_desc?: string;
-    lastSeen?: string;
-    newish?: number;
-    p75?: number;
-    retired?: number;
-    total_time?: number;
-    transactions?: number;
-  }
-) => {
-  return `
+export const useQueryPanelEventCount = (
+  row: DataRow
+): DefinedUseQueryResult<Pick<TransactionListDataRow, 'uniqueEvents' | 'count'>[]> => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+  const query = `
     SELECT
       transaction,
       count(DISTINCT transaction_id) as uniqueEvents
     FROM spans_experimental_starfish
     WHERE
       ${DEFAULT_WHERE}
-      ${date_filters} AND
+      ${dateFilters} AND
       group_id = '${row.group_id}'
     GROUP BY transaction
     ORDER BY ${ORDERBY}
    `;
+  return useQuery({
+    queryKey: ['dbQueryDetailsEventCount', row.group_id, pageFilter.selection.datetime],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: true,
+    initialData: [],
+  });
 };
 
-export const getMainTable = (
-  startTime: Moment,
-  endTime: Moment,
-  transactionFilter: string | null,
-  tableFilter?: string,
-  actionFilter?: string,
+export const useQueryMainTable = (
+  transaction?: string,
+  table?: string,
+  action?: string,
   sortKey?: string,
   sortDirection?: string,
-  newFilter?: string,
-  oldFilter?: string
-) => {
-  const filters = [DEFAULT_WHERE, transactionFilter, tableFilter, actionFilter].filter(
-    fil => !!fil
-  );
+  filterNew?: boolean,
+  filterOld?: boolean
+): DefinedUseQueryResult<DataRow[]> => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
+  const transactionFilter = transaction ? `transaction='${transaction}'` : null;
+  const tableFilter = table !== 'ALL' ? `domain = '${table}'` : undefined;
+  const actionFilter = action !== 'ALL' ? `action = '${action}'` : undefined;
+  const newFilter: string | undefined = filterNew ? 'newish = 1' : undefined;
+  const oldFilter: string | undefined = filterOld ? 'retired = 1' : undefined;
+
+  const filters = [
+    DEFAULT_WHERE,
+    transactionFilter,
+    tableFilter,
+    actionFilter,
+    newFilter,
+    oldFilter,
+  ].filter(fil => !!fil);
   const duration = endTime.unix() - startTime.unix();
   const newColumn = getNewColumn(duration, startTime, endTime);
   const retiredColumn = getRetiredColumn(duration, startTime, endTime);
   const havingFilters = [newFilter, oldFilter].filter(fil => !!fil);
-
   const orderBy = getOrderByFromKey(sortKey, sortDirection) ?? ORDERBY;
 
-  return `
-    select
-      description,
-      group_id, count() as count,
-      (divide(count, ${(endTime.unix() - startTime.unix()) / 60}) AS epm),
-      quantile(0.75)(exclusive_time) as p75,
-      uniq(transaction) as transactions,
-      sum(exclusive_time) as total_time,
-      domain,
-      action,
-      data_keys,
-      data_values,
-      min(start_timestamp) as firstSeen,
-      max(start_timestamp) as lastSeen,
-      ${newColumn},
-      ${retiredColumn}
-    from default.spans_experimental_starfish
-    where
-      ${filters.join(' AND ')}
-      ${dateFilters}
-    group by
-      action,
-      description,
-      group_id,
-      domain,
-      data_keys,
-      data_values
-    ${havingFilters.length > 0 ? 'having' : ''}
-      ${havingFilters.join(' and ')}
-      order by ${orderBy}
-    limit 100
-  `;
+  const query = `
+  select
+    description,
+    group_id, count() as count,
+    (divide(count, ${(endTime.unix() - startTime.unix()) / 60}) AS epm),
+    quantile(0.75)(exclusive_time) as p75,
+    uniq(transaction) as transactions,
+    sum(exclusive_time) as total_time,
+    domain,
+    action,
+    data_keys,
+    data_values,
+    min(start_timestamp) as firstSeen,
+    max(start_timestamp) as lastSeen,
+    ${newColumn},
+    ${retiredColumn}
+  from default.spans_experimental_starfish
+  where
+    ${filters.join(' AND ')}
+    ${dateFilters}
+  group by
+    action,
+    description,
+    group_id,
+    domain,
+    data_keys,
+    data_values
+  ${havingFilters.length > 0 ? 'having' : ''}
+    ${havingFilters.join(' and ')}
+    order by ${orderBy}
+  limit 100
+`;
+
+  return useQuery<DataRow[]>({
+    queryKey: [
+      'endpoints',
+      transaction,
+      table,
+      pageFilter.selection.datetime,
+      sortKey,
+      sortDirection,
+      newFilter,
+      oldFilter,
+    ],
+    cacheTime: 10000,
+    queryFn: () => fetch(`${HOST}/?query=${query}&format=sql`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
 };
 
 export const useQueryTransactionByTPM = (row: DataRow) => {
@@ -350,6 +404,17 @@ export const useQueryTransactionByTPM = (row: DataRow) => {
     retry: false,
     initialData: [],
   });
+};
+
+const getOrderByFromKey = (
+  sortKey: string | undefined,
+  sortDirection: string | undefined
+) => {
+  if (!sortDirection || !sortKey) {
+    return undefined;
+  }
+  sortDirection ??= '';
+  return `${sortKey} ${sortDirection}`;
 };
 
 const getDateQueryFilter = (startTime: Moment, endTime: Moment) => {

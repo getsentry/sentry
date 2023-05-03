@@ -29,7 +29,7 @@ from sentry.models import (
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import Feature, faux
+from sentry.testutils.helpers import Feature, faux, with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -407,8 +407,32 @@ class ProjectUpdateTest(APITestCase):
         )
 
         assert Project.objects.get(id=project.id).slug != "zzz"
-
         assert not ProjectBookmark.objects.filter(user_id=user.id, project_id=project.id).exists()
+
+    @with_feature("organizations:team-roles")
+    def test_member_with_team_role(self):
+        user = self.create_user("bar@example.com")
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="member",
+        )
+
+        team = self.create_team(organization=self.organization)
+        project = self.create_project(teams=[team])
+        self.create_team_membership(user=user, team=team, role="admin")
+
+        self.login_as(user=user)
+
+        self.get_success_response(
+            self.organization.slug,
+            project.slug,
+            slug="zzz",
+            isBookmarked="true",
+        )
+
+        assert Project.objects.get(id=project.id).slug == "zzz"
+        assert ProjectBookmark.objects.filter(user_id=user.id, project_id=project.id).exists()
 
     def test_name(self):
         self.get_success_response(self.org_slug, self.proj_slug, name="hello world")

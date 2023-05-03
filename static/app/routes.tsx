@@ -1728,6 +1728,10 @@ function buildRoutes() {
         component={make(() => import('sentry/views/starfish/modules/APIModule'))}
       />
       <Route
+        path="spans/"
+        component={make(() => import('sentry/views/starfish/views/spans'))}
+      />
+      <Route
         path="span/:groupId/"
         component={make(() => import('sentry/views/starfish/views/spanSummary'))}
       />
@@ -1745,10 +1749,9 @@ function buildRoutes() {
           {starfishChildRoutes}
         </Route>
       )}
-
       <Route
-        path="organizations/:orgId/starfish/"
-        component={make(() => import('sentry/views/starfish/'))}
+        path="/organizations/:orgId/starfish/"
+        component={withDomainRedirect(make(() => import('sentry/views/starfish/')))}
         key="org-starfish"
       >
         {starfishChildRoutes}

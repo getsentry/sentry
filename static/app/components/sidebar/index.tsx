@@ -284,7 +284,7 @@ function Sidebar({location, organization}: Props) {
       id="alerts"
     />
   );
-  1;
+
   const monitors = hasOrganization && (
     <Feature features={['monitors']} organization={organization}>
       <SidebarItem
