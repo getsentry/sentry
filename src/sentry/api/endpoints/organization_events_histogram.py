@@ -76,6 +76,8 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
                 data_filter = data.get("dataFilter")
                 query = data.get("query")
                 if data_filter == "exclude_outliers" and metrics_enhanced:
+                    if query is None:
+                        query = ""
                     query += " histogram_outlier:inlier"
 
                 with self.handle_query_errors():

@@ -15,7 +15,9 @@ from sentry.utils.snuba import get_array_column_alias
 
 pytestmark = pytest.mark.sentry_metrics
 
-HistogramSpec = namedtuple("HistogramSpec", ["start", "end", "fields"])
+HistogramSpec = namedtuple(
+    "HistogramSpec", ["start", "end", "fields", "tags"], defaults=[None, None, [], {}]
+)
 
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
@@ -898,8 +900,8 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_histogram_exclude_outliers_data_filter(self):
         specs = [
-            (0, 0, [("foo", 4)]),
-            (4000, 4001, [("foo", 1)]),
+            (0, 0, [("foo", 4)], {"histogram_outlier": "inlier"}),
+            (4000, 4001, [("foo", 1)], {"histogram_outlier": "outlier"}),
         ]
         self.populate_events(specs)
 
@@ -1041,7 +1043,7 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
                     self.store_transaction_metric(
                         (spec.end + spec.start) / 2,
                         metric=suffix_key,
-                        tags={"transaction": suffix_key},
+                        tags={"transaction": suffix_key, **spec.tags},
                         timestamp=start,
                     )
 
@@ -1129,9 +1131,9 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
 
     def test_histogram_exclude_outliers_data_filter(self):
         specs = [
-            (0, 0, [("transaction.duration", 4)]),
-            (1, 1, [("transaction.duration", 4)]),
-            (4000, 4001, [("transaction.duration", 1)]),
+            (0, 0, [("transaction.duration", 4)], {"histogram_outlier": "inlier"}),
+            (1, 1, [("transaction.duration", 4)], {"histogram_outlier": "inlier"}),
+            (4000, 4001, [("transaction.duration", 1)], {"histogram_outlier": "outlier"}),
         ]
         self.populate_events(specs)
 
