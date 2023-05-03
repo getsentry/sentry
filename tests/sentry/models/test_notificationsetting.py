@@ -1,4 +1,4 @@
-from sentry.models import NotificationSetting
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.user import User
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -6,6 +6,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
@@ -49,6 +50,9 @@ class NotificationSettingTest(TestCase):
         # Deletion is deferred and tasks aren't run in tests.
         with outbox_runner():
             self.team.delete()
+
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
 
         assert_no_notification_settings()
 
