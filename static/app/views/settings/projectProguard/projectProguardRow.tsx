@@ -116,6 +116,7 @@ const ProjectProguardRow = ({
 const AssociatedReleaseRow = styled('div')`
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   align-items: flex-start;
   > * {
     margin-right: 6px;

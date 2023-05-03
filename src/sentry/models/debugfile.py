@@ -24,6 +24,7 @@ from typing import (
 
 from django.db import models
 from django.db.models.query import QuerySet
+from django.utils import timezone
 from symbolic import (  # type: ignore
     Archive,
     ObjectErrorUnsupportedObject,
@@ -359,6 +360,22 @@ def _analyze_progard_filename(filename: str) -> Optional[str]:
         return str(uuid.UUID(ident))
     except Exception:
         return None
+
+
+@region_silo_only_model
+class ProguardArtifact(Model):
+    __include_in_export__ = False
+
+    organization_id = BoundedBigIntegerField(db_index=True)
+    release_name = models.CharField(max_length=250)
+    proguard_uuid = models.UUIDField()
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_releaseproguardartifact"
+
+        unique_together = (("organization_id", "release_name"),)
 
 
 class DifMeta:

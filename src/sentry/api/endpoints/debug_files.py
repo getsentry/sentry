@@ -6,6 +6,7 @@ import jsonschema
 from django.db import router
 from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic import SymbolicError, normalize_debug_id
@@ -28,6 +29,7 @@ from sentry.models import (
     ReleaseFile,
     create_files_from_dif_zip,
 )
+from sentry.models.debugfile import ProguardArtifact
 from sentry.models.release import get_artifact_counts
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -78,6 +80,26 @@ def has_download_permission(request, project):
         return False
 
     return roles.get(current_role).priority >= roles.get(required_role).priority
+
+
+@region_silo_endpoint
+class ProguardArtifactEndpoint(ProjectEndpoint):
+    permission_classes = (ProjectReleasePermission,)
+
+    def post(self, request: Request, project) -> Response:
+        release_name = request.data.get("release_name")
+        proguard_uuid = request.data.get("proguard_uuid")
+        if not all([release_name, proguard_uuid]):
+            return Response(
+                data={"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        ProguardArtifact.objects.create(
+            organization_id=project.organization_id,
+            release_name=release_name,
+            proguard_uuid=proguard_uuid,
+        )
+        return Response(status=status.HTTP_201_CREATED)
 
 
 @region_silo_endpoint
@@ -184,13 +206,27 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         queryset = ProjectDebugFile.objects.filter(q, project_id=project.id).select_related("file")
 
+        def on_results(results):
+            for result in results:
+                if result.object_name == "proguard-mapping":
+                    bundles = ProguardArtifact.objects.filter(proguard_uuid=result.debug_id)
+                    associated_releases = [str(bundle.release_name) for bundle in bundles]
+                    if associated_releases:
+                        result_dict = serialize(result, request.user)
+                        result_dict["associated_releases"] = associated_releases
+                        yield result_dict
+                    else:
+                        yield serialize(result, request.user)
+                else:
+                    yield serialize(result, request.user)
+
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-id",
             paginator_cls=OffsetPaginator,
             default_per_page=20,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=on_results,
         )
 
     def delete(self, request: Request, project) -> Response:
