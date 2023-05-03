@@ -67,6 +67,7 @@ all = default_manager.all
 filter = default_manager.filter
 isset = default_manager.isset
 lookup_key = default_manager.lookup_key
+checkDrift = default_manager.checkDrift
 
 
 def load_defaults():

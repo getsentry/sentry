@@ -172,7 +172,7 @@ def create_key_value_generator(data: str, newline_separator: str, kv_separator: 
 
 
 def drift(key: str) -> bool:
-    from sentry.options import manager
+    from sentry.options import default_manager as manager
 
     source = manager.checkDrift(key)
     # check how option was changed.

@@ -13,6 +13,7 @@ class OptionsTypes(Enum):
     LEGACY = "legacy"
     AUTOMATOR = "automator"
     CLI = "cli"
+    KILLSWITCH = "killswitch"
 
     @classmethod
     def choices(cls):

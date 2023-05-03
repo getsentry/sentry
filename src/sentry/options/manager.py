@@ -326,4 +326,8 @@ class OptionsManager:
         return (k for k in self.all() if k.flags & flag)
 
     def checkDrift(self, key):
+        """
+        Checks how the given key was last changed
+        (by automator, legacy, or CLI)
+        """
         return self.store.get_source(key)
