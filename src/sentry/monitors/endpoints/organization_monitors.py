@@ -215,7 +215,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         project = result["project"]
         signal_first_monitor_created(project, request.user, False)
 
-        alert_rule = request.data.get("alert_rule")
+        alert_rule = request.data.get("alert_rule", {})
         if alert_rule:
             alert_rule_data = {
                 "actionMatch": "any",
@@ -306,6 +306,8 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
                     rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
                 )
 
-                monitor.config = monitor.config["alert_rule_id"] = rule.id
+                config = monitor.config
+                config["alert_rule_id"] = rule.id
+                monitor.update(config=config)
 
         return self.respond(serialize(monitor, request.user), status=201)
