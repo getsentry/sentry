@@ -27,7 +27,7 @@ export function UnsupportedOp({type}: {type: 'headers' | 'bodies'}) {
             fetch: <code>fetch</code>,
             xhr: <code>xhr</code>,
             link: (
-              <ExternalLink href="https://github.com/getsentry/sentry-javascript/issues/7103">
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details">
                 {t('Learn more')}
               </ExternalLink>
             ),
@@ -125,7 +125,7 @@ function SetupInstructions({
           `To protect user privacy, Session Replay defaults to not capturing the request or response headers. However, we provide the option to do so, if it’s critical to your debugging process. [link]`,
           {
             link: (
-              <ExternalLink href="https://github.com/getsentry/sentry-javascript/issues/7103">
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details">
                 {t('Learn More')}
               </ExternalLink>
             ),
