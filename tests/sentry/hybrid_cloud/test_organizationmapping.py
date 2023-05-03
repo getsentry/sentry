@@ -78,7 +78,12 @@ class OrganizationMappingTest(TransactionTestCase):
             )
 
     def test_update(self):
-        self.organization = Factories.create_organization(no_mapping=True)
+        with exempt_from_silo_limits():
+            self.organization = Factories.create_organization(
+                no_mapping=True,
+                name="test name",
+            )
+            self.organization.customer_id = "test"
         fields = {
             "name": "test name",
             "organization_id": self.organization.id,
@@ -97,11 +102,12 @@ class OrganizationMappingTest(TransactionTestCase):
 
         with exempt_from_silo_limits():
             self.organization.update(name="new name!")
+            self.organization.customer_id = "customer id"
 
         organization_mapping_service.update(
             organization_id=self.organization.id,
             update=RpcOrganizationMappingUpdate.from_orm(self.organization),
         )
         org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        assert org_mapping.customer_id == "test"
+        assert org_mapping.customer_id == "customer id"
         assert org_mapping.name == "new name!"
