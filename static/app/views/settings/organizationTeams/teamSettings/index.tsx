@@ -66,8 +66,8 @@ class TeamSettings extends AsyncView<Props, State> {
     const orgRoleList = organization.orgRoleList;
     const hasOrgRoleFlag = organization.features.includes('org-roles-for-teams');
 
-    const hasWriteAccess = hasEveryAccess(['team:write'], {organization, team});
-    const hasAdminAccess = hasEveryAccess(['team:write'], {organization, team});
+    const hasTeamWrite = hasEveryAccess(['team:write'], {organization, team});
+    const hasOrgAdmin = hasEveryAccess(['org:admin'], {organization, team});
 
     return (
       <Fragment>
@@ -87,8 +87,13 @@ class TeamSettings extends AsyncView<Props, State> {
           }}
         >
           <JsonForm
-            disabled={!hasWriteAccess}
-            additionalFieldProps={{idpProvisioned, hasOrgRoleFlag, orgRoleList}}
+            additionalFieldProps={{
+              idpProvisioned,
+              hasOrgRoleFlag,
+              hasTeamWrite,
+              hasOrgAdmin,
+              orgRoleList,
+            }}
             forms={teamSettingsFields}
           />
         </Form>
@@ -102,14 +107,18 @@ class TeamSettings extends AsyncView<Props, State> {
           >
             <div>
               <Confirm
-                disableConfirmButton={!hasAdminAccess}
+                disabled={!hasOrgAdmin}
                 onConfirm={this.handleRemoveTeam}
                 priority="danger"
                 message={tct('Are you sure you want to remove the team [team]?', {
                   team: `#${team.slug}`,
                 })}
               >
-                <Button icon={<IconDelete />} priority="danger">
+                <Button
+                  icon={<IconDelete />}
+                  priority="danger"
+                  data-test-id="button-remove-team"
+                >
                   {t('Remove Team')}
                 </Button>
               </Confirm>

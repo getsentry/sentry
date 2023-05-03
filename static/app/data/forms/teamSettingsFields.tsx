@@ -19,7 +19,7 @@ const formGroups: JsonFormObject[] = [
         placeholder: 'e.g. api-team',
         help: t('A unique ID used to identify the team'),
         transformInput: slugify,
-
+        disabled: ({hasTeamWrite}) => !hasTeamWrite,
         saveOnBlur: false,
         saveMessageAlertType: 'info',
         saveMessage: t('You will be redirected to the new team slug after saving'),
@@ -42,7 +42,7 @@ const formGroups: JsonFormObject[] = [
         help: t(
           'Organization owners can bulk assign an org-role for all the members in this team'
         ),
-        disabled: ({disabled, idpProvisioned}) => disabled || idpProvisioned,
+        disabled: ({hasOrgAdmin, idpProvisioned}) => !hasOrgAdmin || idpProvisioned,
         visible: ({hasOrgRoleFlag}) => hasOrgRoleFlag,
         saveOnBlur: false,
         saveMessageAlertType: 'info',
