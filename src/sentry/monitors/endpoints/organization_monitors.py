@@ -1,7 +1,9 @@
 from typing import List
 
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
 
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
@@ -9,6 +11,7 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -18,12 +21,15 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.query import in_iexact
-from sentry.models import Environment, Organization
+from sentry.integrations.slack.utils import RedisRuleStatus
+from sentry.mediators import project_rules
+from sentry.models import Environment, Organization, RuleActivity, RuleActivityType, Team, User
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, MonitorType
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.utils import signal_first_monitor_created
 from sentry.monitors.validators import MonitorValidator
 from sentry.search.utils import tokenize_query
+from sentry.tasks.integrations.slack import find_channel_id_for_rule
 
 from .base import OrganizationMonitorPermission
 
@@ -208,5 +214,96 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
 
         project = result["project"]
         signal_first_monitor_created(project, request.user, False)
+
+        alert_rule = request.data.get("alert_rule")
+        if alert_rule:
+            alert_rule_data = {
+                "actionMatch": "any",
+                "actions": [
+                    {
+                        "fallthroughType": "AllMembers",
+                        "id": "sentry.mail.actions.NotifyEmailAction",
+                        "name": "Send a notification to Member and if none can be found then send a notification to AllMembers",
+                        "targetIdentifier": alert_rule.get("targetIdentifier", request.user.id),
+                        "targetType": "Member",
+                    }
+                ],
+                "conditions": [
+                    {
+                        "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                        "name": "A new issue is created",
+                    },
+                    {
+                        "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
+                        "name": "The issue changes state from resolved to unresolved",
+                    },
+                ],
+                "createdBy": {
+                    "email": request.user.email,
+                    "id": request.user.id,
+                    "name": request.user.email,
+                },
+                "dateCreated": timezone.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                "environment": None,
+                "filterMatch": "all",
+                "filters": [
+                    {
+                        "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                        "key": "monitor.slug",
+                        "match": "eq",
+                        "name": f"The event's tags match monitor.slug contains {monitor.slug}",
+                        "value": monitor.slug,
+                    }
+                ],
+                "frequency": 1440,
+                "name": f"{monitor.name} Monitor Alert (All environments) - All members",
+                "owner": None,
+                "projects": [project.slug],
+                "snooze": False,
+            }
+            serializer = RuleSerializer(
+                context={"project": project, "organization": project.organization},
+                data=alert_rule_data,
+            )
+
+            if serializer.is_valid():
+                data = serializer.validated_data
+                # combine filters and conditions into one conditions criteria for the rule object
+                conditions = data.get("conditions", [])
+                if "filters" in data:
+                    conditions.extend(data["filters"])
+
+                kwargs = {
+                    "name": data["name"],
+                    "environment": data.get("environment"),
+                    "project": project,
+                    "action_match": data["actionMatch"],
+                    "filter_match": data.get("filterMatch"),
+                    "conditions": conditions,
+                    "actions": data.get("actions", []),
+                    "frequency": data.get("frequency"),
+                    "user_id": request.user.id,
+                }
+                owner = data.get("owner")
+                if owner:
+                    try:
+                        kwargs["owner"] = owner.resolve_to_actor().id
+                    except (User.DoesNotExist, Team.DoesNotExist):
+                        return Response(
+                            "Could not resolve owner",
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                if data.get("pending_save"):
+                    client = RedisRuleStatus()
+                    uuid_context = {"uuid": client.uuid}
+                    kwargs.update(uuid_context)
+                    find_channel_id_for_rule.apply_async(kwargs=kwargs)
+                    return Response(uuid_context, status=202)
+
+                rule = project_rules.Creator.run(request=request, **kwargs)
+                RuleActivity.objects.create(
+                    rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
+                )
 
         return self.respond(serialize(monitor, request.user), status=201)
