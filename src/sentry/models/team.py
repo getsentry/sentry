@@ -52,7 +52,7 @@ class TeamManager(BaseManager):
         if not user.is_authenticated:
             return []
 
-        base_team_qs = self.filter(organization=organization, status=TeamStatus.VISIBLE)
+        base_team_qs = self.filter(organization=organization, status=TeamStatus.ACTIVE)
 
         if env.request and is_active_superuser(env.request) or settings.SENTRY_PUBLIC:
             team_list = list(base_team_qs)
@@ -128,9 +128,12 @@ class TeamManager(BaseManager):
 
 # TODO(dcramer): pull in enum library
 class TeamStatus:
-    VISIBLE = 0
+    ACTIVE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
+
+    # Deprecated. Do not use
+    VISIBLE = 0
 
 
 @region_silo_only_model
@@ -149,11 +152,11 @@ class Team(Model, SnowflakeIdMixin):
     name = models.CharField(max_length=64)
     status = BoundedPositiveIntegerField(
         choices=(
-            (TeamStatus.VISIBLE, _("Active")),
+            (TeamStatus.ACTIVE, _("Active")),
             (TeamStatus.PENDING_DELETION, _("Pending Deletion")),
             (TeamStatus.DELETION_IN_PROGRESS, _("Deletion in Progress")),
         ),
-        default=TeamStatus.VISIBLE,
+        default=TeamStatus.ACTIVE,
     )
     actor = FlexibleForeignKey(
         "sentry.Actor",

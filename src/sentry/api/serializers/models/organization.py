@@ -589,7 +589,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
     def _team_list(self, organization: Organization, access: Access) -> list[Team]:
         team_list = list(
-            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE).order_by(
+            Team.objects.filter(organization=organization, status=TeamStatus.ACTIVE).order_by(
                 "slug"
             )
         )

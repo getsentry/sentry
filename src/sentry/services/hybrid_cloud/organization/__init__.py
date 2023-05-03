@@ -26,7 +26,7 @@ from sentry.silo import SiloMode
 def team_status_visible() -> int:
     from sentry.models import TeamStatus
 
-    return int(TeamStatus.VISIBLE)
+    return int(TeamStatus.ACTIVE)
 
 
 class RpcTeam(RpcModel):

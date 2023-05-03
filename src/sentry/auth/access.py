@@ -254,7 +254,7 @@ class DbAccess(Access):
         return {
             omt.team: omt
             for omt in OrganizationMemberTeam.objects.filter(
-                organizationmember=self._member, is_active=True, team__status=TeamStatus.VISIBLE
+                organizationmember=self._member, is_active=True, team__status=TeamStatus.ACTIVE
             ).select_related("team")
         }
 
@@ -502,7 +502,7 @@ class RpcBackedAccess(Access):
         return self.project_ids_with_team_membership
 
     def has_team_access(self, team: Team) -> bool:
-        if team.status != TeamStatus.VISIBLE:
+        if team.status != TeamStatus.ACTIVE:
             return False
         if (
             self.has_global_access
@@ -622,7 +622,7 @@ class OrganizationMemberAccess(DbAccess):
 
     def has_team_access(self, team: Team) -> bool:
         assert self._member is not None
-        if team.status != TeamStatus.VISIBLE:
+        if team.status != TeamStatus.ACTIVE:
             return False
         if self.has_global_access and self._member.organization.id == team.organization_id:
             return True
@@ -651,7 +651,7 @@ class OrganizationGlobalAccess(DbAccess):
 
     def has_team_access(self, team: Team) -> bool:
         return bool(
-            team.organization_id == self._organization_id and team.status == TeamStatus.VISIBLE
+            team.organization_id == self._organization_id and team.status == TeamStatus.ACTIVE
         )
 
     def has_project_access(self, project: Project) -> bool:
@@ -664,7 +664,7 @@ class OrganizationGlobalAccess(DbAccess):
     def accessible_team_ids(self) -> FrozenSet[int]:
         return frozenset(
             Team.objects.filter(
-                organization_id=self._organization_id, status=TeamStatus.VISIBLE
+                organization_id=self._organization_id, status=TeamStatus.ACTIVE
             ).values_list("id", flat=True)
         )
 
@@ -704,7 +704,7 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
     def has_team_access(self, team: Team) -> bool:
         return bool(
             team.organization_id == self.rpc_user_organization_context.organization.id
-            and team.status == TeamStatus.VISIBLE
+            and team.status == TeamStatus.ACTIVE
         )
 
     def has_project_access(self, project: Project) -> bool:
@@ -718,7 +718,7 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
         return frozenset(
             t.id
             for t in self.rpc_user_organization_context.organization.teams
-            if t.status == TeamStatus.VISIBLE
+            if t.status == TeamStatus.ACTIVE
         )
 
     @cached_property
