@@ -80,9 +80,7 @@ def process_organization_member_updates(
         )
         return
 
-    rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(
-        organization_member=org_member
-    )
+    rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(org_member)
 
     organizationmember_mapping_service.update_with_organization_member(
         organizationmember_id=org_member.id,

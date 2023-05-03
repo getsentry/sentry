@@ -69,11 +69,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             organization_id=organization_id,
             organizationmember_id=organizationmember_id,
         )
-        update_dict = {
-            attr_name: getattr(rpc_update_org_member, attr_name)
-            for attr_name in RpcOrganizationMemberMappingUpdate.__annotations__.keys()
-        }
-        org_member_map.update(**update_dict)
+        org_member_map.update(**rpc_update_org_member.dict())
         return self._serialize_rpc(org_member_map)
 
     def delete_with_organization_member(
