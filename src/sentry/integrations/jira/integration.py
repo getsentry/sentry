@@ -360,13 +360,11 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
         ]
 
-        # TODO: We probably need to modify something here so that we can use the occurrence to do
-        # this customization rather than the performance event.
-        if group.issue_category == GroupCategory.PERFORMANCE:
-            body = self.get_performance_issue_body(event)
-            output.extend([body])
-        elif isinstance(event, GroupEvent) and event.occurrence is not None:
+        if isinstance(event, GroupEvent) and event.occurrence is not None:
             body = self.get_generic_issue_body(event)
+            output.extend([body])
+        elif group.issue_category == GroupCategory.PERFORMANCE:
+            body = self.get_performance_issue_body(event)
             output.extend([body])
         else:
             body = self.get_group_body(group, event)
