@@ -148,7 +148,7 @@ class RpcOrganization(RpcOrganizationSummary):
     projects: List[RpcProject] = Field(default_factory=list)
 
     flags: RpcOrganizationFlags = Field(default_factory=lambda: RpcOrganizationFlags())
-    status: OrganizationStatus = OrganizationStatus.VISIBLE
+    status: OrganizationStatus = OrganizationStatus.ACTIVE
 
     default_role: str = ""
 
