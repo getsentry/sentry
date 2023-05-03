@@ -8,6 +8,7 @@ from rest_framework.request import Request
 
 from sentry import audit_log, features
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember, User, UserEmail
+from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.signals import member_joined
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
@@ -52,7 +53,7 @@ class ApiInviteHelper:
                 om = OrganizationMember.objects.get(token=invite_token, id=invite_member_id)
             else:
                 om = OrganizationMember.objects.get(
-                    email=email, organization_id=organization_id, user=None
+                    email=email, organization_id=organization_id, user_id=None
                 )
         except OrganizationMember.DoesNotExist:
             # Unable to locate the pending organization member. Cannot setup
@@ -160,7 +161,7 @@ class ApiInviteHelper:
             return False
 
         query = OrganizationMember.objects.filter(
-            organization=self.organization, user=self.request.user
+            organization=self.organization, user_id=coerce_id_from(self.request.user)
         )
         return query.exists()  # type: ignore[no-any-return]
 
