@@ -10,7 +10,6 @@ from typing import Optional, cast
 from django.utils import timezone
 from pydantic.fields import Field
 
-from sentry.models import Organization
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
@@ -36,14 +35,6 @@ class RpcOrganizationMappingUpdate(RpcModel):
 
     name: str
     customer_id: Optional[str]
-
-    @classmethod
-    def from_orm(cls, organization: Organization) -> "RpcOrganizationMappingUpdate":
-        attributes = {
-            attr_name: getattr(organization, attr_name)
-            for attr_name in RpcOrganizationMappingUpdate.__annotations__.keys()
-        }
-        return RpcOrganizationMappingUpdate(**attributes)
 
 
 class OrganizationMappingService(RpcService):
