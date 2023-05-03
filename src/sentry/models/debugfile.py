@@ -367,6 +367,7 @@ class ProguardArtifactRelease(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
     proguard_uuid = models.UUIDField()
     date_added = models.DateTimeField(default=timezone.now)
@@ -375,7 +376,7 @@ class ProguardArtifactRelease(Model):
         app_label = "sentry"
         db_table = "sentry_proguardartifactrelease"
 
-        unique_together = (("organization_id", "release_name"),)
+        unique_together = (("organization_id", "project_id", "release_name"),)
 
 
 class DifMeta:

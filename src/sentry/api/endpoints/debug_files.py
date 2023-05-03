@@ -3,7 +3,7 @@ import posixpath
 import re
 
 import jsonschema
-from django.db import router
+from django.db import IntegrityError, router
 from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework import status
@@ -94,11 +94,21 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
                 data={"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        ProguardArtifactRelease.objects.create(
-            organization_id=project.organization_id,
-            release_name=release_name,
-            proguard_uuid=proguard_uuid,
-        )
+        try:
+            ProguardArtifactRelease.objects.create(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                release_name=release_name,
+                proguard_uuid=proguard_uuid,
+            )
+        except IntegrityError:
+            return Response(
+                data={
+                    "error": "Proguard artifact release with this name in this project already exists."
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
         return Response(status=status.HTTP_201_CREATED)
 
 
