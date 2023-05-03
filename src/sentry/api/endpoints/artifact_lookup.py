@@ -1,7 +1,6 @@
 import logging
-from typing import List, Optional, Sequence, Set
+from typing import List, Optional, Sequence, Set, Tuple
 
-from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,7 +16,6 @@ from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
 from sentry.models import DebugIdArtifactBundle, Distribution, File, Release, ReleaseFile
 from sentry.models.artifactbundle import ReleaseArtifactBundle
 from sentry.models.project import Project
-from sentry.models.releasefile import read_artifact_index
 
 logger = logging.getLogger("sentry.api")
 
@@ -28,6 +26,9 @@ MAX_SCANNED_BUNDLES = 2
 
 # The number of files returned by the `get_releasefiles` query
 MAX_RELEASEFILES_QUERY = 10
+
+
+RELEASE_BUNDLE_TYPE = "release.bundle"
 
 
 @region_silo_endpoint
@@ -118,9 +119,10 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             # avoid opening up bundles at all cost.
             bundle_file_ids |= get_release_artifacts(project, release_name, dist_name)
 
-            individual_files = try_resolve_url(
-                url, project, release_name, dist_name, bundle_file_ids
-            )
+            release, dist = try_resolve_release_dist(project, release_name, dist_name)
+            if release:
+                bundle_file_ids |= get_legacy_release_bundles(release, dist)
+                individual_files = get_releasefiles_matching_url(release, dist, url)
 
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
@@ -186,15 +188,9 @@ def get_release_artifacts(
     )
 
 
-def try_resolve_url(
-    url: str,
-    project: Project,
-    release_name: str,
-    dist_name: Optional[str],
-    bundle_file_ids: Set[int],
-) -> Sequence[File]:
-    # Next, we want to look up legacy artifact indices / bundles
-    # for that, we have to resolve the `release_name`/`dist_name` to models
+def try_resolve_release_dist(
+    project: Project, release_name: str, dist_name: Optional[str]
+) -> Tuple[Optional[Release], Optional[Distribution]]:
     release = None
     dist = None
     # TODO: Is there a way to safely query this and return `None` if not existing?
@@ -211,52 +207,35 @@ def try_resolve_url(
     except Exception as exc:
         logger.error("Failed to read", exc_info=exc)
 
-    # TODO: should we rather return an error from the API in case the release is not found?
-    if release is None:
-        return list()
-
-    collect_legacy_artifact_bundles_containing_url(url, release, dist, bundle_file_ids)
-
-    # And last but not least, we want to look up legacy individual release files
-    return get_releasefiles_matching_url(url, release)
+    return release, dist
 
 
-def collect_legacy_artifact_bundles_containing_url(
-    url: str, release: Release, dist: Optional[Distribution], bundle_file_ids: Set[int]
-):
-    artifact_index = None
-    try:
-        # TODO: can we avoid fetching / reading the artifact index?
-        # In theory a file in the index can be in any kind of archive
-        # referenced by the `archive_ident`.
-        artifact_index = read_artifact_index(release, dist, artifact_count__gt=0)
-    except Exception as exc:
-        logger.error("Failed to read artifact index", exc_info=exc)
-    if not artifact_index:
-        return url
-
-    file = find_file_in_archive_index(artifact_index, url)
-    if file is not None:
-        ident = file["archive_ident"]
-        artifact_file_id = ReleaseFile.objects.filter(
-            release_id=release.id, ident=ident
-        ).values_list("file_id", flat=True)[0]
-        bundle_file_ids.add(artifact_file_id)
-
-
-def get_releasefiles_matching_url(urls: List[str], release: Release) -> Sequence[ReleaseFile]:
-    # Exclude files which are also present in archive:
-    file_list = (
-        ReleaseFile.public_objects.filter(release_id=release.id)
-        .exclude(artifact_count=0)
-        .select_related("file")
+def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]):
+    return set(
+        ReleaseFile.objects.select_related("file")
+        .filter(
+            release_id=release.id,
+            dist_id=dist.id if dist else None,
+            artifact_count=0,
+            file__type=RELEASE_BUNDLE_TYPE,
+        )
+        .values_list("file_id", flat=True)
+        .order_by("-file__timestamp")[:MAX_SCANNED_BUNDLES]
     )
 
-    condition = Q(name__icontains=urls[0])
-    for url in urls[1:]:
-        condition |= Q(name__icontains=url)
-    file_list = file_list.filter(condition)
-    return file_list[:MAX_RELEASEFILES_QUERY]
+
+def get_releasefiles_matching_url(
+    release: Release, dist: Optional[Distribution], url: List[str]
+) -> Sequence[ReleaseFile]:
+    # Exclude files which are also present in archive:
+    return (
+        ReleaseFile.public_objects.filter(
+            release_id=release.id,
+            dist_id=dist.id if dist else None,
+        )
+        .exclude(artifact_count=0)
+        .select_related("file")
+    ).filter(name__icontains=url)[:MAX_RELEASEFILES_QUERY]
 
 
 def url_exists_in_manifest(manifest: dict, url: str) -> bool:
