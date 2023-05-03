@@ -151,6 +151,12 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         "consecutive_http_spans_max_duration_between_spans": options.get(
             "performance.issues.consecutive_http.max_duration_between_spans"
         ),
+        "consecutive_http_spans_count_threshold": options.get(
+            "performance.issues.consecutive_http.consecutive_count_threshold"
+        ),
+        "consecutive_http_spans_span_duration_threshold": options.get(
+            "performance.issues.consecutive_http.span_duration_threshold"
+        ),
     }
 
     default_project_settings = (
@@ -241,11 +247,13 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "detection_enabled": settings["uncompressed_assets_detection_enabled"],
         },
         DetectorType.CONSECUTIVE_HTTP_OP: {
-            "span_duration_threshold": 1000,  # ms
-            "consecutive_count_threshold": 3,
+            "span_duration_threshold": settings[
+                "consecutive_http_spans_span_duration_threshold"
+            ],  # ms
+            "consecutive_count_threshold": settings["consecutive_http_spans_count_threshold"],
             "max_duration_between_spans": settings[
                 "consecutive_http_spans_max_duration_between_spans"
-            ],
+            ],  # ms
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
             "lcp_ratio_threshold": settings["consecutive_http_spans_lcp_ratio_threshold"],
         },
