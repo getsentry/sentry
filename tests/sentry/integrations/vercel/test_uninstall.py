@@ -283,7 +283,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
             len(
                 OrganizationIntegration.objects.filter(
                     integration=self.integration,
-                    status=ObjectStatus.VISIBLE,
+                    status=ObjectStatus.ACTIVE,
                 )
             )
             == 1
@@ -328,7 +328,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
             len(
                 OrganizationIntegration.objects.filter(
                     integration=self.integration,
-                    status=ObjectStatus.VISIBLE,
+                    status=ObjectStatus.ACTIVE,
                 )
             )
             == 0

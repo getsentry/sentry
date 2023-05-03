@@ -44,9 +44,9 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         if query:
             queryset = queryset.filter(Q(name__icontains=query))
         if status == "active":
-            queryset = queryset.filter(status=ObjectStatus.VISIBLE)
+            queryset = queryset.filter(status=ObjectStatus.ACTIVE)
         elif status == "deleted":
-            queryset = queryset.exclude(status=ObjectStatus.VISIBLE)
+            queryset = queryset.exclude(status=ObjectStatus.ACTIVE)
         # TODO(mn): Remove once old Plugins are removed or everyone migrates to
         # the new Integrations. Hopefully someday?
         elif status == "unmigratable":

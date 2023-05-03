@@ -81,7 +81,7 @@ class IntegrationRepositoryProvider:
             for field_name, field_value in repo_update_params.items():
                 setattr(repo, field_name, field_value)
             # also update the status if it was in a bad state
-            repo.status = ObjectStatus.VISIBLE
+            repo.status = ObjectStatus.ACTIVE
             repo.save()
         else:
             try:

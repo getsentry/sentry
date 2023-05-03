@@ -80,7 +80,7 @@ class CustomSCMIntegration(IntegrationInstallation, RepositoryMixin):
             organization_id=self.organization_id,
             provider__isnull=True,
             integration_id__isnull=True,
-            status=ObjectStatus.VISIBLE,
+            status=ObjectStatus.ACTIVE,
         )
         return [{"name": repo.name, "identifier": str(repo.id)} for repo in repos]
 

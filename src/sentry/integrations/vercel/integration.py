@@ -155,7 +155,7 @@ class VercelIntegration(IntegrationInstallation):
         sentry_projects = [
             {key: proj[key] for key in proj_fields}
             for proj in Project.objects.filter(
-                organization_id=self.organization_id, status=ObjectStatus.VISIBLE
+                organization_id=self.organization_id, status=ObjectStatus.ACTIVE
             )
             .order_by("slug")
             .values(*proj_fields)

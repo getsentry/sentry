@@ -46,7 +46,7 @@ class JiraUninstalledTest(APITestCase):
 
         integration = Integration.objects.create(
             provider="jira",
-            status=ObjectStatus.VISIBLE,
+            status=ObjectStatus.ACTIVE,
             external_id=self.external_id,
             metadata={"shared_secret": self.shared_secret},
         )
@@ -64,7 +64,7 @@ class JiraUninstalledTest(APITestCase):
         org = self.organization
 
         integration = Integration.objects.create(
-            provider="jira", status=ObjectStatus.VISIBLE, external_id=self.external_id
+            provider="jira", status=ObjectStatus.ACTIVE, external_id=self.external_id
         )
         integration.add_organization(org, self.user)
 

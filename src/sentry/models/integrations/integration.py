@@ -51,7 +51,7 @@ class Integration(DefaultFieldsModel):
     # instance can be shared by multiple organizations
     metadata = JSONField(default=dict)
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices(), null=True
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), null=True
     )
 
     objects = IntegrationManager()

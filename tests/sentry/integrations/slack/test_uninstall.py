@@ -39,7 +39,7 @@ class SlackUninstallTest(APITestCase):
         assert not OrganizationIntegration.objects.filter(
             integration=self.integration,
             organization_id=self.organization.id,
-            status=ObjectStatus.VISIBLE,
+            status=ObjectStatus.ACTIVE,
         ).exists()
         assert ScheduledDeletion.objects.filter(
             model_name="OrganizationIntegration", object_id=org_integration.id

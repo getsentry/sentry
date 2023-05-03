@@ -75,7 +75,7 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
         pagination_result = integration_service.page_organization_integrations_ids(
             organization_id=organization.id,
             statuses=[
-                ObjectStatus.VISIBLE,
+                ObjectStatus.ACTIVE,
                 ObjectStatus.DISABLED,
                 ObjectStatus.PENDING_DELETION,
             ],
