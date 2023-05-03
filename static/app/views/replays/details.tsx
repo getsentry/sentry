@@ -21,7 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import ReplaysLayout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
 import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTransactionContext';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = RouteComponentProps<
   {replaySlug: string},
@@ -37,11 +37,19 @@ function ReplayDetails({params: {replaySlug}}: Props) {
 
   // TODO: replayId is known ahead of time and useReplayData is parsing it from the replaySlug
   // once we fix the route params and links we should fix this to accept replayId and stop returning it
-  const {fetching, onRetry, replay, replayRecord, fetchError, projectSlug, replayId} =
-    useReplayData({
-      replaySlug,
-      orgSlug,
-    });
+  const {
+    fetching,
+    onRetry,
+    replay,
+    replayRecord,
+    fetchError,
+    projectSlug,
+    replayId,
+    replayErrors,
+  } = useReplayData({
+    replaySlug,
+    orgSlug,
+  });
 
   const initialTimeOffsetMs = useInitialTimeOffsetMs({
     orgSlug,
@@ -53,7 +61,12 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   if (fetchError) {
     if (fetchError.statusText === 'Not Found') {
       return (
-        <Page orgSlug={orgSlug} replayRecord={replayRecord} projectSlug={projectSlug}>
+        <Page
+          orgSlug={orgSlug}
+          replayRecord={replayRecord}
+          projectSlug={projectSlug}
+          replayErrors={replayErrors}
+        >
           <Layout.Page withPadding>
             <NotFound />
           </Layout.Page>
@@ -67,7 +80,12 @@ function ReplayDetails({params: {replaySlug}}: Props) {
       t('There is an internal systems error'),
     ];
     return (
-      <Page orgSlug={orgSlug} replayRecord={replayRecord} projectSlug={projectSlug}>
+      <Page
+        orgSlug={orgSlug}
+        replayRecord={replayRecord}
+        projectSlug={projectSlug}
+        replayErrors={replayErrors}
+      >
         <Layout.Page>
           <DetailedError
             onRetry={onRetry}
@@ -91,7 +109,12 @@ function ReplayDetails({params: {replaySlug}}: Props) {
 
   if (!fetching && replay && replay.getRRWebEvents().length < 2) {
     return (
-      <Page orgSlug={orgSlug} replayRecord={replayRecord} projectSlug={projectSlug}>
+      <Page
+        orgSlug={orgSlug}
+        replayRecord={replayRecord}
+        projectSlug={projectSlug}
+        replayErrors={replayErrors}
+      >
         <DetailedError
           hideSupportLinks
           heading={t('Error loading replay')}
@@ -125,6 +148,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
           orgSlug={orgSlug}
           replayRecord={replayRecord}
           projectSlug={projectSlug}
+          replayErrors={replayErrors}
         />
       </ReplayTransactionContext>
     </ReplayContextProvider>
@@ -135,9 +159,11 @@ function DetailsInsideContext({
   orgSlug,
   replayRecord,
   projectSlug,
+  replayErrors,
 }: {
   orgSlug: string;
   projectSlug: string | null;
+  replayErrors: ReplayError[];
   replayRecord: ReplayRecord | undefined;
 }) {
   const {getLayout} = useReplayLayout();
@@ -149,6 +175,7 @@ function DetailsInsideContext({
       crumbs={replay?.getRawCrumbs()}
       replayRecord={replayRecord}
       projectSlug={projectSlug}
+      replayErrors={replayErrors}
     >
       <ReplaysLayout layout={getLayout()} />
     </Page>

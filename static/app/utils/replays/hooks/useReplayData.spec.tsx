@@ -79,6 +79,7 @@ describe('useReplayData', () => {
       fetching: false,
       onRetry: expect.any(Function),
       replay: expect.any(ReplayReader),
+      replayErrors: expect.any(Array),
       replayRecord: expectedReplay,
       projectSlug: project.slug,
       replayId: expectedReplay.id,
@@ -277,6 +278,7 @@ describe('useReplayData', () => {
       fetchError: undefined,
       fetching: true,
       onRetry: expect.any(Function),
+      replayErrors: expect.any(Array),
       replay: null,
       replayRecord: undefined,
       projectSlug: null,
@@ -360,6 +362,7 @@ describe('useReplayData', () => {
       replay: expect.any(ReplayReader),
       replayRecord: expectedReplay,
       projectSlug: project.slug,
+      replayErrors: expect.any(Array),
       replayId: expectedReplay.id,
     });
   });
