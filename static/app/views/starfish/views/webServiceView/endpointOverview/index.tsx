@@ -257,7 +257,7 @@ export default function EndpointOverview() {
             filterOptions={{
               action: '',
               domain: '',
-              transaction: transaction as string,
+              transaction: (transaction as string) ?? '',
               datetime: pageFilter.selection.datetime,
             }}
           />
