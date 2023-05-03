@@ -16,11 +16,13 @@ from sentry.sentry_metrics.indexer.base import (
     KeyResult,
     KeyResults,
     StringIndexer,
+    UseCaseKeyCollection,
 )
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
 from sentry.sentry_metrics.indexer.limiters.writes import writes_limiter_factory
 from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, BaseIndexer, IndexerTable
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING
 from sentry.utils import metrics
 
 __all__ = ["PostgresIndexer"]
@@ -122,11 +124,17 @@ class PGStringIndexerV2(StringIndexer):
         config = get_ingest_config(use_case_id, IndexerStorage.POSTGRES)
         writes_limiter = writes_limiter_factory.get_ratelimiter(config)
 
-        with writes_limiter.check_write_limits(use_case_id, db_write_keys) as writes_limiter_state:
+        new_use_case_id = REVERSE_METRIC_PATH_MAPPING[use_case_id]
+        with writes_limiter.check_write_limits(
+            UseCaseKeyCollection({new_use_case_id: db_write_keys})
+        ) as writes_limiter_state:
             # After the DB has successfully committed writes, we exit this
             # context manager and consume quotas. If the DB crashes we
             # shouldn't consume quota.
-            filtered_db_write_keys = writes_limiter_state.accepted_keys
+            use_case_collection = writes_limiter_state.accepted_keys
+            # TODO: later we will use the whole use case collection instead
+            # of pulling out the key collection
+            filtered_db_write_keys = use_case_collection.mapping[new_use_case_id]
             del db_write_keys
 
             rate_limited_key_results = KeyResults()
