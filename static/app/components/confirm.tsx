@@ -91,6 +91,10 @@ export type OpenConfirmOptions = {
    */
   onConfirming?: () => void;
   /**
+   * Modal is rendered
+   */
+  onRender?: () => void;
+  /**
    * Button priority
    */
   priority?: ButtonProps['priority'];
@@ -205,6 +209,7 @@ type ModalProps = ModalRenderProps &
     | 'onConfirm'
     | 'onCancel'
     | 'disableConfirmButton'
+    | 'onRender'
   >;
 
 type ModalState = {
@@ -223,6 +228,10 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
     disableConfirmButton: !!this.props.disableConfirmButton,
     confirmCallback: null,
   };
+
+  componentDidMount() {
+    this.props.onRender?.();
+  }
 
   confirming: boolean = false;
 
