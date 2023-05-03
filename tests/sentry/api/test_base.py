@@ -193,10 +193,12 @@ class EndpointHandleExceptionTest(APITestCase):
         assert response == mock_super_handle_exception.return_value
 
     @mock.patch("rest_framework.views.APIView.handle_exception", new=reraise)
-    @mock.patch("sentry.api.base.capture_exception", return_value="1231201211212012")
+    @mock.patch(
+        "sentry.api.base.capture_exception_with_scope_check", return_value="1231201211212012"
+    )
     def test_handle_exception_when_super_reraises(
         self,
-        mock_capture_exception: MagicMock,
+        mock_capture_exception_wrapper: MagicMock,
     ):
         handler_error = Exception("nope")
         handler_context = {"api_request_URL": "http://dogs.are.great/"}
@@ -207,7 +209,7 @@ class EndpointHandleExceptionTest(APITestCase):
 
         cases = [
             # The first half of each tuple is what's passed to `handle_exception`, and the second
-            # half is what we expect in the scope passed to `capture_exception`
+            # half is what we expect in the scope passed to `capture_exception_with_scope_check`
             (None, None, {}, {}),
             (handler_context, None, {"Request Handler Data": handler_context}, {}),
             (None, scope, {}, tags),
@@ -225,19 +227,31 @@ class EndpointHandleExceptionTest(APITestCase):
                 handler_context_arg=handler_context_arg,
                 scope_arg=scope_arg,
             )
-            response = mock_endpoint(self.make_request(method="GET"))
+            request = self.make_request(method="GET")
+            response = mock_endpoint(request)
 
             assert response.status_code == 500
             assert response.data == {"detail": "Internal Error", "errorId": "1231201211212012"}
             assert response.exception is True
 
-            capture_exception_handler_context_arg = mock_capture_exception.call_args.args[0]
-            capture_exception_scope_kwarg = mock_capture_exception.call_args.kwargs.get("scope")
+            capture_exception_wrapper_handler_context_arg = (
+                mock_capture_exception_wrapper.call_args.args[0]
+            )
+            capture_exception_wrapper_request_kwarg = (
+                mock_capture_exception_wrapper.call_args.kwargs.get("request")
+            )
+            capture_exception_wrapper_scope_kwarg = (
+                mock_capture_exception_wrapper.call_args.kwargs.get("scope")
+            )
 
-            assert capture_exception_handler_context_arg == handler_error
-            assert isinstance(capture_exception_scope_kwarg, Scope)
-            assert capture_exception_scope_kwarg._contexts == expected_scope_contexts
-            assert capture_exception_scope_kwarg._tags == expected_scope_tags
+            assert capture_exception_wrapper_handler_context_arg == handler_error
+            # Django wraps the original request in a request object of its own before passing it to
+            # the handler, so we have to dig it back out in order to compare
+            assert capture_exception_wrapper_request_kwarg._request == request
+
+            assert isinstance(capture_exception_wrapper_scope_kwarg, Scope)
+            assert capture_exception_wrapper_scope_kwarg._contexts == expected_scope_contexts
+            assert capture_exception_wrapper_scope_kwarg._tags == expected_scope_tags
 
 
 class CursorGenerationTest(APITestCase):

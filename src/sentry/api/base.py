@@ -31,7 +31,7 @@ from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import is_valid_origin, origin_from_request
-from sentry.utils.sdk import capture_exception, merge_context_into_scope
+from sentry.utils.sdk import capture_exception_with_scope_check, merge_context_into_scope
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
@@ -217,7 +217,7 @@ class Endpoint(APIView):
             scope = scope or sentry_sdk.Scope()
             if handler_context:
                 merge_context_into_scope("Request Handler Data", handler_context, scope)
-            event_id = capture_exception(err, scope=scope)
+            event_id = capture_exception_with_scope_check(err, request=request, scope=scope)
 
             response_body = {"detail": "Internal Error", "errorId": event_id}
             response = Response(response_body, status=500)
