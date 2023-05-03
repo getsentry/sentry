@@ -8,7 +8,7 @@ from typing_extensions import TypedDict
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
 from sentry.models import Project
 
-from .models import Monitor, MonitorCheckIn, MonitorEnvironment
+from .models import Monitor, MonitorCheckIn, MonitorEnvironment, MonitorStatus
 
 
 @register(MonitorEnvironment)
@@ -54,6 +54,9 @@ class MonitorSerializer(Serializer):
                 )
                 .select_related("environment")
                 .order_by("-last_checkin")
+                .exclude(
+                    status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
+                )
             ):
                 # individually serialize as related objects are prefetched
                 monitor_environments[monitor_environment.monitor_id].append(
