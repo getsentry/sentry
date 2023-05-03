@@ -186,7 +186,7 @@ const cellColor = p => {
     const colors = p.isStatusError
       ? [p.theme.alert.error.background]
       : [p.theme.background];
-    return `color: ${p.hasOccurred !== false ? colors[0] : colors[0]};`;
+    return `color: ${colors[0]};`;
   }
   const colors = p.isStatusError
     ? [p.theme.alert.error.borderHover, p.theme.alert.error.iconColor]
