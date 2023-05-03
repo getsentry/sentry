@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import isNil from 'lodash/isNil';
 
+import {Button} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -71,13 +72,13 @@ export default function EndpointDetail({
 
 function EndpointDetailBody({row, eventView, organization}: EndpointDetailBodyProps) {
   const theme = useTheme();
-  const {aggregateDetails} = row;
+  const {aggregateDetails, transaction} = row;
 
   const {data: moduleBreakdown} = useQuery({
     queryKey: [`moduleBreakdown${row.transaction}`],
     queryFn: () =>
-      fetch(`${HOST}/?query=${getModuleBreakdown({transaction: row.transaction})}`).then(
-        res => res.json()
+      fetch(`${HOST}/?query=${getModuleBreakdown({transaction})}`).then(res =>
+        res.json()
       ),
     retry: false,
     initialData: [],
@@ -94,6 +95,13 @@ function EndpointDetailBody({row, eventView, organization}: EndpointDetailBodyPr
     <div>
       <h2>{t('Endpoint Detail')}</h2>
       <p>{t('Details of endpoint. More breakdowns, etc. Maybe some trends?')}</p>
+      <OverviewButton
+        to={`/organizations/${
+          organization.slug
+        }/starfish/endpoint-overview/?endpoint=${encodeURIComponent(transaction)}`}
+      >
+        {t('Go to Endpoint Overview')}
+      </OverviewButton>
       <SubHeader>{t('Endpoint URL')}</SubHeader>
       <pre>{row?.endpoint}</pre>
       <EventsRequest
@@ -205,4 +213,8 @@ const FlexRowContainer = styled('div')`
 const FlexRowItem = styled('div')`
   padding-right: ${space(4)};
   flex: 1;
+`;
+
+const OverviewButton = styled(Button)`
+  margin-bottom: ${space(2)};
 `;
