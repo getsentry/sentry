@@ -589,3 +589,50 @@ class SqlFormatEventSerializerTest(TestCase):
 
             # For span 2: Not a db span so no change
             assert result["entries"][0]["data"][1]["description"] == """http span"""
+
+    def test_db_formatting_perf_optimizations(self):
+        with self.feature("organizations:sql-format"):
+            SQL_QUERY_OK = """select * from table where something in (%s, %s, %s)"""
+            SQL_QUERY_TOO_LARGE = "a" * 1501
+
+            event = self.store_event(
+                data={
+                    "breadcrumbs": [
+                        {
+                            "category": "query",
+                            "message": SQL_QUERY_OK,
+                        },
+                        {
+                            "category": "query",
+                            "message": SQL_QUERY_OK,
+                        },
+                        {
+                            "category": "query",
+                            "message": SQL_QUERY_TOO_LARGE,
+                        },
+                    ]
+                    + [{"category": "query", "message": str(i)} for i in range(0, 30)]
+                },
+                project_id=self.project.id,
+            )
+
+            with mock.patch("sqlparse.format", return_value="") as mock_format:
+                serialize(event, None, SqlFormatEventSerializer())
+
+                assert (
+                    len(
+                        list(
+                            filter(
+                                lambda args: SQL_QUERY_OK in args[0],
+                                mock_format.call_args_list,
+                            )
+                        )
+                    )
+                    == 1
+                ), "SQL_QUERY_OK should have been formatted a single time"
+
+                assert not any(
+                    SQL_QUERY_TOO_LARGE in args[0] for args in mock_format.call_args_list
+                ), "SQL_QUERY_TOO_LARGE should not have been formatted"
+
+                assert mock_format.call_count == 20, "Format should have been called 20 times"
