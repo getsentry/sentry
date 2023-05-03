@@ -808,17 +808,29 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if updated:
             scheduled = ScheduledDeletion.schedule(project, days=0, actor=request.user)
 
-            self.create_audit_entry(
-                request=request,
-                organization=project.organization,
-                target_object=project.id,
-                event=audit_log.get_event_id("PROJECT_REMOVE"),
-                transaction_id=scheduled.id,
-                data={
-                    **project.get_audit_log_data(),
-                    "origin": request.data.get("origin") or "unknown",
-                },
-            )
+            common_audit_data = {
+                "request": request,
+                "organization": project.organization,
+                "target_object": project.id,
+                "transaction_id": scheduled.id,
+            }
+
+            if request.data.get("origin"):
+                self.create_audit_entry(
+                    **common_audit_data,
+                    event=audit_log.get_event_id("PROJECT_REMOVE_WITH_ORIGIN"),
+                    data={
+                        **project.get_audit_log_data(),
+                        "origin": request.data.get("origin"),
+                    },
+                )
+            else:
+                self.create_audit_entry(
+                    **common_audit_data,
+                    event=audit_log.get_event_id("PROJECT_REMOVE"),
+                    data={project.get_audit_log_data()},
+                )
+
             project.rename_on_pending_deletion()
 
         return Response(status=204)
