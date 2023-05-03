@@ -236,6 +236,7 @@ class GroupSerializerBase(Serializer, ABC):
 
         release_resolutions, commit_resolutions = self._resolve_resolutions(item_list, user)
 
+        # TODO(hybridcloud) Is this actor_id a user or an actor?
         actor_ids = {r[-1] for r in release_resolutions.values()}
         actor_ids.update(r.actor_id for r in ignore_items.values())
         if actor_ids:

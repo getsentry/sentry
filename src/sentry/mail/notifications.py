@@ -143,6 +143,7 @@ def send_notification_as_email(
 
 def get_builder_args(
     notification: BaseNotification,
+    # TODO(hybridcloud) Can this become RpcActor only?
     recipient: RpcActor | RpcUser,
     shared_context: Mapping[str, Any] | None = None,
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None = None,

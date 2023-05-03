@@ -72,6 +72,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         users_by_id: Mapping[str, Any] = {
             u["id"]: u for u in user_service.serialize_many(filter={"user_ids": users_set})
         }
+        # TODO(hybridcloud) Make this a local query to Actor?
         actor_ids = [u.actor_id for u in user_service.get_many(filter={"user_ids": users_set})]
         external_users_map = defaultdict(list)
 

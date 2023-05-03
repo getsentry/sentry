@@ -38,6 +38,8 @@ def fetch_actors_by_actor_ids(cls, actor_ids: List[int]) -> Union[List["Team"], 
     from sentry.models import Team, User
 
     if cls is User:
+        # TODO(hybridcloud) This could be a local query to get users/teams
+        # changing this function to return a list of Actors could be good.
         return user_service.get_by_actor_ids(actor_ids=actor_ids)
     if cls is Team:
         return Team.objects.filter(actor_id__in=actor_ids).all()
@@ -52,7 +54,6 @@ def fetch_actor_by_id(cls, id: int) -> Union["Team", "RpcUser"]:
         return Team.objects.get(id=id)
 
     if cls is User:
-
         user = user_service.get_user(id)
         if user is None:
             raise User.DoesNotExist()
@@ -184,8 +185,10 @@ class ActorTuple(namedtuple("Actor", "id type")):
 
     def resolve_to_actor(self) -> Actor:
         obj = self.resolve()
-        if obj.actor_id is None and isinstance(obj, RpcUser):  # This can happen for users now.
+        # TODO(hybridcloud) If this is RpcUser do we just use a different query?
+        if obj.actor_id is None or isinstance(obj, RpcUser):
             return Actor.objects.get(id=get_actor_id_for_user(obj))
+        # Team case
         return Actor.objects.get(id=obj.actor_id)
 
     @classmethod
