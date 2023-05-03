@@ -6,6 +6,7 @@ from typing import Iterable, List, MutableMapping, Optional, Set, cast
 from django.db import transaction
 
 from sentry import roles
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     Organization,
     OrganizationMember,
@@ -307,7 +308,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
         assert (user_id is None and email) or (
             user_id and email is None
         ), "Must set either user_id or email"
-        with transaction.atomic():
+        region_outbox = None
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
             org_member: OrganizationMember = OrganizationMember.objects.create(
                 organization_id=organization_id,
                 user_id=user_id,
@@ -317,9 +319,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 inviter_id=inviter_id,
                 invite_status=invite_status,
             )
-            region_outbox = org_member.outbox_for_update()
+            region_outbox = org_member.outbox_for_create()
             region_outbox.save()
-        region_outbox.drain_shard(max_updates_to_drain=10)
+        if region_outbox:
+            region_outbox.drain_shard(max_updates_to_drain=10)
         return self.serialize_member(org_member)
 
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
@@ -377,3 +380,17 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 "organizationmember_id", flat=True
             )
         )
+
+    def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
+        region_outbox = None
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            org_member = OrganizationMember.objects.get(
+                organization_id=organization_id, user_id=user_id
+            )
+            org_member.remove_user()
+            org_member.save()
+            region_outbox = org_member.outbox_for_update()
+            region_outbox.save()
+        if region_outbox:
+            region_outbox.drain_shard(max_updates_to_drain=10)
+        return self.serialize_member(org_member)

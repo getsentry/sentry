@@ -40,15 +40,6 @@ async function fetchReplayList({
     // ask the server for compound fields like `os.name`.
     payload.field = payload.field.map(field => field.split('.')[0]);
 
-    const hasFullTable = !organization.features.includes('session-replay-slim-table');
-    if (!hasFullTable) {
-      const fieldsToRemove = ['browser', 'os', 'urls'];
-      payload.field = payload.field.filter(field => !fieldsToRemove.includes(field));
-      payload.field.push('count_urls');
-    } else {
-      payload.field = payload.field.filter(field => field !== 'count_urls');
-    }
-
     // unique list
     payload.field = Array.from(new Set(payload.field));
 
