@@ -1,6 +1,7 @@
 from functools import cached_property
 from unittest.mock import patch
 
+from django.db import IntegrityError
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_teams import OrganizationTeamsEndpoint
@@ -232,9 +233,13 @@ class OrganizationTeamsCreateTest(APITestCase):
         self.get_success_response(
             self.organization.slug, name="hello world", slug="foobar", status_code=201
         )
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug, name="hello world", slug="foobar", status_code=409
         )
+        assert response.data == {
+            "non_field_errors": ["A team with this slug already exists."],
+            "detail": "A team with this slug already exists.",
+        }
 
     def test_name_too_long(self):
         self.get_error_response(
@@ -330,4 +335,20 @@ class OrganizationTeamsCreateTest(APITestCase):
             assert response.data == {
                 "detail": "You must be a member of the organization to join a new team as a Team Admin",
             }
+        assert Team.objects.count() == prior_team_count
+
+    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    @patch.object(OrganizationMemberTeam.objects, "create", side_effect=IntegrityError)
+    def test_team_admin_org_member_team_create_fails(self, mock_create):
+        prior_team_count = Team.objects.count()
+
+        self.get_error_response(
+            self.organization.slug,
+            name="hello world",
+            slug="foobar",
+            set_team_admin=True,
+            status_code=409,
+        )
+        mock_create.assert_called_once()
+        # check that the created team was rolled back
         assert Team.objects.count() == prior_team_count

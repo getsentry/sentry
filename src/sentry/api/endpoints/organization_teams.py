@@ -23,6 +23,7 @@ from sentry.models import (
 )
 from sentry.search.utils import tokenize_query
 from sentry.signals import team_created
+from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
 
@@ -170,7 +171,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 raise ValidationError(
                     {"detail": "You do not have permission to join a new team as a Team Admin"}
                 )
-
         try:
             # Wrap team creation and member addition in same transaction
             with transaction.atomic():
@@ -195,7 +195,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                         organizationmember=member,
                         role="admin" if set_team_admin else None,
                     )
-        except IntegrityError:
+        except (IntegrityError, MaxSnowflakeRetryError):
             return Response(
                 {
                     "non_field_errors": [CONFLICTING_SLUG_ERROR],
