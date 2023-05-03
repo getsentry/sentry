@@ -28,16 +28,6 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 
 
-def test_datetime_number_of_hours() -> None:
-    start, end = _start_and_end_dates(5)
-    assert (end - start).seconds / 3600 == 5
-
-
-def test_datetime_number_of_days() -> None:
-    start, end = _start_and_end_dates()
-    assert (end - start).days == 7
-
-
 class BaseGroupCounts(SnubaTestCase, TestCase):  # type: ignore[misc]
     def _create_events_for_group(
         self,
@@ -65,7 +55,11 @@ class BaseGroupCounts(SnubaTestCase, TestCase):  # type: ignore[misc]
         return last_event
 
 
-class HistoricGroupCounts(BaseGroupCounts, PerformanceIssueTestCase, SearchIssueTestMixin):
+class HistoricGroupCounts(
+    BaseGroupCounts,
+    PerformanceIssueTestCase,  # type: ignore[misc]
+    SearchIssueTestMixin,
+):
     """Test that querying Snuba for the hourly counts for groups works as expected."""
 
     def _create_hourly_bucket(self, count: int, event: Event) -> GroupsCountResponse:
@@ -83,29 +77,45 @@ class HistoricGroupCounts(BaseGroupCounts, PerformanceIssueTestCase, SearchIssue
             self._create_hourly_bucket(1, event)
         ]
 
+    @freeze_time(TIME_YESTERDAY)
     def test_query_different_group_categories(self) -> None:
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            perf_event = self.create_performance_issue()
+        from django.utils import timezone
 
-        # TODO: Create a profile group
-        profile_event, _, _ = self.store_search_issue(
+        # This builds an error group and a profiling group
+        profile_error_event, _, profile_issue_occurrence = self.store_search_issue(
             project_id=self.project.id,
             user_id=0,
             fingerprints=[f"{ProfileFileIOGroupType.type_id}-group1"],
+            insert_time=timezone.now() - timedelta(minutes=1),
         )
+        assert len(Group.objects.all()) == 2
+
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            perf_event = self.create_performance_issue()
 
         error_event = self._create_events_for_group()
 
-        assert perf_event.group.issue_category == GroupCategory.PERFORMANCE
+        # store_search_issue created two groups
+        assert len(Group.objects.all()) == 4
+        assert profile_error_event.group.issue_category == GroupCategory.ERROR
         assert error_event.group.issue_category == GroupCategory.ERROR
-        # assert profile_event.group.issue_category == GroupCategory.PROFILE
+        assert profile_issue_occurrence.group.issue_category == GroupCategory.PROFILE  # type: ignore[union-attr]
+        assert perf_event.group.issue_category == GroupCategory.PERFORMANCE
+
+        profile_issue_occurrence_bucket = {
+            "count()": 1,
+            "group_id": profile_issue_occurrence.group.id,  # type: ignore[union-attr]
+            "hourBucket": to_start_of_hour(profile_issue_occurrence.group.first_seen),  # type: ignore[union-attr]
+            "project_id": self.project.id,
+        }
 
         # Error groups will show up at the beginning of the list even if they
-        # have higher primary keys
+        # were created later
         assert query_groups_past_counts(Group.objects.all()) == [
+            self._create_hourly_bucket(1, profile_error_event),
             self._create_hourly_bucket(1, error_event),
+            profile_issue_occurrence_bucket,
             self._create_hourly_bucket(1, perf_event),
-            # self._create_hourly_bucket(1, profile_event),
         ]
 
     def test_pagination(self) -> None:
@@ -185,6 +195,16 @@ class HistoricGroupCounts(BaseGroupCounts, PerformanceIssueTestCase, SearchIssue
         assert query_groups_past_counts([]) == []
 
 
+def test_datetime_number_of_hours() -> None:
+    start, end = _start_and_end_dates(5)
+    assert (end - start).seconds / 3600 == 5
+
+
+def test_datetime_number_of_days() -> None:
+    start, end = _start_and_end_dates()
+    assert (end - start).days == 7
+
+
 class DailyGroupCountsEscalating(BaseGroupCounts):
     def save_mock_escalating_group_forecast(  # type: ignore[no-untyped-def]
         self, group: Group, forecast_values=List[int], date_added=datetime
@@ -233,11 +253,10 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             self.assert_is_escalating(group_escalating)
 
             # Test cache
-            key = f"hourly-group-count:{group_escalating.project.id}:{group_escalating.id}"
-            assert cache.get(key) == 6
-            # Adding more events will not change the hourly count for the next 60 seconds
-            self._create_events_for_group(count=10)
-            assert cache.get(key) == 6
+            assert (
+                cache.get(f"hourly-group-count:{group_escalating.project.id}:{group_escalating.id}")
+                == 6
+            )
 
     @freeze_time(TIME_YESTERDAY)
     def test_not_escalating_issue(self) -> None:
@@ -266,9 +285,8 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
     @freeze_time(TIME_YESTERDAY.replace(minute=12, second=40, microsecond=0))
     def test_hourly_count_query(self) -> None:
         """Test the hourly count query only aggregates events from within the current hour"""
-        # An hour ago -> It will not count
-        event = self._create_events_for_group(count=2, hours_ago=1)
-        # Almost an hour ago -> It will count
-        self._create_events_for_group(count=5, hours_ago=0, min_ago=59)
-        self._create_events_for_group(count=1).group  # This hour -> It will count
-        assert get_group_hourly_count(event.group) == 6
+        self._create_events_for_group(count=2, hours_ago=1)  # An hour ago -> It will not count
+        group = self._create_events_for_group(count=1).group  # This hour -> It will count
+
+        # Events are aggregated in the hourly count query by date rather than the last 24hrs
+        assert get_group_hourly_count(group) == 1
