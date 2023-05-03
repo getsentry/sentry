@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isNil from 'lodash/isNil';
+import qs from 'qs';
 
 import {Button} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -72,7 +73,7 @@ export default function EndpointDetail({
 
 function EndpointDetailBody({row, eventView, organization}: EndpointDetailBodyProps) {
   const theme = useTheme();
-  const {aggregateDetails, transaction} = row;
+  const {aggregateDetails, transaction, httpOp} = row;
 
   const {data: moduleBreakdown} = useQuery({
     queryKey: [`moduleBreakdown${row.transaction}`],
@@ -87,8 +88,8 @@ function EndpointDetailBody({row, eventView, organization}: EndpointDetailBodyPr
   const query = new MutableSearch([
     'has:http.method',
     'transaction.op:http.server',
-    `transaction:${row.transaction}`,
-    `http.method:${row.httpOp}`,
+    `transaction:${transaction}`,
+    `http.method:${httpOp}`,
   ]);
 
   return (
@@ -98,7 +99,10 @@ function EndpointDetailBody({row, eventView, organization}: EndpointDetailBodyPr
       <OverviewButton
         to={`/organizations/${
           organization.slug
-        }/starfish/endpoint-overview/?endpoint=${encodeURIComponent(transaction)}`}
+        }/starfish/endpoint-overview/?endpoint=${qs.stringify({
+          transaction,
+          method: httpOp,
+        })}`}
       >
         {t('Go to Endpoint Overview')}
       </OverviewButton>

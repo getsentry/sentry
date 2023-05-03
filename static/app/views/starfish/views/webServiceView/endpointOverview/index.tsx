@@ -1,25 +1,32 @@
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import qs from 'qs';
 
+import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {NewQuery} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import {useQuery} from 'sentry/utils/queryClient';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import withApi from 'sentry/utils/withApi';
+import Chart from 'sentry/views/starfish/components/chart';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import DatabaseTableView from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+
+const EventsRequest = withApi(_EventsRequest);
 
 const HTTP_SPAN_COLUMN_ORDER = [
   {
@@ -78,14 +85,16 @@ const DATABASE_SPAN_COLUMN_ORDER = [
   },
 ];
 
-export default function EndpointOverview({transaction: _}: {transaction: string}) {
+export default function EndpointOverview() {
   const location = useLocation();
   const pageFilter = usePageFilters();
+  const organization = useOrganization();
+  const theme = useTheme();
 
-  const transaction = '/api/0/organizations/{organization_slug}/issues/';
-  const {startTime, endTime} = getDateFilters(pageFilter);
-  const transactionFilter =
-    transaction.length > 0 ? `transaction='${transaction}'` : null;
+  const {endpoint, method} = location.query;
+
+  const transaction =
+    endpoint && typeof endpoint === 'string' ? endpoint.split('=')[1] : undefined;
 
   const {
     isLoading: isTableDataLoading,
@@ -101,59 +110,155 @@ export default function EndpointOverview({transaction: _}: {transaction: string}
     initialData: [],
   });
 
+  if (!transaction) {
+    return null;
+  }
+
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const transactionFilter = `transaction='${transaction}'`;
+
+  const query = new MutableSearch([
+    'has:http.method',
+    'transaction.op:http.server',
+    `transaction:${transaction}`,
+    `http.method:${method}`,
+  ]);
+
+  const savedQuery: NewQuery = {
+    id: undefined,
+    name: t('Endpoint Overview'),
+    query: query.formatString(),
+    projects: [],
+    fields: [],
+    version: 2,
+  };
+
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+
   return (
     <Layout.Page>
-      <PageErrorProvider>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Layout.Title>{t('Endpoint Overview')}</Layout.Title>
-          </Layout.HeaderContent>
-        </Layout.Header>
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Layout.Title>{t('Endpoint Overview')}</Layout.Title>
+        </Layout.HeaderContent>
+      </Layout.Header>
 
-        <Layout.Body>
-          <SearchContainerWithFilterAndMetrics>
-            <PageFilterBar condensed>
-              <DatePageFilter alignDropdown="left" />
-            </PageFilterBar>
-          </SearchContainerWithFilterAndMetrics>
+      <Layout.Body>
+        <SearchContainerWithFilterAndMetrics>
+          <PageFilterBar condensed>
+            <DatePageFilter alignDropdown="left" />
+          </PageFilterBar>
+        </SearchContainerWithFilterAndMetrics>
 
-          <Layout.Main fullWidth>
-            <PageErrorAlert />
-            <SubHeader>{t('HTTP Spans')}</SubHeader>
-            <EndpointTable
-              location={location}
-              onSelect={r => {
-                browserHistory.push(
-                  `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
-                    transaction,
-                  })}`
-                );
-              }}
-              columns={HTTP_SPAN_COLUMN_ORDER}
-              filterOptions={{
-                action: '',
-                domain: '',
-                transaction,
-                datetime: pageFilter.selection.datetime,
-              }}
-            />
-            <SubHeader>{t('Database Spans')}</SubHeader>
-            <DatabaseTableView
-              location={location}
-              onSelect={r => {
-                browserHistory.push(
-                  `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
-                    transaction,
-                  })}`
-                );
-              }}
-              isDataLoading={isTableDataLoading || isTableRefetching}
-              data={tableData}
-              columns={DATABASE_SPAN_COLUMN_ORDER}
-            />
-          </Layout.Main>
-        </Layout.Body>
-      </PageErrorProvider>
+        <Layout.Main fullWidth>
+          <SubHeader>{t('Endpoint URL')}</SubHeader>
+          <pre>{`${method} ${transaction}`}</pre>
+          <EventsRequest
+            query={query.formatString()}
+            includePrevious={false}
+            partial
+            limit={5}
+            interval="1h"
+            includeTransformedData
+            environment={eventView.environment}
+            project={eventView.project}
+            period={eventView.statsPeriod}
+            referrer="starfish-endpoint-overview"
+            start={pageFilter.selection.datetime.start}
+            end={pageFilter.selection.datetime.end}
+            organization={organization}
+            yAxis={['tpm()', 'p50(transaction.duration)']}
+            queryExtras={{dataset: 'metrics'}}
+          >
+            {({results, loading}) => {
+              return (
+                <Fragment>
+                  <FlexRowContainer>
+                    <FlexRowItem>
+                      <SubHeader>{t('Throughput')}</SubHeader>
+                      <Chart
+                        statsPeriod="24h"
+                        height={110}
+                        data={results?.[0] ? [results?.[0]] : []}
+                        start=""
+                        end=""
+                        loading={loading}
+                        utc={false}
+                        stacked
+                        isLineChart
+                        disableXAxis
+                        hideYAxisSplitLine
+                        chartColors={[theme.charts.getColorPalette(0)[0]]}
+                        grid={{
+                          left: '0',
+                          right: '0',
+                          top: '8px',
+                          bottom: '16px',
+                        }}
+                      />
+                    </FlexRowItem>
+                    <FlexRowItem>
+                      <SubHeader>{t('p50(duration)')}</SubHeader>
+                      <Chart
+                        statsPeriod="24h"
+                        height={110}
+                        data={results?.[1] ? [results?.[1]] : []}
+                        start=""
+                        end=""
+                        loading={loading}
+                        utc={false}
+                        stacked
+                        isLineChart
+                        disableXAxis
+                        hideYAxisSplitLine
+                        chartColors={[theme.charts.getColorPalette(0)[1]]}
+                        grid={{
+                          left: '0',
+                          right: '0',
+                          top: '8px',
+                          bottom: '16px',
+                        }}
+                      />
+                    </FlexRowItem>
+                  </FlexRowContainer>
+                </Fragment>
+              );
+            }}
+          </EventsRequest>
+          <SubHeader>{t('HTTP Spans')}</SubHeader>
+          <EndpointTable
+            location={location}
+            onSelect={r => {
+              browserHistory.push(
+                `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
+                  transaction,
+                })}`
+              );
+            }}
+            columns={HTTP_SPAN_COLUMN_ORDER}
+            filterOptions={{
+              action: '',
+              domain: '',
+              transaction: transaction as string,
+              datetime: pageFilter.selection.datetime,
+            }}
+          />
+          <SubHeader>{t('Database Spans')}</SubHeader>
+          <DatabaseTableView
+            location={location}
+            onSelect={r => {
+              browserHistory.push(
+                `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
+                  transaction,
+                })}`
+              );
+            }}
+            isDataLoading={isTableDataLoading || isTableRefetching}
+            data={tableData}
+            columns={DATABASE_SPAN_COLUMN_ORDER}
+          />
+        </Layout.Main>
+      </Layout.Body>
     </Layout.Page>
   );
 }
@@ -175,4 +280,16 @@ const SearchContainerWithFilterAndMetrics = styled('div')`
     grid-template-rows: auto;
     grid-template-columns: auto 1fr auto;
   }
+`;
+
+const FlexRowContainer = styled('div')`
+  display: flex;
+  & > div:last-child {
+    padding-right: ${space(1)};
+  }
+`;
+
+const FlexRowItem = styled('div')`
+  padding-right: ${space(4)};
+  flex: 1;
 `;
