@@ -10,6 +10,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import get_provider_string
+from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 
 @region_silo_test(stable=True)
@@ -340,6 +341,22 @@ class OrganizationTeamsCreateTest(APITestCase):
     @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
     @patch.object(OrganizationMemberTeam.objects, "create", side_effect=IntegrityError)
     def test_team_admin_org_member_team_create_fails(self, mock_create):
+        prior_team_count = Team.objects.count()
+
+        self.get_error_response(
+            self.organization.slug,
+            name="hello world",
+            slug="foobar",
+            set_team_admin=True,
+            status_code=409,
+        )
+        mock_create.assert_called_once()
+        # check that the created team was rolled back
+        assert Team.objects.count() == prior_team_count
+
+    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    @patch.object(OrganizationMemberTeam.objects, "create", side_effect=MaxSnowflakeRetryError)
+    def test_team_admin_org_member_team_create_fails_snowflake_error(self, mock_create):
         prior_team_count = Team.objects.count()
 
         self.get_error_response(

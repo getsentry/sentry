@@ -10,7 +10,7 @@ from rest_framework.serializers import ValidationError
 from sentry import audit_log, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer
@@ -55,7 +55,7 @@ class TeamPostSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if not (attrs.get("name") or attrs.get("slug")):
-            raise serializers.ValidationError("Name or slug is required")
+            raise ValidationError("Name or slug is required")
         return attrs
 
 
@@ -169,7 +169,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 )
             if not self.should_add_creator_to_team(request):
                 raise ValidationError(
-                    {"detail": "You do not have permission to join a new team as a Team Admin"}
+                    {"detail": "You do not have permission to join a new team as a Team Admin"},
                 )
         try:
             # Wrap team creation and member addition in same transaction
@@ -196,12 +196,11 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                         role="admin" if set_team_admin else None,
                     )
         except (IntegrityError, MaxSnowflakeRetryError):
-            return Response(
+            raise ConflictError(
                 {
                     "non_field_errors": [CONFLICTING_SLUG_ERROR],
                     "detail": CONFLICTING_SLUG_ERROR,
-                },
-                status=409,
+                }
             )
         except OrganizationMember.DoesNotExist:
             # team is automatically rolledback if exception raised in atomic block
