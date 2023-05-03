@@ -400,7 +400,7 @@ def report_metrics_for_detectors(
             detected_tags["browser_name"] = allowed_browser_name
 
         if detector.type in [DetectorType.CONSECUTIVE_HTTP_OP]:
-            detected_tags["frontend"] = is_event_from_browser_javascript_sdk(event)
+            detected_tags["is_frontend"] = is_event_from_browser_javascript_sdk(event)
 
         first_problem = detected_problems[detected_problem_keys[0]]
         if first_problem.fingerprint:
