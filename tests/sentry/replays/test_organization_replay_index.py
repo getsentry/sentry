@@ -875,6 +875,44 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 }
             ]
 
+    def test_archived_records_out_of_bounds(self):
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(days=10)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(days=3)
+
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay1_id))
+        self.store_replays(
+            mock_replay(
+                seq2_timestamp, self.project.id, replay1_id, is_archived=True, segment_id=None
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            assert response.json()["data"] == [
+                {
+                    "id": replay1_id,
+                    "project_id": str(self.project.id),
+                    "trace_ids": [],
+                    "error_ids": [],
+                    "environment": None,
+                    "tags": [],
+                    "user": {"id": "Archived Replay", "display_name": "Archived Replay"},
+                    "sdk": {"name": None, "version": None},
+                    "os": {"name": None, "version": None},
+                    "browser": {"name": None, "version": None},
+                    "device": {"name": None, "brand": None, "model": None, "family": None},
+                    "urls": None,
+                    "started_at": None,
+                    "count_errors": None,
+                    "activity": None,
+                    "finished_at": None,
+                    "duration": None,
+                    "is_archived": True,
+                }
+            ]
+
     def test_get_replays_filter_clicks(self):
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
