@@ -23,8 +23,8 @@ const COLUMNS: {
   field: SortConfig['by'];
   label: ReactNode;
 }[] = [
-  {field: 'status', label: t('Status')},
   {field: 'method', label: t('Method')},
+  {field: 'status', label: t('Status')},
   {field: 'description', label: t('Path')},
   {
     field: 'op',

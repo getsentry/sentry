@@ -64,9 +64,10 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
 
     const startMs = span.startTimestamp * 1000;
     const endMs = span.endTimestamp * 1000;
-    const statusCode = span.data.statusCode;
-    const size = span.data.size ?? span.data.responseBodySize;
     const method = span.data.method || 'GET';
+    const statusCode = span.data.statusCode;
+    // `data.responseBodySize` is from SDK version 7.44-7.45
+    const size = span.data.size ?? span.data.response?.size ?? span.data.responseBodySize;
 
     const spanTime = useMemo(
       () => relativeTimeInMs(span.startTimestamp * 1000, startTimestampMs),
@@ -112,18 +113,15 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       style,
     } as CellProps;
 
-    // `data.responseBodySize` is from SDK version 7.44-7.45
-    const size = span.data.size ?? span.data.response?.size ?? span.data.responseBodySize;
-
     const renderFns = [
       () => (
         <Cell {...columnProps}>
-          <Text>{statusCode ? statusCode : EMPTY_CELL}</Text>
+          <Text>{method ? method : EMPTY_CELL}</Text>
         </Cell>
       ),
       () => (
         <Cell {...columnProps}>
-          <Text>{method ? method : EMPTY_CELL}</Text>
+          <Text>{statusCode ? statusCode : EMPTY_CELL}</Text>
         </Cell>
       ),
       () => (
