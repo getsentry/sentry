@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from sentry_sdk import Scope
 
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import set_mock_context_manager_return_value
+from sentry.testutils.helpers import patch_configure_scope_with_scope
 from sentry.utils.sdk import (
     capture_exception_with_scope_check,
     check_current_scope_transaction,
@@ -46,12 +46,11 @@ class SDKUtilsTest(TestCase):
 
 @patch("sentry.utils.sdk.logger.warning")
 class CheckTagTest(TestCase):
-    def test_no_exiting_tag(self, mock_logger_warning: MagicMock):
+    def test_no_existing_tag(self, mock_logger_warning: MagicMock):
         mock_scope = Scope()
         mock_scope._tags = {}
 
-        with patch("sentry.utils.sdk.configure_scope") as mock_configure_scope:
-            set_mock_context_manager_return_value(mock_configure_scope, as_value=mock_scope)
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
             check_tag("org.slug", "squirrel_chasers")
 
         assert "possible_mistag" not in mock_scope._tags
@@ -59,12 +58,11 @@ class CheckTagTest(TestCase):
         assert "scope_bleed" not in mock_scope._contexts
         assert mock_logger_warning.call_count == 0
 
-    def test_matching_exiting_tag(self, mock_logger_warning: MagicMock):
+    def test_matching_existing_tag(self, mock_logger_warning: MagicMock):
         mock_scope = Scope()
         mock_scope._tags = {"org.slug": "squirrel_chasers"}
 
-        with patch("sentry.utils.sdk.configure_scope") as mock_configure_scope:
-            set_mock_context_manager_return_value(mock_configure_scope, as_value=mock_scope)
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
             check_tag("org.slug", "squirrel_chasers")
 
         assert "possible_mistag" not in mock_scope._tags
@@ -72,12 +70,11 @@ class CheckTagTest(TestCase):
         assert "scope_bleed" not in mock_scope._contexts
         assert mock_logger_warning.call_count == 0
 
-    def test_different_exiting_tag(self, mock_logger_warning: MagicMock):
+    def test_different_existing_tag(self, mock_logger_warning: MagicMock):
         mock_scope = Scope()
         mock_scope._tags = {"org.slug": "good_dogs"}
 
-        with patch("sentry.utils.sdk.configure_scope") as mock_configure_scope:
-            set_mock_context_manager_return_value(mock_configure_scope, as_value=mock_scope)
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
             check_tag("org.slug", "squirrel_chasers")
 
         extra = {
@@ -98,9 +95,7 @@ class CheckScopeTransactionTest(TestCase):
         mock_scope = Scope()
         mock_scope._transaction = "/dogs/{name}/"
 
-        with patch("sentry.utils.sdk.configure_scope") as mock_configure_scope:
-            set_mock_context_manager_return_value(mock_configure_scope, as_value=mock_scope)
-
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
             mismatch = check_current_scope_transaction(Request(HttpRequest()))
             assert mismatch is None
 
@@ -109,9 +104,7 @@ class CheckScopeTransactionTest(TestCase):
         mock_scope = Scope()
         mock_scope._transaction = "/tricks/{trick_name}/"
 
-        with patch("sentry.utils.sdk.configure_scope") as mock_configure_scope:
-            set_mock_context_manager_return_value(mock_configure_scope, as_value=mock_scope)
-
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
             mismatch = check_current_scope_transaction(Request(HttpRequest()))
             assert mismatch == {
                 "scope_transaction": "/tricks/{trick_name}/",
@@ -124,16 +117,14 @@ class CheckScopeTransactionTest(TestCase):
         mock_scope._transaction = "/tricks/{trick_name}/"
         mock_scope._transaction_info["source"] = "custom"
 
-        with patch("sentry.utils.sdk.configure_scope") as mock_configure_scope:
-            set_mock_context_manager_return_value(mock_configure_scope, as_value=mock_scope)
-
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
             mismatch = check_current_scope_transaction(Request(HttpRequest()))
             # custom transaction names shouldn't be flagged even if they don't match
             assert mismatch is None
 
 
 @patch("sentry_sdk.capture_exception")
-class CaptureExceptionTest(TestCase):
+class CaptureExceptionWithScopeCheckTest(TestCase):
     def test_passes_along_exception(self, mock_sdk_capture_exception: MagicMock):
         err = Exception()
 

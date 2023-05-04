@@ -127,7 +127,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
     status = BoundedPositiveIntegerField(
         default=0,
         choices=(
-            (ObjectStatus.VISIBLE, _("Active")),
+            (ObjectStatus.ACTIVE, _("Active")),
             (ObjectStatus.PENDING_DELETION, _("Pending Deletion")),
             (ObjectStatus.DELETION_IN_PROGRESS, _("Deletion in Progress")),
         ),

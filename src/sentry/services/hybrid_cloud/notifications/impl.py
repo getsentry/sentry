@@ -75,7 +75,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         value: NotificationSettingOptionValues,
     ) -> List[RpcNotificationSetting]:
         settings = NotificationSetting.objects.filter(
-            target__in=[u.actor_id for u in users],
+            target_id__in=[u.actor_id for u in users],
             type__in=types,
             value=value.value,
             scope_type=NotificationScopeType.USER.value,
@@ -104,7 +104,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
                 scope_identifier__in=team_ids,
             ),
             type=type.value,
-            target__in=actor_ids,
+            target_id__in=actor_ids,
         )
 
         return [self.serialize_notification_setting(s) for s in notification_settings]

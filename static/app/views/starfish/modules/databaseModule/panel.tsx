@@ -1,7 +1,6 @@
 import {CSSProperties, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import keyBy from 'lodash/keyBy';
 import moment from 'moment';
 import * as qs from 'query-string';
@@ -20,21 +19,17 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
 import {
-  getPanelEventCount,
-  getPanelGraphQuery,
-  getPanelTableQuery,
+  useQueryPanelEventCount,
+  useQueryPanelGraph,
+  useQueryPanelTable,
   useQueryTransactionByTPM,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
-import {
-  datetimeToClickhouseFilterTimestamps,
-  getDateFilters,
-} from 'sentry/views/starfish/utils/dates';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 import {DataRow} from './databaseTableView';
 
 const INTERVAL = 12;
-const HOST = 'http://localhost:8080';
 
 type EndpointDetailBodyProps = {
   isDataLoading: boolean;
@@ -44,7 +39,7 @@ type EndpointDetailBodyProps = {
   prevRow?: DataRow;
 };
 
-type TransactionListDataRow = {
+export type TransactionListDataRow = {
   count: number;
   frequency: number;
   group_id: string;
@@ -149,13 +144,6 @@ function QueryDetailBody({
   const location = useLocation();
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
-    pageFilter.selection.datetime
-  );
-  const DATE_FILTERS = `
-  ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
-  ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-  `;
 
   const {isLoading: isP75GraphLoading, data: tpmTransactionGraphData} =
     useQueryTransactionByTPM(row);
@@ -165,56 +153,16 @@ function QueryDetailBody({
     sortHeader: TableColumnHeader | undefined;
   }>({direction: undefined, sortHeader: undefined});
 
-  const {isLoading, data: graphData} = useQuery({
-    queryKey: ['dbQueryDetailsGraph', row.group_id, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getPanelGraphQuery(
-          startTime,
-          endTime,
-          row,
-          INTERVAL
-        )}&format=sql`
-      ).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
+  const {isLoading, data: graphData} = useQueryPanelGraph(row, INTERVAL);
 
-  const {isLoading: isTableLoading, data: tableData} = useQuery<TransactionListDataRow[]>(
-    {
-      queryKey: [
-        'dbQueryDetailsTable',
-        row.group_id,
-        pageFilter.selection.datetime,
-        sort.sortHeader?.key,
-        sort.direction,
-      ],
-      queryFn: () =>
-        fetch(
-          `${HOST}/?query=${getPanelTableQuery(
-            startTime,
-            endTime,
-            row,
-            sort.sortHeader?.key,
-            sort.direction
-          )}`
-        ).then(res => res.json()),
-      retry: true,
-      initialData: [],
-    }
+  const {isLoading: isTableLoading, data: tableData} = useQueryPanelTable(
+    row,
+    sort.sortHeader?.key,
+    sort.direction
   );
 
-  const {isLoading: isEventCountLoading, data: eventCountData} = useQuery<
-    Partial<TransactionListDataRow>[]
-  >({
-    queryKey: ['dbQueryDetailsEventCount', row.group_id, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getPanelEventCount(DATE_FILTERS, row)}`).then(res =>
-        res.json()
-      ),
-    retry: true,
-    initialData: [],
-  });
+  const {isLoading: isEventCountLoading, data: eventCountData} =
+    useQueryPanelEventCount(row);
 
   const isDataLoading =
     isLoading ||
@@ -230,9 +178,9 @@ function QueryDetailBody({
     const eventData = eventCountMap[transaction];
     if (eventData?.uniqueEvents) {
       const frequency = data.count / eventData.uniqueEvents;
-      return {...data, frequency, ...eventData};
+      return {...data, frequency, ...eventData} as TransactionListDataRow;
     }
-    return data;
+    return data as TransactionListDataRow;
   });
 
   const minMax = calculateOutlierMinMax(mergedTableData);
@@ -251,10 +199,10 @@ function QueryDetailBody({
 
   const onSortClick = (col: TableColumnHeader) => {
     let direction: 'desc' | 'asc' | undefined = undefined;
-    if (sort.direction === 'desc') {
-      direction = 'asc';
-    } else if (!sort.direction) {
+    if (!sort.direction || col.key !== sort.sortHeader?.key) {
       direction = 'desc';
+    } else if (sort.direction === 'desc') {
+      direction = 'asc';
     }
     setSort({direction, sortHeader: col});
   };
@@ -314,15 +262,20 @@ function QueryDetailBody({
 
   return (
     <div>
-      <Paginator>
-        <SimplePagination
-          disableLeft={!prevRow}
-          disableRight={!nextRow}
-          onLeftClick={() => onRowChange(prevRow)}
-          onRightClick={() => onRowChange(nextRow)}
-        />
-      </Paginator>
-      <h2>{t('Query Detail')}</h2>
+      <FlexRowContainer>
+        <FlexRowItem>
+          <h2>{t('Query Detail')}</h2>
+        </FlexRowItem>
+        <FlexRowItem>
+          <SimplePagination
+            disableLeft={!prevRow}
+            disableRight={!nextRow}
+            onLeftClick={() => onRowChange(prevRow)}
+            onRightClick={() => onRowChange(nextRow)}
+          />
+        </FlexRowItem>
+      </FlexRowContainer>
+
       <FlexRowContainer>
         <FlexRowItem>
           <SubHeader>
@@ -343,6 +296,7 @@ function QueryDetailBody({
           <SubSubHeader>{row.total_time.toFixed(2)}ms</SubSubHeader>
         </FlexRowItem>
       </FlexRowContainer>
+
       <SubHeader>{t('Query Description')}</SubHeader>
       <FormattedCode>{formatRow(row.formatted_desc, row)}</FormattedCode>
       <FlexRowContainer>
@@ -548,6 +502,7 @@ const FlexRowContainer = styled('div')`
   & > div:last-child {
     padding-right: ${space(1)};
   }
+  padding-bottom: ${space(2)};
 `;
 
 const FlexRowItem = styled('div')`
@@ -579,10 +534,4 @@ const Keyword = styled('b')`
 
 const Bracket = styled('b')`
   color: ${p => p.theme.pink400};
-`;
-
-const Paginator = styled('div')`
-  width: 33%;
-  position: absolute;
-  right: 0;
 `;
