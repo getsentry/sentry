@@ -192,7 +192,8 @@ def make_performance_event(project, sample_name: str):
     if options.get(
         "performance.issues.create_issues_through_platform", True
     ) and project.get_option("sentry:performance_issue_create_issue_through_platform", True):
-        event_id = uuid.uuid4().hex
+        # TODO check if features need to be overriden
+        event_id = "44f1419e73884cd2b45c79918f4b6dc4"
         occurrence_data = SAMPLE_TO_OCCURRENCE_MAP[sample_name].to_dict()
         occurrence_data["event_id"] = event_id
         occurrence, group_info = process_event_and_issue_occurrence(
@@ -203,6 +204,7 @@ def make_performance_event(project, sample_name: str):
                 "timestamp": before_now(minutes=1).isoformat(),
             },
         )
+
         generic_group = group_info.group
         return generic_group.get_latest_event()
     else:

@@ -24,7 +24,6 @@ class DebugPerformanceIssueEmailView(View):
 
         rule = Rule(id=1, label="Example performance rule")
 
-        print("PERF_EVENT", perf_event.occurrence)
         transaction_data = get_transaction_data(perf_event, project)
         interface_list = get_interface_list(perf_event)
 
@@ -40,6 +39,6 @@ class DebugPerformanceIssueEmailView(View):
                 "issue_type": perf_group.issue_type.description,
                 "subtitle": get_performance_issue_alert_subtitle(perf_event),
                 # this is new, will need to feature flag this probably
-                "issue_title": perf_event.occurrence.subtitle,
+                "issue_title": perf_event.occurrence.issue_title,
             },
         ).render(request)

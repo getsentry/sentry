@@ -15,6 +15,7 @@ from ..base import (
     DetectorType,
     PerformanceDetector,
     get_span_duration,
+    get_span_evidence_value,
 )
 from ..performance_problem import PerformanceProblem
 from ..types import Span
@@ -204,6 +205,8 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if fingerprint not in self.stored_problems:
             self._metrics_for_extra_matching_spans()
 
+            offender_span_ids = [span.get("span_id", None) for span in self.n_spans]
+
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op="db",
@@ -211,13 +214,18 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 type=PerformanceNPlusOneGroupType,
                 parent_span_ids=[parent_span_id],
                 cause_span_ids=[self.source_span.get("span_id", None)],
-                offender_span_ids=[span.get("span_id", None) for span in self.n_spans],
+                offender_span_ids=offender_span_ids,
                 evidence_display=[],
                 evidence_data={
+                    "transaction_name": self._event.get("transaction", ""),
                     "op": "db",
                     "parent_span_ids": [parent_span_id],
+                    "parent_span": get_span_evidence_value(parent_span),
                     "cause_span_ids": [self.source_span.get("span_id", None)],
-                    "offender_span_ids": [span.get("span_id", None) for span in self.n_spans],
+                    "offender_span_ids": offender_span_ids,
+                    "repeating_spans": get_span_evidence_value(self.n_spans[0]),
+                    "num_repeating_spans": str(len(offender_span_ids)),
+                    "alert_subtitle": get_span_evidence_value(self.n_spans[0], include_op=False),
                 },
             )
 

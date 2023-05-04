@@ -93,14 +93,10 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
     if not event:
         event = group.get_latest_event()
 
-    print("PEW PEW", event)
     if event and getattr(event, "occurrence", None) is not None:
         important = event.occurrence.important_evidence_display
         if important:
             return important.value
-
-        print("POOP", event)
-        print("gett", getattr(event, "occurrence", None))
     elif ev_type == "error":
         return ev_metadata.get("value") or ev_metadata.get("function")
     elif ev_type == "transaction":

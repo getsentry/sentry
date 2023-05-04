@@ -456,8 +456,6 @@ def generic_email_html(context: Any) -> Any:
 def get_performance_issue_alert_subtitle(event: Event) -> str:
     """Generate the issue alert subtitle for performance issues"""
     if isinstance(event, GroupEvent) and event.occurrence is not None:
-        print("ELLOO")
-        print(event.occurrence.evidence_data)
         alert_subtitle: str = event.occurrence.evidence_data["alert_subtitle"]
         return alert_subtitle
     else:
