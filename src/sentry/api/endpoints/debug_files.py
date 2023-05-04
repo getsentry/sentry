@@ -101,6 +101,7 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
                 release_name=release_name,
                 proguard_uuid=proguard_uuid,
             )
+            return Response(status=status.HTTP_201_CREATED)
         except IntegrityError:
             return Response(
                 data={
@@ -108,8 +109,6 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
                 },
                 status=status.HTTP_409_CONFLICT,
             )
-
-        return Response(status=status.HTTP_201_CREATED)
 
 
 @region_silo_endpoint

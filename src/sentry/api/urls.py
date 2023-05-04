@@ -1910,7 +1910,7 @@ PROJECT_URLS = [
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/proguard-artifact-releases",
         ProguardArtifactReleasesEndpoint.as_view(),
-        name="sentry-api-0-proguard-artifacts-releases",
+        name="sentry-api-0-proguard-artifact-releases",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/difs/assemble/$",
