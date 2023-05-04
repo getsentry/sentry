@@ -25,6 +25,15 @@ class JiraSentryUIBaseView(View):
         settings.CSP_FRAME_ANCESTORS = [
             "'self'",
         ] + [s for s in sources if s and ";" not in s]
+        settings.CSP_STYLE_SRC = [
+            # same as default (server.py)
+            "'self'",
+            "'unsafe-inline'",
+        ]
+
+        if settings.STATIC_FRONTEND_APP_URL.startswith("https://"):
+            origin = "/".join(settings.STATIC_FRONTEND_APP_URL.split("/")[0:3])
+            settings.CSP_STYLE_SRC.append(origin)
 
         header = "Content-Security-Policy"
         if getattr(settings, "CSP_REPORT_ONLY", False):
