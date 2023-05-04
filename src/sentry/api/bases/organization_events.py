@@ -393,6 +393,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         zerofill_results: bool = True,
         comparison_delta: Optional[timedelta] = None,
         additional_query_column: Optional[str] = None,
+        dataset: Optional[Any] = None,
     ) -> Dict[str, Any]:
         with self.handle_query_errors():
             with sentry_sdk.start_span(
@@ -514,7 +515,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     extra_columns=extra_columns,
                 )
                 serialized_result["meta"] = self.handle_results_with_meta(
-                    request, organization, params.get("project_id", []), result.data, True
+                    request,
+                    organization,
+                    params.get("project_id", []),
+                    result.data,
+                    True,
+                    dataset=dataset,
                 )["meta"]
 
             return serialized_result
