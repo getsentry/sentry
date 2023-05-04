@@ -99,7 +99,7 @@ export default function Monitors({location}: RouteComponentProps<{}, {}>) {
           if (!deletedEnvMonitor) {
             return;
           }
-          deletedEnvMonitor.environments = deletedEnvMonitor?.environments.filter(
+          deletedEnvMonitor.environments = deletedEnvMonitor.environments.filter(
             e => e.name !== deletedEnv.name
           );
           setApiQueryData(queryClient, monitorListQueryKey, monitorList);
