@@ -98,7 +98,7 @@ class RateLimitState:
     _grants: Sequence[GrantedQuota]
     _timestamp: Timestamp
 
-    accepted_keys: KeyCollection
+    accepted_keys: UseCaseKeyCollection
     dropped_strings: Sequence[DroppedString]
 
     def __enter__(self) -> RateLimitState:
@@ -121,7 +121,10 @@ class WritesLimiter:
         self.rate_limiter: RedisSlidingWindowRateLimiter = RedisSlidingWindowRateLimiter(**options)
 
     @metrics.wraps("sentry_metrics.indexer.check_write_limits")
-    def check_write_limits(self, use_case_keys: UseCaseKeyCollection) -> RateLimitState:
+    def check_write_limits(
+        self,
+        use_case_keys: UseCaseKeyCollection,
+    ) -> RateLimitState:
         """
         Takes a KeyCollection and applies DB write limits as configured via sentry.options.
 
@@ -176,7 +179,9 @@ class WritesLimiter:
             _requests=requests,
             _grants=grants,
             _timestamp=timestamp,
-            accepted_keys=KeyCollection(granted_key_collection),
+            accepted_keys=UseCaseKeyCollection(
+                {use_case_id: KeyCollection(granted_key_collection)}
+            ),
             dropped_strings=dropped_strings,
         )
         return state

@@ -47,11 +47,11 @@ class Integration(DefaultFieldsModel):
     external_id = models.CharField(max_length=64)
     name = models.CharField(max_length=200)
     # metadata might be used to store things like credentials, but it should NOT
-    # be used to store organization-specific information, as the Integration
-    # instance is shared among multiple organizations
+    # be used to store organization-specific information, as an Integration
+    # instance can be shared by multiple organizations
     metadata = JSONField(default=dict)
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices(), null=True
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), null=True
     )
 
     objects = IntegrationManager()
@@ -68,6 +68,8 @@ class Integration(DefaultFieldsModel):
 
     def delete(self, *args, **kwds):
         with transaction.atomic(), in_test_psql_role_override("postgres"):
+            for organization_integration in self.organizationintegration_set.all():
+                organization_integration.delete()
             for outbox in Integration.outboxes_for_update(self.id):
                 outbox.save()
             return super().delete(*args, **kwds)

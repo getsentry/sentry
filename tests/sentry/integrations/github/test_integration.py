@@ -302,9 +302,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         # Delete the Integration
         integration = Integration.objects.get(external_id=self.installation_id)
-        OrganizationIntegration.objects.filter(
+        for oi in OrganizationIntegration.objects.filter(
             organization_id=self.organization.id, integration=integration
-        ).delete()
+        ):
+            oi.delete()
         integration.delete()
 
         # Try again and should be successful
@@ -363,7 +364,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert auth_header == "Bearer jwt_token_1"
 
         integration = Integration.objects.get(provider=self.provider.key)
-        assert integration.status == ObjectStatus.VISIBLE
+        assert integration.status == ObjectStatus.ACTIVE
         assert integration.external_id == self.installation_id
 
     @responses.activate

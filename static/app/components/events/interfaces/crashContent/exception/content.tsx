@@ -13,6 +13,7 @@ import {defined} from 'sentry/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {Mechanism} from './mechanism';
+import {RelatedExceptions} from './relatedExceptions';
 import {SourceMapDebug} from './sourceMapDebug';
 import StackTrace from './stackTrace';
 import {debugFramesEnabled, getUniqueFilesFromException} from './useSourceMapDebug';
@@ -93,6 +94,11 @@ export function Content({
         {exc.mechanism && (
           <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
         )}
+        <RelatedExceptions
+          mechanism={exc.mechanism}
+          allExceptions={values}
+          newestFirst={newestFirst}
+        />
         <ErrorBoundary mini>
           {hasSourcemapDebug && (
             <SourceMapDebug debugFrames={debugFrames} event={event} />
@@ -115,7 +121,6 @@ export function Content({
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta?.[excIdx]?.stacktrace}
           debugFrames={hasSourcemapDebug ? debugFrames : undefined}
-          mechanism={exc.mechanism}
         />
       </div>
     );

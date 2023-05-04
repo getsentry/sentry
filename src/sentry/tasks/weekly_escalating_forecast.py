@@ -38,7 +38,7 @@ def run_escalating_forecast() -> None:
 
     for project_ids in chunked(
         RangeQuerySetWrapper(
-            Project.objects.filter(status=ObjectStatus.VISIBLE).values_list("id", flat=True),
+            Project.objects.filter(status=ObjectStatus.ACTIVE).values_list("id", flat=True),
             result_value_getter=lambda item: item,
             step=ITERATOR_CHUNK,
         ),

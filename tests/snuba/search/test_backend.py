@@ -328,6 +328,15 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         assert set(results) == set()
 
+    def test_query_timestamp(self):
+        results = self.make_query(
+            [self.project],
+            environments=[self.environments["production"]],
+            search_filter_query=f"timestamp:>{iso_format(self.event1.datetime)} timestamp:<{iso_format(self.event3.datetime)}",
+        )
+
+        assert set(results) == {self.group1}
+
     def test_sort(self):
         results = self.make_query(sort_by="date")
         assert list(results) == [self.group1, self.group2]
@@ -403,6 +412,16 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         self.run_test_query_in_syntax(
             "status:[resolved, muted]", [self.group2, group_3], [self.group1]
         )
+
+    def test_substatus(self):
+        with Feature("organizations:issue-states"):
+            results = self.make_query(search_filter_query="is:ongoing")
+            assert set(results) == {self.group1}
+
+        with pytest.raises(
+            InvalidSearchQuery, match="The substatus filter is not supported for this organization"
+        ):
+            self.make_query(search_filter_query="is:ongoing")
 
     def test_category(self):
         results = self.make_query(search_filter_query="issue.category:error")

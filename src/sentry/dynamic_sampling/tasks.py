@@ -25,6 +25,11 @@ from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_c
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     set_transactions_resampling_rates,
 )
+from sentry.dynamic_sampling.rules.helpers.sliding_window import (
+    extrapolate_monthly_volume,
+    generate_sliding_window_cache_key,
+    get_sliding_window_size,
+)
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
     DecisionKeepCount,
@@ -34,6 +39,7 @@ from sentry.dynamic_sampling.rules.utils import (
     generate_cache_key_rebalance_factor,
     get_redis_client_for_ds,
 )
+from sentry.dynamic_sampling.sliding_window import fetch_projects_with_total_root_transactions_count
 from sentry.dynamic_sampling.snuba_utils import (
     get_active_orgs,
     get_orgs_with_project_counts_without_modulo,
@@ -101,6 +107,61 @@ def recalibrate_orgs() -> None:
 
         if errors:
             logger.info("Dynamic sampling organization recalibration failed", extra=errors)
+
+
+def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
+    """
+    Calculates the rebalancing factor for an org
+
+    It takes the last interval total number of transactions and kept transactions, and
+    it figures out how far it is from the desired rate ( i.e. the blended rate)
+    """
+
+    redis_client = get_redis_client_for_ds()
+    factor_key = generate_cache_key_rebalance_factor(org_volume.org_id)
+    # we need a project from the current org... unfortunately get_blended_sample_rate
+    # takes a project (not an org)
+    # TODO RaduW is there a better way to get an org Project than filtering ?
+    org_projects = Project.objects.filter(organization__id=org_volume.org_id)
+
+    desired_sample_rate = None
+    for project in org_projects:
+        desired_sample_rate = quotas.get_blended_sample_rate(project)
+        break
+    else:
+        redis_client.delete(factor_key)  # cleanup just to be sure
+        # org with no project this shouldn't happen
+        return "no project found"
+
+    if desired_sample_rate is None:
+        return f"project with desired_sample_rate==None for {org_volume.org_id}"
+
+    if org_volume.total == 0 or org_volume.indexed == 0:
+        # not enough info to make adjustments ( we don't consider this an error)
+        return None
+
+    previous_interval_sample_rate = org_volume.indexed / org_volume.total
+    try:
+        previous_factor = float(redis_client.get(factor_key))
+    except (TypeError, ValueError):
+        previous_factor = 1.0
+
+    new_factor = adjusted_factor(
+        previous_factor, previous_interval_sample_rate, desired_sample_rate
+    )
+
+    if new_factor < MIN_REBALANCE_FACTOR or new_factor > MAX_REBALANCE_FACTOR:
+        # whatever we did before didn't help, give up
+        redis_client.delete(factor_key)
+        return f"factor:{new_factor} outside of the acceptable range [{MIN_REBALANCE_FACTOR}..{MAX_REBALANCE_FACTOR}]"
+
+    if new_factor != 1.0:
+        # Finally got a good key, save it to be used in rule generation
+        redis_client.set(factor_key, new_factor)
+    else:
+        # we are either at 1.0 no point creating an adjustment rule
+        redis_client.delete(factor_key)
+    return None
 
 
 @instrumented_task(
@@ -174,61 +235,6 @@ def adjust_sample_rates(
                 project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
             )
         pipeline.execute()
-
-
-def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
-    """
-    Calculates the rebalancing factor for an org
-
-    It takes the last interval total number of transactions and kept transactions, and
-    it figures out how far it is from the desired rate ( i.e. the blended rate)
-    """
-
-    redis_client = get_redis_client_for_ds()
-    factor_key = generate_cache_key_rebalance_factor(org_volume.org_id)
-    # we need a project from the current org... unfortunately get_blended_sample_rate
-    # takes a project (not an org)
-    # TODO RaduW is there a better way to get an org Project than filtering ?
-    org_projects = Project.objects.filter(organization__id=org_volume.org_id)
-
-    desired_sample_rate = None
-    for project in org_projects:
-        desired_sample_rate = quotas.get_blended_sample_rate(project)
-        break
-    else:
-        redis_client.delete(factor_key)  # cleanup just to be sure
-        # org with no project this shouldn't happen
-        return "no project found"
-
-    if desired_sample_rate is None:
-        return f"project with desired_sample_rate==None for {org_volume.org_id}"
-
-    if org_volume.total == 0 or org_volume.indexed == 0:
-        # not enough info to make adjustments ( we don't consider this an error)
-        return None
-
-    previous_interval_sample_rate = org_volume.indexed / org_volume.total
-    try:
-        previous_factor = float(redis_client.get(factor_key))
-    except (TypeError, ValueError):
-        previous_factor = 1.0
-
-    new_factor = adjusted_factor(
-        previous_factor, previous_interval_sample_rate, desired_sample_rate
-    )
-
-    if new_factor < MIN_REBALANCE_FACTOR or new_factor > MAX_REBALANCE_FACTOR:
-        # whatever we did before didn't help, give up
-        redis_client.delete(factor_key)
-        return f"factor:{new_factor} outside of the acceptable range [0.1..10.0]"
-
-    if new_factor != 1.0:
-        # Finally got a good key, save it to be used in rule generation
-        redis_client.set(factor_key, new_factor)
-    else:
-        # we are either at 1.0 no point creating an adjustment rule
-        redis_client.delete(factor_key)
-    return None
 
 
 @instrumented_task(
@@ -320,3 +326,84 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     schedule_invalidate_project_config(
         project_id=project_id, trigger="dynamic_sampling_prioritise_transaction_bias"
     )
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.tasks.sliding_window",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=2 * 60 * 60,  # 2 hours
+    time_limit=2 * 60 * 60 + 5,
+)  # type: ignore
+def sliding_window() -> None:
+    window_size = get_sliding_window_size()
+    # In case the size is None it means that we disabled the sliding window entirely.
+    if window_size is not None:
+        metrics.incr("sentry.dynamic_sampling.tasks.sliding_window.start", sample_rate=1.0)
+        with metrics.timer("sentry.dynamic_sampling.tasks.sliding_window", sample_rate=1.0):
+            for orgs in get_orgs_with_project_counts_without_modulo(
+                MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY
+            ):
+                for (
+                    org_id,
+                    projects_with_total_root_count,
+                ) in fetch_projects_with_total_root_transactions_count(
+                    org_ids=orgs, window_size=window_size
+                ).items():
+                    adjust_base_sample_rate_per_project(
+                        org_id, projects_with_total_root_count, window_size
+                    )
+
+
+def adjust_base_sample_rate_per_project(
+    org_id: int, projects_with_total_root_count: Sequence[Tuple[ProjectId, int]], window_size: int
+) -> None:
+    """
+    Adjusts the base sample rate per project by considering its volume and how it fits w.r.t. to the sampling tiers
+    defined on the billing side.
+    """
+    projects_with_rebalanced_sample_rate = []
+    for project_id, total_root_count in projects_with_total_root_count:
+        extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
+        if extrapolated_volume is None:
+            logger.error(
+                f"The volume of the current month with window size of {window_size} hours can't be extrapolated for org {org_id} and project {project_id}."
+            )
+            continue
+
+        sampling_tier = quotas.get_transaction_sampling_tier_for_volume(org_id, extrapolated_volume)
+        # In case the sampling tier cannot be determined, we want to log it and try to get it for the next project.
+        #
+        # There might be a situation in which the old key is set into Redis still and in that case, we prefer to keep it
+        # instead of deleting it. This behavior can be changed anytime, by just doing an "HDEL" on the failing key.
+        if sampling_tier is None:
+            # In case we want to track this error, we could use a sentinel value in the Redis hash to signal the
+            # rules generator that we want to fall back to a specific sample rate instead of 100%.
+            logger.error(
+                f"The sampling tier for org {org_id} and project {project_id} can't be determined, either an error "
+                f"occurred or the org doesn't have dynamic sampling."
+            )
+            continue
+
+        # We unpack the tuple containing the sampling tier information in the form (volume, sample_rate). This is done
+        # under the assumption that the sampling_tier tuple contains both non-null values.
+        _, sample_rate = sampling_tier
+        projects_with_rebalanced_sample_rate.append((project_id, sample_rate))
+
+    # In case we failed to get the sampling tier of all the projects, we don't even want to start a Redis pipeline.
+    if len(projects_with_rebalanced_sample_rate) == 0:
+        return
+
+    redis_client = get_redis_client_for_ds()
+    with redis_client.pipeline(transaction=False) as pipeline:
+        for project_id, sample_rate in projects_with_rebalanced_sample_rate:
+            cache_key = generate_sliding_window_cache_key(org_id=org_id)
+            pipeline.hset(cache_key, project_id, sample_rate)
+            pipeline.pexpire(cache_key, CACHE_KEY_TTL)
+
+            schedule_invalidate_project_config(
+                project_id=project_id, trigger="dynamic_sampling_prioritise_project_bias"
+            )
+
+        pipeline.execute()

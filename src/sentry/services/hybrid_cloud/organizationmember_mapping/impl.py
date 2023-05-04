@@ -12,6 +12,7 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     OrganizationMemberMappingService,
     RpcOrganizationMemberMapping,
+    RpcOrganizationMemberMappingUpdate,
 )
 
 
@@ -56,6 +57,31 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             inviter_id=org_member.inviter_id,
             invite_status=org_member.invite_status,
         )
+
+    def update_with_organization_member(
+        self,
+        *,
+        organizationmember_id: int,
+        organization_id: int,
+        rpc_update_org_member: RpcOrganizationMemberMappingUpdate,
+    ) -> RpcOrganizationMemberMapping:
+        org_member_map = OrganizationMemberMapping.objects.get(
+            organization_id=organization_id,
+            organizationmember_id=organizationmember_id,
+        )
+        org_member_map.update(**rpc_update_org_member.dict())
+        return self._serialize_rpc(org_member_map)
+
+    def delete_with_organization_member(
+        self,
+        *,
+        organizationmember_id: int,
+        organization_id: int,
+    ) -> None:
+        OrganizationMemberMapping.objects.filter(
+            organization_id=organization_id,
+            organizationmember_id=organizationmember_id,
+        ).delete()
 
     def close(self) -> None:
         pass
