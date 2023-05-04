@@ -32,6 +32,7 @@ import {
   getTitle,
 } from 'sentry/utils/events';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -48,12 +49,7 @@ import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
 import SampleEventAlert from './sampleEventAlert';
 import {Tab, TabPaths} from './types';
-import {
-  fetchGroupEvent,
-  getGroupReprocessingStatus,
-  markEventSeen,
-  ReprocessingStatus,
-} from './utils';
+import {getGroupReprocessingStatus, markEventSeen, ReprocessingStatus} from './utils';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
@@ -74,9 +70,7 @@ type FetchGroupDetailsState = {
   event: Event | null;
   eventError: boolean;
   fetchData: () => Promise<void>;
-  fetchEvent: () => void;
   group: Group | null;
-  loading: boolean;
   loadingEvent: boolean;
   loadingGroup: boolean;
   project: Project | null;
@@ -253,6 +247,26 @@ function useFetchOnMount({fetchData}: Pick<FetchGroupDetailsState, 'fetchData'>)
   }, []);
 }
 
+function useGetApiQuery() {
+  const router = useRouter();
+  const params = router.params;
+  const eventId = params.eventId ?? 'latest';
+
+  return eventId === 'latest' ? useLatestEventApiQuery : useOtherEventApiQuery;
+}
+
+function useLatestEventApiQuery(queryKey: [string, {query: {environment?: string[]}}]) {
+  return useApiQuery<Event>(queryKey, {
+    staleTime: 10000,
+  });
+}
+
+function useOtherEventApiQuery(queryKey: [string, {query: {environment?: string[]}}]) {
+  return useApiQuery<Event>(queryKey, {
+    staleTime: Infinity,
+  });
+}
+
 function useFetchGroupDetails({
   isGlobalSelectionReady,
   environments,
@@ -269,14 +283,43 @@ function useFetchGroupDetails({
   const allGroups = useLegacyStore(GroupStore);
   const group = allGroups.find(({id}) => id === params.groupId) as Group;
 
-  const [loading, setLoading] = useState<boolean>(false);
   const [project, setProject] = useState<Project | null>(null);
-  const [event, setEvent] = useState<Event | null>(null);
   const [loadingGroup, setLoadingGroup] = useState<boolean>(false);
-  const [loadingEvent, setLoadingEvent] = useState<boolean>(false);
   const [error, setError] = useState<boolean>(false);
   const [errorType, setErrorType] = useState<Error | null>(null);
-  const [eventError, setEventError] = useState<boolean>(false);
+
+  const useEventApiQuery = useGetApiQuery();
+
+  const groupId = params.groupId;
+  const eventId = params.eventId ?? 'latest';
+
+  const url = `/issues/${groupId}/events/${eventId}/`;
+
+  const query: {environment?: string[]} = {};
+  if (environments.length !== 0) {
+    query.environment = environments;
+  }
+
+  const {
+    data: event,
+    isLoading: loadingEvent,
+    isError,
+    error: eventError,
+  } = useEventApiQuery([url, {query}]);
+
+  // const {
+  //   data: event,
+  //   isLoading: loadingEvent,
+  //   isError,
+  //   error: eventError,
+  // } = useApiQuery<Event>([url, {query}], {
+  //   staleTime: Infinity,
+  // });
+
+  if (isError) {
+    // This is an expected error, capture to Sentry so that it is not considered as an unhandled error
+    Sentry.captureException(eventError);
+  }
 
   const fetchGroupReleases = useCallback(async () => {
     const releases = await api.requestPromise(
@@ -289,36 +332,9 @@ function useFetchGroupDetails({
     Sentry.captureException(e);
 
     setLoadingGroup(false);
-    setLoading(false);
     setErrorType(getFetchDataRequestErrorType(e?.status));
     setError(true);
   }, []);
-
-  const fetchEvent = useCallback(async () => {
-    setLoadingEvent(true);
-    setEventError(false);
-
-    const groupId = params.groupId;
-    const eventId = params.eventId ?? 'latest';
-    try {
-      const data = await fetchGroupEvent(api, groupId, eventId, environments);
-
-      setEvent(data);
-      setLoadingEvent(false);
-      setEventError(false);
-      setLoading(false);
-
-      return data;
-    } catch (err) {
-      // This is an expected error, capture to Sentry so that it is not considered as an unhandled error
-      Sentry.captureException(err);
-      setEventError(true);
-      setLoadingEvent(false);
-      setLoading(false);
-
-      return null;
-    }
-  }, [api, environments, params.eventId, params.groupId]);
 
   const fetchData = useCallback(async () => {
     // Need to wait for global selection store to be ready before making request
@@ -327,26 +343,12 @@ function useFetchGroupDetails({
     }
 
     try {
-      const eventPromise = fetchEvent();
-
       const groupPromise = api.requestPromise(`/issues/${params.groupId}/`, {
         query: getGroupQuery({environments}),
       });
 
-      const [groupResponse] = await Promise.all([groupPromise, eventPromise]);
+      const [groupResponse] = await Promise.all([groupPromise]);
       fetchGroupReleases();
-
-      const reprocessingNewRoute = getReprocessingNewRoute({
-        group: groupResponse,
-        event,
-        router,
-        organization,
-      });
-
-      if (reprocessingNewRoute) {
-        browserHistory.push(reprocessingNewRoute);
-        return;
-      }
 
       const matchingProject = projects?.find(p => p.id === groupResponse.project.id);
 
@@ -394,16 +396,13 @@ function useFetchGroupDetails({
   }, [
     api,
     environments,
-    event,
     fetchGroupReleases,
-    fetchEvent,
     handleError,
     isGlobalSelectionReady,
     location,
     organization,
     params,
     projects,
-    router,
   ]);
 
   // Refetch when group is stale
@@ -418,15 +417,28 @@ function useFetchGroupDetails({
     }
   }, [fetchData, group]);
 
-  useTrackView({group, event, project});
+  useEffect(() => {
+    if (group && event) {
+      const reprocessingNewRoute = getReprocessingNewRoute({
+        group,
+        event,
+        router,
+        organization,
+      });
+
+      if (reprocessingNewRoute) {
+        browserHistory.push(reprocessingNewRoute);
+        return;
+      }
+    }
+  }, [group, event, organization, router]);
+
+  useTrackView({group, event: event ?? null, project});
 
   const refetchData = useCallback(() => {
     // Set initial state
-    setLoading(true);
-    setLoadingEvent(true);
     setLoadingGroup(true);
     setError(false);
-    setEventError(false);
     setErrorType(null);
     setProject(null);
 
@@ -437,7 +449,6 @@ function useFetchGroupDetails({
     if (
       group?.status !== ReprocessingStatus.REPROCESSING ||
       loadingGroup ||
-      loading ||
       loadingEvent
     ) {
       return;
@@ -450,18 +461,6 @@ function useFetchGroupDetails({
         query: getGroupQuery({environments}),
       });
 
-      const reprocessingNewRoute = getReprocessingNewRoute({
-        group: updatedGroup,
-        event,
-        organization,
-        router,
-      });
-
-      if (reprocessingNewRoute) {
-        browserHistory.push(reprocessingNewRoute);
-        return;
-      }
-
       setLoadingGroup(false);
       GroupStore.loadInitialData([updatedGroup]);
     } catch (e) {
@@ -470,15 +469,11 @@ function useFetchGroupDetails({
   }, [
     api,
     environments,
-    event,
     group?.status,
     handleError,
-    loading,
     loadingEvent,
     loadingGroup,
-    organization,
     params.groupId,
-    router,
   ]);
 
   useFetchOnMount({fetchData});
@@ -492,18 +487,16 @@ function useFetchGroupDetails({
 
   return {
     project,
-    loading,
     loadingGroup,
     loadingEvent,
-    eventError,
     fetchData,
     group,
-    event,
+    event: event ?? null,
     errorType,
     error,
+    eventError: isError,
     refetchData,
     refetchGroup,
-    fetchEvent,
   };
 }
 
@@ -696,7 +689,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     return <StyledLoadingError message={t('Error loading the specified project')} />;
   }
 
-  if (props.loading || !projectsLoaded || !props.group) {
+  if (!projectsLoaded || !props.group) {
     return <LoadingIndicator />;
   }
 
@@ -722,7 +715,7 @@ function GroupDetails(props: GroupDetailsProps) {
   const location = useLocation();
   const router = useRouter();
 
-  const {fetchData, project, group, fetchEvent, ...fetchGroupDetailsProps} =
+  const {fetchData, project, group, ...fetchGroupDetailsProps} =
     useFetchGroupDetails(props);
 
   const previousPathname = usePrevious(location.pathname);
@@ -740,7 +733,6 @@ function GroupDetails(props: GroupDetailsProps) {
     }
   }, [
     fetchData,
-    fetchEvent,
     group,
     location.pathname,
     previousEventId,
@@ -782,7 +774,6 @@ function GroupDetails(props: GroupDetailsProps) {
               group,
               project,
               fetchData,
-              fetchEvent,
               ...fetchGroupDetailsProps,
             }}
           />
