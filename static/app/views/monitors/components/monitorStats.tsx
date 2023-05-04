@@ -72,19 +72,25 @@ const MonitorStats = ({monitor, monitorEnv, orgId}: Props) => {
     yAxisIndex: 0,
     data: [],
   };
+  const timeout: BarChartSeries = {
+    seriesName: t('Timeout'),
+    yAxisIndex: 0,
+    data: [],
+  };
   const durationData = [] as [number, number][];
 
   data.stats?.forEach(p => {
-    if (p.ok || p.error || p.missed) {
+    if (p.ok || p.error || p.missed || p.timeout) {
       emptyStats = false;
     }
     const timestamp = p.ts * 1000;
     success.data.push({name: timestamp, value: p.ok});
     failed.data.push({name: timestamp, value: p.error});
+    timeout.data.push({name: timestamp, value: p.timeout});
     missed.data.push({name: timestamp, value: p.missed});
     durationData.push([timestamp, Math.trunc(p.duration)]);
   });
-  const colors = [theme.green200, theme.red200, theme.yellow200];
+  const colors = [theme.green200, theme.red200, theme.red200, theme.yellow200];
 
   const durationTitle = t('Average Duration');
   const additionalSeries: LineSeriesOption[] = [
@@ -118,7 +124,7 @@ const MonitorStats = ({monitor, monitorEnv, orgId}: Props) => {
             isGroupedByDate
             showTimeInTooltip
             useShortDate
-            series={[success, failed, missed]}
+            series={[success, failed, timeout, missed]}
             stacked
             additionalSeries={additionalSeries}
             height={height}
