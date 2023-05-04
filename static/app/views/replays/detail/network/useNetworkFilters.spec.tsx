@@ -384,18 +384,14 @@ describe('getMethodTypes', () => {
     ]);
   });
 
-  it('should deduplicate method types', () => {
-    it('should deduplicate BreadcrumbType', () => {
-      const networkSpans = [SPAN_2_SCRIPT, SPAN_3_FETCH, SPAN_7_FETCH_GET];
+  it('should deduplicate BreadcrumbType', () => {
+    const networkSpans = [SPAN_2_SCRIPT, SPAN_3_FETCH, SPAN_7_FETCH_GET];
 
-      const {result} = reactHooks.renderHook(useNetworkFilters, {
-        initialProps: {networkSpans},
-      });
-
-      expect(result.current.getMethodTypes()).toStrictEqual([
-        {label: 'GET', value: 'GET'},
-      ]);
+    const {result} = reactHooks.renderHook(useNetworkFilters, {
+      initialProps: {networkSpans},
     });
+
+    expect(result.current.getMethodTypes()).toStrictEqual([{label: 'GET', value: 'GET'}]);
   });
 });
 
