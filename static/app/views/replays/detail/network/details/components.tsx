@@ -109,7 +109,7 @@ export function SectionItem({
     <Fragment>
       <SectionTitle>
         <ToggleButton aria-label={t('toggle section')} onClick={() => setIsOpen(!isOpen)}>
-          <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+          <IconChevron direction={isOpen ? 'down' : 'right'} size="xs" />
           {title}
           {titleExtra ? <SectionTitleExtra>{titleExtra}</SectionTitleExtra> : null}
         </ToggleButton>
