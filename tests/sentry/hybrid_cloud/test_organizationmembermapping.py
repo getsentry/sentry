@@ -1,6 +1,7 @@
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
+    RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
 from sentry.testutils import TransactionTestCase
@@ -193,6 +194,25 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             rpc_orgmember_mapping.invite_status
             == orgmember_mapping.invite_status
             == fields["invite_status"]
+        )
+        self.assert_org_member_mapping(org_member=org_member)
+
+    def test_create_mapping_on_update(self):
+        with exempt_from_silo_limits():
+            inviter = self.create_user("bob@example.com")
+            org_member = OrganizationMember.objects.create(
+                organization_id=self.organization.id,
+                role="member",
+                email="foo@example.com",
+                user_id=None,
+                invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+                inviter_id=inviter.id,
+            )
+
+        organizationmember_mapping_service.update_with_organization_member(
+            organizationmember_id=org_member.id,
+            organization_id=self.organization.id,
+            rpc_update_org_member=RpcOrganizationMemberMappingUpdate.from_orm(org_member),
         )
         self.assert_org_member_mapping(org_member=org_member)
 
