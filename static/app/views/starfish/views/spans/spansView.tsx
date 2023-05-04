@@ -23,8 +23,19 @@ type SpanDataRow = {
 
 export default function SpansView(props: Props) {
   const [clusterPath, setClusterPath] = useState<string[]>(['top']);
-  const currentClusters = clusterPath.map(clusterName => CLUSTERS[clusterName]);
+  const currentClusters = clusterPath.map(
+    clusterName =>
+      CLUSTERS[clusterName] || {
+        isDynamic: true,
+        name: clusterName,
+      }
+  );
   const currentCluster = currentClusters.at(-1);
+  if (currentCluster.isDynamic) {
+    currentCluster.condition = currentClusters
+      .at(-2)
+      .grouping_condition(currentCluster.name);
+  }
 
   const clusterBreakdowns = useQueries({
     queries: currentClusters.map(cluster => {
@@ -32,9 +43,10 @@ export default function SpansView(props: Props) {
         queryKey: ['clusterBreakdown', cluster.name],
         queryFn: () =>
           fetch(
-            `${HOST}/?query=${getTimeSpentQuery(cluster.grouping_column || '', [
-              cluster.condition,
-            ])}`
+            `${HOST}/?query=${getTimeSpentQuery(
+              cluster.grouping_column || '',
+              currentClusters.map(c => c.condition(c.name))
+            )}`
           ).then(res => res.json()),
         retry: false,
         enabled: Boolean(cluster.grouping_column),
@@ -48,7 +60,7 @@ export default function SpansView(props: Props) {
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getSpanListQuery(
-          currentClusters.map(cluster => cluster.condition)
+          currentClusters.map(c => c.condition(c.name))
         )}`
       ).then(res => res.json()),
     retry: false,
