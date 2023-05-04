@@ -23,7 +23,6 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
-    # TODO and this
     def get_performance_issue_body(self, event: Event) -> str:
         (
             transaction_name,
@@ -52,11 +51,11 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
     def get_group_description(self, group: Group, event: Event | GroupEvent, **kwargs: Any) -> str:
         output = self.get_group_link(group, **kwargs)
 
-        if isinstance(event, GroupEvent) and event.occurrence is not None:
-            body = self.get_generic_issue_body(event)
-            output.extend([body])
-        elif group.issue_category == GroupCategory.PERFORMANCE:
+        if group.issue_category == GroupCategory.PERFORMANCE:
             body = self.get_performance_issue_body(event)
+            output.extend([body])
+        elif isinstance(event, GroupEvent) and event.occurrence is not None:
+            body = self.get_generic_issue_body(event)
             output.extend([body])
         else:
             body = self.get_group_body(group, event)
