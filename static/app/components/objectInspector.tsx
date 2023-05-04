@@ -13,6 +13,7 @@ import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
 
 type Props = Omit<ComponentProps<typeof OrigObjectInspector>, 'theme'> & {
   onCopy?: (copiedCode: string) => void;
@@ -101,7 +102,7 @@ const Wrapper = styled('div')`
 const CopyButton = styled(Button)`
   position: absolute;
   top: 0;
-  right: 0;
+  right: ${space(0.5)};
 
   color: ${p => p.theme.subText};
 `;
