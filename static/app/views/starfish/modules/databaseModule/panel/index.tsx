@@ -228,7 +228,7 @@ function QueryDetailBody({
       </FlexRowContainer>
       <FlexRowContainer>
         <FlexRowItem>
-          <SubHeader>{t('Top 5 transaction by throughput')}</SubHeader>
+          <SubHeader>{t('Top 5 Transactions by Throughput')}</SubHeader>
           <Chart
             statsPeriod="24h"
             height={140}
@@ -249,7 +249,7 @@ function QueryDetailBody({
           />
         </FlexRowItem>
         <FlexRowItem>
-          <SubHeader>{t('Top 5 transactions by P75')}</SubHeader>
+          <SubHeader>{t('Top 5 Transactions by P75')}</SubHeader>
           <Chart
             statsPeriod="24h"
             height={140}
