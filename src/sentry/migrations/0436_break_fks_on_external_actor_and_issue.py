@@ -74,7 +74,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0434_notification_setting_target_id"),
+        ("sentry", "0435_add_alert_rule_source"),
     ]
 
     operations = external_actor_and_issue_migrations()

@@ -22,16 +22,18 @@ class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
         current = tsdb.normalize_to_epoch(args["start"], args["rollup"])
         end = tsdb.normalize_to_epoch(args["end"], args["rollup"])
 
+        tracked_statuses = [CheckInStatus.OK, CheckInStatus.ERROR, CheckInStatus.MISSED]
+
         # initialize success/failure/missed/duration stats in preparation for counting/aggregating
         while current <= end:
-            stats[current] = {CheckInStatus.OK: 0, CheckInStatus.ERROR: 0, CheckInStatus.MISSED: 0}
+            stats[current] = {status: 0 for status in tracked_statuses}
             duration_stats[current] = {"sum": 0, "num_checkins": 0}
             current += args["rollup"]
 
         # retrieve the list of checkins in the time range and count success/failure/missed/duration
         history = MonitorCheckIn.objects.filter(
             monitor=monitor,
-            status__in=[CheckInStatus.OK, CheckInStatus.ERROR, CheckInStatus.MISSED],
+            status__in=tracked_statuses,
             date_added__gt=args["start"],
             date_added__lte=args["end"],
         )
@@ -50,21 +52,17 @@ class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
                 duration_stats[ts]["sum"] += duration
                 duration_stats[ts]["num_checkins"] += 1
 
-        # compute average duration and construct response object
         stats_duration_data = []
+        statuses_to_name = dict(CheckInStatus.as_choices())
+        # compute average duration and construct response object
         for ts, data in stats.items():
             duration_sum, num_checkins = duration_stats[ts].values()
             avg_duration = 0
             if num_checkins > 0:
                 avg_duration = duration_sum / num_checkins
-            stats_duration_data.append(
-                {
-                    "ts": ts,
-                    "ok": data[CheckInStatus.OK],
-                    "error": data[CheckInStatus.ERROR],
-                    "missed": data[CheckInStatus.MISSED],
-                    "duration": avg_duration,
-                }
-            )
+            datapoint = {statuses_to_name[status]: data[status] for status in tracked_statuses}
+            datapoint["ts"] = ts
+            datapoint["duration"] = avg_duration
+            stats_duration_data.append(datapoint)
 
         return Response(stats_duration_data)
