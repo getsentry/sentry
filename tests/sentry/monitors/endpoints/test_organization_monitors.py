@@ -7,6 +7,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 
 from sentry.constants import ObjectStatus
+from sentry.models import Rule
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -206,3 +207,18 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
         self.get_error_response(self.organization.slug, status_code=403, **data)
+
+    @patch("sentry.analytics.record")
+    def test_simple_with_alert_rule(self, mock_record):
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            "alert_rule": {"targetIdentifier": self.user.id, "targetType": "Member"},
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+
+        monitor = Monitor.objects.get(slug=response.data["slug"])
+        alert_rule_id = monitor.config.get("alert_rule_id")
+        assert Rule.objects.filter(project_id=monitor.project_id, id=alert_rule_id).exists()

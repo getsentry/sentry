@@ -20,7 +20,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.models import Rule, RuleStatus, ScheduledDeletion
+from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, ScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.validators import MonitorValidator
@@ -171,8 +171,12 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                 )
                 alert_rule_id = monitor_object.config.get("alert_rule_id")
                 if alert_rule_id:
-                    Rule.objects.filter(project_id=monitor.project_id, id=alert_rule_id).update(
-                        status=RuleStatus.PENDING_DELETION
+                    rule = Rule.objects.filter(
+                        project_id=monitor.project_id, id=alert_rule_id
+                    ).first()
+                    rule.update(status=RuleStatus.PENDING_DELETION)
+                    RuleActivity.objects.create(
+                        rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
                     )
 
             if not monitor_object or not monitor_object.update(

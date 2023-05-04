@@ -1,5 +1,6 @@
 from sentry.constants import ObjectStatus
-from sentry.models import ScheduledDeletion
+from sentry.mediators.project_rules import Creator
+from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, ScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -374,3 +375,28 @@ class DeleteMonitorTest(MonitorTestCase):
             status_code=404,
             qs_params={"environment": "jungle"},
         )
+
+    def test_simple_with_alert_rule(self):
+        monitor = self._create_monitor()
+        rule = Creator(
+            name="New Cool Rule",
+            owner=self.user.id,
+            project=self.project,
+            action_match="all",
+            filter_match="any",
+            conditions=[],
+            actions=[],
+            frequency=5,
+        ).call()
+        config = monitor.config
+        config["alert_rule_id"] = rule.id
+        monitor.config = config
+        monitor.save()
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="DELETE", status_code=202
+        )
+
+        rule = Rule.objects.get(project_id=monitor.project_id, id=monitor.config["alert_rule_id"])
+        assert rule.status == RuleStatus.PENDING_DELETION
+        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.DELETED.value).exists()
