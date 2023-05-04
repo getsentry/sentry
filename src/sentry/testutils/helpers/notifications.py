@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Iterable, Mapping
 
-from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Team, User
 from sentry.notifications.notifications.base import BaseNotification
@@ -89,3 +89,47 @@ TEST_ISSUE_OCCURRENCE = IssueOccurrence(
     "info",
     "/api/123/",
 )
+
+SAMPLE_TO_OCCURRENCE_MAP = {
+    "transaction-n-plus-one-api-call": IssueOccurrence(
+        uuid.uuid4().hex,
+        1,
+        uuid.uuid4().hex,
+        ["1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-e9fd5e5c83310fe03b57fa00dc9a09653d523d90"],
+        "N+1 Query",
+        "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+        None,
+        {
+            "op": "http.client",
+            "cause_span_ids": [],
+            "parent_span_ids": ["829d17842d952371"],
+            "parent_span": "http.client - GET http://127.0.0.1:3000/author/278/book?book_id=67",
+            "offender_span_ids": [
+                "b2af9392df36fa1f",
+                "a39c22ce65e378cc",
+                "ae58828e4fdd0bba",
+                "8869e7e96076fa88",
+                "ac71c2e69245f37d",
+                "8e7189a4f1e24ac3",
+                "ba5183ea752ce85a",
+                "a530576977ba0714",
+                "bd5f728e61f667cf",
+                "9e87e2127c3a3136",
+                "b38bff8a7d07b1bc",
+                "ae5b2d34409bb315",
+                "918be77fbfd326ca",
+                "afa8a8b18afbad59",
+            ],
+            "alert_subtitle": "http.client - GET http://127.0.0.1:3000/author/278/book?book_id=96",
+            "transaction_name": "/",
+            "num_repeating_spans": "14",
+            "repeating_spans": "/author/278/book",
+            "parameters": ["{book_id: 96,44,22,43,79,50,55,48,90,69,1,36,78,67}"],
+        },
+        [],
+        PerformanceNPlusOneGroupType,
+        ensure_aware(datetime.now()),
+        "info",
+        "/books/",
+    )
+}

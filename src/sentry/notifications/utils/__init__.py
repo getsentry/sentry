@@ -25,7 +25,7 @@ from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import integrations
+from sentry import integrations, options
 from sentry.api.serializers.models.event import get_entries, get_problems
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.models import AlertRuleTriggerAction
@@ -360,6 +360,11 @@ def get_parent_and_repeating_spans(
     return (parent_span, repeating_spans)
 
 
+def occurrence_perf_to_email_html(context: Any) -> Any:
+    """Generate the email HTML for an occurrence-backed performance issue alert"""
+    return render_to_string("sentry/emails/transactions.html", context)
+
+
 def perf_to_email_html(
     spans: Union[List[Dict[str, Union[str, float]]], None],
     problem: PerformanceProblem = None,
@@ -412,10 +417,21 @@ def get_span_and_problem(
     return (spans, matched_problem)
 
 
-def get_transaction_data(event: Event) -> Any:
+def get_transaction_data(event: Event, project: Project) -> Any:
     """Get data about a transaction to populate alert emails."""
-    spans, matched_problem = get_span_and_problem(event)
-    return perf_to_email_html(spans, matched_problem, event)
+    if options.get(
+        "performance.issues.create_issues_through_platform", True
+    ) and project.get_option("sentry:performance_issue_create_issue_through_platform", True):
+        # get spans and matched_problem
+        evidence_data = event.occurrence.evidence_data
+        if not evidence_data:
+            return ""
+
+        context = evidence_data
+        return occurrence_perf_to_email_html(context)
+    else:
+        spans, matched_problem = get_span_and_problem(event)
+        return perf_to_email_html(spans, matched_problem, event)
 
 
 def get_generic_data(event: GroupEvent) -> Any:
@@ -439,12 +455,16 @@ def generic_email_html(context: Any) -> Any:
 
 def get_performance_issue_alert_subtitle(event: Event) -> str:
     """Generate the issue alert subtitle for performance issues"""
-    spans, matched_problem = get_span_and_problem(event)
-    repeating_span_value = ""
-    if spans and matched_problem:
-        _, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
-        repeating_span_value = get_span_evidence_value(repeating_spans, include_op=False)
-    return repeating_span_value.replace("`", '"')
+    if isinstance(event, GroupEvent) and event.occurrence is not None:
+        alert_subtitle: str = event.occurrence.evidence_data["alert_subtitle"]
+        return alert_subtitle
+    else:
+        spans, matched_problem = get_span_and_problem(event)
+        repeating_span_value = ""
+        if spans and matched_problem:
+            _, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
+            repeating_span_value = get_span_evidence_value(repeating_spans, include_op=False)
+        return repeating_span_value.replace("`", '"')
 
 
 def get_notification_group_title(

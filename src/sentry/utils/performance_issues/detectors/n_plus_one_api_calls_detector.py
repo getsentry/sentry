@@ -3,9 +3,10 @@ from __future__ import annotations
 import hashlib
 import os
 import random
+from collections import defaultdict
 from datetime import timedelta
-from typing import Optional, Sequence
-from urllib.parse import urlparse
+from typing import List, Mapping, Optional, Sequence
+from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
 
@@ -19,6 +20,7 @@ from ..base import (
     PerformanceDetector,
     fingerprint_http_spans,
     get_span_duration,
+    get_span_evidence_value,
     get_url_from_span,
     parameterize_url,
 )
@@ -166,6 +168,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not fingerprint:
             return
 
+        offender_span_ids = [span["span_id"] for span in self.spans]
+        repeating_spans = get_span_evidence_value(self.spans[0])
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op=last_span["op"],
@@ -173,15 +178,50 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             type=DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key],
             cause_span_ids=[],
             parent_span_ids=[last_span.get("parent_span_id", None)],
-            offender_span_ids=[span["span_id"] for span in self.spans],
+            offender_span_ids=offender_span_ids,
             evidence_data={
                 "op": last_span["op"],
                 "cause_span_ids": [],
                 "parent_span_ids": [last_span.get("parent_span_id", None)],
-                "offender_span_ids": [span["span_id"] for span in self.spans],
+                # get the parent of last span
+                "parent_span": get_span_evidence_value(last_span),
+                "offender_span_ids": offender_span_ids,
+                "transaction_name": self._event.get("transaction", ""),
+                "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
+                "repeating_spans": self._get_path_prefix(self.spans[0]),
+                "parameters": self._get_parameters(),
+                # come up with a better name
+                "alert_subtitle": repeating_spans,
             },
             evidence_display=[],
         )
+
+    def _get_parameters(self) -> List[str]:
+        if not self.spans or len(self.spans) == 0:
+            return []
+
+        urls = [get_url_from_span(span) for span in self.spans]
+
+        all_parameters: Mapping[str, List[str]] = defaultdict(list)
+
+        for url in urls:
+            parsed_url = urlparse(url)
+            parameters = parse_qs(parsed_url.query)
+
+            for key, value in parameters.items():
+                all_parameters[key] += value
+
+        return [
+            "{{{}: {}}}".format(key, ",".join(values)) for key, values in all_parameters.items()
+        ]
+
+    def _get_path_prefix(self, repeating_span) -> str:
+        if not repeating_span:
+            return ""
+
+        url = get_url_from_span(repeating_span)
+        parsed_url = urlparse(url)
+        return parsed_url.path or ""
 
     def _fingerprint(self) -> Optional[str]:
         first_url = get_url_from_span(self.spans[0])
