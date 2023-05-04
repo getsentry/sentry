@@ -392,7 +392,7 @@ describe('getMethodTypes', () => {
         initialProps: {networkSpans},
       });
 
-      expect(result.current.getResourceTypes()).toStrictEqual([
+      expect(result.current.getMethodTypes()).toStrictEqual([
         {label: 'GET', value: 'GET'},
       ]);
     });
