@@ -450,7 +450,7 @@ class IssueEventSerializerTest(TestCase):
                 "parentSpanIds": ["8dd7a5869a4f4583"],
                 "parentSpan": "django.view - index",
                 "repeatingSpans": "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                "repeatingSpansCompact": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE  `books_author`.`id` = %s LIMIT 21",
+                "repeatingSpansCompact": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
                 "transactionName": "/books/",
             },
             "evidenceDisplay": [],
