@@ -6,7 +6,7 @@ from typing import Dict, Optional, Sequence, Tuple
 import sentry_sdk
 from django.core.exceptions import ObjectDoesNotExist
 
-from sentry import options, quotas
+from sentry import features, options, quotas
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
 from sentry.dynamic_sampling.models.transaction_adjustment_model import adjust_sample_rate
 from sentry.dynamic_sampling.models.utils import DSElement
@@ -50,7 +50,7 @@ from sentry.dynamic_sampling.snuba_utils import (
     get_active_orgs,
     get_orgs_with_project_counts_without_modulo,
 )
-from sentry.models import Project
+from sentry.models import Organization, Project
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
@@ -200,6 +200,7 @@ def adjust_sample_rates(
     and store it in DS redis cluster, then we invalidate project config
     so relay can reread it, and we'll inject it from redis cache.
     """
+    organization = Organization.objects.get_from_cache(id=org_id)
     projects = []
     Counter = namedtuple("Counter", ["count", "count_keep", "count_drop"])
     project_ids_with_counts = {}
@@ -208,13 +209,18 @@ def adjust_sample_rates(
 
     sample_rate = None
     for project in Project.objects.get_many_from_cache(project_ids_with_counts.keys()):
-        # We want to rebalance the project based on the sliding window sample rate which is org scoped. In case we are
-        # not able to use it, we can temporarily fall back to the blended sample rate.
-        sample_rate = get_sliding_window_org_sample_rate(
-            org_id, default_sample_rate=quotas.get_blended_sample_rate(project)
-        )
+        if features.has("organizations:ds-sliding-window-org", organization, actor=None):
+            # We want to rebalance the project based on the sliding window sample rate which is org scoped. In case
+            # we are not able to use it, we can temporarily fall back to the blended sample rate.
+            sample_rate = get_sliding_window_org_sample_rate(
+                org_id, default_sample_rate=quotas.get_blended_sample_rate(project)
+            )
+        else:
+            sample_rate = quotas.get_blended_sample_rate(project)
+
         if sample_rate is None:
             continue
+
         counts = project_ids_with_counts[project.id]
         projects.append(
             DSElement(

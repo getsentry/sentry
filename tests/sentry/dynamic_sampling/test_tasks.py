@@ -78,9 +78,45 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
         return kwargs["volume"]
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    def test_prioritise_projects_simple(
+        self,
+        get_blended_sample_rate,
+    ):
+        get_blended_sample_rate.return_value = 0.25
+        # Create a org
+        test_org = self.create_organization(name="sample-org")
+
+        # Create 4 projects
+        proj_a = self.create_project_and_add_metrics("a", 9, test_org)
+        proj_b = self.create_project_and_add_metrics("b", 7, test_org)
+        proj_c = self.create_project_and_add_metrics("c", 3, test_org)
+        proj_d = self.create_project_and_add_metrics("d", 1, test_org)
+
+        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
+            with self.tasks():
+                sliding_window_org()
+                prioritise_projects()
+
+        # we expect only uniform rule
+        # also we test here that `generate_rules` can handle trough redis long floats
+        assert generate_rules(proj_a)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.14814814814814817),
+        }
+        assert generate_rules(proj_b)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.1904761904761905),
+        }
+        assert generate_rules(proj_c)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.4444444444444444),
+        }
+        assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
+
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
-    def test_prioritise_projects_simple(
+    def test_prioritise_projects_simple_with_sliding_window_org(
         self,
         extrapolate_monthly_volume,
         get_transaction_sampling_tier_for_volume,
@@ -99,9 +135,10 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
         proj_d = self.create_project_and_add_metrics("d", 1, test_org)
 
         with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
-            with self.tasks():
-                sliding_window_org()
-                prioritise_projects()
+            with self.feature("organizations:ds-sliding-window-org"):
+                with self.tasks():
+                    sliding_window_org()
+                    prioritise_projects()
 
         # we expect only uniform rule
         # also we test here that `generate_rules` can handle trough redis long floats
