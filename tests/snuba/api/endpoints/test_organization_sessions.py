@@ -955,16 +955,21 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
             "sentry.snuba.metrics.query.MAX_POINTS", 6
         ):
-            response = self.do_request(
-                {
-                    "project": [-1],
-                    "statsPeriod": "3d",
-                    "interval": "1d",
-                    # "user" is the first field, but "session" always wins:
-                    "field": ["count_unique(user)", "sum(session)"],
-                    "groupBy": ["project", "release", "environment"],
-                }
-            )
+
+            def do_request(cursor):
+                return self.do_request(
+                    {
+                        "project": [-1],
+                        "statsPeriod": "3d",
+                        "interval": "1d",
+                        # "user" is the first field, but "session" always wins:
+                        "field": ["count_unique(user)", "sum(session)"],
+                        "groupBy": ["project", "release", "environment"],
+                        **({"cursor": cursor} if cursor else {}),
+                    }
+                )
+
+            response = do_request(None)
 
             assert response.status_code == 200, response.content
             assert result_sorted(response.data)["groups"] == [
@@ -987,6 +992,16 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                     "series": {"sum(session)": [0, 0, 2], "count_unique(user)": [0, 0, 1]},
                 },
             ]
+
+            # Check if pagination still works:
+            links = {link["rel"]: link for _, link in parse_link_header(response["Link"]).items()}
+            assert links["previous"]["results"] == "false"
+            assert links["next"]["results"] == "true"
+
+            response = do_request(links["next"]["cursor"])
+            assert response.status_code == 200, response.content
+
+            assert result_sorted(response.data)["groups"] == ["something"]
 
     @freeze_time(MOCK_DATETIME)
     def test_snuba_limit_exceeded_groupby_status(self):
