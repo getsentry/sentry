@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -7,48 +7,44 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
 import {Button, ButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import withRouteAnalytics, {
-  WithRouteAnalyticsProps,
-} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
-import withOrganization from 'sentry/utils/withOrganization';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
-import AsyncView from 'sentry/views/asyncView';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
 
 import CronsFeedbackButton from './components/cronsFeedbackButton';
-import {MonitorRow} from './row';
-import {Monitor} from './types';
-
-type Props = AsyncView['props'] &
-  WithRouteAnalyticsProps &
-  WithRouterProps<{}> & {
-    organization: Organization;
-  };
-
-type State = AsyncView['state'] & {
-  monitorList: Monitor[] | null;
-};
+import {MonitorRow} from './components/row';
+import {Monitor, MonitorEnvironment} from './types';
 
 function NewMonitorButton(props: ButtonProps) {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
+
   return (
     <Button
-      to={`/organizations/${organization.slug}/crons/create/`}
+      to={{
+        pathname: `/organizations/${organization.slug}/crons/create/`,
+        query: {project: selection.projects},
+      }}
       priority="primary"
       {...props}
     >
@@ -57,37 +53,29 @@ function NewMonitorButton(props: ButtonProps) {
   );
 }
 
-class Monitors extends AsyncView<Props, State> {
-  get orgSlug() {
-    return this.props.organization.slug;
-  }
+export default function Monitors({location}: RouteComponentProps<{}, {}>) {
+  const organization = useOrganization();
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {location} = this.props;
-    return [
-      [
-        'monitorList',
-        `/organizations/${this.orgSlug}/monitors/`,
-        {
-          query: location.query,
-        },
-      ],
-    ];
-  }
+  const monitorListQueryKey = [
+    `/organizations/${organization.slug}/monitors/`,
+    {query: {...location.query, includeNew: true}},
+  ] as const;
+  const {
+    data: monitorList,
+    getResponseHeader: monitorListHeaders,
+    isLoading,
+  } = useApiQuery<Monitor[]>(monitorListQueryKey, {
+    staleTime: 0,
+  });
 
-  getTitle() {
-    return `Crons - ${this.orgSlug}`;
-  }
+  useRouteAnalyticsEventNames('monitors.page_viewed', 'Monitors: Page Viewed');
+  useRouteAnalyticsParams({empty_state: !monitorList || monitorList.length === 0});
 
-  onRequestSuccess(response): void {
-    this.props.setEventNames('monitors.page_viewed', 'Monitors: Page Viewed');
-    this.props.setRouteAnalyticsParams({
-      empty_state: response.data.length === 0,
-    });
-  }
+  const monitorListPageLinks = monitorListHeaders?.('Link');
 
-  handleSearch = (query: string) => {
-    const {location, router} = this.props;
+  const handleSearch = (query: string) => {
     router.push({
       pathname: location.pathname,
       query: normalizeDateTimeParams({
@@ -97,11 +85,24 @@ class Monitors extends AsyncView<Props, State> {
     });
   };
 
-  renderBody() {
-    const {monitorList, monitorListPageLinks} = this.state;
-    const {organization} = this.props;
+  const renderMonitorRow = (monitor: Monitor, monitorEnv?: MonitorEnvironment) => (
+    <MonitorRow
+      key={`${monitor.slug}-${monitorEnv?.name ?? 'no-env'}`}
+      monitor={monitor}
+      monitorEnv={monitorEnv}
+      onDelete={() => {
+        setApiQueryData(
+          queryClient,
+          monitorListQueryKey,
+          monitorList?.filter(m => m.slug !== monitor.slug)
+        );
+      }}
+      organization={organization}
+    />
+  );
 
-    return (
+  return (
+    <SentryDocumentTitle title={`Crons - ${organization.slug}`}>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -128,14 +129,19 @@ class Monitors extends AsyncView<Props, State> {
         <Layout.Body>
           <Layout.Main fullWidth>
             <Filters>
-              <ProjectPageFilter resetParamsOnChange={['cursor']} />
+              <PageFilterBar>
+                <ProjectPageFilter resetParamsOnChange={['cursor']} />
+                <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
+              </PageFilterBar>
               <SearchBar
                 query={decodeScalar(qs.parse(location.search)?.query, '')}
-                placeholder={t('Search by name')}
-                onSearch={this.handleSearch}
+                placeholder={t('Search by name or slug')}
+                onSearch={handleSearch}
               />
             </Filters>
-            {monitorList?.length ? (
+            {isLoading ? (
+              <LoadingIndicator />
+            ) : monitorList?.length ? (
               <Fragment>
                 <StyledPanelTable
                   headers={[
@@ -144,25 +150,21 @@ class Monitors extends AsyncView<Props, State> {
                     t('Schedule'),
                     t('Next Checkin'),
                     t('Project'),
+                    t('Environment'),
                     t('Actions'),
                   ]}
                 >
-                  {monitorList?.map(monitor => (
-                    <MonitorRow
-                      key={monitor.slug}
-                      monitor={monitor}
-                      onDelete={() => {
-                        this.setState({
-                          monitorList: monitorList.filter(m => m.slug !== monitor.slug),
-                        });
-                      }}
-                      organization={organization}
-                    />
-                  ))}
+                  {monitorList
+                    ?.map(monitor =>
+                      monitor.environments.length > 0
+                        ? monitor.environments.map(monitorEnv =>
+                            renderMonitorRow(monitor, monitorEnv)
+                          )
+                        : renderMonitorRow(monitor)
+                    )
+                    .flat()}
                 </StyledPanelTable>
-                {monitorListPageLinks && (
-                  <Pagination pageLinks={monitorListPageLinks} {...this.props} />
-                )}
+                {monitorListPageLinks && <Pagination pageLinks={monitorListPageLinks} />}
               </Fragment>
             ) : (
               <OnboardingPanel image={<img src={onboardingImg} />}>
@@ -183,23 +185,21 @@ class Monitors extends AsyncView<Props, State> {
           </Layout.Main>
         </Layout.Body>
       </Layout.Page>
-    );
-  }
+    </SentryDocumentTitle>
+  );
 }
 
 const Filters = styled('div')`
   display: grid;
-  grid-template-columns: minmax(auto, 300px) 1fr;
+  grid-template-columns: max-content 1fr;
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr max-content max-content max-content max-content max-content;
+  grid-template-columns: 1fr max-content 1fr max-content max-content max-content max-content;
 `;
 
 const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
-
-export default withRouteAnalytics(withSentryRouter(withOrganization(Monitors)));

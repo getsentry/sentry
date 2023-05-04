@@ -8,7 +8,7 @@ import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets
 import {AutoSampleState, useMEPSettingContext} from './metricsEnhancedSetting';
 import {createDefinedContext} from './utils';
 
-interface MetricsEnhancedPerformanceDataContext {
+export interface MetricsEnhancedPerformanceDataContext {
   setIsMetricsData: (value?: boolean) => void;
   isMetricsData?: boolean;
 }
@@ -18,13 +18,13 @@ const [_MEPDataProvider, _useMEPDataContext] =
     name: 'MetricsEnhancedPerformanceDataContext',
   });
 
-export const MEPDataProvider = ({
+export function MEPDataProvider({
   children,
   chartSetting,
 }: {
   children: ReactNode;
   chartSetting?: PerformanceWidgetSetting;
-}) => {
+}) {
   const {setAutoSampleState} = useMEPSettingContext();
   const [isMetricsData, _setIsMetricsData] = useState<boolean | undefined>(undefined); // Uses undefined to cover 'not initialized'
 
@@ -49,11 +49,23 @@ export const MEPDataProvider = ({
       {children}
     </_MEPDataProvider>
   );
-};
+}
 
 export const useMEPDataContext = _useMEPDataContext;
 
-export const MEPTag = () => {
+export function getIsMetricsDataFromResults(
+  results: any,
+  field = ''
+): boolean | undefined {
+  const isMetricsData =
+    results?.meta?.isMetricsData ??
+    results?.seriesAdditionalInfo?.[field]?.isMetricsData ??
+    results?.histograms?.meta?.isMetricsData ??
+    results?.tableData?.meta?.isMetricsData;
+  return isMetricsData;
+}
+
+export function MEPTag() {
   const {isMetricsData} = useMEPDataContext();
   const organization = useOrganization();
 
@@ -69,4 +81,4 @@ export const MEPTag = () => {
   const tagText = isMetricsData ? 'processed' : 'indexed';
 
   return <Tag data-test-id="has-metrics-data-tag">{tagText}</Tag>;
-};
+}

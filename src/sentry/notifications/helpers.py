@@ -17,6 +17,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.types.integrations import (
@@ -270,18 +271,18 @@ def get_scope(
     user: User | None = None,
     team: Team | None = None,
     actor: RpcActor | None = None,
-    project: Project | None = None,
-    organization: Organization | None = None,
+    project: Project | int | None = None,
+    organization: Organization | int | None = None,
 ) -> tuple[NotificationScopeType, int]:
     """
     Figure out the scope from parameters and return it as a tuple.
     TODO(mgaeta): Make sure the user/team is in the project/organization.
     """
     if project:
-        return NotificationScopeType.PROJECT, project.id
+        return NotificationScopeType.PROJECT, extract_id_from(project)
 
     if organization:
-        return NotificationScopeType.ORGANIZATION, organization.id
+        return NotificationScopeType.ORGANIZATION, extract_id_from(organization)
 
     if user is not None:
         actor = RpcActor.from_object(user)
@@ -289,9 +290,9 @@ def get_scope(
         actor = RpcActor.from_object(team)
     if actor:
         if actor.actor_type == ActorType.TEAM:
-            return NotificationScopeType.TEAM, actor.id
+            return NotificationScopeType.TEAM, extract_id_from(actor)
         else:
-            return NotificationScopeType.USER, actor.id
+            return NotificationScopeType.USER, extract_id_from(actor)
 
     raise Exception("scope must be either user, team, organization, or project")
 
@@ -324,12 +325,16 @@ def get_groups_for_query(
     that to know if a user is subscribed or not, as long as notifications aren't
     disabled for the project.
     """
+
+    # Avoid n queries for actors.
+    actor = RpcActor.from_object(user)
+
     # Although this can be done with a comprehension, looping for clarity.
     output = set()
     for project_id, groups in groups_by_project.items():
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope,
-            recipient=user,
+            recipient=actor,
             parent_id=project_id,
             type=NotificationSettingTypes.WORKFLOW,
         )

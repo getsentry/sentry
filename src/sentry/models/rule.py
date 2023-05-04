@@ -1,4 +1,5 @@
-from enum import Enum
+from enum import Enum, IntEnum
+from typing import Sequence, Tuple
 
 from django.db import models
 from django.utils import timezone
@@ -11,6 +12,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
 
@@ -21,6 +23,18 @@ class RuleStatus:
     INACTIVE = 1
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
+
+
+class RuleSource(IntEnum):
+    ISSUE = 0
+    CRON_MONITOR = 1
+
+    @classmethod
+    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+        return (
+            (cls.ISSUE, "issue"),
+            (cls.CRON_MONITOR, "cron_monitor"),
+        )
 
 
 @region_silo_only_model
@@ -34,13 +48,20 @@ class Rule(Model):
     project = FlexibleForeignKey("sentry.Project")
     environment_id = BoundedPositiveIntegerField(null=True)
     label = models.CharField(max_length=64)
+    # `data` contain all the specifics of the rule - conditions, actions, frequency, etc.
     data = GzippedDictField()
     status = BoundedPositiveIntegerField(
         default=RuleStatus.ACTIVE,
         choices=((RuleStatus.ACTIVE, "Active"), (RuleStatus.INACTIVE, "Inactive")),
         db_index=True,
     )
-    owner = FlexibleForeignKey("sentry.Actor", null=True)
+    # source is currently used as a way to distinguish rules created specificly
+    # for use in other parts of the product (e.g. cron monitor alerting rules)
+    source = BoundedPositiveIntegerField(
+        default=RuleSource.ISSUE,
+        choices=RuleSource.as_choices(),
+    )
+    owner = FlexibleForeignKey("sentry.Actor", null=True, on_delete=models.SET_NULL)
 
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -49,7 +70,7 @@ class Rule(Model):
     class Meta:
         db_table = "sentry_rule"
         app_label = "sentry"
-        index_together = (("project", "status", "owner"),)
+        index_together = ("project", "status", "owner")
 
     __repr__ = sane_repr("project_id", "label")
 
@@ -63,12 +84,12 @@ class Rule(Model):
         return rules_list
 
     @property
-    def created_by(self):
+    def created_by_id(self):
         try:
             created_activity = RuleActivity.objects.get(
                 rule=self, type=RuleActivityType.CREATED.value
             )
-            return created_activity.user
+            return created_activity.user_id
         except RuleActivity.DoesNotExist:
             pass
 
@@ -108,7 +129,7 @@ class RuleActivity(Model):
     __include_in_export__ = True
 
     rule = FlexibleForeignKey("sentry.Rule")
-    user = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)
     type = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 

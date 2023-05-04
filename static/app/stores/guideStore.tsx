@@ -7,7 +7,7 @@ import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {CommonStoreDefinition} from './types';
 
@@ -203,7 +203,7 @@ const storeConfig: GuideStoreDefinition = {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('assistant.guide_cued', {
+    trackAnalytics('assistant.guide_cued', {
       organization: this.state.orgId,
       guide,
     });
@@ -278,6 +278,7 @@ const storeConfig: GuideStoreDefinition = {
         ? this.state.currentStep
         : 0;
     this.state.currentGuide = nextGuide;
+
     this.trigger(this.state);
     HookStore.get('callback:on-guide-update').map(cb => cb(nextGuide, {dismissed}));
   },

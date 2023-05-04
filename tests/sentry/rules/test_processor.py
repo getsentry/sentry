@@ -89,6 +89,7 @@ class RuleProcessorTest(TestCase):
 
     def test_ignored_issue(self):
         self.group_event.group.status = GroupStatus.IGNORED
+        self.group_event.group.substatus = None
         self.group_event.group.save()
         rp = RuleProcessor(
             self.group_event,
@@ -102,6 +103,7 @@ class RuleProcessorTest(TestCase):
 
     def test_resolved_issue(self):
         self.group_event.group.status = GroupStatus.RESOLVED
+        self.group_event.group.substatus = None
         self.group_event.group.save()
         rp = RuleProcessor(
             self.group_event,

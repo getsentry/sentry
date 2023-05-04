@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
+import uniqBy from 'lodash/uniqBy';
 
 import {assignToActor, assignToUser, clearAssignment} from 'sentry/actionCreators/group';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -141,10 +142,6 @@ export class AssigneeSelectorDropdown extends Component<
     }, undefined),
   ];
 
-  hasStreamlineTargeting() {
-    return this.props.organization.features.includes('streamline-targeting-context');
-  }
-
   handleMemberListUpdate = (members: User[]) => {
     if (members === this.state.memberList) {
       return;
@@ -251,29 +248,18 @@ export class AssigneeSelectorDropdown extends Component<
           <IconContainer>
             <UserAvatar user={member} size={24} />
           </IconContainer>
-          {this.hasStreamlineTargeting() ? (
-            <div>
-              <AssigneeLabel>
-                <Highlight text={inputValue}>
-                  {sessionUser.id === member.id
-                    ? `${member.name || member.email} ${t('(You)')}`
-                    : member.name || member.email}
-                </Highlight>
-              </AssigneeLabel>
-              {suggestedReason && (
-                <SuggestedAssigneeReason>{suggestedReason}</SuggestedAssigneeReason>
-              )}
-            </div>
-          ) : (
-            <Label>
+          <div>
+            <AssigneeLabel>
               <Highlight text={inputValue}>
                 {sessionUser.id === member.id
                   ? `${member.name || member.email} ${t('(You)')}`
                   : member.name || member.email}
               </Highlight>
-              {suggestedReason && <SuggestedReason> ({suggestedReason})</SuggestedReason>}
-            </Label>
-          )}
+            </AssigneeLabel>
+            {suggestedReason && (
+              <SuggestedAssigneeReason>{suggestedReason}</SuggestedAssigneeReason>
+            )}
+          </div>
         </MenuItemWrapper>
       ),
     };
@@ -300,21 +286,14 @@ export class AssigneeSelectorDropdown extends Component<
           <IconContainer>
             <TeamAvatar team={team} size={24} />
           </IconContainer>
-          {this.hasStreamlineTargeting() ? (
-            <div>
-              <AssigneeLabel>
-                <Highlight text={inputValue}>{display}</Highlight>
-              </AssigneeLabel>
-              {suggestedReason && (
-                <SuggestedAssigneeReason>{suggestedReason}</SuggestedAssigneeReason>
-              )}
-            </div>
-          ) : (
-            <Label>
+          <div>
+            <AssigneeLabel>
               <Highlight text={inputValue}>{display}</Highlight>
-              {suggestedReason && <SuggestedReason> ({suggestedReason})</SuggestedReason>}
-            </Label>
-          )}
+            </AssigneeLabel>
+            {suggestedReason && (
+              <SuggestedAssigneeReason>{suggestedReason}</SuggestedAssigneeReason>
+            )}
+          </div>
         </MenuItemWrapper>
       ),
     };
@@ -350,17 +329,9 @@ export class AssigneeSelectorDropdown extends Component<
     const filteredSessionUser: ItemsBeforeFilter = members.filter(
       member => member.value.assignee.id === sessionUser.id
     );
-    // filter out session user from Suggested
-    const filteredSuggestedAssignees: ItemsBeforeFilter = suggestedAssignees.filter(
-      assignee => {
-        return assignee.value.type === 'member'
-          ? assignee.value.assignee.id !== sessionUser.id
-          : assignee;
-      }
-    );
 
     const assigneeIds = new Set(
-      filteredSuggestedAssignees.map(
+      suggestedAssignees.map(
         assignee => `${assignee.value.type}:${assignee.value.assignee.id}`
       )
     );
@@ -376,51 +347,22 @@ export class AssigneeSelectorDropdown extends Component<
     });
 
     // New version combines teams and users into one section
-    const dropdownItems: ItemsBeforeFilter = this.hasStreamlineTargeting()
-      ? [
-          {
-            label: this.renderDropdownGroupLabel(t('Everyone Else')),
-            hideGroupLabel: !filteredSuggestedAssignees.length,
-            id: 'everyone-else',
-            items: [...filteredSessionUser, ...filteredTeams, ...filteredMembers],
-          },
-        ]
-      : [
-          {
-            label: this.renderDropdownGroupLabel(t('Teams')),
-            id: 'team-header',
-            items: filteredTeams,
-          },
-          {
-            label: this.renderDropdownGroupLabel(t('People')),
-            id: 'members-header',
-            items: filteredMembers,
-          },
-        ];
+    const dropdownItems: ItemsBeforeFilter = [
+      {
+        label: this.renderDropdownGroupLabel(t('Everyone Else')),
+        hideGroupLabel: !suggestedAssignees.length,
+        id: 'everyone-else',
+        items: [...filteredSessionUser, ...filteredTeams, ...filteredMembers],
+      },
+    ];
 
-    if (suggestedAssignees.length || filteredSessionUser.length) {
+    if (suggestedAssignees.length) {
       // Add suggested assingees
-      if (this.hasStreamlineTargeting()) {
-        dropdownItems.unshift({
-          label: this.renderDropdownGroupLabel(t('Suggested Assignees')),
-          id: 'suggested-list',
-          items: filteredSuggestedAssignees,
-        });
-      } else {
-        dropdownItems.unshift(
-          // session user is first on dropdown
-          {
-            label: this.renderDropdownGroupLabel(t('Suggested')),
-            id: 'suggested-header',
-            items: filteredSessionUser,
-          },
-          {
-            hideGroupLabel: true,
-            id: 'suggested-list',
-            items: filteredSuggestedAssignees,
-          }
-        );
-      }
+      dropdownItems.unshift({
+        label: this.renderDropdownGroupLabel(t('Suggested Assignees')),
+        id: 'suggested-list',
+        items: suggestedAssignees,
+      });
     }
 
     return dropdownItems;
@@ -496,7 +438,9 @@ export class AssigneeSelectorDropdown extends Component<
       // TODO: codeowners may no longer exist
       codeowners: t('Codeowners'),
     };
-    return suggestedOwners
+
+    const uniqueSuggestions = uniqBy(suggestedOwners, owner => owner.owner);
+    return uniqueSuggestions
       .map<SuggestedAssignee | null>(owner => {
         // converts a backend suggested owner to a suggested assignee
         const [ownerType, id] = owner.owner.split(':');
@@ -674,8 +618,4 @@ const GroupHeader = styled('div')`
   margin: ${space(1)} 0;
   color: ${p => p.theme.subText};
   text-align: left;
-`;
-
-const SuggestedReason = styled('span')`
-  color: ${p => p.theme.subText};
 `;

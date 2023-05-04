@@ -8,11 +8,18 @@ from django.utils import timezone
 from sentry import roles
 from sentry.auth import manager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.models import INVITE_DAYS_VALID, InviteStatus, OrganizationMember, OrganizationOption
+from sentry.models import (
+    INVITE_DAYS_VALID,
+    AuthIdentity,
+    InviteStatus,
+    OrganizationMember,
+    OrganizationOption,
+)
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
@@ -140,17 +147,45 @@ class OrganizationMemberTest(TestCase):
         OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.filter(id=member.id).first() is None
 
+    def test_delete_identities(self):
+        org = self.create_organization()
+        user = self.create_user()
+        member = self.create_member(user_id=user.id, organization_id=org.id)
+        with exempt_from_silo_limits():
+            ap = AuthProvider.objects.create(
+                organization_id=org.id, provider="sentry_auth_provider", config={}
+            )
+            AuthIdentity.objects.create(user=user, auth_provider=ap)
+            qs = AuthIdentity.objects.filter(auth_provider__organization_id=org.id, user_id=user.id)
+            assert qs.exists()
+
+        with outbox_runner():
+            member.outbox_for_update().save()
+
+        # ensure that even if the outbox sends a general, non delete update, it doesn't cascade
+        # the delete to auth identity objects.
+        with exempt_from_silo_limits():
+            assert qs.exists()
+
+        with outbox_runner():
+            member.delete()
+
+        with exempt_from_silo_limits():
+            assert not qs.exists()
+
     def test_delete_expired_SCIM_enabled(self):
         organization = self.create_organization()
         org3 = self.create_organization()
         with exempt_from_silo_limits():
             AuthProvider.objects.create(
                 provider="saml2",
-                organization=organization,
+                organization_id=organization.id,
                 flags=AuthProvider.flags["scim_enabled"],
             )
             AuthProvider.objects.create(
-                provider="saml2", organization=org3, flags=AuthProvider.flags["allow_unlinked"]
+                provider="saml2",
+                organization_id=org3.id,
+                flags=AuthProvider.flags["allow_unlinked"],
             )
         ninety_one_days = timezone.now() - timedelta(days=91)
         member = OrganizationMember.objects.create(
@@ -189,7 +224,6 @@ class OrganizationMemberTest(TestCase):
             organization=self.organization,
             role="member",
             user=user,
-            email="test@example.com",
             token="abc-def",
             token_expires_at="2018-01-01 10:00:00",
         )

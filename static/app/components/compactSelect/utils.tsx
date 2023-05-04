@@ -9,7 +9,12 @@ import {Node, Selection} from '@react-types/shared';
 import {t} from 'sentry/locale';
 
 import {SectionToggleButton} from './styles';
-import {SelectOption, SelectOptionOrSection, SelectOptionOrSectionWithKey} from './types';
+import {
+  SelectOption,
+  SelectOptionOrSection,
+  SelectOptionOrSectionWithKey,
+  SelectSection,
+} from './types';
 
 /**
  * Recursively finds the selected option(s) from an options array. Useful for
@@ -35,8 +40,9 @@ export function getSelectedOptions<Value extends React.Key>(
 }
 
 /**
- * Recursively finds the selected option(s) from an options array. Useful for
- * non-flat arrays that contain sections (groups of options).
+ * Recursively finds the selected option(s) from an options array. Useful for non-flat
+ * arrays that contain sections (groups of options). Returns the values of options that
+ * were removed.
  */
 export function getDisabledOptions<Value extends React.Key>(
   items: SelectOptionOrSection<Value>[],
@@ -58,6 +64,88 @@ export function getDisabledOptions<Value extends React.Key>(
     }
     return acc;
   }, []);
+}
+
+/**
+ * Recursively finds the option(s) that don't match the designated search string or are
+ * outside the list box's count limit.
+ */
+export function getHiddenOptions<Value extends React.Key>(
+  items: SelectOptionOrSection<Value>[],
+  search: string,
+  limit: number = Infinity
+): Set<Value> {
+  //
+  // First, filter options using `search` value
+  //
+  const filterOption = (opt: SelectOption<Value>) =>
+    String(opt.label ?? '')
+      .toLowerCase()
+      .includes(search.toLowerCase());
+
+  const itemsToHide: Value[] = [];
+  const remainingItems = items
+    .map<SelectOptionOrSection<Value> | null>(item => {
+      if ('options' in item) {
+        const filteredOptions = item.options
+          .map(opt => {
+            if (filterOption(opt)) {
+              return opt;
+            }
+
+            itemsToHide.push(opt.value);
+            return null;
+          })
+          .filter((opt): opt is SelectOption<Value> => !!opt);
+
+        return filteredOptions.length > 0 ? {...item, options: filteredOptions} : null;
+      }
+
+      if (filterOption(item)) {
+        return item;
+      }
+
+      itemsToHide.push(item.value);
+      return null;
+    })
+    .flat()
+    .filter((item): item is SelectOptionOrSection<Value> => !!item);
+
+  //
+  // Then, limit the number of remaining options to `limit`
+  //
+  let threshold = [Infinity, Infinity];
+  let accumulator = 0;
+  let currentIndex = 0;
+
+  while (currentIndex < remainingItems.length) {
+    const item = remainingItems[currentIndex];
+    const delta = 'options' in item ? item.options.length : 1;
+
+    if (accumulator + delta > limit) {
+      threshold = [currentIndex, limit - accumulator];
+      break;
+    }
+
+    accumulator += delta;
+    currentIndex += 1;
+  }
+
+  // Return the values of options that were removed.
+  return new Set([
+    ...itemsToHide,
+    ...remainingItems.slice(threshold[0]).reduce((acc: Value[], cur, index) => {
+      if ('options' in cur) {
+        return acc.concat(
+          index === 0
+            ? cur.options.slice(threshold[1]).map(o => o.value)
+            : cur.options.map(o => o.value)
+        );
+      }
+
+      return acc.concat(cur.value);
+    }, []),
+  ]);
 }
 
 /**
@@ -85,13 +173,14 @@ interface SectionToggleProps {
   item: Node<any>;
   listState: ListState<any>;
   listId?: string;
+  onToggle?: (section: SelectSection<React.Key>, type: 'select' | 'unselect') => void;
 }
 
 /**
  * A visible toggle button to select/unselect all options within a given section. See
  * also: `HiddenSectionToggle`.
  */
-export function SectionToggle({item, listState}: SectionToggleProps) {
+export function SectionToggle({item, listState, onToggle}: SectionToggleProps) {
   const allOptionsSelected = useMemo(
     () => [...item.childNodes].every(n => listState.selectionManager.isSelected(n.key)),
     [item, listState.selectionManager]
@@ -105,14 +194,13 @@ export function SectionToggle({item, listState}: SectionToggleProps) {
     return listHasFocus && sectionHasFocus;
   }, [item, listState.selectionManager.focusedKey, listState.selectionManager.isFocused]);
 
-  const toggleAllOptions = useCallback(
-    () =>
-      toggleOptions(
-        [...item.childNodes].map(n => n.key),
-        listState.selectionManager
-      ),
-    [item, listState.selectionManager]
-  );
+  const toggleAllOptions = useCallback(() => {
+    onToggle?.(item.value, allOptionsSelected ? 'unselect' : 'select');
+    toggleOptions(
+      [...item.childNodes].map(n => n.key),
+      listState.selectionManager
+    );
+  }, [onToggle, allOptionsSelected, item, listState.selectionManager]);
 
   return (
     <SectionToggleButton
@@ -143,6 +231,7 @@ export function SectionToggle({item, listState}: SectionToggleProps) {
 export function HiddenSectionToggle({
   item,
   listState,
+  onToggle,
   listId = '',
   ...props
 }: SectionToggleProps) {
@@ -179,11 +268,13 @@ export function HiddenSectionToggle({
   );
 
   const {pressProps} = usePress({
-    onPress: () =>
+    onPress: () => {
+      onToggle?.(item.value, allOptionsSelected ? 'unselect' : 'select');
       toggleOptions(
         [...item.childNodes].map(n => n.key),
         listState.selectionManager
-      ),
+      );
+    },
   });
 
   return (

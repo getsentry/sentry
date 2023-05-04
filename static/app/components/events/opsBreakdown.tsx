@@ -310,7 +310,7 @@ const StyledBreakdownNoHeader = styled('div')`
   margin: ${space(2)} ${space(3)};
 `;
 
-const OpsLine = styled('div')`
+export const OpsLine = styled('div')`
   display: flex;
   justify-content: space-between;
   margin-bottom: ${space(0.5)};

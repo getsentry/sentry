@@ -39,9 +39,8 @@ class SCIMMemberIndexDocs(APIDocsTestCase, SCIMTestCase):
 
     def test_post_member_exists_but_not_accepted(self):
         self.create_member(
-            user=self.create_user(),
+            user=self.create_user(email="test.user@okta.local"),
             organization=self.organization,
-            email="test.user@okta.local",
             role="member",
             invite_status=1,
         )

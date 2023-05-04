@@ -7,8 +7,8 @@ import useApi from 'sentry/utils/useApi';
 
 type Options = {
   organization: Organization;
-  projectIds: number[];
   groupIds?: string | string[];
+  projectIds?: number[] | undefined;
   replayIds?: string | string[];
   transactionNames?: string | string[];
 };

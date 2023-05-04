@@ -128,6 +128,7 @@ class GitLabApiClient(ApiClient):
             refresh_token_url="{}{}".format(
                 self.metadata["base_url"], GitLabApiClientPath.oauth_token
             ),
+            verify_ssl=self.metadata["verify_ssl"],
         )
 
     def get_user(self):
@@ -324,7 +325,8 @@ class GitLabApiClient(ApiClient):
         self, repo: Repository, path: str, ref: str, lineno: int
     ) -> Sequence[Mapping[str, Any]]:
         project_id = repo.config["project_id"]
-        request_path = GitLabApiClientPath.blame.format(project=project_id, path=path)
+        encoded_path = quote(path, safe="")
+        request_path = GitLabApiClientPath.blame.format(project=project_id, path=encoded_path)
         contents = self.get(
             request_path, params={"ref": ref, "range[start]": lineno, "range[end]": lineno}
         )

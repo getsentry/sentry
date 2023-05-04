@@ -16,6 +16,7 @@ from sentry.api.validators.external_actor import (
 )
 from sentry.api.validators.integrations import validate_provider
 from sentry.models import ExternalActor, Organization, Team
+from sentry.models.actor import Actor, get_actor_for_user
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.types.integrations import ExternalProviders, get_provider_choices
@@ -62,7 +63,12 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
         return int(provider.value)
 
     def get_actor_id(self, validated_data: MutableMapping[str, Any]) -> int:
-        return int(validated_data.pop(self._actor_key).actor_id)
+        actor_model = validated_data.pop(self._actor_key)
+        if isinstance(actor_model, Team):
+            actor = Actor.objects.get(**{self._actor_key: actor_model.id})
+        else:
+            actor = get_actor_for_user(actor_model)
+        return int(actor.id)
 
     def create(self, validated_data: MutableMapping[str, Any]) -> ExternalActor:
         actor_id = self.get_actor_id(validated_data)

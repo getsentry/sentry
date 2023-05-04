@@ -53,7 +53,7 @@ class DetailedUserSerializerTest(TestCase):
 
         org = self.create_organization(owner=user)
 
-        auth_provider = AuthProvider.objects.create(organization=org, provider="dummy")
+        auth_provider = AuthProvider.objects.create(organization_id=org.id, provider="dummy")
         auth_identity = AuthIdentity.objects.create(
             auth_provider=auth_provider, ident=user.email, user=user
         )
@@ -89,7 +89,7 @@ class DetailedSelfUserSerializerTest(TestCase):
 
         org = self.create_organization(owner=user)
 
-        auth_provider = AuthProvider.objects.create(organization=org, provider="dummy")
+        auth_provider = AuthProvider.objects.create(organization_id=org.id, provider="dummy")
         auth_identity = AuthIdentity.objects.create(
             auth_provider=auth_provider, ident=user.email, user=user
         )

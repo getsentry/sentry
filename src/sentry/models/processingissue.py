@@ -12,6 +12,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.models import Release
 
 
 def get_processing_issue_checksum(scope, object):
@@ -81,14 +82,41 @@ class ProcessingIssueManager(BaseManager):
 
     def record_processing_issue(self, raw_event, scope, object, type, data=None):
         """Records a new processing issue for the given raw event."""
-        data = dict(data or {})
         checksum = get_processing_issue_checksum(scope, object)
+
+        release = raw_event.data.get("release")
+        dist = raw_event.data.get("dist")
+
+        data = dict(data or {})
         data["_scope"] = scope
         data["_object"] = object
-        issue, _ = ProcessingIssue.objects.get_or_create(
+        if release:
+            data["release"] = release
+            if dist:
+                data["dist"] = dist
+
+        issue, created = ProcessingIssue.objects.get_or_create(
             project_id=raw_event.project_id, checksum=checksum, type=type, defaults=dict(data=data)
         )
-        ProcessingIssue.objects.filter(pk=issue.id).update(datetime=timezone.now())
+
+        if not created:
+            prev_release = issue.data.get("release")
+            if Release.is_release_newer_or_equal(
+                raw_event.project.organization.id, release, prev_release
+            ):
+                issue.data["release"] = release
+                # In case we have a dist, we want to remove it, since we are changing release. Then in the next step
+                # we might either add the dist or not.
+                # This code is put to avoid the edge case in which a newer release comes without a dist and a previous
+                # dist existed.
+                if "dist" in issue.data:
+                    issue.data.pop("dist")
+                if dist:
+                    issue.data["dist"] = dist
+
+        issue.datetime = timezone.now()
+        issue.save()
+
         # In case the issue moved away from unresolved we want to make
         # sure it's back to unresolved
         EventProcessingIssue.objects.get_or_create(raw_event=raw_event, processing_issue=issue)

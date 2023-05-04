@@ -170,7 +170,9 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             and ownership.schema.get("rules")
             and "id" not in ownership.schema["rules"][0]["owners"][0].keys()
         ):
-            ownership.schema = create_schema_from_issue_owners(ownership.raw, project.id, True)
+            ownership.schema = create_schema_from_issue_owners(
+                ownership.raw, project.id, add_owner_ids=True, remove_deleted_owners=True
+            )
             ownership.save()
 
     def rename_schema_identifier_for_parsing(self, ownership: ProjectOwnership) -> None:
@@ -230,13 +232,21 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         )
         if serializer.is_valid():
             ownership = serializer.save()
+
+            change_data = {**serializer.validated_data}
+            # Ownership rules can be large (3 MB) and we don't want to store them in the audit log
+            if "raw" in change_data and "schema" in change_data:
+                del change_data["schema"]
+                del change_data["raw"]
+                change_data["ownership_rules"] = "modified"
+
             create_audit_entry(
                 request=self.request,
                 actor=request.user,
                 organization=project.organization,
                 target_object=project.id,
                 event=audit_log.get_event_id("PROJECT_EDIT"),
-                data={**serializer.validated_data, **project.get_audit_log_data()},
+                data={**change_data, **project.get_audit_log_data()},
             )
             ownership_rule_created.send_robust(project=project, sender=self.__class__)
             return Response(

@@ -139,7 +139,7 @@ class SentryPermission(ScopedPermission):
             rpc_user_org_context=org_context,
         )
 
-        extra = {"organization_id": extract_id_from(organization), "user_id": request.user.id}
+        extra = {"organization_id": org_context.organization.id, "user_id": request.user.id}
 
         if auth.is_user_signed_request(request):
             # if the user comes from a signed request

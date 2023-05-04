@@ -19,7 +19,9 @@ class ApiInviteHelperTest(TestCase):
             organization=self.org,
             teams=[self.team],
         )
-        self.auth_provider = AuthProvider(provider="Friendly IdP", organization=self.organization)
+        self.auth_provider = AuthProvider(
+            provider="Friendly IdP", organization_id=self.organization.id
+        )
 
         self.request = HttpRequest()
         self.request.user = self.user

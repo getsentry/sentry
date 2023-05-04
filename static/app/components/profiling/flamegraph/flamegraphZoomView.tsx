@@ -656,16 +656,35 @@ function FlamegraphZoomView({
       },
     });
 
-    const frames = flamegraph.findAllMatchingFrames(frameName, packageName);
+    let frames = flamegraph.findAllMatchingFrames(frameName, packageName);
+    if (
+      !frames.length &&
+      !packageName &&
+      frameName &&
+      profileGroup.metadata.platform === 'node'
+    ) {
+      // there is a chance that the reason we did not find any frames is because
+      // for node, we try to infer some package from the frontend code.
+      // If that happens, we'll try and just do a search by name. This logic
+      // is duplicated in flamegraphZoomView.tsx and should be kept in sync
+      frames = flamegraph.findAllMatchingFramesBy(frameName, ['name']);
+    }
+
     const rectFrames = frames.map(f => new Rect(f.start, f.depth, f.end - f.start, 1));
     const newConfigView = computeMinZoomConfigViewForFrames(
       flamegraphView.configView,
       rectFrames
-    );
+    ).transformRect(flamegraphView.configSpaceTransform);
 
     canvasPoolManager.dispatch('highlight frame', [frames, 'selected']);
     canvasPoolManager.dispatch('set config view', [newConfigView, flamegraphView]);
-  }, [canvasPoolManager, flamegraph, flamegraphView, dispatch]);
+  }, [
+    canvasPoolManager,
+    flamegraph,
+    flamegraphView,
+    dispatch,
+    profileGroup.metadata.platform,
+  ]);
 
   const handleCopyFunctionName = useCallback(() => {
     if (!hoveredNodeOnContextMenuOpen.current) {

@@ -664,8 +664,8 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         assert response.status_code == 200, response.content
         expected = [
-            {"count": 1, "name": "high", "value": "3"},
-            {"count": 1, "name": "medium", "value": "2"},
-            {"count": 1, "name": "low", "value": "1"},
+            {"count": 1, "name": "high", "value": "high"},
+            {"count": 1, "name": "medium", "value": "medium"},
+            {"count": 1, "name": "low", "value": "low"},
         ]
         self.assert_facet(response, "device.class", expected)

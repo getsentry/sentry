@@ -1,10 +1,21 @@
-import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
+import {EntryException} from 'sentry/types';
+import type {
+  ReplayListRecord,
+  ReplayRecord,
+  ReplaySpan,
+} from 'sentry/views/replays/types';
 
 type SimpleStub<T = any> = () => T;
 
-type OverridableStub<T = any> = (params?: Partial<T>) => T;
+type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
-type OverridableStubList<T = any> = (params?: T[]) => T[];
+type OverridableStub<Params = any, Result = Params> = (
+  params?: Partial<Params>
+) => Result;
+
+type OverridableStubList<Params = any, Result = Params> = (
+  params?: Array<Partial<Params>>
+) => Result[];
 
 type TestStubFixtures = {
   AccessRequest: OverridableStub;
@@ -22,6 +33,7 @@ type TestStubFixtures = {
   AuthProvider: OverridableStub;
   AuthProviders: OverridableStubList;
   Authenticators: SimpleStub;
+  AvailableNotificationActions: OverridableStub;
   BitbucketIntegrationConfig: SimpleStub;
   Breadcrumb: OverridableStub;
   Broadcast: OverridableStub;
@@ -42,6 +54,7 @@ type TestStubFixtures = {
   EventAttachment: OverridableStub;
   EventEntry: OverridableStub;
   EventEntryDebugMeta: OverridableStub;
+  EventEntryExceptionGroup: SimpleStub<EntryException>;
   EventEntryStacktrace: OverridableStub;
   EventIdQueryResult: OverridableStub;
   EventStacktraceException: OverridableStub;
@@ -109,6 +122,15 @@ type TestStubFixtures = {
   ReplaySegmentFullsnapshot: OverridableStub;
   ReplaySegmentInit: OverridableStub;
   ReplaySegmentNavigation: OverridableStub;
+  ReplaySegmentSpan: OverridableStub;
+  ReplaySpanPayload: OverridableStub<
+    Overwrite<ReplaySpan, {endTimestamp: Date; startTimestamp: Date}>,
+    ReplaySpan
+  >;
+  ReplaySpanPayloadNavigate: OverridableStub<
+    Overwrite<ReplaySpan, {endTimestamp: Date; startTimestamp: Date}>,
+    ReplaySpan
+  >;
   Repository: OverridableStub;
   RepositoryProjectPathConfig: OverridableStub;
   Search: OverridableStub;

@@ -21,7 +21,7 @@ type Props = {
 };
 
 export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
-  const {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
+  const {type, description, help_link, handled, source, meta = {}, data = {}} = mechanism;
 
   const {errno, signal, mach_exception} = meta;
 
@@ -31,34 +31,32 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
     </StyledExternalLink>
   );
 
+  const typeName = type || 'unknown';
+
   const pills = [
-    <Pill
-      key="mechanism"
-      name={
-        description ? (
-          <Hovercard
-            showUnderline
-            header={
-              <Details>
-                {t('Details')}
-                {linkElement}
-              </Details>
-            }
-            body={description}
-          >
-            {'mechanism'}
-          </Hovercard>
-        ) : linkElement ? (
-          <Name>
-            {'mechanism '}
-            {linkElement}
-          </Name>
-        ) : (
-          'mechanism'
-        )
-      }
-      value={type || 'unknown'}
-    />,
+    <Pill key="mechanism" name="mechanism">
+      {description ? (
+        <Hovercard
+          showUnderline
+          header={
+            <Details>
+              {t('Details')}
+              {linkElement}
+            </Details>
+          }
+          body={description}
+        >
+          {typeName}
+        </Hovercard>
+      ) : linkElement ? (
+        <Name>
+          {typeName}
+          {linkElement}
+        </Name>
+      ) : (
+        typeName
+      )}
+    </Pill>,
   ];
 
   if (!isNil(handled)) {
@@ -73,6 +71,10 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
   if (mach_exception) {
     const value = mach_exception.name || mach_exception.exception;
     pills.push(<Pill key="mach" name="mach exception" value={value} />);
+  }
+
+  if (source) {
+    pills.push(<Pill key="source" name="source" value={source} />);
   }
 
   if (signal) {
@@ -104,7 +106,7 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
 }
 
 const Wrapper = styled('div')`
-  margin: ${space(2)} 0;
+  margin: ${space(2)} 0 ${space(0.5)} 0;
 `;
 
 const iconStyle = (p: {theme: Theme}) => css`

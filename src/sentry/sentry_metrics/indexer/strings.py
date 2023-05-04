@@ -76,7 +76,7 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/measurements.time_to_full_display@millisecond": PREFIX + 127,
 }
 
-# 200 - 299
+# 200 - 399
 SHARED_TAG_STRINGS = {
     # release health
     "abnormal": PREFIX + 200,
@@ -121,11 +121,34 @@ SHARED_TAG_STRINGS = {
     "abnormal_mechanism": PREFIX + 236,  # release health
     "anr_foreground": PREFIX + 237,  # release health
     "anr_background": PREFIX + 238,  # release health
-    "drop": PREFIX + 239,  # transactions. "decision" and "keep" already exist
+    # Transactions
+    "drop": PREFIX + 239,
+    "decision": PREFIX + 240,
+    "keep": PREFIX + 241,
+    # Spans
+    "span.op": PREFIX + 242,
+    "span.module": PREFIX + 243,
+    "span.action": PREFIX + 244,
+    "span.system": PREFIX + 245,
+    "span.status": PREFIX + 246,
+    "span.status_code": PREFIX + 247,
+    "span.domain": PREFIX + 248,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
-SHARED_STRINGS = {**SESSION_METRIC_NAMES, **TRANSACTION_METRICS_NAMES, **SHARED_TAG_STRINGS}
+
+# 400-499
+SPAN_METRICS_NAMES = {
+    "s:transactions/span.user@none": PREFIX + 400,
+    "d:transactions/span.duration@millisecond": PREFIX + 401,
+}
+
+SHARED_STRINGS = {
+    **SESSION_METRIC_NAMES,
+    **TRANSACTION_METRICS_NAMES,
+    **SPAN_METRICS_NAMES,
+    **SHARED_TAG_STRINGS,
+}
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}
 
 # Make sure there are no accidental duplicates

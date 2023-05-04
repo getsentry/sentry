@@ -65,7 +65,7 @@ class SCIMMemberIndexTests(SCIMTestCase):
     def test_post_users_already_exists(self):
         # test that response 409s if member already exists (by email)
         member = self.create_member(
-            user=self.create_user(), organization=self.organization, email="test.user@okta.local"
+            user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.post(url, CREATE_USER_POST_DATA)

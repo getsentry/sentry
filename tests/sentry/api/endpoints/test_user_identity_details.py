@@ -14,7 +14,7 @@ class DeleteUserIdentityTest(APITestCase):
 
     def test_simple(self):
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         auth_identity = AuthIdentity.objects.create(
             auth_provider=auth_provider,

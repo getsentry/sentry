@@ -61,7 +61,7 @@ jobs:
       # This handles Python's cache
       - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
         with:
-          python-version: 3.8.13
+          python-version: 3.8.16
           cache-dependency-path: requirements-dev-frozen.txt
 
       # This tests starting up the dev services, loading mocks and pre-commit installation
@@ -108,7 +108,7 @@ jobs:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
       - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
         with:
-          python-version: 3.8.13
+          python-version: 3.8.16
           cache-dependency-path: |
             requirements-dev.txt
             requirements-dev-frozen.txt
@@ -117,6 +117,8 @@ jobs:
         run: make test-tools
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   # We don't yet test the bootstrap step
   # https://github.com/getsentry/bootstrap-sentry/blob/7af557be84920dd587e48613dbc308c937bc0e08/bootstrap.sh#L618-L619

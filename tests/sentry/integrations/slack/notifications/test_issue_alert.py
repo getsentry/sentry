@@ -443,7 +443,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         """Test that issue alerts are sent to a team in Slack."""
         # add a second organization
         org = self.create_organization(owner=self.user)
-        OrganizationIntegration.objects.create(organization=org, integration=self.integration)
+        OrganizationIntegration.objects.create(organization_id=org.id, integration=self.integration)
 
         # add a second user to the team so we can be sure it's only
         # sent once (to the team, and not to each individual user)

@@ -3,6 +3,10 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+from django.conf import settings
+from django.test.utils import override_settings
+
+from sentry.constants import ObjectStatus
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -21,6 +25,14 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             monitor_resp["slug"] for monitor_resp in response.data
         ]
 
+    def check_valid_environments_response(self, response, monitor, expected_environments):
+        assert {
+            monitor_environment.environment.name for monitor_environment in expected_environments
+        } == {
+            monitor_environment_resp["name"]
+            for monitor_environment_resp in monitor.get("environments", [])
+        }
+
     def test_simple(self):
         monitor = self._create_monitor()
         response = self.get_success_response(self.organization.slug)
@@ -31,11 +43,26 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         last_checkin_older = datetime.now() - timedelta(minutes=5)
 
         def add_status_monitor(status_key: str, date: datetime | None = None):
-            return self._create_monitor(
-                status=getattr(MonitorStatus, status_key),
+            status = getattr(MonitorStatus, status_key)
+            # TODO(rjo100): this is precursor to removing the MonitorStatus from Monitors
+            monitor = self._create_monitor(
+                status=getattr(MonitorStatus, "ACTIVE"),
                 last_checkin=date or last_checkin,
                 name=status_key,
             )
+            self._create_monitor_environment(
+                monitor,
+                name="jungle",
+                last_checkin=(date or last_checkin) - timedelta(seconds=30),
+                status=status,
+            )
+            self._create_monitor_environment(
+                monitor,
+                name="volcano",
+                last_checkin=(date or last_checkin) - timedelta(seconds=15),
+                status=getattr(MonitorStatus, "DISABLED"),
+            )
+            return monitor
 
         # Subsort next checkin time
         monitor_active = add_status_monitor("ACTIVE")
@@ -45,7 +72,9 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         monitor_error = add_status_monitor("ERROR")
         monitor_missed_checkin = add_status_monitor("MISSED_CHECKIN")
 
-        response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(
+            self.organization.slug, params={"environment": "jungle"}
+        )
         self.check_valid_response(
             response,
             [
@@ -58,6 +87,19 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             ],
         )
 
+    def test_all_monitor_environments(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(
+            monitor, name="test", status=MonitorStatus.OK
+        )
+
+        monitor_empty = self._create_monitor(name="empty")
+
+        response = self.get_success_response(self.organization.slug)
+        self.check_valid_response(response, [monitor, monitor_empty])
+        self.check_valid_environments_response(response, response.data[0], [monitor_environment])
+        self.check_valid_environments_response(response, response.data[1], [])
+
     def test_monitor_environment(self):
         monitor = self._create_monitor()
         self._create_monitor_environment(monitor)
@@ -67,6 +109,46 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
 
         response = self.get_success_response(self.organization.slug, environment="production")
         self.check_valid_response(response, [monitor])
+
+    def test_monitor_environment_include_new(self):
+        monitor = self._create_monitor()
+        self._create_monitor_environment(
+            monitor, status=MonitorStatus.OK, last_checkin=datetime.now() - timedelta(minutes=1)
+        )
+
+        monitor_visible = self._create_monitor(name="visible")
+
+        response = self.get_success_response(
+            self.organization.slug, environment="production", includeNew=True
+        )
+        self.check_valid_response(response, [monitor, monitor_visible])
+
+    def test_search_by_slug(self):
+        monitor = self._create_monitor(slug="test-slug")
+        self._create_monitor(slug="other-monitor")
+
+        response = self.get_success_response(self.organization.slug, query="test-slug")
+        self.check_valid_response(response, [monitor])
+
+    def test_ignore_pending_deletion_environments(self):
+        monitor = self._create_monitor()
+        self._create_monitor_environment(
+            monitor,
+            status=MonitorStatus.OK,
+            last_checkin=datetime.now() - timedelta(minutes=1),
+        )
+        self._create_monitor_environment(
+            monitor,
+            status=MonitorStatus.PENDING_DELETION,
+            name="deleted_environment",
+            last_checkin=datetime.now() - timedelta(minutes=1),
+        )
+
+        response = self.get_success_response(self.organization.slug)
+        self.check_valid_response(response, [monitor])
+        # Confirm we only see the one 'ok' environment
+        assert len(response.data[0]["environments"]) == 1
+        assert response.data[0]["environments"][0]["status"] == "ok"
 
 
 @region_silo_test(stable=True)
@@ -92,7 +174,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert monitor.organization_id == self.organization.id
         assert monitor.project_id == self.project.id
         assert monitor.name == "My Monitor"
-        assert monitor.status == MonitorStatus.ACTIVE
+        assert monitor.status == ObjectStatus.ACTIVE
         assert monitor.type == MonitorType.CRON_JOB
         assert monitor.config == {
             "schedule_type": ScheduleType.CRONTAB,
@@ -109,6 +191,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             user_id=self.user.id,
             organization_id=self.organization.id,
             project_id=self.project.id,
+            from_upsert=False,
         )
 
     def test_slug(self):
@@ -122,3 +205,24 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug, **data)
 
         assert response.data["slug"] == "my-monitor"
+
+    @override_settings(MAX_MONITORS_PER_ORG=2)
+    def test_monitor_organization_limit(self):
+        for i in range(settings.MAX_MONITORS_PER_ORG):
+            data = {
+                "project": self.project.slug,
+                "name": f"Unicron-{i}",
+                "slug": f"unicron-{i}",
+                "type": "cron_job",
+                "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            }
+            self.get_success_response(self.organization.slug, **data)
+
+        data = {
+            "project": self.project.slug,
+            "name": f"Unicron-{settings.MAX_MONITORS_PER_ORG + 1}",
+            "slug": f"unicron-{settings.MAX_MONITORS_PER_ORG + 1}",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        self.get_error_response(self.organization.slug, status_code=403, **data)

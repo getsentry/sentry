@@ -1,5 +1,6 @@
 import base64
 from functools import cached_property
+from unittest.mock import patch
 
 from django.test import RequestFactory
 
@@ -109,7 +110,9 @@ class AuthenticationMiddlewareTestCase(TestCase):
 
     def test_process_request_valid_apikey(self):
         with exempt_from_silo_limits():
-            apikey = ApiKey.objects.create(organization=self.organization, allowed_origins="*")
+            apikey = ApiKey.objects.create(
+                organization_id=self.organization.id, allowed_origins="*"
+            )
             request = self.make_request(method="GET")
             request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
                 apikey.key.encode("utf-8")
@@ -128,3 +131,28 @@ class AuthenticationMiddlewareTestCase(TestCase):
         # Should swallow errors and pass on
         assert request.user.is_anonymous
         assert request.auth is None
+
+    @patch("sentry.models.userip.geo_by_addr")
+    def test_process_request_log_userip(self, mock_geo_by_addr):
+        mock_geo_by_addr.return_value = {
+            "country_code": "US",
+            "region": "CA",
+            "subdivision": "San Francisco",
+        }
+        request = self.request
+        request.META["REMOTE_ADDR"] = "8.8.8.8"
+        with exempt_from_silo_limits():
+            assert login(request, self.user)
+
+        with outbox_runner():
+            self.middleware.process_request(request)
+
+        # Should be logged in and have logged a UserIp record.
+        assert request.user.id == self.user.id
+        assert mock_geo_by_addr.call_count == 1
+
+        with exempt_from_silo_limits():
+            userip = UserIP.objects.get(user=self.user)
+        assert userip.ip_address == "8.8.8.8"
+        assert userip.country_code == "US"
+        assert userip.region_code == "CA"

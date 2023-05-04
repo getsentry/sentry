@@ -128,6 +128,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
+    performanceIssueSendToPlatform = serializers.BooleanField(required=False)
 
     def validate(self, data):
         max_delay = (
@@ -417,9 +418,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
-        has_project_write = request.access and request.access.has_scope("project:write")
-
-        changed_proj_settings = {}
+        has_project_write = request.access and (
+            request.access.has_scope("project:write")
+            or request.access.has_project_scope(project, "project:write")
+        )
 
         if has_project_write:
             serializer_cls = ProjectAdminSerializer
@@ -454,6 +456,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     )
 
         changed = False
+        changed_proj_settings = {}
 
         old_slug = None
         if result.get("slug"):
@@ -619,14 +622,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:performance_issue_creation_rate"] = result[
                     "performanceIssueCreationRate"
                 ]
-        if "performanceIssueCreationThroughPlatform" in result:
+        if "performanceIssueSendToPlatform" in result:
             if project.update_option(
                 "sentry:performance_issue_send_to_issues_platform",
-                result["performanceIssueCreationThroughPlatform"],
+                result["performanceIssueSendToPlatform"],
             ):
                 changed_proj_settings["sentry:performance_issue_send_to_issues_platform"] = result[
-                    "performanceIssueCreationThroughPlatform"
+                    "performanceIssueSendToPlatform"
                 ]
+        if "performanceIssueCreationThroughPlatform" in result:
+            if project.update_option(
+                "sentry:performance_issue_create_issue_through_platform",
+                result["performanceIssueCreationThroughPlatform"],
+            ):
+                changed_proj_settings[
+                    "sentry:performance_issue_create_issue_through_platform"
+                ] = result["performanceIssueCreationThroughPlatform"]
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
             options = request.data.get("options", {})
@@ -800,14 +811,29 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if updated:
             scheduled = ScheduledDeletion.schedule(project, days=0, actor=request.user)
 
-            self.create_audit_entry(
-                request=request,
-                organization=project.organization,
-                target_object=project.id,
-                event=audit_log.get_event_id("PROJECT_REMOVE"),
-                data=project.get_audit_log_data(),
-                transaction_id=scheduled.id,
-            )
+            common_audit_data = {
+                "request": request,
+                "organization": project.organization,
+                "target_object": project.id,
+                "transaction_id": scheduled.id,
+            }
+
+            if request.data.get("origin"):
+                self.create_audit_entry(
+                    **common_audit_data,
+                    event=audit_log.get_event_id("PROJECT_REMOVE_WITH_ORIGIN"),
+                    data={
+                        **project.get_audit_log_data(),
+                        "origin": request.data.get("origin"),
+                    },
+                )
+            else:
+                self.create_audit_entry(
+                    **common_audit_data,
+                    event=audit_log.get_event_id("PROJECT_REMOVE"),
+                    data={**project.get_audit_log_data()},
+                )
+
             project.rename_on_pending_deletion()
 
         return Response(status=204)

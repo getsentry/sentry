@@ -36,7 +36,7 @@ class CreateAuditEntryTest(TestCase):
 
     def test_audit_entry_api(self):
         org = self.create_organization()
-        apikey = ApiKey.objects.create(organization=org, allowed_origins="*")
+        apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
 
         req = FakeHttpRequest(AnonymousUser())
         req.auth = apikey
@@ -155,10 +155,34 @@ class CreateAuditEntryTest(TestCase):
             event=audit_log.get_event_id("PROJECT_REMOVE"),
             data=self.project.get_audit_log_data(),
         )
+        audit_log_event = audit_log.get(entry.event)
 
         assert entry.actor == self.user
         assert entry.target_object == self.project.id
         assert entry.event == audit_log.get_event_id("PROJECT_REMOVE")
+        assert audit_log_event.render(entry) == "removed project" + " " + self.project.slug
+
+        deleted_project = DeletedProject.objects.get(slug=self.project.slug)
+        self.assert_valid_deleted_log(deleted_project, self.project)
+        assert deleted_project.platform == self.project.platform
+
+    def test_audit_entry_project_delete_with_origin_log(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECT_REMOVE_WITH_ORIGIN"),
+            data={**self.project.get_audit_log_data(), "origin": "settings"},
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECT_REMOVE_WITH_ORIGIN")
+        assert (
+            audit_log_event.render(entry)
+            == "removed project" + " " + self.project.slug + " in settings"
+        )
 
         deleted_project = DeletedProject.objects.get(slug=self.project.slug)
         self.assert_valid_deleted_log(deleted_project, self.project)

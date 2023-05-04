@@ -123,9 +123,22 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         auditlog = AuditLogEntry.objects.filter(
             organization_id=self.project.organization.id,
             event=audit_log.get_event_id("PROJECT_EDIT"),
+            target_object=self.project.id,
         )
         assert len(auditlog) == 1
         assert "Auto Assign to Issue Owner" in auditlog[0].data["autoAssignment"]
+
+    def test_audit_log_ownership_change(self):
+        resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
+        assert resp.status_code == 200
+
+        auditlog = AuditLogEntry.objects.filter(
+            organization_id=self.project.organization.id,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
+            target_object=self.project.id,
+        )
+        assert len(auditlog) == 1
+        assert "modified" in auditlog[0].data["ownership_rules"]
 
     @with_feature("organizations:streamline-targeting-context")
     def test_update_with_streamline_targeting(self):
@@ -191,6 +204,92 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "codeownersAutoSync": True,
             "schema": None,
         }
+
+    def test_get_rule_deleted_owner_with_streamline_targeting(self):
+        self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
+        self.create_member(
+            user=self.member_user_delete,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        # Put without the streamline-targeting-context flag
+        self.client.put(self.path, {"raw": "*.js member_delete@localhost #tiger-team"})
+
+        # Get after with the streamline-targeting-context flag
+        with self.feature({"organizations:streamline-targeting-context": True}):
+            self.member_user_delete.delete()
+            resp = self.client.get(self.path)
+            assert resp.data["schema"] == {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"type": "path", "pattern": "*.js"},
+                        "owners": [{"type": "team", "name": "tiger-team", "id": self.team.id}],
+                    }
+                ],
+            }
+
+    def test_get_no_rule_deleted_owner_with_streamline_targeting(self):
+        self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
+        self.create_member(
+            user=self.member_user_delete,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        # Put without the streamline-targeting-context flag
+        self.client.put(self.path, {"raw": "*.js member_delete@localhost"})
+
+        # Get after with the streamline-targeting-context flag
+        with self.feature({"organizations:streamline-targeting-context": True}):
+            self.member_user_delete.delete()
+            resp = self.client.get(self.path)
+            assert resp.data["schema"] == {"$version": 1, "rules": []}
+
+    def test_get_multiple_rules_deleted_owners_with_streamline_targeting(self):
+        self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
+        self.create_member(
+            user=self.member_user_delete,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.member_user_delete2 = self.create_user("member_delete2@localhost", is_superuser=False)
+        self.create_member(
+            user=self.member_user_delete2,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        # Put without the streamline-targeting-context flag
+        self.client.put(
+            self.path,
+            {
+                "raw": "*.js member_delete@localhost\n*.py #tiger-team\n*.css member_delete2@localhost\n*.rb member@localhost"
+            },
+        )
+
+        # Get after with the streamline-targeting-context flag
+        with self.feature({"organizations:streamline-targeting-context": True}):
+            self.member_user_delete.delete()
+            self.member_user_delete2.delete()
+            resp = self.client.get(self.path)
+            assert resp.data["schema"] == {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"pattern": "*.py", "type": "path"},
+                        "owners": [{"id": self.team.id, "name": "tiger-team", "type": "team"}],
+                    },
+                    {
+                        "matcher": {"pattern": "*.rb", "type": "path"},
+                        "owners": [
+                            {"id": self.member_user.id, "name": "member@localhost", "type": "user"}
+                        ],
+                    },
+                ],
+            }
 
     def test_invalid_email(self):
         resp = self.client.put(self.path, {"raw": "*.js idont@exist.com #tiger-team"})

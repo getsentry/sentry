@@ -16,7 +16,7 @@ class SentryAppTest(TestCase):
             application=self.application,
             name="NullDB",
             proxy_user=self.proxy,
-            owner=self.org,
+            owner_id=self.org.id,
             scope_list=("project:read",),
             webhook_url="http://example.com",
             slug="nulldb",
@@ -39,7 +39,6 @@ class SentryAppTest(TestCase):
         self.sentry_app.save()
         assert self.sentry_app.application.sentry_app == self.sentry_app
         assert self.sentry_app.proxy_user.sentry_app == self.sentry_app
-        assert self.sentry_app in self.sentry_app.owner.owned_sentry_apps.all()
 
     def test_is_unpublished(self):
         self.sentry_app.status = SentryAppStatus.UNPUBLISHED

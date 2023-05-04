@@ -1,5 +1,5 @@
 from unittest.mock import Mock, patch
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import responses
 
@@ -124,7 +124,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             "include_subgroups": True,
         }
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
 
@@ -349,6 +349,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         installation = integration.get_installation(self.organization.id)
 
         filepath = "sentry/tasks.py"
+        encoded_filepath = quote(filepath, safe="")
         ref = "master"
         event_frame = {
             "function": "handle_set_commits",
@@ -358,10 +359,11 @@ class GitlabIntegrationTest(IntegrationTestCase):
             "lineno": 30,
             "filename": "sentry/tasks.py",
         }
+        url = "https://gitlab.example.com/api/v4/projects/{id}/repository/files/{path}/blame?ref={ref}&range%5Bstart%5D={line}&range%5Bend%5D={line}"
 
         responses.add(
             responses.GET,
-            f"https://gitlab.example.com/api/v4/projects/{external_id}/repository/files/{filepath}/blame?ref={ref}&range[start]=30&range[end]=30",
+            url.format(id=external_id, path=encoded_filepath, ref=ref, line=event_frame["lineno"]),
             json=[
                 {
                     "commit": {
@@ -409,13 +411,42 @@ class GitlabIntegrationTest(IntegrationTestCase):
         )
         commit_context = installation.get_commit_context(repo, filepath, ref, event_frame)
 
-        assert commit_context == {
+        commit_context_expected = {
             "commitId": "d42409d56517157c48bf3bd97d3f75974dde19fb",
             "committedDate": "2015-12-18T08:12:22.000Z",
             "commitMessage": "Add installation instructions",
             "commitAuthorName": "Nisanthan Nanthakumar",
             "commitAuthorEmail": "nisanthan.nanthakumar@sentry.io",
         }
+
+        assert commit_context == commit_context_expected
+
+        # We are now going to test the case where the Gitlab instance will return a non-UTC committed_data
+        # This 2015-12-18T11:12:22.000+03:00 vs 2015-10-03T09:34:32.000Z
+        event_frame["lineno"] = 31
+        responses.add(
+            responses.GET,
+            url.format(id=external_id, path=encoded_filepath, ref=ref, line=event_frame["lineno"]),
+            json=[
+                {
+                    "commit": {
+                        "id": "d42409d56517157c48bf3bd97d3f75974dde19fb",
+                        "message": "Add installation instructions",
+                        "parent_ids": ["cc6e14f9328fa6d7b5a0d3c30dc2002a3f2a3822"],
+                        "authored_date": "2015-12-18T11:12:22.000+03:00",
+                        "author_name": "Nisanthan Nanthakumar",
+                        "author_email": "nisanthan.nanthakumar@sentry.io",
+                        "committed_date": "2015-12-18T11:12:22.000+03:00",
+                        "committer_name": "Nisanthan Nanthakumar",
+                        "committer_email": "nisanthan.nanthakumar@sentry.io",
+                    },
+                    "lines": ["## Docs"],
+                },
+            ],
+        )
+        commit_context = installation.get_commit_context(repo, filepath, ref, event_frame)
+        # The returned commit context has converted the timezone to UTC (000Z)
+        assert commit_context == commit_context_expected
 
 
 class GitlabIntegrationInstanceTest(IntegrationTestCase):
@@ -513,7 +544,7 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
             "include_subgroups": False,
         }
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
 

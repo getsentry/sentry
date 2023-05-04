@@ -1,7 +1,8 @@
-import {Fragment} from 'react';
+import {Fragment, useContext} from 'react';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import OnboardingSidebar from 'sentry/components/onboardingWizard/sidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import ProgressRing, {
@@ -9,16 +10,14 @@ import ProgressRing, {
   RingBar,
   RingText,
 } from 'sentry/components/progressRing';
+import {isDone} from 'sentry/components/sidebar/utils';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {Organization, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
-import {useSandboxSidebarTasks} from 'sentry/utils/demoWalkthrough';
 import theme from 'sentry/utils/theme';
 import withProjects from 'sentry/utils/withProjects';
-import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 import {CommonSidebarProps, SidebarPanelKey} from './types';
 
@@ -26,13 +25,6 @@ type Props = CommonSidebarProps & {
   org: Organization;
   projects: Project[];
 };
-
-export const getSidebarTasks = isDemoWalkthrough()
-  ? useSandboxSidebarTasks
-  : getMergedTasks;
-
-const isDone = (task: OnboardingTaskStatus) =>
-  task.status === 'complete' || task.status === 'skipped';
 
 const progressTextCss = () => css`
   font-size: ${theme.fontSizeMedium};
@@ -49,22 +41,19 @@ function OnboardingStatus({
   onShowPanel,
 }: Props) {
   const handleShowPanel = () => {
-    trackAdvancedAnalyticsEvent('onboarding.wizard_opened', {organization: org});
+    trackAnalytics('onboarding.wizard_opened', {organization: org});
     onShowPanel();
   };
-  const [onboardingState] = usePersistedOnboardingState();
+  const onboardingContext = useContext(OnboardingContext);
 
-  const shouldShowSidebar =
-    org.features?.includes('onboarding') || ConfigStore.get('demoMode');
-
-  if (!shouldShowSidebar) {
+  if (!org.features?.includes('onboarding')) {
     return null;
   }
 
-  const tasks = getSidebarTasks({
+  const tasks = getMergedTasks({
     organization: org,
     projects,
-    onboardingState: onboardingState || undefined,
+    onboardingContext,
   });
 
   const allDisplayedTasks = tasks

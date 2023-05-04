@@ -2,8 +2,10 @@ from typing import List
 
 import pytest
 
+from sentry import options
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
+from sentry.models import ProjectOption
 from sentry.spans.grouping.strategy.base import Span
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
@@ -60,7 +62,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problems == [
             PerformanceProblem(
-                fingerprint="1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64",
+                fingerprint="1-1009-00b8644b56309c8391aa365783145162ab9c589a",
                 op="http",
                 desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
@@ -71,7 +73,16 @@ class ConsecutiveDbDetectorTest(TestCase):
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                 ],
-                evidence_data={},
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                    ],
+                    "op": "http",
+                },
                 evidence_display=[],
             )
         ]
@@ -95,7 +106,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problems == [
             PerformanceProblem(
-                fingerprint="1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64",
+                fingerprint="1-1009-00b8644b56309c8391aa365783145162ab9c589a",
                 op="http",
                 desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
@@ -106,7 +117,16 @@ class ConsecutiveDbDetectorTest(TestCase):
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                 ],
-                evidence_data={},
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                    ],
+                    "op": "http",
+                },
                 evidence_display=[],
             )
         ]
@@ -164,5 +184,117 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         problem_2 = self.find_problems(create_event(spans))[0]
 
-        assert problem_2.fingerprint == "1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64"
+        assert problem_2.fingerprint == "1-1009-515a42c2614f98fa886b6d9ad1ddfe1929329f53"
         assert problem_1.fingerprint == problem_2.fingerprint
+
+    def test_respects_project_option(self):
+        project = self.create_project()
+        event = self.create_issue_event()
+
+        settings = get_detection_settings(project.id)
+        detector = ConsecutiveHTTPSpanDetector(settings, event)
+
+        assert detector.is_creation_allowed_for_project(project)
+
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"consecutive_http_spans_detection_enabled": False},
+        )
+
+        settings = get_detection_settings(project.id)
+        detector = ConsecutiveHTTPSpanDetector(settings, event)
+
+        assert not detector.is_creation_allowed_for_project(project)
+
+    def test_triggers_for_frontend_events_when_spans_are_before_lcp(
+        self,
+    ):
+        # Set lcp percentage low to test that only spans before lcp are considered
+        options.set("performance.issues.consecutive_http.lcp_ratio_threshold", 0.0)
+        self.settings = get_detection_settings()
+
+        # The total duration of the candidate spans is 6000ms
+        event = {
+            **self.create_issue_event(),
+            "sdk": {"name": "sentry.javascript.browser"},
+            "measurements": {"lcp": {"value": 5999, "unit": "millisecond"}},
+            "start_timestamp": 0,
+        }
+        problems = self.find_problems(event)
+        assert problems == []
+
+        event["measurements"]["lcp"]["value"] = 6000
+        problems = self.find_problems(event)
+        assert problems == [
+            PerformanceProblem(
+                fingerprint="1-1009-00b8644b56309c8391aa365783145162ab9c589a",
+                op="http",
+                desc="GET /api/0/organizations/endpoint1",
+                type=PerformanceConsecutiveHTTPQueriesGroupType,
+                parent_span_ids=None,
+                cause_span_ids=[],
+                offender_span_ids=[
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                ],
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                    ],
+                    "op": "http",
+                },
+                evidence_display=[],
+            )
+        ]
+
+    def test_triggers_for_frontend_events_when_spans_are_above_lcp_percentage_threshold(
+        self,
+    ):
+        # Total duration of candidate spans is 6000ms, so the detector should only
+        # trigger if LCP is less than or equal to 12000ms
+        options.set("performance.issues.consecutive_http.lcp_ratio_threshold", 0.5)
+        self.settings = get_detection_settings()
+
+        event = {
+            **self.create_issue_event(),
+            "sdk": {"name": "sentry.javascript.browser"},
+            "measurements": {"lcp": {"value": 12001, "unit": "millisecond"}},
+            "start_timestamp": 0,
+        }
+        problems = self.find_problems(event)
+        assert problems == []
+
+        event["measurements"]["lcp"]["value"] = 12000
+        problems = self.find_problems(event)
+        assert problems == [
+            PerformanceProblem(
+                fingerprint="1-1009-00b8644b56309c8391aa365783145162ab9c589a",
+                op="http",
+                desc="GET /api/0/organizations/endpoint1",
+                type=PerformanceConsecutiveHTTPQueriesGroupType,
+                parent_span_ids=None,
+                cause_span_ids=[],
+                offender_span_ids=[
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                ],
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                    ],
+                    "op": "http",
+                },
+                evidence_display=[],
+            )
+        ]

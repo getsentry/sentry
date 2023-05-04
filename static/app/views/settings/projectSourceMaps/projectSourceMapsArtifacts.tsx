@@ -16,7 +16,7 @@ import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Artifact, DebugIdBundleArtifact, Project} from 'sentry/types';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -122,26 +122,22 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
 
   // debug id bundles tab url
   const debugIdsUrl = normalizeUrl(
-    `/settings/${organization.slug}/projects/${project.slug}/source-maps/debug-id-bundles/${params.bundleId}/`
+    `/settings/${organization.slug}/projects/${project.slug}/source-maps/artifact-bundles/${params.bundleId}/`
   );
 
   const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
 
-  const {data: artifactsData, isLoading: artifactsLoading} = useQuery<
-    [Artifact[], any, any]
-  >(
+  const {
+    data: artifactsData,
+    getResponseHeader: artifactsHeaders,
+    isLoading: artifactsLoading,
+  } = useApiQuery<Artifact[]>(
     [
       artifactsEndpoint,
       {
         query: {query, cursor},
       },
     ],
-    () => {
-      return api.requestPromise(artifactsEndpoint, {
-        query: cursor ? {query, cursor} : {query},
-        includeAllArgs: true,
-      });
-    },
     {
       staleTime: 0,
       keepPreviousData: true,
@@ -149,26 +145,23 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
     }
   );
 
-  const {data: debugIdBundlesArtifactsData, isLoading: debugIdBundlesArtifactsLoading} =
-    useQuery<[DebugIdBundleArtifact, any, any]>(
-      [
-        debugIdBundlesArtifactsEndpoint,
-        {
-          query: {query, cursor},
-        },
-      ],
-      () => {
-        return api.requestPromise(debugIdBundlesArtifactsEndpoint, {
-          query: cursor ? {query, cursor} : {query},
-          includeAllArgs: true,
-        });
-      },
+  const {
+    data: debugIdBundlesArtifactsData,
+    getResponseHeader: debugIdBundlesArtifactsHeaders,
+    isLoading: debugIdBundlesArtifactsLoading,
+  } = useApiQuery<DebugIdBundleArtifact>(
+    [
+      debugIdBundlesArtifactsEndpoint,
       {
-        staleTime: 0,
-        keepPreviousData: true,
-        enabled: tabDebugIdBundlesActive,
-      }
-    );
+        query: {query, cursor},
+      },
+    ],
+    {
+      staleTime: 0,
+      keepPreviousData: true,
+      enabled: tabDebugIdBundlesActive,
+    }
+  );
 
   const handleSearch = useCallback(
     (newQuery: string) => {
@@ -183,14 +176,14 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   return (
     <Fragment>
       <SettingsPageHeader
-        title={tabDebugIdBundlesActive ? t('Debug ID Bundle') : t('Release Bundle')}
+        title={tabDebugIdBundlesActive ? t('Artifact Bundle') : t('Release Bundle')}
         subtitle={
           <VersionAndDetails>
             {params.bundleId}
             {tabDebugIdBundlesActive && (
               <DebugIdBundlesTags
-                dist={debugIdBundlesArtifactsData?.[0]?.dist}
-                release={debugIdBundlesArtifactsData?.[0]?.release}
+                dist={debugIdBundlesArtifactsData?.dist}
+                release={debugIdBundlesArtifactsData?.release}
                 loading={debugIdBundlesArtifactsLoading}
               />
             )}
@@ -219,8 +212,8 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         }
         isEmpty={
           (tabDebugIdBundlesActive
-            ? debugIdBundlesArtifactsData?.[0].files ?? []
-            : artifactsData?.[0] ?? []
+            ? debugIdBundlesArtifactsData?.files ?? []
+            : artifactsData ?? []
           ).length === 0
         }
         isLoading={
@@ -228,7 +221,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         }
       >
         {tabDebugIdBundlesActive
-          ? (debugIdBundlesArtifactsData?.[0].files ?? []).map(data => {
+          ? (debugIdBundlesArtifactsData?.files ?? []).map(data => {
               const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
                 project.slug
               }/artifact-bundles/${encodeURIComponent(params.bundleId)}/files/${
@@ -252,7 +245,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
                 />
               );
             })
-          : artifactsData?.[0].map(data => {
+          : artifactsData?.map(data => {
               const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
                 project.slug
               }/releases/${encodeURIComponent(params.bundleId)}/files/${
@@ -288,8 +281,8 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
       <Pagination
         pageLinks={
           tabDebugIdBundlesActive
-            ? debugIdBundlesArtifactsData?.[2]?.getResponseHeader('Link') ?? ''
-            : artifactsData?.[2]?.getResponseHeader('Link') ?? ''
+            ? debugIdBundlesArtifactsHeaders?.('Link') ?? ''
+            : artifactsHeaders?.('Link') ?? ''
         }
       />
     </Fragment>

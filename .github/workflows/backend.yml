@@ -75,7 +75,7 @@ jobs:
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2, 3, 4]
-        pg-version: ['9.6']
+        pg-version: ['14']
 
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
@@ -108,6 +108,8 @@ jobs:
       - name: Handle artifacts
         if: ${{ always() }}
         uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   backend-migration-tests:
     if: needs.files-changed.outputs.backend == 'true'
@@ -117,7 +119,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        pg-version: ['9.6']
+        pg-version: ['14']
 
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
@@ -142,6 +144,8 @@ jobs:
       - name: Handle artifacts
         if: ${{ always() }}
         uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   cli:
     if: needs.files-changed.outputs.backend == 'true'
@@ -151,7 +155,7 @@ jobs:
     timeout-minutes: 10
     strategy:
       matrix:
-        pg-version: ['9.6']
+        pg-version: ['14']
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
@@ -170,6 +174,8 @@ jobs:
       - name: Handle artifacts
         if: ${{ always() }}
         uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   requirements:
     if: needs.files-changed.outputs.backend_dependencies == 'true'
@@ -187,7 +193,7 @@ jobs:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
       - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
         with:
-          python-version: 3.8.13
+          python-version: 3.8.16
           cache-depedency: requirements-dev-frozen.txt
           install-cmd: pip install -q --constraint requirements-dev-frozen.txt pip-tools
       - name: check requirements
@@ -238,7 +244,7 @@ jobs:
 
       - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
         with:
-          python-version: 3.8.13
+          python-version: 3.8.16
           cache-dependency-path: |
             requirements-dev.txt
             requirements-dev-frozen.txt
@@ -277,7 +283,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        pg-version: ['9.6']
+        pg-version: ['14']
 
     steps:
       - name: Checkout sentry
@@ -350,6 +356,8 @@ jobs:
       - name: Handle artifacts
         if: ${{ always() }}
         uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   snuba:
     if: needs.files-changed.outputs.backend == 'true'
@@ -391,13 +399,15 @@ jobs:
       - name: Handle artifacts
         if: ${{ always() }}
         uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   symbolicator:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: symbolicator test
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         with:
@@ -433,6 +443,8 @@ jobs:
       - name: Handle artifacts
         if: ${{ always() }}
         uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   typing:
     if: needs.files-changed.outputs.backend == 'true'
@@ -445,7 +457,7 @@ jobs:
 
       - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
         with:
-          python-version: 3.8.13
+          python-version: 3.8.16
           cache-dependency-path: requirements-dev-frozen.txt
           install-cmd: pip install -r requirements-dev-frozen.txt
 
@@ -462,6 +474,7 @@ jobs:
         backend-test,
         backend-migration-tests,
         cli,
+        files-changed,
         lint,
         requirements,
         migration,

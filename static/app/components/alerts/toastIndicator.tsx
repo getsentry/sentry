@@ -59,6 +59,7 @@ const Toast = styled(motion.div)`
   display: flex;
   align-items: center;
   height: 40px;
+  max-width: calc(100vw - ${space(4)} * 2);
   padding: 0 15px 0 10px;
   margin-top: 15px;
   background: ${p => p.theme.inverted.background};
@@ -99,6 +100,7 @@ const Icon = styled('div', {shouldForwardProp: p => p !== 'type'})<{type: string
 
 const Message = styled('div')`
   flex: 1;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const Undo = styled('div')`

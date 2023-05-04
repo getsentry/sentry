@@ -16,6 +16,7 @@ from sentry.models import (
     User,
     WebhookProviderIdentifier,
 )
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.testutils.factories import Factories
@@ -28,7 +29,7 @@ from sentry.types.region import MONOLITH_REGION_NAME
 @region_silo_test(stable=True)
 def test_creating_org_outboxes():
     Organization.outbox_for_update(10).save()
-    OrganizationMember.outbox_for_update(12, 15).save()
+    OrganizationMember(organization_id=12, id=15).outbox_for_update().save()
     assert RegionOutbox.objects.count() == 2
 
     with exempt_from_silo_limits(), outbox_runner():
@@ -40,14 +41,23 @@ def test_creating_org_outboxes():
 @pytest.mark.django_db(transaction=True)
 @control_silo_test(stable=True)
 def test_creating_user_outboxes():
-    org = Factories.create_organization()
-    Factories.create_org_mapping(org, region_name="a")
-    user1 = Factories.create_user()
-    Factories.create_member(organization=org, user=user1)
+    with exempt_from_silo_limits():
+        org = Factories.create_organization(no_mapping=True)
+        Factories.create_org_mapping(org, region_name="a")
+        user1 = Factories.create_user()
+        organization_service.add_organization_member(
+            organization_id=org.id,
+            default_org_role=org.default_role,
+            user_id=user1.id,
+        )
 
-    org2 = Factories.create_organization()
-    Factories.create_org_mapping(org2, region_name="b")
-    Factories.create_member(organization=org2, user=user1)
+        org2 = Factories.create_organization(no_mapping=True)
+        Factories.create_org_mapping(org2, region_name="b")
+        organization_service.add_organization_member(
+            organization_id=org2.id,
+            default_org_role=org2.default_role,
+            user_id=user1.id,
+        )
 
     for outbox in User.outboxes_for_update(user1.id):
         outbox.save()
@@ -61,13 +71,13 @@ def test_creating_user_outboxes():
 @patch("sentry.models.outbox.metrics")
 def test_concurrent_coalesced_object_processing(mock_metrics):
     # Two objects coalesced
-    outbox = OrganizationMember.outbox_for_update(org_id=1, org_member_id=1)
+    outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
     outbox.save()
-    OrganizationMember.outbox_for_update(org_id=1, org_member_id=1).save()
+    OrganizationMember(id=1, organization_id=1).outbox_for_update().save()
 
     # Unrelated
-    OrganizationMember.outbox_for_update(org_id=1, org_member_id=2).save()
-    OrganizationMember.outbox_for_update(org_id=2, org_member_id=2).save()
+    OrganizationMember(organization_id=1, id=2).outbox_for_update().save()
+    OrganizationMember(organization_id=2, id=2).outbox_for_update().save()
 
     assert len(list(RegionOutbox.find_scheduled_shards())) == 2
 
@@ -78,7 +88,7 @@ def test_concurrent_coalesced_object_processing(mock_metrics):
         assert outbox.select_coalesced_messages().count() == 2
 
         # concurrent write of coalesced object update.
-        OrganizationMember.outbox_for_update(org_id=1, org_member_id=1).save()
+        OrganizationMember(organization_id=1, id=1).outbox_for_update().save()
         assert RegionOutbox.objects.count() == 5
         assert outbox.select_coalesced_messages().count() == 3
 
@@ -106,14 +116,14 @@ def test_concurrent_coalesced_object_processing(mock_metrics):
 @pytest.mark.django_db(transaction=True)
 @region_silo_test(stable=True)
 def test_region_sharding_keys():
-    org1 = Factories.create_organization()
-    org2 = Factories.create_organization()
+    org1 = Factories.create_organization(no_mapping=True)
+    org2 = Factories.create_organization(no_mapping=True)
 
     Organization.outbox_for_update(org1.id).save()
     Organization.outbox_for_update(org2.id).save()
 
-    OrganizationMember.outbox_for_update(org_id=org1.id, org_member_id=1).save()
-    OrganizationMember.outbox_for_update(org_id=org2.id, org_member_id=2).save()
+    OrganizationMember(organization_id=org1.id, id=1).outbox_for_update().save()
+    OrganizationMember(organization_id=org2.id, id=2).outbox_for_update().save()
 
     shards = {
         (row["shard_scope"], row["shard_identifier"])
@@ -128,12 +138,21 @@ def test_region_sharding_keys():
 @pytest.mark.django_db(transaction=True)
 @control_silo_test(stable=True)
 def test_control_sharding_keys():
-    org = Factories.create_organization()
-    Factories.create_org_mapping(org, region_name=MONOLITH_REGION_NAME)
-    user1 = Factories.create_user()
-    user2 = Factories.create_user()
-    Factories.create_member(organization=org, user=user1)
-    Factories.create_member(organization=org, user=user2)
+    with exempt_from_silo_limits():
+        org = Factories.create_organization(no_mapping=True)
+        Factories.create_org_mapping(org, region_name=MONOLITH_REGION_NAME)
+        user1 = Factories.create_user()
+        user2 = Factories.create_user()
+        organization_service.add_organization_member(
+            organization_id=org.id,
+            default_org_role=org.default_role,
+            user_id=user1.id,
+        )
+        organization_service.add_organization_member(
+            organization_id=org.id,
+            default_org_role=org.default_role,
+            user_id=user2.id,
+        )
 
     for inst in User.outboxes_for_update(user1.id):
         inst.save()
@@ -197,6 +216,7 @@ def test_outbox_rescheduling(task_runner):
                 sender=OutboxCategory.ORGANIZATION_UPDATE,
                 payload=None,
                 object_identifier=org,
+                shard_identifier=org,
             )
 
         Organization.outbox_for_update(org_id=10001).save()

@@ -108,7 +108,7 @@ class SlackTasksTest(TestCase):
                 "workspace": self.integration.id,
             }
         ]
-        assert rule.created_by == self.user
+        assert rule.created_by_id == self.user.id
 
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
@@ -252,13 +252,13 @@ class SlackTasksTest(TestCase):
                 find_channel_id_for_alert_rule(**data)
 
         rule = AlertRule.objects.get(name="New Rule")
-        assert rule.created_by.id == self.user.id
+        assert rule.created_by_id == self.user.id
         mock_set_value.assert_called_with("success", rule.id)
         mock_get_channel_id.assert_called_with(
             integration_service._serialize_integration(self.integration), "my-channel", 180
         )
 
-        trigger_action = AlertRuleTriggerAction.objects.get(integration=self.integration.id)
+        trigger_action = AlertRuleTriggerAction.objects.get(integration_id=self.integration.id)
         assert trigger_action.target_identifier == "chan-id"
 
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
@@ -337,7 +337,7 @@ class SlackTasksTest(TestCase):
             integration_service._serialize_integration(self.integration), "my-channel", 180
         )
 
-        trigger_action = AlertRuleTriggerAction.objects.get(integration=self.integration.id)
+        trigger_action = AlertRuleTriggerAction.objects.get(integration_id=self.integration.id)
         assert trigger_action.target_identifier == "chan-id"
         assert AlertRule.objects.get(id=alert_rule.id)
 
@@ -352,6 +352,7 @@ class SlackTasksTest(TestCase):
         with self.tasks():
             post_message.apply_async(
                 kwargs={
+                    "integration_id": self.integration.id,
                     "payload": {"key": ["val"]},
                     "log_error_message": "my_message",
                     "log_params": {"log_key": "log_value"},
@@ -371,6 +372,7 @@ class SlackTasksTest(TestCase):
         with self.tasks():
             post_message.apply_async(
                 kwargs={
+                    "integration_id": self.integration.id,
                     "payload": {"key": ["val"]},
                     "log_error_message": "my_message",
                     "log_params": {"log_key": "log_value"},

@@ -10,9 +10,7 @@ import DateTime from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
-import OwnedBy from 'sentry/components/group/ownedBy';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
-import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOwners';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -30,7 +28,7 @@ import {
   Project,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {userDisplayName} from 'sentry/utils/formatters';
@@ -73,7 +71,7 @@ class BaseGroupSidebar extends Component<Props, State> {
   trackAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
     const {group, project, organization, location} = this.props;
     const {alert_date, alert_rule_id, alert_type} = location.query;
-    trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
+    trackAnalytics('issue_details.action_clicked', {
       organization,
       project_id: parseInt(project.id, 10),
       action_type: 'assign',
@@ -211,30 +209,15 @@ class BaseGroupSidebar extends Component<Props, State> {
   render() {
     const {event, group, organization, project, environments} = this.props;
     const {allEnvironmentsGroupData, currentRelease} = this.state;
-    const hasStreamlineTargetingFeature = organization.features.includes(
-      'streamline-targeting-context'
-    );
 
     return (
       <Container>
-        {!hasStreamlineTargetingFeature && (
-          <OwnedBy
-            group={group}
-            event={event}
-            project={project}
-            organization={organization}
-          />
-        )}
         <AssignedTo
           group={group}
           event={event}
           project={project}
           onAssign={this.trackAssign}
         />
-
-        {!hasStreamlineTargetingFeature && event && (
-          <SuggestedOwners project={project} group={group} event={event} />
-        )}
 
         <GroupReleaseStats
           organization={organization}

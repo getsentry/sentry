@@ -15,6 +15,7 @@ from sentry.db.models import (
     region_silo_only_model,
 )
 from sentry.utils import json
+from sentry.utils.hashlib import sha1_text
 
 NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
@@ -72,6 +73,12 @@ class ArtifactBundle(Model):
             return release_artifact_bundle.release_name, release_artifact_bundle.dist_name
         except IndexError:
             return None, None
+
+    @classmethod
+    def get_ident(cls, url, dist=None):
+        if dist is not None:
+            return sha1_text(url + "\x00\x00" + dist).hexdigest()
+        return sha1_text(url).hexdigest()
 
 
 def delete_file_for_artifact_bundle(instance, **kwargs):
@@ -237,8 +244,17 @@ class ArtifactBundleArchive:
 
             headers = self.normalize_headers(info.get("headers", {}))
             debug_id = self.normalize_debug_id(headers.get("debug-id", None))
-            if debug_id is not None and normalized_query in debug_id.lower():
-                return True
+            if debug_id is not None:
+                debug_id = debug_id.lower()
+
+                if normalized_query in debug_id:
+                    return True
+
+                # We also want to try and normalize the query so that we can match for example:
+                # 2b69e5bd2e984c578ce1b58da19110ae with 2b69e5bd-2e98-4c57-8ce1-b58da19110ae.
+                normalized_query = self.normalize_debug_id(normalized_query)
+                if normalized_query is not None and normalized_query in debug_id:
+                    return True
 
             return False
 

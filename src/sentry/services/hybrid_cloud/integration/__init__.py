@@ -4,19 +4,15 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
 
 from sentry.constants import ObjectStatus
 from sentry.models.integrations import Integration, OrganizationIntegration
-from sentry.services.hybrid_cloud import (
-    InterfaceWithLifecycle,
-    RpcPaginationArgs,
-    RpcPaginationResult,
-    silo_mode_delegation,
-    stubbed,
-)
+from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
@@ -27,8 +23,7 @@ if TYPE_CHECKING:
     )
 
 
-@dataclass(frozen=True, eq=True)
-class RpcIntegration:
+class RpcIntegration(RpcModel):
     id: int
     provider: str
     external_id: str
@@ -51,10 +46,9 @@ class RpcIntegration:
         return "disabled"
 
 
-@dataclass(frozen=True, eq=True)
-class RpcOrganizationIntegration:
+class RpcOrganizationIntegration(RpcModel):
     id: int
-    default_auth_id: int
+    default_auth_id: Optional[int]
     organization_id: int
     integration_id: int
     config: Dict[str, Any]
@@ -71,7 +65,16 @@ class RpcOrganizationIntegration:
         return "disabled"
 
 
-class IntegrationService(InterfaceWithLifecycle):
+class IntegrationService(RpcService):
+    key = "integration"
+    local_mode = SiloMode.CONTROL
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.integration.impl import DatabaseBackedIntegrationService
+
+        return DatabaseBackedIntegrationService()
+
     def _serialize_integration(self, integration: Integration) -> RpcIntegration:
         return RpcIntegration(
             id=integration.id,
@@ -95,6 +98,7 @@ class IntegrationService(InterfaceWithLifecycle):
             grace_period_end=oi.grace_period_end,
         )
 
+    @rpc_method
     @abstractmethod
     def page_integration_ids(
         self,
@@ -105,6 +109,19 @@ class IntegrationService(InterfaceWithLifecycle):
     ) -> RpcPaginationResult:
         pass
 
+    @rpc_method
+    @abstractmethod
+    def send_message(
+        self,
+        *,
+        integration_id: int,
+        organization_id: int,
+        channel: str,
+        message: str,
+    ) -> bool:
+        pass
+
+    @rpc_method
     @abstractmethod
     def page_organization_integrations_ids(
         self,
@@ -116,6 +133,7 @@ class IntegrationService(InterfaceWithLifecycle):
     ) -> RpcPaginationResult:
         pass
 
+    @rpc_method
     @abstractmethod
     def get_integrations(
         self,
@@ -126,12 +144,14 @@ class IntegrationService(InterfaceWithLifecycle):
         providers: Optional[List[str]] = None,
         org_integration_status: Optional[int] = None,
         limit: Optional[int] = None,
+        organization_integration_id: Optional[int] = None,
     ) -> List[RpcIntegration]:
         """
         Returns all APIIntegrations matching the provided kwargs.
         """
         pass
 
+    @rpc_method
     @abstractmethod
     def get_integration(
         self,
@@ -139,12 +159,14 @@ class IntegrationService(InterfaceWithLifecycle):
         integration_id: Optional[int] = None,
         provider: Optional[str] = None,
         external_id: Optional[str] = None,
+        organization_integration_id: Optional[int] = None,
     ) -> Optional[RpcIntegration]:
         """
         Returns an RpcIntegration using either the id or a combination of the provider and external_id
         """
         pass
 
+    @rpc_method
     @abstractmethod
     def get_organization_integrations(
         self,
@@ -152,6 +174,7 @@ class IntegrationService(InterfaceWithLifecycle):
         org_integration_ids: Optional[List[int]] = None,
         integration_id: Optional[int] = None,
         organization_id: Optional[int] = None,
+        organization_ids: Optional[List[int]] = None,
         status: Optional[int] = None,
         providers: Optional[List[str]] = None,
         has_grace_period: Optional[bool] = None,
@@ -164,6 +187,7 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         pass
 
+    @rpc_method
     def get_organization_integration(
         self, *, integration_id: int, organization_id: int
     ) -> Optional[RpcOrganizationIntegration]:
@@ -175,6 +199,7 @@ class IntegrationService(InterfaceWithLifecycle):
         )
         return self._serialize_organization_integration(ois[0]) if len(ois) > 0 else None
 
+    @rpc_method
     @abstractmethod
     def get_organization_context(
         self,
@@ -190,6 +215,23 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         pass
 
+    @rpc_method
+    @abstractmethod
+    def get_organization_contexts(
+        self,
+        *,
+        organization_id: Optional[int] = None,
+        integration_id: Optional[int] = None,
+        provider: Optional[str] = None,
+        external_id: Optional[str] = None,
+    ) -> Tuple[Optional[RpcIntegration], List[RpcOrganizationIntegration]]:
+        """
+        Returns a tuple of RpcIntegration and RpcOrganizationIntegrations. The integrations are selected
+        by either integration_id, or a combination of provider and external_id.
+        """
+        pass
+
+    @rpc_method
     @abstractmethod
     def update_integrations(
         self,
@@ -205,6 +247,7 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         pass
 
+    @rpc_method
     @abstractmethod
     def update_integration(
         self,
@@ -220,6 +263,7 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         pass
 
+    @rpc_method
     @abstractmethod
     def update_organization_integrations(
         self,
@@ -236,6 +280,7 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         pass
 
+    @rpc_method
     @abstractmethod
     def update_organization_integration(
         self,
@@ -254,6 +299,7 @@ class IntegrationService(InterfaceWithLifecycle):
 
     # The following methods replace instance methods of the ORM objects!
 
+    @rpc_method
     def get_installation(
         self,
         *,
@@ -274,6 +320,7 @@ class IntegrationService(InterfaceWithLifecycle):
         )
         return installation
 
+    @rpc_method
     def has_feature(self, *, provider: str, feature: "IntegrationFeatures") -> bool:
         """
         Returns True if the IntegrationProvider subclass contains a given feature
@@ -285,17 +332,29 @@ class IntegrationService(InterfaceWithLifecycle):
         int_provider: "IntegrationProvider" = integrations.get(provider)
         return feature in int_provider.features
 
+    @rpc_method
+    @abstractmethod
+    def send_incident_alert_notification(
+        self,
+        *,
+        sentry_app_id: int,
+        action_id: int,
+        incident_id: int,
+        organization: RpcOrganizationSummary,
+        new_status: int,
+        incident_attachment: Mapping[str, str],
+        metric_value: Optional[str] = None,
+    ) -> None:
+        pass
 
-def impl_with_db() -> IntegrationService:
-    from sentry.services.hybrid_cloud.integration.impl import DatabaseBackedIntegrationService
+    @rpc_method
+    @abstractmethod
+    def send_msteams_incident_alert_notification(
+        self, *, integration_id: int, channel: Optional[str], attachment: Dict[str, Any]
+    ) -> None:
+        raise NotImplementedError
 
-    return DatabaseBackedIntegrationService()
 
-
-integration_service: IntegrationService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
-        SiloMode.CONTROL: impl_with_db,
-    }
+integration_service: IntegrationService = cast(
+    IntegrationService, IntegrationService.create_delegation()
 )

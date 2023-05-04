@@ -40,7 +40,7 @@ class SCIMMemberTestsPermissions(APITestCase):
         assert response.status_code == 403
 
     def test_cant_use_scim_even_with_authprovider(self):
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(url)
         assert response.status_code == 403
@@ -335,7 +335,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
 
     def test_user_details_set_inactive(self):
         member = self.create_member(
-            user=self.create_user(), organization=self.organization, email="test.user@okta.local"
+            user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
             user=member.user, auth_provider=self.auth_provider, ident="test_ident"
@@ -360,7 +360,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
 
     def test_user_details_set_inactive_dict(self):
         member = self.create_member(
-            user=self.create_user(), organization=self.organization, email="test.user@okta.local"
+            user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
             user=member.user, auth_provider=self.auth_provider, ident="test_ident"
@@ -385,7 +385,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
 
     def test_user_details_set_inactive_with_bool_string(self):
         member = self.create_member(
-            user=self.create_user(), organization=self.organization, email="test.user@okta.local"
+            user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
             user=member.user, auth_provider=self.auth_provider, ident="test_ident"
@@ -410,7 +410,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
 
     def test_user_details_set_inactive_with_dict_bool_string(self):
         member = self.create_member(
-            user=self.create_user(), organization=self.organization, email="test.user@okta.local"
+            user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
             user=member.user, auth_provider=self.auth_provider, ident="test_ident"
@@ -435,7 +435,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
 
     def test_invalid_patch_op(self):
         member = self.create_member(
-            user=self.create_user(), organization=self.organization, email="test.user@okta.local"
+            user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
             user=member.user, auth_provider=self.auth_provider, ident="test_ident"
@@ -454,7 +454,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
 
     def test_invalid_patch_op_value(self):
         member = self.create_member(
-            user=self.create_user(), organization=self.organization, email="test.user@okta.local"
+            user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
             user=member.user, auth_provider=self.auth_provider, ident="test_ident"

@@ -31,7 +31,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
         operation_id="Retrieve check-ins for a monitor",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
             MONITOR_PARAMS.CHECKIN_ID,
         ],
         responses={
@@ -56,7 +56,9 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
             raise ParseError(detail="Invalid date range")
 
         queryset = MonitorCheckIn.objects.filter(
-            monitor_id=monitor.id, date_added__gte=start, date_added__lte=end
+            monitor_id=monitor.id,
+            date_added__gte=start,
+            date_added__lte=end,
         )
 
         environments = get_environments(request, organization)

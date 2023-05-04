@@ -27,7 +27,7 @@ export interface SingleCompositeSelectRegion<Value extends React.Key>
   extends BaseCompositeSelectRegion<Value>,
     Omit<
       SingleListProps<Value>,
-      'children' | 'items' | 'grid' | 'compositeIndex' | 'size'
+      'children' | 'items' | 'grid' | 'compositeIndex' | 'size' | 'limitOptions'
     > {}
 
 /**
@@ -40,7 +40,7 @@ export interface MultipleCompositeSelectRegion<Value extends React.Key>
   extends BaseCompositeSelectRegion<Value>,
     Omit<
       MultipleListProps<Value>,
-      'children' | 'items' | 'grid' | 'compositeIndex' | 'size'
+      'children' | 'items' | 'grid' | 'compositeIndex' | 'size' | 'limitOptions'
     > {}
 
 /**
@@ -69,12 +69,6 @@ export interface CompositeSelectProps extends ControlProps {
    * whose values don't interfere with one another.
    */
   children: CompositeSelectChild | CompositeSelectChild[];
-  /**
-   * Whether to close the menu upon selection. This prop applies to the entire selector
-   * and functions as a fallback value. Each composite region also accepts the same
-   * prop, which will take precedence over this one.
-   */
-  closeOnSelect?: SingleListProps<React.Key>['closeOnSelect'];
 }
 
 /**
@@ -87,7 +81,6 @@ function CompositeSelect({
   disabled,
   emptyMessage,
   size = 'md',
-  closeOnSelect,
   ...controlProps
 }: CompositeSelectProps) {
   return (
@@ -100,13 +93,7 @@ function CompositeSelect({
             }
 
             return (
-              <Region
-                {...child.props}
-                grid={grid}
-                size={size}
-                compositeIndex={index}
-                closeOnSelect={child.props.closeOnSelect ?? closeOnSelect}
-              />
+              <Region {...child.props} grid={grid} size={size} compositeIndex={index} />
             );
           })}
 

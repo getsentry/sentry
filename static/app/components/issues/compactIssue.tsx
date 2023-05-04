@@ -81,6 +81,7 @@ type Props = {
   api: Client;
   id: string;
   organization: Organization;
+  children?: React.ReactNode;
   data?: BaseGroup;
   eventId?: string;
 };

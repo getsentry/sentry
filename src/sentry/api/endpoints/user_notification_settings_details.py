@@ -9,6 +9,7 @@ from sentry.api.serializers.models.notification_setting import NotificationSetti
 from sentry.api.validators.notifications import validate, validate_type_option
 from sentry.models import NotificationSetting, User
 from sentry.notifications.helpers import get_providers_for_recipient
+from sentry.services.hybrid_cloud.actor import RpcActor
 
 
 @control_silo_endpoint
@@ -88,6 +89,8 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
         """
 
         notification_settings = validate(request.data, user=user)
-        NotificationSetting.objects.update_settings_bulk(notification_settings, user=user)
+        NotificationSetting.objects.update_settings_bulk(
+            notification_settings, actor=RpcActor.from_orm_user(user)
+        )
 
         return Response(status=status.HTTP_204_NO_CONTENT)

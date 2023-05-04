@@ -4,7 +4,7 @@ from typing import Any, Mapping, Sequence
 
 from django.core.cache import cache
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.message_builder import (
     build_attachment_text,
@@ -96,7 +96,7 @@ def build_tag_fields(
 
 
 def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
-    all_members = user_service.get_from_group(group)
+    all_members = user_service.get_from_group(group=group)
     members = list({m.id: m for m in all_members}.values())
     teams = group.project.teams.all()
 
@@ -150,7 +150,7 @@ def build_actions(
 ) -> tuple[Sequence[MessageAction], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     if actions and identity:
-        text += get_action_text(text, actions, identity)
+        text = get_action_text(text, actions, identity)
         return [], text, "_actioned_issue"
 
     ignore_button = MessageAction(
@@ -256,6 +256,13 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.issue_details = issue_details
         self.notification = notification
         self.recipient = recipient
+
+    @property
+    def escape_text(self) -> bool:
+        """
+        Returns True if we need to escape the text in the message.
+        """
+        return features.has("organizations:slack-escape-messages", self.group.project.organization)
 
     def build(self) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested

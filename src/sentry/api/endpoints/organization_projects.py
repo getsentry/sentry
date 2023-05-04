@@ -46,6 +46,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     {
                         "dateCreated": "2018-11-06T21:19:58.536Z",
                         "firstEvent": None,
+                        "access": [],
                         "hasAccess": True,
                         "id": "3",
                         "isBookmarked": False,
@@ -73,8 +74,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                         "hasSessions": True,
                         "hasProfiles": True,
                         "hasReplays": True,
-                        "latestRelease": None,
+                        "hasMonitors": True,
                         "hasUserReports": False,
+                        "latestRelease": None,
                     }
                 ],
             )
@@ -99,9 +101,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, "project"):
                 queryset = Project.objects.filter(id=request.auth.project.id)
-            elif request.auth.organization is not None:
-                org = request.auth.organization
-                team_list = list(Team.objects.filter(organization=org))
+            elif request.auth.organization_id is not None:
+                org = request.auth.organization_id
+                team_list = list(Team.objects.filter(organization_id=org))
                 queryset = Project.objects.filter(teams__in=team_list)
             else:
                 return Response(

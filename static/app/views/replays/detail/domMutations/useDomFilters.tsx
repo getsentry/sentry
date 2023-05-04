@@ -34,8 +34,11 @@ const FILTERS = {
 function useDomFilters({actions}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
-  const type = decodeList(query.f_d_type);
-  const searchTerm = decodeScalar(query.f_d_search, '').toLowerCase();
+  const type = useMemo(() => decodeList(query.f_d_type), [query.f_d_type]);
+  const searchTerm = useMemo(
+    () => decodeScalar(query.f_d_search, '').toLowerCase(),
+    [query.f_d_search]
+  );
 
   const items = useMemo(
     () =>

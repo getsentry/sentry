@@ -134,7 +134,16 @@ def process_commit_context(
                     extra={
                         **basic_logging_details,
                         "reason": "could_not_find_in_app_stacktrace_frame",
+                        "fallback": True,
                     },
+                )
+                process_suspect_commits.delay(
+                    event_id=event_id,
+                    event_platform=event_platform,
+                    event_frames=event_frames,
+                    group_id=group_id,
+                    project_id=project_id,
+                    sdk_name=sdk_name,
                 )
                 return
 
@@ -162,7 +171,17 @@ def process_commit_context(
                     extra={
                         **basic_logging_details,
                         "reason": "could_not_fetch_commit_context",
+                        "code_mappings_count": len(code_mappings),
+                        "fallback": True,
                     },
+                )
+                process_suspect_commits.delay(
+                    event_id=event_id,
+                    event_platform=event_platform,
+                    event_frames=event_frames,
+                    group_id=group_id,
+                    project_id=project_id,
+                    sdk_name=sdk_name,
                 )
                 return
 
@@ -176,6 +195,9 @@ def process_commit_context(
                         repository_id=code_mapping.repository_id,
                         key=commit_context.get("commitId"),
                     )
+                    if commit.message == "":
+                        commit.message = commit_context.get("commitMessage")
+                        commit.save()
                     selected_code_mapping = code_mapping
                     break
                 except Commit.DoesNotExist:
@@ -198,33 +220,41 @@ def process_commit_context(
                         },
                     )
 
-            if not commit and new_commit:
-                context = new_commit["context"]
-                # If none of the commits exist in sentry_commit, we add the first commit we found
-                commit_author, _ = CommitAuthor.objects.get_or_create(
-                    organization_id=project.organization_id,
-                    email=context.get("commitAuthorEmail"),
-                    defaults={"name": context.get("commitAuthorName")},
-                )
-                commit = Commit.objects.create(
-                    organization_id=project.organization_id,
-                    repository_id=new_commit["repository_id"],
-                    key=context.get("commitId"),
-                    date_added=context.get("committedDate"),
-                    author=commit_author,
-                    message=context.get("message"),
-                )
+            if not commit:
+                if new_commit:
+                    context = new_commit["context"]
+                    # If none of the commits exist in sentry_commit, we add the first commit we found
+                    commit_author, _ = CommitAuthor.objects.get_or_create(
+                        organization_id=project.organization_id,
+                        email=context.get("commitAuthorEmail"),
+                        defaults={"name": context.get("commitAuthorName")},
+                    )
+                    commit = Commit.objects.create(
+                        organization_id=project.organization_id,
+                        repository_id=new_commit["repository_id"],
+                        key=context.get("commitId"),
+                        date_added=context.get("committedDate"),
+                        author=commit_author,
+                        message=context.get("commitMessage"),
+                    )
 
-                logger.info(
-                    "process_commit_context.added_commit_to_sentry_commit",
-                    extra={
-                        **basic_logging_details,
-                        "sha": new_commit.get("commitId"),
-                        "repository_id": new_commit["repository_id"],
-                        "code_mapping_id": new_commit["code_mapping_id"],
-                        "reason": "commit_sha_does_not_exist_in_sentry_for_all_code_mappings",
-                    },
-                )
+                    logger.info(
+                        "process_commit_context.added_commit_to_sentry_commit",
+                        extra={
+                            **basic_logging_details,
+                            "sha": new_commit.get("commitId"),
+                            "repository_id": new_commit["repository_id"],
+                            "code_mapping_id": new_commit["code_mapping_id"],
+                            "reason": "commit_sha_does_not_exist_in_sentry_for_all_code_mappings",
+                        },
+                    )
+                else:
+                    metrics.incr(
+                        "sentry.tasks.process_commit_context.aborted",
+                        tags={
+                            "detail": "commit_sha_does_not_exist_in_sentry",
+                        },
+                    )
 
             authors = list(CommitAuthor.objects.get_many_from_cache([commit.author_id]))
             author_to_user = get_users_for_authors(commit.organization_id, authors)

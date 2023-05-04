@@ -466,7 +466,9 @@ def post_process_group(
                 return
             # Issue platform events don't use `event_processing_store`. Fetch from eventstore
             # instead.
-            event = eventstore.get_event_by_id(project_id, occurrence.event_id, group_id=group_id)
+            event = eventstore.get_event_by_id(
+                project_id, occurrence.event_id, group_id=group_id, skip_transaction_groupevent=True
+            )
 
         set_current_event_project(event.project_id)
 
@@ -636,7 +638,7 @@ def process_inbox_adds(job: PostProcessJob) -> None:
                 add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
             elif (
                 not is_reprocessed and not has_reappeared
-            ):  # If true, we added the .UNIGNORED reason already
+            ):  # If true, we added the .ONGOING reason already
                 if is_new:
                     add_group_to_inbox(event.group, GroupInboxReason.NEW)
                 elif is_regression:
@@ -653,16 +655,27 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
+    from sentry.issues.escalating import is_escalating
     from sentry.models import (
         Activity,
         GroupInboxReason,
         GroupSnooze,
         GroupStatus,
+        GroupSubStatus,
         add_group_to_inbox,
     )
     from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 
     group = job["event"].group
+
+    # Check is group is escalating
+    if (
+        features.has("organizations:escalating-issues", group.organization)
+        and group.status == GroupStatus.IGNORED
+        and group.substatus == GroupSubStatus.UNTIL_ESCALATING
+    ):
+        job["has_reappeared"] = is_escalating(group)
+        return
 
     with metrics.timer("post_process.process_snoozes.duration"):
         key = GroupSnooze.get_cache_key(group.id)
@@ -686,8 +699,12 @@ def process_snoozes(job: PostProcessJob) -> None:
                 "user_count": snooze.user_count,
                 "user_window": snooze.user_window,
             }
-            add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
-            record_group_history(group, GroupHistoryStatus.UNIGNORED)
+            if features.has("organizations:issue-states", group.organization):
+                add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
+                record_group_history(group, GroupHistoryStatus.ONGOING)
+            else:
+                add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
+                record_group_history(group, GroupHistoryStatus.UNIGNORED)
             Activity.objects.create(
                 project=group.project,
                 group=group,
@@ -697,7 +714,9 @@ def process_snoozes(job: PostProcessJob) -> None:
             )
 
             snooze.delete()
-            group.update(status=GroupStatus.UNRESOLVED)
+            group.status = GroupStatus.UNRESOLVED
+            group.substatus = GroupSubStatus.ONGOING
+            group.save(update_fields=["status", "substatus"])
             issue_unignored.send_robust(
                 project=group.project,
                 user_id=None,
@@ -751,18 +770,22 @@ def process_code_mappings(job: PostProcessJob) -> None:
     try:
         event = job["event"]
         project = event.project
+        group_id = event.group_id
 
         with metrics.timer("post_process.process_code_mappings.duration"):
             # Supported platforms
             if event.data["platform"] not in SUPPORTED_LANGUAGES:
                 return
 
-            cache_key = f"code-mappings:{project.id}"
-            project_queued = cache.get(cache_key)
-            if project_queued is None:
-                cache.set(cache_key, True, 3600)
-
-            if project_queued:
+            # To limit the overall number of tasks, only process one issue per project per hour. In
+            # order to give the most issues a chance to to be processed, don't reprocess any given
+            # issue for at least 24 hours.
+            project_cache_key = f"code-mappings:project:{project.id}"
+            issue_cache_key = f"code-mappings:group:{group_id}"
+            if cache.get(project_cache_key) is None and cache.get(issue_cache_key) is None:
+                cache.set(project_cache_key, True, 3600)  # 1 hour
+                cache.set(issue_cache_key, True, 86400)  # 24 hours
+            else:
                 return
 
             org = event.project.organization
@@ -771,7 +794,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
 
             if features.has("organizations:derive-code-mappings", org):
                 logger.info(
-                    f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
+                    f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {group_id=}."
                     + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
                 )
                 derive_code_mappings.delay(project.id, event.data)
@@ -784,7 +807,7 @@ def process_commits(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.models import Commit, Integration
+    from sentry.models import Commit
     from sentry.tasks.commit_context import DEBOUNCE_CACHE_KEY, process_commit_context
     from sentry.tasks.groupowner import DEBOUNCE_CACHE_KEY as SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY
     from sentry.tasks.groupowner import process_suspect_commits
@@ -817,11 +840,13 @@ def process_commits(job: PostProcessJob) -> None:
                 )
                 has_integrations = cache.get(integration_cache_key)
                 if has_integrations is None:
-                    integrations = Integration.objects.filter(
-                        organizations=event.project.organization,
-                        provider__in=["github", "gitlab"],
+                    from sentry.services.hybrid_cloud.integration import integration_service
+
+                    org_integrations = integration_service.get_organization_integrations(
+                        organization_id=event.project.organization_id,
+                        providers=["github", "gitlab"],
                     )
-                    has_integrations = integrations.exists()
+                    has_integrations = len(org_integrations) > 0
                     # Cache the integrations check for 4 hours
                     cache.set(integration_cache_key, has_integrations, 14400)
 

@@ -67,7 +67,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk import Granularity, Limit, Offset
-from snuba_sdk.conditions import BooleanCondition, Condition
+from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry import auth, eventstore
 from sentry.auth.authenticators import TotpInterface
@@ -138,6 +138,7 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
+from ..services.hybrid_cloud.actor import RpcActor
 from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
@@ -227,7 +228,9 @@ class BaseTestCase(Fixtures):
         self.client.cookies[name] = value
         self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
-    def make_request(self, user=None, auth=None, method=None, is_superuser=False, path="/"):
+    def make_request(
+        self, user=None, auth=None, method=None, is_superuser=False, path="/"
+    ) -> HttpRequest:
         request = HttpRequest()
         if method:
             request.method = method
@@ -243,7 +246,7 @@ class BaseTestCase(Fixtures):
         # must happen after request.user/request.session is populated
         request.superuser = Superuser(request)
         if is_superuser:
-            # XXX: this is gross, but its a one off and apis change only once in a great while
+            # XXX: this is gross, but it's a one-off and apis change only once in a great while
             request.superuser.set_logged_in(user)
         request.is_superuser = lambda: request.superuser.is_active
         request.successful_authenticator = None
@@ -505,7 +508,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     """
     Extend APITestCase to inherit access to `client`, an object with methods
     that simulate API calls to Sentry, and the helper `get_response`, which
-    combines and simplify a lot of tedious parts of making API calls in tests.
+    combines and simplifies a lot of tedious parts of making API calls in tests.
     When creating API tests, use a new class per endpoint-method pair. The class
     must set the string `endpoint`.
     """
@@ -1466,6 +1469,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         select: Sequence[MetricField],
         project_ids: Sequence[int] = None,
         where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None,
+        having: Optional[ConditionGroup] = None,
         groupby: Optional[Sequence[MetricGroupByField]] = None,
         orderby: Optional[Sequence[MetricOrderByField]] = None,
         limit: Optional[Limit] = None,
@@ -1488,6 +1492,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             end=end,
             granularity=Granularity(granularity=granularity_in_seconds),
             where=where,
+            having=having,
             groupby=groupby,
             orderby=orderby,
             limit=limit,
@@ -2011,7 +2016,9 @@ class TestMigrations(TransactionTestCase):
 class SCIMTestCase(APITestCase):
     def setUp(self, provider="dummy"):
         super().setUp()
-        self.auth_provider = AuthProviderModel(organization=self.organization, provider=provider)
+        self.auth_provider = AuthProviderModel(
+            organization_id=self.organization.id, provider=provider
+        )
         self.auth_provider.enable_scim(self.user)
         self.auth_provider.save()
         self.scim_user = ApiToken.objects.get(token=self.auth_provider.get_scim_token()).user
@@ -2086,19 +2093,19 @@ class SlackActivityNotificationTest(ActivityTestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
         self.integration = install_slack(self.organization)
@@ -2150,19 +2157,19 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 
@@ -2310,13 +2317,14 @@ class MonitorTestCase(APITestCase):
             **kwargs,
         )
 
-    def _create_monitor_environment(self, monitor, name="production"):
+    def _create_monitor_environment(self, monitor, name="production", **kwargs):
         environment = Environment.get_or_create(project=self.project, name=name)
 
         monitorenvironment_defaults = {
             "status": monitor.status,
             "next_checkin": monitor.next_checkin,
             "last_checkin": monitor.last_checkin,
+            **kwargs,
         }
 
         return MonitorEnvironment.objects.create(
@@ -2362,8 +2370,8 @@ class MonitorIngestTestCase(MonitorTestCase):
         # Because removing old urls takes time and consideration of the cost of breaking lingering references, a
         # decision to permanently remove either path schema is a TODO.
         return (
-            lambda monitor_id: reverse(self.endpoint, args=[monitor_id]),
-            lambda monitor_id: reverse(
-                self.endpoint_with_org, args=[self.organization.slug, monitor_id]
+            lambda monitor_slug: reverse(self.endpoint, args=[monitor_slug]),
+            lambda monitor_slug: reverse(
+                self.endpoint_with_org, args=[self.organization.slug, monitor_slug]
             ),
         )

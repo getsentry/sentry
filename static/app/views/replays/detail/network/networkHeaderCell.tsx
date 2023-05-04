@@ -15,8 +15,7 @@ type Props = {
   style: CSSProperties;
 };
 
-// `block` so that it's vertically centered :lolsob:
-const SizeInfo = styled(IconInfo)`
+const SizeInfoIcon = styled(IconInfo)`
   display: block;
 `;
 
@@ -27,7 +26,10 @@ const COLUMNS: {
   {field: 'status', label: t('Status')},
   {field: 'method', label: t('Method')},
   {field: 'description', label: t('Path')},
-  {field: 'op', label: t('Type')},
+  {
+    field: 'op',
+    label: t('Type'),
+  },
   {
     field: 'size',
     label: (
@@ -38,7 +40,7 @@ const COLUMNS: {
             'The number used for fetch/xhr is the response body size. It is possible the network transfer size is smaller due to compression.'
           )}
         >
-          <SizeInfo size="xs" />
+          <SizeInfoIcon size="xs" />
         </Tooltip>
       </Fragment>
     ),

@@ -12,6 +12,7 @@ from sentry.api.event_search import (
 from sentry.api.issue_search import (
     convert_actor_or_none_value,
     convert_category_value,
+    convert_device_class_value,
     convert_first_release_value,
     convert_query_values,
     convert_release_value,
@@ -24,7 +25,9 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -217,6 +220,24 @@ class ConvertStatusValueTest(TestCase):
             convert_query_values(filters, [self.project], self.user, None)
 
 
+@apply_feature_flag_on_cls("organizations:issue-states")
+class ConvertSubStatusValueTest(TestCase):
+    def test_valid(self):
+        for substatus_string, substatus_val in SUBSTATUS_UPDATE_CHOICES.items():
+            filters = [SearchFilter(SearchKey("substatus"), "=", SearchValue([substatus_string]))]
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value == [substatus_val]
+
+            filters = [SearchFilter(SearchKey("substatus"), "=", SearchValue([substatus_val]))]
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value == [substatus_val]
+
+    def test_invalid(self):
+        filters = [SearchFilter(SearchKey("substatus"), "=", SearchValue("wrong"))]
+        with pytest.raises(InvalidSearchQuery, match="invalid substatus value"):
+            convert_query_values(filters, [self.project], self.user, None)
+
+
 @region_silo_test(stable=True)
 class ConvertActorOrNoneValueTest(TestCase):
     def test_user(self):
@@ -312,3 +333,20 @@ class ConvertTypeValueTest(TestCase):
         ) == [1, 1006]
         with pytest.raises(InvalidSearchQuery):
             convert_type_value(["hellboy"], [self.project], self.user, None)
+
+
+@region_silo_test(stable=True)
+class DeviceClassValueTest(TestCase):
+    def test(self):
+        assert convert_device_class_value(["high"], [self.project], self.user, None) == ["3"]
+        assert convert_device_class_value(["medium"], [self.project], self.user, None) == ["2"]
+        assert convert_device_class_value(["low"], [self.project], self.user, None) == ["1"]
+        assert sorted(
+            convert_device_class_value(["medium", "high"], [self.project], self.user, None)
+        ) == [
+            "2",
+            "3",
+        ]
+        assert sorted(
+            convert_device_class_value(["low", "medium", "high"], [self.project], self.user, None)
+        ) == ["1", "2", "3"]
