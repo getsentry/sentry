@@ -8,7 +8,13 @@ from sentry import features
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models import Organization, Project
 
-from ..base import DETECTOR_TYPE_TO_GROUP_TYPE, DetectorType, PerformanceDetector, fingerprint_span
+from ..base import (
+    DETECTOR_TYPE_TO_GROUP_TYPE,
+    DetectorType,
+    PerformanceDetector,
+    fingerprint_span,
+    get_span_evidence_value,
+)
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
@@ -65,6 +71,9 @@ class SlowDBQueryDetector(PerformanceDetector):
                     "cause_span_ids": [],
                     "parent_span_ids": [],
                     "offender_span_ids": spans_involved,
+                    "transaction_name": self._event.get("description", ""),
+                    "repeating_spans": get_span_evidence_value(span),
+                    "num_repeating_spans": str(len(spans_involved)),
                 },
                 evidence_display=[],
             )

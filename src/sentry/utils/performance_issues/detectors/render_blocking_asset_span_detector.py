@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Optional
+from typing import Any, Mapping, Optional
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
@@ -76,6 +76,11 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                         "parent_span_ids": [],
                         "cause_span_ids": [],
                         "offender_span_ids": [span_id],
+                        "transaction_name": self._event.get("description", ""),
+                        "slow_span_description": span.get("description", ""),
+                        "slow_span_duration": get_span_duration(span),
+                        "transaction_duration": self.self._get_duration(self._event.data),
+                        "fcp": self.fcp,
                     },
                     evidence_display=[],
                 )
@@ -87,6 +92,15 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         if span_start_timestamp >= fcp_timestamp:
             # Early return for all future span visits.
             self.fcp = None
+
+    def _get_duration(self, item: Mapping[str, Any] | None) -> float:
+        if not item:
+            return 0
+
+        start = float(item.get("start_timestamp", 0) or 0)
+        end = float(item.get("timestamp", 0), 0)
+
+        return (end - start) * 1000
 
     def _is_blocking_render(self, span):
         data = span.get("data", None)
