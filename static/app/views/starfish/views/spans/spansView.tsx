@@ -37,6 +37,7 @@ export default function SpansView(props: Props) {
             ])}`
           ).then(res => res.json()),
         retry: false,
+        enabled: Boolean(cluster.grouping_column),
         initialData: [],
       };
     }),
@@ -72,13 +73,15 @@ export default function SpansView(props: Props) {
             'primary_group'
           );
 
-          const segments = (cluster.clusters || []).map(clusterName => {
+          const clusters = Object.keys(exclusiveTimeBySubCluster);
+
+          const segments = (clusters || []).map(clusterName => {
             const subCluster = CLUSTERS[clusterName];
 
             return {
-              name: subCluster.label,
+              name: subCluster?.label || clusterName,
               value: clusterName,
-              count: exclusiveTimeBySubCluster[subCluster.name]?.exclusive_time,
+              count: exclusiveTimeBySubCluster[clusterName]?.exclusive_time,
               url: '',
             };
           });

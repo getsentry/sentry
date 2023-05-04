@@ -4,7 +4,6 @@ export const CLUSTERS = {
     label: 'All',
     condition: '',
     grouping_column: "module IN ['db', 'http'] ? concat('top.',  module) : 'top.other'",
-    clusters: ['top.db', 'top.http', 'top.other'],
   },
   'top.db': {
     name: 'top.db',
@@ -12,7 +11,6 @@ export const CLUSTERS = {
     condition: "module == 'db'",
     grouping_column:
       "action IN ['SELECT', 'INSERT'] ? concat('db.',  lower(action)) : 'db.other'",
-    clusters: ['db.select', 'db.insert', 'db.other'],
   },
   'db.select': {
     name: 'db.select',
@@ -34,7 +32,6 @@ export const CLUSTERS = {
     label: 'HTTP',
     condition: "module == 'http'",
     grouping_column: 'span_operation',
-    clusters: ['http.client', 'http.server'],
   },
   'top.other': {
     name: 'top.other',
@@ -47,7 +44,6 @@ export const CLUSTERS = {
     condition: "span_operation == 'http.client'",
     grouping_column:
       "action IN ['GET', 'POST'] ? concat('http.client.', lower(action)) : 'http.client.other'",
-    clusters: ['http.client.get', 'http.client.post', 'http.client.other'],
   },
   'http.client.get': {
     name: 'http.client.get',
