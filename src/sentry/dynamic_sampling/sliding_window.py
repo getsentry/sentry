@@ -28,9 +28,6 @@ from sentry.utils.snuba import raw_snql_query
 logger = logging.getLogger(__name__)
 MAX_SECONDS = 60
 CHUNK_SIZE = 9998  # Snuba's limit is 10000, and we fetch CHUNK_SIZE+1
-QUERY_TIME_INTERVAL = timedelta(
-    hours=int(options.get("dynamic-sampling:sliding_window.size"))
-)  # By default, we want to get the volume of the last 24 hours.
 
 
 def fetch_projects_with_total_root_transactions_count(
@@ -42,7 +39,7 @@ def fetch_projects_with_total_root_transactions_count(
     Fetches tuples of (org_id, project_id) and the respective root transaction counts.
     """
     if query_interval is None:
-        query_interval = QUERY_TIME_INTERVAL
+        query_interval = timedelta(hours=int(options.get("dynamic-sampling:sliding_window.size")))
         granularity = Granularity(3600)
 
     count_per_root_metric_id = indexer.resolve_shared_org(
