@@ -88,7 +88,6 @@ class DatabaseBackedNotificationsService(NotificationsService):
     ) -> List[RpcNotificationSetting]:
         team_ids = [r.id for r in recipients if r.actor_type == ActorType.TEAM]
         user_ids = [r.id for r in recipients if r.actor_type == ActorType.USER]
-        # TODO(actorid) In tests recipients is sometimes a User. This needs to be solved.
         actor_ids: List[int] = [r.actor_id for r in recipients if r.actor_id is not None]
 
         parent_specific_scope_type = get_scope_type(type)
