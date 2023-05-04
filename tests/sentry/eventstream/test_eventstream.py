@@ -192,6 +192,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             selected_columns=["event_id", "group_ids"],
             groupby=None,
             filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
+            tenant_ids={"organization_id": 1, "referrer": "r"},
         )
         assert len(result["data"]) == 1
         assert result["data"][0]["group_ids"] == [self.group.id]
