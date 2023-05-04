@@ -75,7 +75,7 @@ function NetworkList({
       cellMeasurer,
       gridRef,
       columnCount: COLUMN_COUNT,
-      dynamicColumnIndex: 1,
+      dynamicColumnIndex: 2,
       deps,
     });
 
