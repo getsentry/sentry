@@ -292,4 +292,22 @@ def convert_query_values(
         return search_filter
 
     organization = projects[0].organization
-    return [convert_search_filter(search_filter, organization) for search_filter in search_filters]
+    filters = [
+        convert_search_filter(search_filter, organization) for search_filter in search_filters
+    ]
+    if features.has("organizations:issue-states", organization) and not valid_substatus_search(
+        filters
+    ):
+        raise InvalidSearchQuery("Mutually exclusive status filters are not supported")
+    return filters
+
+
+def valid_substatus_search(filters: list[SearchFilter]) -> bool:
+    parsed = lambda substatus: substatus[0] if isinstance(substatus, list) else substatus
+    substatuses = [
+        parsed(filter.value.raw_value) for filter in filters if filter.key.name == "substatus"
+    ]
+    statuses = {parsed(filter.value.raw_value) for filter in filters if filter.key.name == "status"}
+
+    related_statuses = {GROUP_SUBSTATUS_TO_STATUS_MAP.get(substatus) for substatus in substatuses}
+    return len(related_statuses) == 1 and related_statuses == statuses

@@ -232,9 +232,26 @@ class ConvertSubStatusValueTest(TestCase):
             result = convert_query_values(filters, [self.project], self.user, None)
             assert result[0].value.raw_value == [substatus_val]
 
+            filters = [
+                SearchFilter(SearchKey("substatus"), "=", SearchValue(["forever"])),
+                SearchFilter(SearchKey("substatus"), "=", SearchValue(["until_escalating"])),
+            ]
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value == [5]
+            assert result[1].value.raw_value == [1]
+
     def test_invalid(self):
-        filters = [SearchFilter(SearchKey("substatus"), "=", SearchValue("wrong"))]
+        filters = [SearchFilter(SearchKey("substatus"), "=", SearchValue(["wrong"]))]
         with pytest.raises(InvalidSearchQuery, match="invalid substatus value"):
+            convert_query_values(filters, [self.project], self.user, None)
+
+        filters = [
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["escalating"])),
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["until_escalating"])),
+        ]
+        with pytest.raises(
+            InvalidSearchQuery, match="Mutually exclusive substatus filters are not supported"
+        ):
             convert_query_values(filters, [self.project], self.user, None)
 
 
