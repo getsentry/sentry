@@ -10,7 +10,7 @@ import {
   getDateFilters,
 } from 'sentry/views/starfish/utils/dates';
 
-const DEFAULT_WHERE = `
+export const DEFAULT_WHERE = `
   startsWith(span_operation, 'db') and
   span_operation != 'db.redis' and
   module = 'db' and
@@ -286,21 +286,32 @@ export const useQueryPanelEventCount = (
   });
 };
 
-export const useQueryMainTable = (
-  transaction?: string,
-  table?: string,
-  action?: string,
-  sortKey?: string,
-  sortDirection?: string,
-  filterNew?: boolean,
-  filterOld?: boolean
-): DefinedUseQueryResult<DataRow[]> => {
+export const useQueryMainTable = (options: {
+  action?: string;
+  filterNew?: boolean;
+  filterOld?: boolean;
+  limit?: number;
+  sortDirection?: string;
+  sortKey?: string;
+  table?: string;
+  transaction?: string;
+}): DefinedUseQueryResult<DataRow[]> => {
+  const {
+    action,
+    filterNew,
+    filterOld,
+    sortDirection,
+    sortKey,
+    table,
+    transaction,
+    limit,
+  } = options;
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
   const transactionFilter = transaction ? `transaction='${transaction}'` : null;
-  const tableFilter = table !== 'ALL' ? `domain = '${table}'` : undefined;
-  const actionFilter = action !== 'ALL' ? `action = '${action}'` : undefined;
+  const tableFilter = table && table !== 'ALL' ? `domain = '${table}'` : undefined;
+  const actionFilter = action && action !== 'ALL' ? `action = '${action}'` : undefined;
   const newFilter: string | undefined = filterNew ? 'newish = 1' : undefined;
   const oldFilter: string | undefined = filterOld ? 'retired = 1' : undefined;
 
@@ -348,7 +359,7 @@ export const useQueryMainTable = (
   ${havingFilters.length > 0 ? 'having' : ''}
     ${havingFilters.join(' and ')}
     order by ${orderBy}
-  limit 100
+  limit ${limit ?? 100}
 `;
 
   return useQuery<DataRow[]>({
@@ -417,7 +428,7 @@ const getOrderByFromKey = (
   return `${sortKey} ${sortDirection}`;
 };
 
-const getDateQueryFilter = (startTime: Moment, endTime: Moment) => {
+export const getDateQueryFilter = (startTime: Moment, endTime: Moment) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps({
     start: startTime.format('YYYY-MM-DD HH:mm:ss'),
     end: endTime.format('YYYY-MM-DD HH:mm:ss'),
