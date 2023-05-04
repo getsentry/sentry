@@ -71,7 +71,7 @@ describe('Onboarding Product Selection', function () {
     // Uncheck performance monitoring
     await userEvent.click(performanceMonitoring);
     await waitFor(() =>
-      expect(router.push).toHaveBeenCalledWith({
+      expect(router.replace).toHaveBeenCalledWith({
         pathname: undefined,
         query: {product: ['session-replay']},
       })
@@ -86,7 +86,7 @@ describe('Onboarding Product Selection', function () {
     // Uncheck sesseion replay
     await userEvent.click(sessionReplay);
     await waitFor(() =>
-      expect(router.push).toHaveBeenCalledWith({
+      expect(router.replace).toHaveBeenCalledWith({
         pathname: undefined,
         query: {product: ['performance-monitoring']},
       })
