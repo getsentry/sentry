@@ -22,6 +22,7 @@ from .sessions import (  # NOQA
     SessionsV2QueryBuilder,
     TimeseriesSessionsV2QueryBuilder,
 )
+from .spans_indexed import SpansIndexedQueryBuilder, TimeseriesSpanIndexedQueryBuilder  # NOQA
 
 __all__ = [
     "HistogramQueryBuilder",
@@ -40,5 +41,6 @@ __all__ = [
     "ProfileFunctionsTimeseriesQueryBuilder",
     "SessionsQueryBuilder",
     "SessionsV2QueryBuilder",
+    "SpansIndexedQueryBuilder",
     "TimeseriesSessionsV2QueryBuilder",
 ]

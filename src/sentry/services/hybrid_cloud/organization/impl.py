@@ -6,6 +6,7 @@ from typing import Iterable, List, MutableMapping, Optional, Set, cast
 from django.db import transaction
 
 from sentry import roles
+from sentry.constants import ObjectStatus
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     Organization,
@@ -13,7 +14,6 @@ from sentry.models import (
     OrganizationMemberTeam,
     OrganizationStatus,
     Project,
-    ProjectStatus,
     ProjectTeam,
     Team,
     TeamStatus,
@@ -78,7 +78,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         all_project_ids: Set[int] = set()
         project_ids_by_team_id: MutableMapping[int, List[int]] = defaultdict(list)
         for pt in ProjectTeam.objects.filter(
-            project__status=ProjectStatus.VISIBLE, team_id__in={omt.team_id for omt in omts}
+            project__status=ObjectStatus.ACTIVE, team_id__in={omt.team_id for omt in omts}
         ):
             all_project_ids.add(pt.project_id)
             project_ids_by_team_id[pt.team_id].append(pt.project_id)
@@ -212,7 +212,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         query = Organization.objects.filter(slug=slug)
         if user_id is not None:
             query = query.filter(
-                status=OrganizationStatus.VISIBLE,
+                status=OrganizationStatus.ACTIVE,
                 member_set__user_id=user_id,
             )
         try:
@@ -233,7 +233,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         try:
             org = Organization.objects.get_from_cache(slug=slug)
-            if only_visible and org.status != OrganizationStatus.VISIBLE:
+            if only_visible and org.status != OrganizationStatus.ACTIVE:
                 raise Organization.DoesNotExist
             return cast(int, org.id)
         except Organization.DoesNotExist:
@@ -259,7 +259,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         elif organization_ids is not None:
             qs = Organization.objects.filter(id__in=organization_ids)
             if only_visible:
-                qs = qs.filter(status=OrganizationStatus.VISIBLE)
+                qs = qs.filter(status=OrganizationStatus.ACTIVE)
             organizations = list(qs)
         else:
             organizations = []

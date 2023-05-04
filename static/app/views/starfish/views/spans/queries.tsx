@@ -1,3 +1,6 @@
+import {DateTimeObject} from 'sentry/components/charts/utils';
+import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
+
 export const getTimeSpentQuery = (groupingColumn: string, conditions: string[] = []) => {
   const validConditions = conditions.filter(Boolean);
 
@@ -11,14 +14,46 @@ export const getTimeSpentQuery = (groupingColumn: string, conditions: string[] =
   `;
 };
 
-export const getSpanListQuery = (conditions: string[] = []) => {
+export const getSpanListQuery = (
+  datetime: DateTimeObject,
+  conditions: string[] = [],
+  limit?: number
+) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   const validConditions = conditions.filter(Boolean);
 
   return `SELECT
-    DISTINCT group_id, span_operation, description, action
+    group_id, span_operation, description,
+    count() as count,
+    count(DISTINCT transaction) as transaction_count,
+    count / transaction_count as count_per_transaction,
+    sum(exclusive_time) as total_exclusive_time,
+    quantile(0.999)(exclusive_time) as p999,
+    quantile(0.95)(exclusive_time) as p95,
+    quantile(0.50)(exclusive_time) as p50
     FROM spans_experimental_starfish
-    ${validConditions.length > 0 ? 'WHERE' : ''}
+    WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
+    ${validConditions.length > 0 ? 'AND' : ''}
     ${validConditions.join(' AND ')}
-    LIMIT 100
- `;
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
+    GROUP BY group_id, span_operation, description
+    ORDER BY total_exclusive_time desc
+    ${limit ? `LIMIT ${limit}` : ''}`;
+};
+
+export const getSpansTrendsQuery = (datetime: DateTimeObject, groupIDs: string[]) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
+
+  return `
+    SELECT
+    group_id, span_operation,
+    toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
+    quantile(0.95)(exclusive_time) as p95
+    FROM spans_experimental_starfish
+    WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
+    AND group_id IN (${groupIDs.map(id => `'${id}'`).join(',')})
+    GROUP BY group_id, span_operation, interval
+    ORDER BY interval asc
+  `;
 };

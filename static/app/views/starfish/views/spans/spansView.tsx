@@ -1,27 +1,30 @@
 import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
 import {useQueries, useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import keyBy from 'lodash/keyBy';
 import sumBy from 'lodash/sumBy';
 
+import DatePageFilter from 'sentry/components/datePageFilter';
 import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
+import {space} from 'sentry/styles/space';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 
 import {CLUSTERS} from './clusters';
-import {getSpanListQuery, getTimeSpentQuery} from './queries';
+import {getSpanListQuery, getSpansTrendsQuery, getTimeSpentQuery} from './queries';
+import type {SpanDataRow, SpanTrendDataRow} from './spansTable';
 import SpansTable from './spansTable';
+
+const LIMIT = 25;
 
 type Props = {
   location: Location;
 };
 
-type SpanDataRow = {
-  description: string;
-  group_id: string;
-  span_operation: string;
-};
-
 export default function SpansView(props: Props) {
+  const pageFilter = usePageFilters();
+
   const [clusterPath, setClusterPath] = useState<string[]>(['top']);
   const currentClusters = clusterPath.map(
     clusterName =>
@@ -60,16 +63,37 @@ export default function SpansView(props: Props) {
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getSpanListQuery(
-          currentClusters.map(c => c.condition(c.name))
+          pageFilter.selection.datetime,
+          currentClusters.map(c => c.condition(c.name)),
+          LIMIT
         )}`
       ).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
+  const groupIDs = spansData.map(({group_id}) => group_id);
+
+  const {isLoading: areSpansTrendsLoading, data: spansTrendsData} = useQuery<
+    SpanTrendDataRow[]
+  >({
+    queryKey: ['spansTrends', currentCluster.name],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getSpansTrendsQuery(pageFilter.selection.datetime, groupIDs)}`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+    enabled: groupIDs.length > 0,
+  });
+
   return (
     <Fragment>
       <div>
+        <FilterOptionsContainer>
+          <DatePageFilter alignDropdown="left" />
+        </FilterOptionsContainer>
+
         {currentClusters.map((cluster, depth) => {
           const clusterBreakdownResponse = clusterBreakdowns[depth];
           if (
@@ -122,9 +146,17 @@ export default function SpansView(props: Props) {
 
       <SpansTable
         location={props.location}
-        isLoading={areSpansLoading}
-        data={spansData}
+        isLoading={areSpansLoading || areSpansTrendsLoading}
+        spansData={spansData}
+        spansTrendsData={spansTrendsData}
       />
     </Fragment>
   );
 }
+
+const FilterOptionsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+  margin-bottom: ${space(2)};
+`;

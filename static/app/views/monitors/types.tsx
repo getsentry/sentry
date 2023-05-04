@@ -93,5 +93,6 @@ export interface MonitorStat {
   error: number;
   missed: number;
   ok: number;
+  timeout: number;
   ts: number;
 }

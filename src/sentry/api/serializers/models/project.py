@@ -19,7 +19,7 @@ from sentry.api.serializers.models.team import get_org_roles
 from sentry.app import env
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import StatsPeriod
+from sentry.constants import ObjectStatus, StatsPeriod
 from sentry.digests import backend as digests
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
@@ -34,7 +34,6 @@ from sentry.models import (
     ProjectBookmark,
     ProjectOption,
     ProjectPlatform,
-    ProjectStatus,
     ProjectTeam,
     Release,
     Team,
@@ -54,10 +53,10 @@ from sentry.tasks.symbolication import should_demote_symbolication
 from sentry.utils import json
 
 STATUS_LABELS = {
-    ProjectStatus.VISIBLE: "active",
-    ProjectStatus.HIDDEN: "deleted",
-    ProjectStatus.PENDING_DELETION: "deleted",
-    ProjectStatus.DELETION_IN_PROGRESS: "deleted",
+    ObjectStatus.ACTIVE: "active",
+    ObjectStatus.HIDDEN: "deleted",
+    ObjectStatus.PENDING_DELETION: "deleted",
+    ObjectStatus.DELETION_IN_PROGRESS: "deleted",
 }
 
 STATS_PERIOD_CHOICES = {

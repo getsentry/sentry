@@ -49,6 +49,7 @@ from sentry.constants import (
     SAFE_FIELDS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
+    ObjectStatus,
 )
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
@@ -60,7 +61,6 @@ from sentry.models import (
     OrganizationOption,
     OrganizationStatus,
     Project,
-    ProjectStatus,
     Team,
     TeamStatus,
 )
@@ -577,9 +577,9 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
     def _project_list(self, organization: Organization, access: Access) -> list[Project]:
         project_list = list(
-            Project.objects.filter(
-                organization=organization, status=ProjectStatus.VISIBLE
-            ).order_by("slug")
+            Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).order_by(
+                "slug"
+            )
         )
 
         for project in project_list:
