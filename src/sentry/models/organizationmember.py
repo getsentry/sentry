@@ -598,11 +598,7 @@ class OrganizationMember(Model):
         if not features.has("organizations:team-roles", self.organization):
             return [r for r in organization_roles.get_all() if r.priority <= highest_role_priority]
 
-        return [
-            r
-            for r in organization_roles.get_all()
-            if r.priority <= highest_role_priority and not r.is_retired
-        ]
+        return [r for r in organization_roles.get_all() if r.priority <= highest_role_priority]
 
     def is_only_owner(self) -> bool:
         if organization_roles.get_top_dog().id not in self.get_all_org_roles():
