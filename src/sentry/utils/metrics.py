@@ -17,6 +17,7 @@ from typing import (
     MutableMapping,
     Optional,
     Tuple,
+    Type,
     TypeVar,
     Union,
 )
@@ -141,7 +142,7 @@ def _get_current_global_tags() -> MutableTags:
 def get_default_backend() -> MetricsBackend:
     from sentry.utils.imports import import_string
 
-    cls = import_string(settings.SENTRY_METRICS_BACKEND)
+    cls: Type[MetricsBackend] = import_string(settings.SENTRY_METRICS_BACKEND)
 
     return cls(**settings.SENTRY_METRICS_OPTIONS)
 

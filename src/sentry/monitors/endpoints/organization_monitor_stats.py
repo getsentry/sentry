@@ -22,7 +22,12 @@ class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
         current = tsdb.normalize_to_epoch(args["start"], args["rollup"])
         end = tsdb.normalize_to_epoch(args["end"], args["rollup"])
 
-        tracked_statuses = [CheckInStatus.OK, CheckInStatus.ERROR, CheckInStatus.MISSED]
+        tracked_statuses = [
+            CheckInStatus.OK,
+            CheckInStatus.ERROR,
+            CheckInStatus.MISSED,
+            CheckInStatus.TIMEOUT,
+        ]
 
         # initialize success/failure/missed/duration stats in preparation for counting/aggregating
         while current <= end:
