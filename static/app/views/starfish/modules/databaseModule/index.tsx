@@ -18,8 +18,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useQueryMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
 
 import DatabaseChartView from './databaseChartView';
-import DatabaseTableView, {DataRow, TableColumnHeader} from './databaseTableView';
+import DatabaseTableView, {DataRow, MainTableSort} from './databaseTableView';
 import QueryDetail from './panel';
+
+export type Sort<T> = {
+  direction: 'desc' | 'asc' | undefined;
+  sortHeader: T | undefined;
+};
 
 function DatabaseModule() {
   const location = useLocation();
@@ -30,10 +35,10 @@ function DatabaseModule() {
   const [filterNew, setFilterNew] = useState<boolean>(false);
   const [filterOld, setFilterOld] = useState<boolean>(false);
   const [transaction, setTransaction] = useState<string>('');
-  const [sort, setSort] = useState<{
-    direction: 'desc' | 'asc' | undefined;
-    sortHeader: TableColumnHeader | undefined;
-  }>({direction: undefined, sortHeader: undefined});
+  const [sort, setSort] = useState<MainTableSort>({
+    direction: undefined,
+    sortHeader: undefined,
+  });
   const [rows, setRows] = useState<{next?: DataRow; prev?: DataRow; selected?: DataRow}>({
     selected: undefined,
     next: undefined,
@@ -43,7 +48,13 @@ function DatabaseModule() {
     isLoading: isTableDataLoading,
     data: tableData,
     isRefetching: isTableRefetching,
-  } = useQueryMainTable(transaction, table, action, sort.sortHeader?.key, sort.direction);
+  } = useQueryMainTable({
+    transaction,
+    table,
+    action,
+    sortKey: sort.sortHeader?.key,
+    sortDirection: sort.direction,
+  });
 
   useEffect(() => {
     function handleKeyDown({keyCode}) {
@@ -172,6 +183,7 @@ function DatabaseModule() {
               onRowChange={row => {
                 setSelectedRow(row);
               }}
+              mainTableSort={sort}
               row={rows.selected}
               nextRow={rows.next}
               prevRow={rows.prev}
