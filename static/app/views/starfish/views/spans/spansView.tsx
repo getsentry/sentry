@@ -1,13 +1,14 @@
 import {Fragment, useState} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useQueries, useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
+import keyBy from 'lodash/keyBy';
 import sumBy from 'lodash/sumBy';
 
 import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 
 import {CLUSTERS} from './clusters';
-import {getSpanListQuery} from './queries';
+import {getSpanListQuery, getTimeSpentQuery} from './queries';
 import SpansTable from './spansTable';
 
 type Props = {
@@ -25,6 +26,22 @@ export default function SpansView(props: Props) {
   const currentClusters = clusterPath.map(clusterName => CLUSTERS[clusterName]);
   const currentCluster = currentClusters.at(-1);
 
+  const clusterBreakdowns = useQueries({
+    queries: currentClusters.map(cluster => {
+      return {
+        queryKey: ['clusterBreakdown', cluster.name],
+        queryFn: () =>
+          fetch(
+            `${HOST}/?query=${getTimeSpentQuery(cluster.grouping_column || '', [
+              cluster.condition,
+            ])}`
+          ).then(res => res.json()),
+        retry: false,
+        initialData: [],
+      };
+    }),
+  });
+
   const {isLoading: areSpansLoading, data: spansData} = useQuery<SpanDataRow[]>({
     queryKey: ['spans', currentCluster.name],
     queryFn: () =>
@@ -41,18 +58,36 @@ export default function SpansView(props: Props) {
     <Fragment>
       <div>
         {currentClusters.map((cluster, depth) => {
+          const clusterBreakdownResponse = clusterBreakdowns[depth];
+          if (
+            !clusterBreakdownResponse ||
+            clusterBreakdownResponse.isLoading ||
+            clusterBreakdownResponse.error
+          ) {
+            return null;
+          }
+
+          const exclusiveTimeBySubCluster = keyBy(
+            clusterBreakdownResponse.data,
+            'primary_group'
+          );
+
           const segments = (cluster.clusters || []).map(clusterName => {
             const subCluster = CLUSTERS[clusterName];
 
             return {
               name: subCluster.label,
               value: clusterName,
-              count: 100,
+              count: exclusiveTimeBySubCluster[subCluster.name]?.exclusive_time,
               url: '',
             };
           });
 
-          return segments.length > 0 ? (
+          if (segments.length === 0) {
+            return null;
+          }
+
+          return (
             <TagDistributionMeter
               key={cluster.name}
               title={cluster.label}
@@ -62,7 +97,7 @@ export default function SpansView(props: Props) {
               segments={segments}
               totalValues={sumBy(segments, 'count')}
             />
-          ) : null;
+          );
         })}
       </div>
 
