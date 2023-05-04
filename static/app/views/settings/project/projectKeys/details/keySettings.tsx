@@ -15,7 +15,7 @@ import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import KeyRateLimitsForm from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
@@ -30,9 +30,10 @@ type Props = {
     keyId: string;
     projectId: string;
   };
+  project: Project;
 };
 
-export function KeySettings({onRemove, organization, params, data}: Props) {
+export function KeySettings({onRemove, organization, project, params, data}: Props) {
   const api = useApi();
 
   const {keyId, projectId} = params;
@@ -57,113 +58,120 @@ export function KeySettings({onRemove, organization, params, data}: Props) {
   }, [organization, api, onRemove, keyId, projectId]);
 
   return (
-    <Access access={['project:write']}>
-      {({hasAccess}) => (
-        <Fragment>
-          <Form
-            saveOnBlur
-            allowUndo
-            apiEndpoint={apiEndpoint}
-            apiMethod="PUT"
-            initialData={data}
-          >
+    <Fragment>
+      <Access access={['project:write']} project={project}>
+        {({hasAccess}) => (
+          <Fragment>
+            <Form
+              saveOnBlur
+              allowUndo
+              apiEndpoint={apiEndpoint}
+              apiMethod="PUT"
+              initialData={data}
+            >
+              <Panel>
+                <PanelHeader>{t('Details')}</PanelHeader>
+
+                <PanelBody>
+                  <TextField
+                    name="name"
+                    label={t('Name')}
+                    disabled={!hasAccess}
+                    required={false}
+                    maxLength={64}
+                  />
+                  <BooleanField
+                    name="isActive"
+                    label={t('Enabled')}
+                    required={false}
+                    disabled={!hasAccess}
+                    help="Accept events from this key? This may be used to temporarily suspend a key."
+                  />
+                  <FieldGroup label={t('Created')}>
+                    <div className="controls">
+                      <DateTime date={data.dateCreated} />
+                    </div>
+                  </FieldGroup>
+                </PanelBody>
+              </Panel>
+            </Form>
+
+            <KeyRateLimitsForm
+              organization={organization}
+              params={params}
+              data={data}
+              disabled={!hasAccess}
+            />
+
             <Panel>
-              <PanelHeader>{t('Details')}</PanelHeader>
-
+              <PanelHeader>{t('JavaScript Loader Script')}</PanelHeader>
               <PanelBody>
-                <TextField
-                  name="name"
-                  label={t('Name')}
-                  disabled={!hasAccess}
-                  required={false}
-                  maxLength={64}
-                />
-                <BooleanField
-                  name="isActive"
-                  label={t('Enabled')}
-                  required={false}
-                  disabled={!hasAccess}
-                  help="Accept events from this key? This may be used to temporarily suspend a key."
-                />
-                <FieldGroup label={t('Created')}>
-                  <div className="controls">
-                    <DateTime date={data.dateCreated} />
-                  </div>
-                </FieldGroup>
-              </PanelBody>
-            </Panel>
-          </Form>
-
-          <KeyRateLimitsForm
-            organization={organization}
-            params={params}
-            data={data}
-            disabled={!hasAccess}
-          />
-
-          <Panel>
-            <PanelHeader>{t('JavaScript Loader Script')}</PanelHeader>
-            <PanelBody>
-              <PanelAlert type="info" showIcon>
-                {t('Note that it can take a few minutes until changed options are live.')}
-              </PanelAlert>
-
-              <LoaderSettings
-                orgSlug={organization.slug}
-                keyId={params.keyId}
-                projectId={params.projectId}
-                projectKey={data}
-              />
-            </PanelBody>
-          </Panel>
-
-          <Panel>
-            <PanelHeader>{t('Credentials')}</PanelHeader>
-            <PanelBody>
-              <PanelAlert type="info" showIcon>
-                {t(
-                  'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
-                )}
-              </PanelAlert>
-
-              <ProjectKeyCredentials
-                projectId={`${data.projectId}`}
-                data={data}
-                showPublicKey
-                showSecretKey
-                showProjectId
-              />
-            </PanelBody>
-          </Panel>
-
-          <Access access={['project:admin']}>
-            <Panel>
-              <PanelHeader>{t('Revoke Key')}</PanelHeader>
-              <PanelBody>
-                <FieldGroup
-                  label={t('Revoke Key')}
-                  help={t(
-                    'Revoking this key will immediately remove and suspend the credentials. This action is irreversible.'
+                <PanelAlert type="info" showIcon>
+                  {t(
+                    'Note that it can take a few minutes until changed options are live.'
                   )}
-                >
-                  <div>
-                    <Confirm
-                      priority="danger"
-                      message={t(
-                        'Are you sure you want to revoke this key? This will immediately remove and suspend the credentials.'
-                      )}
-                      onConfirm={handleRemove}
-                      confirmText={t('Revoke Key')}
-                    >
-                      <Button priority="danger">{t('Revoke Key')}</Button>
-                    </Confirm>
-                  </div>
-                </FieldGroup>
+                </PanelAlert>
+
+                <LoaderSettings
+                  orgSlug={organization.slug}
+                  keyId={params.keyId}
+                  project={project}
+                  projectKey={data}
+                />
               </PanelBody>
             </Panel>
-          </Access>
-        </Fragment>
-      )}
-    </Access>
+
+            <Panel>
+              <PanelHeader>{t('Credentials')}</PanelHeader>
+              <PanelBody>
+                <PanelAlert type="info" showIcon>
+                  {t(
+                    'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
+                  )}
+                </PanelAlert>
+
+                <ProjectKeyCredentials
+                  projectId={`${data.projectId}`}
+                  data={data}
+                  showPublicKey
+                  showSecretKey
+                  showProjectId
+                />
+              </PanelBody>
+            </Panel>
+          </Fragment>
+        )}
+      </Access>
+
+      <Access access={['project:admin']} project={project}>
+        {({hasAccess}) => (
+          <Panel>
+            <PanelHeader>{t('Revoke Key')}</PanelHeader>
+            <PanelBody>
+              <FieldGroup
+                label={t('Revoke Key')}
+                help={t(
+                  'Revoking this key will immediately remove and suspend the credentials. This action is irreversible.'
+                )}
+              >
+                <div>
+                  <Confirm
+                    priority="danger"
+                    message={t(
+                      'Are you sure you want to revoke this key? This will immediately remove and suspend the credentials.'
+                    )}
+                    onConfirm={handleRemove}
+                    confirmText={t('Revoke Key')}
+                    disableConfirmButton={!hasAccess}
+                  >
+                    <Button priority="danger">{t('Revoke Key')}</Button>
+                  </Confirm>
+                </div>
+              </FieldGroup>
+            </PanelBody>
+          </Panel>
+        )}
+      </Access>
+    </Fragment>
   );
 }

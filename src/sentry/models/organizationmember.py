@@ -252,6 +252,15 @@ class OrganizationMember(Model):
         self.token = self.generate_token()
         self.refresh_expires_at()
 
+    def outbox_for_create(self) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=self.organization_id,
+            category=OutboxCategory.ORGANIZATION_MEMBER_CREATE,
+            object_identifier=self.id,
+            payload=dict(user_id=self.user_id),
+        )
+
     def outbox_for_update(self) -> RegionOutbox:
         return RegionOutbox(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,

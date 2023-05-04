@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.models import Organization, Project
+from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.safe import get_path
 
 from ..base import (
@@ -68,9 +69,11 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         )
 
         exceeds_min_lcp_threshold = (
-            self._sum_span_duration(self.consecutive_http_spans) / self.lcp
+            self.lcp is not None
+            and self.lcp > 0
+            and self._sum_span_duration(self.consecutive_http_spans) / self.lcp
             >= self.settings.get("lcp_ratio_threshold")
-            if self.lcp and self._is_event_from_browser_javascript_sdk()
+            if is_event_from_browser_javascript_sdk(self.event())
             else True
         )
 
@@ -145,7 +148,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
         # If the event is from a JS SDK and the span ends after the LCP, we ignore it
         # because it won't be a candidate for improving LCP
-        if self._is_event_from_browser_javascript_sdk() and self._span_occurs_after_lcp(span):
+        if is_event_from_browser_javascript_sdk(self.event()) and self._span_occurs_after_lcp(span):
             return False
 
         return True
@@ -159,25 +162,6 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             milliseconds=self.lcp
         )
         return span_end > lcp_timestamp
-
-    def _is_event_from_browser_javascript_sdk(self):
-        sdk_name = get_path(self.event(), "sdk", "name")
-        if sdk_name is None:
-            return False
-
-        return sdk_name.lower() in [
-            "sentry.javascript.browser",
-            "sentry.javascript.react",
-            "sentry.javascript.gatsby",
-            "sentry.javascript.ember",
-            "sentry.javascript.vue",
-            "sentry.javascript.angular",
-            "sentry.javascript.angular-ivy",
-            "sentry.javascript.nextjs",
-            "sentry.javascript.electron",
-            "sentry.javascript.remix",
-            "sentry.javascript.svelte",
-        ]
 
     def _fingerprint(self) -> str:
         hashed_url_paths = fingerprint_http_spans(self.consecutive_http_spans)
