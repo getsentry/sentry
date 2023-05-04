@@ -249,7 +249,7 @@ function Onboarding(props: Props) {
       if (onboardingSteps[stepIndex].id === 'select-platform') {
         onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
 
-        props.router.push(
+        props.router.replace(
           normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
         );
         return;
@@ -265,7 +265,7 @@ function Onboarding(props: Props) {
         deleteRecentCreatedProject();
       }
 
-      props.router.push(
+      props.router.replace(
         normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
       );
     },
