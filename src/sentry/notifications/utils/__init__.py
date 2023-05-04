@@ -422,7 +422,6 @@ def get_transaction_data(event: Event, project: Project) -> Any:
     if options.get(
         "performance.issues.create_issues_through_platform", True
     ) and project.get_option("sentry:performance_issue_create_issue_through_platform", True):
-        # get spans and matched_problem
         evidence_data = event.occurrence.evidence_data
         if not evidence_data:
             return ""
@@ -430,6 +429,7 @@ def get_transaction_data(event: Event, project: Project) -> Any:
         context = evidence_data
         return occurrence_perf_to_email_html(context)
     else:
+        # get spans and matched_problem
         spans, matched_problem = get_span_and_problem(event)
         return perf_to_email_html(spans, matched_problem, event)
 

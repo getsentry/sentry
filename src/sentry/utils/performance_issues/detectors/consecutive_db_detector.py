@@ -137,7 +137,6 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
                         "is_multi_value": True,
                     },
                 ],
-                # TODO check if it's _event or _event.data
                 "transaction_duration": self._get_duration(self._event.data),
                 "slow_span_duration": self._calculate_time_saved(self.independent_db_spans),
                 "repeating_spans": get_span_evidence_value(self.independent_db_spans[0]),
