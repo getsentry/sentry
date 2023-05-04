@@ -378,6 +378,8 @@ def adjust_base_sample_rate_per_project(
         # There might be a situation in which the old key is set into Redis still and in that case, we prefer to keep it
         # instead of deleting it. This behavior can be changed anytime, by just doing an "HDEL" on the failing key.
         if sampling_tier is None:
+            # In case we want to track this error, we could use a sentinel value in the Redis hash to signal the
+            # rules generator that we want to fall back to a specific sample rate instead of 100%.
             logger.error(
                 f"The sampling tier for org {org_id} and project {project_id} can't be determined, either an error "
                 f"occurred or the org doesn't have dynamic sampling."
