@@ -438,15 +438,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
             # existing test cases
             codec = sentry_kafka_schemas.codecs.json.JsonCodec(None)
 
-        # The JsonCodec cannot be used since there are datetimes being passed here in unit tests which cannot
-        # be properly encoded
-
-        try:
-            codec.decode(serialized_data.encode("utf-8"), validate=True)
-        except Exception:
-            print(f"Error validating data for entity {entity}")  # noqa
-            print(json.loads(serialized_data))  # noqa
-            raise
+        codec.decode(serialized_data.encode("utf-8"), validate=True)
 
         try:
             resp = snuba._snuba_pool.urlopen(
