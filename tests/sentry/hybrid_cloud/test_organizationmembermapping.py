@@ -30,6 +30,9 @@ class OrganizationMappingTest(TransactionTestCase):
             organization_id=self.organization.id
         )
 
+        assert (
+            rpc_orgmember_mapping.organizationmember_id == orgmember_mapping.organizationmember_id
+        )
         assert rpc_orgmember_mapping.date_added == orgmember_mapping.date_added
         assert (
             rpc_orgmember_mapping.organization_id
@@ -66,6 +69,9 @@ class OrganizationMappingTest(TransactionTestCase):
             organizationmember_id=org_member.id,
         )
 
+        assert (
+            rpc_orgmember_mapping.organizationmember_id == orgmember_mapping.organizationmember_id
+        )
         assert rpc_orgmember_mapping.date_added == orgmember_mapping.date_added
         assert (
             rpc_orgmember_mapping.organization_id
@@ -121,6 +127,9 @@ class OrganizationMappingTest(TransactionTestCase):
             organization_id=self.organization.id, email="mail@testserver.com"
         )
 
+        assert (
+            rpc_orgmember_mapping.organizationmember_id == orgmember_mapping.organizationmember_id
+        )
         assert rpc_orgmember_mapping.date_added == orgmember_mapping.date_added
         assert (
             rpc_orgmember_mapping.organization_id
@@ -140,7 +149,7 @@ class OrganizationMappingTest(TransactionTestCase):
 
 @region_silo_test(stable=True)
 class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
-    def test_process_organization_member_updates_receiver(self):
+    def test_process_organization_member_update_receiver(self):
         with exempt_from_silo_limits():
             inviter = self.create_user("foo@example.com")
             assert OrganizationMember.objects.all().count() == 0
@@ -152,13 +161,27 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
             "inviter_id": inviter.id,
             "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
         }
+
+        # Creation step of receiver
         org_member = OrganizationMember.objects.create(**fields)
-        region_outbox = org_member.outbox_for_update()
+        region_outbox = org_member.outbox_for_create()
         region_outbox.save()
         region_outbox.drain_shard()
 
         with exempt_from_silo_limits():
             # rows are created for owner, and invited member.
+            assert OrganizationMember.objects.all().count() == 2
+            assert OrganizationMemberMapping.objects.all().count() == 2
+            for org_member in OrganizationMember.objects.all().iterator():
+                self.assert_org_member_mapping(org_member=org_member)
+
+        # Update step of receiver
+        org_member.update(role="owner")
+        region_outbox = org_member.outbox_for_update()
+        region_outbox.save()
+        region_outbox.drain_shard()
+
+        with exempt_from_silo_limits():
             assert OrganizationMember.objects.all().count() == 2
             assert OrganizationMemberMapping.objects.all().count() == 2
             for org_member in OrganizationMember.objects.all().iterator():
@@ -176,7 +199,7 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
             "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
         }
         org_member = OrganizationMember.objects.create(**fields)
-        region_outbox = org_member.outbox_for_update()
+        region_outbox = org_member.outbox_for_create()
         region_outbox.save()
         region_outbox.drain_shard()
 
