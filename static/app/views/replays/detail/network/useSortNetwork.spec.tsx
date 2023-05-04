@@ -254,4 +254,45 @@ describe('useSortNetwork', () => {
       SPAN_8_FETCH_POST,
     ]);
   });
+
+  it('should sort by method, using GET as a default', () => {
+    const mixedItems = [SPAN_6_PUSH, SPAN_8_FETCH_POST, SPAN_7_FETCH_GET];
+    const {result, rerender} = reactHooks.renderHook(useSortNetwork, {
+      initialProps: {items: mixedItems},
+    });
+
+    act(() => {
+      result.current.handleSort('method');
+    });
+
+    rerender({items: mixedItems});
+
+    expect(result.current.sortConfig).toStrictEqual({
+      by: 'method',
+      asc: true,
+      getValue: expect.any(Function),
+    });
+    expect(result.current.items).toStrictEqual([
+      SPAN_6_PUSH,
+      SPAN_7_FETCH_GET,
+      SPAN_8_FETCH_POST,
+    ]);
+
+    act(() => {
+      result.current.handleSort('method');
+    });
+
+    rerender({items: mixedItems});
+
+    expect(result.current.sortConfig).toStrictEqual({
+      by: 'method',
+      asc: false,
+      getValue: expect.any(Function),
+    });
+    expect(result.current.items).toStrictEqual([
+      SPAN_8_FETCH_POST,
+      SPAN_6_PUSH,
+      SPAN_7_FETCH_GET,
+    ]);
+  });
 });
