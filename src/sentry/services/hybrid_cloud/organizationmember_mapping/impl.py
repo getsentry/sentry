@@ -81,12 +81,19 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         organization_id: int,
         rpc_update_org_member: RpcOrganizationMemberMappingUpdate,
     ) -> RpcOrganizationMemberMapping:
-        org_member_map = OrganizationMemberMapping.objects.get(
-            organization_id=organization_id,
-            organizationmember_id=organizationmember_id,
-        )
-        org_member_map.update(**rpc_update_org_member.dict())
-        return self._serialize_rpc(org_member_map)
+        try:
+            org_member_map = OrganizationMemberMapping.objects.get(
+                organization_id=organization_id,
+                organizationmember_id=organizationmember_id,
+            )
+            org_member_map.update(**rpc_update_org_member.dict())
+            return self._serialize_rpc(org_member_map)
+        except OrganizationMemberMapping.DoesNotExist:
+            return self.create_mapping(
+                organizationmember_id=organizationmember_id,
+                organization_id=organization_id,
+                **rpc_update_org_member.dict(),
+            )
 
     def delete_with_organization_member(
         self,
