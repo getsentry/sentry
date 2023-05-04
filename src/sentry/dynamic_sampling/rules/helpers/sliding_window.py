@@ -39,6 +39,7 @@ def get_sliding_window_size() -> Optional[int]:
 
 
 def extrapolate_monthly_volume(volume: int, hours: int) -> Optional[int]:
+    # We don't support a lower granularity than 1 hour.
     if hours < 1:
         return None
 

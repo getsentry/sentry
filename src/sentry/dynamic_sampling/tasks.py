@@ -368,7 +368,7 @@ def adjust_base_sample_rate_per_project(
         extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
         if extrapolated_volume is None:
             logger.error(
-                f"The volume of the current month can't be extrapolated for org {org_id} and project {project_id}."
+                f"The volume of the current month with window size of {window_size} hours can't be extrapolated for org {org_id} and project {project_id}."
             )
             continue
 
