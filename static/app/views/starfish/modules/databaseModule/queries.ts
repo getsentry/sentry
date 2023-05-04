@@ -51,6 +51,23 @@ const getDomainSubquery = (date_filters: string, action: string) => {
   `;
 };
 
+const getTransactionsFromTableSubquery = (tableNames: string[], dateFilters: string) => {
+  const tableFilter = `domain IN ('${tableNames.join(`', '`)}')`;
+
+  const filters = [DEFAULT_WHERE, tableFilter];
+  return `
+  SELECT
+    transaction
+  FROM default.spans_experimental_starfish
+  WHERE
+    ${filters.join(' AND ')}
+    ${dateFilters}
+  GROUP BY transaction
+  ORDER BY ${ORDERBY}
+  LIMIT 5
+`;
+};
+
 const getActionQuery = (action: string) =>
   action !== 'ALL' ? `and action = '${action}'` : '';
 
@@ -158,6 +175,42 @@ export const useQueryTopDbOperationsChart = (
   `;
   return useQuery({
     queryKey: ['topGraph', pageFilter.selection.datetime],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+};
+
+export const useGetTransactionsForTables = (tableNames: string[], interval: number) => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+  const transactionFilter = `transaction IN (${getTransactionsFromTableSubquery(
+    tableNames,
+    dateFilters
+  )})`;
+
+  const filters = [transactionFilter];
+
+  const query = `
+    SELECT
+      transaction,
+      floor(quantile(0.75)(exclusive_time), 5) as p75,
+      count() as count,
+      toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
+    FROM default.spans_experimental_starfish
+    WHERE
+      ${filters.join(' AND ')}
+      ${dateFilters}
+    GROUP BY interval, transaction
+    ORDER BY interval
+  `;
+
+  const {start, end} = pageFilter.selection.datetime;
+
+  return useQuery({
+    enabled: !!tableNames?.length,
+    queryKey: ['topTable', tableNames.join(','), start, end],
     queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
     retry: false,
     initialData: [],
