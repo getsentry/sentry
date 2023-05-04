@@ -1714,12 +1714,22 @@ function buildRoutes() {
         )}
       />
       <Route
+        path="endpoint-overview/"
+        component={make(
+          () => import('sentry/views/starfish/views/webServiceView/endpointOverview')
+        )}
+      />
+      <Route
         path="database/"
         component={make(() => import('sentry/views/starfish/modules/databaseModule'))}
       />
       <Route
         path="api/"
         component={make(() => import('sentry/views/starfish/modules/APIModule'))}
+      />
+      <Route
+        path="spans/"
+        component={make(() => import('sentry/views/starfish/views/spans'))}
       />
       <Route
         path="span/:groupId/"
@@ -1739,10 +1749,9 @@ function buildRoutes() {
           {starfishChildRoutes}
         </Route>
       )}
-
       <Route
-        path="organizations/:orgId/starfish/"
-        component={make(() => import('sentry/views/starfish/'))}
+        path="/organizations/:orgId/starfish/"
+        component={withDomainRedirect(make(() => import('sentry/views/starfish/')))}
         key="org-starfish"
       >
         {starfishChildRoutes}

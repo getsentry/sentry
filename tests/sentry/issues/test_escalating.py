@@ -14,18 +14,21 @@ from sentry.issues.escalating import (
     query_groups_past_counts,
 )
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models import Group
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInbox
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 
 
-class BaseGroupCounts(SnubaTestCase):  # type: ignore[misc]
+class BaseGroupCounts(SnubaTestCase, TestCase):  # type: ignore[misc]
     def _create_events_for_group(
         self,
         project_id: Optional[int] = None,
@@ -52,9 +55,12 @@ class BaseGroupCounts(SnubaTestCase):  # type: ignore[misc]
         return last_event
 
 
-class HistoricGroupCounts(TestCase, BaseGroupCounts):  # type: ignore[misc]
-    def setUp(self) -> None:
-        super().setUp()
+class HistoricGroupCounts(
+    BaseGroupCounts,
+    PerformanceIssueTestCase,  # type: ignore[misc]
+    SearchIssueTestMixin,
+):
+    """Test that querying Snuba for the hourly counts for groups works as expected."""
 
     def _create_hourly_bucket(self, count: int, event: Event) -> GroupsCountResponse:
         """It simplifies writing the expected data structures"""
@@ -69,6 +75,47 @@ class HistoricGroupCounts(TestCase, BaseGroupCounts):  # type: ignore[misc]
         event = self._create_events_for_group()
         assert query_groups_past_counts(Group.objects.all()) == [
             self._create_hourly_bucket(1, event)
+        ]
+
+    @freeze_time(TIME_YESTERDAY)
+    def test_query_different_group_categories(self) -> None:
+        from django.utils import timezone
+
+        # This builds an error group and a profiling group
+        profile_error_event, _, profile_issue_occurrence = self.store_search_issue(
+            project_id=self.project.id,
+            user_id=0,
+            fingerprints=[f"{ProfileFileIOGroupType.type_id}-group1"],
+            insert_time=timezone.now() - timedelta(minutes=1),
+        )
+        assert len(Group.objects.all()) == 2
+
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            perf_event = self.create_performance_issue()
+
+        error_event = self._create_events_for_group()
+
+        # store_search_issue created two groups
+        assert len(Group.objects.all()) == 4
+        assert profile_error_event.group.issue_category == GroupCategory.ERROR
+        assert error_event.group.issue_category == GroupCategory.ERROR
+        assert profile_issue_occurrence.group.issue_category == GroupCategory.PROFILE  # type: ignore[union-attr]
+        assert perf_event.group.issue_category == GroupCategory.PERFORMANCE
+
+        profile_issue_occurrence_bucket = {
+            "count()": 1,
+            "group_id": profile_issue_occurrence.group.id,  # type: ignore[union-attr]
+            "hourBucket": to_start_of_hour(profile_issue_occurrence.group.first_seen),  # type: ignore[union-attr]
+            "project_id": self.project.id,
+        }
+
+        # Error groups will show up at the beginning of the list even if they
+        # were created later
+        assert query_groups_past_counts(Group.objects.all()) == [
+            self._create_hourly_bucket(1, profile_error_event),
+            self._create_hourly_bucket(1, error_event),
+            profile_issue_occurrence_bucket,
+            self._create_hourly_bucket(1, perf_event),
         ]
 
     def test_pagination(self) -> None:
@@ -159,9 +206,6 @@ def test_datetime_number_of_days() -> None:
 
 
 class DailyGroupCountsEscalating(BaseGroupCounts):
-    def setUp(self) -> None:
-        super().setUp()
-
     def save_mock_escalating_group_forecast(  # type: ignore[no-untyped-def]
         self, group: Group, forecast_values=List[int], date_added=datetime
     ) -> None:
@@ -189,18 +233,19 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
     def test_is_escalating_issue(self, record_mock: MagicMock) -> None:
         """Test when an archived until escalating issue starts escalating"""
         with self.feature("organizations:escalating-issues"):
-            # The group had 6 events today
+            # The group had 6 events in the last hour
             event = self._create_events_for_group(count=6)
-            group_escalating = event.group
-            self.archive_until_escalating(group_escalating)
+            archived_group = event.group
+            self.archive_until_escalating(archived_group)
 
-            # The escalating forecast for today is 5
+            # The escalating forecast for today is 5, thus, it should escalate
             forecast_values = [5] + [6] * 13
             self.save_mock_escalating_group_forecast(
-                group=group_escalating, forecast_values=forecast_values, date_added=datetime.now()
+                group=archived_group, forecast_values=forecast_values, date_added=datetime.now()
             )
-            group_is_escalating = is_escalating(group_escalating)
-            assert group_is_escalating
+            assert is_escalating(archived_group)
+            group_escalating = Group.objects.get(id=archived_group.id)
+
             record_mock.assert_called_with(
                 "issue.escalating",
                 organization_id=group_escalating.project.organization.id,
@@ -211,7 +256,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
             # Test cache
             assert (
-                cache.get(f"daily-group-count:{group_escalating.project.id}:{group_escalating.id}")
+                cache.get(f"hourly-group-count:{group_escalating.project.id}:{group_escalating.id}")
                 == 6
             )
 
@@ -241,18 +286,9 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
     @freeze_time(TIME_YESTERDAY.replace(minute=12, second=40, microsecond=0))
     def test_hourly_count_query(self) -> None:
-        """Test the hourly count query only aggregates events from today"""
-        # TIME_YESTERDAY is at 6 in the morning
-        event_1 = self._create_events_for_group(count=2, hours_ago=7)  # Yesterday
-        self.archive_until_escalating(event_1.group)
+        """Test the hourly count query only aggregates events from within the current hour"""
+        self._create_events_for_group(count=2, hours_ago=1)  # An hour ago -> It will not count
+        group = self._create_events_for_group(count=1).group  # This hour -> It will count
 
-        # Create event 2 min ago
-        event_2 = self._create_events_for_group(count=1, min_ago=2)
-
-        group_2 = event_2.group
-        self.archive_until_escalating(event_2.group)
-
-        assert (
-            get_group_hourly_count(group_2.project.organization.id, group_2.project.id, group_2.id)
-            == 1
-        )
+        # Events are aggregated in the hourly count query by date rather than the last 24hrs
+        assert get_group_hourly_count(group) == 1

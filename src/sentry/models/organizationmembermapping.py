@@ -53,4 +53,4 @@ class OrganizationMemberMapping(Model):
             ("organization_id", "organizationmember_id"),
         )
 
-    __repr__ = sane_repr("organization_id", "user_id", "role")
+    __repr__ = sane_repr("organization_id", "organizationmember_id", "user_id", "role")

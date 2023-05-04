@@ -147,7 +147,7 @@ export default function Sidebar({
         </SidebarItemValueContainer>
       </FlexItem>
       <FlexItem>
-        <SidebarItemHeader>{t('Total Events')}</SidebarItemHeader>
+        <SidebarItemHeader>{t('Total Spans')}</SidebarItemHeader>
         <SidebarItemValueContainer>{count}</SidebarItemValueContainer>
       </FlexItem>
       <FlexItem>
@@ -251,7 +251,6 @@ function SidebarChart(props) {
       end=""
       loading={props.isLoading}
       utc={false}
-      disableMultiAxis
       stacked
       isLineChart
       disableXAxis
