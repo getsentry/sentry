@@ -256,7 +256,7 @@ function QueryDetailBody({
             data={p75TransactionSeries}
             start=""
             end=""
-            loading={isDataLoading}
+            loading={isP75GraphLoading}
             grid={{
               left: '0',
               right: '0',
