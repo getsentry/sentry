@@ -1,7 +1,6 @@
 from typing import List
 
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 
@@ -32,7 +31,7 @@ from sentry.monitors.models import (
     MonitorType,
 )
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
-from sentry.monitors.utils import signal_first_monitor_created
+from sentry.monitors.utils import get_alert_rule, signal_first_monitor_created
 from sentry.monitors.validators import MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
@@ -227,50 +226,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
 
         alert_rule = request.data.get("alert_rule", {})
         if alert_rule:
-            alert_rule_data = {
-                "actionMatch": "any",
-                "actions": [
-                    {
-                        "fallthroughType": "AllMembers",
-                        "id": "sentry.mail.actions.NotifyEmailAction",
-                        "name": "Send a notification to Member and if none can be found then send a notification to AllMembers",
-                        "targetIdentifier": alert_rule.get("targetIdentifier", request.user.id),
-                        "targetType": "Member",
-                    }
-                ],
-                "conditions": [
-                    {
-                        "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                        "name": "A new issue is created",
-                    },
-                    {
-                        "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
-                        "name": "The issue changes state from resolved to unresolved",
-                    },
-                ],
-                "createdBy": {
-                    "email": request.user.email,
-                    "id": request.user.id,
-                    "name": request.user.email,
-                },
-                "dateCreated": timezone.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                "environment": None,
-                "filterMatch": "all",
-                "filters": [
-                    {
-                        "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                        "key": "monitor.slug",
-                        "match": "eq",
-                        "name": f"The event's tags match monitor.slug contains {monitor.slug}",
-                        "value": monitor.slug,
-                    }
-                ],
-                "frequency": 1440,
-                "name": f"{monitor.name} Monitor Alert (All environments) - All members",
-                "owner": None,
-                "projects": [project.slug],
-                "snooze": False,
-            }
+            alert_rule_data = get_alert_rule(project, request.user, monitor, alert_rule)
             serializer = RuleSerializer(
                 context={"project": project, "organization": project.organization},
                 data=alert_rule_data,

@@ -171,7 +171,9 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                 )
                 alert_rule_id = monitor_object.config.get("alert_rule_id")
                 if alert_rule_id:
-                    Rule.objects.filter(id=alert_rule_id).update(status=RuleStatus.PENDING_DELETION)
+                    Rule.objects.filter(project_id=monitor.project_id, id=alert_rule_id).update(
+                        status=RuleStatus.PENDING_DELETION
+                    )
 
             if not monitor_object or not monitor_object.update(
                 status=ObjectStatus.PENDING_DELETION
