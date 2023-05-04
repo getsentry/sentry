@@ -19,5 +19,6 @@ export const getSpanListQuery = (conditions: string[] = []) => {
     FROM spans_experimental_starfish
     ${validConditions.length > 0 ? 'WHERE' : ''}
     ${validConditions.join(' AND ')}
+    LIMIT 100
  `;
 };

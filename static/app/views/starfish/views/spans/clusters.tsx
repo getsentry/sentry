@@ -10,6 +10,24 @@ export const CLUSTERS = {
     name: 'top.db',
     label: 'DB',
     condition: "module == 'db'",
+    grouping_column:
+      "action IN ['SELECT', 'INSERT'] ? concat('db.',  lower(action)) : 'db.other'",
+    clusters: ['db.select', 'db.insert', 'db.other'],
+  },
+  'db.select': {
+    name: 'db.select',
+    label: 'SELECT',
+    condition: "action == 'SELECT'",
+  },
+  'db.insert': {
+    name: 'db.insert',
+    label: 'INSERT',
+    condition: "action == 'INSERT'",
+  },
+  'db.other': {
+    name: 'db.other',
+    label: 'Other',
+    condition: "action NOT IN ['SELECT', 'INSERT']",
   },
   'top.http': {
     name: 'top.http',
