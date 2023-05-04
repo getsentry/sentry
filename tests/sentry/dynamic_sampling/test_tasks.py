@@ -479,9 +479,10 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
             sliding_window()
 
         with self.feature("organizations:ds-sliding-window"):
+            # In case we have an error we fully sample, even though we should be more explicit about its handling.
             assert generate_rules(project_a)[0]["samplingValue"] == {
                 "type": "sampleRate",
-                "value": 0.9,
+                "value": 1.0,
             }
 
     def test_sliding_window_with_none_window_size(self):
