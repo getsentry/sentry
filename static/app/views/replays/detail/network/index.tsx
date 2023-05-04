@@ -3,21 +3,16 @@ import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualiz
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconClose, IconInfo} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkDetails from 'sentry/views/replays/detail/network/details';
+import {ReqRespBodiesAlert} from 'sentry/views/replays/detail/network/details/onboarding';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
   COLUMN_COUNT,
@@ -57,7 +52,6 @@ function NetworkList({
   const {currentTime, currentHoverTime} = useReplayContext();
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
-  const {dismiss, isDismissed} = useDismissAlert({key: 'replay-network-bodies'});
 
   const filterProps = useNetworkFilters({networkSpans: networkSpans || []});
   const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
@@ -167,30 +161,7 @@ function NetworkList({
         organization={organization}
         renderDisabled={false}
       >
-        {isDismissed ? null : (
-          <StyledAlert
-            icon={<IconInfo />}
-            opaque={false}
-            showIcon
-            type="info"
-            trailingItems={
-              <StyledButton priority="link" size="sm" onClick={dismiss}>
-                <IconClose color="gray500" size="sm" />
-              </StyledButton>
-            }
-          >
-            {tct('Start collecting the body of requests and responses. [link]', {
-              link: (
-                <ExternalLink
-                  href="https://github.com/getsentry/sentry-javascript/issues/7103"
-                  onClick={dismiss}
-                >
-                  {t('Learn More')}
-                </ExternalLink>
-              ),
-            })}
-          </StyledAlert>
-        )}
+        <ReqRespBodiesAlert isNetworkDetailsSetup={isNetworkDetailsSetup} />
       </Feature>
       <NetworkTable ref={containerRef}>
         <SplitPanel
@@ -314,14 +285,6 @@ const NetworkTable = styled(FluidHeight)`
     bottom: 0;
     width: 999999999%;
   }
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(1)};
-`;
-
-const StyledButton = styled(Button)`
-  color: inherit;
 `;
 
 export default NetworkList;
