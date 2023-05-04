@@ -85,7 +85,7 @@ function SetupInstructions({
   url: string;
   visibleTab: TabKey;
 }) {
-  if (showSnippet === Output.data && visibleTab === 'details') {
+  if (showSnippet === Output.DATA && visibleTab === 'details') {
     return (
       <NoMarginAlert type="muted" system data-test-id="network-setup-steps">
         {tct(
@@ -101,32 +101,23 @@ function SetupInstructions({
 
   const urlSnippet = `
       networkDetailAllowUrls: ['${url}'],`;
-  const bodiesSnippet = `
-      networkCaptureBodies: true,`;
   const headersSnippet = `
       networkRequestHeaders: ['X-Custom-Header'],
       networkResponseHeaders: ['X-Custom-Header'],`;
 
   const includeHeadersSnippet =
-    showSnippet === Output.setup ||
-    ([Output.urlSkipped, Output.data].includes(showSnippet) && visibleTab === 'details');
-  const includeBodiesSnippet =
-    [Output.setup, Output.bodySkipped].includes(showSnippet) ||
-    (showSnippet === Output.urlSkipped && visibleTab !== 'details');
+    showSnippet === Output.SETUP ||
+    ([Output.URL_SKIPPED, Output.DATA].includes(showSnippet) && visibleTab === 'details');
 
   const code = `Sentry.init({
   integrations: [
-    new Replay({${
-      urlSnippet +
-      (includeBodiesSnippet ? bodiesSnippet : '') +
-      (includeHeadersSnippet ? headersSnippet : '')
-    }
+    new Replay({${urlSnippet + (includeHeadersSnippet ? headersSnippet : '')}
     }),
   ],
 })`;
 
   const title =
-    showSnippet === Output.setup
+    showSnippet === Output.SETUP
       ? t('Capture Request and Response Headers and Payloads')
       : visibleTab === 'details'
       ? t('Capture Request and Response Headers')
@@ -148,7 +139,7 @@ function SetupInstructions({
         )}
       </p>
 
-      {showSnippet === Output.urlSkipped && (
+      {showSnippet === Output.URL_SKIPPED && (
         <Alert type="warning">
           {tct('Add [url] to your [field] list to start capturing data.', {
             url: <kbd>{url}</kbd>,
@@ -157,7 +148,7 @@ function SetupInstructions({
         </Alert>
       )}
 
-      {showSnippet === Output.bodySkipped && (
+      {showSnippet === Output.BODY_SKIPPED && (
         <Alert type="warning">
           {tct('Enable [field] to capture both Request and Response payloads.', {
             field: <kbd>networkCaptureBodies: true</kbd>,

@@ -2,11 +2,11 @@ import type {SectionProps} from 'sentry/views/replays/detail/network/details/sec
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 
 export enum Output {
-  setup = 'setup',
-  unsupported = 'unsupported',
-  urlSkipped = 'urlSkipped',
-  bodySkipped = 'bodySkipped',
-  data = 'data',
+  SETUP = 'setup',
+  UNSUPPORTED = 'unsupported',
+  URL_SKIPPED = 'url_skipped',
+  BODY_SKIPPED = 'body_skipped',
+  DATA = 'data',
 }
 
 type Args = {
@@ -18,11 +18,11 @@ type Args = {
 export default function getOutputType({isSetup, item, visibleTab}: Args): Output {
   const isSupportedOp = ['resource.fetch', 'resource.xhr'].includes(item.op);
   if (!isSupportedOp) {
-    return Output.unsupported;
+    return Output.UNSUPPORTED;
   }
 
   if (!isSetup) {
-    return Output.setup;
+    return Output.SETUP;
   }
 
   const request = item.data?.request ?? {};
@@ -32,12 +32,12 @@ export default function getOutputType({isSetup, item, visibleTab}: Args): Output
     Object.keys(request.headers || {}).length ||
     Object.keys(response.headers || {}).length;
   if (hasHeaders && visibleTab === 'details') {
-    return Output.data;
+    return Output.DATA;
   }
 
   const hasBody = request.body || response.body;
   if (hasBody && ['request', 'response'].includes(visibleTab)) {
-    return Output.data;
+    return Output.DATA;
   }
 
   const reqWarnings = request._meta?.warnings ?? ['URL_SKIPPED'];
@@ -45,16 +45,16 @@ export default function getOutputType({isSetup, item, visibleTab}: Args): Output
   const isReqUrlSkipped = reqWarnings?.includes('URL_SKIPPED');
   const isRespUrlSkipped = respWarnings?.includes('URL_SKIPPED');
   if (isReqUrlSkipped || isRespUrlSkipped) {
-    return Output.urlSkipped;
+    return Output.URL_SKIPPED;
   }
 
   if (['request', 'response'].includes(visibleTab)) {
     const isReqBodySkipped = reqWarnings?.includes('BODY_SKIPPED');
     const isRespBodySkipped = respWarnings?.includes('BODY_SKIPPED');
     if (isReqBodySkipped || isRespBodySkipped) {
-      return Output.bodySkipped;
+      return Output.BODY_SKIPPED;
     }
   }
 
-  return Output.data;
+  return Output.DATA;
 }

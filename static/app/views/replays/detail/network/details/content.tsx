@@ -31,26 +31,26 @@ export default function NetworkDetailsContent(props: Props) {
         <OverflowFluidHeight>
           <SectionList>
             <QueryParamsSection {...props} />
-            {output === Output.data && <RequestPayloadSection {...props} />}
+            {output === Output.DATA && <RequestPayloadSection {...props} />}
           </SectionList>
-          {[Output.setup, Output.urlSkipped, Output.bodySkipped].includes(output) && (
+          {[Output.SETUP, Output.URL_SKIPPED, Output.BODY_SKIPPED].includes(output) && (
             <Setup showSnippet={output} {...props} />
           )}
-          {output === Output.unsupported && <UnsupportedOp type="bodies" />}
+          {output === Output.UNSUPPORTED && <UnsupportedOp type="bodies" />}
         </OverflowFluidHeight>
       );
     case 'response':
       return (
         <OverflowFluidHeight>
-          {output === Output.data && (
+          {output === Output.DATA && (
             <SectionList>
               <ResponsePayloadSection {...props} />
             </SectionList>
           )}
-          {[Output.setup, Output.urlSkipped, Output.bodySkipped].includes(output) && (
+          {[Output.SETUP, Output.URL_SKIPPED, Output.BODY_SKIPPED].includes(output) && (
             <Setup showSnippet={output} {...props} />
           )}
-          {output === Output.unsupported && <UnsupportedOp type="bodies" />}
+          {output === Output.UNSUPPORTED && <UnsupportedOp type="bodies" />}
         </OverflowFluidHeight>
       );
     case 'details':
@@ -59,13 +59,13 @@ export default function NetworkDetailsContent(props: Props) {
         <OverflowFluidHeight>
           <SectionList>
             <GeneralSection {...props} />
-            {output === Output.data && <RequestHeadersSection {...props} />}
-            {output === Output.data && <ResponseHeadersSection {...props} />}
+            {output === Output.DATA && <RequestHeadersSection {...props} />}
+            {output === Output.DATA && <ResponseHeadersSection {...props} />}
           </SectionList>
-          {[Output.setup, Output.urlSkipped, Output.data].includes(output) && (
+          {[Output.SETUP, Output.URL_SKIPPED, Output.DATA].includes(output) && (
             <Setup showSnippet={output} {...props} />
           )}
-          {output === Output.unsupported && <UnsupportedOp type="headers" />}
+          {output === Output.UNSUPPORTED && <UnsupportedOp type="headers" />}
         </OverflowFluidHeight>
       );
   }

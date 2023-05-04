@@ -10,10 +10,7 @@ const mockUseProjectSdkNeedsUpdate = useProjectSdkNeedsUpdate as jest.MockedFunc
   typeof useProjectSdkNeedsUpdate
 >;
 
-import {
-  Setup,
-  // UnsupportedOp,
-} from 'sentry/views/replays/detail/network/details/onboarding';
+import {Setup} from 'sentry/views/replays/detail/network/details/onboarding';
 
 const MOCK_ITEM = TestStubs.ReplaySpanPayload({
   op: 'resource.fetch',
@@ -29,7 +26,7 @@ describe('Setup', () => {
         <Setup
           item={MOCK_ITEM}
           projectId="0"
-          showSnippet={Output.setup}
+          showSnippet={Output.SETUP}
           visibleTab="details"
         />
       );
@@ -53,7 +50,7 @@ describe('Setup', () => {
         <Setup
           item={MOCK_ITEM}
           projectId="0"
-          showSnippet={Output.urlSkipped}
+          showSnippet={Output.URL_SKIPPED}
           visibleTab="details"
         />
       );
@@ -80,7 +77,7 @@ describe('Setup', () => {
         <Setup
           item={MOCK_ITEM}
           projectId="0"
-          showSnippet={Output.urlSkipped}
+          showSnippet={Output.URL_SKIPPED}
           visibleTab="request"
         />
       );
@@ -109,7 +106,7 @@ describe('Setup', () => {
         <Setup
           item={MOCK_ITEM}
           projectId="0"
-          showSnippet={Output.bodySkipped}
+          showSnippet={Output.BODY_SKIPPED}
           visibleTab="request"
         />
       );
@@ -138,7 +135,7 @@ describe('Setup', () => {
         <Setup
           item={MOCK_ITEM}
           projectId="0"
-          showSnippet={Output.data}
+          showSnippet={Output.DATA}
           visibleTab="details"
         />
       );
