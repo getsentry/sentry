@@ -3,6 +3,8 @@ import type {Duration} from 'moment';
 
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 
+type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
+
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
 export type ReplayRecord = {
@@ -137,13 +139,6 @@ export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
   'user',
 ];
 
-export type ReplaySegment = {
-  dateAdded: string;
-  projectId: string;
-  replayId: string;
-  segmentId: number;
-};
-
 /**
  * Highlight Replay Plugin types
  */
@@ -155,8 +150,13 @@ export interface Highlight {
 
 export type RecordingEvent = eventWithTime;
 
-export interface ReplaySpan<T = Record<string, any>> {
-  data: T;
+/**
+ * The base span type
+ *
+ * Prefer the sub-types NetworkSpan & MemorySpanType
+ */
+export interface ReplaySpan<Data extends Record<string, unknown>> {
+  data: Data;
   endTimestamp: number;
   id: string;
   op: string;
@@ -173,9 +173,7 @@ export type MemorySpanType = ReplaySpan<{
   };
 }>;
 
-export type NetworkSpan = ReplaySpan;
-
-type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
+export type NetworkSpan = ReplaySpan<{}>;
 
 export type ReplayCrumb = Overwrite<RawCrumb, {timestamp: number}>;
 

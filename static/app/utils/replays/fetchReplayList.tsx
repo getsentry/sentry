@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
-import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
+import {hydrateReplayRecord} from 'sentry/utils/replays/hydration';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -65,7 +65,7 @@ async function fetchReplayList({
     return {
       fetchError: undefined,
       pageLinks,
-      replays: data.map(mapResponseToReplayRecord),
+      replays: data.map(hydrateReplayRecord),
     };
   } catch (error) {
     if (error.responseJSON?.detail) {

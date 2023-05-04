@@ -2,12 +2,12 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import chunk from 'lodash/chunk';
 
-import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
+import {hydrateReplayRecord} from 'sentry/utils/replays/hydration';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
-import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type State = {
   /**
@@ -104,7 +104,7 @@ function useReplayData({
 
   const [state, setState] = useState<State>(INITIAL_STATE);
   const [attachments, setAttachments] = useState<unknown[]>([]);
-  const [errors, setErrors] = useState<ReplayError[]>([]);
+  const [errors, setErrors] = useState<unknown[]>([]);
   const [replayRecord, setReplayRecord] = useState<ReplayRecord>();
 
   const projectSlug = useMemo(() => {
@@ -117,7 +117,7 @@ function useReplayData({
   // Fetch every field of the replay. We're overfetching, not every field is used
   const fetchReplay = useCallback(async () => {
     const response = await api.requestPromise(makeFetchReplayApiUrl(orgSlug, replayId));
-    const mappedRecord = mapResponseToReplayRecord(response.data);
+    const mappedRecord = hydrateReplayRecord(response.data);
     setReplayRecord(mappedRecord);
     setState(prev => ({...prev, fetchingReplay: false}));
   }, [api, orgSlug, replayId]);
@@ -187,7 +187,7 @@ function useReplayData({
           }
         );
         promise.then(response => {
-          setErrors(prev => (prev ?? []).concat(response.data || []));
+          setErrors(prev => prev.concat(response.data || []));
         });
         return promise;
       })
@@ -225,8 +225,8 @@ function useReplayData({
 
   const replay = useMemo(() => {
     return ReplayReader.factory({
-      attachments,
-      errors,
+      rawAttachments: attachments,
+      rawErrors: errors,
       replayRecord,
     });
   }, [attachments, errors, replayRecord]);
