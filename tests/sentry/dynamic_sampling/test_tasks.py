@@ -15,7 +15,7 @@ from sentry.dynamic_sampling.tasks import (
     prioritise_projects,
     prioritise_transactions,
     recalibrate_orgs,
-    sliding_window_rebalancing,
+    sliding_window,
 )
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
@@ -397,7 +397,7 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
-    def test_sliding_window_rebalancing_with_multiple_projects(
+    def test_sliding_window_with_multiple_projects(
         self,
         extrapolate_monthly_volume,
         get_transaction_sampling_tier_for_volume,
@@ -414,7 +414,7 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         project_c = self.create_project_and_add_metrics("c", 100, org)
 
         with self.tasks():
-            sliding_window_rebalancing()
+            sliding_window()
 
         with self.feature("organizations:ds-sliding-window"):
             assert generate_rules(project_a)[0]["samplingValue"] == {
@@ -433,7 +433,7 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
-    def test_sliding_window_rebalancing_with_none_sampling_tier(
+    def test_sliding_window_with_none_sampling_tier(
         self,
         extrapolate_monthly_volume,
         get_transaction_sampling_tier_for_volume,
@@ -450,7 +450,7 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         project_b = self.create_project_and_add_metrics("b", 0, org)
 
         with self.tasks():
-            sliding_window_rebalancing()
+            sliding_window()
 
         with self.feature("organizations:ds-sliding-window"):
             assert generate_rules(project_a)[0]["samplingValue"] == {
@@ -464,7 +464,7 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
-    def test_sliding_window_rebalancing_with_forecasting_error(
+    def test_sliding_window_with_forecasting_error(
         self, extrapolate_monthly_volume, get_blended_sample_rate
     ):
         # We want to make the forecasting call fail and return None.
@@ -476,10 +476,22 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         project_a = self.create_project_and_add_metrics("a", 100, org)
 
         with self.tasks():
-            sliding_window_rebalancing()
+            sliding_window()
 
         with self.feature("organizations:ds-sliding-window"):
             assert generate_rules(project_a)[0]["samplingValue"] == {
                 "type": "sampleRate",
                 "value": 0.9,
             }
+
+    def test_sliding_window_with_none_window_size(self):
+        org = self.create_organization(name="sample-org")
+
+        project = self.create_project_and_add_metrics("a", 100, org)
+
+        with self.tasks():
+            sliding_window()
+
+        with self.feature("organizations:ds-sliding-window"):
+            with self.options({"dynamic-sampling:sliding_window.size": None}):
+                assert len(generate_rules(project)) == 0

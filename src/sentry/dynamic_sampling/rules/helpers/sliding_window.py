@@ -29,15 +29,16 @@ def get_sliding_window_sample_rate(project: "Project", default_sample_rate: floa
         return default_sample_rate
 
 
-def get_sliding_window_size() -> int:
+def get_sliding_window_size() -> Optional[int]:
     try:
-        return int(options.get("dynamic-sampling:sliding_window.size"))
+        size = options.get("dynamic-sampling:sliding_window.size")
+        # We want to explicitly handle the None case, which will signal that the system should be stopped.
+        return None if size is None else int(size)
     except ValueError:
         return FALLBACK_SLIDING_WINDOW_SIZE
 
 
 def extrapolate_monthly_volume(volume: int, hours: int) -> Optional[int]:
-    # We allow at least 1 hour for the extrapolation.
     if hours < 1:
         return None
 

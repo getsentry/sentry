@@ -336,22 +336,28 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     soft_time_limit=2 * 60 * 60,  # 2 hours
     time_limit=2 * 60 * 60 + 5,
 )  # type: ignore
-def sliding_window_rebalancing() -> None:
-    metrics.incr("sentry.dynamic_sampling.tasks.sliding_window.start", sample_rate=1.0)
-    with metrics.timer("sentry.dynamic_sampling.tasks.sliding_window", sample_rate=1.0):
-        for orgs in get_orgs_with_project_counts_without_modulo(
-            MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY
-        ):
-            for (
-                org_id,
-                projects_with_total_root_count,
-            ) in fetch_projects_with_total_root_transactions_count(org_ids=orgs).items():
-                adjust_base_sample_rate_per_project(org_id, projects_with_total_root_count)
+def sliding_window() -> None:
+    window_size = get_sliding_window_size()
+    # In case the size is None it means that we disabled the sliding window entirely.
+    if window_size is not None:
+        metrics.incr("sentry.dynamic_sampling.tasks.sliding_window.start", sample_rate=1.0)
+        with metrics.timer("sentry.dynamic_sampling.tasks.sliding_window", sample_rate=1.0):
+            for orgs in get_orgs_with_project_counts_without_modulo(
+                MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY
+            ):
+                for (
+                    org_id,
+                    projects_with_total_root_count,
+                ) in fetch_projects_with_total_root_transactions_count(
+                    org_ids=orgs, window_size=window_size
+                ).items():
+                    adjust_base_sample_rate_per_project(
+                        org_id, projects_with_total_root_count, window_size
+                    )
 
 
 def adjust_base_sample_rate_per_project(
-    org_id: int,
-    projects_with_total_root_count: Sequence[Tuple[ProjectId, int]],
+    org_id: int, projects_with_total_root_count: Sequence[Tuple[ProjectId, int]], window_size: int
 ) -> None:
     """
     Adjusts the base sample rate per project by considering its volume and how it fits w.r.t. to the sampling tiers
@@ -359,9 +365,7 @@ def adjust_base_sample_rate_per_project(
     """
     projects_with_rebalanced_sample_rate = []
     for project_id, total_root_count in projects_with_total_root_count:
-        extrapolated_volume = extrapolate_monthly_volume(
-            volume=total_root_count, hours=get_sliding_window_size()
-        )
+        extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
         if extrapolated_volume is None:
             logger.error(
                 f"The volume of the current month can't be extrapolated for org {org_id} and project {project_id}."
