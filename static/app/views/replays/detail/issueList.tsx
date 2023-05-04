@@ -53,6 +53,9 @@ function IssueList({projectId, replayId}: Props) {
           query: {
             query: `replayId:${replayId}`,
           },
+          headers: {
+            'x-sentry-replay-request': 1,
+          },
         }
       );
       setState({
