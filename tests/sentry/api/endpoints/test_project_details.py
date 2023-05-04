@@ -5,7 +5,7 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.constants import RESERVED_PROJECT_SLUGS
+from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.models import (
     ApiToken,
@@ -22,7 +22,6 @@ from sentry.models import (
     ProjectBookmark,
     ProjectOwnership,
     ProjectRedirect,
-    ProjectStatus,
     ProjectTeam,
     Rule,
     ScheduledDeletion,
@@ -1193,7 +1192,7 @@ class ProjectDeleteTest(APITestCase):
         assert ScheduledDeletion.objects.filter(model_name="Project", object_id=project.id).exists()
 
         deleted_project = Project.objects.get(id=project.id)
-        assert deleted_project.status == ProjectStatus.PENDING_DELETION
+        assert deleted_project.status == ObjectStatus.PENDING_DELETION
         assert deleted_project.slug == "abc123"
         assert OrganizationOption.objects.filter(
             organization_id=deleted_project.organization_id,

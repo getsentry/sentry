@@ -4,7 +4,8 @@ from operator import or_
 
 from django.db.models import Q
 
-from sentry.models import EventUser, Project, ProjectStatus, Release
+from sentry.constants import ObjectStatus
+from sentry.models import EventUser, Project, Release
 from sentry.utils.dates import to_timestamp
 from sentry.utils.geo import geo_by_addr
 
@@ -83,7 +84,7 @@ def serialize_projects(organization, item_list, user):
     return {
         id: {"id": id, "slug": slug}
         for id, slug in Project.objects.filter(
-            id__in=item_list, organization=organization, status=ProjectStatus.VISIBLE
+            id__in=item_list, organization=organization, status=ObjectStatus.ACTIVE
         ).values_list("id", "slug")
     }
 

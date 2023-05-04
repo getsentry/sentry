@@ -6,6 +6,7 @@ from typing import Iterable, List, MutableMapping, Optional, Set, cast
 from django.db import transaction
 
 from sentry import roles
+from sentry.constants import ObjectStatus
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     Organization,
@@ -13,7 +14,6 @@ from sentry.models import (
     OrganizationMemberTeam,
     OrganizationStatus,
     Project,
-    ProjectStatus,
     ProjectTeam,
     Team,
     TeamStatus,
@@ -78,7 +78,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         all_project_ids: Set[int] = set()
         project_ids_by_team_id: MutableMapping[int, List[int]] = defaultdict(list)
         for pt in ProjectTeam.objects.filter(
-            project__status=ProjectStatus.VISIBLE, team_id__in={omt.team_id for omt in omts}
+            project__status=ObjectStatus.ACTIVE, team_id__in={omt.team_id for omt in omts}
         ):
             all_project_ids.add(pt.project_id)
             project_ids_by_team_id[pt.team_id].append(pt.project_id)

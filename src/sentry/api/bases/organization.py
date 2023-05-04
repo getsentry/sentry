@@ -18,8 +18,8 @@ from sentry.api.utils import (
     is_member_disabled_from_limit,
 )
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
-from sentry.models import ApiKey, Organization, Project, ProjectStatus, ReleaseProject
+from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
+from sentry.models import ApiKey, Organization, Project, ReleaseProject
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.services.hybrid_cloud.organization import RpcOrganization, RpcUserOrganizationContext
@@ -240,7 +240,7 @@ class OrganizationEndpoint(Endpoint):  # type: ignore[misc]
         force_global_perms: bool = False,
         include_all_accessible: bool = False,
     ) -> list[Project]:
-        qs = Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE)
+        qs = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
         user = getattr(request, "user", None)
         # A project_id of -1 means 'all projects I have access to'
         # While no project_ids means 'all projects I am a member of'.

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from sentry.constants import ObjectStatus
+
 __all__ = [
     "from_user",
     "from_member",
@@ -28,7 +30,6 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    ProjectStatus,
     SentryApp,
     Team,
     TeamStatus,
@@ -298,7 +299,7 @@ class DbAccess(Access):
 
         with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
             projects = frozenset(
-                Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=teams)
+                Project.objects.filter(status=ObjectStatus.ACTIVE, teams__in=teams)
                 .distinct()
                 .values_list("id", flat=True)
             )
@@ -545,7 +546,7 @@ class RpcBackedAccess(Access):
         return None
 
     def has_project_access(self, project: Project) -> bool:
-        if project.status != ProjectStatus.VISIBLE:
+        if project.status != ObjectStatus.ACTIVE:
             return False
         if (
             self.has_global_access
@@ -630,7 +631,7 @@ class OrganizationMemberAccess(DbAccess):
 
     def has_project_access(self, project: Project) -> bool:
         assert self._member is not None
-        if project.status != ProjectStatus.VISIBLE:
+        if project.status != ObjectStatus.ACTIVE:
             return False
         if self.has_global_access and self._member.organization.id == project.organization_id:
             return True
@@ -657,7 +658,7 @@ class OrganizationGlobalAccess(DbAccess):
     def has_project_access(self, project: Project) -> bool:
         return bool(
             project.organization_id == self._organization_id
-            and project.status == ProjectStatus.VISIBLE
+            and project.status == ObjectStatus.ACTIVE
         )
 
     @cached_property
@@ -672,7 +673,7 @@ class OrganizationGlobalAccess(DbAccess):
     def accessible_project_ids(self) -> FrozenSet[int]:
         return frozenset(
             Project.objects.filter(
-                organization_id=self._organization_id, status=ProjectStatus.VISIBLE
+                organization_id=self._organization_id, status=ObjectStatus.ACTIVE
             ).values_list("id", flat=True)
         )
 
@@ -710,7 +711,7 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
     def has_project_access(self, project: Project) -> bool:
         return bool(
             project.organization_id == self.rpc_user_organization_context.organization.id
-            and project.status == ProjectStatus.VISIBLE
+            and project.status == ObjectStatus.ACTIVE
         )
 
     @cached_property
@@ -726,7 +727,7 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
         return frozenset(
             p.id
             for p in self.rpc_user_organization_context.organization.projects
-            if p.status == ProjectStatus.VISIBLE
+            if p.status == ObjectStatus.ACTIVE
         )
 
 

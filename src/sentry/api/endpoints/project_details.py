@@ -21,7 +21,7 @@ from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import RESERVED_PROJECT_SLUGS
+from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.dynamic_sampling import generate_rules, get_supported_biases_ids, get_user_biases
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
@@ -41,7 +41,6 @@ from sentry.models import (
     Project,
     ProjectBookmark,
     ProjectRedirect,
-    ProjectStatus,
     ScheduledDeletion,
 )
 from sentry.notifications.types import NotificationSettingTypes
@@ -805,8 +804,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        updated = Project.objects.filter(id=project.id, status=ProjectStatus.VISIBLE).update(
-            status=ProjectStatus.PENDING_DELETION
+        updated = Project.objects.filter(id=project.id, status=ObjectStatus.ACTIVE).update(
+            status=ObjectStatus.PENDING_DELETION
         )
         if updated:
             scheduled = ScheduledDeletion.schedule(project, days=0, actor=request.user)
