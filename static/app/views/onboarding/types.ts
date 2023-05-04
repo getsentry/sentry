@@ -18,7 +18,6 @@ export type StepProps = Pick<
   search: string;
   stepIndex: number;
   recentCreatedProject?: OnboardingRecentCreatedProject;
-  selectedProjectSlug?: string;
 };
 
 export type StepDescriptor = {
