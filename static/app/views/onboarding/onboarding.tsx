@@ -379,7 +379,6 @@ function Onboarding(props: Props) {
                 route={props.route}
                 router={props.router}
                 location={props.location}
-                selectedProjectSlug={selectedProjectSlug}
                 recentCreatedProject={recentCreatedProject}
                 {...{
                   genSkipOnboardingLink,
