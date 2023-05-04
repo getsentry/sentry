@@ -96,3 +96,16 @@ export interface MonitorStat {
   timeout: number;
   ts: number;
 }
+
+export interface CheckIn {
+  configData: CheckInConfigData;
+  dateCreated: string;
+  duration: number;
+  id: string;
+  status: CheckInStatus;
+  attachmentId?: number;
+}
+
+export interface CheckInConfigData {
+  expected_time?: string;
+}
