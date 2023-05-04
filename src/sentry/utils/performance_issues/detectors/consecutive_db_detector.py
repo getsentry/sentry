@@ -12,7 +12,13 @@ from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.models import Organization, Project
 from sentry.utils.event_frames import get_sdk_name
 
-from ..base import DetectorType, PerformanceDetector, fingerprint_spans, get_span_duration
+from ..base import (
+    DetectorType,
+    PerformanceDetector,
+    fingerprint_spans,
+    get_span_duration,
+    get_span_evidence_value,
+)
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
@@ -134,6 +140,10 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
                 # TODO check if it's _event or _event.data
                 "transaction_duration": self._get_duration(self._event.data),
                 "slow_span_duration": self._calculate_time_saved(self.independent_db_spans),
+                "repeating_spans": get_span_evidence_value(self.independent_db_spans[0]),
+                "repeating_spans_compact": get_span_evidence_value(
+                    self.independent_db_spans[0], include_op=False
+                ),
             },
             evidence_display=[],
         )
@@ -144,8 +154,8 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         if not item:
             return 0
 
-        start = float(item.get("start_timestamp", 0) or 0)
-        end = float(item.get("timestamp", 0), 0)
+        start = float(item.get("start_timestamp", 0))
+        end = float(item.get("timestamp", 0))
 
         return (end - start) * 1000
 

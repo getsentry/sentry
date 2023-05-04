@@ -23,6 +23,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
+    # TODO and this
     def get_performance_issue_body(self, event: Event) -> str:
         (
             transaction_name,

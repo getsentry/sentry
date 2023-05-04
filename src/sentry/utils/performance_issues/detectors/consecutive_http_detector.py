@@ -107,6 +107,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
                 "op": "http",
                 "transaction_name": self._event.get("transaction", ""),
                 "repeating_spans": get_span_evidence_value(self.consecutive_http_spans[0]),
+                "repeating_spans_compact": get_span_evidence_value(
+                    self.consecutive_http_spans[0], include_op=False
+                ),
                 "num_repeating_spans": str(len(self.consecutive_spans)),
             },
         )

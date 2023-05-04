@@ -183,9 +183,12 @@ class ContinuingMNPlusOne(MNPlusOneState):
                 "parent_span_ids": [parent_span["span_id"]],
                 "cause_span_ids": [],
                 "offender_span_ids": [span["span_id"] for span in offender_spans],
-                "transaction_name": self._event.get("transaction", ""),
+                "transaction_name": self.event.get("transaction", ""),
                 "parent_span": get_span_evidence_value(parent_span),
                 "repeating_spans": get_span_evidence_value(offender_spans[0]),
+                "repeating_spans_compact": get_span_evidence_value(
+                    offender_spans[0], include_op=False
+                ),
                 "number_repeating_spans": str(len(offender_spans)),
             },
             evidence_display=[],

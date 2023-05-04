@@ -329,6 +329,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_persisted_ignored_fields(self):
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
+    # TODO update this one as well
     def get_performance_issue_body(self, event):
         (
             transaction_name,
