@@ -3,9 +3,8 @@ from typing import Callable, Dict
 
 import pytz
 import sentry_sdk
-from arroyo.codecs import ValidationError
-from arroyo.codecs.json import JsonCodec
 from dateutil.parser import parse as parse_date
+from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import (
     PayloadV3,
     SubscriptionResult,
@@ -36,9 +35,7 @@ def register_subscriber(
     return inner
 
 
-def parse_message_value(
-    value: bytes, jsoncodec: JsonCodec[SubscriptionResult]
-) -> SubscriptionUpdate:
+def parse_message_value(value: bytes, jsoncodec: Codec[SubscriptionResult]) -> SubscriptionUpdate:
     """
     Parses the value received via the Kafka consumer and verifies that it
     matches the expected schema.
@@ -71,7 +68,7 @@ def handle_message(
     message_partition: int,
     topic: str,
     dataset: str,
-    jsoncodec: JsonCodec[SubscriptionResult],
+    jsoncodec: Codec[SubscriptionResult],
 ) -> None:
     """
     Parses the value from Kafka, and if valid passes the payload to the callback defined by the
