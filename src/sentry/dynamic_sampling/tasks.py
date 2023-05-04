@@ -152,7 +152,7 @@ def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
     if new_factor < MIN_REBALANCE_FACTOR or new_factor > MAX_REBALANCE_FACTOR:
         # whatever we did before didn't help, give up
         redis_client.delete(factor_key)
-        return f"factor:{new_factor} outside of the acceptable range [0.1..10.0]"
+        return f"factor:{new_factor} outside of the acceptable range [{MIN_REBALANCE_FACTOR}..{MAX_REBALANCE_FACTOR}]"
 
     if new_factor != 1.0:
         # Finally got a good key, save it to be used in rule generation

@@ -396,14 +396,14 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.get_forecasted_monthly_volume")
+    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
     def test_sliding_window_rebalancing_with_multiple_projects(
         self,
-        get_forecasted_monthly_volume,
+        extrapolate_monthly_volume,
         get_transaction_sampling_tier_for_volume,
         get_blended_sample_rate,
     ):
-        get_forecasted_monthly_volume.side_effect = self.forecasted_volume_side_effect
+        extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
         get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
         get_blended_sample_rate.return_value = 1.0
 
@@ -432,14 +432,14 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.get_forecasted_monthly_volume")
+    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
     def test_sliding_window_rebalancing_with_none_sampling_tier(
         self,
-        get_forecasted_monthly_volume,
+        extrapolate_monthly_volume,
         get_transaction_sampling_tier_for_volume,
         get_blended_sample_rate,
     ):
-        get_forecasted_monthly_volume.side_effect = self.forecasted_volume_side_effect
+        extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
         get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
         get_blended_sample_rate.return_value = 1.0
 
@@ -463,12 +463,12 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
             }
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    @patch("sentry.dynamic_sampling.tasks.get_forecasted_monthly_volume")
+    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
     def test_sliding_window_rebalancing_with_forecasting_error(
-        self, get_forecasted_monthly_volume, get_blended_sample_rate
+        self, extrapolate_monthly_volume, get_blended_sample_rate
     ):
         # We want to make the forecasting call fail and return None.
-        get_forecasted_monthly_volume.return_value = None
+        extrapolate_monthly_volume.return_value = None
         get_blended_sample_rate.return_value = 0.9
 
         org = self.create_organization(name="sample-org")

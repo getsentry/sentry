@@ -90,3 +90,14 @@ class SlidingWindowRebalancingSnubaQueryTest(BaseMetricsLayerTestCase, TestCase,
         results = fetch_projects_with_total_root_transactions_count(org_ids=[org_1.id, org_2.id])
         assert results[org_1.id] == [(project_1.id, 100), (project_2.id, 200)]
         assert results[org_2.id] == [(project_3.id, 300)]
+
+    def test_query_with_no_count_per_org(self):
+        org_1 = self.create_organization("test-org-1")
+        self.create_project(organization=org_1)
+
+        org_2 = self.create_organization("test-org-2")
+        self.create_project(organization=org_2)
+
+        results = fetch_projects_with_total_root_transactions_count(org_ids=[org_1.id, org_2.id])
+        assert results[org_1.id] == []
+        assert results[org_2.id] == []
