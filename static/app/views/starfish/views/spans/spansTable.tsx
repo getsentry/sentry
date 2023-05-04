@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import moment from 'moment';
@@ -7,9 +8,11 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {TableColumnSort} from 'sentry/views/discover/table/types';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
@@ -18,6 +21,7 @@ import {getSpanListQuery, getSpansTrendsQuery} from './queries';
 
 type Props = {
   location: Location;
+  orderBy?: string;
 };
 
 type SpanDataRow = {
@@ -88,19 +92,25 @@ const COLUMN_ORDER = [
   },
 ];
 
+type State = {
+  orderBy?: string;
+};
+
 export default function SpansTable({location}: Props) {
   const pageFilter = usePageFilters();
-
+  const [state, setState] = useState<State>({});
+  const {orderBy} = state;
   const {isLoading, data} = useQuery<{
     spansData?: SpanDataRow[];
     spansTrendsData?: SpanTrendDataRow[];
   }>({
-    queryKey: ['spans', pageFilter.selection.datetime],
+    queryKey: ['spans', pageFilter.selection.datetime, orderBy],
     queryFn: async () => {
       const spansData = await (
         await fetch(
           `${HOST}/?query=${getSpanListQuery({
             datetime: pageFilter.selection.datetime,
+            orderBy,
             limit: LIMIT,
           })}`
         )
@@ -167,9 +177,11 @@ export default function SpansTable({location}: Props) {
       isLoading={isLoading}
       data={combinedSpansData as SpanDataRow[]}
       columnOrder={COLUMN_ORDER}
-      columnSortBy={[]}
+      columnSortBy={
+        orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<string>]
+      }
       grid={{
-        renderHeadCell,
+        renderHeadCell: getRenderHeadCell({state, setState}),
         renderBodyCell,
       }}
       location={location}
@@ -177,8 +189,32 @@ export default function SpansTable({location}: Props) {
   );
 }
 
-function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-  return column.name;
+function getRenderHeadCell({
+  state,
+  setState,
+}: {
+  setState: (state: State) => void;
+  state: State;
+}) {
+  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+    return (
+      <SortLink
+        align="left"
+        canSort={column.key !== 'p95_trend'}
+        direction={state.orderBy === column.key ? 'desc' : undefined}
+        onClick={() => {
+          setState({orderBy: `${column.key}`});
+        }}
+        title={column.name}
+        generateSortLink={() => {
+          return {
+            ...location,
+          };
+        }}
+      />
+    );
+  }
+  return renderHeadCell;
 }
 
 function renderBodyCell(column: GridColumnHeader, row: SpanDataRow): React.ReactNode {
