@@ -17,8 +17,6 @@ class JiraSentryUIBaseView(View):
         add the requisite CSP headers before returning it.
         """
 
-        context["ac_js_src"] = "https://connect-cdn.atl-paas.net/all.js"
-        response = render_to_response(self.html_file, context, self.request)
         sources = [
             self.request.GET.get("xdm_e"),
             options.get("system.url-prefix"),
@@ -27,16 +25,16 @@ class JiraSentryUIBaseView(View):
         settings.CSP_FRAME_ANCESTORS = [
             "'self'",
         ] + [s for s in sources if s and ";" not in s]
-        settings.CSP_SCRIPT_SRC = [
-            "'self'",
-            "'unsafe-inline'",
-            "connect-cdn.atl-paas.net",
-        ]
 
         header = "Content-Security-Policy"
         if getattr(settings, "CSP_REPORT_ONLY", False):
             header += "-Report-Only"
 
         middleware = CSPMiddleware()
+        middleware.process_request(self.request)  # adds nonce
+
+        context["ac_js_src"] = "https://connect-cdn.atl-paas.net/all.js"
+        response = render_to_response(self.html_file, context, self.request)
+
         response[header] = middleware.build_policy(request=self.request, response=response)
         return response
