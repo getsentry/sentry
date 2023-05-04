@@ -66,7 +66,7 @@ function ObjectInspector({data, onCopy, showCopyButton, theme, ...props}: Props)
     return (
       <Wrapper>
         <Clipboard
-          value={JSON.stringify(data, null, '\t')}
+          hideUnsupported
           onSuccess={() => {
             setTooltipState('copied');
             onCopy?.(data);
@@ -74,8 +74,10 @@ function ObjectInspector({data, onCopy, showCopyButton, theme, ...props}: Props)
           onError={() => {
             setTooltipState('error');
           }}
+          value={JSON.stringify(data, null, '\t')}
         >
           <CopyButton
+            aria-label={t('Copy')}
             type="button"
             size="xs"
             translucentBorder
