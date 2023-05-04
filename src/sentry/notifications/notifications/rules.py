@@ -148,7 +148,9 @@ class AlertRuleNotification(ProjectNotification):
         if self.group.issue_category == GroupCategory.PERFORMANCE:
             context.update(
                 {
-                    "transaction_data": [("Span Evidence", get_transaction_data(self.event), None)],
+                    "transaction_data": [
+                        ("Span Evidence", get_transaction_data(self.event, self.project), None)
+                    ],
                     "subtitle": get_performance_issue_alert_subtitle(self.event),
                 },
             )
