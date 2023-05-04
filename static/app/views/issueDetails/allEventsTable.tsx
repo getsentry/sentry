@@ -40,8 +40,9 @@ function AllEventsTable(props: Props) {
     groupId: group.id,
   });
 
-  const {data} = useApiQuery<EventTransaction>([endpointUrl, {query: {}}], {
+  const {data, isLoading, isLoadingError} = useApiQuery<EventTransaction>([endpointUrl], {
     staleTime: 60000,
+    enabled: group.issueCategory === IssueCategory.PERFORMANCE,
   });
 
   // TODO: this is a temporary way to check whether
@@ -76,8 +77,10 @@ function AllEventsTable(props: Props) {
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
   eventView.statsPeriod = '90d';
 
-  if (error) {
-    return <LoadingError message={error} onRetry={() => setError('')} />;
+  if (error || isLoadingError) {
+    return (
+      <LoadingError message={error || isLoadingError} onRetry={() => setError('')} />
+    );
   }
 
   return (
@@ -94,6 +97,7 @@ function AllEventsTable(props: Props) {
       transactionName=""
       columnTitles={columnTitles.slice()}
       referrer="api.issues.issue_events"
+      isEventLoading={isLoading}
     />
   );
 }
