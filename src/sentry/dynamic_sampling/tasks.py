@@ -3,6 +3,7 @@ from collections import namedtuple
 from datetime import timedelta
 from typing import Dict, Optional, Sequence, Tuple
 
+import sentry_sdk
 from django.core.exceptions import ObjectDoesNotExist
 
 from sentry import options, quotas
@@ -367,7 +368,7 @@ def adjust_base_sample_rate_per_project(
     for project_id, total_root_count in projects_with_total_root_count:
         extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
         if extrapolated_volume is None:
-            logger.error(
+            sentry_sdk.capture_message(
                 f"The volume of the current month with window size of {window_size} hours can't be extrapolated for org {org_id} and project {project_id}."
             )
             continue
@@ -380,7 +381,7 @@ def adjust_base_sample_rate_per_project(
         if sampling_tier is None:
             # In case we want to track this error, we could use a sentinel value in the Redis hash to signal the
             # rules generator that we want to fall back to a specific sample rate instead of 100%.
-            logger.error(
+            sentry_sdk.capture_message(
                 f"The sampling tier for org {org_id} and project {project_id} can't be determined, either an error "
                 f"occurred or the org doesn't have dynamic sampling."
             )
