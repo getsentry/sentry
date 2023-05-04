@@ -129,10 +129,10 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
                 "offender_span_ids": offender_span_ids,
                 "transaction_name": self._event.get("transaction", ""),
                 "span_evidence_key_value": [
-                    {"key": _("Transaction"), "value": self._event.get("transaction", "")},
-                    {"key": _("Starting Span"), "value": self._get_starting_span()},
+                    {"key": str(_("Transaction")), "value": self._event.get("transaction", "")},
+                    {"key": str(_("Starting Span")), "value": self._get_starting_span()},
                     {
-                        "key": _("Parallelizable Spans"),
+                        "key": str(_("Parallelizable Spans")),
                         "value": self._get_parallelizable_spans(),
                         "is_multi_value": True,
                     },
