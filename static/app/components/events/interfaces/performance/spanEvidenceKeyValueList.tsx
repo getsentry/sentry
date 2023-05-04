@@ -305,6 +305,8 @@ function UncompressedAssetSpanEvidence({
   orgSlug,
   projectSlug,
 }: SpanEvidenceKeyValueListProps) {
+  console.log('evet', event);
+  console.log('offendingspans', offendingSpans);
   return (
     <PresortedKeyValueList
       data={[
@@ -441,7 +443,9 @@ const sumSpanDurations = (spans: Span[]) => {
   return totalDuration;
 };
 
-const getSpanDuration = ({timestamp, start_timestamp}: Span) => {
+const getSpanDuration = (span: Span) => {
+  console.log(span);
+  const {timestamp, start_timestamp} = span;
   return ((timestamp ?? 0) - (start_timestamp ?? 0)) * 1000;
 };
 

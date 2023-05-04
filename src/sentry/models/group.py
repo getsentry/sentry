@@ -208,10 +208,8 @@ def get_oldest_or_latest_event_for_environments(
     if len(environments) > 0:
         conditions.append(["environment", "IN", environments])
 
-    if group.issue_category == GroupCategory.PERFORMANCE and not features.has(
-        "organizations:issue-platform-search-perf-issues", group.project.organization
-    ):
-        apply_performance_conditions(conditions, group)
+    if group.issue_category == GroupCategory.PERFORMANCE:
+        # apply_performance_conditions(conditions, group)
         _filter = eventstore.Filter(
             conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]
         )

@@ -25,7 +25,7 @@ export function getSpanInfoFromTransactionEvent(
     | 'occurrence'
   >
 ) {
-  const perfEvidenceData = event.perfProblem ?? event?.occurrence?.evidenceData;
+  const perfEvidenceData = event?.occurrence?.evidenceData ?? event.perfProblem;
   if (!perfEvidenceData) {
     if (
       event.issueCategory === IssueCategory.PERFORMANCE &&
