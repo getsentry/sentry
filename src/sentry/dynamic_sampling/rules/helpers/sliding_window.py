@@ -41,6 +41,6 @@ def extrapolate_monthly_volume(volume: int, hours: int) -> Optional[int]:
         # We compute how many groups of hours can fit in a month.
         groups_of_hours = hours_in_month / hours
         # Given n groups we just multiply the volume per group of hours.
-        return volume * groups_of_hours
+        return int(volume * groups_of_hours)
     except IllegalMonthError:
         return None
