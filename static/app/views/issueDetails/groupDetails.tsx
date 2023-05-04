@@ -250,18 +250,18 @@ function useFetchOnMount({fetchData}: Pick<FetchGroupDetailsState, 'fetchData'>)
 function useGetApiQuery() {
   const router = useRouter();
   const params = router.params;
-  const eventId = params.eventId ?? 'latest';
 
-  return eventId === 'latest' ? useLatestEventApiQuery : useOtherEventApiQuery;
+  return params.eventId ? useSpecificEventApiQuery : useLatestEventApiQuery;
 }
 
 function useLatestEventApiQuery(queryKey: [string, {query: {environment?: string[]}}]) {
   return useApiQuery<Event>(queryKey, {
     staleTime: 10000,
+    cacheTime: 30000,
   });
 }
 
-function useOtherEventApiQuery(queryKey: [string, {query: {environment?: string[]}}]) {
+function useSpecificEventApiQuery(queryKey: [string, {query: {environment?: string[]}}]) {
   return useApiQuery<Event>(queryKey, {
     staleTime: Infinity,
   });
@@ -293,11 +293,11 @@ function useFetchGroupDetails({
   const groupId = params.groupId;
   const eventId = params.eventId ?? 'latest';
 
-  const url = `/issues/${groupId}/events/${eventId}/`;
+  const eventUrl = `/issues/${groupId}/events/${eventId}/`;
 
-  const query: {environment?: string[]} = {};
+  const eventQuery: {environment?: string[]} = {};
   if (environments.length !== 0) {
-    query.environment = environments;
+    eventQuery.environment = environments;
   }
 
   const {
@@ -305,16 +305,7 @@ function useFetchGroupDetails({
     isLoading: loadingEvent,
     isError,
     error: eventError,
-  } = useEventApiQuery([url, {query}]);
-
-  // const {
-  //   data: event,
-  //   isLoading: loadingEvent,
-  //   isError,
-  //   error: eventError,
-  // } = useApiQuery<Event>([url, {query}], {
-  //   staleTime: Infinity,
-  // });
+  } = useEventApiQuery([eventUrl, {query: eventQuery}]);
 
   if (isError) {
     // This is an expected error, capture to Sentry so that it is not considered as an unhandled error
