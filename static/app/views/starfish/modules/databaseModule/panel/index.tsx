@@ -1,23 +1,23 @@
-import {CSSProperties, useState} from 'react';
+import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 import moment from 'moment';
-import * as qs from 'query-string';
 
 import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
-import {IconArrow, IconChevron} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import QueryTransactionTable, {
+  PanelSort,
+} from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
+import SimilarQueryView from 'sentry/views/starfish/modules/databaseModule/panel/similarQueryView';
 import {
   useQueryPanelEventCount,
   useQueryPanelGraph,
@@ -27,12 +27,13 @@ import {
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-import {DataRow} from './databaseTableView';
+import {DataRow, MainTableSort} from '../databaseTableView';
 
 const INTERVAL = 12;
 
-type EndpointDetailBodyProps = {
+type DbQueryDetailProps = {
   isDataLoading: boolean;
+  mainTableSort: MainTableSort;
   onRowChange: (row: DataRow | undefined) => void;
   row: DataRow;
   nextRow?: DataRow;
@@ -48,34 +49,6 @@ export type TransactionListDataRow = {
   uniqueEvents: number;
 };
 
-type Keys = 'transaction' | 'p75' | 'count' | 'frequency' | 'uniqueEvents';
-
-type TableColumnHeader = GridColumnHeader<Keys>;
-
-const COLUMN_ORDER: TableColumnHeader[] = [
-  {
-    key: 'transaction',
-    name: 'Transaction',
-    width: 400,
-  },
-  {
-    key: 'p75',
-    name: 'p75',
-  },
-  {
-    key: 'count',
-    name: 'Count',
-  },
-  {
-    key: 'frequency',
-    name: 'Frequency',
-  },
-  {
-    key: 'uniqueEvents',
-    name: 'Total Events',
-  },
-];
-
 export default function QueryDetail({
   row,
   nextRow,
@@ -83,8 +56,10 @@ export default function QueryDetail({
   isDataLoading,
   onClose,
   onRowChange,
-}: Partial<EndpointDetailBodyProps> & {
+  mainTableSort,
+}: Partial<DbQueryDetailProps> & {
   isDataLoading: boolean;
+  mainTableSort: MainTableSort;
   onClose: () => void;
   onRowChange: (row: DataRow) => void;
 }) {
@@ -92,6 +67,7 @@ export default function QueryDetail({
     <Detail detailKey={row?.description} onClose={onClose}>
       {row && (
         <QueryDetailBody
+          mainTableSort={mainTableSort}
           onRowChange={onRowChange}
           isDataLoading={isDataLoading}
           row={row}
@@ -103,55 +79,24 @@ export default function QueryDetail({
   );
 }
 
-function formatRow(description, queryDetail) {
-  let acc = '';
-  return description.split('').map((token, i) => {
-    acc += token;
-    let final: string | React.ReactElement | null = null;
-    if (acc === queryDetail.action) {
-      final = <Operation key={i}>{queryDetail.action} </Operation>;
-    } else if (acc === queryDetail.domain) {
-      final = <Domain key={i}>{queryDetail.domain} </Domain>;
-    } else if (
-      ['FROM', 'INNER', 'JOIN', 'WHERE', 'ON', 'AND', 'NOT', 'NULL', 'IS'].includes(acc)
-    ) {
-      final = <Keyword key={i}>{acc}</Keyword>;
-    } else if (['(', ')'].includes(acc)) {
-      final = <Bracket key={i}>{acc}</Bracket>;
-    } else if (token === ' ' || token === '\n' || description[i + 1] === ')') {
-      final = acc;
-    } else if (i === description.length - 1) {
-      final = acc;
-    }
-    if (final) {
-      acc = '';
-      const result = final;
-      final = null;
-      return result;
-    }
-    return null;
-  });
-}
-
 function QueryDetailBody({
   row,
   nextRow,
   prevRow,
   onRowChange,
   isDataLoading: isRowLoading,
-}: EndpointDetailBodyProps) {
+}: DbQueryDetailProps) {
   const theme = useTheme();
-  const location = useLocation();
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
 
   const {isLoading: isP75GraphLoading, data: tpmTransactionGraphData} =
     useQueryTransactionByTPM(row);
 
-  const [sort, setSort] = useState<{
-    direction: 'desc' | 'asc' | undefined;
-    sortHeader: TableColumnHeader | undefined;
-  }>({direction: undefined, sortHeader: undefined});
+  const [sort, setSort] = useState<PanelSort>({
+    direction: undefined,
+    sortHeader: undefined,
+  });
 
   const {isLoading, data: graphData} = useQueryPanelGraph(row, INTERVAL);
 
@@ -183,8 +128,6 @@ function QueryDetailBody({
     return data as TransactionListDataRow;
   });
 
-  const minMax = calculateOutlierMinMax(mergedTableData);
-
   const [countSeries, p75Series] = throughputQueryToChartData(
     graphData,
     startTime,
@@ -196,69 +139,6 @@ function QueryDetailBody({
     startTime,
     endTime
   );
-
-  const onSortClick = (col: TableColumnHeader) => {
-    let direction: 'desc' | 'asc' | undefined = undefined;
-    if (!sort.direction || col.key !== sort.sortHeader?.key) {
-      direction = 'desc';
-    } else if (sort.direction === 'desc') {
-      direction = 'asc';
-    }
-    setSort({direction, sortHeader: col});
-  };
-
-  function renderHeadCell(col: TableColumnHeader): React.ReactNode {
-    const {key, name} = col;
-    const sortableKeys: Keys[] = ['p75', 'count'];
-    if (sortableKeys.includes(key)) {
-      const isBeingSorted = col.key === sort.sortHeader?.key;
-      const direction = isBeingSorted ? sort.direction : undefined;
-      return (
-        <SortableHeader
-          onClick={() => onSortClick(col)}
-          direction={direction}
-          title={name}
-        />
-      );
-    }
-    return <span>{name}</span>;
-  }
-
-  const renderBodyCell = (
-    column: TableColumnHeader,
-    dataRow: TransactionListDataRow
-  ): React.ReactNode => {
-    const {key} = column;
-    const value = dataRow[key];
-    const style: CSSProperties = {};
-    let rendereredValue = value;
-
-    if (
-      minMax[key] &&
-      ((value as number) > minMax[key].max || (value as number) < minMax[key].min)
-    ) {
-      style.color = theme.red400;
-    }
-    if (key === 'transaction') {
-      return (
-        <Link
-          to={`/starfish/span/${encodeURIComponent(row.group_id)}?${qs.stringify({
-            transaction: dataRow.transaction,
-          })}`}
-        >
-          {dataRow[column.key]}
-        </Link>
-      );
-    }
-    if (key === 'p75') {
-      rendereredValue = `${dataRow[key]?.toFixed(2)}ms`;
-    }
-    if (key === 'frequency') {
-      rendereredValue = dataRow[key]?.toFixed(2);
-    }
-
-    return <span style={style}>{rendereredValue}</span>;
-  };
 
   return (
     <div>
@@ -298,7 +178,7 @@ function QueryDetailBody({
       </FlexRowContainer>
 
       <SubHeader>{t('Query Description')}</SubHeader>
-      <FormattedCode>{formatRow(row.formatted_desc, row)}</FormattedCode>
+      <FormattedCode>{highlightSql(row.formatted_desc, row)}</FormattedCode>
       <FlexRowContainer>
         <FlexRowItem>
           <SubHeader>{t('Throughput')}</SubHeader>
@@ -359,18 +239,19 @@ function QueryDetailBody({
           />
         </FlexRowItem>
       </FlexRowContainer>
-      <GridEditable
-        isLoading={isDataLoading}
-        data={mergedTableData}
-        columnOrder={COLUMN_ORDER}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell: (column: TableColumnHeader, dataRow: TransactionListDataRow) =>
-            renderBodyCell(column, dataRow),
-        }}
-        location={location}
+      <QueryTransactionTable
+        isDataLoading={isDataLoading}
+        onClickSort={s => setSort(s)}
+        row={row}
+        sort={sort}
+        tableData={mergedTableData}
       />
+      <FlexRowContainer>
+        <FlexRowItem>
+          <SubHeader>{t('Similar Queries')}</SubHeader>
+          <SimilarQueryView mainTableRow={row} />
+        </FlexRowItem>
+      </FlexRowContainer>
     </div>
   );
 }
@@ -401,20 +282,35 @@ function SimplePagination(props: SimplePaginationProps) {
   );
 }
 
-const HeaderWrapper = styled('div')`
-  cursor: pointer;
-`;
-
-export function SortableHeader({title, direction, onClick}) {
-  const arrow = !direction ? null : (
-    <StyledIconArrow size="xs" direction={direction === 'desc' ? 'down' : 'up'} />
-  );
-  return (
-    <HeaderWrapper onClick={onClick}>
-      {title} {arrow}
-    </HeaderWrapper>
-  );
-}
+const highlightSql = (description: string, queryDetail: DataRow) => {
+  let acc = '';
+  return description.split('').map((token, i) => {
+    acc += token;
+    let final: string | React.ReactElement | null = null;
+    if (acc === queryDetail.action) {
+      final = <Operation key={i}>{queryDetail.action} </Operation>;
+    } else if (acc === queryDetail.domain) {
+      final = <Domain key={i}>{queryDetail.domain} </Domain>;
+    } else if (
+      ['FROM', 'INNER', 'JOIN', 'WHERE', 'ON', 'AND', 'NOT', 'NULL', 'IS'].includes(acc)
+    ) {
+      final = <Keyword key={i}>{acc}</Keyword>;
+    } else if (['(', ')'].includes(acc)) {
+      final = <Bracket key={i}>{acc}</Bracket>;
+    } else if (token === ' ' || token === '\n' || description[i + 1] === ')') {
+      final = acc;
+    } else if (i === description.length - 1) {
+      final = acc;
+    }
+    if (final) {
+      acc = '';
+      const result = final;
+      final = null;
+      return result;
+    }
+    return null;
+  });
+};
 
 const throughputQueryToChartData = (
   data: any,
@@ -432,35 +328,6 @@ const throughputQueryToChartData = (
     zeroFillSeries(p75Series, moment.duration(INTERVAL, 'hours'), startTime, endTime),
   ];
 };
-
-// Calculates the outlier min max for all number based rows based on the IQR Method
-const calculateOutlierMinMax = (
-  data: TransactionListDataRow[]
-): Record<string, {max: number; min: number}> => {
-  const minMax: Record<string, {max: number; min: number}> = {};
-  if (data.length > 0) {
-    Object.entries(data[0]).forEach(([colKey, value]) => {
-      if (typeof value === 'number') {
-        minMax[colKey] = findOutlierMinMax(data, colKey);
-      }
-    });
-  }
-  return minMax;
-};
-
-function findOutlierMinMax(data: any[], property: string): {max: number; min: number} {
-  const sortedValues = [...data].sort((a, b) => a[property] - b[property]);
-
-  if (data.length < 4) {
-    return {min: data[0][property], max: data[data.length - 1][property]};
-  }
-
-  const q1 = sortedValues[Math.floor(sortedValues.length * (1 / 4))][property];
-  const q3 = sortedValues[Math.ceil(sortedValues.length * (3 / 4))][property];
-  const iqr = q3 - q1;
-
-  return {min: q1 - iqr * 1.5, max: q3 + iqr * 1.5};
-}
 
 const tpmTransactionQueryToChartData = (
   data: {count: number; interval: string; transaction: string}[],
@@ -483,9 +350,6 @@ const tpmTransactionQueryToChartData = (
     zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
   );
 };
-const StyledIconArrow = styled(IconArrow)`
-  vertical-align: top;
-`;
 
 const SubHeader = styled('h3')`
   color: ${p => p.theme.gray300};
