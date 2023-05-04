@@ -1,3 +1,4 @@
+import {ReactElement} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
@@ -218,27 +219,30 @@ export function renderBodyCell(
   }
 
   // TODO: come up with a better way to identify number columns to align to the right
-  if (
-    column.key.toString().match(/^p\d\d/) ||
-    column.key === 'total_exclusive_time' ||
-    column.key === 'user_count' ||
-    column.key === 'transaction_count'
-  ) {
-    return (
-      <TextAlignRight>
-        <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />
-      </TextAlignRight>
+  let node: ReactElement | null = null;
+  if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
+    node = <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
+  } else if (!['description', 'transaction'].includes(column.key.toString())) {
+    node = (
+      <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
     );
-  }
-  if (!['description', 'transaction'].includes(column.key.toString())) {
-    return (
-      <TextAlignLeft>
-        <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
-      </TextAlignLeft>
+  } else {
+    node = (
+      <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
     );
   }
 
-  return <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>;
+  const isNumericColumn =
+    column.key === 'total_exclusive_time' ||
+    column.key === 'user_count' ||
+    column.key === 'transaction_count' ||
+    column.key.toString().match(/^p\d\d/);
+
+  if (isNumericColumn) {
+    return <TextAlignRight>{node}</TextAlignRight>;
+  }
+
+  return <TextAlignLeft>{node}</TextAlignLeft>;
 }
 
 export const OverflowEllipsisTextContainer = styled('span')`

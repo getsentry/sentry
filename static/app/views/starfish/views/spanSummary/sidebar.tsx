@@ -147,7 +147,7 @@ export default function Sidebar({
         </SidebarItemValueContainer>
       </FlexItem>
       <FlexItem>
-        <SidebarItemHeader>{t('Total Events')}</SidebarItemHeader>
+        <SidebarItemHeader>{t('Total Spans')}</SidebarItemHeader>
         <SidebarItemValueContainer>{count}</SidebarItemValueContainer>
       </FlexItem>
       <FlexItem>
