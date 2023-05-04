@@ -147,8 +147,11 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if not integration_kwargs:
             return None
 
-        integration = Integration.objects.filter(**integration_kwargs).first()
-        return self._serialize_integration(integration) if integration else None
+        try:
+            integration = Integration.objects.get(**integration_kwargs)
+        except Integration.DoesNotExist:
+            return None
+        return self._serialize_integration(integration)
 
     def get_organization_integrations(
         self,

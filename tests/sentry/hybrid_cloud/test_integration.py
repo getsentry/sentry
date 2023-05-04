@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import List
 
+import pytest
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
@@ -143,6 +144,10 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
         assert result is None
         result = integration_service.get_integration()
         assert result is None
+
+        # non-unique result
+        with pytest.raises(Integration.MultipleObjectsReturned):
+            integration_service.get_integration(organization_id=self.organization.id)
 
     def test_update_integrations(self):
         new_metadata = {"new": "data"}
