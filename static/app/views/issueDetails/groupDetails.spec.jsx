@@ -4,6 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GroupStore from 'sentry/stores/groupStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types';
@@ -73,11 +74,12 @@ describe('groupDetails', () => {
       >
         <MockComponent />
       </GroupDetails>,
-      {context: routerContext}
+      {context: routerContext, organization, router}
     );
   };
 
   beforeEach(() => {
+    OrganizationStore.onUpdate(organization);
     act(() => ProjectsStore.loadInitialData(organization.projects));
 
     MockApiClient.addMockResponse({

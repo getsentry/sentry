@@ -298,7 +298,7 @@ function getAssignmentIntegration(group: Group) {
   return integrationAssignments?.data.integration || '';
 }
 
-export function getAnalyticsDataForEvent(event?: Event): BaseEventAnalyticsParams {
+export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyticsParams {
   return {
     event_id: event?.eventID || '-1',
     num_commits: event?.release?.commitCount || 0,
