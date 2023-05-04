@@ -29,6 +29,7 @@ from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
 from sentry.dynamic_sampling.rules.helpers.sliding_window import (
     extrapolate_monthly_volume,
     generate_sliding_window_cache_key,
+    generate_sliding_window_org_cache_key,
     get_sliding_window_size,
 )
 from sentry.dynamic_sampling.rules.utils import (
@@ -40,12 +41,15 @@ from sentry.dynamic_sampling.rules.utils import (
     generate_cache_key_rebalance_factor,
     get_redis_client_for_ds,
 )
-from sentry.dynamic_sampling.sliding_window import fetch_projects_with_total_root_transactions_count
+from sentry.dynamic_sampling.sliding_window import (
+    fetch_orgs_with_total_root_transactions_count,
+    fetch_projects_with_total_root_transactions_count,
+)
 from sentry.dynamic_sampling.snuba_utils import (
     get_active_orgs,
     get_orgs_with_project_counts_without_modulo,
 )
-from sentry.models import Project
+from sentry.models import Organization, Project
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
@@ -408,3 +412,72 @@ def adjust_base_sample_rate_per_project(
             )
 
         pipeline.execute()
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.tasks.sliding_window_org",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=2 * 60 * 60,  # 2 hours
+    time_limit=2 * 60 * 60 + 5,
+)  # type: ignore
+def sliding_window_org() -> None:
+    window_size = get_sliding_window_size()
+    # In case the size is None it means that we disabled the sliding window entirely.
+    if window_size is not None:
+        metrics.incr("sentry.dynamic_sampling.tasks.sliding_window_org.start", sample_rate=1.0)
+        with metrics.timer("sentry.dynamic_sampling.tasks.sliding_window_org", sample_rate=1.0):
+            for orgs in get_orgs_with_project_counts_without_modulo(
+                MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY
+            ):
+                for (org_id, total_root_count,) in fetch_orgs_with_total_root_transactions_count(
+                    org_ids=orgs, window_size=window_size
+                ).items():
+                    adjust_base_sample_rate_per_org(org_id, total_root_count, window_size)
+
+
+def adjust_base_sample_rate_per_org(org_id: int, total_root_count: int, window_size: int) -> None:
+    """
+    Adjusts the base sample rate per org by considering its volume and how it fits w.r.t. to the sampling tiers
+    defined on the billing side.
+    """
+    extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
+    if extrapolated_volume is None:
+        sentry_sdk.capture_message(
+            f"The volume of the current month with window size of {window_size} hours can't be extrapolated for org {org_id}."
+        )
+        return
+
+    sampling_tier = quotas.get_transaction_sampling_tier_for_volume(org_id, extrapolated_volume)
+    # In case the sampling tier cannot be determined, we want to log it and try to get it for the next project.
+    #
+    # There might be a situation in which the old key is set into Redis still and in that case, we prefer to keep it
+    # instead of deleting it. This behavior can be changed anytime, by just doing an "HDEL" on the failing key.
+    if sampling_tier is None:
+        # In case we want to track this error, we could use a sentinel value in the Redis hash to signal the
+        # rules generator that we want to fall back to a specific sample rate instead of 100%.
+        sentry_sdk.capture_message(
+            f"The sampling tier for org {org_id} can't be determined, either an error "
+            f"occurred or the org doesn't have dynamic sampling."
+        )
+        return
+
+    # We unpack the tuple containing the sampling tier information in the form (volume, sample_rate). This is done
+    # under the assumption that the sampling_tier tuple contains both non-null values.
+    _, sample_rate = sampling_tier
+
+    redis_client = get_redis_client_for_ds()
+    with redis_client.pipeline(transaction=False) as pipeline:
+        cache_key = generate_sliding_window_org_cache_key(org_id=org_id)
+        pipeline.set(cache_key, sample_rate)
+        pipeline.pexpire(cache_key, CACHE_KEY_TTL)
+        pipeline.execute()
+
+    # We now run the invalidation of all project configs, so that we will compute the correct uniform rule with the
+    # new sample rate.
+    project_ids = [p.id for p in Organization.objects.get_from_cache(id=org_id)]
+    for project_id in project_ids:
+        schedule_invalidate_project_config(
+            project_id=project_id, trigger="dynamic_sampling_prioritise_project_bias"
+        )

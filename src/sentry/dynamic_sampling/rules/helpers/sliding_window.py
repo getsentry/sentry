@@ -19,6 +19,10 @@ def generate_sliding_window_cache_key(org_id: int) -> str:
     return f"ds::o:{org_id}:sliding_window"
 
 
+def generate_sliding_window_org_cache_key(org_id: int) -> str:
+    return f"ds::o:{org_id}:sliding_window_org_sample_rate"
+
+
 def get_sliding_window_sample_rate(project: "Project", default_sample_rate: float) -> float:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_sliding_window_cache_key(project.organization.id)
