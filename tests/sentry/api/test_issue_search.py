@@ -250,7 +250,7 @@ class ConvertSubStatusValueTest(TestCase):
             SearchFilter(SearchKey("substatus"), "=", SearchValue(["until_escalating"])),
         ]
         with pytest.raises(
-            InvalidSearchQuery, match="Mutually exclusive substatus filters are not supported"
+            InvalidSearchQuery, match="Mutually exclusive status filters are not supported"
         ):
             convert_query_values(filters, [self.project], self.user, None)
 

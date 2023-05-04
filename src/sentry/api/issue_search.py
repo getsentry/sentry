@@ -303,7 +303,9 @@ def convert_query_values(
 
 
 def valid_substatus_search(filters: list[SearchFilter]) -> bool:
-    parsed = lambda substatus: substatus[0] if isinstance(substatus, list) else substatus
+    def parsed(substatus: str | list[str]) -> str:
+        return substatus[0] if isinstance(substatus, list) else substatus
+
     substatuses = [
         parsed(filter.value.raw_value) for filter in filters if filter.key.name == "substatus"
     ]
