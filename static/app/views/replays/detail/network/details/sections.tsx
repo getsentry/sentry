@@ -76,7 +76,7 @@ export function GeneralSection({item, onScrollToRow, startTimestampMs}: SectionP
 export function RequestHeadersSection({item}: SectionProps) {
   return (
     <SectionItem title={t('Request Headers')}>
-      {keyValueTableOrNotFound(item.data.request?.headers, t('Headers not captured'))}
+      {keyValueTableOrNotFound(item.data?.request?.headers, t('Headers not captured'))}
     </SectionItem>
   );
 }
@@ -84,7 +84,7 @@ export function RequestHeadersSection({item}: SectionProps) {
 export function ResponseHeadersSection({item}: SectionProps) {
   return (
     <SectionItem title={t('Response Headers')}>
-      {keyValueTableOrNotFound(item.data.request?.headers, t('Headers not captured'))}
+      {keyValueTableOrNotFound(item.data?.request?.headers, t('Headers not captured'))}
     </SectionItem>
   );
 }
@@ -107,14 +107,14 @@ export function RequestPayloadSection({item}: SectionProps) {
       title={t('Request Payload')}
       titleExtra={
         <SizeTooltip>
-          {t('Size:')} {formatBytesBase10(item.data.request?.size ?? 0)}
+          {t('Size:')} {formatBytesBase10(item.data?.request?.size ?? 0)}
         </SizeTooltip>
       }
     >
       <Indent>
-        <Warning warnings={item.data?.request?.warnings} />
+        <Warning warnings={item.data?.request?._meta?.warnings} />
         {hasRequest ? (
-          <ObjectInspector data={item.data?.request?.body} expandLevel={2} />
+          <ObjectInspector data={item.data.request.body} expandLevel={2} />
         ) : (
           tct('Request body not found.', item.data)
         )}
@@ -131,14 +131,14 @@ export function ResponsePayloadSection({item}: SectionProps) {
       title={t('Response Body')}
       titleExtra={
         <SizeTooltip>
-          {t('Size:')} {formatBytesBase10(item.data.response?.size ?? 0)}
+          {t('Size:')} {formatBytesBase10(item.data?.response?.size ?? 0)}
         </SizeTooltip>
       }
     >
       <Indent>
-        <Warning warnings={item.data?.request?.warnings} />
+        <Warning warnings={item.data?.response?._meta?.warnings} />
         {hasResponse ? (
-          <ObjectInspector data={item.data?.response?.body} expandLevel={2} />
+          <ObjectInspector data={item.data.response.body} expandLevel={2} />
         ) : (
           tct('Response body not found.', item.data)
         )}
