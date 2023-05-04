@@ -39,6 +39,6 @@ class DebugPerformanceIssueEmailView(View):
                 "issue_type": perf_group.issue_type.description,
                 "subtitle": get_performance_issue_alert_subtitle(perf_event),
                 # this is new, will need to feature flag this probably
-                "issue_title": perf_event.occurrence.subtitle,
+                "issue_title": perf_event.occurrence.issue_title,
             },
         ).render(request)

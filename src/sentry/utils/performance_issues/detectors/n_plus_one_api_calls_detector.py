@@ -169,7 +169,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return
 
         offender_span_ids = [span["span_id"] for span in self.spans]
-        repeating_spans = get_span_evidence_value(self.spans[0])
 
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
@@ -183,15 +182,13 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
                 "op": last_span["op"],
                 "cause_span_ids": [],
                 "parent_span_ids": [last_span.get("parent_span_id", None)],
-                # get the parent of last span
-                "parent_span": get_span_evidence_value(last_span),
                 "offender_span_ids": offender_span_ids,
                 "transaction_name": self._event.get("transaction", ""),
                 "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
                 "repeating_spans": self._get_path_prefix(self.spans[0]),
                 "parameters": self._get_parameters(),
                 # come up with a better name
-                "alert_subtitle": repeating_spans,
+                "alert_subtitle": get_span_evidence_value(self.spans[0], include_op=False),
             },
             evidence_display=[],
         )
