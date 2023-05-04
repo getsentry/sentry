@@ -2490,6 +2490,9 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                     level=job["level"],
                 )
 
+                print("PROBLEM")
+                print(problem.evidence_data)
+
                 produce_occurrence_to_kafka(occurrence)
 
 
