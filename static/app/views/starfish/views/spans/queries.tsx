@@ -17,7 +17,8 @@ export const getTimeSpentQuery = (groupingColumn: string, conditions: string[] =
 export const getSpanListQuery = (
   datetime: DateTimeObject,
   conditions: string[] = [],
-  limit?: number
+  orderBy: string,
+  limit: number
 ) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   const validConditions = conditions.filter(Boolean);
@@ -37,7 +38,7 @@ export const getSpanListQuery = (
     ${validConditions.join(' AND ')}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     GROUP BY group_id, span_operation, description
-    ORDER BY total_exclusive_time desc
+    ORDER BY ${orderBy ?? 'count'} desc
     ${limit ? `LIMIT ${limit}` : ''}`;
 };
 

@@ -16,14 +16,20 @@ import {getSpanListQuery, getSpansTrendsQuery, getTimeSpentQuery} from './querie
 import type {SpanDataRow, SpanTrendDataRow} from './spansTable';
 import SpansTable from './spansTable';
 
-const LIMIT = 25;
+const LIMIT: number = 25;
 
 type Props = {
   location: Location;
 };
 
+type State = {
+  orderBy: string;
+};
+
 export default function SpansView(props: Props) {
   const pageFilter = usePageFilters();
+  const [state, setState] = useState<State>({orderBy: 'total_exclusive_time'});
+  const {orderBy} = state;
 
   const [clusterPath, setClusterPath] = useState<string[]>(['top']);
   const currentClusters = clusterPath.map(
@@ -59,12 +65,13 @@ export default function SpansView(props: Props) {
   });
 
   const {isLoading: areSpansLoading, data: spansData} = useQuery<SpanDataRow[]>({
-    queryKey: ['spans', currentCluster.name],
+    queryKey: ['spans', currentCluster.name, orderBy],
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getSpanListQuery(
           pageFilter.selection.datetime,
           currentClusters.map(c => c.condition(c.name)),
+          orderBy,
           LIMIT
         )}`
       ).then(res => res.json()),
@@ -148,6 +155,8 @@ export default function SpansView(props: Props) {
         location={props.location}
         isLoading={areSpansLoading || areSpansTrendsLoading}
         spansData={spansData}
+        orderBy={orderBy}
+        onSetOrderBy={newOrderBy => setState({orderBy: newOrderBy})}
         spansTrendsData={spansTrendsData}
       />
     </Fragment>
