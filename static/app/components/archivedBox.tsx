@@ -17,11 +17,16 @@ function ArchivedBox({statusDetails}: Props) {
       ignoreWindow,
       ignoreUserCount,
       ignoreUserWindow,
-      untilEscalating,
+      ignoreUntilEscalating,
     } = statusDetails;
 
-    if (untilEscalating) {
-      return t('This issue has been archived until it escalates.');
+    if (ignoreUntilEscalating) {
+      return t(
+        "This issue has been archived. It'll return to your inbox if it escalates. To learn more, %s",
+        <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/">
+          {t('read the docs')}
+        </ExternalLink>
+      );
     }
     if (ignoreUntil) {
       return t(
@@ -62,20 +67,13 @@ function ArchivedBox({statusDetails}: Props) {
       );
     }
 
-    return t('This issue has been archived.');
+    return t('This issue has been archived forever.');
   }
 
   return (
     <BannerContainer priority="default">
       <BannerSummary>
-        <span>
-          {renderReason()}{' '}
-          {t(
-            "It'll return to your inbox if it escalates. To learn more, %s",
-            // TODO(workflow): Need escalating-issues-ui docs link
-            <ExternalLink href="#">{t('read the docs')}</ExternalLink>
-          )}
-        </span>
+        <span>{renderReason()}</span>
       </BannerSummary>
     </BannerContainer>
   );
