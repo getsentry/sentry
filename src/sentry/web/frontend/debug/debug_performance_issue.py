@@ -24,7 +24,7 @@ class DebugPerformanceIssueEmailView(View):
 
         rule = Rule(id=1, label="Example performance rule")
 
-        transaction_data = get_transaction_data(perf_event, project)
+        transaction_data = get_transaction_data(perf_event)
         interface_list = get_interface_list(perf_event)
 
         return MailPreview(

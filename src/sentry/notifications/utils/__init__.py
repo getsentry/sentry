@@ -25,7 +25,7 @@ from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import integrations, options
+from sentry import integrations
 from sentry.api.serializers.models.event import get_entries, get_problems
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.models import AlertRuleTriggerAction
@@ -417,11 +417,9 @@ def get_span_and_problem(
     return (spans, matched_problem)
 
 
-def get_transaction_data(event: Event, project: Project) -> Any:
+def get_transaction_data(event: Event) -> Any:
     """Get data about a transaction to populate alert emails."""
-    if options.get(
-        "performance.issues.create_issues_through_platform", True
-    ) and project.get_option("sentry:performance_issue_create_issue_through_platform", True):
+    if isinstance(event, GroupEvent) and event.occurrence is not None:
         evidence_data = event.occurrence.evidence_data
         if not evidence_data:
             return ""
@@ -457,7 +455,7 @@ def get_performance_issue_alert_subtitle(event: Event) -> str:
     """Generate the issue alert subtitle for performance issues"""
     repeating_span_value = ""
     if isinstance(event, GroupEvent) and event.occurrence is not None:
-        repeating_span_value = event.occurrence.evidence_data["repeating_spans_compact"][0]
+        repeating_span_value = event.occurrence.evidence_data.get("repeating_spans_compact", "")
     else:
         spans, matched_problem = get_span_and_problem(event)
         if spans and matched_problem:
