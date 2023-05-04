@@ -1253,7 +1253,7 @@ class IssueListOverview extends Component<Props, State> {
             </Panel>
             <StyledPagination
               caption={
-                !issuesLoading
+                !issuesLoading && modifiedQueryCount > 0
                   ? tct('[start]-[end] of [total]', {
                       start: numPreviousIssues + 1,
                       end: numPreviousIssues + numIssuesOnPage,
