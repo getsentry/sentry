@@ -101,7 +101,11 @@ class ProjectTagKeyDeleteTest(APITestCase):
 
         assert (
             tagstore.get_tag_key(
-                project.id, None, "environment", status=TagKeyStatus.VISIBLE  # environment_id
+                project.id,
+                None,
+                "environment",
+                status=TagKeyStatus.VISIBLE,  # environment_id
+                tenant_ids={"referrer": "test_tagstore", "organization_id": 123},
             ).status
             == TagKeyStatus.VISIBLE
         )
