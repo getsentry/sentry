@@ -1,20 +1,15 @@
 import {RouteComponentProps} from 'react-router';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject, removeTeamFromProject} from 'sentry/actionCreators/projects';
-import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import {space} from 'sentry/styles/space';
 import {Organization, Project, Team} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TeamSelect from 'sentry/views/settings/components/teamSelect';
+import TeamSelectForProject from 'sentry/views/settings/components/teamSelect/teamSelectForProject';
 
 type Props = {
   organization: Organization;
@@ -134,59 +129,28 @@ class ProjectTeams extends AsyncView<Props, State> {
     );
     const {projectTeams} = this.state;
 
-    const menuHeader = (
-      <StyledTeamsLabel>
-        {t('Teams')}
-        <Tooltip
-          disabled={canCreateTeam}
-          title={t('You must be a project admin to create teams')}
-          position="top"
-        >
-          <StyledCreateTeamLink
-            to="#create-team"
-            disabled={!canCreateTeam}
-            onClick={this.handleCreateTeam}
-          >
-            {t('Create Team')}
-          </StyledCreateTeamLink>
-        </Tooltip>
-      </StyledTeamsLabel>
-    );
-
     return (
       <div>
         <SettingsPageHeader title={t('Project Teams for %s', project.slug)} />
-        <TeamSelect
+        <TeamSelectForProject
           disabled={!hasAccess}
-          enforceIdpProvisioned={false}
+          canCreateTeam={canCreateTeam}
           organization={organization}
-          menuHeader={menuHeader}
+          project={project}
           selectedTeams={projectTeams ?? []}
           onAddTeam={this.handleAdd}
           onRemoveTeam={this.handleRemove}
+          onCreateTeam={(team: Team) => {
+            addTeamToProject(this.api, organization.slug, project.slug, team).then(
+              this.remountComponent,
+              this.remountComponent
+            );
+          }}
           confirmLastTeamRemoveMessage={confirmRemove}
         />
       </div>
     );
   }
 }
-
-const StyledTeamsLabel = styled('div')`
-  font-size: 0.875em;
-  padding: ${space(0.5)} 0px;
-  text-transform: uppercase;
-`;
-
-const StyledCreateTeamLink = styled(Link)`
-  float: right;
-  text-transform: none;
-  ${p =>
-    p.disabled &&
-    css`
-      cursor: not-allowed;
-      color: ${p.theme.gray300};
-      opacity: 0.6;
-    `};
-`;
 
 export default ProjectTeams;
