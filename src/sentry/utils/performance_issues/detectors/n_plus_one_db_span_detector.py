@@ -224,8 +224,10 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                     "cause_span_ids": [self.source_span.get("span_id", None)],
                     "offender_span_ids": offender_span_ids,
                     "repeating_spans": get_span_evidence_value(self.n_spans[0]),
+                    "repeating_spans_compact": get_span_evidence_value(
+                        self.n_spans[0], include_op=False
+                    ),
                     "num_repeating_spans": str(len(offender_span_ids)),
-                    "alert_subtitle": get_span_evidence_value(self.n_spans[0], include_op=False),
                 },
             )
 

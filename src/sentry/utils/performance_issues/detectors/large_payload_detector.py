@@ -58,6 +58,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
                 "op": "http",
                 "transaction_name": self._event.get("description", ""),
                 "repeating_spans": get_span_evidence_value(span),
+                "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
                 "num_repeating_spans": str(len(offender_span_ids)),
             },
         )

@@ -456,15 +456,15 @@ def generic_email_html(context: Any) -> Any:
 def get_performance_issue_alert_subtitle(event: Event) -> str:
     """Generate the issue alert subtitle for performance issues"""
     if isinstance(event, GroupEvent) and event.occurrence is not None:
-        alert_subtitle: str = event.occurrence.evidence_data["alert_subtitle"]
-        return alert_subtitle
+        repeating_span_value = event.occurrence.evidence_data["repeating_spans_compact"][0]
     else:
         spans, matched_problem = get_span_and_problem(event)
         repeating_span_value = ""
         if spans and matched_problem:
             _, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
             repeating_span_value = get_span_evidence_value(repeating_spans, include_op=False)
-        return repeating_span_value.replace("`", '"')
+
+    return repeating_span_value.replace("`", '"')
 
 
 def get_notification_group_title(

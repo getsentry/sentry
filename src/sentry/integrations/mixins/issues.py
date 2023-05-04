@@ -99,6 +99,7 @@ class IssueBasicMixin:
         an integration's ticket description. Each integration will need to take
         this data and format it appropriately.
         """
+        # TODO update this as well
         spans, matched_problem = get_span_and_problem(event)
         if not matched_problem:
             return ""

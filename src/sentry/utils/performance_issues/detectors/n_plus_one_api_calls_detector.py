@@ -186,9 +186,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
                 "transaction_name": self._event.get("transaction", ""),
                 "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
                 "repeating_spans": self._get_path_prefix(self.spans[0]),
+                "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
                 "parameters": self._get_parameters(),
-                # come up with a better name
-                "alert_subtitle": get_span_evidence_value(self.spans[0], include_op=False),
             },
             evidence_display=[],
         )

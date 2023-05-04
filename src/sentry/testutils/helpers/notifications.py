@@ -4,7 +4,12 @@ import uuid
 from datetime import datetime
 from typing import Any, Iterable, Mapping
 
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
+from sentry.issues.grouptype import (
+    PerformanceNPlusOneAPICallsGroupType,
+    PerformanceNPlusOneGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
+    ProfileFileIOGroupType,
+)
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Team, User
 from sentry.notifications.notifications.base import BaseNotification
@@ -119,14 +124,14 @@ SAMPLE_TO_OCCURRENCE_MAP = {
                 "918be77fbfd326ca",
                 "afa8a8b18afbad59",
             ],
-            "alert_subtitle": "GET http://127.0.0.1:3000/author/278/book?book_id=96",
             "transaction_name": "/",
             "num_repeating_spans": "14",
             "repeating_spans": "/author/278/book",
+            "repeating_spans_compact": "/author/278/book",
             "parameters": ["{book_id: 96,44,22,43,79,50,55,48,90,69,1,36,78,67}"],
         },
         [],
-        PerformanceNPlusOneGroupType,
+        PerformanceNPlusOneAPICallsGroupType,
         ensure_aware(datetime.now()),
         "info",
         "/books/",
@@ -140,8 +145,10 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
         None,
         {
+            "transaction_name": "/books/",
             "op": "db",
             "parent_span_ids": ["8dd7a5869a4f4583"],
+            "parent_span": "django.view - index",
             "cause_span_ids": ["9179e43ae844b174"],
             "offender_span_ids": [
                 "b8be6138369491dd",
@@ -155,6 +162,9 @@ SAMPLE_TO_OCCURRENCE_MAP = {
                 "88a5ccaf25b9bd8f",
                 "bb32cf50fc56b296",
             ],
+            "repeating_spans": "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+            "repeating_spans_compact": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+            "num_repeating_spans": "10",
         },
         [],
         PerformanceNPlusOneGroupType,
@@ -162,49 +172,31 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         "info",
         "/books/",
     ),
-    "transaction-consecutive-db-queries": "",
-    "transaction-render-blocking-asset": "",
+    "transaction-render-blocking-asset": IssueOccurrence(
+        uuid.uuid4().hex,
+        1,
+        uuid.uuid4().hex,
+        ["9cef2831e86bdad927f4f2d0639e09a7eb9642f6"],
+        "Large Render Blocking Asset",
+        "/asset.js",
+        None,
+        {
+            "op": "resource.script",
+            "parent_span_ids": [],
+            "cause_span_ids": [],
+            "offender_span_ids": ["5b35bf3458d54fd7"],
+            "transaction_name": "",
+            "slow_span_description": "/asset.js",
+            "slow_span_duration": 1000.0,
+            "transaction_duration": 172422171096.56,
+            "fcp": 2500.0,
+            "repeating_spans": "resource.script - /asset.js",
+            "repeating_spans_compact": "/asset.js",
+        },
+        [],
+        PerformanceRenderBlockingAssetSpanGroupType,
+        ensure_aware(datetime.now()),
+        "info",
+        "/render-blocking-asset/",
+    ),
 }
-
-# n+1 db
-# {
-#     "id": "9c8afb0c5d0c448284815c9c737742e3",
-#     "project_id": 1,
-#     "event_id": "44f1419e73884cd2b45c79918f4b6dc4",
-#     "fingerprint": ["e714d718cb4e7d3ce1ad800f7f33d223"],
-#     "issue_title": "N+1 Query",
-#     "subtitle": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-#     "resource_id": None,
-#     "evidence_data": {
-#         "op": "db",
-#         "parent_span_ids": ["8dd7a5869a4f4583"],
-#         "cause_span_ids": ["9179e43ae844b174"],
-#         "offender_span_ids": [
-#             "b8be6138369491dd",
-#             "b2d4826e7b618f1b",
-#             "b3fdeea42536dbf1",
-#             "b409e78a092e642f",
-#             "86d2ede57bbf48d4",
-#             "8e554c84cdc9731e",
-#             "94d6230f3f910e12",
-#             "a210b87a2191ceb6",
-#             "88a5ccaf25b9bd8f",
-#             "bb32cf50fc56b296",
-#         ],
-#     },
-#     "evidence_display": [],
-#     "type": 1006,
-#     "detection_time": 1683208385.572844,
-#     "level": "info",
-#     "culprit": "/books/",
-# }
-
-# large render blocking asset
-# {'id': '9bbb3762b00f473694fd45fe099b3e3c', 'project_id': 1, 'event_id': '44f1419e73884cd2b45c79918f4b6dc4', 'fingerprint': ['cee27ceca4253e3ce4c29b682837fc90'], 'issue_title': 'Large Render Blocking Asset', 'subtitle': '/asset.js', 'resource_id': None, 'evidence_data': {'op': 'resource.script', 'parent_span_ids': [], 'cause_span_ids': [], 'offender_span_ids': ['5b35bf3458d54fd7']}, 'evidence_display': [], 'type': 1004, 'detection_time': 1683208463.412438, 'level': 'info', 'culprit': '/render-blocking-asset/'}
-
-# digest
-# 13:54:43 server      | {'id': 'b30693fc7f7149d9b86169c1c47a7388', 'project_id': 1, 'event_id': '44f1419e73884cd2b45c79918f4b6dc4', 'fingerprint': ['e714d718cb4e7d3ce1ad800f7f33d223'], 'issue_title': 'N+1 Query', 'subtitle': 'SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21', 'resource_id': None, 'evidence_data': {'op': 'db', 'parent_span_ids': ['8dd7a5869a4f4583'], 'cause_span_ids': ['9179e43ae844b174'], 'offender_span_ids': ['b8be6138369491dd', 'b2d4826e7b618f1b', 'b3fdeea42536dbf1', 'b409e78a092e642f', '86d2ede57bbf48d4', '8e554c84cdc9731e', '94d6230f3f910e12', 'a210b87a2191ceb6', '88a5ccaf25b9bd8f', 'bb32cf50fc56b296']}, 'evidence_display': [], 'type': 1006, 'detection_time': 1683208483.492408, 'level': 'info', 'culprit': '/books/'}
-# 13:54:43 server      | 13:54:43 [INFO] sentry.eventstream.base: post_process.skip.raw_event (event_id='44f1419e73884cd2b45c79918f4b6dc4')
-# 13:54:43 server      | 13:54:43 [INFO] sentry.testutils.helpers.features: Flag defaulting to True: 'organizations:transaction-metrics-extraction'
-# 13:54:43 server      | HAI
-# 13:54:43 server      | {'id': 'ebb0ea953ce94c8cbac8b8f626be2675', 'project_id': 1, 'event_id': '44f1419e73884cd2b45c79918f4b6dc4', 'fingerprint': ['e714d718cb4e7d3ce1ad800f7f33d223'], 'issue_title': 'N+1 Query', 'subtitle': 'SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21', 'resource_id': None, 'evidence_data': {'op': 'db', 'parent_span_ids': ['8dd7a5869a4f4583'], 'cause_span_ids': ['9179e43ae844b174'], 'offender_span_ids': ['b8be6138369491dd', 'b2d4826e7b618f1b', 'b3fdeea42536dbf1', 'b409e78a092e642f', '86d2ede57bbf48d4', '8e554c84cdc9731e', '94d6230f3f910e12', 'a210b87a2191ceb6', '88a5ccaf25b9bd8f', 'bb32cf50fc56b296']}, 'evidence_display': [], 'type': 1006, 'detection_time': 1683208483.61836, 'level': 'info', 'culprit': '/books/'}

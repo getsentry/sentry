@@ -92,6 +92,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
                     "offender_span_ids": [span.get("span_id", None)],
                     "transaction_name": self._event.get("description", ""),
                     "repeating_spans": get_span_evidence_value(span),
+                    "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
                     "num_repeating_spans": str(len(span.get("span_id", None))),
                 },
                 evidence_display=[],
