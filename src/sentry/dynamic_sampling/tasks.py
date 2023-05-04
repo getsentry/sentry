@@ -30,6 +30,7 @@ from sentry.dynamic_sampling.rules.helpers.sliding_window import (
     extrapolate_monthly_volume,
     generate_sliding_window_cache_key,
     generate_sliding_window_org_cache_key,
+    get_sliding_window_org_sample_rate,
     get_sliding_window_size,
 )
 from sentry.dynamic_sampling.rules.utils import (
@@ -49,7 +50,7 @@ from sentry.dynamic_sampling.snuba_utils import (
     get_active_orgs,
     get_orgs_with_project_counts_without_modulo,
 )
-from sentry.models import Organization, Project
+from sentry.models import Project
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
@@ -207,7 +208,11 @@ def adjust_sample_rates(
 
     sample_rate = None
     for project in Project.objects.get_many_from_cache(project_ids_with_counts.keys()):
-        sample_rate = quotas.get_blended_sample_rate(project)
+        # We want to rebalance the project based on the sliding window sample rate which is org scoped. In case we are
+        # not able to use it, we can temporarily fall back to the blended sample rate.
+        sample_rate = get_sliding_window_org_sample_rate(
+            org_id, default_sample_rate=quotas.get_blended_sample_rate(project)
+        )
         if sample_rate is None:
             continue
         counts = project_ids_with_counts[project.id]
@@ -218,7 +223,7 @@ def adjust_sample_rates(
             )
         )
 
-    # quit early if there is now sample_rate
+    # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
     if sample_rate is None:
         return
 
@@ -476,7 +481,7 @@ def adjust_base_sample_rate_per_org(org_id: int, total_root_count: int, window_s
 
     # We now run the invalidation of all project configs, so that we will compute the correct uniform rule with the
     # new sample rate.
-    project_ids = [p.id for p in Organization.objects.get_from_cache(id=org_id)]
+    project_ids = [p.id for p in Project.objects.filter(organization_id=org_id)]
     for project_id in project_ids:
         schedule_invalidate_project_config(
             project_id=project_id, trigger="dynamic_sampling_prioritise_project_bias"

@@ -16,6 +16,7 @@ from sentry.dynamic_sampling.tasks import (
     prioritise_transactions,
     recalibrate_orgs,
     sliding_window,
+    sliding_window_org,
 )
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
@@ -60,9 +61,34 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
         )
         return proj
 
+    @staticmethod
+    def sampling_tier_side_effect(*args, **kwargs):
+        volume = args[1]
+
+        if volume == 20:
+            return 100_000, 0.25
+        # We want to also hardcode the error case, to test how the system reacts to errors.
+        elif volume == 0:
+            return None
+
+        return volume, 1.0
+
+    @staticmethod
+    def forecasted_volume_side_effect(*args, **kwargs):
+        return kwargs["volume"]
+
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    def test_prioritise_projects_simple(self, get_blended_sample_rate):
-        get_blended_sample_rate.return_value = 0.25
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    def test_prioritise_projects_simple(
+        self,
+        extrapolate_monthly_volume,
+        get_transaction_sampling_tier_for_volume,
+        get_blended_sample_rate,
+    ):
+        extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
+        get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
+        get_blended_sample_rate.return_value = 1.0
         # Create a org
         test_org = self.create_organization(name="sample-org")
 
@@ -74,6 +100,7 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
 
         with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
             with self.tasks():
+                sliding_window_org()
                 prioritise_projects()
 
         # we expect only uniform rule
