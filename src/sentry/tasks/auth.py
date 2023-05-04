@@ -31,7 +31,7 @@ def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs)
 
     user = user_service.get_user(user_id=actor_id)
     if not user:
-        logger.warning(f"Could not send SSO link emails. Unable to find user by id: {actor_id}")
+        logger.warning("sso.link.email_failure.could_not_find_user", extra={"user_id": actor_id})
         return
 
     member_list = OrganizationMember.objects.filter(
@@ -52,7 +52,7 @@ def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
 
     user = user_service.get_user(user_id=actor_id)
     if not user:
-        logger.warning(f"Could not send SSO unlink emails. Unable to find user by id: {actor_id}")
+        logger.warning("sso.unlink.email_failure.could_not_find_user", extra={"user_id": actor_id})
         return
 
     # Email all organization users, even if they never linked their accounts.
