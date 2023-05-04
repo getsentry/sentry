@@ -93,9 +93,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    @pytest.mark.skip(
-        reason="temp disable test due to circular dependency before merging PR: https://github.com/getsentry/relay/pull/2004"
-    )
     def test_adds_contexts_with_device(self, process_with_symbolicator):
         data = {
             "timestamp": self.min_ago,
@@ -122,6 +119,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "family": "Samsung SCH-R530U",
             "type": "device",
             "model": "SCH-R530U",
+            "name": "Galaxy S3",
             "brand": "Samsung",
         }
 
