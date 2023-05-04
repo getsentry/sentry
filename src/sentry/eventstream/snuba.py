@@ -17,7 +17,6 @@ from uuid import uuid4
 import pytz
 import sentry_kafka_schemas
 import urllib3
-from arroyo.codecs.json import JsonCodec
 
 from sentry import quotas
 from sentry.eventstore.models import GroupEvent
@@ -426,23 +425,21 @@ class SnubaEventStream(SnubaProtocolEventStream):
         serialized_data = json.dumps(data)
 
         try:
-            schema = sentry_kafka_schemas.get_schema(
+            codec = sentry_kafka_schemas.get_codec(
                 topic={
                     "events": "events",
                     # "transactions": "transactions",
                     "search_issues": "generic-events",
                 }[entity]
-            )["schema"]
+            )
         except Exception:
             # Needed since "generic-events" does not have a schema yet
             # and the "transactions" one is not compatible with
             # existing test cases
-            schema = None
+            codec = sentry_kafka_schemas.codecs.json.JsonCodec(None)
 
         # The JsonCodec cannot be used since there are datetimes being passed here in unit tests which cannot
         # be properly encoded
-
-        codec: JsonCodec[Any] = JsonCodec(schema=schema)
 
         try:
             codec.decode(serialized_data.encode("utf-8"), validate=True)
