@@ -733,7 +733,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(org.slug, **{"cancelDeletion": True})
 
         org = Organization.objects.get(id=org.id)
-        assert org.status == OrganizationStatus.VISIBLE
+        assert org.status == OrganizationStatus.ACTIVE
         assert not ScheduledDeletion.objects.filter(
             model_name="Organization", object_id=org.id
         ).exists()

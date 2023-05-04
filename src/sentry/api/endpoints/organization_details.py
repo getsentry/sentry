@@ -446,7 +446,7 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
         if "defaultRole" in data:
             org.default_role = data["defaultRole"]
         if cancel_deletion:
-            org.status = OrganizationStatus.VISIBLE
+            org.status = OrganizationStatus.ACTIVE
         return super().save(*args, **kwargs)
 
 
@@ -587,7 +587,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         with transaction.atomic():
             updated = Organization.objects.filter(
-                id=organization.id, status=OrganizationStatus.VISIBLE
+                id=organization.id, status=OrganizationStatus.ACTIVE
             ).update(status=OrganizationStatus.PENDING_DELETION)
             if updated:
                 organization.status = OrganizationStatus.PENDING_DELETION

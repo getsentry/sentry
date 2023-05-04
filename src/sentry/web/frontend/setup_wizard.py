@@ -60,7 +60,7 @@ class SetupWizardView(BaseView):
         orgs = Organization.objects.filter(
             member_set__role__in=[x.id for x in roles.with_scope("org:read")],
             member_set__user=request.user,
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
         ).order_by("-date_added")[:50]
 
         filled_projects = []

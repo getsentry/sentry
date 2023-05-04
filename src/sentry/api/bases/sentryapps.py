@@ -335,7 +335,7 @@ class SentryAppInstallationPermission(SentryPermission):
         )
         if (
             org_context.member is None
-            or org_context.organization.status != OrganizationStatus.VISIBLE
+            or org_context.organization.status != OrganizationStatus.ACTIVE
         ):
             raise Http404
 

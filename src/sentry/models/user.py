@@ -441,7 +441,7 @@ class User(BaseModel, AbstractBaseUser):
 
         return Organization.objects.filter(
             flags=models.F("flags").bitor(Organization.flags.require_2fa),
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
             member_set__user=self,
         )
 
