@@ -151,7 +151,7 @@ class LoginTest(TestCase):
 def test_sso_expiry_default():
     value = sentry.utils.auth._sso_expiry_from_env(None)
     # make sure no accidental changes affect sso timeout
-    assert value == timedelta(hours=20)
+    assert value == timedelta(days=7)
 
 
 def test_sso_expiry_from_env():

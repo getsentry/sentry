@@ -30,7 +30,7 @@ MFA_SESSION_KEY = "mfa"
 
 def _sso_expiry_from_env(seconds: str | None) -> timedelta:
     if seconds is None:
-        return timedelta(hours=20)
+        return timedelta(days=7)
     return timedelta(seconds=int(seconds))
 
 
