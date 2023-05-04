@@ -1,34 +1,54 @@
 export const CLUSTERS = {
   top: {
     name: 'top',
+    label: 'All',
     condition: '',
     grouping_column: "module IN ['db', 'http'] ? module : 'other' AS primary_group",
-    clusters: {
-      db: {
-        name: 'db',
-        condition: "WHERE module == 'db'",
-      },
-      http: {
-        name: 'http',
-        condition: "WHERE module == 'http'",
-        grouping_column:
-          "span_operation == 'http.client' ? 'client' : 'server' AS primary_group",
-        clusters: {
-          client: {
-            name: 'client',
-            condition: "WHERE span_operation == 'http.client'",
-          },
-          server: {
-            name: 'server',
-            condition: "WHERE span_operation == 'http.server'",
-          },
-        },
-      },
-      other: {
-        name: 'other',
-        condition: "WHERE module NOT IN ['http', 'db']",
-        clusters: {},
-      },
-    },
+    clusters: ['top.db', 'top.http', 'top.other'],
+  },
+  'top.db': {
+    name: 'top.db',
+    label: 'DB',
+    condition: "module == 'db'",
+  },
+  'top.http': {
+    name: 'top.http',
+    label: 'HTTP',
+    condition: "module == 'http'",
+    grouping_column:
+      "span_operation == 'http.client' ? 'client' : 'server' AS primary_group",
+    clusters: ['http.client', 'http.server'],
+  },
+  'top.other': {
+    name: 'top.other',
+    label: 'Other',
+    condition: "module NOT IN ['http', 'db']",
+    clusters: [],
+  },
+  'http.client': {
+    name: 'http.client',
+    label: 'Client',
+    condition: "span_operation == 'http.client'",
+    clusters: ['http.client.get', 'http.client.post', 'http.client.other'],
+  },
+  'http.client.get': {
+    name: 'http.client.get',
+    label: 'GET',
+    condition: "action == 'GET'",
+  },
+  'http.client.post': {
+    name: 'http.client.post',
+    label: 'POST',
+    condition: "action == 'POST'",
+  },
+  'http.client.other': {
+    name: 'http.client.other',
+    label: 'Other',
+    condition: "action NOT IN ['GET', 'POST']",
+  },
+  'http.server': {
+    name: 'http.server',
+    label: 'Server',
+    condition: "span_operation == 'http.server'",
   },
 };
