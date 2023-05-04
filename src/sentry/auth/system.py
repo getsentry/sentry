@@ -64,7 +64,7 @@ class SystemToken:
     def is_expired(self) -> bool:
         return False
 
-    @memoize  # type: ignore[misc]
+    @memoize
     def user(self) -> AnonymousUser:
         user = AnonymousUser()
         user.is_active = True
