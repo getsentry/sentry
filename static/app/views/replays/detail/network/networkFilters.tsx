@@ -10,20 +10,34 @@ type Props = {
 } & ReturnType<typeof useNetworkFilters>;
 
 function NetworkFilters({
-  networkSpans,
+  getMethodTypes,
   getResourceTypes,
   getStatusTypes,
+  method,
+  networkSpans,
   searchTerm,
+  setMethod,
   setSearchTerm,
   setStatus,
   setType,
   status,
   type,
 }: Props) {
+  const methodTypes = getMethodTypes();
   const statusTypes = getStatusTypes();
   const resourceTypes = getResourceTypes();
   return (
     <FiltersGrid>
+      <CompactSelect
+        triggerProps={{prefix: t('Method')}}
+        triggerLabel={method.length === 0 ? t('Any') : null}
+        multiple
+        options={methodTypes}
+        size="sm"
+        onChange={selected => setMethod(selected.map(_ => _.value))}
+        value={method}
+        disabled={!methodTypes.length}
+      />
       <CompactSelect
         triggerProps={{prefix: t('Status')}}
         triggerLabel={status.length === 0 ? t('Any') : null}

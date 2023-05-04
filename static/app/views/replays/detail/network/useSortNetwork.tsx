@@ -10,6 +10,7 @@ interface SortConfig {
 }
 
 const SortStrategies: Record<string, (row) => any> = {
+  method: row => row.data.method || 'GET',
   status: row => row.data.statusCode,
   description: row => row.description,
   op: row => row.op,
