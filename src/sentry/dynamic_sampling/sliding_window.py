@@ -101,7 +101,7 @@ def fetch_projects_with_total_root_transactions_count(
             break
     else:
         logger.error(
-            "",
+            f"Fetching the transaction root count of multiple orgs took more than {MAX_SECONDS} seconds.",
             extra={"offset": offset},
         )
 

@@ -10,15 +10,13 @@ if TYPE_CHECKING:
     from sentry.models import Project
 
 
-def generate_sliding_window_rebalancing_cache_key(org_id: int) -> str:
-    return f"ds::o:{org_id}:sliding_window_rebalancing"
+def generate_sliding_window_cache_key(org_id: int) -> str:
+    return f"ds::o:{org_id}:sliding_window"
 
 
-def get_sliding_window_rebalancing_sample_rate(
-    project: "Project", default_sample_rate: float
-) -> float:
+def get_sliding_window_sample_rate(project: "Project", default_sample_rate: float) -> float:
     redis_client = get_redis_client_for_ds()
-    cache_key = generate_sliding_window_rebalancing_cache_key(project.organization.id)
+    cache_key = generate_sliding_window_cache_key(project.organization.id)
 
     try:
         return float(redis_client.hget(cache_key, project.id))
@@ -26,7 +24,7 @@ def get_sliding_window_rebalancing_sample_rate(
         return default_sample_rate
 
 
-def get_forecasted_monthly_volume(daily_volume: int) -> Optional[int]:
+def extrapolate_monthly_volume(daily_volume: int) -> Optional[int]:
     # Get current year and month
     year = datetime.now(tz=pytz.UTC).year
     month = datetime.now(tz=pytz.UTC).month

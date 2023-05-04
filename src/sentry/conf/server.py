@@ -929,7 +929,7 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute="*/5"),
     },
     "dynamic-sampling-sliding-window-rebalancing": {
-        "task": "sentry.dynamic_sampling.tasks.sliding_window_rebalancing",
+        "task": "sentry.dynamic_sampling.tasks.sliding_window",
         # Run every 10 minutes
         "schedule": crontab(minute="*/10"),
     },

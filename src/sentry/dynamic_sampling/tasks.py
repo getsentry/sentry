@@ -25,9 +25,9 @@ from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_c
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     set_transactions_resampling_rates,
 )
-from sentry.dynamic_sampling.rules.helpers.sliding_window_rebalancing import (
-    generate_sliding_window_rebalancing_cache_key,
-    get_forecasted_monthly_volume,
+from sentry.dynamic_sampling.rules.helpers.sliding_window import (
+    extrapolate_monthly_volume,
+    generate_sliding_window_cache_key,
 )
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
@@ -38,9 +38,7 @@ from sentry.dynamic_sampling.rules.utils import (
     generate_cache_key_rebalance_factor,
     get_redis_client_for_ds,
 )
-from sentry.dynamic_sampling.sliding_window_rebalancing import (
-    fetch_projects_with_total_root_transactions_count,
-)
+from sentry.dynamic_sampling.sliding_window import fetch_projects_with_total_root_transactions_count
 from sentry.dynamic_sampling.snuba_utils import (
     get_active_orgs,
     get_orgs_with_project_counts_without_modulo,
@@ -330,7 +328,7 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
 
 
 @instrumented_task(
-    name="sentry.dynamic_sampling.tasks.sliding_window_rebalancing",
+    name="sentry.dynamic_sampling.tasks.sliding_window",
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
@@ -338,8 +336,8 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     time_limit=2 * 60 * 60 + 5,
 )  # type: ignore
 def sliding_window_rebalancing() -> None:
-    metrics.incr("sentry.dynamic_sampling.tasks.sliding_window_rebalancing.start", sample_rate=1.0)
-    with metrics.timer("sentry.dynamic_sampling.tasks.sliding_window_rebalancing", sample_rate=1.0):
+    metrics.incr("sentry.dynamic_sampling.tasks.sliding_window.start", sample_rate=1.0)
+    with metrics.timer("sentry.dynamic_sampling.tasks.sliding_window", sample_rate=1.0):
         for orgs in get_orgs_with_project_counts_without_modulo(
             MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY
         ):
@@ -347,27 +345,7 @@ def sliding_window_rebalancing() -> None:
                 org_id,
                 projects_with_total_root_count,
             ) in fetch_projects_with_total_root_transactions_count(org_ids=orgs).items():
-                apply_sliding_window_rebalancing_on_projects.delay(
-                    org_id, projects_with_total_root_count
-                )
-
-
-@instrumented_task(
-    name="sentry.dynamic_sampling.apply_sliding_window_rebalancing_on_projects",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=25 * 60,  # 25 mins
-    time_limit=2 * 60 + 5,
-)  # type: ignore
-def apply_sliding_window_rebalancing_on_projects(
-    org_id: OrganizationId,
-    projects_with_total_root_count: Sequence[Tuple[ProjectId, int]],
-) -> None:
-    with metrics.timer(
-        "sentry.tasks.dynamic_sampling.apply_sliding_window_rebalancing_on_projects.core"
-    ):
-        adjust_base_sample_rate_per_project(org_id, projects_with_total_root_count)
+                adjust_base_sample_rate_per_project(org_id, projects_with_total_root_count)
 
 
 def adjust_base_sample_rate_per_project(
@@ -380,7 +358,7 @@ def adjust_base_sample_rate_per_project(
     """
     projects_with_rebalanced_sample_rate = []
     for project_id, total_root_count in projects_with_total_root_count:
-        forecasted_volume = get_forecasted_monthly_volume(daily_volume=total_root_count)
+        forecasted_volume = extrapolate_monthly_volume(daily_volume=total_root_count)
         if forecasted_volume is None:
             logger.info(
                 f"The volume of the current month can't be forecasted for org {org_id} and project {project_id}."
@@ -393,7 +371,7 @@ def adjust_base_sample_rate_per_project(
         # There might be a situation in which the old key is set into Redis still and in that case, we prefer to keep it
         # instead of deleting it. This behavior can be changed anytime, by just doing an "HDEL" on the failing key.
         if sampling_tier is None:
-            logger.info(
+            logger.error(
                 f"The sampling tier for org {org_id} and project {project_id} can't be determined, either an error "
                 f"occurred or the org doesn't have dynamic sampling."
             )
@@ -411,7 +389,7 @@ def adjust_base_sample_rate_per_project(
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:
         for project_id, sample_rate in projects_with_rebalanced_sample_rate:
-            cache_key = generate_sliding_window_rebalancing_cache_key(org_id=org_id)
+            cache_key = generate_sliding_window_cache_key(org_id=org_id)
             pipeline.hset(cache_key, project_id, sample_rate)
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
 

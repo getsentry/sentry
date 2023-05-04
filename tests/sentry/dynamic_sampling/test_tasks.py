@@ -340,7 +340,7 @@ class TestRecalibrateOrganisationsTask(BaseMetricsLayerTestCase, TestCase, Snuba
 
 
 @freeze_time(MOCK_DATETIME)
-class TestSlidingWindowRebalancingTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     @property
     def now(self):
         return MOCK_DATETIME

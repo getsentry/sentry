@@ -3,9 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling.sliding_window_rebalancing import (
-    fetch_projects_with_total_root_transactions_count,
-)
+from sentry.dynamic_sampling.sliding_window import fetch_projects_with_total_root_transactions_count
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
