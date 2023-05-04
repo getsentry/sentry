@@ -414,7 +414,7 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
 
         try:
             integration_model = IntegrationModel.objects.get(
-                provider="vsts", external_id=account["accountId"], status=ObjectStatus.VISIBLE
+                provider="vsts", external_id=account["accountId"], status=ObjectStatus.ACTIVE
             )
             # preserve previously created subscription information
             integration["metadata"]["subscription"] = integration_model.metadata["subscription"]
@@ -430,7 +430,7 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
             assert OrganizationIntegration.objects.filter(
                 organization_id=self.pipeline.organization.id,
                 integration_id=integration_model.id,
-                status=ObjectStatus.VISIBLE,
+                status=ObjectStatus.ACTIVE,
             ).exists()
 
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):

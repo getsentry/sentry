@@ -5,7 +5,7 @@ This is later used for generating group forecasts for determining when a group m
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Dict, List, Sequence, Tuple, TypedDict
+from typing import Dict, List, Optional, Sequence, Tuple, TypedDict
 
 from snuba_sdk import (
     Column,
@@ -73,6 +73,34 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
         return all_results
 
     start_date, end_date = _start_and_end_dates()
+
+    # Error groups use the events dataset while profile and perf groups use the issue platform dataset
+    error_groups: List[Group] = []
+    other_groups: List[Group] = []
+    for g in groups:
+        if g.issue_category == GroupCategory.ERROR:
+            error_groups.append(g)
+        else:
+            other_groups.append(g)
+
+    all_results += _process_groups(error_groups, start_date, end_date, GroupCategory.ERROR)
+    all_results += _process_groups(other_groups, start_date, end_date)
+
+    return all_results
+
+
+def _process_groups(
+    groups: Sequence[Group],
+    start_date: datetime,
+    end_date: datetime,
+    category: Optional[GroupCategory] = None,
+) -> List[GroupsCountResponse]:
+    """Given a list of groups, query Snuba for their hourly bucket count.
+    The category defines which Snuba dataset and entity we query."""
+    all_results = []  # type: ignore[var-annotated]
+    if not groups:
+        return all_results
+
     group_ids_by_project = _extract_project_and_group_ids(groups)
     proj_ids, group_ids = [], []
     processed_projects = 0
@@ -98,7 +126,7 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
 
         # TODO: Write this as a dispatcher type task and fire off a separate task per proj_ids
         all_results += _query_with_pagination(
-            organization_id, proj_ids, group_ids, start_date, end_date
+            organization_id, proj_ids, group_ids, start_date, end_date, category
         )
         # We're ready for a new set of projects and ids
         proj_ids, group_ids = [], []
@@ -112,15 +140,16 @@ def _query_with_pagination(
     group_ids: Sequence[int],
     start_date: datetime,
     end_date: datetime,
+    category: Optional[GroupCategory],
 ) -> List[GroupsCountResponse]:
     """Query Snuba for event counts for the given list of project ids and groups ids in
     a time range."""
     all_results = []
     offset = 0
     while True:
-        query = _generate_query(project_ids, group_ids, offset, start_date, end_date)
+        query = _generate_query(project_ids, group_ids, offset, start_date, end_date, category)
         request = Request(
-            dataset=_issue_category_dataset(GroupCategory.ERROR),
+            dataset=_issue_category_dataset(category),
             app_id=REFERRER,
             query=query,
             tenant_ids={"referrer": REFERRER, "organization_id": organization_id},
@@ -140,12 +169,13 @@ def _generate_query(
     offset: int,
     start_date: datetime,
     end_date: datetime,
+    category: Optional[GroupCategory],
 ) -> Query:
     """This simply generates a query based on the passed parameters"""
     group_id_col = Column("group_id")
     proj_id_col = Column("project_id")
     return Query(
-        match=Entity(_issue_category_entity(GroupCategory.ERROR)),
+        match=Entity(_issue_category_entity(category)),
         select=[
             proj_id_col,
             group_id_col,
@@ -228,6 +258,7 @@ def is_escalating(group: Group) -> bool:
     if group_hourly_count > forecast_today:
         group.substatus = GroupSubStatus.ESCALATING
         group.status = GroupStatus.UNRESOLVED
+        group.save()
         add_group_to_inbox(group, GroupInboxReason.ESCALATING)
 
         analytics.record(
@@ -262,15 +293,11 @@ def parse_groups_past_counts(response: Sequence[GroupsCountResponse]) -> ParsedG
     return group_counts
 
 
-def _issue_category_dataset(category: GroupCategory) -> Dataset:
-    if category == GroupCategory.ERROR:
-        return Dataset.Events.value
-    else:
-        raise NotImplementedError
+def _issue_category_dataset(category: Optional[GroupCategory]) -> Dataset:
+    return Dataset.Events.value if category == GroupCategory.ERROR else Dataset.IssuePlatform.value
 
 
-def _issue_category_entity(category: GroupCategory) -> EntityKey:
-    if category == GroupCategory.ERROR:
-        return EntityKey.Events.value
-    else:
-        raise NotImplementedError
+def _issue_category_entity(category: Optional[GroupCategory]) -> EntityKey:
+    return (
+        EntityKey.Events.value if category == GroupCategory.ERROR else EntityKey.IssuePlatform.value
+    )

@@ -237,7 +237,9 @@ function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
   const [integrationUseManualSetup, setIntegrationUseManualSetup] = useState(false);
 
   const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
-  const showDocsWithProductSelection = currentPlatform.match('^javascript-([A-Za-z]+)$');
+  const showDocsWithProductSelection =
+    currentPlatform.match('^javascript-([A-Za-z]+)$') ??
+    (showLoaderOnboarding === false && currentPlatform === 'javascript');
 
   const hideLoaderOnboarding = useCallback(() => {
     setShowLoaderOnboarding(false);

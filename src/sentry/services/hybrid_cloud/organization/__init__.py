@@ -8,6 +8,7 @@ from typing import Any, Iterable, List, Mapping, Optional, cast
 
 from pydantic import Field
 
+from sentry.constants import ObjectStatus
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmember import InviteStatus
 from sentry.roles import team_roles
@@ -55,9 +56,7 @@ class RpcTeamMember(RpcModel):
 
 
 def project_status_visible() -> int:
-    from sentry.models import ProjectStatus
-
-    return int(ProjectStatus.VISIBLE)
+    return int(ObjectStatus.ACTIVE)
 
 
 class RpcProject(RpcModel):
@@ -148,7 +147,7 @@ class RpcOrganization(RpcOrganizationSummary):
     projects: List[RpcProject] = Field(default_factory=list)
 
     flags: RpcOrganizationFlags = Field(default_factory=lambda: RpcOrganizationFlags())
-    status: OrganizationStatus = OrganizationStatus.VISIBLE
+    status: OrganizationStatus = OrganizationStatus.ACTIVE
 
     default_role: str = ""
 
@@ -323,6 +322,11 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_top_dog_team_member_ids(self, *, organization_id: int) -> List[int]:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
         pass
 
 

@@ -267,7 +267,7 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 def _get_project_config(
     project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
 ) -> "ProjectConfig":
-    if project.status != ObjectStatus.VISIBLE:
+    if project.status != ObjectStatus.ACTIVE:
         return ProjectConfig(project, disabled=True)
 
     public_keys = get_public_key_configs(project, full_config, project_keys=project_keys)

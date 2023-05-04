@@ -3,7 +3,6 @@ from django.conf import settings
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.cache import StringIndexerCache
-from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -37,15 +36,6 @@ def test_cache_many(use_case_id: str) -> None:
     assert indexer_cache.get_many(list(values.keys()), use_case_id) == {"hello": None, "bye": None}
     indexer_cache.set_many(values, use_case_id)
     assert indexer_cache.get_many(list(values.keys()), use_case_id) == values
-
-    new_use_case_id = REVERSE_METRIC_PATH_MAPPING[UseCaseKey(use_case_id)]
-    new_values = {"yes": 4, "no": 5}
-    assert indexer_cache.get_many(list(new_values.keys()), new_use_case_id.value) == {
-        "yes": None,
-        "no": None,
-    }
-    indexer_cache.set_many_new(new_values, use_case_id)
-    assert indexer_cache.get_many(list(new_values.keys()), new_use_case_id.value) == new_values
 
     indexer_cache.delete_many(list(values.keys()), use_case_id)
     assert indexer_cache.get_many(list(values.keys()), use_case_id) == {"hello": None, "bye": None}

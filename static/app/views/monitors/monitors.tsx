@@ -87,7 +87,7 @@ export default function Monitors({location}: RouteComponentProps<{}, {}>) {
 
   const renderMonitorRow = (monitor: Monitor, monitorEnv?: MonitorEnvironment) => (
     <MonitorRow
-      key={monitor.slug}
+      key={`${monitor.slug}-${monitorEnv?.name ?? 'no-env'}`}
       monitor={monitor}
       monitorEnv={monitorEnv}
       onDelete={() => {
@@ -135,7 +135,7 @@ export default function Monitors({location}: RouteComponentProps<{}, {}>) {
               </PageFilterBar>
               <SearchBar
                 query={decodeScalar(qs.parse(location.search)?.query, '')}
-                placeholder={t('Search by name')}
+                placeholder={t('Search by name or slug')}
                 onSearch={handleSearch}
               />
             </Filters>

@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import env
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -41,13 +42,7 @@ class TeamManager(BaseManager):
         Returns a list of all teams a user has some level of access to.
         """
         from sentry.auth.superuser import is_active_superuser
-        from sentry.models import (
-            OrganizationMember,
-            OrganizationMemberTeam,
-            Project,
-            ProjectStatus,
-            ProjectTeam,
-        )
+        from sentry.models import OrganizationMember, OrganizationMemberTeam, Project, ProjectTeam
 
         if not user.is_authenticated:
             return []
@@ -80,7 +75,7 @@ class TeamManager(BaseManager):
 
         if with_projects:
             project_list = sorted(
-                Project.objects.filter(teams__in=team_list, status=ProjectStatus.VISIBLE),
+                Project.objects.filter(teams__in=team_list, status=ObjectStatus.ACTIVE),
                 key=lambda x: x.name.lower(),
             )
 
@@ -302,7 +297,7 @@ class Team(Model, SnowflakeIdMixin):
                 with transaction.atomic(), in_test_psql_role_override("postgres"):
                     cursor.execute("DELETE FROM sentry_team WHERE id = %s", [self.id])
                     self.outbox_for_update().save()
-                cursor.execute("DELETE FROM sentry_actor WHERE team_id = %s", [new_team.id])
+                    cursor.execute("DELETE FROM sentry_actor WHERE team_id = %s", [new_team.id])
             finally:
                 cursor.close()
 
