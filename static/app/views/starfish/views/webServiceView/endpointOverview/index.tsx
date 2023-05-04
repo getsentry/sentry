@@ -98,7 +98,7 @@ export default function EndpointOverview() {
     isLoading: isTableDataLoading,
     data: tableData,
     isRefetching: isTableRefetching,
-  } = useQueryMainTable({action: 'ALL', table: 'ALL'});
+  } = useQueryMainTable({});
 
   const {data: moduleBreakdown} = useQuery({
     queryKey: [`moduleBreakdown${transaction}`],
