@@ -469,7 +469,7 @@ class OrganizationMember(Model):
         from sentry.models import OrganizationMemberTeam, Team
 
         return Team.objects.filter(
-            status=TeamStatus.VISIBLE,
+            status=TeamStatus.ACTIVE,
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=self, is_active=True
             ).values("team"),

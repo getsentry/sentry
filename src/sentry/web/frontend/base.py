@@ -186,7 +186,7 @@ class OrganizationMixin:
         except Team.DoesNotExist:
             return None
 
-        if team.status != TeamStatus.VISIBLE:
+        if team.status != TeamStatus.ACTIVE:
             return None
 
         return team

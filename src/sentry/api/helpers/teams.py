@@ -16,7 +16,7 @@ def get_teams(request, organization, teams=None):
         if is_active_superuser(request):
             # retrieve all teams within the organization
             myteams = Team.objects.filter(
-                organization=organization, status=TeamStatus.VISIBLE
+                organization=organization, status=TeamStatus.ACTIVE
             ).values_list("id", flat=True)
             verified_ids.update(myteams)
         else:

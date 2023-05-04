@@ -133,7 +133,7 @@ def assert_organization_member_equals(
             OrganizationMemberTeam.objects.filter(
                 organizationmember_id=orm_organization_member.id,
                 is_active=True,
-                team__status=TeamStatus.VISIBLE,
+                team__status=TeamStatus.ACTIVE,
             )
         ),
         organization_member.member_teams,

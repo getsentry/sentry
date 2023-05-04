@@ -72,7 +72,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         )
 
         omts = OrganizationMemberTeam.objects.filter(
-            organizationmember=member, is_active=True, team__status=TeamStatus.VISIBLE
+            organizationmember=member, is_active=True, team__status=TeamStatus.ACTIVE
         )
 
         all_project_ids: Set[int] = set()
