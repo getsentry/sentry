@@ -1274,7 +1274,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         ).id
 
         assert tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_group, (event.group.id,), event.datetime, event.datetime
+            tsdb.models.users_affected_by_group,
+            (event.group.id,),
+            event.datetime,
+            event.datetime,
+            tenant_ids={"referrer": "r", "organization_id": 123},
         ) == {event.group.id: 1}
 
         assert tsdb.get_distinct_counts_totals(
@@ -1282,6 +1286,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             (event.project.id,),
             event.datetime,
             event.datetime,
+            tenant_ids={"organization_id": 123, "referrer": "r"},
         ) == {event.project.id: 1}
 
         assert tsdb.get_distinct_counts_totals(
@@ -1290,6 +1295,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             event.datetime,
             event.datetime,
             environment_id=environment_id,
+            tenant_ids={"organization_id": 123, "referrer": "r"},
         ) == {event.group.id: 1}
 
         assert tsdb.get_distinct_counts_totals(
@@ -1298,6 +1304,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             event.datetime,
             event.datetime,
             environment_id=environment_id,
+            tenant_ids={"organization_id": 123, "referrer": "r"},
         ) == {event.project.id: 1}
 
         euser = EventUser.objects.get(project_id=self.project.id, ident="1")
@@ -2050,16 +2057,24 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         assert event1.group is not None
         assert event2.group is None
         assert (
-            tsdb.get_sums(tsdb.models.project, [self.project.id], event1.datetime, event1.datetime)[
-                self.project.id
-            ]
+            tsdb.get_sums(
+                tsdb.models.project,
+                [self.project.id],
+                event1.datetime,
+                event1.datetime,
+                tenant_ids={"organization_id": 123, "referrer": "r"},
+            )[self.project.id]
             == 1
         )
 
         assert (
-            tsdb.get_sums(tsdb.models.group, [event1.group.id], event1.datetime, event1.datetime)[
-                event1.group.id
-            ]
+            tsdb.get_sums(
+                tsdb.models.group,
+                [event1.group.id],
+                event1.datetime,
+                event1.datetime,
+                tenant_ids={"organization_id": 123, "referrer": "r"},
+            )[event1.group.id]
             == 1
         )
 
