@@ -380,15 +380,20 @@ export const useQueryMainTable = (options: {
   });
 };
 
-export const useQueryTransactionByTPM = (row: DataRow) => {
+export const useQueryTransactionByTPMAndP75 = (
+  transactionNames: string[]
+): DefinedUseQueryResult<
+  {count: number; interval: string; p75: number; transaction: string}[]
+> => {
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
-  const queryFilter = `group_id = '${row.group_id}'`;
+  const queryFilter = `transaction IN ('${transactionNames.join(`', '`)}')`;
 
   const query = `
   select
-    count() as count,
+    count(DISTINCT transaction_id) as count,
+    floor(quantile(0.75)(exclusive_time), 5) as p75,
     transaction,
     toStartOfInterval(start_timestamp, INTERVAL ${INTERVAL} hour) as interval
   FROM default.spans_experimental_starfish
@@ -410,7 +415,12 @@ export const useQueryTransactionByTPM = (row: DataRow) => {
   `;
 
   return useQuery({
-    queryKey: ['p75PerTransaction', pageFilter.selection.datetime, row.group_id],
+    enabled: !!transactionNames?.length,
+    queryKey: [
+      'EpmPerTransaction',
+      pageFilter.selection.datetime,
+      transactionNames.join(','),
+    ],
     queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
     retry: false,
     initialData: [],

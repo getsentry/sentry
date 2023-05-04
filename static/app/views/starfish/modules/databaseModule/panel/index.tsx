@@ -22,7 +22,7 @@ import {
   useQueryPanelEventCount,
   useQueryPanelGraph,
   useQueryPanelTable,
-  useQueryTransactionByTPM,
+  useQueryTransactionByTPMAndP75,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
@@ -90,9 +90,6 @@ function QueryDetailBody({
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
 
-  const {isLoading: isP75GraphLoading, data: tpmTransactionGraphData} =
-    useQueryTransactionByTPM(row);
-
   const [sort, setSort] = useState<PanelSort>({
     direction: undefined,
     sortHeader: undefined,
@@ -105,6 +102,9 @@ function QueryDetailBody({
     sort.sortHeader?.key,
     sort.direction
   );
+
+  const {isLoading: isP75GraphLoading, data: transactionGraphData} =
+    useQueryTransactionByTPMAndP75(tableData.map(d => d.transaction).splice(0, 5));
 
   const {isLoading: isEventCountLoading, data: eventCountData} =
     useQueryPanelEventCount(row);
@@ -134,8 +134,18 @@ function QueryDetailBody({
     endTime
   );
 
-  const tpmTransactionSeries = tpmTransactionQueryToChartData(
-    tpmTransactionGraphData,
+  const tpmTransactionSeries = queryToSeries(
+    transactionGraphData,
+    'transaction',
+    'count',
+    startTime,
+    endTime
+  );
+
+  const p75TransactionSeries = queryToSeries(
+    transactionGraphData,
+    'transaction',
+    'p75',
     startTime,
     endTime
   );
@@ -218,7 +228,7 @@ function QueryDetailBody({
       </FlexRowContainer>
       <FlexRowContainer>
         <FlexRowItem>
-          <SubHeader>{t('Highest throughput transactions')}</SubHeader>
+          <SubHeader>{t('Top 5 Transactions by Throughput')}</SubHeader>
           <Chart
             statsPeriod="24h"
             height={140}
@@ -226,6 +236,27 @@ function QueryDetailBody({
             start=""
             end=""
             loading={isDataLoading}
+            grid={{
+              left: '0',
+              right: '0',
+              top: '16px',
+              bottom: '8px',
+            }}
+            utc={false}
+            disableXAxis
+            isLineChart
+            hideYAxisSplitLine
+          />
+        </FlexRowItem>
+        <FlexRowItem>
+          <SubHeader>{t('Top 5 Transactions by P75')}</SubHeader>
+          <Chart
+            statsPeriod="24h"
+            height={140}
+            data={p75TransactionSeries}
+            start=""
+            end=""
+            loading={isP75GraphLoading}
             grid={{
               left: '0',
               right: '0',
@@ -329,22 +360,24 @@ const throughputQueryToChartData = (
   ];
 };
 
-const tpmTransactionQueryToChartData = (
-  data: {count: number; interval: string; transaction: string}[],
+const queryToSeries = (
+  data: (Record<string, any> & {interval: string})[],
+  groupByProperty: string,
+  seriesValueProperty: string,
   startTime: moment.Moment,
   endTime: moment.Moment
 ): Series[] => {
   const seriesMap: Record<string, Series> = {};
 
   data.forEach(row => {
-    const dataEntry = {value: row.count, name: row.interval};
-    if (!seriesMap[row.transaction]) {
-      seriesMap[row.transaction] = {
-        seriesName: row.transaction,
+    const dataEntry = {value: row[seriesValueProperty], name: row.interval};
+    if (!seriesMap[row[groupByProperty]]) {
+      seriesMap[row[groupByProperty]] = {
+        seriesName: row[groupByProperty],
         data: [],
       };
     }
-    seriesMap[row.transaction].data.push(dataEntry);
+    seriesMap[row[groupByProperty]].data.push(dataEntry);
   });
   return Object.values(seriesMap).map(series =>
     zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
