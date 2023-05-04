@@ -452,6 +452,7 @@ class IssueEventSerializerTest(TestCase):
                 "repeatingSpans": "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
                 "repeatingSpansCompact": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
                 "transactionName": "/books/",
+                "num_repeating_spans": 10,
             },
             "evidenceDisplay": [],
         }
