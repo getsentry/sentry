@@ -56,7 +56,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 evidence_data={
                     "parent_span_ids": [],
                     "cause_span_ids": [],
-                    "offender_span_ids": "bbbbbbbbbbbbbbbb",
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
                     "op": "http",
                 },
                 evidence_display=[],
