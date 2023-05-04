@@ -32,17 +32,33 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             user_id and email is None
         ), "Must set either user or email"
         with transaction.atomic():
-            org_member_mapping, _created = OrganizationMemberMapping.objects.update_or_create(
-                organizationmember_id=organizationmember_id,
-                organization_id=organization_id,
-                user_id=user_id,
-                email=email,
-                defaults={
-                    "role": role,
-                    "inviter_id": inviter_id,
-                    "invite_status": invite_status,
-                },
-            )
+            query = OrganizationMemberMapping.objects.filter(organization_id=organization_id)
+            if user_id is not None:
+                query = query.filter(user_id=user_id)
+            else:
+                query = query.filter(email=email)
+
+            if query.exists():
+                org_member_mapping = query.get()
+                org_member_mapping.update(
+                    organizationmember_id=organizationmember_id,
+                    organization_id=organization_id,
+                    user_id=user_id,
+                    email=email,
+                    role=role,
+                    inviter_id=inviter_id,
+                    invite_status=invite_status,
+                )
+            else:
+                org_member_mapping = OrganizationMemberMapping.objects.create(
+                    organizationmember_id=organizationmember_id,
+                    organization_id=organization_id,
+                    user_id=user_id,
+                    email=email,
+                    role=role,
+                    inviter_id=inviter_id,
+                    invite_status=invite_status,
+                )
         return self._serialize_rpc(org_member_mapping)
 
     def create_with_organization_member(
@@ -65,16 +81,19 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         organization_id: int,
         rpc_update_org_member: RpcOrganizationMemberMappingUpdate,
     ) -> RpcOrganizationMemberMapping:
-        org_member_map = OrganizationMemberMapping.objects.get(
-            organization_id=organization_id,
-            organizationmember_id=organizationmember_id,
-        )
-        update_dict = {
-            attr_name: getattr(rpc_update_org_member, attr_name)
-            for attr_name in RpcOrganizationMemberMappingUpdate.__annotations__.keys()
-        }
-        org_member_map.update(**update_dict)
-        return self._serialize_rpc(org_member_map)
+        try:
+            org_member_map = OrganizationMemberMapping.objects.get(
+                organization_id=organization_id,
+                organizationmember_id=organizationmember_id,
+            )
+            org_member_map.update(**rpc_update_org_member.dict())
+            return self._serialize_rpc(org_member_map)
+        except OrganizationMemberMapping.DoesNotExist:
+            return self.create_mapping(
+                organizationmember_id=organizationmember_id,
+                organization_id=organization_id,
+                **rpc_update_org_member.dict(),
+            )
 
     def delete_with_organization_member(
         self,

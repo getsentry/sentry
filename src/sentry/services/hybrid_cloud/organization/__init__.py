@@ -8,6 +8,7 @@ from typing import Any, Iterable, List, Mapping, Optional, cast
 
 from pydantic import Field
 
+from sentry.constants import ObjectStatus
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmember import InviteStatus
 from sentry.roles import team_roles
@@ -26,7 +27,7 @@ from sentry.silo import SiloMode
 def team_status_visible() -> int:
     from sentry.models import TeamStatus
 
-    return int(TeamStatus.VISIBLE)
+    return int(TeamStatus.ACTIVE)
 
 
 class RpcTeam(RpcModel):
@@ -55,9 +56,7 @@ class RpcTeamMember(RpcModel):
 
 
 def project_status_visible() -> int:
-    from sentry.models import ProjectStatus
-
-    return int(ProjectStatus.VISIBLE)
+    return int(ObjectStatus.ACTIVE)
 
 
 class RpcProject(RpcModel):
@@ -148,7 +147,7 @@ class RpcOrganization(RpcOrganizationSummary):
     projects: List[RpcProject] = Field(default_factory=list)
 
     flags: RpcOrganizationFlags = Field(default_factory=lambda: RpcOrganizationFlags())
-    status: OrganizationStatus = OrganizationStatus.VISIBLE
+    status: OrganizationStatus = OrganizationStatus.ACTIVE
 
     default_role: str = ""
 

@@ -72,7 +72,7 @@ class AuthLoginView(BaseView):
     def get_auth_provider(self, organization_slug):
         try:
             organization = Organization.objects.get(
-                slug=organization_slug, status=OrganizationStatus.VISIBLE
+                slug=organization_slug, status=OrganizationStatus.ACTIVE
             )
         except Organization.DoesNotExist:
             return None

@@ -34,7 +34,8 @@ from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
-from sentry.services.hybrid_cloud import extract_id_from
+from sentry.services.hybrid_cloud import coerce_id_from, extract_id_from
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
 
@@ -238,14 +239,14 @@ class OrganizationMember(Model):
         super().save(*args, **kwargs)
 
     def set_user(self, user):
-        self.user = user
+        self.user_id = coerce_id_from(user)
         self.email = None
         self.token = None
         self.token_expires_at = None
 
     def remove_user(self):
         self.email = self.get_email()
-        self.user = None
+        self.user_id = None
         self.token = self.generate_token()
 
     def regenerate_token(self):
@@ -390,17 +391,20 @@ class OrganizationMember(Model):
         if not self.user_id:
             return
 
+        user = user_service.get_user(user_id=self.user_id)
+        has_password = user.has_usable_password() if user else False
+
         context = {
             "email": email,
             "recover_url": absolute_uri(recover_uri),
-            "has_password": self.user.password,
+            "has_password": has_password,
             "organization": self.organization,
             "actor": actor,
             "provider": provider,
         }
 
-        if not self.user.password:
-            password_hash = lost_password_hash_service.get_or_create(user_id=self.user.id)
+        if not has_password:
+            password_hash = lost_password_hash_service.get_or_create(user_id=self.user_id)
             context["set_password_url"] = password_hash.get_absolute_url(mode="set_password")
 
         msg = MessageBuilder(
@@ -414,22 +418,30 @@ class OrganizationMember(Model):
 
     def get_display_name(self):
         if self.user_id:
-            return self.user.get_display_name()
+            user = user_service.get_user(user_id=self.user_id)
+            if user:
+                return user.get_display_name()
         return self.email
 
     def get_label(self):
         if self.user_id:
-            return self.user.get_label()
+            user = user_service.get_user(user_id=self.user_id)
+            if user:
+                return user.get_label()
         return self.email or self.id
 
     def get_email(self):
-        if self.user_id and self.user.email:
-            return self.user.email
+        if self.user_id:
+            user = user_service.get_user(user_id=self.user_id)
+            if user and user.email:
+                return user.email
         return self.email
 
     def get_avatar_type(self):
         if self.user_id:
-            return self.user.get_avatar_type()
+            user = user_service.get_user(user_id=self.user_id)
+            if user:
+                return user.get_avatar_type()
         return "letter_avatar"
 
     def get_audit_log_data(self):
@@ -457,7 +469,7 @@ class OrganizationMember(Model):
         from sentry.models import OrganizationMemberTeam, Team
 
         return Team.objects.filter(
-            status=TeamStatus.VISIBLE,
+            status=TeamStatus.ACTIVE,
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=self, is_active=True
             ).values("team"),

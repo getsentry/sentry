@@ -131,6 +131,26 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug, query="test-slug")
         self.check_valid_response(response, [monitor])
 
+    def test_ignore_pending_deletion_environments(self):
+        monitor = self._create_monitor()
+        self._create_monitor_environment(
+            monitor,
+            status=MonitorStatus.OK,
+            last_checkin=datetime.now() - timedelta(minutes=1),
+        )
+        self._create_monitor_environment(
+            monitor,
+            status=MonitorStatus.PENDING_DELETION,
+            name="deleted_environment",
+            last_checkin=datetime.now() - timedelta(minutes=1),
+        )
+
+        response = self.get_success_response(self.organization.slug)
+        self.check_valid_response(response, [monitor])
+        # Confirm we only see the one 'ok' environment
+        assert len(response.data[0]["environments"]) == 1
+        assert response.data[0]["environments"][0]["status"] == "ok"
+
 
 @region_silo_test(stable=True)
 class CreateOrganizationMonitorTest(MonitorTestCase):

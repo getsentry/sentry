@@ -8,7 +8,7 @@ from ..base import DetectorType, PerformanceDetector, fingerprint_resource_span,
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
-FILE_EXTENSION_DENYLIST = ("woff", "woff2")
+FILE_EXTENSION_ALLOWLIST = ("css", "json", "js")
 
 
 class UncompressedAssetSpanDetector(PerformanceDetector):
@@ -68,7 +68,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         # Ignore assets with certain file extensions
-        if description.endswith(FILE_EXTENSION_DENYLIST):
+        if not description.endswith(FILE_EXTENSION_ALLOWLIST):
             return
 
         # Ignore assets under a certain duration threshold
