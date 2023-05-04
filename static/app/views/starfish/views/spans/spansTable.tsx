@@ -1,15 +1,13 @@
-import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
-import {HOST} from 'sentry/views/starfish/utils/constants';
-
-import {getSpanListQuery} from './queries';
 
 type Props = {
+  data: SpanDataRow[];
+  isLoading: boolean;
   location: Location;
 };
 
@@ -37,18 +35,11 @@ const COLUMN_ORDER = [
   },
 ];
 
-export default function SpansTable({location}: Props) {
-  const {isLoading: areSpansLoading, data: spansData} = useQuery<SpanDataRow[]>({
-    queryKey: ['spans'],
-    queryFn: () => fetch(`${HOST}/?query=${getSpanListQuery()}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
+export default function SpansTable({location, data, isLoading}: Props) {
   return (
     <GridEditable
-      isLoading={areSpansLoading}
-      data={spansData}
+      isLoading={isLoading}
+      data={data}
       columnOrder={COLUMN_ORDER}
       columnSortBy={[]}
       grid={{
