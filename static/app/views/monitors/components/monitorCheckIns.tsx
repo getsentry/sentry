@@ -93,7 +93,11 @@ function MonitorCheckIns({monitor, monitorEnv, orgId}: Props) {
             ) : (
               emptyCell
             )}
-            <DateTime date={checkIn.dateCreated} timeOnly />
+            {checkIn.status !== CheckInStatus.MISSED ? (
+              <DateTime date={checkIn.dateCreated} timeOnly />
+            ) : (
+              emptyCell
+            )}
             {defined(checkIn.duration) ? (
               <Duration seconds={checkIn.duration / 1000} />
             ) : (
