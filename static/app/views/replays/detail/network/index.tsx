@@ -182,7 +182,7 @@ function NetworkList({
             {tct('Start collecting the body of requests and responses. [link]', {
               link: (
                 <ExternalLink
-                  href="https://github.com/getsentry/sentry-javascript/issues/7103"
+                  href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details"
                   onClick={dismiss}
                 >
                   {t('Learn More')}
