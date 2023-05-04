@@ -358,14 +358,16 @@ def adjust_base_sample_rate_per_project(
     """
     projects_with_rebalanced_sample_rate = []
     for project_id, total_root_count in projects_with_total_root_count:
-        forecasted_volume = extrapolate_monthly_volume(daily_volume=total_root_count)
-        if forecasted_volume is None:
-            logger.info(
-                f"The volume of the current month can't be forecasted for org {org_id} and project {project_id}."
+        extrapolated_volume = extrapolate_monthly_volume(
+            volume=total_root_count, hours=int(options.get("dynamic-sampling:sliding_window.size"))
+        )
+        if extrapolated_volume is None:
+            logger.error(
+                f"The volume of the current month can't be extrapolated for org {org_id} and project {project_id}."
             )
             continue
 
-        sampling_tier = quotas.get_transaction_sampling_tier_for_volume(org_id, forecasted_volume)
+        sampling_tier = quotas.get_transaction_sampling_tier_for_volume(org_id, extrapolated_volume)
         # In case the sampling tier cannot be determined, we want to log it and try to get it for the next project.
         #
         # There might be a situation in which the old key is set into Redis still and in that case, we prefer to keep it

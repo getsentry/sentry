@@ -17,6 +17,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import options
 from sentry.dynamic_sampling.rules.utils import OrganizationId, ProjectId
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 MAX_SECONDS = 60
 CHUNK_SIZE = 9998  # Snuba's limit is 10000, and we fetch CHUNK_SIZE+1
 QUERY_TIME_INTERVAL = timedelta(
-    hours=24
+    hours=int(options.get("dynamic-sampling:sliding_window.size"))
 )  # By default, we want to get the volume of the last 24 hours.
 
 

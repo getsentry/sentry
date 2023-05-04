@@ -24,15 +24,23 @@ def get_sliding_window_sample_rate(project: "Project", default_sample_rate: floa
         return default_sample_rate
 
 
-def extrapolate_monthly_volume(daily_volume: int) -> Optional[int]:
+def extrapolate_monthly_volume(volume: int, hours: int) -> Optional[int]:
+    # We allow at least 1 hour for the extrapolation.
+    if hours < 1:
+        return None
+
     # Get current year and month
     year = datetime.now(tz=pytz.UTC).year
     month = datetime.now(tz=pytz.UTC).month
 
     try:
-        # Get number of days in the month
+        # Get number of days in the month.
         _, days_in_month = monthrange(year=year, month=month)
-        # Calculate and return forecasted monthly volume
-        return daily_volume * days_in_month
+        # We compute the number of hours in a month.
+        hours_in_month = days_in_month * 24
+        # We compute how many groups of hours can fit in a month.
+        groups_of_hours = hours_in_month / hours
+        # Given n groups we just multiply the volume per group of hours.
+        return volume * groups_of_hours
     except IllegalMonthError:
         return None

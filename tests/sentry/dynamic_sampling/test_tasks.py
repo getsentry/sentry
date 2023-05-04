@@ -392,7 +392,7 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
 
     @staticmethod
     def forecasted_volume_side_effect(*args, **kwargs):
-        return kwargs["daily_volume"] * 1000
+        return kwargs["volume"] * 1000
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
