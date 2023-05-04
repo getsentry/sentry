@@ -14,7 +14,6 @@ import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DebugFile} from 'sentry/types/debugFiles';
-import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
 
 type Props = {
   downloadRole: string;
@@ -33,9 +32,6 @@ function ProjectProguardRow({
 }: Props) {
   const {id, debugId, uuid, size, dateCreated} = mapping;
 
-  const associatedReleases = (mapping as any).associated_releases as string[];
-  const releases = associatedReleases ? associatedReleases : [];
-
   const handleDeleteClick = () => {
     onDelete(id);
   };
@@ -44,11 +40,6 @@ function ProjectProguardRow({
     <Fragment>
       <NameColumn>
         <Name>{debugId || uuid || `(${t('empty')})`}</Name>
-        <AssociatedReleaseRow>
-          {releases.map(release => (
-            <DebugIdBundlesTags key={release} release={release} />
-          ))}
-        </AssociatedReleaseRow>
         <TimeWrapper>
           <IconClock size="sm" />
           <TimeSince date={dateCreated} />
@@ -112,19 +103,6 @@ function ProjectProguardRow({
     </Fragment>
   );
 }
-
-const AssociatedReleaseRow = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  > * {
-    margin-right: 6px;
-  }
-  > *:last-child {
-    margin-right: 0;
-  }
-`;
 
 const NameColumn = styled('div')`
   display: flex;
