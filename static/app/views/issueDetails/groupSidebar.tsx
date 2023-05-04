@@ -1,9 +1,7 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import isObject from 'lodash/isObject';
 
-import {Client} from 'sentry/api';
 import type {OnAssignCallback} from 'sentry/components/assigneeSelectorDropdown';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import DateTime from 'sentry/components/dateTime';
@@ -40,12 +38,10 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
-import withApi from 'sentry/utils/withApi';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 
-type Props = WithRouterProps & {
-  api: Client;
+type Props = {
   environments: Environment[];
   group: Group;
   organization: Organization;
@@ -53,13 +49,19 @@ type Props = WithRouterProps & {
   event?: Event;
 };
 
-function GroupSidebar(props: Props) {
-  const {event, api, group, project, organization, location, environments} = props;
-
+export default function GroupSidebar({
+  event,
+  group,
+  project,
+  organization,
+  environments,
+}: Props) {
   const [allEnvironmentsGroupData, setAllEnvironmentsGroupData] = useState<
     Group | undefined
   >();
   const [currentRelease, setCurrentRelease] = useState<CurrentRelease | undefined>();
+  const api = useApi();
+  const location = useLocation();
 
   const trackAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
     const {alert_date, alert_rule_id, alert_type} = location.query;
@@ -272,5 +274,3 @@ const TooltipWrapper = styled('span')`
   vertical-align: middle;
   padding-left: ${space(0.5)};
 `;
-
-export default withApi(withSentryRouter(GroupSidebar));
