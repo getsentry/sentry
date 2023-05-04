@@ -20,20 +20,24 @@ logger = logging.getLogger("sentry.auth")
 
 
 @instrumented_task(name="sentry.tasks.send_sso_link_emails", queue="auth")
-def email_missing_links(org_id, actor_id, provider_key, **kwargs):
+def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs):
     try:
         org = Organization.objects.get(id=org_id)
-        actor = User.objects.get(id=actor_id)
         provider = manager.get(provider_key)
-    except (Organization.DoesNotExist, User.DoesNotExist, ProviderNotRegistered) as e:
+    except (Organization.DoesNotExist, ProviderNotRegistered) as e:
         logger.warning("Could not send SSO link emails: %s", e)
+        return
+
+    user = user_service.get_user(user_id=actor_id)
+    if not user:
+        logger.warning(f"Could not send SSO link emails. Unable to find user by id: {actor_id}")
         return
 
     member_list = OrganizationMember.objects.filter(
         organization=org, flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"])
     )
     for member in member_list:
-        member.send_sso_link_email(actor, provider)
+        member.send_sso_link_email(user.id, provider)
 
 
 @instrumented_task(name="sentry.tasks.email_unlink_notifications", queue="auth")
