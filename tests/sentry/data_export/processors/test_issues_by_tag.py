@@ -81,7 +81,11 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
 
     def test_serialize_row(self):
         processor = IssuesByTagProcessor(
-            project_id=self.project.id, group_id=self.group.id, key="user", environment_id=None
+            project_id=self.project.id,
+            group_id=self.group.id,
+            key="user",
+            environment_id=None,
+            tenant_ids={"referrer": "issues_tag_processor", "organization_id": 1234},
         )
         sample = processor.get_raw_data()[0]
         generic_row = IssuesByTagProcessor.serialize_row(sample, "generic")
