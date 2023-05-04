@@ -32,17 +32,33 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             user_id and email is None
         ), "Must set either user or email"
         with transaction.atomic():
-            org_member_mapping, _created = OrganizationMemberMapping.objects.update_or_create(
-                organizationmember_id=organizationmember_id,
-                organization_id=organization_id,
-                user_id=user_id,
-                email=email,
-                defaults={
-                    "role": role,
-                    "inviter_id": inviter_id,
-                    "invite_status": invite_status,
-                },
-            )
+            query = OrganizationMemberMapping.objects.filter(organization_id=organization_id)
+            if user_id is not None:
+                query = query.filter(user_id=user_id)
+            else:
+                query = query.filter(email=email)
+
+            if query.exists():
+                org_member_mapping = query.get()
+                org_member_mapping.update(
+                    organizationmember_id=organizationmember_id,
+                    organization_id=organization_id,
+                    user_id=user_id,
+                    email=email,
+                    role=role,
+                    inviter_id=inviter_id,
+                    invite_status=invite_status,
+                )
+            else:
+                org_member_mapping = OrganizationMemberMapping.objects.create(
+                    organizationmember_id=organizationmember_id,
+                    organization_id=organization_id,
+                    user_id=user_id,
+                    email=email,
+                    role=role,
+                    inviter_id=inviter_id,
+                    invite_status=invite_status,
+                )
         return self._serialize_rpc(org_member_mapping)
 
     def create_with_organization_member(
