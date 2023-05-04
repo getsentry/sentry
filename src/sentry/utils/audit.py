@@ -66,7 +66,9 @@ def create_audit_entry_from_user(
     if entry.event == audit_log.get_event_id("ORG_REMOVE"):
         _create_org_delete_log(entry)
 
-    elif entry.event == audit_log.get_event_id("PROJECT_REMOVE"):
+    elif entry.event == audit_log.get_event_id(
+        "PROJECT_REMOVE"
+    ) or entry.event == audit_log.get_event_id("PROJECT_REMOVE_WITH_ORIGIN"):
         _create_project_delete_log(entry)
 
     elif entry.event == audit_log.get_event_id("TEAM_REMOVE"):

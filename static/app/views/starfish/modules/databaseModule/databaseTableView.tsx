@@ -7,7 +7,8 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
-import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel';
+import {Sort} from 'sentry/views/starfish/modules/databaseModule';
+import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
 
 type Props = {
   isDataLoading: boolean;
@@ -15,13 +16,7 @@ type Props = {
   onSelect: (row: DataRow, rowIndex: number) => void;
   columns?: any;
   data?: DataRow[];
-  onSortChange?: ({
-    direction,
-    sortHeader,
-  }: {
-    direction: 'desc' | 'asc' | undefined;
-    sortHeader: TableColumnHeader;
-  }) => void;
+  onSortChange?: ({direction, sortHeader}: MainTableSort) => void;
   selectedRow?: DataRow;
 };
 
@@ -46,6 +41,7 @@ export type DataRow = {
 
 type Keys = 'description' | 'domain' | 'epm' | 'p75' | 'transactions' | 'total_time';
 export type TableColumnHeader = GridColumnHeader<Keys>;
+export type MainTableSort = Sort<TableColumnHeader>;
 
 const COLUMN_ORDER: TableColumnHeader[] = [
   {
@@ -76,7 +72,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   },
 ];
 
-function similarity(value: string, other: string): number {
+export function similarity(value: string, other: string): number {
   // If they're identical we don't care
   if (value === other || other === undefined || value === undefined) {
     return -1;
@@ -92,6 +88,7 @@ function similarity(value: string, other: string): number {
       short_words.splice(short_words.indexOf(word), 1);
     }
   }
+
   return count / total;
 }
 
@@ -142,10 +139,10 @@ export default function APIModuleView({
 
   function onSortClick(col: TableColumnHeader) {
     let direction: 'desc' | 'asc' | undefined = undefined;
-    if (sort.direction === 'desc') {
-      direction = 'asc';
-    } else if (!sort.direction) {
+    if (!sort.direction || col.key !== sort.sortHeader?.key) {
       direction = 'desc';
+    } else if (sort.direction === 'desc') {
+      direction = 'asc';
     }
     if (onSortChange) {
       setSort({direction, sortHeader: col});

@@ -93,7 +93,7 @@ class RemoveOrganizationTest(TestCase):
 
         org = Organization.objects.get(id=self.organization.id)
 
-        assert org.status == OrganizationStatus.VISIBLE
+        assert org.status == OrganizationStatus.ACTIVE
 
     def test_too_late_still_restores(self):
         Organization.objects.filter(id=self.organization.id).update(
@@ -106,7 +106,7 @@ class RemoveOrganizationTest(TestCase):
 
         org = Organization.objects.get(id=self.organization.id)
 
-        assert org.status == OrganizationStatus.VISIBLE
+        assert org.status == OrganizationStatus.ACTIVE
 
     def test_org_already_deleted(self):
         assert ScheduledDeletion.objects.count() == 0

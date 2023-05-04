@@ -413,6 +413,16 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             "status:[resolved, muted]", [self.group2, group_3], [self.group1]
         )
 
+    def test_substatus(self):
+        with Feature("organizations:issue-states"):
+            results = self.make_query(search_filter_query="is:ongoing")
+            assert set(results) == {self.group1}
+
+        with pytest.raises(
+            InvalidSearchQuery, match="The substatus filter is not supported for this organization"
+        ):
+            self.make_query(search_filter_query="is:ongoing")
+
     def test_category(self):
         results = self.make_query(search_filter_query="issue.category:error")
         assert set(results) == {self.group1, self.group2}

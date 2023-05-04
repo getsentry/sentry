@@ -1,13 +1,12 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isNil from 'lodash/isNil';
 import * as qs from 'query-string';
 
+import {Button} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -15,15 +14,12 @@ import EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
 import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
-import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
-import DatabaseTableView from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
-import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {getModuleBreakdown} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -51,57 +47,6 @@ type EndpointDetailProps = Partial<EndpointDetailBodyProps> & {
   onClose: () => void;
 };
 
-const HTTP_SPAN_COLUMN_ORDER = [
-  {
-    key: 'description',
-    name: 'URL',
-    width: 400,
-  },
-  {
-    key: 'p50(exclusive_time)',
-    name: 'p50',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'transaction_count',
-    name: 'Transactions',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'total_exclusive_time',
-    name: 'Total Time',
-    width: COL_WIDTH_UNDEFINED,
-  },
-];
-
-const DATABASE_SPAN_COLUMN_ORDER = [
-  {
-    key: 'description',
-    name: 'Query',
-    width: 400,
-  },
-  {
-    key: 'domain',
-    name: 'Table',
-    width: 100,
-  },
-  {
-    key: 'epm',
-    name: 'Tpm',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'p75',
-    name: 'p75',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'total_time',
-    name: 'Total Time',
-    width: COL_WIDTH_UNDEFINED,
-  },
-];
-
 export default function EndpointDetail({
   row,
   onClose,
@@ -126,51 +71,45 @@ export default function EndpointDetail({
   );
 }
 
-function EndpointDetailBody({
-  row,
-  eventView,
-  organization,
-  location,
-}: EndpointDetailBodyProps) {
+function EndpointDetailBody({row, eventView, organization}: EndpointDetailBodyProps) {
   const theme = useTheme();
-  const pageFilter = usePageFilters();
-  const {aggregateDetails} = row;
-  const query = new MutableSearch([
-    'has:http.method',
-    'transaction.op:http.server',
-    `transaction:${row.transaction}`,
-    `http.method:${row.httpOp}`,
-  ]);
-  const {startTime, endTime} = getDateFilters(pageFilter);
-  const DATE_FILTERS = `
-  greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
-  less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
-`;
-  const transactionFilter =
-    row.transaction.length > 0 ? `transaction='${row.transaction}'` : null;
+  const {aggregateDetails, transaction, httpOp} = row;
 
-  const {
-    isLoading: isTableDataLoading,
-    data: tableData,
-    isRefetching: isTableRefetching,
-  } = useQuery({
-    queryKey: ['endpoints', pageFilter.selection.datetime, row.transaction],
+  const {data: moduleBreakdown} = useQuery({
+    queryKey: [`moduleBreakdown${row.transaction}`],
     queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getMainTable(
-          startTime,
-          DATE_FILTERS,
-          endTime,
-          transactionFilter
-        )}&format=sql`
-      ).then(res => res.json()),
+      fetch(`${HOST}/?query=${getModuleBreakdown({transaction})}`).then(res =>
+        res.json()
+      ),
     retry: false,
     initialData: [],
   });
+
+  const query = new MutableSearch([
+    'has:http.method',
+    'transaction.op:http.server',
+    `transaction:${transaction}`,
+    `http.method:${httpOp}`,
+  ]);
+
   return (
     <div>
       <h2>{t('Endpoint Detail')}</h2>
       <p>{t('Details of endpoint. More breakdowns, etc. Maybe some trends?')}</p>
+      <OverviewButton
+        to={`/organizations/${
+          organization.slug
+        }/starfish/endpoint-overview/?${qs.stringify({
+          endpoint: transaction,
+          method: httpOp,
+          statsPeriod: eventView.statsPeriod,
+          project: eventView.project,
+          start: eventView.start,
+          end: eventView.end,
+        })}`}
+      >
+        {t('Go to Endpoint Overview')}
+      </OverviewButton>
       <SubHeader>{t('Endpoint URL')}</SubHeader>
       <pre>{row?.endpoint}</pre>
       <EventsRequest
@@ -251,37 +190,10 @@ function EndpointDetailBody({
           );
         }}
       </EventsRequest>
-      <SubHeader>{t('HTTP Spans')}</SubHeader>
-      <EndpointTable
-        location={location}
-        onSelect={r => {
-          browserHistory.push(
-            `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
-              transaction: row.transaction,
-            })}`
-          );
-        }}
-        columns={HTTP_SPAN_COLUMN_ORDER}
-        filterOptions={{
-          action: '',
-          domain: '',
-          transaction: row.transaction,
-          datetime: pageFilter.selection.datetime,
-        }}
-      />
-      <SubHeader>{t('Database Spans')}</SubHeader>
-      <DatabaseTableView
-        location={location}
-        onSelect={r => {
-          browserHistory.push(
-            `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
-              transaction: row.transaction,
-            })}`
-          );
-        }}
-        isDataLoading={isTableDataLoading || isTableRefetching}
-        data={tableData}
-        columns={DATABASE_SPAN_COLUMN_ORDER}
+      <FacetBreakdownBar
+        segments={moduleBreakdown}
+        title={t('Where is time spent in this endpoint?')}
+        transaction={row.transaction}
       />
     </div>
   );
@@ -309,4 +221,8 @@ const FlexRowContainer = styled('div')`
 const FlexRowItem = styled('div')`
   padding-right: ${space(4)};
   flex: 1;
+`;
+
+const OverviewButton = styled(Button)`
+  margin-bottom: ${space(2)};
 `;

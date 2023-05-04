@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -65,12 +67,14 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             if removed == 1:
                 audit_log_state = audit_log.get_event_id("PROJECT_DISABLE")
 
+        if isinstance(returned_state, Iterable):
+            returned_state = list(returned_state)
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=project.id,
             event=audit_log_state,
-            data={"state": list(returned_state)},
+            data={"state": returned_state},
         )
 
         return Response(status=201)
