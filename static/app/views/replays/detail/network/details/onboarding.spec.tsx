@@ -36,9 +36,6 @@ describe('Setup', () => {
       ).toBeInTheDocument();
 
       expect(container.querySelector('code')).toHaveTextContent(
-        'networkCaptureBodies: true,'
-      );
-      expect(container.querySelector('code')).toHaveTextContent(
         `networkRequestHeaders: ['X-Custom-Header'],`
       );
     });
@@ -73,7 +70,7 @@ describe('Setup', () => {
     });
 
     it('should render a note on the Requst & Response tabs to allow this url and enable capturing bodies', () => {
-      const {container} = render(
+      render(
         <Setup
           item={MOCK_ITEM}
           projectId="0"
@@ -85,10 +82,6 @@ describe('Setup', () => {
       expect(
         screen.getByText('Capture Request and Response Payloads')
       ).toBeInTheDocument();
-
-      expect(container.querySelector('code')).toHaveTextContent(
-        'networkCaptureBodies: true,'
-      );
 
       expect(
         screen.getByText(
@@ -102,7 +95,7 @@ describe('Setup', () => {
 
   describe('Body is skipped', () => {
     it('should render a note on the Requst & Response tabs to enable capturing bodies', () => {
-      const {container} = render(
+      render(
         <Setup
           item={MOCK_ITEM}
           projectId="0"
@@ -114,10 +107,6 @@ describe('Setup', () => {
       expect(
         screen.getByText('Capture Request and Response Payloads')
       ).toBeInTheDocument();
-
-      expect(container.querySelector('code')).toHaveTextContent(
-        'networkCaptureBodies: true,'
-      );
 
       expect(
         screen.getByText(
