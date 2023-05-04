@@ -29,6 +29,7 @@ from sentry.snuba import (
     metrics_enhanced_performance,
     metrics_performance,
     profiles,
+    spans_indexed,
 )
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
@@ -45,7 +46,10 @@ DATASET_OPTIONS = {
     "profiles": profiles,
     "issuePlatform": issue_platform,
     "profile_functions": functions,
+    "spansIndexed": spans_indexed,
 }
+
+DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
 
 
 def resolve_axis_column(column: str, index: int = 0) -> str:
@@ -293,6 +297,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         project_ids: Sequence[int],
         results: Dict[str, Any],
         standard_meta: Optional[bool] = False,
+        dataset: Optional[Any] = None,
     ) -> Dict[str, Any]:
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
@@ -308,6 +313,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "isMetricsData": isMetricsData,
                     "tips": meta.get("tips", {}),
                 }
+                if dataset is not None:
+                    meta["dataset"] = DATASET_LABELS.get(dataset, "unknown")
             else:
                 meta = fields_meta
 
@@ -386,6 +393,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         zerofill_results: bool = True,
         comparison_delta: Optional[timedelta] = None,
         additional_query_column: Optional[str] = None,
+        dataset: Optional[Any] = None,
     ) -> Dict[str, Any]:
         with self.handle_query_errors():
             with sentry_sdk.start_span(
@@ -507,7 +515,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     extra_columns=extra_columns,
                 )
                 serialized_result["meta"] = self.handle_results_with_meta(
-                    request, organization, params.get("project_id", []), result.data, True
+                    request,
+                    organization,
+                    params.get("project_id", []),
+                    result.data,
+                    True,
+                    dataset=dataset,
                 )["meta"]
 
             return serialized_result

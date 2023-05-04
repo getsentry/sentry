@@ -22,9 +22,8 @@ import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import DatabaseTableView from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
-import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {useQueryMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getModuleBreakdown} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
@@ -160,23 +159,12 @@ function EndpointDetailBody({
     `transaction:${row.transaction}`,
     `http.method:${row.httpOp}`,
   ]);
-  const {startTime, endTime} = getDateFilters(pageFilter);
-  const transactionFilter =
-    row.transaction.length > 0 ? `transaction='${row.transaction}'` : null;
 
   const {
     isLoading: isTableDataLoading,
     data: tableData,
     isRefetching: isTableRefetching,
-  } = useQuery({
-    queryKey: ['endpoints', pageFilter.selection.datetime, row.transaction],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getMainTable(startTime, endTime, transactionFilter)}&format=sql`
-      ).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
+  } = useQueryMainTable({transaction: row.transaction});
   return (
     <div>
       <h2>{t('Endpoint Detail')}</h2>
