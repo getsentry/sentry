@@ -161,6 +161,9 @@ class IndexerBatch:
             sentry_sdk.set_tag(
                 "sentry_metrics.organization_id", self.parsed_payloads_by_offset[offset]["org_id"]
             )
+            sentry_sdk.set_tag(
+                "sentry_metrics.metric_name", self.parsed_payloads_by_offset[offset]["name"]
+            )
             if _should_sample_debug_log():
                 logger.error(
                     "process_messages.dropped_message",
