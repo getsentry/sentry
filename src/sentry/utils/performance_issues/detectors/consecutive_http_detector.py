@@ -14,6 +14,7 @@ from ..base import (
     fingerprint_http_spans,
     get_duration_between_spans,
     get_span_duration,
+    get_span_evidence_value,
 )
 from ..performance_problem import PerformanceProblem
 from ..types import Span
@@ -104,6 +105,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
                 "cause_span_ids": [],
                 "offender_span_ids": offender_span_ids,
                 "op": "http",
+                "transaction_name": self._event.get("transaction", ""),
+                "repeating_spans": get_span_evidence_value(self.consecutive_http_spans[0]),
+                "num_repeating_spans": str(len(self.consecutive_spans)),
             },
         )
 

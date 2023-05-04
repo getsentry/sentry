@@ -14,7 +14,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.models import Organization, Project, ProjectDebugFile
 
-from ..base import DetectorType, PerformanceDetector, total_span_time
+from ..base import DetectorType, PerformanceDetector, get_span_evidence_value, total_span_time
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
@@ -50,6 +50,7 @@ class BaseIOMainThreadDetector(PerformanceDetector):
             _, _, _, _, settings = settings_for_span
             if total_duration >= settings["duration_threshold"]:
                 fingerprint = self._fingerprint(span_list)
+                offender_spans = [span for span in span_list if "span_id" in span]
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     fingerprint=fingerprint,
                     op=span_list[0].get("op"),
@@ -57,7 +58,7 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                     parent_span_ids=[parent_span_id],
                     type=self.group_type,
                     cause_span_ids=[],
-                    offender_span_ids=[span["span_id"] for span in span_list if "span_id" in span],
+                    offender_span_ids=[span["span_id"] for span in offender_spans],
                     evidence_data={
                         "op": span_list[0].get("op"),
                         "parent_span_ids": [parent_span_id],
@@ -65,6 +66,9 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                         "offender_span_ids": [
                             span["span_id"] for span in span_list if "span_id" in span
                         ],
+                        "transaction_name": self._event.get("transaction", ""),
+                        "repeating_spans": get_span_evidence_value(offender_spans[0]),
+                        "num_repeating_spans": str(len(offender_spans)),
                     },
                     evidence_display=[],
                 )
