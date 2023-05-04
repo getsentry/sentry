@@ -29,6 +29,11 @@ const COLUMN_ORDER = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
+    key: 'action',
+    name: 'Action',
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
     key: 'description',
     name: 'Description',
     width: COL_WIDTH_UNDEFINED,
