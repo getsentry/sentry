@@ -64,7 +64,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
 
     const startMs = span.startTimestamp * 1000;
     const endMs = span.endTimestamp * 1000;
-    const method = span.data.method || 'GET';
+    const method = span.data.method;
     const statusCode = span.data.statusCode;
     // `data.responseBodySize` is from SDK version 7.44-7.45
     const size = span.data.size ?? span.data.response?.size ?? span.data.responseBodySize;
@@ -116,7 +116,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     const renderFns = [
       () => (
         <Cell {...columnProps}>
-          <Text>{method ? method : EMPTY_CELL}</Text>
+          <Text>{method ? method : 'GET'}</Text>
         </Cell>
       ),
       () => (
