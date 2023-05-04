@@ -1,6 +1,8 @@
 from typing import Optional
 
-from sentry.search.events.builder import QueryBuilder
+from snuba_sdk import Column, Function
+
+from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 
 
 class SpansIndexedQueryBuilder(QueryBuilder):
@@ -13,3 +15,7 @@ class SpansIndexedQueryBuilder(QueryBuilder):
             return "duration"
 
         return None
+
+
+class TimeseriesSpanIndexedQueryBuilder(TimeseriesQueryBuilder):
+    time_column = Function("toStartOfHour", [Column("end_timestamp")], "time")
