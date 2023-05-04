@@ -28,6 +28,7 @@ from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
 from sentry.dynamic_sampling.rules.helpers.sliding_window import (
     extrapolate_monthly_volume,
     generate_sliding_window_cache_key,
+    get_sliding_window_size,
 )
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
@@ -359,7 +360,7 @@ def adjust_base_sample_rate_per_project(
     projects_with_rebalanced_sample_rate = []
     for project_id, total_root_count in projects_with_total_root_count:
         extrapolated_volume = extrapolate_monthly_volume(
-            volume=total_root_count, hours=int(options.get("dynamic-sampling:sliding_window.size"))
+            volume=total_root_count, hours=get_sliding_window_size()
         )
         if extrapolated_volume is None:
             logger.error(

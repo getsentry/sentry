@@ -17,7 +17,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import options
+from sentry.dynamic_sampling.rules.helpers.sliding_window import get_sliding_window_size
 from sentry.dynamic_sampling.rules.utils import OrganizationId, ProjectId
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -39,7 +39,7 @@ def fetch_projects_with_total_root_transactions_count(
     Fetches tuples of (org_id, project_id) and the respective root transaction counts.
     """
     if query_interval is None:
-        query_interval = timedelta(hours=int(options.get("dynamic-sampling:sliding_window.size")))
+        query_interval = timedelta(hours=get_sliding_window_size())
         granularity = Granularity(3600)
 
     count_per_root_metric_id = indexer.resolve_shared_org(

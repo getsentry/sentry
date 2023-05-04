@@ -4,10 +4,15 @@ from typing import TYPE_CHECKING, Optional
 
 import pytz
 
+from sentry import options
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 
 if TYPE_CHECKING:
     from sentry.models import Project
+
+# In case a misconfiguration happens on the server side which makes the option invalid, we want to define a fallback
+# sliding window size, which in this case will be 24 hours.
+FALLBACK_SLIDING_WINDOW_SIZE = 24
 
 
 def generate_sliding_window_cache_key(org_id: int) -> str:
@@ -22,6 +27,13 @@ def get_sliding_window_sample_rate(project: "Project", default_sample_rate: floa
         return float(redis_client.hget(cache_key, project.id))
     except (TypeError, ValueError):
         return default_sample_rate
+
+
+def get_sliding_window_size() -> int:
+    try:
+        return int(options.get("dynamic-sampling:sliding_window.size"))
+    except ValueError:
+        return FALLBACK_SLIDING_WINDOW_SIZE
 
 
 def extrapolate_monthly_volume(volume: int, hours: int) -> Optional[int]:
