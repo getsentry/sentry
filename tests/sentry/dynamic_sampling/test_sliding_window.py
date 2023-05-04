@@ -13,7 +13,7 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 
 
 @freeze_time(MOCK_DATETIME)
-class SlidingWindowRebalancingSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+class SlidingWindowSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     @property
     def now(self):
         return MOCK_DATETIME
@@ -49,7 +49,9 @@ class SlidingWindowRebalancingSnubaQueryTest(BaseMetricsLayerTestCase, TestCase,
             org_id=org_1.id,
         )
 
-        results = fetch_projects_with_total_root_transactions_count(org_ids=[org_1.id])
+        results = fetch_projects_with_total_root_transactions_count(
+            org_ids=[org_1.id], window_size=24
+        )
         assert results[org_1.id] == [(project_1.id, 150), (project_2.id, 200)]
 
     def test_query_with_multiple_orgs_and_multiple_projects(self):
@@ -87,7 +89,9 @@ class SlidingWindowRebalancingSnubaQueryTest(BaseMetricsLayerTestCase, TestCase,
             org_id=org_2.id,
         )
 
-        results = fetch_projects_with_total_root_transactions_count(org_ids=[org_1.id, org_2.id])
+        results = fetch_projects_with_total_root_transactions_count(
+            org_ids=[org_1.id, org_2.id], window_size=24
+        )
         assert results[org_1.id] == [(project_1.id, 100), (project_2.id, 200)]
         assert results[org_2.id] == [(project_3.id, 300)]
 
@@ -98,7 +102,9 @@ class SlidingWindowRebalancingSnubaQueryTest(BaseMetricsLayerTestCase, TestCase,
         org_2 = self.create_organization("test-org-2")
         self.create_project(organization=org_2)
 
-        results = fetch_projects_with_total_root_transactions_count(org_ids=[org_1.id, org_2.id])
+        results = fetch_projects_with_total_root_transactions_count(
+            org_ids=[org_1.id, org_2.id], window_size=24
+        )
         assert results[org_1.id] == []
         assert results[org_2.id] == []
 
@@ -134,6 +140,7 @@ class SlidingWindowRebalancingSnubaQueryTest(BaseMetricsLayerTestCase, TestCase,
         )
 
         for sliding_window, expected in [(1, 100), (2, 300), (3, 600)]:
-            with self.options({"dynamic-sampling:sliding_window.size": sliding_window}):
-                results = fetch_projects_with_total_root_transactions_count(org_ids=[org_1.id])
-                assert results[org_1.id] == [(project_1.id, expected)]
+            results = fetch_projects_with_total_root_transactions_count(
+                org_ids=[org_1.id], window_size=sliding_window
+            )
+            assert results[org_1.id] == [(project_1.id, expected)]
