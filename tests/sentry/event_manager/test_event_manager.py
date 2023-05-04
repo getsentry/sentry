@@ -1238,7 +1238,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         event = manager.save(project.id)
 
         def query(model, key, **kwargs):
-            return tsdb.get_sums(model, [key], event.datetime, event.datetime, **kwargs)[key]
+            return tsdb.get_sums(
+                model,
+                [key],
+                event.datetime,
+                event.datetime,
+                tenant_ids={"organization_id": 123, "referrer": "r"},
+                **kwargs,
+            )[key]
 
         assert query(tsdb.models.project, project.id) == 1
         assert query(tsdb.models.group, event.group.id) == 1
@@ -2021,9 +2028,13 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
         assert event.group is None
         assert (
-            tsdb.get_sums(tsdb.models.project, [self.project.id], event.datetime, event.datetime)[
-                self.project.id
-            ]
+            tsdb.get_sums(
+                tsdb.models.project,
+                [self.project.id],
+                event.datetime,
+                event.datetime,
+                tenant_ids={"organization_id": 123, "referrer": "r"},
+            )[self.project.id]
             == 0
         )
 
