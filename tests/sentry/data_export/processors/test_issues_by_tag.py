@@ -61,7 +61,11 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
     def test_get_eventuser_callback(self):
         user_callback = IssuesByTagProcessor.get_eventuser_callback(self.project.id)
         processor = IssuesByTagProcessor(
-            project_id=self.project.id, group_id=self.group.id, key="user", environment_id=None
+            project_id=self.project.id,
+            group_id=self.group.id,
+            key="user",
+            environment_id=None,
+            tenant_ids={"organization_id": 123, "referrer": "issues_by_tag"},
         )
         sample = processor.get_raw_data()[0]
         user_callback([sample])
