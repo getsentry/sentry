@@ -928,7 +928,7 @@ CELERYBEAT_SCHEDULE = {
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
-    "dynamic-sampling-sliding-window-rebalancing": {
+    "dynamic-sampling-sliding-window": {
         "task": "sentry.dynamic_sampling.tasks.sliding_window",
         # Run every 10 minutes
         "schedule": crontab(minute="*/10"),
