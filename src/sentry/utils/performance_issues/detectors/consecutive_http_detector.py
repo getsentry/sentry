@@ -110,7 +110,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
                 "repeating_spans_compact": get_span_evidence_value(
                     self.consecutive_http_spans[0], include_op=False
                 ),
-                "num_repeating_spans": str(len(self.consecutive_spans)),
+                "num_repeating_spans": str(len(self.consecutive_http_spans)),
             },
         )
 

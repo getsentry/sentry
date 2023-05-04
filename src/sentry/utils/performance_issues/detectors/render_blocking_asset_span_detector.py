@@ -87,7 +87,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                         "transaction_name": self.event().get("description", ""),
                         "slow_span_description": span.get("description", ""),
                         "slow_span_duration": self._get_duration(span),
-                        "transaction_duration": self._get_duration(self._event.data),
+                        "transaction_duration": self._get_duration(self._event),
                         "fcp": self.fcp_value,
                         "repeating_spans": get_span_evidence_value(span),
                         "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
