@@ -463,7 +463,7 @@ class Quota(Service):
         return (_limit_from_settings(options.get("system.rate-limit")), 60)
 
     def get_blended_sample_rate(
-        self, project: Optional["Project"], organization_id: Optional[int] = None
+        self, project: Optional["Project"] = None, organization_id: Optional[int] = None
     ) -> Optional[float]:
         """
         Returns the blended sample rate for an org based on the package that they are currently on. Returns ``None``
