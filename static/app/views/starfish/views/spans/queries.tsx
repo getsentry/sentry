@@ -3,10 +3,12 @@ import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/
 
 export const getSpanListQuery = ({
   datetime,
+  orderBy,
   limit,
 }: {
   datetime: DateTimeObject;
   limit?: number;
+  orderBy?: string;
 }) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
@@ -22,7 +24,7 @@ export const getSpanListQuery = ({
     WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     GROUP BY group_id, span_operation, description
-    ORDER BY count desc
+    ORDER BY ${orderBy ?? 'count'} desc
     ${limit ? `LIMIT ${limit}` : ''}`;
 };
 
