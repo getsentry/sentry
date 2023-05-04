@@ -39,6 +39,8 @@ class VroomTimeout(Exception):
     default_retry_delay=5,  # retries after 5s
     max_retries=5,
     acks_late=True,
+    task_time_limit=60,
+    task_acks_on_failure_or_timeout=False,
 )
 def process_profile_task(
     profile: Profile,
@@ -538,7 +540,7 @@ def _track_outcome(
         reason=reason,
         timestamp=datetime.utcnow().replace(tzinfo=UTC),
         event_id=event_id,
-        category=DataCategory.PROFILE,
+        category=DataCategory.PROFILE_INDEXED,
         quantity=1,
     )
 

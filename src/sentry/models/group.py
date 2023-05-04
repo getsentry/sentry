@@ -19,7 +19,7 @@ from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import eventstore, eventtypes, tagstore
+from sentry import eventstore, eventtypes, features, tagstore
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BaseManager,
@@ -159,12 +159,23 @@ STATUS_QUERY_CHOICES: Mapping[str, int] = {
     "resolved": GroupStatus.RESOLVED,
     "unresolved": GroupStatus.UNRESOLVED,
     "ignored": GroupStatus.IGNORED,
+    "archived": GroupStatus.IGNORED,
     # TODO(dcramer): remove in 9.0
     "muted": GroupStatus.IGNORED,
     "reprocessing": GroupStatus.REPROCESSING,
 }
 QUERY_STATUS_LOOKUP = {
     status: query for query, status in STATUS_QUERY_CHOICES.items() if query != "muted"
+}
+
+GROUP_SUBSTATUS_TO_STATUS_MAP = {
+    GroupSubStatus.ESCALATING: GroupStatus.UNRESOLVED,
+    GroupSubStatus.REGRESSED: GroupStatus.UNRESOLVED,
+    GroupSubStatus.ONGOING: GroupStatus.UNRESOLVED,
+    GroupSubStatus.NEW: GroupStatus.UNRESOLVED,
+    GroupSubStatus.UNTIL_ESCALATING: GroupStatus.IGNORED,
+    GroupSubStatus.FOREVER: GroupStatus.IGNORED,
+    GroupSubStatus.UNTIL_CONDITION_MET: GroupStatus.IGNORED,
 }
 
 # Statuses that can be updated from the regular "update group" API
@@ -197,7 +208,10 @@ def get_oldest_or_latest_event_for_environments(
     if len(environments) > 0:
         conditions.append(["environment", "IN", environments])
 
-    if group.issue_category == GroupCategory.PERFORMANCE:
+    if group.issue_category == GroupCategory.PERFORMANCE and not features.has(
+        "organizations:issue-platform-search-perf-issues", group.project.organization
+    ):
+        apply_performance_conditions(conditions, group)
         _filter = eventstore.Filter(
             conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]
         )
@@ -433,6 +447,8 @@ class Group(Model):
             (GroupSubStatus.UNTIL_ESCALATING, _("Until escalating")),
             (GroupSubStatus.ONGOING, _("Ongoing")),
             (GroupSubStatus.ESCALATING, _("Escalating")),
+            (GroupSubStatus.UNTIL_CONDITION_MET, _("Until condition met")),
+            (GroupSubStatus.FOREVER, _("Forever")),
         ),
     )
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)

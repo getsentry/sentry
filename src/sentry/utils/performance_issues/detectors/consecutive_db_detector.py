@@ -137,8 +137,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
                         "is_multi_value": True,
                     },
                 ],
-                # TODO check if it's _event or _event.data
-                "transaction_duration": self._get_duration(self._event.data),
+                "transaction_duration": self._get_duration(self._event),
                 "slow_span_duration": self._calculate_time_saved(self.independent_db_spans),
                 "repeating_spans": get_span_evidence_value(self.independent_db_spans[0]),
                 "repeating_spans_compact": get_span_evidence_value(
@@ -262,7 +261,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
         if request:
             url = request.get("url", "") or ""
-            method = request.get("method", "") or ""
+            # TODO(nar): `method` can be removed once SDK adoption has increased and
+            # we are receiving `http.method` consistently, likely beyond October 2023
+            method = request.get("http.method", "") or request.get("method", "") or ""
             if url.endswith("/graphql") and method.lower() in ["post", "get"]:
                 return False
 

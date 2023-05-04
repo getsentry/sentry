@@ -9,7 +9,7 @@ class Validator(Mediator):
     Validates general authorization params for all types of token exchanges.
     """
 
-    install = Param("sentry.models.SentryAppInstallation")
+    install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
     client_id = Param((str,))
     user = Param("sentry.models.User")
 
@@ -28,7 +28,7 @@ class Validator(Mediator):
             raise APIUnauthorized
 
     def _validate_installation(self):
-        if self.install.sentry_app != self.sentry_app:
+        if self.install.sentry_app.id != self.sentry_app.id:
             raise APIUnauthorized
 
     @memoize

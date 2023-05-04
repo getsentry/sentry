@@ -40,7 +40,6 @@ export function initializeOrg({
   ]);
 
   return {
-    org: organization,
     organization,
     project,
     projects,

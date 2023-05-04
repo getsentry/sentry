@@ -221,7 +221,7 @@ class OrganizationMember(Model):
         db_table = "sentry_organizationmember"
         unique_together = (("organization", "user"), ("organization", "email"))
 
-    __repr__ = sane_repr("organization_id", "user_id", "role")
+    __repr__ = sane_repr("organization_id", "user_id", "email", "role")
 
     def delete(self, *args, **kwds):
         with transaction.atomic(), in_test_psql_role_override("postgres"):
@@ -251,6 +251,15 @@ class OrganizationMember(Model):
     def regenerate_token(self):
         self.token = self.generate_token()
         self.refresh_expires_at()
+
+    def outbox_for_create(self) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=self.organization_id,
+            category=OutboxCategory.ORGANIZATION_MEMBER_CREATE,
+            object_identifier=self.id,
+            payload=dict(user_id=self.user_id),
+        )
 
     def outbox_for_update(self) -> RegionOutbox:
         return RegionOutbox(

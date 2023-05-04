@@ -1,12 +1,17 @@
 from datetime import datetime
 from unittest.mock import patch
 
+import pytest
+from django.conf import settings
+from django.test.utils import override_settings
 from django.utils import timezone
 
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
+    MonitorEnvironmentLimitsExceeded,
     MonitorFailure,
+    MonitorLimitsExceeded,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -19,59 +24,64 @@ from sentry.testutils.silo import region_silo_test
 class MonitorTestCase(TestCase):
     def test_next_run_crontab_implicit(self):
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
-        monitor = Monitor(last_checkin=ts, config={"schedule": "* * * * *"})
-        assert monitor.get_next_scheduled_checkin(ts) == datetime(
+        monitor = Monitor(config={"schedule": "* * * * *"})
+        monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
+
+        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
     def test_next_run_crontab_explicit(self):
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
         monitor = Monitor(
-            last_checkin=ts,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
-        assert monitor.get_next_scheduled_checkin(ts) == datetime(
+        monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
+
+        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
     def test_next_run_crontab_explicit_timezone(self):
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
         monitor = Monitor(
-            last_checkin=ts,
             config={
                 "schedule": "0 12 * * *",
                 "schedule_type": ScheduleType.CRONTAB,
                 "timezone": "UTC",
             },
         )
-        assert monitor.get_next_scheduled_checkin(ts) == datetime(
+        monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
+
+        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 12, 00, tzinfo=timezone.utc
         )
 
         # Europe/Berlin == UTC+01:00.
         # the run should be represented 1 hours earlier in UTC time
         monitor.config["timezone"] = "Europe/Berlin"
-        assert monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 11, 00, tzinfo=timezone.utc
         )
 
     def test_next_run_interval(self):
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
         monitor = Monitor(
-            last_checkin=ts,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
-        assert monitor.get_next_scheduled_checkin(ts) == datetime(
+        monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
+
+        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 2, 1, 1, 10, 20, tzinfo=timezone.utc
         )
 
@@ -109,6 +119,31 @@ class MonitorTestCase(TestCase):
 
         assert monitor.slug.startswith("my-awesome-monitor-")
 
+    @override_settings(MAX_MONITORS_PER_ORG=2)
+    def test_monitor_organization_limit(self):
+        for i in range(settings.MAX_MONITORS_PER_ORG):
+            Monitor.objects.create(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                type=MonitorType.CRON_JOB,
+                name=f"Unicron-{i}",
+                slug=f"unicron-{i}",
+                config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            )
+
+        with pytest.raises(
+            MonitorLimitsExceeded,
+            match=f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization",
+        ):
+            Monitor.objects.create(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                type=MonitorType.CRON_JOB,
+                name=f"Unicron-{settings.MAX_MONITORS_PER_ORG}",
+                slug=f"unicron-{settings.MAX_MONITORS_PER_ORG}",
+                config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            )
+
 
 @region_silo_test(stable=True)
 class MonitorEnvironmentTestCase(TestCase):
@@ -125,10 +160,7 @@ class MonitorEnvironmentTestCase(TestCase):
             monitor=monitor,
             environment=self.environment,
             status=monitor.status,
-            next_checkin=monitor.next_checkin,
-            last_checkin=monitor.last_checkin,
         )
-        assert monitor.mark_failed()
         assert monitor_environment.mark_failed()
 
         assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
@@ -172,10 +204,7 @@ class MonitorEnvironmentTestCase(TestCase):
             monitor=monitor,
             environment=self.environment,
             status=monitor.status,
-            next_checkin=monitor.next_checkin,
-            last_checkin=monitor.last_checkin,
         )
-        assert monitor.mark_failed(reason=MonitorFailure.DURATION)
         assert monitor_environment.mark_failed(reason=MonitorFailure.DURATION)
 
         assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
@@ -219,15 +248,11 @@ class MonitorEnvironmentTestCase(TestCase):
             monitor=monitor,
             environment=self.environment,
             status=monitor.status,
-            next_checkin=monitor.next_checkin,
-            last_checkin=monitor.last_checkin,
         )
-        assert monitor.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
         assert monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor.status == MonitorStatus.MISSED_CHECKIN
         assert monitor_environment.status == MonitorStatus.MISSED_CHECKIN
 
         assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
@@ -257,3 +282,25 @@ class MonitorEnvironmentTestCase(TestCase):
                 "type": "default",
             },
         ) == dict(event)
+
+    @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
+    def test_monitor_environment_limits(self):
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            name="Unicron",
+            slug="unicron",
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+
+        for i in range(settings.MAX_ENVIRONMENTS_PER_MONITOR):
+            MonitorEnvironment.objects.ensure_environment(self.project, monitor, f"space-{i}")
+
+        with pytest.raises(
+            MonitorEnvironmentLimitsExceeded,
+            match=f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor",
+        ):
+            MonitorEnvironment.objects.ensure_environment(
+                self.project, monitor, f"space-{settings.MAX_ENVIRONMENTS_PER_MONITOR}"
+            )

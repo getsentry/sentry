@@ -9,6 +9,7 @@ opposing silo and are stored in Tombstone rows.  Deletions that are not successf
 Tombstone row will not, therefore, cascade to any related cross silo rows.
 """
 import datetime
+from dataclasses import dataclass
 from hashlib import sha1
 from typing import Any, List, Tuple, Type
 from uuid import uuid4
@@ -24,6 +25,14 @@ from sentry.models import TombstoneBase
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics, redis
+
+
+@dataclass
+class WatermarkBatch:
+    low: int
+    up: int
+    has_more: bool
+    transaction_id: str
 
 
 def deletion_silo_modes() -> List[SiloMode]:
@@ -71,11 +80,19 @@ def set_watermark(
 
 def chunk_watermark_batch(
     prefix: str, field: HybridCloudForeignKey, manager: Manager, *, batch_size: int
-) -> Tuple[int, int, bool, str]:
+) -> WatermarkBatch:
     lower, transaction_id = get_watermark(prefix, field)
     upper = manager.aggregate(Max("id"))["id__max"] or 0
     batch_upper = min(upper, lower + batch_size)
-    return lower, upper, batch_upper + batch_size < upper, transaction_id
+
+    # cap to batch size so that query timeouts don't get us.
+    capped = upper
+    if upper >= batch_upper:
+        capped = batch_upper
+
+    return WatermarkBatch(
+        low=lower, up=capped, has_more=batch_upper < upper, transaction_id=transaction_id
+    )
 
 
 @instrumented_task(
@@ -157,7 +174,7 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
 
 # Convenience wrapper for mocking in tests
 def get_batch_size() -> int:
-    return 3000
+    return 500
 
 
 def _process_tombstone_reconciliation(
@@ -176,24 +193,28 @@ def _process_tombstone_reconciliation(
         watermark_manager: Manager = field.model.objects
         watermark_target = "r"
 
-    low, up, has_more, tid = chunk_watermark_batch(
+    watermark_batch = chunk_watermark_batch(
         prefix, field, watermark_manager, batch_size=get_batch_size()
     )
+    has_more = watermark_batch.has_more
     to_delete_ids: List[int] = []
-    if low < up:
+
+    if watermark_batch.low < watermark_batch.up:
         oldest_seen: datetime.datetime = timezone.now()
 
         with connections[router.db_for_read(model)].cursor() as conn:
             conn.execute(
                 f"""
-                SELECT r.id, t.created_at FROM {model._meta.db_table} r JOIN {tombstone_cls._meta.db_table} t
+                SELECT r.id, t.created_at
+                FROM {model._meta.db_table} r
+                JOIN {tombstone_cls._meta.db_table} t
                     ON t.table_name = %(table_name)s AND t.object_identifier = r.{field.name}
-                    WHERE {watermark_target}.id > %(low)s AND {watermark_target}.id <= %(up)s
+                WHERE {watermark_target}.id > %(low)s AND {watermark_target}.id <= %(up)s
             """,
                 {
                     "table_name": field.foreign_table_name,
-                    "low": low,
-                    "up": up,
+                    "low": watermark_batch.low,
+                    "up": watermark_batch.up,
                 },
             )
 
@@ -205,17 +226,17 @@ def _process_tombstone_reconciliation(
             task = deletions.get(
                 model=model,
                 query={"id__in": to_delete_ids},
-                transaction_id=tid,
+                transaction_id=watermark_batch.transaction_id,
             )
 
             if task.chunk():
                 has_more = True  # The current batch is not complete, rerun this task again
             else:
-                set_watermark(prefix, field, up, tid)
+                set_watermark(prefix, field, watermark_batch.up, watermark_batch.transaction_id)
 
         elif field.on_delete == "SET_NULL":
             model.objects.filter(id__in=to_delete_ids).update(**{field.name: None})
-            set_watermark(prefix, field, up, tid)
+            set_watermark(prefix, field, watermark_batch.up, watermark_batch.transaction_id)
 
         else:
             raise ValueError(

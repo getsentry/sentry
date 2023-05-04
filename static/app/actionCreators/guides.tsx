@@ -59,7 +59,7 @@ export function recordFinish(
   orgSlug: string | null,
   org: Organization | null
 ) {
-  api.request('/assistant/', {
+  api.requestPromise('/assistant/', {
     method: 'PUT',
     data: {
       guide,
@@ -88,7 +88,7 @@ export function recordFinish(
 }
 
 export function recordDismiss(guide: string, step: number, orgId: string | null) {
-  api.request('/assistant/', {
+  api.requestPromise('/assistant/', {
     method: 'PUT',
     data: {
       guide,

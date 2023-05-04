@@ -102,7 +102,11 @@ from sentry.models.notificationaction import (
 from sentry.models.releasefile import update_artifact_index
 from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
 from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.services.hybrid_cloud.organizationmember_mapping import (
+    organizationmember_mapping_service,
+)
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.silo import exempt_from_silo_limits
@@ -262,7 +266,11 @@ class Factories:
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
 
+        create_mapping = not kwargs.pop("no_mapping", False)
         org = Organization.objects.create(name=name, **kwargs)
+        if create_mapping:
+            Factories.create_org_mapping(org)
+
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
         return org
@@ -284,6 +292,7 @@ class Factories:
         teamRole = kwargs.pop("teamRole", None)
 
         om = OrganizationMember.objects.create(**kwargs)
+        organizationmember_mapping_service.create_with_organization_member(org_member=om)
 
         if team_roles:
             for team, role in team_roles:
@@ -919,10 +928,11 @@ class Factories:
 
         install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
         install.save()
-
+        rpc_install = app_service.serialize_sentry_app_installation(install, install.sentry_app)
         if not prevent_token_exchange and (install.sentry_app.status != SentryAppStatus.INTERNAL):
+
             token_exchange.GrantExchanger.run(
-                install=install,
+                install=rpc_install,
                 code=install.api_grant.code,
                 client_id=install.sentry_app.application.client_id,
                 user=install.sentry_app.proxy_user,
@@ -1301,8 +1311,8 @@ class Factories:
             type,
             target_type,
             target_identifier,
-            integration,
-            sentry_app,
+            integration.id if integration else None,
+            sentry_app.id if sentry_app else None,
             sentry_app_config=sentry_app_config,
         )
 

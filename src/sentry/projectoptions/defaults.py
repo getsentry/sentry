@@ -114,6 +114,7 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "n_plus_one_api_calls_detection_rate": 1.0,
     "consecutive_db_queries_detection_rate": 1.0,
     "uncompressed_assets_detection_enabled": True,
+    "consecutive_http_spans_detection_enabled": True,
 }
 # A dict containing all the specific detection thresholds and rates.
 register(

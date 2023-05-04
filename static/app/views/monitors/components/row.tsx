@@ -12,20 +12,14 @@ import Text from 'sentry/components/text';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
-import {t, tct, tn} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {crontabAsText} from 'sentry/views/monitors/utils';
+import {scheduleAsText} from 'sentry/views/monitors/utils';
 
-import {
-  Monitor,
-  MonitorConfig,
-  MonitorEnvironment,
-  MonitorStatus,
-  ScheduleType,
-} from '../types';
+import {Monitor, MonitorEnvironment, MonitorStatus} from '../types';
 
 import {MonitorBadge} from './monitorBadge';
 
@@ -34,39 +28,6 @@ interface MonitorRowProps {
   onDelete: () => void;
   organization: Organization;
   monitorEnv?: MonitorEnvironment;
-}
-
-function scheduleAsText(config: MonitorConfig) {
-  // Crontab format uses cronstrue
-  if (config.schedule_type === ScheduleType.CRONTAB) {
-    const parsedSchedule = crontabAsText(config.schedule);
-    return parsedSchedule ?? t('Unknown schedule');
-  }
-
-  // Interval format is simpler
-  const [value, timeUnit] = config.schedule;
-
-  if (timeUnit === 'minute') {
-    return tn('Every minute', 'Every %s minutes', value);
-  }
-
-  if (timeUnit === 'hour') {
-    return tn('Every hour', 'Every %s hours', value);
-  }
-
-  if (timeUnit === 'day') {
-    return tn('Every day', 'Every %s days', value);
-  }
-
-  if (timeUnit === 'week') {
-    return tn('Every week', 'Every %s weeks', value);
-  }
-
-  if (timeUnit === 'month') {
-    return tn('Every month', 'Every %s months', value);
-  }
-
-  return t('Unknown schedule');
 }
 
 function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowProps) {
@@ -142,10 +103,7 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
     <Fragment>
       <MonitorName>
         <MonitorBadge status={monitorStatus} />
-        <NameAndSlug>
-          <Link to={monitorDetailUrl}>{monitor.name}</Link>
-          <MonitorSlug>{monitor.slug}</MonitorSlug>
-        </NameAndSlug>
+        <Link to={monitorDetailUrl}>{monitor.name}</Link>
       </MonitorName>
       <MonitorColumn>
         <TextOverflow>
@@ -159,6 +117,8 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
             ? tct('Missed [lastCheckin]', {lastCheckin})
             : monitorStatus === MonitorStatus.ERROR
             ? tct('Failed [lastCheckin]', {lastCheckin})
+            : monitorStatus === MonitorStatus.TIMEOUT
+            ? t('Timed out')
             : null}
         </TextOverflow>
       </MonitorColumn>
@@ -203,17 +163,6 @@ const MonitorName = styled('div')`
   align-items: center;
   gap: ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
-`;
-
-const NameAndSlug = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.25)};
-`;
-
-const MonitorSlug = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
 `;
 
 const MonitorColumn = styled('div')`

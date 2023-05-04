@@ -19,6 +19,46 @@ body:
         Add a blender to Sentry.
     validations:
       required: false
+  - type: dropdown
+    id: product-area
+    attributes:
+      label: Product Area
+      description: What is the most relevant part of the product?
+      options:
+        # Keep in sync with bug.yml and labels.yml
+        - 'Unknown'
+        - 'Sign in'
+        - 'Issues'
+        - 'Projects'
+        - 'Performance'
+        - 'Profiling'
+        - 'Replays'
+        - 'Crons'
+        - 'Alerts'
+        - 'Discover'
+        - 'Dashboards'
+        - 'Releases'
+        - 'User Feedback'
+        - 'Stats'
+        - 'Settings'
+        - 'Settings - General'
+        - 'Settings - Projects'
+        - 'Settings - Teams'
+        - 'Settings - Members'
+        - 'Settings - Security & Privacy'
+        - 'Settings - Auth'
+        - 'Settings - Relay'
+        - 'Settings - Repositories'
+        - 'Settings - Integrations'
+        - 'Settings - Developer Settings'
+        - 'Settings - Spike Protection'
+        - 'Help'
+        - 'What’s new'
+        - 'Service status'
+        - 'Footer'
+        - 'Other'
+    validations:
+      required: true
   - type: markdown
     attributes:
       value: |-

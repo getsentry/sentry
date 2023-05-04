@@ -647,6 +647,7 @@ CELERY_IMPORTS = (
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.weekly_escalating_forecast",
+    "sentry.tasks.auto_ongoing_issues",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -713,7 +714,6 @@ CELERY_QUEUES = [
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
-    Queue("process_owner_assignments", routing_key="process_owner_assignments"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
@@ -746,6 +746,7 @@ CELERY_QUEUES = [
     ),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
+    Queue("auto_transition_issue_states", routing_key="auto_transition_issue_states"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -927,12 +928,34 @@ CELERYBEAT_SCHEDULE = {
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
+    "dynamic-sampling-sliding-window": {
+        "task": "sentry.dynamic_sampling.tasks.sliding_window",
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
+    },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
         "schedule": crontab(minute=0, hour="*/6"),
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
+    },
+    "dynamic-sampling-recalibrate-orgs": {
+        "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
+    },
+    "schedule_auto_transition_new": {
+        "task": "sentry.tasks.schedule_auto_transition_new",
+        # Run job once a day at 00:30
+        "schedule": crontab(minute=30, hour="0"),
+        "options": {"expires": 3600},
+    },
+    "schedule_auto_transition_regressed": {
+        "task": "sentry.tasks.schedule_auto_transition_regressed",
+        # Run job once a day at 02:30
+        "schedule": crontab(minute=30, hour="2"),
+        "options": {"expires": 3600},
     },
 }
 
@@ -1129,6 +1152,12 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-ui": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
+    # Enable the task to transition new issues that are 3+ days old to (Unresolved, Ongoing) state
+    "organizations:issue-states-auto-transition-new-ongoing": False,
+    # Enable the task to transition regressed issues that are 14+ days old to (Unresolved, Ongoing) state
+    "organizations:issue-states-auto-transition-regressed-ongoing": False,
+    # Enable the new issue states and substates
+    "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -1331,8 +1360,6 @@ SENTRY_FEATURES = {
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
-    # Enable temporary underfetching to improve Replay List query performance
-    "organizations:session-replay-slim-table": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
     # Enables subquery optimizations for the replay_index page
@@ -1378,8 +1405,6 @@ SENTRY_FEATURES = {
     "organizations:device-class-synthesis": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
-    # Enable product selection in the setup-docs page. The docs reflects the selected products.
-    "organizations:onboarding-docs-with-product-selection": False,
     # Enable a new behavior for deleting the freshly created project,
     # if the user clicks on the back button in the onboarding for new orgs
     "organizations:onboarding-project-deletion-on-back-click": False,
@@ -1401,6 +1426,8 @@ SENTRY_FEATURES = {
     "organizations:team-insights": True,
     # Enable u2f verification on superuser form
     "organizations:u2f-superuser-form": False,
+    # Enable project creation for all
+    "organizations:team-project-creation-all": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
     # Enable team member role provisioning through scim
@@ -1409,6 +1436,10 @@ SENTRY_FEATURES = {
     "organizations:org-roles-for-teams": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
+    # Enable sliding window for dynamic sampling
+    "organizations:ds-sliding-window": False,
+    # If true certain Slack messages will be escaped to prevent rendering markdown
+    "organizations:slack-escape-messages": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1436,6 +1467,8 @@ SENTRY_FEATURES = {
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
     "projects:auto-associate-commits-to-release": False,
+    # Starfish: extract metrics from the spans
+    "projects:span-metrics-extraction": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -3221,8 +3254,9 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "options": {"cluster": "default"},
 }
 
-# Killswitch to ignore checkins for explicit monitors
-SENTRY_MONITORS_IGNORED_MONITORS = []
+# Monitor limits to prevent abuse
+MAX_MONITORS_PER_ORG = 10000
+MAX_ENVIRONMENTS_PER_MONITOR = 1000
 
 # Raise schema validation errors and make the indexer crash (only useful in
 # tests)

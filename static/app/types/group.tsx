@@ -170,6 +170,16 @@ export type TagWithTopValues = {
   canDelete?: boolean;
 };
 
+export const enum GroupSubstatus {
+  UNTIL_ESCALATING = 'until_escalating',
+  UNTIL_CONDITION_MET = 'until_condition_met',
+  FOREVER = 'forever',
+  ESCALATING = 'escalating',
+  ONGOING = 'ongoing',
+  REGRESSED = 'regressed',
+  NEW = 'new',
+}
+
 /**
  * Inbox, issue owners and Activity
  */
@@ -342,6 +352,8 @@ export interface GroupActivitySetIgnored extends GroupActivityBase {
     ignoreCount?: number;
     ignoreDuration?: number;
     ignoreUntil?: string;
+    /** Archived until escalating */
+    ignoreUntilEscalating?: boolean;
     ignoreUserCount?: number;
     ignoreUserWindow?: number;
     ignoreWindow?: number;
@@ -479,6 +491,7 @@ export type ResolutionStatusDetails = {
   // Sent in requests. ignoreUntil is used in responses.
   ignoreDuration?: number;
   ignoreUntil?: string;
+  ignoreUntilEscalating?: boolean;
   ignoreUserCount?: number;
   ignoreUserWindow?: number;
   ignoreWindow?: number;
@@ -491,13 +504,12 @@ export type ResolutionStatusDetails = {
   inNextRelease?: boolean;
   inRelease?: string;
   repository?: string;
-  untilEscalating?: boolean;
 };
 
 export type GroupStatusResolution = {
   status: ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
-  substatus?: 'until_escalating';
+  substatus?: GroupSubstatus;
 };
 
 export type GroupRelease = {
@@ -544,6 +556,7 @@ export interface BaseGroup extends GroupRelease {
   userReportCount: number;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
+  substatus?: GroupSubstatus;
 }
 
 export interface GroupReprocessing

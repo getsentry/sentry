@@ -7,7 +7,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconArchive, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GroupStatusResolution, ResolutionStatus} from 'sentry/types';
+import {GroupStatusResolution, GroupSubstatus, ResolutionStatus} from 'sentry/types';
 
 interface ArchiveActionProps {
   onUpdate: (params: GroupStatusResolution) => void;
@@ -25,7 +25,7 @@ interface ArchiveActionProps {
 const ARCHIVE_UNTIL_ESCALATING: GroupStatusResolution = {
   status: ResolutionStatus.IGNORED,
   statusDetails: {},
-  substatus: 'until_escalating',
+  substatus: GroupSubstatus.UNTIL_ESCALATING,
 };
 const ARCHIVE_FOREVER: GroupStatusResolution = {
   status: ResolutionStatus.IGNORED,
@@ -115,10 +115,8 @@ function ArchiveActions({
     <ButtonBar className={className} merged>
       <ArchiveButton
         size={size}
-        tooltipProps={{delay: 300, disabled: disabled || disableTooltip}}
-        title={t(
-          'Silences alerts for this issue and removes it from the issue stream by default.'
-        )}
+        tooltipProps={{delay: 1000, disabled: disabled || disableTooltip}}
+        title={t('Hides the issue until the sh*t hits the fan and events escalate.')}
         icon={hideIcon ? null : <IconArchive size={size} />}
         onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
         disabled={disabled}

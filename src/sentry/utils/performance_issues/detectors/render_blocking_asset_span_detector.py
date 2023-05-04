@@ -87,7 +87,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                         "transaction_name": self.event().get("description", ""),
                         "slow_span_description": span.get("description", ""),
                         "slow_span_duration": self._get_duration(span),
-                        "transaction_duration": self._get_duration(self._event.data),
+                        "transaction_duration": self._get_duration(self._event),
                         "fcp": self.fcp_value,
                         "repeating_spans": get_span_evidence_value(span),
                         "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
@@ -125,7 +125,13 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             return False
 
         minimum_size_bytes = self.settings.get("minimum_size_bytes")
-        encoded_body_size = data and data.get("Encoded Body Size", 0) or 0
+        # TODO(nar): `Encoded Body Size` can be removed once SDK adoption has increased and
+        # we are receiving `http.response_content_length` consistently, likely beyond October 2023
+        encoded_body_size = (
+            data
+            and (data.get("http.response_content_length", 0) or data.get("Encoded Body Size", 0))
+            or 0
+        )
         if encoded_body_size < minimum_size_bytes or encoded_body_size > self.MAX_SIZE_BYTES:
             return False
 
