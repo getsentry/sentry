@@ -65,6 +65,12 @@ Makefile                                                 @getsentry/owners-sentr
 mypy.ini                                                 @getsentry/python-typing
 /fixtures/stubs                                          @getsentry/python-typing
 
+# GitHub Routing Automations
+/.github/labels.yml                                      @getsentry/open-source
+/.github/workflows/react-to-product-owners-yml-changes.yml @getsentry/open-source
+/bin/react-to-product-owners-yml-changes.py              @getsentry/open-source
+/bin/react-to-product-owners-yml-changes.sh              @getsentry/open-source
+
 ## Build & Releases
 /.github/workflows/release.yml                           @getsentry/release-approvers
 /scripts/bump-version.sh                                 @getsentry/release-approvers
