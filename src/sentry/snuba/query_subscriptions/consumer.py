@@ -3,9 +3,8 @@ from typing import Callable, Dict
 
 import pytz
 import sentry_sdk
-from arroyo.codecs import ValidationError
 from dateutil.parser import parse as parse_date
-from sentry_kafka_schemas.codecs import Codec
+from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import (
     PayloadV3,
     SubscriptionResult,
