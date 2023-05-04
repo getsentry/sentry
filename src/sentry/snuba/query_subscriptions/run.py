@@ -7,7 +7,6 @@ import sentry_sdk
 from arroyo import Topic, configure_metrics
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
-from arroyo.codecs.json import JsonCodec
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
 from arroyo.processing.strategies import (
@@ -18,7 +17,7 @@ from arroyo.processing.strategies import (
     RunTaskWithMultiprocessing,
 )
 from arroyo.types import BrokerValue, Commit, Message, Partition
-from sentry_kafka_schemas import get_schema
+from sentry_kafka_schemas import get_codec
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscriptions.constants import dataset_to_logical_topic, topic_to_dataset
@@ -93,7 +92,7 @@ def process_message(
                 partition,
                 topic,
                 dataset.value,
-                JsonCodec(schema=get_schema(logical_topic)["schema"]),
+                get_codec(logical_topic),
             )
         except Exception:
             # This is a failsafe to make sure that no individual message will block this
