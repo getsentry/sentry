@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from sentry_sdk import Scope
 
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import set_mock_context_manager_return_value
+from sentry.testutils.helpers import patch_configure_scope_with_scope
 from sentry.utils.sdk import (
     capture_exception_with_scope_check,
     check_current_scope_transaction,
@@ -50,8 +50,7 @@ class CheckTagTest(TestCase):
         mock_scope = Scope()
         mock_scope._tags = {}
 
-        with patch("sentry.utils.sdk.configure_scope") as mock_configure_scope:
-            set_mock_context_manager_return_value(mock_configure_scope, as_value=mock_scope)
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
             check_tag("org.slug", "squirrel_chasers")
 
         assert "possible_mistag" not in mock_scope._tags
@@ -63,8 +62,7 @@ class CheckTagTest(TestCase):
         mock_scope = Scope()
         mock_scope._tags = {"org.slug": "squirrel_chasers"}
 
-        with patch("sentry.utils.sdk.configure_scope") as mock_configure_scope:
-            set_mock_context_manager_return_value(mock_configure_scope, as_value=mock_scope)
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
             check_tag("org.slug", "squirrel_chasers")
 
         assert "possible_mistag" not in mock_scope._tags
@@ -76,8 +74,7 @@ class CheckTagTest(TestCase):
         mock_scope = Scope()
         mock_scope._tags = {"org.slug": "good_dogs"}
 
-        with patch("sentry.utils.sdk.configure_scope") as mock_configure_scope:
-            set_mock_context_manager_return_value(mock_configure_scope, as_value=mock_scope)
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
             check_tag("org.slug", "squirrel_chasers")
 
         extra = {
@@ -98,9 +95,7 @@ class CheckScopeTransactionTest(TestCase):
         mock_scope = Scope()
         mock_scope._transaction = "/dogs/{name}/"
 
-        with patch("sentry.utils.sdk.configure_scope") as mock_configure_scope:
-            set_mock_context_manager_return_value(mock_configure_scope, as_value=mock_scope)
-
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
             mismatch = check_current_scope_transaction(Request(HttpRequest()))
             assert mismatch is None
 
@@ -109,9 +104,7 @@ class CheckScopeTransactionTest(TestCase):
         mock_scope = Scope()
         mock_scope._transaction = "/tricks/{trick_name}/"
 
-        with patch("sentry.utils.sdk.configure_scope") as mock_configure_scope:
-            set_mock_context_manager_return_value(mock_configure_scope, as_value=mock_scope)
-
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
             mismatch = check_current_scope_transaction(Request(HttpRequest()))
             assert mismatch == {
                 "scope_transaction": "/tricks/{trick_name}/",
@@ -124,9 +117,7 @@ class CheckScopeTransactionTest(TestCase):
         mock_scope._transaction = "/tricks/{trick_name}/"
         mock_scope._transaction_info["source"] = "custom"
 
-        with patch("sentry.utils.sdk.configure_scope") as mock_configure_scope:
-            set_mock_context_manager_return_value(mock_configure_scope, as_value=mock_scope)
-
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
             mismatch = check_current_scope_transaction(Request(HttpRequest()))
             # custom transaction names shouldn't be flagged even if they don't match
             assert mismatch is None

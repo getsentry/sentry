@@ -1,4 +1,16 @@
+from contextlib import contextmanager
 from typing import Any, Callable
+from unittest.mock import patch
+
+from sentry_sdk import Scope
+
+
+@contextmanager
+def patch_configure_scope_with_scope(mocked_function_name: str, scope: Scope):
+    with patch(mocked_function_name) as mock_configure_scope:
+        mock_configure_scope.return_value.__enter__.return_value = scope
+
+        yield mock_configure_scope
 
 
 # TODO: This is kind of gross, but no other way seemed to work
