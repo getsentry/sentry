@@ -248,7 +248,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
   renderLoading() {
     return (
       <SidebarSection.Wrap data-test-id="linked-issues">
-        <SidebarSection.Title>{t('Linked Issues')}</SidebarSection.Title>
+        <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
         <SidebarSection.Content>
           <Placeholder height="120px" />
         </SidebarSection.Content>
