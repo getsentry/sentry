@@ -88,7 +88,6 @@ function NetworkList({
     ''
   );
   const detailDataIndex = getDetailRow();
-  const detailRowIndex = Number(detailDataIndex) + 1;
 
   const maxContainerHeight =
     (containerRef.current?.clientHeight || window.innerHeight) - RESIZEABLE_HANDLE_HEIGHT;
@@ -220,7 +219,6 @@ function NetworkList({
               isSetup={isNetworkDetailsSetup}
               item={detailDataIndex ? (items[detailDataIndex] as NetworkSpan) : null}
               onClose={() => setDetailRow('')}
-              onScrollToRow={() => setScrollToRow(Number(detailRowIndex))}
               projectId={projectId}
               startTimestampMs={startTimestampMs}
             />
