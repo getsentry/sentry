@@ -18,6 +18,7 @@ def break_inviter_fk():
                 on_delete=models.deletion.CASCADE,
                 related_name="sentry_inviter_set",
                 to=settings.AUTH_USER_MODEL,
+                db_constraint=False,
             ),
         ),
     ]
