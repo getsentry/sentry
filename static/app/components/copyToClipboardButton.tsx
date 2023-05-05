@@ -18,7 +18,13 @@ type Props = {
   >
 >;
 
-export function CopyToClipboardButton({onCopy, onError, text, ...props}: Props) {
+export function CopyToClipboardButton({
+  iconSize,
+  onCopy,
+  onError,
+  text,
+  ...props
+}: Props) {
   const {onClick, label} = useCopyToClipboard({
     text,
     onCopy,
@@ -35,7 +41,7 @@ export function CopyToClipboardButton({onCopy, onError, text, ...props}: Props) 
       onClick={onClick}
       {...props}
     >
-      <IconCopy size="xs" />
+      <IconCopy size={iconSize} />
     </CopyButton>
   );
 }
