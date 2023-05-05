@@ -47,7 +47,7 @@ function parseOptions(options, label) {
   ];
 }
 
-export default function APIModuleView({action, table, onChange}: Props) {
+export default function DatabaseChartView({action, table, onChange}: Props) {
   const pageFilter = usePageFilters();
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
     pageFilter.selection.datetime
