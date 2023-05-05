@@ -511,5 +511,5 @@ def compute_sliding_window_org_sample_rate(
     # under the assumption that the sampling_tier tuple contains both non-null values.
     _, sample_rate = sampling_tier
 
-    # We assume the sample_rate is a float, since it is returned from billing.
+    # We assume that the sample_rate is a float, since it is returned from billing.
     return float(sample_rate)
