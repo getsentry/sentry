@@ -436,7 +436,11 @@ class SnubaEventStream(SnubaProtocolEventStream):
             # existing test cases
             codec = sentry_kafka_schemas.codecs.json.JsonCodec(None)
 
-        codec.decode(serialized_data.encode("utf-8"), validate=True)
+        try:
+            codec.decode(serialized_data.encode("utf-8"), validate=True)
+        except Exception:
+            print(serialized_data.encode("utf-8"))  # noqa
+            raise
 
         try:
             resp = snuba._snuba_pool.urlopen(
