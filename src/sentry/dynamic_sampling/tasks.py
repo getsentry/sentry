@@ -1,5 +1,4 @@
 import logging
-from collections import namedtuple
 from datetime import timedelta
 from typing import Dict, Optional, Sequence, Tuple
 
@@ -200,38 +199,31 @@ def adjust_sample_rates(
     and store it in DS redis cluster, then we invalidate project config
     so relay can reread it, and we'll inject it from redis cache.
     """
+    # We need the organization object for the feature flag.
     organization = Organization.objects.get_from_cache(id=org_id)
-    projects = []
-    Counter = namedtuple("Counter", ["count", "count_keep", "count_drop"])
-    project_ids_with_counts = {}
-    for project_id, count_per_root, count_keep, count_drop in projects_with_tx_count:
-        project_ids_with_counts[project_id] = Counter(count_per_root, count_keep, count_drop)
 
-    sample_rate = None
-    for project in Project.objects.get_many_from_cache(project_ids_with_counts.keys()):
-        if features.has("organizations:ds-sliding-window-org", organization, actor=None):
-            # We want to rebalance the project based on the sliding window sample rate which is org scoped. In case
-            # we are not able to use it, we can temporarily fall back to the blended sample rate.
-            sample_rate = get_sliding_window_org_sample_rate(
-                org_id, default_sample_rate=quotas.get_blended_sample_rate(project)
-            )
-        else:
-            sample_rate = quotas.get_blended_sample_rate(project)
-
-        if sample_rate is None:
-            continue
-
-        counts = project_ids_with_counts[project.id]
-        projects.append(
-            DSElement(
-                id=project.id,
-                count=counts.count,
-            )
+    # We get the sample rate either directly from billing or from the new sliding window org mechanism.
+    if features.has("organizations:ds-sliding-window-org", organization, actor=None):
+        # We want to rebalance the project based on the sliding window sample rate which is org scoped. In case
+        # we are not able to use it, we can temporarily fall back to the blended sample rate.
+        sample_rate = get_sliding_window_org_sample_rate(
+            org_id, default_sample_rate=quotas.get_blended_sample_rate(organization_id=org_id)
         )
+    else:
+        sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
 
     # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
     if sample_rate is None:
         return
+
+    projects = []
+    for project_id, count_per_root, count_keep, count_drop in projects_with_tx_count:
+        projects.append(
+            DSElement(
+                id=project_id,
+                count=count_per_root,
+            )
+        )
 
     model = AdjustedModel(projects=projects)
     ds_projects = model.adjust_sample_rates(sample_rate=sample_rate)
@@ -239,7 +231,6 @@ def adjust_sample_rates(
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:
         for ds_project in ds_projects:
-            # hash, key, value
             cache_key = _generate_cache_key(org_id=org_id)
             pipeline.hset(
                 cache_key,
@@ -247,9 +238,11 @@ def adjust_sample_rates(
                 ds_project.new_sample_rate,  # redis stores is as string
             )
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
+
             schedule_invalidate_project_config(
                 project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
             )
+
         pipeline.execute()
 
 
