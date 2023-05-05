@@ -329,5 +329,10 @@ class OrganizationService(RpcService):
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def reset_idp_flags(self, *, organization_id: int) -> None:
+        pass
+
 
 organization_service = cast(OrganizationService, OrganizationService.create_delegation())

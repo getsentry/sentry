@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Iterable, List, MutableMapping, Optional, Set, cast
 
-from django.db import transaction
+from django.db import models, transaction
 
 from sentry import roles
 from sentry.constants import ObjectStatus
@@ -394,3 +394,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if region_outbox:
             region_outbox.drain_shard(max_updates_to_drain=10)
         return self.serialize_member(org_member)
+
+    def reset_idp_flags(self, *, organization_id: int) -> None:
+        OrganizationMember.objects.filter(
+            organization_id=organization_id,
+            flags=models.F("flags").bitor(OrganizationMember.flags["idp:provisioned"]),
+        ).update(
+            flags=models.F("flags")
+            .bitand(~OrganizationMember.flags["idp:provisioned"])
+            .bitand(~OrganizationMember.flags["idp:role-restricted"])
+        )
