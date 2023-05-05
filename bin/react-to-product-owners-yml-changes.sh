@@ -12,5 +12,5 @@ git checkout -b "$branch"
 git add .
 git commit -n -m "$message"
 git push --set-upstream origin "$branch"
-gh pr create --title "meta(routing) $message" --body="File: https://github.com/getsentry/security-as-code/blob/$sha/rbac/lib/product-owners.yml\n\nDocs: https://www.notion.so/473791bae5bf43399d46093050b77bf0"
+gh pr create --title "meta(routing) $message" --body="[`product-owners.yml`](https://github.com/getsentry/security-as-code/blob/$sha/rbac/lib/product-owners.yml) ❧ [Docs](https://www.notion.so/473791bae5bf43399d46093050b77bf0)"
 gh pr merge --squash --auto
