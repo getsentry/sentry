@@ -31,7 +31,7 @@ export default function NetworkDetailsContent(props: Props) {
   const organization = useOrganization();
   useEffect(() => {
     trackAnalytics('replay.details-network-tab-changed', {
-      isSDKSetup: isSetup,
+      is_sdk_setup: isSetup,
       organization,
       output,
       resource_method: item.data.method,

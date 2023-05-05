@@ -105,7 +105,7 @@ function NetworkList({
 
       const item = items[dataIndex];
       trackAnalytics('replay.details-network-panel-opened', {
-        isSDKSetup: isNetworkDetailsSetup,
+        is_sdk_setup: isNetworkDetailsSetup,
         organization,
         resource_method: item.data.method,
         resource_status: item.data.statusCode,
@@ -232,7 +232,7 @@ function NetworkList({
               onClose={() => {
                 setDetailRow('');
                 trackAnalytics('replay.details-network-panel-closed', {
-                  isSDKSetup: isNetworkDetailsSetup,
+                  is_sdk_setup: isNetworkDetailsSetup,
                   organization,
                 });
               }}
