@@ -13,8 +13,6 @@ if TYPE_CHECKING:
 # In case a misconfiguration happens on the server side which makes the option invalid, we want to define a fallback
 # sliding window size, which in this case will be 24 hours.
 FALLBACK_SLIDING_WINDOW_SIZE = 24
-# We use the same TTL as the tasks for dynamic sampling.
-CACHE_KEY_TTL = 24 * 60 * 60 * 1000
 
 
 def generate_sliding_window_cache_key(org_id: int) -> str:
