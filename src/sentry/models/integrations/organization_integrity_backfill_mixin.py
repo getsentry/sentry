@@ -5,8 +5,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from sentry.services.hybrid_cloud.integration import integration_service
-
 
 class OrganizationIntegrityBackfillMixin:
     organization_integration_id: Any
@@ -14,6 +12,8 @@ class OrganizationIntegrityBackfillMixin:
     integration_id: Any
 
     def save(self, *args, **kwds) -> None:
+        from sentry.services.hybrid_cloud.integration import integration_service
+
         if self.organization_id is None or self.integration_id is None:
             # Find the original org integration instance, backfill in the identifiers.
             org_integrations = integration_service.get_organization_integrations(
