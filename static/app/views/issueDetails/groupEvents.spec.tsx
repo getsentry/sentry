@@ -112,7 +112,7 @@ describe('groupEvents', () => {
 
     requests.latestEvent = MockApiClient.addMockResponse({
       method: 'POST',
-      url: '/issues/group-id/events/latest/',
+      url: '/issues/1/events/latest/',
       body: {data: {}},
     });
   });
