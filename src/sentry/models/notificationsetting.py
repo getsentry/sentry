@@ -129,8 +129,12 @@ class NotificationSetting(Model):
     )
 
     def save(self, *args, **kwargs):
-        if self.user_id is None and self.team_id is None:
-            sentry_sdk.capture_exception(AssertionError("Notification setting missing user & team"))
+        try:
+            assert (
+                self.user_id is not None and self.team_id is not None
+            ), "Notification setting missing user & team"
+        except AssertionError as err:
+            sentry_sdk.capture_exception(err)
         super().save(*args, **kwargs)
 
 
