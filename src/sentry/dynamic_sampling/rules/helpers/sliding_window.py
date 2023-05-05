@@ -34,7 +34,7 @@ def generate_sliding_window_org_cache_key(org_id: int) -> str:
 
 
 def get_sliding_window_org_sample_rate(
-    org_id: int, default_sample_rate: Optional[float]
+    org_id: int, default_sample_rate: Optional[float] = None
 ) -> Optional[float]:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_sliding_window_org_cache_key(org_id)

@@ -204,11 +204,7 @@ def adjust_sample_rates(
 
     # We get the sample rate either directly from billing or from the new sliding window org mechanism.
     if features.has("organizations:ds-sliding-window-org", organization, actor=None):
-        # We want to rebalance the project based on the sliding window sample rate which is org scoped. In case
-        # we are not able to use it, we can temporarily fall back to the blended sample rate.
-        sample_rate = get_sliding_window_org_sample_rate(
-            org_id, default_sample_rate=quotas.get_blended_sample_rate(organization_id=org_id)
-        )
+        sample_rate = get_adjusted_base_rate_from_cache_or(org_id)
     else:
         sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
 
@@ -446,12 +442,54 @@ def adjust_base_sample_rate_per_org(org_id: int, total_root_count: int, window_s
     Adjusts the base sample rate per org by considering its volume and how it fits w.r.t. to the sampling tiers
     defined on the billing side.
     """
+    sample_rate = compute_sliding_window_org_sample_rate(org_id, total_root_count, window_size)
+    # If the sample rate is None, we don't want to store a value into Redis.
+    if sample_rate is None:
+        return
+
+    redis_client = get_redis_client_for_ds()
+    with redis_client.pipeline(transaction=False) as pipeline:
+        cache_key = generate_sliding_window_org_cache_key(org_id=org_id)
+        pipeline.set(cache_key, sample_rate)
+        pipeline.pexpire(cache_key, CACHE_KEY_TTL)
+        pipeline.execute()
+
+
+def get_adjusted_base_rate_from_cache_or(org_id: int) -> Optional[float]:
+    """
+    Gets the adjusted base sample rate from the sliding window directly from the Redis cache or tries to compute
+    it synchronously.
+    """
+    # We first try to get from cache the sliding window org sample rate.
+    sample_rate = get_sliding_window_org_sample_rate(org_id)
+    if sample_rate is not None:
+        return sample_rate
+
+    # In case we didn't find the value in cache, we want to compute it synchronously.
+    window_size = get_sliding_window_size()
+    # In case the size is None it means that we disabled the sliding window entirely.
+    if window_size is not None:
+        # We want to synchronously fetch the orgs and compute the sliding window org sample rate.
+        orgs_with_counts = fetch_orgs_with_total_root_transactions_count(
+            org_ids=[org_id], window_size=window_size
+        )
+        if (org_total_root_count := orgs_with_counts.get(org_id)) is not None:
+            return compute_sliding_window_org_sample_rate(org_id, org_total_root_count, window_size)
+
+
+def compute_sliding_window_org_sample_rate(
+    org_id: int, total_root_count: int, window_size: int
+) -> Optional[float]:
+    """
+    Computes the actual sample rate for the sliding window given the org, its total root count and the size of the
+    window that was used for computing the root count.
+    """
     extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
     if extrapolated_volume is None:
         sentry_sdk.capture_message(
             f"The volume of the current month with window size of {window_size} hours can't be extrapolated for org {org_id}."
         )
-        return
+        return None
 
     sampling_tier = quotas.get_transaction_sampling_tier_for_volume(org_id, extrapolated_volume)
     # In case the sampling tier cannot be determined, we want to log it and try to get it for the next project.
@@ -465,15 +503,10 @@ def adjust_base_sample_rate_per_org(org_id: int, total_root_count: int, window_s
             f"The sampling tier for org {org_id} can't be determined, either an error "
             f"occurred or the org doesn't have dynamic sampling."
         )
-        return
+        return None
 
     # We unpack the tuple containing the sampling tier information in the form (volume, sample_rate). This is done
     # under the assumption that the sampling_tier tuple contains both non-null values.
     _, sample_rate = sampling_tier
 
-    redis_client = get_redis_client_for_ds()
-    with redis_client.pipeline(transaction=False) as pipeline:
-        cache_key = generate_sliding_window_org_cache_key(org_id=org_id)
-        pipeline.set(cache_key, sample_rate)
-        pipeline.pexpire(cache_key, CACHE_KEY_TTL)
-        pipeline.execute()
+    return sample_rate
