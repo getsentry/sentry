@@ -476,6 +476,8 @@ def get_adjusted_base_rate_from_cache_or(org_id: int) -> Optional[float]:
         if (org_total_root_count := orgs_with_counts.get(org_id)) is not None:
             return compute_sliding_window_org_sample_rate(org_id, org_total_root_count, window_size)
 
+    return None
+
 
 def compute_sliding_window_org_sample_rate(
     org_id: int, total_root_count: int, window_size: int
