@@ -313,7 +313,7 @@ function SimplePagination(props: SimplePaginationProps) {
   );
 }
 
-const highlightSql = (description: string, queryDetail: DataRow) => {
+export const highlightSql = (description: string, queryDetail: DataRow) => {
   let acc = '';
   return description.split('').map((token, i) => {
     acc += token;
