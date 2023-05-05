@@ -17,7 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import NetworkDetails from 'sentry/views/replays/detail/network/networkDetails';
+import NetworkDetails from 'sentry/views/replays/detail/network/details';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
   COLUMN_COUNT,
@@ -35,7 +35,9 @@ const BODY_HEIGHT = 28;
 const RESIZEABLE_HANDLE_HEIGHT = 90;
 
 type Props = {
+  isNetworkDetailsSetup: boolean;
   networkSpans: undefined | NetworkSpan[];
+  projectId: undefined | string;
   startTimestampMs: number;
 };
 
@@ -45,7 +47,12 @@ const cellMeasurer = {
   fixedHeight: true,
 };
 
-function NetworkList({networkSpans, startTimestampMs}: Props) {
+function NetworkList({
+  isNetworkDetailsSetup,
+  networkSpans,
+  projectId,
+  startTimestampMs,
+}: Props) {
   const organization = useOrganization();
   const {currentTime, currentHoverTime} = useReplayContext();
 
@@ -68,7 +75,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
       cellMeasurer,
       gridRef,
       columnCount: COLUMN_COUNT,
-      dynamicColumnIndex: 1,
+      dynamicColumnIndex: 2,
       deps,
     });
 
@@ -175,7 +182,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             {tct('Start collecting the body of requests and responses. [link]', {
               link: (
                 <ExternalLink
-                  href="https://github.com/getsentry/sentry-javascript/issues/7103"
+                  href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details"
                   onClick={dismiss}
                 >
                   {t('Learn More')}
@@ -239,9 +246,11 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
           >
             <NetworkDetails
               {...resizableDrawerProps}
+              isSetup={isNetworkDetailsSetup}
               item={detailDataIndex ? (items[detailDataIndex] as NetworkSpan) : null}
               onClose={() => setDetailRow('')}
-              onScrollToRow={() => setScrollToRow(detailRowIndex)}
+              onScrollToRow={() => setScrollToRow(Number(detailRowIndex))}
+              projectId={projectId}
               startTimestampMs={startTimestampMs}
             />
           </Feature>
