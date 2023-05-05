@@ -552,7 +552,7 @@ def bind_organization_context(organization):
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with sentry_sdk.configure_scope() as scope, sentry_sdk.start_span(
+    with configure_scope() as scope, sentry_sdk.start_span(
         op="other", description="bind_organization_context"
     ):
         # This can be used to find errors that may have been mistagged
