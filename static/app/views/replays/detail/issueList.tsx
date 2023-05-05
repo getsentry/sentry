@@ -54,7 +54,7 @@ function IssueList({projectId, replayId}: Props) {
             query: `replayId:${replayId}`,
           },
           headers: {
-            'x-sentry-replay-request': 1,
+            'x-sentry-replay-request': '1',
           },
         }
       );

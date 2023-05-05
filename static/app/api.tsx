@@ -220,7 +220,7 @@ export type RequestOptions = RequestCallbacks & {
   /**
    * Headers add to the request.
    */
-  headers?: Record<string, any>;
+  headers?: Record<string, string>;
   /**
    * The HTTP method to use when making the API request
    */
