@@ -23,7 +23,29 @@ class ErrorEvent(BaseEvent):
     key = "error"
 
     def extract_metadata(self, data):
-        exception = get_path(data, "exception", "values", -1)
+
+        exceptions = get_path(data, "exception", "values")
+
+        # When there are multiple exceptions, we need to pick one to extract the metadata from.
+        # If the event data has been marked with a main_exception_id, then we should be able to
+        # find the exception with the matching metadata.exception_id and use that one.
+        # This can be the case for some exception groups.
+
+        # Otherwise, the default behavior is to use the last one in the list.
+
+        main_exception_id = get_path(data, "main_exception_id")
+        if main_exception_id is None:
+            exception = exceptions[-1]
+        else:
+            exception = next(
+                (
+                    exception
+                    for exception in exceptions
+                    if get_path(exception, "mechanism", "exception_id") == main_exception_id
+                ),
+                exceptions[-1],
+            )
+
         if not exception:
             return {}
 
