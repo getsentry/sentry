@@ -7,6 +7,7 @@ import GridEditable, {
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
@@ -124,6 +125,14 @@ function renderBodyCell(column: GridColumnHeader, row: SpanDataRow): React.React
         series={row[column.key]}
         width={column.width ? column.width - column.width / 5 : undefined}
       />
+    );
+  }
+
+  if (column.key === 'description') {
+    return (
+      <Link to={`/starfish/span/${encodeURIComponent(row.group_id)}`}>
+        {row.description}
+      </Link>
     );
   }
 
