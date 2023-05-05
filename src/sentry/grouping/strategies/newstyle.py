@@ -754,7 +754,7 @@ def filter_exceptions_for_exception_groups(
     for exception in reversed(exceptions):
         exception._children = []
         mechanism: Mechanism = exception.mechanism
-        if mechanism is not None:
+        if mechanism and mechanism.exception_id is not None:
             nodes[mechanism.exception_id] = exception
             if mechanism.parent_id is not None:
                 nodes[mechanism.parent_id]._children.append(exception)
