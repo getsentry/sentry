@@ -3,14 +3,22 @@ from __future__ import annotations
 import random
 import re
 from datetime import timedelta
-from typing import Optional, Sequence
+from typing import Any, List, Mapping, Optional, Sequence
+
+from django.utils.translation import ugettext_lazy as _
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.models import Organization, Project
 from sentry.utils.event_frames import get_sdk_name
 
-from ..base import DetectorType, PerformanceDetector, fingerprint_spans, get_span_duration
+from ..base import (
+    DetectorType,
+    PerformanceDetector,
+    fingerprint_spans,
+    get_span_duration,
+    get_span_evidence_value,
+)
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
@@ -119,11 +127,48 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
                 "cause_span_ids": cause_span_ids,
                 "parent_span_ids": None,
                 "offender_span_ids": offender_span_ids,
+                "transaction_name": self._event.get("transaction", ""),
+                "span_evidence_key_value": [
+                    {"key": str(_("Transaction")), "value": self._event.get("transaction", "")},
+                    {"key": str(_("Starting Span")), "value": self._get_starting_span()},
+                    {
+                        "key": str(_("Parallelizable Spans")),
+                        "value": self._get_parallelizable_spans(),
+                        "is_multi_value": True,
+                    },
+                ],
+                "transaction_duration": self._get_duration(self._event),
+                "slow_span_duration": self._calculate_time_saved(self.independent_db_spans),
+                "repeating_spans": get_span_evidence_value(self.independent_db_spans[0]),
+                "repeating_spans_compact": get_span_evidence_value(
+                    self.independent_db_spans[0], include_op=False
+                ),
             },
             evidence_display=[],
         )
 
         self._reset_variables()
+
+    def _get_duration(self, item: Mapping[str, Any] | None) -> float:
+        if not item:
+            return 0
+
+        start = float(item.get("start_timestamp", 0))
+        end = float(item.get("timestamp", 0))
+
+        return (end - start) * 1000
+
+    def _get_parallelizable_spans(self) -> List[str]:
+        if not self.independent_db_spans or len(self.independent_db_spans) < 1:
+            return [""]
+
+        return [span.get("description", "") for span in self.independent_db_spans]
+
+    def _get_starting_span(self) -> str:
+        if not self.consecutive_db_spans or len(self.consecutive_db_spans) < 1:
+            return ""
+
+        return self.consecutive_db_spans[0].get("description", "")
 
     def _sum_span_duration(self, spans: list[Span]) -> int:
         "Given a list of spans, find the sum of the span durations in milliseconds"
