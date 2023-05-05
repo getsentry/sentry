@@ -78,7 +78,6 @@ class AppService(RpcService):
     def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
         pass
 
-    @classmethod
     @rpc_method
     @abc.abstractmethod
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> Optional[RpcSentryApp]:
@@ -112,12 +111,11 @@ class AppService(RpcService):
     ) -> Mapping[str, Any]:
         pass
 
-    @classmethod
     @rpc_method
     @abc.abstractmethod
     def trigger_sentry_app_action_creators(
         self, *, fields: List[Mapping[str, Any]], install_uuid: Optional[str]
-    ) -> "AlertRuleActionResult":
+    ) -> AlertRuleActionResult:
         pass
 
 

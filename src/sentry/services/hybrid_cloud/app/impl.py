@@ -196,9 +196,7 @@ class DatabaseBackedAppService(AppService):
 
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> Optional[RpcSentryApp]:
         try:
-            return self.serialize_sentry_app(
-                SentryApp.objects.get(application_id=api_application_id)
-            )
+            return serialize_sentry_app(SentryApp.objects.get(application_id=api_application_id))
         except SentryApp.DoesNotExist:
             return None
 
