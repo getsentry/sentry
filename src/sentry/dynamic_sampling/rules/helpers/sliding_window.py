@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Optional
 
 import pytz
 
-from sentry import options
+from sentry import options, quotas
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 
 if TYPE_CHECKING:
@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 # In case a misconfiguration happens on the server side which makes the option invalid, we want to define a fallback
 # sliding window size, which in this case will be 24 hours.
 FALLBACK_SLIDING_WINDOW_SIZE = 24
+# We use the same TTL as the tasks for dynamic sampling.
+CACHE_KEY_TTL = 24 * 60 * 60 * 1000
 
 
 def generate_sliding_window_cache_key(org_id: int) -> str:
@@ -33,7 +35,9 @@ def generate_sliding_window_org_cache_key(org_id: int) -> str:
     return f"ds::o:{org_id}:sliding_window_org_sample_rate"
 
 
-def get_sliding_window_org_sample_rate(org_id: int, default_sample_rate: float) -> float:
+def get_sliding_window_org_sample_rate(
+    org_id: int, default_sample_rate: Optional[float]
+) -> Optional[float]:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_sliding_window_org_cache_key(org_id)
 
@@ -41,6 +45,16 @@ def get_sliding_window_org_sample_rate(org_id: int, default_sample_rate: float) 
         return float(redis_client.get(cache_key))
     except (TypeError, ValueError):
         return default_sample_rate
+
+
+def set_sliding_window_org_sample_rate(org_id: int, sample_rate: float) -> None:
+    if 0.0 > sample_rate > 1.0 or quotas.get_blended_sample_rate(organization_id=org_id) is None:
+        return
+
+    redis_client = get_redis_client_for_ds()
+    cache_key = generate_sliding_window_org_cache_key(org_id)
+    redis_client.set(cache_key, sample_rate)
+    redis_client.pexpire(cache_key, CACHE_KEY_TTL)
 
 
 def get_sliding_window_size() -> Optional[int]:

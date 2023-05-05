@@ -5,9 +5,11 @@ from datetime import timedelta
 from enum import IntEnum
 from typing import Collection, FrozenSet, Optional, Sequence
 
+import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.db.models import QuerySet
+from django.db.models.signals import post_save
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -708,3 +710,21 @@ def organization_absolute_url(
     if fragment:
         parts.append(fragment)
     return "".join(parts)
+
+
+def set_org_sample_rate(instance, created, **kwargs):
+    if not created:
+        return
+
+    try:
+        # We want newer orgs to have a 100% sample rate in the period that incurs between the creation of the org and
+        # the execution of the sliding window org background task. This is to help new users get and see transactions
+        # as soon as they start using Sentry.
+        from sentry.dynamic_sampling import set_sliding_window_org_sample_rate
+
+        set_sliding_window_org_sample_rate(instance.id, 1.0)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+
+
+post_save.connect(set_org_sample_rate, weak=False, dispatch_uid="set_org_sample_rate")

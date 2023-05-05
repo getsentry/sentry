@@ -8,6 +8,10 @@ from .rules.helpers.latest_releases import (
     LatestReleaseParams,
     ProjectBoostedReleases,
 )
+from .rules.helpers.sliding_window import (
+    get_sliding_window_org_sample_rate,
+    set_sliding_window_org_sample_rate,
+)
 from .rules.helpers.time_to_adoptions import LATEST_RELEASE_TTAS, Platform
 from .rules.logging import should_log_rules_change
 from .rules.utils import (
@@ -27,6 +31,8 @@ __all__ = [
     "get_user_biases",
     "get_enabled_user_biases",
     "get_redis_client_for_ds",
+    "set_sliding_window_org_sample_rate",
+    "get_sliding_window_org_sample_rate",
     "get_rule_hash",
     "should_log_rules_change",
     "RuleType",
