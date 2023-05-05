@@ -1,6 +1,6 @@
 # General ownership rules
 #
-# The folloowing rules are not specific to any particular area of the product
+# The following rules are not specific to any particular area of the product
 # and are more general
 
 
@@ -65,7 +65,7 @@ Makefile                                                 @getsentry/owners-sentr
 mypy.ini                                                 @getsentry/python-typing
 /fixtures/stubs                                          @getsentry/python-typing
 
-# GitHub Routing Automations
+# GitHub Routing Automations - notion.so/473791bae5bf43399d46093050b77bf0
 /.github/labels.yml                                      @getsentry/open-source
 /.github/workflows/react-to-product-owners-yml-changes.yml @getsentry/open-source
 /bin/react-to-product-owners-yml-changes.py              @getsentry/open-source
