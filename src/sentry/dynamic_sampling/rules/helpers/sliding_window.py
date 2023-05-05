@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Optional
 
 import pytz
 
-from sentry import options, quotas
+from sentry import options
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 
 if TYPE_CHECKING:
@@ -45,16 +45,6 @@ def get_sliding_window_org_sample_rate(
         return float(redis_client.get(cache_key))
     except (TypeError, ValueError):
         return default_sample_rate
-
-
-def set_sliding_window_org_sample_rate(org_id: int, sample_rate: float) -> None:
-    if 0.0 > sample_rate > 1.0 or quotas.get_blended_sample_rate(organization_id=org_id) is None:
-        return
-
-    redis_client = get_redis_client_for_ds()
-    cache_key = generate_sliding_window_org_cache_key(org_id)
-    redis_client.set(cache_key, sample_rate)
-    redis_client.pexpire(cache_key, CACHE_KEY_TTL)
 
 
 def get_sliding_window_size() -> Optional[int]:
