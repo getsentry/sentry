@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 
@@ -24,7 +24,26 @@ const COLUMNS: {
   label: ReactNode;
 }[] = [
   {field: 'method', label: t('Method')},
-  {field: 'status', label: t('Status')},
+  {
+    field: 'status',
+    label: (
+      <Fragment>
+        {t('Status')}
+        <Tooltip
+          title={tct(
+            'If the status is [zero], the resource might be a cross-origin request.[linebreak][linebreak] Configure your CDN to respond with the CORS header [header] to so supported browsers can report the real status code.',
+            {
+              zero: <code>0</code>,
+              header: <code>Access-Control-Allow-Origin</code>,
+              linebreak: <br />,
+            }
+          )}
+        >
+          <SizeInfoIcon size="xs" />
+        </Tooltip>
+      </Fragment>
+    ),
+  },
   {field: 'description', label: t('Path')},
   {
     field: 'op',

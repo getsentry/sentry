@@ -121,7 +121,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps}>
-          <Text>{statusCode ? statusCode : EMPTY_CELL}</Text>
+          <Text>{typeof statusCode === 'number' ? statusCode : EMPTY_CELL}</Text>
         </Cell>
       ),
       () => (
