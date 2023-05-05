@@ -55,7 +55,9 @@ function ObjectInspector({data, onCopy, showCopyButton, theme, ...props}: Props)
       <Wrapper>
         <StyledCopyButton
           borderless
+          iconSize="xs"
           onCopy={onCopy}
+          size="xs"
           text={JSON.stringify(data, null, '\t')}
         />
         {inspector}

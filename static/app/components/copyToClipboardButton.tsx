@@ -1,64 +1,45 @@
-import {ComponentProps, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Button, ButtonProps} from 'sentry/components/button';
-import Clipboard from 'sentry/components/clipboard';
 import {IconCopy} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type Props = {
   text: string;
-  iconSize?: ComponentProps<typeof IconCopy>['size'];
+  children?: React.ReactNode;
+  iconSize?: React.ComponentProps<typeof IconCopy>['size'];
+  onError?: undefined | ((error: Error) => void);
 } & Overwrite<
-  ButtonProps,
+  Omit<ButtonProps, 'children'>,
   Partial<
     Pick<ButtonProps, 'aria-label'> & {onCopy: undefined | ((copiedText: string) => void)}
   >
 >;
 
-export function CopyToClipboardButton({
-  iconSize = 'xs',
-  onCopy,
-  onMouseLeave,
-  text,
-  ...props
-}: Props) {
-  const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
-
-  const tooltipTitle =
-    tooltipState === 'copy'
-      ? t('Copy')
-      : tooltipState === 'copied'
-      ? t('Copied')
-      : t('Unable to copy');
+export function CopyToClipboardButton({onCopy, onError, text, ...props}: Props) {
+  const {onClick, label} = useCopyToClipboard({
+    text,
+    onCopy,
+    onError,
+  });
 
   return (
-    <Clipboard
-      hideUnsupported
-      onSuccess={() => {
-        setTooltipState('copied');
-        onCopy?.(text);
-      }}
-      onError={() => {
-        setTooltipState('error');
-      }}
-      value={text}
+    <CopyButton
+      aria-label={label}
+      size={props.size}
+      title={label}
+      tooltipProps={{delay: 0}}
+      translucentBorder
+      onClick={onClick}
+      {...props}
     >
-      <Button
-        aria-label={t('Copy')}
-        size={props.size || 'xs'}
-        title={tooltipTitle}
-        tooltipProps={{delay: 0, isHoverable: false, position: 'left'}}
-        translucentBorder
-        type="button"
-        {...props}
-        onMouseLeave={e => {
-          setTooltipState('copy');
-          onMouseLeave?.(e);
-        }}
-        icon={<IconCopy size={iconSize || props.size || 'xs'} color="subText" />}
-      />
-    </Clipboard>
+      <IconCopy size="xs" />
+    </CopyButton>
   );
 }
+
+const CopyButton = styled(Button)`
+  color: ${p => p.theme.subText};
+`;
