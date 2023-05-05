@@ -218,6 +218,10 @@ export type RequestOptions = RequestCallbacks & {
    */
   data?: any;
   /**
+   * Headers add to the request.
+   */
+  headers?: Record<string, string>;
+  /**
    * The HTTP method to use when making the API request
    */
   method?: APIRequestMethod;
@@ -430,6 +434,7 @@ export class Client {
     const headers = new Headers({
       Accept: 'application/json; charset=utf-8',
       'Content-Type': 'application/json',
+      ...options.headers,
     });
 
     // Do not set the X-CSRFToken header when making a request outside of the
