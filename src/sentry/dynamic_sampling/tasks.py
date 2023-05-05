@@ -477,11 +477,3 @@ def adjust_base_sample_rate_per_org(org_id: int, total_root_count: int, window_s
         pipeline.set(cache_key, sample_rate)
         pipeline.pexpire(cache_key, CACHE_KEY_TTL)
         pipeline.execute()
-
-    # We now run the invalidation of all project configs, so that we will compute the correct uniform rule with the
-    # new sample rate.
-    project_ids = [p.id for p in Project.objects.filter(organization_id=org_id)]
-    for project_id in project_ids:
-        schedule_invalidate_project_config(
-            project_id=project_id, trigger="dynamic_sampling_prioritise_project_bias"
-        )
