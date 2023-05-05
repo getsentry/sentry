@@ -155,6 +155,30 @@ class OrganizationRepositoriesListTest(APITestCase):
             # Shouldn't even make the request to get repos
             assert not f.called
 
+    def test_passing_integration_id(self):
+        integration = self.create_integration(
+            organization=self.org,
+            provider="github",
+            external_id="github:1",
+        )
+        repo = Repository.objects.create(
+            name="example", organization_id=self.org.id, integration_id=integration.id
+        )
+        integration2 = self.create_integration(
+            organization=self.org,
+            provider="github",
+            external_id="github:2",
+        )
+        repo = Repository.objects.create(
+            name="example2", organization_id=self.org.id, integration_id=integration2.id
+        )
+        response = self.client.get(f"{self.url}?integration_id={integration.id}", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(repo.id)
+        assert response.data[0]["externalSlug"] is None
+
 
 @region_silo_test(stable=True)
 class OrganizationRepositoriesCreateTest(APITestCase):
