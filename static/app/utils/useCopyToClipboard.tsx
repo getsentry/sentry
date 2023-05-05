@@ -4,12 +4,44 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {t} from 'sentry/locale';
 
 type Opts = {
+  /**
+   * The text that you want to copy.
+   *
+   * Use `JSON.stringify()` if you have an object to share.
+   *
+   * If/When `new ClipboardItem()` accepts a mime type of application/json then
+   * it could accept other types, but for now string is the most common case.
+   */
   text: string;
-  errorMessage?: string;
+
+  /**
+   * The toast message that will appear if an error happens when copying.
+   *
+   * Disable toast messages by setting the `hideMessages` prop.
+   */
+  errorMessage?: React.ReactNode;
+
+  /**
+   * Disable creating toast messages when copying has succeeded/errored.
+   */
   hideMessages?: boolean;
+
+  /**
+   * Callback after copying is complete.
+   */
   onCopy?: undefined | ((copiedText: string) => void);
+
+  /**
+   * Callback if an error happened while copying.
+   */
   onError?: undefined | ((error: Error) => void);
-  successMessage?: string;
+
+  /**
+   * The toast messaage that will appear after the copy operation is done.
+   *
+   * Disable toast messages by setting the `hideMessages` prop.
+   */
+  successMessage?: React.ReactNode;
 };
 
 export default function useCopyToClipboard({
@@ -23,6 +55,7 @@ export default function useCopyToClipboard({
   const timeoutRef = useRef<undefined | ReturnType<typeof setTimeout>>();
   const [state, setState] = useState<'ready' | 'copied' | 'error'>('ready');
 
+  ClipboardItem;
   const handleOnClick = useCallback(() => {
     navigator.clipboard
       .writeText(text)
