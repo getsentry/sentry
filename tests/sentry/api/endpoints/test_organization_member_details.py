@@ -426,7 +426,9 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
             flags=OrganizationMember.flags["idp:role-restricted"],
         )
 
-        self.get_error_response(self.organization.slug, member_om.id, role="admin", status_code=403)
+        self.get_error_response(
+            self.organization.slug, member_om.id, role="manager", status_code=403
+        )
 
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "member"

@@ -594,10 +594,6 @@ class OrganizationMember(Model):
         Must check if member member has member:admin first before checking
         """
         highest_role_priority = self.get_all_org_roles_sorted()[0].priority
-
-        if not features.has("organizations:team-roles", self.organization):
-            return [r for r in organization_roles.get_all() if r.priority <= highest_role_priority]
-
         return [r for r in organization_roles.get_all() if r.priority <= highest_role_priority]
 
     def is_only_owner(self) -> bool:

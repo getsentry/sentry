@@ -212,7 +212,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 return Response({"teams": "Invalid team"}, status=400)
 
         assigned_org_role = result.get("orgRole") or result.get("role")
-        if assigned_org_role != member.role:
+        is_update_org_role = assigned_org_role and assigned_org_role != member.role
+
+        if is_update_org_role:
             if getattr(member.flags, "idp:role-restricted"):
                 return Response(
                     {
