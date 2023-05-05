@@ -1,14 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {deleteMonitor} from 'sentry/actionCreators/monitors';
+import {deleteMonitor, deleteMonitorEnvironment} from 'sentry/actionCreators/monitors';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import Text from 'sentry/components/text';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
@@ -25,7 +22,7 @@ import {MonitorBadge} from './monitorBadge';
 
 interface MonitorRowProps {
   monitor: Monitor;
-  onDelete: () => void;
+  onDelete: (monitorEnv?: MonitorEnvironment) => void;
   organization: Organization;
   monitorEnv?: MonitorEnvironment;
 }
@@ -36,29 +33,15 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
     <TimeSince unitStyle="regular" date={monitorEnv.lastCheckIn} />
   ) : null;
 
-  const deletionModalMessage = (
-    <Fragment>
-      <Text>
-        {tct('Are you sure you want to permanently delete "[name]"?', {
-          name: monitor.name,
-        })}
-      </Text>
-      {monitor.environments.length > 1 && (
-        <AdditionalEnvironmentWarning>
-          <Text>
-            {t(
-              `This will delete check-in data for this monitor associated with these environments:`
-            )}
-          </Text>
-          <List symbol="bullet">
-            {monitor.environments.map(environment => (
-              <ListItem key={environment.name}>{environment.name}</ListItem>
-            ))}
-          </List>
-        </AdditionalEnvironmentWarning>
-      )}
-    </Fragment>
-  );
+  const deletionMessage = monitorEnv
+    ? tct(
+        'Are you sure you want to permanently delete the "[envName]" environment from "[monitorName]"?',
+        {monitorName: monitor.name, envName: monitorEnv.name}
+      )
+    : tct('Are you sure you want to permanently delete "[monitorName]"?', {
+        monitorName: monitor.name,
+      });
+
   const actions: MenuItemProps[] = [
     {
       key: 'edit',
@@ -79,11 +62,20 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
       onAction: () => {
         openConfirmModal({
           onConfirm: async () => {
-            await deleteMonitor(api, organization.slug, monitor.slug);
-            onDelete();
+            if (monitorEnv) {
+              await deleteMonitorEnvironment(
+                api,
+                organization.slug,
+                monitor.slug,
+                monitorEnv.name
+              );
+            } else {
+              await deleteMonitor(api, organization.slug, monitor.slug);
+            }
+            onDelete(monitorEnv);
           },
           header: t('Delete Monitor?'),
-          message: deletionModalMessage,
+          message: deletionMessage,
           confirmText: t('Delete Monitor'),
           priority: 'danger',
         });
@@ -174,8 +166,4 @@ const ActionsColumn = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-`;
-
-const AdditionalEnvironmentWarning = styled('div')`
-  margin: ${space(1)} 0;
 `;
