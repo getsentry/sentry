@@ -38,7 +38,7 @@ class IntegrationEndpoint(OrganizationEndpoint):
     ) -> Response:
         if hasattr(exc, "code") and exc.code == 503:
             sys.stderr.write(traceback.format_exc())
-            event_id = capture_exception()
+            event_id = capture_exception(exc)
             context = {"detail": str(exc), "errorId": event_id}
             response = Response(context, status=503)
             response.exception = True
