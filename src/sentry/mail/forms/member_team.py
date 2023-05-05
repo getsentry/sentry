@@ -67,7 +67,7 @@ class MemberTeamForm(forms.Form):
             filter={
                 "is_active": True,
                 "is_active_memberteam": True,
-                "organiztion_id": self.project.organization.id,
+                "organization_id": self.project.organization.id,
                 "project_ids": [self.project.id],
                 "user_ids": [int(targetIdentifier)],
             }
