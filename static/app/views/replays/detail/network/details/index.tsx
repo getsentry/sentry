@@ -19,7 +19,6 @@ type Props = {
   isSetup: boolean;
   item: null | NetworkSpan;
   onClose: () => void;
-  onScrollToRow: () => void;
   projectId: undefined | string;
   startTimestampMs: number;
 } & Omit<ReturnType<typeof useResizableDrawer>, 'size'>;
@@ -31,7 +30,6 @@ function NetworkDetails({
   onClose,
   onDoubleClick,
   onMouseDown,
-  onScrollToRow,
   projectId,
   startTimestampMs,
 }: Props) {
@@ -70,7 +68,6 @@ function NetworkDetails({
       <NetworkDetailsContent
         isSetup={isSetup}
         item={item}
-        onScrollToRow={onScrollToRow}
         projectId={projectId}
         startTimestampMs={startTimestampMs}
         visibleTab={visibleTab}
