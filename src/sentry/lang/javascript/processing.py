@@ -54,7 +54,7 @@ def _merge_frame(new_frame, symbolicated):
         frame_meta["sourcemap"] = data_sourcemap
     if symbolicated.get("module"):
         new_frame["module"] = symbolicated["module"]
-    if symbolicated.get("in_app"):
+    if symbolicated.get("in_app") is not None:
         new_frame["in_app"] = symbolicated["in_app"]
     # if symbolicated.get("status"):
     # NOTE: We don't need this currently, and it's not clear whether we'll use it at all.
