@@ -1,9 +1,7 @@
-import {Fragment, MouseEvent} from 'react';
+import {MouseEvent} from 'react';
 import queryString from 'query-string';
 
-import {Button} from 'sentry/components/button';
 import ObjectInspector from 'sentry/components/objectInspector';
-import {IconShow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
@@ -19,30 +17,18 @@ import type {NetworkSpan} from 'sentry/views/replays/types';
 
 export type SectionProps = {
   item: NetworkSpan;
-  onScrollToRow: () => void;
   projectId: string;
   startTimestampMs: number;
 };
 
-export function GeneralSection({item, onScrollToRow, startTimestampMs}: SectionProps) {
+export function GeneralSection({item, startTimestampMs}: SectionProps) {
   const {handleClick} = useCrumbHandlers(startTimestampMs);
 
   const startMs = item.startTimestamp * 1000;
   const endMs = item.endTimestamp * 1000;
 
   const data = {
-    [t('URL')]: (
-      <Fragment>
-        {item.description}
-        <Button
-          aria-label={t('Scroll into view')}
-          borderless
-          icon={<IconShow color="gray500" size="xs" />}
-          onClick={onScrollToRow}
-          size="xs"
-        />
-      </Fragment>
-    ),
+    [t('URL')]: item.description,
     [t('Type')]: item.op,
     [t('Method')]: item.data?.method ?? '',
     [t('Status Code')]: item.data?.statusCode ?? '',

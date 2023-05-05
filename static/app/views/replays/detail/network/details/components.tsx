@@ -129,5 +129,7 @@ const StyledKeyValueTable = styled(KeyValueTable)`
     font-size: ${p => p.theme.fontSizeSmall};
     display: flex;
     justify-content: flex-end;
+    white-space: normal;
+    text-align: right;
   }
 `;
