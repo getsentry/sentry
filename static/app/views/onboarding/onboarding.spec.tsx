@@ -7,8 +7,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
+import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {OnboardingProjectStatus, Project} from 'sentry/types';
 import Onboarding from 'sentry/views/onboarding/onboarding';
 
@@ -117,7 +117,19 @@ describe('Onboarding', function () {
       body: [],
     });
 
-    ProjectsStore.loadInitialData([nextJsProject]);
+    jest
+      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+      .mockImplementation(() => {
+        return {
+          ...nextJsProject,
+          firstError: false,
+          firstTransaction: false,
+          hasReplays: false,
+          hasSessions: false,
+          olderThanOneHour: false,
+          firstIssue: undefined,
+        };
+      });
 
     render(
       <OnboardingContextProvider
@@ -196,7 +208,19 @@ describe('Onboarding', function () {
       body: [],
     });
 
-    ProjectsStore.loadInitialData([reactProject]);
+    jest
+      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+      .mockImplementation(() => {
+        return {
+          ...reactProject,
+          firstError: false,
+          firstTransaction: false,
+          hasReplays: false,
+          hasSessions: false,
+          olderThanOneHour: false,
+          firstIssue: undefined,
+        };
+      });
 
     render(
       <OnboardingContextProvider
@@ -253,10 +277,6 @@ describe('Onboarding', function () {
       platform: 'javascript-react',
       id: '2',
       slug: 'javascript-react-slug',
-      firstTransactionEvent: false,
-      firstEvent: false,
-      hasReplays: false,
-      hasSessions: true,
     });
 
     const routeParams = {
@@ -289,7 +309,19 @@ describe('Onboarding', function () {
       body: [],
     });
 
-    ProjectsStore.loadInitialData([reactProject]);
+    jest
+      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+      .mockImplementation(() => {
+        return {
+          ...reactProject,
+          firstError: false,
+          firstTransaction: false,
+          hasReplays: false,
+          hasSessions: true,
+          olderThanOneHour: false,
+          firstIssue: undefined,
+        };
+      });
 
     render(
       <OnboardingContextProvider
