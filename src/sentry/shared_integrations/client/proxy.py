@@ -38,8 +38,9 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
         self,
         integration_id: int | None = None,
         org_integration_id: int | None = None,
+        **kwargs,
     ) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
 
         self.integration_id = integration_id
         self.org_integration_id = org_integration_id

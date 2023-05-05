@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Mapping, Optional, Union
 
 from requests import PreparedRequest, Response
@@ -13,6 +14,7 @@ from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import metrics
 
 SLACK_DATADOG_METRIC = "integrations.slack.http_response"
+logger = logging.getLogger(__name__)
 
 
 class SlackClient(IntegrationProxyClient):
@@ -36,6 +38,7 @@ class SlackClient(IntegrationProxyClient):
             ).first()
 
         if not integration:
+            logger.info("no_integration", extra={"path_url": prepared_request.path_url})
             return prepared_request
 
         token = (
