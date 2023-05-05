@@ -663,7 +663,7 @@ def process_js_stacktraces(
     profile: Profile,
     modules: List[Any],
     stacktraces: List[Any],
-    apply_source_context=False,
+    apply_source_context: bool = False,
 ) -> Any:
     project = symbolicator.project
     allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
