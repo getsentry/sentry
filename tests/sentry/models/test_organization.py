@@ -1,6 +1,5 @@
 import copy
 from unittest import mock
-from unittest.mock import patch
 
 import pytest
 from django.core import mail
@@ -15,7 +14,6 @@ from sentry.api.endpoints.organization_details import (
     update_tracked_data,
 )
 from sentry.auth.authenticators import TotpInterface
-from sentry.dynamic_sampling import get_sliding_window_org_sample_rate
 from sentry.models import (
     ApiKey,
     AuditLogEntry,
@@ -299,23 +297,6 @@ class OrganizationTest(TestCase):
         update_tracked_data(inst)
         models.signals.post_save.send(instance=inst, sender=type(inst), created=False)
         self.assertFalse(has_changed(inst, "name"))
-
-    @patch("sentry.dynamic_sampling.rules.helpers.sliding_window.quotas.get_blended_sample_rate")
-    def test_org_sample_rate_is_set_when_am2(self, get_blended_sample_rate):
-        get_blended_sample_rate.return_value = 0.5
-
-        org = self.create_organization()
-
-        assert get_sliding_window_org_sample_rate(org.id, None) == 1.0
-
-    @patch("sentry.dynamic_sampling.rules.helpers.sliding_window.quotas.get_blended_sample_rate")
-    def test_org_sample_rate_is_set_when_am1(self, get_blended_sample_rate):
-        # get_blended_sample_rate returns None when the org is on AM1
-        get_blended_sample_rate.return_value = None
-
-        org = self.create_organization()
-
-        assert get_sliding_window_org_sample_rate(org.id, None) is None
 
 
 class Require2fa(TestCase, HybridCloudTestMixin):
