@@ -92,7 +92,8 @@ class DatabaseBackedUserService(UserService):
                 return list(qs.filter(email__iexact=username))
         return []
 
-    def get_from_group(self, group: Group) -> List[RpcUser]:
+    def get_from_group_id(self, *, group_id: int) -> List[RpcUser]:
+        group = Group.objects.get(id=group_id)
         return [
             self._FQ.serialize_rpc(u)
             for u in self._FQ.base_query().filter(
