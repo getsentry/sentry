@@ -7,16 +7,16 @@ export type ReplayEventParameters = {
     default_layout: LayoutKey;
   };
   'replay.details-network-panel-closed': {
-    isSetup: boolean;
+    isSDKSetup: boolean;
   };
   'replay.details-network-panel-opened': {
-    isSetup: boolean;
+    isSDKSetup: boolean;
     resource_method: string;
     resource_status: string;
     resource_type: string;
   };
   'replay.details-network-tab-changed': {
-    isSetup: boolean;
+    isSDKSetup: boolean;
     output: Output;
     resource_method: string;
     resource_status: string;
