@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from copy import deepcopy
-
 from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import Throttled
@@ -176,12 +174,9 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
             # Update monitor configuration during checkin if config is changed
             if update_monitor and monitor_data["config"] != monitor.config:
-                validated_config = monitor_data["config"]
-                monitor_config = deepcopy(monitor.config)
-                # Only update keys that were specified in the payload
-                for key in request.data.get("monitor_config", {}).keys():
-                    monitor_config[key] = validated_config[key]
-                monitor.update(config=monitor_config)
+                monitor.update_config(
+                    request.data.get("monitor_config", {}), monitor_data["config"]
+                )
 
             try:
                 monitor_environment = MonitorEnvironment.objects.ensure_environment(

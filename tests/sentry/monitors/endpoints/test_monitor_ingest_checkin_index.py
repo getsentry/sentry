@@ -187,6 +187,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             monitor = Monitor.objects.get(guid=monitor.guid)
             assert monitor.config["schedule"] == "10 * * * *"
+            # The monitor config is merged, so checkin_margin is not overwritten
             assert monitor.config["checkin_margin"] == 5
 
             checkins = MonitorCheckIn.objects.filter(monitor=monitor)

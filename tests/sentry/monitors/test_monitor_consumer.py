@@ -218,6 +218,7 @@ class MonitorConsumerTest(TestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["schedule"] == "13 * * * *"
+        # The monitor config is merged, so checkin_margin is not overwritten
         assert monitor.config["checkin_margin"] == 5
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
