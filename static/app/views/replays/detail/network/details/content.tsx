@@ -24,13 +24,14 @@ import {
 type Props = Parameters<typeof getOutputType>[0] & SectionProps;
 
 export default function NetworkDetailsContent(props: Props) {
-  const {item, visibleTab} = props;
+  const {item, isSetup, visibleTab} = props;
 
   const output = getOutputType(props);
 
   const organization = useOrganization();
   useEffect(() => {
     trackAnalytics('replay.details-network-tab-changed', {
+      isSetup,
       organization,
       output,
       resource_method: item.data.method,
@@ -38,7 +39,7 @@ export default function NetworkDetailsContent(props: Props) {
       resource_type: item.op,
       tab: visibleTab,
     });
-  }, [item, organization, output, visibleTab]);
+  }, [isSetup, item, organization, output, visibleTab]);
 
   switch (visibleTab) {
     case 'request':

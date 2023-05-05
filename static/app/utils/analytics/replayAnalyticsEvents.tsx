@@ -6,13 +6,17 @@ export type ReplayEventParameters = {
     chosen_layout: LayoutKey;
     default_layout: LayoutKey;
   };
-  'replay.details-network-panel-closed': {};
+  'replay.details-network-panel-closed': {
+    isSetup: boolean;
+  };
   'replay.details-network-panel-opened': {
+    isSetup: boolean;
     resource_method: string;
     resource_status: string;
     resource_type: string;
   };
   'replay.details-network-tab-changed': {
+    isSetup: boolean;
     output: Output;
     resource_method: string;
     resource_status: string;

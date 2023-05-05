@@ -105,13 +105,14 @@ function NetworkList({
 
       const item = items[dataIndex];
       trackAnalytics('replay.details-network-panel-opened', {
+        isSetup: isNetworkDetailsSetup,
         organization,
         resource_method: item.data.method,
         resource_status: item.data.statusCode,
         resource_type: item.op,
       });
     },
-    [organization, items, setDetailRow]
+    [isNetworkDetailsSetup, items, organization, setDetailRow]
   );
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
@@ -231,6 +232,7 @@ function NetworkList({
               onClose={() => {
                 setDetailRow('');
                 trackAnalytics('replay.details-network-panel-closed', {
+                  isSetup: isNetworkDetailsSetup,
                   organization,
                 });
               }}
