@@ -1,9 +1,5 @@
-from typing import TYPE_CHECKING
-
+from sentry.models import NotificationSetting
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
-
-if TYPE_CHECKING:
-    from sentry.models import NotificationSetting
 
 
 def serialize_notification_setting(setting: NotificationSetting) -> RpcNotificationSetting:
