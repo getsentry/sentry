@@ -1,4 +1,4 @@
-import {MouseEvent} from 'react';
+import {MouseEvent, useEffect} from 'react';
 import queryString from 'query-string';
 
 import ObjectInspector from 'sentry/components/objectInspector';
@@ -12,6 +12,7 @@ import {
   SizeTooltip,
   Warning,
 } from 'sentry/views/replays/detail/network/details/components';
+import {useDismissReqRespBodiesAlert} from 'sentry/views/replays/detail/network/details/onboarding';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
@@ -87,7 +88,15 @@ export function QueryParamsSection({item}: SectionProps) {
 }
 
 export function RequestPayloadSection({item}: SectionProps) {
+  const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
+
   const hasRequest = 'request' in item.data;
+  useEffect(() => {
+    if (!isDismissed && hasRequest) {
+      dismiss();
+    }
+  }, [dismiss, hasRequest, isDismissed]);
+
   return (
     <SectionItem
       title={t('Request Payload')}
@@ -110,7 +119,14 @@ export function RequestPayloadSection({item}: SectionProps) {
 }
 
 export function ResponsePayloadSection({item}: SectionProps) {
+  const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
+
   const hasResponse = 'response' in item.data;
+  useEffect(() => {
+    if (!isDismissed && hasResponse) {
+      dismiss();
+    }
+  }, [dismiss, hasResponse, isDismissed]);
 
   return (
     <SectionItem
