@@ -211,6 +211,7 @@ export const useQueryTopTablesChart = (
   from default.spans_experimental_starfish
   where
     domain not in ('${tables.join(`', '`)}')
+    AND ${DEFAULT_WHERE}
   group by interval
   order by interval
   `;
