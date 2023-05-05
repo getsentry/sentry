@@ -125,8 +125,8 @@ class HybridCloudTestMixin:
         )
 
         assert org_member_mapping.role == org_member.role
-        if org_member.inviter:
-            assert org_member_mapping.inviter_id == org_member.inviter.id
+        if org_member.inviter_id:
+            assert org_member_mapping.inviter_id == org_member.inviter_id
         else:
             assert org_member_mapping.inviter_id is None
         assert org_member_mapping.invite_status == org_member.invite_status

@@ -111,9 +111,9 @@ class OrganizationInviteRequestCreateTest(
         member = OrganizationMember.objects.get(
             organization=self.organization, email=response.data["email"]
         )
-        assert member.user is None
+        assert member.user_id is None
         assert member.role == "member"
-        assert member.inviter == self.user
+        assert member.inviter_id == self.user.id
         assert member.invite_status == InviteStatus.REQUESTED_TO_BE_INVITED.value
 
         teams = OrganizationMemberTeam.objects.filter(organizationmember=member)
@@ -180,7 +180,7 @@ class OrganizationInviteRequestCreateTest(
 
         members = OrganizationMember.objects.filter(organization=self.organization)
         join_request = members.get(email=resp.data["email"])
-        assert join_request.user is None
+        assert join_request.user_id is None
         assert join_request.role == "member"
         assert not join_request.invite_approved
 
