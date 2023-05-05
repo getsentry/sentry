@@ -185,6 +185,7 @@ export default function SpanSummary({location, params}: Props) {
     const transaction = transactionDataById[datum.transaction_id.replaceAll('-', '')];
 
     return {
+      transaction: datum.transaction,
       transaction_id: datum.transaction_id,
       'project.name': transaction?.['project.name'],
       span_id: datum.span_id,
