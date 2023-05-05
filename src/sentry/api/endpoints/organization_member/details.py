@@ -189,7 +189,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     return Response({"detail": ERR_EXPIRED}, status=400)
                 member.send_invite_email()
             elif auth_provider and not getattr(member.flags, "sso:linked"):
-                member.send_sso_link_email(request.user, auth_provider)
+                member.send_sso_link_email(request.user.id, auth_provider)
             else:
                 # TODO(dcramer): proper error message
                 return Response({"detail": ERR_UNINVITABLE}, status=400)
