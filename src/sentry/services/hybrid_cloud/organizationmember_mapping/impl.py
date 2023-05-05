@@ -7,7 +7,6 @@ from typing import Optional, cast
 
 from django.db import transaction
 
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     OrganizationMemberMappingService,
@@ -60,19 +59,6 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                     invite_status=invite_status,
                 )
         return self._serialize_rpc(org_member_mapping)
-
-    def create_with_organization_member(
-        self, *, org_member: OrganizationMember
-    ) -> RpcOrganizationMemberMapping:
-        return self.create_mapping(
-            organizationmember_id=org_member.id,
-            organization_id=org_member.organization_id,
-            role=org_member.role,
-            user_id=org_member.user_id,
-            email=org_member.email,
-            inviter_id=org_member.inviter_id,
-            invite_status=org_member.invite_status,
-        )
 
     def update_with_organization_member(
         self,
