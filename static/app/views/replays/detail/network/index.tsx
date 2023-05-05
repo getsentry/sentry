@@ -99,19 +99,28 @@ function NetworkList({
 
   const onClickCell = useCallback(
     ({dataIndex, rowIndex}: {dataIndex: number; rowIndex: number}) => {
-      setDetailRow(String(dataIndex));
-      setScrollToRow(rowIndex);
+      if (getDetailRow() === String(dataIndex)) {
+        setDetailRow('');
 
-      const item = items[dataIndex];
-      trackAnalytics('replay.details-network-panel-opened', {
-        is_sdk_setup: isNetworkDetailsSetup,
-        organization,
-        resource_method: item.data.method,
-        resource_status: item.data.statusCode,
-        resource_type: item.op,
-      });
+        trackAnalytics('replay.details-network-panel-closed', {
+          is_sdk_setup: isNetworkDetailsSetup,
+          organization,
+        });
+      } else {
+        setDetailRow(String(dataIndex));
+        setScrollToRow(rowIndex);
+
+        const item = items[dataIndex];
+        trackAnalytics('replay.details-network-panel-opened', {
+          is_sdk_setup: isNetworkDetailsSetup,
+          organization,
+          resource_method: item.data.method,
+          resource_status: item.data.statusCode,
+          resource_type: item.op,
+        });
+      }
     },
-    [isNetworkDetailsSetup, items, organization, setDetailRow]
+    [getDetailRow, isNetworkDetailsSetup, items, organization, setDetailRow]
   );
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
