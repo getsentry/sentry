@@ -96,6 +96,11 @@ class TransactionMetricKey(Enum):
     FAILURE_COUNT = "transaction.failure_count"
     TEAM_KEY_TRANSACTION = "transactions.team_key_transaction"
 
+    # Span metrics.
+    # NOTE: These might be moved to their own namespace soon.
+    SPAN_USER = "span.user"
+    SPAN_DURATION = "span.duration"
+
 
 # TODO: these tag keys and values below probably don't belong here, and should
 # be moved to another more private file.
