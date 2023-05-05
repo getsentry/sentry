@@ -1,15 +1,87 @@
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {IconClose, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 import type {NetworkSpan} from 'sentry/views/replays/types';
+
+export const useDismissReqRespBodiesAlert = () => {
+  const organization = useOrganization();
+  return useDismissAlert({
+    key: `${organization.id}:replay-network-bodies-alert-dismissed`,
+  });
+};
+
+export function ReqRespBodiesAlert({
+  isNetworkDetailsSetup,
+}: {
+  isNetworkDetailsSetup: boolean;
+}) {
+  const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
+
+  if (isDismissed) {
+    return null;
+  }
+
+  const message = isNetworkDetailsSetup
+    ? tct(
+        'Click on a [fetch] or [xhr] request to see request and response payloads. [link]',
+        {
+          fetch: <code>fetch</code>,
+          xhr: <code>xhr</code>,
+          link: (
+            <ExternalLink
+              href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details"
+              onClick={dismiss}
+            >
+              {t('Learn More')}
+            </ExternalLink>
+          ),
+        }
+      )
+    : tct('Start collecting the body of requests and responses. [link]', {
+        link: (
+          <ExternalLink
+            href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details"
+            onClick={dismiss}
+          >
+            {t('Learn More')}
+          </ExternalLink>
+        ),
+      });
+  return (
+    <StyledAlert
+      icon={<IconInfo />}
+      opaque={false}
+      showIcon
+      type="info"
+      trailingItems={
+        <StyledButton priority="link" size="sm" onClick={dismiss}>
+          <IconClose color="gray500" size="sm" />
+        </StyledButton>
+      }
+    >
+      {message}
+    </StyledAlert>
+  );
+}
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: ${space(1)};
+`;
+
+const StyledButton = styled(Button)`
+  color: inherit;
+`;
 
 export function UnsupportedOp({type}: {type: 'headers' | 'bodies'}) {
   const title =
