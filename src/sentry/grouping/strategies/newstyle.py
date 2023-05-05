@@ -1,6 +1,6 @@
 import itertools
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Generator, List, Optional
 
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent, calculate_tree_label
@@ -766,7 +766,7 @@ def filter_exceptions_for_exception_groups(
     # Traverse the tree recursively from the root node to get all "top-level exceptions"
     # and sort for consistency.
     top_level_exceptions = sorted(
-        get_top_level_exceptions(nodes[0]), key=lambda exception: exception.type, reverse=True
+        get_top_level_exceptions(nodes[0]), key=lambda exception: str(exception.type), reverse=True
     )
 
     # Figure out the distinct exceptions, grouping by the hashes of their grouping components.
@@ -802,7 +802,7 @@ def filter_exceptions_for_exception_groups(
     return distinct_exceptions
 
 
-def get_top_level_exceptions(node: SingleException):
+def get_top_level_exceptions(node: SingleException) -> Generator[SingleException, None, None]:
     if node.mechanism.is_exception_group:
         yield from itertools.chain.from_iterable(
             get_top_level_exceptions(child) for child in node._children
@@ -811,7 +811,7 @@ def get_top_level_exceptions(node: SingleException):
         yield node
 
 
-def get_first_path(node: SingleException):
+def get_first_path(node: SingleException) -> Generator[SingleException, None, None]:
     yield node
     if len(node._children) > 0:
         yield from get_first_path(node._children[0])
