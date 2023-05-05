@@ -565,7 +565,7 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase):
         assert om.email == "jane@gmail.com"
         assert om.role == "member"
         assert list(om.teams.all()) == [self.team]
-        assert om.inviter == self.user
+        assert om.inviter_id == self.user.id
 
         mock_send_invite_email.assert_called_once_with()
 
@@ -578,7 +578,7 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase):
         assert om.email == "jane@gmail.com"
         assert om.role == "member"
         assert list(om.teams.all()) == []
-        assert om.inviter == self.user
+        assert om.inviter_id == self.user.id
 
     @patch.object(OrganizationMember, "send_invite_email")
     def test_no_email(self, mock_send_invite_email):
@@ -594,7 +594,7 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase):
         assert om.email == "jane@gmail.com"
         assert om.role == "member"
         assert list(om.teams.all()) == [self.team]
-        assert om.inviter == self.user
+        assert om.inviter_id == self.user.id
 
         assert not mock_send_invite_email.mock_calls
 

@@ -18,7 +18,7 @@ import {HOST} from 'sentry/views/starfish/utils/constants';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
-import {getEndpointListQuery, getEndpointsThroughputQuery} from './queries';
+import {getEndpointAggregatesQuery, getEndpointListQuery} from './queries';
 
 type Props = {
   filterOptions: {
@@ -52,6 +52,11 @@ const COLUMN_ORDER = [
   {
     key: 'throughput',
     name: 'throughput',
+    width: 200,
+  },
+  {
+    key: 'p50_trend',
+    name: 'p50 Trend',
     width: 200,
   },
   {
@@ -92,23 +97,23 @@ export default function EndpointTable({
     initialData: [],
   });
 
-  const {isLoading: isEndpointsThroughputLoading, data: endpointsThroughputData} =
+  const {isLoading: areEndpointAggregatesLoading, data: endpointsThroughputData} =
     useQuery({
-      queryKey: ['endpointsThroughput', filterOptions],
+      queryKey: ['endpointAggregates', filterOptions],
       queryFn: () =>
-        fetch(`${HOST}/?query=${getEndpointsThroughputQuery(filterOptions)}`).then(res =>
+        fetch(`${HOST}/?query=${getEndpointAggregatesQuery(filterOptions)}`).then(res =>
           res.json()
         ),
       retry: false,
       initialData: [],
     });
 
-  const throughputGroupedByURL = {};
-  endpointsThroughputData.forEach(({description, interval, count}) => {
-    if (description in throughputGroupedByURL) {
-      throughputGroupedByURL[description].push({name: interval, value: count});
+  const aggregatesGroupedByURL = {};
+  endpointsThroughputData.forEach(({description, interval, count, p50}) => {
+    if (description in aggregatesGroupedByURL) {
+      aggregatesGroupedByURL[description].push({name: interval, count, p50});
     } else {
-      throughputGroupedByURL[description] = [{name: interval, value: count}];
+      aggregatesGroupedByURL[description] = [{name: interval, count, p50}];
     }
   });
 
@@ -117,16 +122,31 @@ export default function EndpointTable({
 
     const throughputSeries: Series = {
       seriesName: 'throughput',
-      data: throughputGroupedByURL[url],
+      data: aggregatesGroupedByURL[url].map(({name, count}) => ({
+        name,
+        value: count,
+      })),
     };
 
-    const zeroFilled = zeroFillSeries(throughputSeries, moment.duration(12, 'hours'));
-    return {...data, throughput: zeroFilled};
+    const p50Series: Series = {
+      seriesName: 'p50 Trend',
+      data: aggregatesGroupedByURL[url].map(({name, p50}) => ({
+        name,
+        value: p50,
+      })),
+    };
+
+    const zeroFilledThroughput = zeroFillSeries(
+      throughputSeries,
+      moment.duration(12, 'hours')
+    );
+    const zeroFilledP50 = zeroFillSeries(p50Series, moment.duration(12, 'hours'));
+    return {...data, throughput: zeroFilledThroughput, p50_trend: zeroFilledP50};
   });
 
   return (
     <GridEditable
-      isLoading={areEndpointsLoading || isEndpointsThroughputLoading}
+      isLoading={areEndpointsLoading || areEndpointAggregatesLoading}
       data={combinedEndpointData}
       columnOrder={columns ?? COLUMN_ORDER}
       columnSortBy={[]}
@@ -141,7 +161,7 @@ export default function EndpointTable({
 }
 
 export function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-  if (column.key === 'throughput') {
+  if (column.key === 'throughput' || column.key === 'p50_trend') {
     return (
       <TextAlignLeft>
         <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
@@ -182,6 +202,16 @@ export function renderBodyCell(
     return (
       <Sparkline
         color={CHART_PALETTE[3][0]}
+        series={row[column.key]}
+        width={column.width ? column.width - column.width / 5 : undefined}
+      />
+    );
+  }
+
+  if (column.key === 'p50_trend') {
+    return (
+      <Sparkline
+        color={CHART_PALETTE[3][3]}
         series={row[column.key]}
         width={column.width ? column.width - column.width / 5 : undefined}
       />
