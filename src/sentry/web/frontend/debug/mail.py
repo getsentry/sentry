@@ -189,6 +189,9 @@ def make_error_event(request, project, platform):
 
 
 def make_performance_event(project, sample_name: str):
+    timestamp = datetime(2017, 9, 6, 0, 0)
+    start_timestamp = timestamp - timedelta(seconds=3)
+
     if options.get(
         "performance.issues.create_issues_through_platform", True
     ) and project.get_option("sentry:performance_issue_create_issue_through_platform", True):
@@ -205,7 +208,11 @@ def make_performance_event(project, sample_name: str):
         )
 
         generic_group = group_info.group
-        return generic_group.get_latest_event()
+        group_event = generic_group.get_latest_event()
+        # Prevent CI screenshot from constantly changing
+        group_event.data["timestamp"] = timestamp.timestamp()
+        group_event.data["start_timestamp"] = start_timestamp.timestamp()
+        return group_event
     else:
         with override_options(
             {
@@ -220,9 +227,6 @@ def make_performance_event(project, sample_name: str):
                 "organizations:performance-issues-render-blocking-assets-detector": True,
             }
         ):
-            timestamp = datetime(2017, 9, 6, 0, 0)
-            start_timestamp = timestamp - timedelta(seconds=3)
-
             perf_data = dict(
                 load_data(
                     sample_name,
