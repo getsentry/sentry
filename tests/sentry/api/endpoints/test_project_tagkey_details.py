@@ -104,7 +104,7 @@ class ProjectTagKeyDeleteTest(APITestCase):
                 project.id,
                 None,
                 "environment",
-                status=TagKeyStatus.VISIBLE,  # environment_id
+                status=TagKeyStatus.ACTIVE,  # environment_id
                 tenant_ids={"referrer": "test_tagstore", "organization_id": 123},
             ).status
             == TagKeyStatus.ACTIVE
