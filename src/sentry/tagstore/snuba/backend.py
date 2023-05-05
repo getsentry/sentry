@@ -399,11 +399,11 @@ class SnubaTagStorage(TagStorage):
         project_id,
         environment_id,
         key,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         tenant_ids=None,
         **kwargs,
     ):
-        assert status is TagKeyStatus.VISIBLE
+        assert status is TagKeyStatus.ACTIVE
         return self.__get_tag_key_and_top_values(
             project_id, None, environment_id, key, tenant_ids=tenant_ids, **kwargs
         )
@@ -412,12 +412,12 @@ class SnubaTagStorage(TagStorage):
         self,
         project_id,
         environment_id,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         include_values_seen=False,
         denylist=None,
         tenant_ids=None,
     ):
-        assert status is TagKeyStatus.VISIBLE
+        assert status is TagKeyStatus.ACTIVE
         return self.__get_tag_keys(
             project_id,
             None,
@@ -432,7 +432,7 @@ class SnubaTagStorage(TagStorage):
         environments,
         start,
         end,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         use_cache=False,
         include_transactions=False,
         tenant_ids=None,

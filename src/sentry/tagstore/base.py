@@ -23,7 +23,7 @@ INTERNAL_TAG_KEYS = frozenset(("release", "dist", "user", "filename", "function"
 
 # TODO(dcramer): pull in enum library
 class TagKeyStatus:
-    VISIBLE = 0
+    ACTIVE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
 
@@ -123,7 +123,7 @@ class TagStorage(Service):
 
     @raises([TagKeyNotFound])
     def get_tag_key(
-        self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE, tenant_ids=None
+        self, project_id, environment_id, key, status=TagKeyStatus.ACTIVE, tenant_ids=None
     ):
         """
         >>> get_tag_key(1, 2, "key1")
@@ -134,7 +134,7 @@ class TagStorage(Service):
         self,
         project_id,
         environment_id,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         include_values_seen=False,
         tenant_ids=None,
     ):
@@ -144,7 +144,7 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_tag_keys_for_projects(
-        self, projects, environments, start, end, status=TagKeyStatus.VISIBLE, tenant_ids=None
+        self, projects, environments, start, end, status=TagKeyStatus.ACTIVE, tenant_ids=None
     ):
         """
         >>> get_tag_key([1], [2])
