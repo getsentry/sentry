@@ -74,9 +74,8 @@ class DatabaseBackedNotificationsService(NotificationsService):
         users: List[RpcUser],
         value: NotificationSettingOptionValues,
     ) -> List[RpcNotificationSetting]:
-        # TODO(actorid) Adapt this to use Actor lookups.
         settings = NotificationSetting.objects.filter(
-            target_id__in=[u.actor_id for u in users],
+            user_id__in=[u.id for u in users],
             type__in=types,
             value=value.value,
             scope_type=NotificationScopeType.USER.value,

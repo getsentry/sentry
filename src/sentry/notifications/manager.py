@@ -216,6 +216,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         scope_type: NotificationScopeType | None = None,
         scope_identifier: int | None = None,
         target_ids: Iterable[int] | None = None,
+        user_ids: Iterable[int] | None = None,
+        team_ids: Iterable[int] | None = None,
     ) -> QuerySet:
         """Wrapper for .filter that translates types to actual attributes to column types."""
         filters: MutableMapping[str, int | Iterable[int]] = {}
@@ -233,6 +235,12 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
         if target_ids:
             filters["target_id__in"] = target_ids
+
+        if user_ids:
+            filters["user_id__in"] = user_ids
+
+        if team_ids:
+            filters["team_id__in"] = team_ids
 
         return self.filter(**filters)
 
@@ -467,20 +475,27 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def has_any_provider_settings(
         self, recipient: RpcActor | Team | User, provider: ExternalProviders
     ) -> bool:
-        # TODO(actorid) Going to need to handle User coming in here.
-        if recipient.actor_id is None:
-            return False
+        key_field = None
+        if isinstance(recipient, RpcActor):
+            key_field = "user_id" if recipient.actor_type == ActorType.USER else "team_id"
+        if isinstance(recipient, User):
+            key_field = "user_id"
+        if isinstance(recipient, Team):
+            key_field = "team_id"
+
+        assert key_field, "Could not resolve key_field"
 
         # TODO(hybridcloud) This will need to filter on user_id or team_id
         # Explicitly typing to satisfy mypy.
         has_settings: bool = (
-            self._filter(provider=provider, target_ids={recipient.actor_id})
+            self._filter(provider=provider)
             .filter(
                 value__in={
                     NotificationSettingOptionValues.ALWAYS.value,
                     NotificationSettingOptionValues.COMMITTED_ONLY.value,
                     NotificationSettingOptionValues.SUBSCRIBE_ONLY.value,
-                }
+                },
+                **{key_field: recipient.id},
             )
             .exists()
         )
