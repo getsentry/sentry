@@ -90,7 +90,7 @@ export type GrowthEventParameters = {
   };
   'growth.onboarding_clicked_instrument_app': {source?: string};
   'growth.onboarding_clicked_setup_platform_later': PlatformParam & {
-    project_index: number;
+    project_id: string;
   };
   'growth.onboarding_clicked_skip': {source?: string};
   'growth.onboarding_load_choose_platform': {};

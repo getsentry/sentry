@@ -268,13 +268,14 @@ export const getHostStatusBreakdownEventView = ({domain, datetime}) => {
   });
 };
 
-export const getEndpointsThroughputQuery = ({datetime, transaction}) => {
+export const getEndpointAggregatesQuery = ({datetime, transaction}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `
     SELECT
     description,
     toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
-    count() AS count
+    count() AS count,
+    quantile(0.5)(exclusive_time) as p50
     FROM spans_experimental_starfish
     WHERE module = 'http'
     ${transaction ? `AND transaction = '${transaction}'` : ''}

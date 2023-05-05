@@ -5,7 +5,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {useStarfishOptions} from 'sentry/views/starfish/utils/useStarfishApiContext';
+import {useStarfishOptions} from 'sentry/views/starfish/utils/useStarfishOptions';
 
 // Setting return type since I'd rather not know if its discover query or not
 type ReturnType = {data: any; isLoading: boolean};

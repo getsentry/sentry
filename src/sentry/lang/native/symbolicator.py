@@ -50,15 +50,15 @@ class SymbolicatorPools(Enum):
 class Symbolicator:
     def __init__(self, task_kind: SymbolicatorTaskKind, project: Project, event_id: str):
         URLS = settings.SYMBOLICATOR_POOL_URLS
-        pool = SymbolicatorPools.default
+        pool = SymbolicatorPools.default.value
         if task_kind.is_low_priority:
-            pool = SymbolicatorPools.lpq
+            pool = SymbolicatorPools.lpq.value
         elif task_kind.is_js:
-            pool = SymbolicatorPools.js
+            pool = SymbolicatorPools.js.value
 
         base_url = (
             URLS.get(pool)
-            or URLS.get(SymbolicatorPools.default)
+            or URLS.get(SymbolicatorPools.default.value)
             or options.get("symbolicator.options")["url"]
         )
         base_url = base_url.rstrip("/")
@@ -146,11 +146,11 @@ class Symbolicator:
         )
         return process_response(res)
 
-    def process_payload(self, stacktraces, modules, signal=None):
+    def process_payload(self, stacktraces, modules, signal=None, apply_source_context=True):
         (sources, process_response) = sources_for_symbolication(self.project)
         json = {
             "sources": sources,
-            "options": {"dif_candidates": True},
+            "options": {"dif_candidates": True, "apply_source_context": apply_source_context},
             "stacktraces": stacktraces,
             "modules": modules,
         }
