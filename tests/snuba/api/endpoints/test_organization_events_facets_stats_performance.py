@@ -112,5 +112,5 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
         assert data["many,no"]
 
         series = data["color,blue"]["count()"]["data"]
-        assert len(series) == 14
-        assert series[-1][1][0]["count"] == 1
+        assert len(series) == 56
+        assert series[-4][1][0]["count"] == 1

@@ -25,7 +25,7 @@ ALLOWED_AGGREGATE_COLUMNS = {
 
 TAG_ALIASES = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
 DEFAULT_TAG_KEY_LIMIT = 5
-ONE_DAY = int(timedelta(days=1).total_seconds())
+ONE_DAY = int(timedelta(hours=6).total_seconds())
 
 
 @region_silo_endpoint
@@ -88,6 +88,9 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
                     user_query=query,
                     params=params,
                     orderby=["tags_key", "tags_value"],
+                    # TODO: Better selection of granularity,
+                    # but we generally only need pretty low granularity
+                    # for this since it's only being used for sparklines
                     rollup=ONE_DAY,
                     limit=10000,
                     organization=None,
