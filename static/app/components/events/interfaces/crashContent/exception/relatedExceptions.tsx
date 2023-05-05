@@ -9,14 +9,30 @@ import {defined} from 'sentry/utils';
 
 type ExceptionGroupContextProps = {
   allExceptions: ExceptionValue[];
+  onExceptionClick: (exceptionId: number) => void;
   mechanism?: StackTraceMechanism | null;
   newestFirst?: boolean;
 };
 
 type ExceptionTreeProps = {
   childExceptions: ExceptionValue[];
+  onExceptionClick: (exceptionId: number) => void;
   exception?: ExceptionValue;
   parentException?: ExceptionValue;
+};
+
+type ExceptionLinkProps = {
+  exception: ExceptionValue;
+  link: boolean;
+  onExceptionClick: (exceptionId: number) => void;
+};
+
+type ExceptionTreeItemProps = {
+  exception: ExceptionValue;
+  level: number;
+  onExceptionClick: (exceptionId: number) => void;
+  firstChild?: boolean;
+  link?: boolean;
 };
 
 function getExceptionName(exception: ExceptionValue) {
@@ -27,10 +43,12 @@ function getExceptionName(exception: ExceptionValue) {
   return exception.value ?? t('Exception');
 }
 
-function ExceptionLink({exception, link}: {exception: ExceptionValue; link: boolean}) {
+function ExceptionLink({exception, link, onExceptionClick}: ExceptionLinkProps) {
   const exceptionName = getExceptionName(exception);
 
-  if (!defined(exception.mechanism?.exception_id) || !link) {
+  const exceptionId = exception.mechanism?.exception_id;
+
+  if (!defined(exceptionId) || !link) {
     return <div>{exceptionName}</div>;
   }
 
@@ -38,10 +56,13 @@ function ExceptionLink({exception, link}: {exception: ExceptionValue; link: bool
     <Button
       priority="link"
       onClick={() => {
-        const linkedElement = document.getElementById(
-          `exception-${exception.mechanism?.exception_id}`
-        );
-        linkedElement?.scrollIntoView({behavior: 'smooth'});
+        onExceptionClick(exceptionId);
+
+        // Schedule the scroll event for next render because it may not be visible until expanded
+        setTimeout(() => {
+          const linkedElement = document.getElementById(`exception-${exceptionId}`);
+          linkedElement?.scrollIntoView?.({behavior: 'smooth'});
+        }, 0);
       }}
     >
       {exceptionName}
@@ -68,17 +89,17 @@ function ExceptionTreeItem({
   level,
   firstChild,
   link = true,
-}: {
-  exception: ExceptionValue;
-  level: number;
-  firstChild?: boolean;
-  link?: boolean;
-}) {
+  onExceptionClick,
+}: ExceptionTreeItemProps) {
   return (
     <TreeItem level={level} data-test-id="exception-tree-item">
       {level > 0 && <TreeChildLine firstChild={firstChild} />}
       <Circle />
-      <ExceptionLink exception={exception} link={link} />
+      <ExceptionLink
+        exception={exception}
+        link={link}
+        onExceptionClick={onExceptionClick}
+      />
     </TreeItem>
   );
 }
@@ -87,6 +108,7 @@ function ExceptionTree({
   parentException,
   exception,
   childExceptions,
+  onExceptionClick,
 }: ExceptionTreeProps) {
   if (!exception) {
     return null;
@@ -94,12 +116,19 @@ function ExceptionTree({
 
   return (
     <StyledPre>
-      {parentException && <ExceptionTreeItem exception={parentException} level={0} />}
+      {parentException && (
+        <ExceptionTreeItem
+          exception={parentException}
+          level={0}
+          onExceptionClick={onExceptionClick}
+        />
+      )}
       <ExceptionTreeItem
         exception={exception}
         level={parentException ? 1 : 0}
         firstChild
         link={false}
+        onExceptionClick={onExceptionClick}
       />
       {childExceptions.map((childException, i) => (
         <ExceptionTreeItem
@@ -107,6 +136,7 @@ function ExceptionTree({
           exception={childException}
           level={parentException ? 2 : 1}
           firstChild={i === 0}
+          onExceptionClick={onExceptionClick}
         />
       ))}
     </StyledPre>
@@ -117,6 +147,7 @@ export function RelatedExceptions({
   allExceptions,
   mechanism,
   newestFirst,
+  onExceptionClick,
 }: ExceptionGroupContextProps) {
   if (!mechanism || !mechanism.is_exception_group) {
     return null;
@@ -139,7 +170,9 @@ export function RelatedExceptions({
   return (
     <Fragment>
       <Heading>Related Exceptions</Heading>
-      <ExceptionTree {...{parentException, exception, childExceptions}} />
+      <ExceptionTree
+        {...{parentException, exception, childExceptions, onExceptionClick}}
+      />
     </Fragment>
   );
 }
