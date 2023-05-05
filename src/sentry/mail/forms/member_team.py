@@ -65,6 +65,8 @@ class MemberTeamForm(forms.Form):
 
         if targetType == self.memberValue and not user_service.get_many(
             filter={
+                "is_active": True,
+                "is_active_memberteam": True,
                 "organiztion_id": self.project.organization.id,
                 "project_ids": [self.project.id],
                 "user_ids": [int(targetIdentifier)],
