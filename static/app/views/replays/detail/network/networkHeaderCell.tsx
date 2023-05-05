@@ -31,7 +31,7 @@ const COLUMNS: {
         {t('Status')}
         <Tooltip
           title={tct(
-            'If the status is [zero], the resource might be a cross-origin request.[linebreak][linebreak] Configure your CDN to respond with the CORS header [header] to so supported browsers can report the real status code.',
+            'If the status is [zero], the resource might be a cross-origin request.[linebreak][linebreak] Configure your CDN to respond with the CORS header [header] so supported browsers can report the actual status code.',
             {
               zero: <code>0</code>,
               header: <code>Access-Control-Allow-Origin</code>,
