@@ -233,7 +233,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         signal_first_monitor_created(project, request.user, False)
 
         alert_rule = request.data.get("alert_rule", {})
-        if alert_rule or True:
+        if alert_rule:
             alert_rule_data = get_alert_rule(project, request.user, monitor, alert_rule)
             serializer = RuleSerializer(
                 context={"project": project, "organization": project.organization},

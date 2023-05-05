@@ -7,7 +7,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 
 from sentry.constants import ObjectStatus
-from sentry.models import Rule
+from sentry.models import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -241,4 +241,6 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
 
         monitor = Monitor.objects.get(slug=response.data["slug"])
         alert_rule_id = monitor.config.get("alert_rule_id")
-        assert Rule.objects.filter(project_id=monitor.project_id, id=alert_rule_id).exists()
+        assert Rule.objects.filter(
+            project_id=monitor.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
+        ).exists()
