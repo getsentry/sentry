@@ -87,6 +87,11 @@ class RpcUser(RpcModel):
     def get_full_name(self) -> str:
         return self.name
 
+    def get_salutation_name(self) -> str:
+        name = self.name or self.username.split("@", 1)[0].split(".", 1)[0]
+        first_name = name.split(" ", 1)[0]
+        return first_name.capitalize()
+
     def get_avatar_type(self) -> str:
         if self.avatar is not None:
             return self.avatar.avatar_type
