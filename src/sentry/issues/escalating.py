@@ -21,16 +21,11 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry.eventstore.models import GroupEvent
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group
-from sentry.models.group import GroupStatus
-from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
-from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import raw_snql_query
 
@@ -257,14 +252,6 @@ def is_escalating(group: Group, event: GroupEvent) -> bool:
     forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
     # Check if current event occurance is greater than forecast for today's date
     if group_hourly_count > forecast_today:
-        group.substatus = GroupSubStatus.ESCALATING
-        group.status = GroupStatus.UNRESOLVED
-        group.save()
-        add_group_to_inbox(group, GroupInboxReason.ESCALATING)
-
-        issue_escalating.send_robust(
-            project=group.project, group=group, event=event, sender=is_escalating
-        )
         return True
     return False
 
