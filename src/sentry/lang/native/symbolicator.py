@@ -146,11 +146,11 @@ class Symbolicator:
         )
         return process_response(res)
 
-    def process_payload(self, stacktraces, modules, signal=None):
+    def process_payload(self, stacktraces, modules, signal=None, apply_source_context=True):
         (sources, process_response) = sources_for_symbolication(self.project)
         json = {
             "sources": sources,
-            "options": {"dif_candidates": True},
+            "options": {"dif_candidates": True, "apply_source_context": apply_source_context},
             "stacktraces": stacktraces,
             "modules": modules,
         }
