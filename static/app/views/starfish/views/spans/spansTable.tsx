@@ -150,11 +150,6 @@ const COLUMN_ORDER = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'action',
-    name: 'Action',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
     key: 'description',
     name: 'Description',
     width: COL_WIDTH_UNDEFINED,
@@ -162,11 +157,6 @@ const COLUMN_ORDER = [
   {
     key: 'total_exclusive_time',
     name: 'Exclusive Time',
-    width: 250,
-  },
-  {
-    key: 'p95_trend',
-    name: 'p95 Trend',
     width: 250,
   },
   {
@@ -180,23 +170,8 @@ const COLUMN_ORDER = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p999',
-    name: 'p99.9',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'count',
-    name: 'Count',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'transaction_count',
-    name: 'Transactions',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'count_per_transaction',
-    name: 'Spans per Transaction',
-    width: COL_WIDTH_UNDEFINED,
+    key: 'p95_trend',
+    name: 'p95 Trend',
+    width: 250,
   },
 ];
