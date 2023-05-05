@@ -2297,12 +2297,12 @@
   resolved "https://registry.yarnpkg.com/@sentry-internal/react-inspector/-/react-inspector-6.0.1-4.tgz#10758f3461cf2cf48df8c80f0514c55ca18872c5"
   integrity sha512-uL2RyvW8EqDEchnbo8Hu/c4IpBqM3LLxUpZPHs8o40kynerzPset6bC/m5SU124gEhy4PqjdvJ7DhTYR75NetQ==
 
-"@sentry-internal/rrweb-player@1.106.0":
-  version "1.106.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-player/-/rrweb-player-1.106.0.tgz#e57f86a55d513e9ef3e189109fdb3b727690165b"
-  integrity sha512-ung95stOJgvA9RBlIli5TuMZKtMcQoAkdfClR5mbkSiVK3D05tX2D/8wyUsudEsYfGS0QmBZJJ/b1UvFAJIurA==
+"@sentry-internal/rrweb-player@1.107.0":
+  version "1.107.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-player/-/rrweb-player-1.107.0.tgz#1f02ad5c107d9c2be8cad8a3e887798141916b9a"
+  integrity sha512-n8VzBbSdXJvBtLQlZuzpapPbWa7UvpOyDux4Ejwt554OK601kVvs1OA/mP4RYCZBb+6sXvBChD1VQWmWw/PYNQ==
   dependencies:
-    "@sentry-internal/rrweb" "1.106.0"
+    "@sentry-internal/rrweb" "1.107.0"
     "@tsconfig/svelte" "^3.0.0"
 
 "@sentry-internal/rrweb-snapshot@1.106.0":
@@ -2310,12 +2310,29 @@
   resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-1.106.0.tgz#24714d4005a918855eeb09d4deda457198f77caf"
   integrity sha512-jLX6uGAW8StwPlQOScLhERVa6VOPmbQRFdhTx70Flkt0ocxg2vBJSdaI4Efu3jU0mtA0gHR01LB5xd1ODMRXow==
 
+"@sentry-internal/rrweb-snapshot@1.107.0":
+  version "1.107.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-1.107.0.tgz#72c1626f3c39e3fc254b73dd8d008ccf4b3785b6"
+  integrity sha512-tqc39sn4++F2f7RqC8eJZeFIWr3RVpcAg/31Ak15VrNRTVFAKvU6oAyXKyGMVSH3mfmju6vsrLb0OWKEHIFIQA==
+
 "@sentry-internal/rrweb@1.106.0":
   version "1.106.0"
   resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-1.106.0.tgz#251026e42cf142119eed0616808a279099aa0573"
   integrity sha512-/YtV8EoWmMoTE592aVdrgGH5EBiCILdKOt228pM+juGaxRqFxsX26UIeTJG7fihSweUz6NLbKXZjS0+cFYmhrQ==
   dependencies:
     "@sentry-internal/rrweb-snapshot" "1.106.0"
+    "@types/css-font-loading-module" "0.0.7"
+    "@xstate/fsm" "^1.4.0"
+    base64-arraybuffer "^1.0.1"
+    fflate "^0.4.4"
+    mitt "^1.1.3"
+
+"@sentry-internal/rrweb@1.107.0":
+  version "1.107.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-1.107.0.tgz#d93069696295f76e6d804656dc29e173e22b8c4e"
+  integrity sha512-AUR+yRjQ533PupCqloteU3Keec18JV+ptpTMBaARRazHQ/ik5s+Pv9iz1kdeZwNG3Y3TofBJEG7ZLUPFNFXNuA==
+  dependencies:
+    "@sentry-internal/rrweb-snapshot" "1.107.0"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"
