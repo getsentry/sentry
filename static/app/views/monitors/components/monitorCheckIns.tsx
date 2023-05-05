@@ -70,7 +70,6 @@ function MonitorCheckIns({monitor, monitorEnv, orgId}: Props) {
       <PanelTable
         headers={[
           t('Status'),
-          t('Expected By'),
           t('Started'),
           t('Duration'),
           t('Attachment'),
@@ -88,11 +87,6 @@ function MonitorCheckIns({monitor, monitorEnv, orgId}: Props) {
               />
               <Text>{statusToText[checkIn.status]}</Text>
             </Status>
-            {checkIn.configData.expected_time ? (
-              <DateTime date={checkIn.configData.expected_time} timeOnly />
-            ) : (
-              emptyCell
-            )}
             {checkIn.status !== CheckInStatus.MISSED ? (
               <DateTime date={checkIn.dateCreated} timeOnly />
             ) : (
