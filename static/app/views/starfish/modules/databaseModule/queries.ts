@@ -212,6 +212,7 @@ export const useQueryTopTablesChart = (
   where
     domain not in ('${tables.join(`', '`)}')
     AND ${DEFAULT_WHERE}
+    ${dateFilters}
   group by interval
   order by interval
   `;
