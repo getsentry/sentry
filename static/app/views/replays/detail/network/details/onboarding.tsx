@@ -34,7 +34,7 @@ export function ReqRespBodiesAlert({
 
   const message = isNetworkDetailsSetup
     ? tct(
-        'Click on a [fetch] or [xhr] request to see request and response payloads. [link]',
+        'Click on a [fetch] or [xhr] request to see request and response bodies. [link].',
         {
           fetch: <code>fetch</code>,
           xhr: <code>xhr</code>,
@@ -48,7 +48,7 @@ export function ReqRespBodiesAlert({
           ),
         }
       )
-    : tct('Start collecting the body of requests and responses. [link]', {
+    : tct('Start collecting the body of requests and responses. [link].', {
         link: (
           <ExternalLink
             href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details"
@@ -86,7 +86,7 @@ const StyledButton = styled(Button)`
 export function UnsupportedOp({type}: {type: 'headers' | 'bodies'}) {
   const title =
     type === 'bodies'
-      ? t('Capture Request and Response Payloads')
+      ? t('Capture Request and Response Bodies')
       : t('Capture Request and Response Headers');
 
   return (
@@ -94,7 +94,7 @@ export function UnsupportedOp({type}: {type: 'headers' | 'bodies'}) {
       <h1>{title}</h1>
       <p>
         {tct(
-          `This feature is only compatible with [fetch] and [xhr] request types. [link]`,
+          `This feature is only compatible with [fetch] and [xhr] request types. [link].`,
           {
             fetch: <code>fetch</code>,
             xhr: <code>xhr</code>,
@@ -161,10 +161,10 @@ function SetupInstructions({
     return (
       <NoMarginAlert type="muted" system data-test-id="network-setup-steps">
         {tct(
-          'You can capture more customer headers by adding them to the [requestConfig] and [responseConfig] lists in your SDK config.',
+          'You can capture additional headers by adding them to the [requestConfig] and [responseConfig] lists in your SDK config.',
           {
-            requestConfig: <kbd>networkRequestHeaders</kbd>,
-            responseConfig: <kbd>networkResponseHeaders</kbd>,
+            requestConfig: <code>networkRequestHeaders</code>,
+            responseConfig: <code>networkResponseHeaders</code>,
           }
         )}
       </NoMarginAlert>
@@ -190,17 +190,17 @@ function SetupInstructions({
 
   const title =
     showSnippet === Output.SETUP
-      ? t('Capture Request and Response Headers and Payloads')
+      ? t('Capture Request and Response Headers and Bodies')
       : visibleTab === 'details'
       ? t('Capture Request and Response Headers')
-      : t('Capture Request and Response Payloads');
+      : t('Capture Request and Response Bodies');
 
   return (
     <StyledInstructions data-test-id="network-setup-steps">
       <h1>{title}</h1>
       <p>
         {tct(
-          `To protect user privacy, Session Replay defaults to not capturing the request or response headers. However, we provide the option to do so, if it’s critical to your debugging process. [link]`,
+          `To protect user privacy, Session Replay defaults to not capturing the request or response headers. However, we provide the option to do so, if it’s critical to your debugging process. [link].`,
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details">
@@ -214,16 +214,16 @@ function SetupInstructions({
       {showSnippet === Output.URL_SKIPPED && (
         <Alert type="warning">
           {tct('Add [url] to your [field] list to start capturing data.', {
-            url: <kbd>{url}</kbd>,
-            field: <kbd>networkDetailAllowUrls</kbd>,
+            url: <code>{url}</code>,
+            field: <code>networkDetailAllowUrls</code>,
           })}
         </Alert>
       )}
 
       {showSnippet === Output.BODY_SKIPPED && (
         <Alert type="warning">
-          {tct('Enable [field] to capture both Request and Response payloads.', {
-            field: <kbd>networkCaptureBodies: true</kbd>,
+          {tct('Enable [field] to capture both Request and Response bodies.', {
+            field: <code>networkCaptureBodies: true</code>,
           })}
         </Alert>
       )}

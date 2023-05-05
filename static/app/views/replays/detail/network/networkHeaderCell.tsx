@@ -1,6 +1,7 @@
-import {CSSProperties, forwardRef, Fragment, ReactNode} from 'react';
+import {ComponentProps, CSSProperties, forwardRef, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -21,27 +22,25 @@ const SizeInfoIcon = styled(IconInfo)`
 
 const COLUMNS: {
   field: SortConfig['by'];
-  label: ReactNode;
+  label: string;
+  tooltipTitle?: ComponentProps<typeof Tooltip>['title'];
 }[] = [
   {field: 'method', label: t('Method')},
   {
     field: 'status',
-    label: (
-      <Fragment>
-        {t('Status')}
-        <Tooltip
-          title={tct(
-            'If the status is [zero], the resource might be a cross-origin request.[linebreak][linebreak] Configure your CDN to respond with the CORS header [header] so supported browsers can report the actual status code.',
-            {
-              zero: <code>0</code>,
-              header: <code>Access-Control-Allow-Origin</code>,
-              linebreak: <br />,
-            }
-          )}
-        >
-          <SizeInfoIcon size="xs" />
-        </Tooltip>
-      </Fragment>
+    label: t('Status'),
+    tooltipTitle: tct(
+      'If the status is [zero], the resource might be a cross-origin request.[linebreak][linebreak]Configure the server to respond with the CORS header [header] to see the actual response codes. [mozilla].',
+      {
+        zero: <code>0</code>,
+        header: <code>Access-Control-Allow-Origin</code>,
+        linebreak: <br />,
+        mozilla: (
+          <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus#cross-origin_response_status_codes">
+            Learn more on MDN
+          </ExternalLink>
+        ),
+      }
     ),
   },
   {field: 'description', label: t('Path')},
@@ -51,17 +50,9 @@ const COLUMNS: {
   },
   {
     field: 'size',
-    label: (
-      <Fragment>
-        {t('Size')}
-        <Tooltip
-          title={t(
-            'The number used for fetch/xhr is the response body size. It is possible the network transfer size is smaller due to compression.'
-          )}
-        >
-          <SizeInfoIcon size="xs" />
-        </Tooltip>
-      </Fragment>
+    label: t('Size'),
+    tooltipTitle: t(
+      'The number used for fetch/xhr is the response body size. It is possible the network transfer size is smaller due to compression.'
     ),
   },
   {field: 'duration', label: t('Duration')},
@@ -70,12 +61,21 @@ const COLUMNS: {
 
 export const COLUMN_COUNT = COLUMNS.length;
 
+function CatchClicks({children}: {children: ReactNode}) {
+  return <div onClick={e => e.stopPropagation()}>{children}</div>;
+}
+
 const NetworkHeaderCell = forwardRef<HTMLButtonElement, Props>(
   ({handleSort, index, sortConfig, style}: Props, ref) => {
-    const {field, label} = COLUMNS[index];
+    const {field, label, tooltipTitle} = COLUMNS[index];
     return (
       <HeaderButton style={style} onClick={() => handleSort(field)} ref={ref}>
         {label}
+        {tooltipTitle ? (
+          <Tooltip isHoverable title={<CatchClicks>{tooltipTitle}</CatchClicks>}>
+            <SizeInfoIcon size="xs" />
+          </Tooltip>
+        ) : null}
         <IconArrow
           color="gray300"
           size="xs"

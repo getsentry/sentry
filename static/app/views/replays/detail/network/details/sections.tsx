@@ -113,7 +113,7 @@ export function RequestPayloadSection({item}: SectionProps) {
 
   return (
     <SectionItem
-      title={t('Request Payload')}
+      title={t('Request Body')}
       titleExtra={
         <SizeTooltip>
           {t('Size:')} {formatBytesBase10(item.data?.request?.size ?? 0)}

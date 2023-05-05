@@ -32,7 +32,7 @@ describe('Setup', () => {
       );
 
       expect(
-        screen.getByText('Capture Request and Response Headers and Payloads')
+        screen.getByText('Capture Request and Response Headers and Bodies')
       ).toBeInTheDocument();
 
       expect(container.querySelector('code')).toHaveTextContent(
@@ -79,9 +79,7 @@ describe('Setup', () => {
         />
       );
 
-      expect(
-        screen.getByText('Capture Request and Response Payloads')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Capture Request and Response Bodies')).toBeInTheDocument();
 
       expect(
         screen.getByText(
@@ -104,14 +102,12 @@ describe('Setup', () => {
         />
       );
 
-      expect(
-        screen.getByText('Capture Request and Response Payloads')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Capture Request and Response Bodies')).toBeInTheDocument();
 
       expect(
         screen.getByText(
           textWithMarkupMatcher(
-            'Enable networkCaptureBodies: true to capture both Request and Response payloads.'
+            'Enable networkCaptureBodies: true to capture both Request and Response bodies.'
           )
         )
       ).toBeInTheDocument();
