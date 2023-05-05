@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
@@ -49,6 +50,7 @@ function parseOptions(options, label) {
 
 export default function DatabaseChartView({action, table, onChange}: Props) {
   const pageFilter = usePageFilters();
+  const theme = useTheme();
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
     pageFilter.selection.datetime
   );
@@ -149,6 +151,8 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
     )
   );
 
+  const chartColors = [...theme.charts.getColorPalette(6).slice(2, 7), theme.gray300];
+
   return (
     <Fragment>
       <ChartsContainer>
@@ -219,6 +223,7 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
                   data={topDomains}
                   start=""
                   end=""
+                  chartColors={chartColors}
                   loading={tableGraphLoading}
                   utc={false}
                   grid={{
@@ -241,6 +246,7 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
                   data={tpmDomains}
                   start=""
                   end=""
+                  chartColors={chartColors}
                   loading={isTopGraphLoading}
                   utc={false}
                   grid={{
