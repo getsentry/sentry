@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {Button} from 'sentry/components/button';
-import Clipboard from 'sentry/components/clipboard';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Divider, Hovercard} from 'sentry/components/hovercard';
 import LastCommit from 'sentry/components/lastCommit';
 import LoadingError from 'sentry/components/loadingError';
@@ -12,7 +12,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import RepoLabel from 'sentry/components/repoLabel';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
-import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Deploy, Organization, Release, Repository} from 'sentry/types';
@@ -190,11 +189,12 @@ export class VersionHoverHeader extends Component<VersionHoverHeaderProps> {
         <VersionWrapper>
           <StyledVersion version={this.props.releaseVersion} truncate anchor={false} />
 
-          <Clipboard value={this.props.releaseVersion}>
-            <ClipboardIconWrapper>
-              <IconCopy data-test-id="version-hover-header-copy-icon" size="xs" />
-            </ClipboardIconWrapper>
-          </Clipboard>
+          <StyledCopyToClipboardButton
+            borderless
+            iconSize="xs"
+            size="xs"
+            text={this.props.releaseVersion}
+          />
         </VersionWrapper>
       </HeaderWrapper>
     );
@@ -236,10 +236,8 @@ const StyledVersion = styled(Version)`
   max-width: 190px;
 `;
 
-const ClipboardIconWrapper = styled('span')`
-  &:hover {
-    cursor: pointer;
-  }
+const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
+  margin-block: -${space(1)};
 `;
 
 const CountSince = styled('div')`
