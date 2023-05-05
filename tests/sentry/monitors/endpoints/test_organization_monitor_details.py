@@ -380,7 +380,7 @@ class DeleteMonitorTest(MonitorTestCase):
         monitor = self._create_monitor()
         rule = Creator(
             name="New Cool Rule",
-            owner=self.user.id,
+            owner=None,
             project=self.project,
             action_match="all",
             filter_match="any",
