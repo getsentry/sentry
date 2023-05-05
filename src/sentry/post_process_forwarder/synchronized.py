@@ -26,9 +26,6 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
-
-
 commit_codec = CommitCodec()
 
 
