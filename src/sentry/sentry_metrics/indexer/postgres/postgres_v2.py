@@ -49,6 +49,10 @@ class PGStringIndexerV2(StringIndexer):
     and the corresponding reverse lookup.
     """
 
+    def __init__(self, metric_key_path) -> None:
+        self._metric_key_path = metric_key_path
+        self._table = TABLE_MAPPING[metric_key_path]
+
     def _get_db_records(self, db_use_case_keys: UseCaseKeyCollection) -> Any:
         """
         We are not querying for the use case ID because the order of
@@ -63,13 +67,9 @@ class PGStringIndexerV2(StringIndexer):
             for _, organization_id, string in db_use_case_keys.as_tuples()
         ]
 
-        return self._get_table_from_use_case_ids(db_use_case_keys.mapping.keys()).objects.filter(
-            reduce(or_, conditions)
-        )
+        return self._table(db_use_case_keys.mapping.keys()).objects.filter(reduce(or_, conditions))
 
-    def _bulk_create_with_retry(
-        self, table: IndexerTable, new_records: Sequence[BaseIndexer]
-    ) -> None:
+    def _bulk_create_with_retry(self, new_records: Sequence[BaseIndexer]) -> None:
         """
         With multiple instances of the Postgres indexer running, we found that
         rather than direct insert conflicts we were actually observing deadlocks
@@ -87,7 +87,7 @@ class PGStringIndexerV2(StringIndexer):
             # attempt to create the rows down below.
             while retry_count + 1 < settings.SENTRY_POSTGRES_INDEXER_RETRY_COUNT:
                 try:
-                    table.objects.bulk_create(new_records, ignore_conflicts=True)
+                    self._table.objects.bulk_create(new_records, ignore_conflicts=True)
                     return
                 except OperationalError as e:
                     sentry_sdk.capture_message(
@@ -154,9 +154,7 @@ class PGStringIndexerV2(StringIndexer):
         if db_write_keys.size == 0:
             return db_read_key_results
 
-        config = get_ingest_config(
-            self._get_metric_path_key(strings.keys()), IndexerStorage.POSTGRES
-        )
+        config = get_ingest_config(self._metric_key_path, IndexerStorage.POSTGRES)
         writes_limiter = writes_limiter_factory.get_ratelimiter(config)
 
         """
@@ -178,7 +176,6 @@ class PGStringIndexerV2(StringIndexer):
         }
         """
         use_case_id = next(iter(strings.keys()))
-        use_case_path_key = self._get_metric_path_key(strings.keys())
         with writes_limiter.check_write_limits(db_write_keys) as writes_limiter_state:
             # After the DB has successfully committed writes, we exit this
             # context manager and consume quotas. If the DB crashes we
@@ -203,9 +200,9 @@ class PGStringIndexerV2(StringIndexer):
             if filtered_db_write_keys.size == 0:
                 return db_read_key_results.merge(rate_limited_key_results)
 
-            if use_case_path_key is UseCaseKey.PERFORMANCE:
+            if self._metric_key_path is UseCaseKey.PERFORMANCE:
                 new_records = [
-                    self._get_table_from_use_case_ids(strings.keys())(
+                    self._table(
                         organization_id=int(organization_id),
                         string=string,
                         use_case_id=use_case_id.value,
@@ -214,7 +211,7 @@ class PGStringIndexerV2(StringIndexer):
                 ]
             else:
                 new_records = [
-                    self._get_table_from_use_case_ids(strings.keys())(
+                    self._table(
                         organization_id=int(organization_id),
                         string=string,
                     )
@@ -222,9 +219,7 @@ class PGStringIndexerV2(StringIndexer):
                 ]
 
             with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
-                self._bulk_create_with_retry(
-                    self._get_table_from_use_case_ids(strings.keys()), new_records
-                )
+                self._bulk_create_with_retry(new_records)
 
         db_write_key_results = UseCaseKeyResults()
         db_write_key_results.add_use_case_key_results(
@@ -303,5 +298,5 @@ class PGStringIndexerV2(StringIndexer):
 
 
 class PostgresIndexer(StaticStringIndexer):
-    def __init__(self) -> None:
-        super().__init__(CachingIndexer(indexer_cache, PGStringIndexerV2()))
+    def __init__(self, metric_key_path) -> None:
+        super().__init__(CachingIndexer(indexer_cache, PGStringIndexerV2(metric_key_path)))

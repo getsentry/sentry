@@ -24,7 +24,7 @@ def assert_fetch_type_for_tag_string_set(
 class PostgresIndexerV2Test(TestCase):
     def setUp(self) -> None:
         self.strings = {"hello", "hey", "hi"}
-        self.indexer = CachingIndexer(indexer_cache, PGStringIndexerV2())
+        self.indexer = CachingIndexer(indexer_cache, PGStringIndexerV2(UseCaseKey.PERFORMANCE))
         self.org2 = self.create_organization()
         self.use_case_id = UseCaseID.SESSIONS
         self.use_case_key = UseCaseKey.RELEASE_HEALTH

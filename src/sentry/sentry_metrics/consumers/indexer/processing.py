@@ -31,7 +31,9 @@ _INGEST_CODEC: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get
 
 class MessageProcessor:
     def __init__(self, config: MetricsIngestConfiguration):
-        self._indexer = STORAGE_TO_INDEXER[config.db_backend](**config.db_backend_options)
+        self._indexer = STORAGE_TO_INDEXER[config.db_backend](
+            metric_key_path=config.use_case_id, **config.db_backend_options
+        )
         self._config = config
 
     # The following two methods are required to work such that the parallel

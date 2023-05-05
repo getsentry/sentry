@@ -57,8 +57,10 @@ def writes_limiter_option_name(use_case_id):
 
 
 @pytest.fixture
-def indexer(indexer_cls):
-    return indexer_cls()
+def indexer(indexer_cls, use_case_id):
+    if indexer_cls is RawSimpleIndexer:
+        return indexer_cls()
+    return indexer_cls(metric_key_path=use_case_id)
 
 
 def assert_fetch_type_for_tag_string_set(
