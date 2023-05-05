@@ -254,11 +254,9 @@ def get_emails_for_user_or_org(user: RpcUser | None, orgId: int):
     if user.is_sentry_app:
         organization = Organization.objects.get(id=orgId)
         members = organization.get_members_with_org_roles(roles=["owner"])
-
-        for m in list(members):
-            user = user_service.get_user(user_id=m.user_id)
-            if user:
-                emails.append(user.email)
+        user_ids = [m.user_id for m in members if m.user_id]
+        emails = {u.email for u in user_service.get_many(filter={"user_ids": user_ids}) if u.email}
+        emails = list(emails)
     else:
         emails = [user.email]
 
