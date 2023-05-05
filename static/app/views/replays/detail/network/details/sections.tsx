@@ -102,14 +102,14 @@ export function QueryParamsSection({item}: SectionProps) {
 }
 
 export function RequestPayloadSection({item}: SectionProps) {
-  const {dismiss} = useDismissReqRespBodiesAlert();
+  const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
 
   const hasRequest = 'request' in item.data;
   useEffect(() => {
-    if (hasRequest) {
+    if (!isDismissed && hasRequest) {
       dismiss();
     }
-  }, [dismiss, hasRequest]);
+  }, [dismiss, hasRequest, isDismissed]);
 
   return (
     <SectionItem
@@ -133,14 +133,14 @@ export function RequestPayloadSection({item}: SectionProps) {
 }
 
 export function ResponsePayloadSection({item}: SectionProps) {
-  const {dismiss} = useDismissReqRespBodiesAlert();
+  const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
 
   const hasResponse = 'response' in item.data;
   useEffect(() => {
-    if (hasResponse) {
+    if (!isDismissed && hasResponse) {
       dismiss();
     }
-  }, [dismiss, hasResponse]);
+  }, [dismiss, hasResponse, isDismissed]);
 
   return (
     <SectionItem
