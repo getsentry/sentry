@@ -465,15 +465,15 @@ class Exception(Interface):
         return ("".join(output)).strip()
 
     def get_stacktrace(self, *args, **kwargs):
-        exc = self.values[0]
+        exc = self.values[-1]
         if exc.stacktrace:
             return exc.stacktrace.get_stacktrace(*args, **kwargs)
         return ""
 
     def iter_tags(self):
-        if not self.values or not self.values[0]:
+        if not self.values or not self.values[-1]:
             return
 
-        mechanism = self.values[0].mechanism
+        mechanism = self.values[-1].mechanism
         if mechanism:
             yield from mechanism.iter_tags()
