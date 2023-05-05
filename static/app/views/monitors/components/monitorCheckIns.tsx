@@ -40,11 +40,11 @@ const checkStatusToIndicatorStatus: Record<CheckInStatus, string> = {
 };
 
 const statusToText = {
-  [CheckInStatus.OK]: 'Okay',
-  [CheckInStatus.ERROR]: 'Failed',
-  [CheckInStatus.IN_PROGRESS]: 'In Progress',
-  [CheckInStatus.MISSED]: 'Missed',
-  [CheckInStatus.TIMEOUT]: 'Timed Out',
+  [CheckInStatus.OK]: t('Okay'),
+  [CheckInStatus.ERROR]: t('Failed'),
+  [CheckInStatus.IN_PROGRESS]: t('In Progress'),
+  [CheckInStatus.MISSED]: t('Missed'),
+  [CheckInStatus.TIMEOUT]: t('Timed Out'),
 };
 
 function MonitorCheckIns({monitor, monitorEnv, orgId}: Props) {
