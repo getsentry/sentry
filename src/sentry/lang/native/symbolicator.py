@@ -50,15 +50,15 @@ class SymbolicatorPools(Enum):
 class Symbolicator:
     def __init__(self, task_kind: SymbolicatorTaskKind, project: Project, event_id: str):
         URLS = settings.SYMBOLICATOR_POOL_URLS
-        pool = SymbolicatorPools.default
+        pool = SymbolicatorPools.default.value
         if task_kind.is_low_priority:
-            pool = SymbolicatorPools.lpq
+            pool = SymbolicatorPools.lpq.value
         elif task_kind.is_js:
-            pool = SymbolicatorPools.js
+            pool = SymbolicatorPools.js.value
 
         base_url = (
             URLS.get(pool)
-            or URLS.get(SymbolicatorPools.default)
+            or URLS.get(SymbolicatorPools.default.value)
             or options.get("symbolicator.options")["url"]
         )
         base_url = base_url.rstrip("/")
