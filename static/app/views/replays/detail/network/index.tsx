@@ -89,7 +89,6 @@ function NetworkList({
     ''
   );
   const detailDataIndex = getDetailRow();
-  const detailRowIndex = Number(detailDataIndex) + 1;
 
   const maxContainerHeight =
     (containerRef.current?.clientHeight || window.innerHeight) - RESIZEABLE_HANDLE_HEIGHT;
@@ -236,7 +235,6 @@ function NetworkList({
                   organization,
                 });
               }}
-              onScrollToRow={() => setScrollToRow(Number(detailRowIndex))}
               projectId={projectId}
               startTimestampMs={startTimestampMs}
             />
