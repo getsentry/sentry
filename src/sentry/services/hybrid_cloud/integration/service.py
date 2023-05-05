@@ -14,6 +14,7 @@ from sentry.integrations.base import (
 )
 from sentry.models.integrations import Integration
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
+from sentry.services.hybrid_cloud.integration.serial import serialize_organization_integration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -129,7 +130,7 @@ class IntegrationService(RpcService):
         ois = self.get_organization_integrations(
             integration_id=integration_id, organization_id=organization_id, limit=1
         )
-        return self._serialize_organization_integration(ois[0]) if len(ois) > 0 else None
+        return serialize_organization_integration(ois[0]) if len(ois) > 0 else None
 
     @rpc_method
     @abstractmethod
