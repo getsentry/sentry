@@ -659,7 +659,11 @@ def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
 
 
 def process_js_stacktraces(
-    symbolicator: Symbolicator, profile: Profile, modules: List[Any], stacktraces: List[Any]
+    symbolicator: Symbolicator,
+    profile: Profile,
+    modules: List[Any],
+    stacktraces: List[Any],
+    apply_source_context=False,
 ) -> Any:
     project = symbolicator.project
     allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
@@ -672,4 +676,5 @@ def process_js_stacktraces(
         release=profile.get("release"),
         dist=profile.get("dist"),
         allow_scraping=allow_scraping,
+        apply_source_context=apply_source_context,
     )
