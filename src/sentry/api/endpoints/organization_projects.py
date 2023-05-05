@@ -16,7 +16,8 @@ from sentry.api.serializers.models.project import (
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import CURSOR_QUERY_PARAM, GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import Project, ProjectStatus, Team
+from sentry.constants import ObjectStatus
+from sentry.models import Project, Team
 from sentry.search.utils import tokenize_query
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
@@ -46,6 +47,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     {
                         "dateCreated": "2018-11-06T21:19:58.536Z",
                         "firstEvent": None,
+                        "access": [],
                         "hasAccess": True,
                         "id": "3",
                         "isBookmarked": False,
@@ -148,7 +150,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 else:
                     queryset = queryset.none()
 
-        queryset = queryset.filter(status=ProjectStatus.VISIBLE).distinct()
+        queryset = queryset.filter(status=ObjectStatus.ACTIVE).distinct()
 
         # TODO(davidenwang): remove this after frontend requires only paginated projects
         get_all_projects = request.GET.get("all_projects") == "1"

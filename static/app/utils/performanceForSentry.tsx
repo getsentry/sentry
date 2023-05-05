@@ -136,10 +136,12 @@ export function VisuallyCompleteWithData({
   id,
   hasData,
   children,
+  disabled,
 }: {
   children: ReactNode;
   hasData: boolean;
   id: string;
+  disabled?: boolean;
 }) {
   const isDataCompleteSet = useRef(false);
 
@@ -147,12 +149,15 @@ export function VisuallyCompleteWithData({
 
   const isVCDSet = useRef(false);
 
-  if (isVCDSet && hasData && performance && performance.mark) {
+  if (isVCDSet && hasData && performance && performance.mark && !disabled) {
     performance.mark(`${id}-vcsd-start`);
     isVCDSet.current = true;
   }
 
   useEffect(() => {
+    if (disabled) {
+      return;
+    }
     try {
       const transaction: any = getCurrentSentryReactTransaction(); // Using any to override types for private api.
       if (!transaction) {
@@ -180,7 +185,11 @@ export function VisuallyCompleteWithData({
     } catch (_) {
       // Defensive catch since this code is auxiliary.
     }
-  }, [hasData, id]);
+  }, [hasData, disabled, id]);
+
+  if (disabled) {
+    return <Fragment>{children}</Fragment>;
+  }
 
   return (
     <Profiler id={id} onRender={onRenderCallback}>
@@ -225,11 +234,17 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
         )
     );
     const transfered = filtered.reduce(
-      (acc, curr) => acc + (curr.data['Transfer Size'] ?? 0),
+      (acc, curr) =>
+        acc +
+        (curr.data['http.response_transfer_size'] ?? curr.data['Transfer Size'] ?? 0),
       0
     );
     const encoded = filtered.reduce(
-      (acc, curr) => acc + (curr.data['Encoded Body Size'] ?? 0),
+      (acc, curr) =>
+        acc +
+        (curr.data['http.response_content_length'] ??
+          curr.data['Encoded Body Size'] ??
+          0),
       0
     );
 

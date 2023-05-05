@@ -6,6 +6,9 @@ import pytest
 import responses
 from requests import Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
+from sentry_sdk import Scope
+from sentry_sdk.consts import OP
+from sentry_sdk.tracing import Transaction
 from urllib3.exceptions import InvalidChunkLength
 from urllib3.response import HTTPResponse
 
@@ -19,7 +22,9 @@ from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
 )
 from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import set_mock_context_manager_return_value
 from sentry.testutils.silo import control_silo_test
 
 
@@ -165,7 +170,7 @@ class ApiClientTest(TestCase):
             client, "track_response_data", wraps=client.track_response_data
         ) as track_response_data_spy:
             with mock.patch(
-                "requests.sessions.Session.get",
+                "requests.sessions.Session.send",
                 side_effect=ConnectionError("foo"),
             ):
                 with pytest.raises(ApiHostError):
@@ -180,7 +185,7 @@ class ApiClientTest(TestCase):
             client, "track_response_data", wraps=client.track_response_data
         ) as track_response_data_spy:
             with mock.patch(
-                "requests.sessions.Session.get",
+                "requests.sessions.Session.send",
                 side_effect=Timeout("foo"),
             ):
                 with pytest.raises(ApiTimeoutError):
@@ -200,7 +205,7 @@ class ApiClientTest(TestCase):
             client, "track_response_data", wraps=client.track_response_data
         ) as track_response_data_spy:
             with mock.patch(
-                "requests.sessions.Session.get",
+                "requests.sessions.Session.send",
                 side_effect=HTTPError("foo", response=mock_error_response),
             ):
                 with pytest.raises(ApiError):
@@ -218,7 +223,7 @@ class ApiClientTest(TestCase):
             client, "track_response_data", wraps=client.track_response_data
         ) as track_response_data_spy:
             with mock.patch(
-                "requests.sessions.Session.get",
+                "requests.sessions.Session.send",
                 side_effect=HTTPError("foo", response=None),
             ):
                 with pytest.raises(ApiError):
@@ -239,7 +244,7 @@ class ApiClientTest(TestCase):
             caught_error.__cause__ = chained_error
 
             with mock.patch(
-                "requests.sessions.Session.get",
+                "requests.sessions.Session.send",
                 side_effect=caught_error,
             ):
                 with pytest.raises(ApiConnectionResetError):
@@ -261,7 +266,7 @@ class ApiClientTest(TestCase):
             caught_error.__cause__ = chained_error
 
             with mock.patch(
-                "requests.sessions.Session.get",
+                "requests.sessions.Session.send",
                 side_effect=caught_error,
             ):
                 with pytest.raises(ApiError):
@@ -270,6 +275,37 @@ class ApiClientTest(TestCase):
                         track_response_data_spy.call_args.args[0]
                         == "Connection broken: invalid chunk length"
                     )
+
+    @mock.patch(
+        "sentry.shared_integrations.client.base.BaseApiResponse.from_response",
+        return_value=BaseApiResponse(),
+    )
+    def test_request_creates_transaction_when_appropriate(
+        self,
+        mock_from_response: mock.MagicMock,
+    ):
+        # pytest parameterization doesn't work in test classes, but we can fake it
+        cases = [
+            ("no transaction", None, 1),
+            ("non-server transaction", Transaction(op="some non-server op"), 1),
+            ("server transaction", Transaction(op=OP.HTTP_SERVER), 0),
+        ]
+
+        for case_name, existing_transaction, expected_call_count in cases:
+            client = ApiClient()
+
+            mock_scope = Scope()
+            mock_scope.span = existing_transaction
+
+            with mock.patch("sentry_sdk.configure_scope") as mock_configure_scope:
+                set_mock_context_manager_return_value(mock_configure_scope, as_value=mock_scope)
+
+                with mock.patch("sentry_sdk.start_transaction") as mock_start_transaction:
+                    client.get("http://example.com")
+
+                    assert (
+                        mock_start_transaction.call_count == expected_call_count
+                    ), f"Case {case_name} failed"
 
 
 class OAuthProvider(OAuth2Provider):

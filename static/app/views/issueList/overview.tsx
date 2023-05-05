@@ -780,7 +780,9 @@ class IssueListOverview extends Component<Props, State> {
         ignoredIds.length > 0 &&
         (query.includes('is:unresolved') || isForReviewQuery(query))
       ) {
-        this.onIssueAction(ignoredIds, 'Ignored');
+        const hasEscalatingIssues =
+          organization.features.includes('escalating-issues-ui');
+        this.onIssueAction(ignoredIds, hasEscalatingIssues ? 'Archived' : 'Ignored');
       }
       // Remove issues that are marked as Reviewed from the For Review tab, but still include the
       // issues if on the All Unresolved tab or saved/custom searches.
@@ -1084,7 +1086,7 @@ class IssueListOverview extends Component<Props, State> {
 
   onIssueAction = (
     itemIds: string[],
-    actionType: 'Reviewed' | 'Resolved' | 'Ignored'
+    actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived'
   ) => {
     if (itemIds.length > 1) {
       addMessage(`${actionType} ${itemIds.length} ${t('Issues')}`, 'success', {
@@ -1251,7 +1253,7 @@ class IssueListOverview extends Component<Props, State> {
             </Panel>
             <StyledPagination
               caption={
-                !issuesLoading
+                !issuesLoading && modifiedQueryCount > 0
                   ? tct('[start]-[end] of [total]', {
                       start: numPreviousIssues + 1,
                       end: numPreviousIssues + numIssuesOnPage,

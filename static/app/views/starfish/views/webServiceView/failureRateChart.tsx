@@ -5,7 +5,7 @@ import max from 'lodash/max';
 import {AreaChartProps} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {DateString} from 'sentry/types';
 import {EChartClickHandler, Series} from 'sentry/types/echarts';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
@@ -21,7 +21,6 @@ type Props = {
   statsPeriod: string | null | undefined;
   utc: boolean;
   definedAxisTicks?: number;
-  disableXAxis?: boolean;
   grid?: AreaChartProps['grid'];
   height?: number;
   previousData?: Series[];
@@ -43,7 +42,6 @@ function FailureRateChart({
   loading,
   height,
   grid,
-  disableXAxis,
   handleSpikeAreaClick,
 }: Props) {
   const router = useRouter();
@@ -59,6 +57,7 @@ function FailureRateChart({
   const yAxis: YAXisOption = {
     max: dataMax,
     type: 'value',
+    splitNumber: 4,
     axisLabel: {
       color: theme.chartLabel,
       formatter: (value: number) => formatPercentage(value, 1),
@@ -86,14 +85,6 @@ function FailureRateChart({
     return <LineChart height={height} series={[]} {...chartProps} />;
   }
 
-  const xAxis = disableXAxis
-    ? {
-        show: false,
-        axisLabel: {show: true, margin: 0},
-        axisLine: {show: false},
-      }
-    : undefined;
-
   return (
     <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
       {zoomRenderProps => (
@@ -103,7 +94,6 @@ function FailureRateChart({
           {...zoomRenderProps}
           series={data}
           previousPeriod={previousData}
-          xAxis={xAxis}
           yAxis={yAxis}
           tooltip={chartProps.tooltip}
         />

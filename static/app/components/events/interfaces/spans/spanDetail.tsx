@@ -61,7 +61,14 @@ import {
 
 const DEFAULT_ERRORS_VISIBLE = 5;
 
-const SIZE_DATA_KEYS = ['Encoded Body Size', 'Decoded Body Size', 'Transfer Size'];
+const SIZE_DATA_KEYS = [
+  'Encoded Body Size',
+  'Decoded Body Size',
+  'Transfer Size',
+  'http.response_content_length',
+  'http.decoded_response_content_length',
+  'http.response_transfer_size',
+];
 
 type TransactionResult = {
   id: string;
@@ -508,20 +515,18 @@ function SpanDetail(props: Props) {
                 <Row title={key} key={key}>
                   <Fragment>
                     <FileSize bytes={value} />
-                    {value >= 1024 && (
-                      <span>{` (${JSON.stringify(value, null, 4) || ''} B)`}</span>
-                    )}
+                    {value >= 1024 && <span>{` (${maybeStringify(value)} B)`}</span>}
                   </Fragment>
                 </Row>
               ))}
               {map(nonSizeKeys, (value, key) => (
                 <Row title={key} key={key}>
-                  {JSON.stringify(value, null, 4) || ''}
+                  {maybeStringify(value)}
                 </Row>
               ))}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
-                  {JSON.stringify(span[key], null, 4) || ''}
+                  {maybeStringify(span[key])}
                 </Row>
               ))}
             </tbody>
@@ -542,6 +547,13 @@ function SpanDetail(props: Props) {
       {renderSpanDetails()}
     </SpanDetailContainer>
   );
+}
+
+function maybeStringify(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  return JSON.stringify(value, null, 4);
 }
 
 const StyledDiscoverButton = styled(DiscoverButton)`

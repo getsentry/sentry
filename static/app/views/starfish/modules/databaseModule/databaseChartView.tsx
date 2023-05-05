@@ -1,21 +1,25 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import moment from 'moment';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {
+  useQueryDbOperations,
+  useQueryDbTables,
+  useQueryTopDbOperationsChart,
+  useQueryTopTablesChart,
+} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-const PERIOD_REGEX = /^(\d+)([h,d])$/;
 const INTERVAL = 12;
-const HOST = 'http://localhost:8080';
 
 type Props = {
   action: string;
@@ -43,126 +47,20 @@ function parseOptions(options, label) {
   ];
 }
 
-export default function APIModuleView({action, table, onChange}: Props) {
+export default function DatabaseChartView({action, table, onChange}: Props) {
   const pageFilter = usePageFilters();
-  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
-  const startTime =
-    num && unit
-      ? moment().subtract(num, unit as 'h' | 'd')
-      : moment(pageFilter.selection.datetime.start);
-  const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
-  const DATE_FILTERS = `
-    start_timestamp > fromUnixTimestamp(${startTime.unix()}) and
-    start_timestamp < fromUnixTimestamp(${endTime.unix()})
-  `;
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
+    pageFilter.selection.datetime
+  );
 
-  const OPERATION_QUERY = `
-  select
-    action as key,
-    uniq(description) as value
-  from default.spans_experimental_starfish
-  where
-    startsWith(span_operation, 'db') and
-    span_operation != 'db.redis' and
-    ${DATE_FILTERS} and
-    action != ''
-  group by action
-  order by -power(10, floor(log10(uniq(description)))), -quantile(0.75)(exclusive_time)
-  `;
-  const actionQuery = action !== 'ALL' ? `and action = '${action}'` : '';
-  const TABLE_QUERY = `
-  select
-    domain as key,
-    quantile(0.75)(exclusive_time) as value
-  from default.spans_experimental_starfish
-  where
-    startsWith(span_operation, 'db') and
-    span_operation != 'db.redis' and
-    ${DATE_FILTERS} and
-    action != ''
-    ${actionQuery}
-  group by domain
-  order by -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
-  `;
-  const ACTION_SUBQUERY = `
-        select action
-          from default.spans_experimental_starfish
-         where startsWith(span_operation, 'db') and
-              span_operation != 'db.redis' and
-              ${DATE_FILTERS} and
-              action != ''
-         group by action
-         order by -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
-         limit 5
-  `;
-  const TOP_QUERY = `
-  select floor(quantile(0.75)(exclusive_time), 5) as p75, action, count() as count,
-       toStartOfInterval(start_timestamp, INTERVAL ${INTERVAL} hour) as interval
-  from default.spans_experimental_starfish
- where
-    startsWith(span_operation, 'db') and
-    span_operation != 'db.redis' and
-    ${DATE_FILTERS} and
-    action in (${ACTION_SUBQUERY})
- group by action,
-          interval
- order by action,
-          interval
-  `;
-
-  const DOMAIN_SUBQUERY = `
-  select domain
-    from default.spans_experimental_starfish
-   where
-        startsWith(span_operation, 'db') and
-        span_operation != 'db.redis' and
-        ${DATE_FILTERS} and
-        domain != ''
-        ${actionQuery}
-   group by domain
-   order by -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
-   limit 5
-  `;
-  const TOP_TABLE_QUERY = `
-  select floor(quantile(0.75)(exclusive_time), 5) as p75, domain, count() as count,
-       toStartOfInterval(start_timestamp, INTERVAL ${INTERVAL} hour) as interval
-  from default.spans_experimental_starfish
- where
-      startsWith(span_operation, 'db') and
-      span_operation != 'db.redis' and
-      ${DATE_FILTERS} and
-      domain in (${DOMAIN_SUBQUERY})
-      ${actionQuery}
- group by interval,
-          domain
- order by interval,
-          domain
-  `;
-
-  const {data: operationData} = useQuery({
-    queryKey: ['operation', pageFilter.selection.datetime],
-    queryFn: () => fetch(`${HOST}/?query=${OPERATION_QUERY}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-  const {data: tableData} = useQuery({
-    queryKey: ['table', action, pageFilter.selection.datetime],
-    queryFn: () => fetch(`${HOST}/?query=${TABLE_QUERY}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-  const {isLoading: isTopGraphLoading, data: topGraphData} = useQuery({
-    queryKey: ['topGraph', pageFilter.selection.datetime],
-    queryFn: () => fetch(`${HOST}/?query=${TOP_QUERY}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-  const {isLoading: tableGraphLoading, data: tableGraphData} = useQuery({
-    queryKey: ['topTable', action, pageFilter.selection.datetime],
-    queryFn: () => fetch(`${HOST}/?query=${TOP_TABLE_QUERY}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
+  const {data: operationData} = useQueryDbOperations();
+  const {data: tableData} = useQueryDbTables(action);
+  const {isLoading: isTopGraphLoading, data: topGraphData} =
+    useQueryTopDbOperationsChart(INTERVAL);
+  const {isLoading: tableGraphLoading, data: tableGraphData} = useQueryTopTablesChart(
+    action,
+    INTERVAL
+  );
 
   const seriesByDomain: {[action: string]: Series} = {};
   const tpmByDomain: {[action: string]: Series} = {};
@@ -191,10 +89,20 @@ export default function APIModuleView({action, table, onChange}: Props) {
   }
 
   const topDomains = Object.values(seriesByDomain).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+    zeroFillSeries(
+      series,
+      moment.duration(INTERVAL, 'hours'),
+      moment(start_timestamp),
+      moment(end_timestamp)
+    )
   );
   const tpmDomains = Object.values(tpmByDomain).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+    zeroFillSeries(
+      series,
+      moment.duration(INTERVAL, 'hours'),
+      moment(start_timestamp),
+      moment(end_timestamp)
+    )
   );
 
   const tpmByQuery: {[query: string]: Series} = {};
@@ -225,10 +133,20 @@ export default function APIModuleView({action, table, onChange}: Props) {
   }
 
   const tpmData = Object.values(tpmByQuery).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+    zeroFillSeries(
+      series,
+      moment.duration(INTERVAL, 'hours'),
+      moment(start_timestamp),
+      moment(end_timestamp)
+    )
   );
   const topData = Object.values(seriesByQuery).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+    zeroFillSeries(
+      series,
+      moment.duration(INTERVAL, 'hours'),
+      moment(start_timestamp),
+      moment(end_timestamp)
+    )
   );
 
   return (
@@ -250,7 +168,6 @@ export default function APIModuleView({action, table, onChange}: Props) {
                 top: '16px',
                 bottom: '8px',
               }}
-              disableMultiAxis
               definedAxisTicks={4}
               isLineChart
               showLegend
@@ -273,7 +190,6 @@ export default function APIModuleView({action, table, onChange}: Props) {
                 top: '16px',
                 bottom: '8px',
               }}
-              disableMultiAxis
               definedAxisTicks={4}
               showLegend
               isLineChart
@@ -282,9 +198,9 @@ export default function APIModuleView({action, table, onChange}: Props) {
         </ChartsContainerItem>
       </ChartsContainer>
       <Selectors>
-        Operation:
         <CompactSelect
           value={action}
+          triggerProps={{prefix: t('Operation')}}
           options={parseOptions(operationData, 'query')}
           menuTitle="Operation"
           onChange={opt => onChange('action', opt.value)}
@@ -311,7 +227,6 @@ export default function APIModuleView({action, table, onChange}: Props) {
                     top: '16px',
                     bottom: '8px',
                   }}
-                  disableMultiAxis
                   definedAxisTicks={4}
                   isLineChart
                   showLegend
@@ -334,7 +249,6 @@ export default function APIModuleView({action, table, onChange}: Props) {
                     top: '16px',
                     bottom: '8px',
                   }}
-                  disableMultiAxis
                   definedAxisTicks={4}
                   showLegend
                   isLineChart
@@ -343,9 +257,9 @@ export default function APIModuleView({action, table, onChange}: Props) {
             </ChartsContainerItem>
           </ChartsContainer>
           <Selectors>
-            Table:
             <CompactSelect
               value={table}
+              triggerProps={{prefix: t('Table')}}
               options={parseOptions(tableData, 'p75')}
               menuTitle="Table"
               onChange={opt => onChange('table', opt.value)}

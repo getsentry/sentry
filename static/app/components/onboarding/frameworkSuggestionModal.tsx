@@ -17,7 +17,7 @@ import Radio from 'sentry/components/radio';
 import categoryList from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {OnboardingSelectedSDK, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -91,7 +91,6 @@ export function FrameworkSuggestionModal({
       framework: selectedFramework.key,
       organization,
     });
-
     onConfigure(selectedFramework);
     closeModal();
   }, [selectedPlatform, selectedFramework, organization, onConfigure, closeModal]);

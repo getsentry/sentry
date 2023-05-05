@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ObjectStatus
 from sentry.models import ScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
@@ -37,6 +38,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
             MONITOR_PARAMS.MONITOR_SLUG,
+            GLOBAL_PARAMS.ENVIRONMENT,
         ],
         responses={
             200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
@@ -99,11 +101,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         if "slug" in result:
             params["slug"] = result["slug"]
         if "status" in result:
-            if result["status"] == MonitorStatus.ACTIVE:
-                if monitor.status not in (MonitorStatus.OK, MonitorStatus.ERROR):
-                    params["status"] = MonitorStatus.ACTIVE
-            else:
-                params["status"] = result["status"]
+            params["status"] = result["status"]
         if "config" in result:
             params["config"] = result["config"]
         if "project" in result and result["project"].id != monitor.project_id:
@@ -166,14 +164,14 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     Monitor.objects.filter(id=monitor.id)
                     .exclude(
                         status__in=[
-                            MonitorStatus.PENDING_DELETION,
-                            MonitorStatus.DELETION_IN_PROGRESS,
+                            ObjectStatus.PENDING_DELETION,
+                            ObjectStatus.DELETION_IN_PROGRESS,
                         ]
                     )
                     .first()
                 )
             if not monitor_object or not monitor_object.update(
-                status=MonitorStatus.PENDING_DELETION
+                status=ObjectStatus.PENDING_DELETION
             ):
                 return self.respond(status=404)
 

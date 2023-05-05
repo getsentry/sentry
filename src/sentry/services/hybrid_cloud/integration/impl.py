@@ -1,17 +1,28 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
+from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import AppPlatformEvent
+from sentry.constants import SentryAppInstallationStatus
+from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.mixins import NotifyBasicMixin
+from sentry.integrations.msteams import MsTeamsClient
+from sentry.models import SentryApp, SentryAppInstallation
 from sentry.models.integrations import Integration, OrganizationIntegration
+from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
 from sentry.services.hybrid_cloud.integration import (
     IntegrationService,
     RpcIntegration,
     RpcOrganizationIntegration,
 )
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils import metrics
+from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -85,6 +96,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         status: int | None = None,
         providers: List[str] | None = None,
         org_integration_status: int | None = None,
+        organization_integration_id: Optional[int] = None,
         limit: int | None = None,
     ) -> List[RpcIntegration]:
         integration_kwargs: Dict[str, Any] = {}
@@ -98,6 +110,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration_kwargs["provider__in"] = providers
         if org_integration_status is not None:
             integration_kwargs["organizationintegration__status"] = org_integration_status
+        if organization_integration_id is not None:
+            integration_kwargs["organizationintegration__id"] = organization_integration_id
 
         if not integration_kwargs:
             return []
@@ -116,6 +130,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         provider: str | None = None,
         external_id: str | None = None,
         organization_id: int | None = None,
+        organization_integration_id: Optional[int] = None,
     ) -> RpcIntegration | None:
         integration_kwargs: Dict[str, Any] = {}
         if integration_id is not None:
@@ -126,12 +141,17 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration_kwargs["external_id"] = external_id
         if organization_id is not None:
             integration_kwargs["organizationintegration__organization_id"] = organization_id
+        if organization_integration_id is not None:
+            integration_kwargs["organizationintegration__id"] = organization_integration_id
 
         if not integration_kwargs:
             return None
 
-        integration = Integration.objects.filter(**integration_kwargs).first()
-        return self._serialize_integration(integration) if integration else None
+        try:
+            integration = Integration.objects.get(**integration_kwargs)
+        except Integration.DoesNotExist:
+            return None
+        return self._serialize_integration(integration)
 
     def get_organization_integrations(
         self,
@@ -303,3 +323,71 @@ class DatabaseBackedIntegrationService(IntegrationService):
             set_grace_period_end_null=set_grace_period_end_null,
         )
         return self._serialize_organization_integration(ois[0]) if len(ois) > 0 else None
+
+    def send_incident_alert_notification(
+        self,
+        *,
+        sentry_app_id: int,
+        action_id: int,
+        incident_id: int,
+        organization: RpcOrganizationSummary,
+        new_status: int,
+        incident_attachment: Mapping[str, str],
+        metric_value: Optional[str] = None,
+    ) -> None:
+        sentry_app = SentryApp.objects.get(id=sentry_app_id)
+
+        metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
+
+        try:
+            install = SentryAppInstallation.objects.get(
+                organization_id=organization.id,
+                sentry_app=sentry_app,
+                status=SentryAppInstallationStatus.INSTALLED,
+            )
+        except SentryAppInstallation.DoesNotExist:
+            logger.info(
+                "metric_alert_webhook.missing_installation",
+                extra={
+                    "action": action_id,
+                    "incident": incident_id,
+                    "organization": organization.slug,
+                    "sentry_app_id": sentry_app.id,
+                },
+                exc_info=True,
+            )
+            return None
+
+        app_platform_event = AppPlatformEvent(
+            resource="metric_alert",
+            action=INCIDENT_STATUS[IncidentStatus(new_status)].lower(),
+            install=install,
+            data=incident_attachment,
+        )
+
+        # Can raise errors if client returns >= 400
+        send_and_save_webhook_request(
+            sentry_app,
+            app_platform_event,
+        )
+
+        # On success, record analytic event for Metric Alert Rule UI Component
+        alert_rule_action_ui_component = find_alert_rule_action_ui_component(app_platform_event)
+
+        if alert_rule_action_ui_component:
+            analytics.record(
+                "alert_rule_ui_component_webhook.sent",
+                organization_id=organization.id,
+                sentry_app_id=sentry_app.id,
+                event=f"{app_platform_event.resource}.{app_platform_event.action}",
+            )
+
+    def send_msteams_incident_alert_notification(
+        self, *, integration_id: int, channel: Optional[str], attachment: Dict[str, Any]
+    ) -> None:
+        integration = Integration.objects.get(id=integration_id)
+        client = MsTeamsClient(integration)
+        try:
+            client.send_card(channel, attachment)
+        except ApiError:
+            logger.info("rule.fail.msteams_post", exc_info=True)

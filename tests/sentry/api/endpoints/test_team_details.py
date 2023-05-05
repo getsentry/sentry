@@ -27,7 +27,7 @@ class TeamDetailsTestBase(APITestCase):
             event=audit_log.get_event_id("TEAM_REMOVE"), target_object=team.id
         )
 
-        if status == TeamStatus.VISIBLE:
+        if status == TeamStatus.ACTIVE:
             assert not deleted_team
             assert not audit_log_entry
             assert not ScheduledDeletion.objects.filter(
@@ -54,7 +54,7 @@ class TeamDetailsTestBase(APITestCase):
         Checks team status, membership in DeletedTeams table, org
         audit log, and to see that delete function has not been called.
         """
-        self.assert_team_status(team_id, TeamStatus.VISIBLE)
+        self.assert_team_status(team_id, TeamStatus.ACTIVE)
 
 
 @region_silo_test

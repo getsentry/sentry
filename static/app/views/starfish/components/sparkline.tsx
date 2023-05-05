@@ -5,15 +5,18 @@ import ReactEChartsCore from 'echarts-for-react/lib/core';
 
 import {Series} from 'sentry/types/echarts';
 
-export const HOST = 'http://localhost:8080';
-
 type SparklineProps = {
   series: Series;
   color?: string | string[];
+  width?: number;
 };
 
-export default function Sparkline({series, color}: SparklineProps) {
+export default function Sparkline({series, width, color}: SparklineProps) {
   echarts.use([LineChart, SVGRenderer]);
+
+  if (!series.data) {
+    return null;
+  }
 
   const valueSeries = {
     data: series.data.map(datum => datum.value),
@@ -47,7 +50,7 @@ export default function Sparkline({series, color}: SparklineProps) {
       notMerge
       style={{
         height: 25,
-        width: 300,
+        width: width ?? 200,
       }}
       lazyUpdate
       theme="theme_name"

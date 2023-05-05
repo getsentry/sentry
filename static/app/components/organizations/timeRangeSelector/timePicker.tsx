@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   onChangeEnd: (event: React.ChangeEvent<HTMLInputElement>) => void;

@@ -235,7 +235,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def remove_for_user(self, user: User, type: NotificationSettingTypes | None = None) -> None:
         """Bulk delete all Notification Settings for a USER, optionally by type."""
-        self._filter(target_ids=[user.actor_id], type=type).delete()
+        self._filter(target_ids=[get_actor_id_for_user(user)], type=type).delete()
 
     def remove_for_team(
         self,
@@ -332,7 +332,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 scope_identifier__in=team_ids,
             ),
             type=type_.value,
-            target__in=actor_ids,
+            target_id__in=actor_ids,
         )
 
     def filter_to_accepting_recipients(

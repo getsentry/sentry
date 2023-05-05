@@ -1,6 +1,8 @@
+import {ReactElement} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
+import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import Duration from 'sentry/components/duration';
@@ -9,16 +11,29 @@ import GridEditable, {
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {Series} from 'sentry/types/echarts';
+import Sparkline from 'sentry/views/starfish/components/sparkline';
+import {HOST} from 'sentry/views/starfish/utils/constants';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
-import {getEndpointListQuery} from './queries';
-
-export const HOST = 'http://localhost:8080';
+import {getEndpointListQuery, getEndpointsThroughputQuery} from './queries';
 
 type Props = {
-  filterOptions: {action: string; datetime: DateTimeObject; domain: string};
+  filterOptions: {
+    action: string;
+    datetime: DateTimeObject;
+    domain: string;
+    transaction: string;
+  };
   location: Location;
   onSelect: (row: EndpointDataRow) => void;
+  columns?: {
+    key: string;
+    name: string;
+    width: number;
+  }[];
 };
 
 export type DataRow = {
@@ -35,9 +50,9 @@ const COLUMN_ORDER = [
     width: 600,
   },
   {
-    key: 'tpm',
-    name: 'tpm',
-    width: COL_WIDTH_UNDEFINED,
+    key: 'throughput',
+    name: 'throughput',
+    width: 200,
   },
   {
     key: 'p50(exclusive_time)',
@@ -61,7 +76,12 @@ const COLUMN_ORDER = [
   },
 ];
 
-export default function EndpointTable({location, onSelect, filterOptions}: Props) {
+export default function EndpointTable({
+  location,
+  onSelect,
+  filterOptions,
+  columns,
+}: Props) {
   const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
     queryKey: ['endpoints', filterOptions],
     queryFn: () =>
@@ -72,11 +92,43 @@ export default function EndpointTable({location, onSelect, filterOptions}: Props
     initialData: [],
   });
 
+  const {isLoading: isEndpointsThroughputLoading, data: endpointsThroughputData} =
+    useQuery({
+      queryKey: ['endpointsThroughput', filterOptions],
+      queryFn: () =>
+        fetch(`${HOST}/?query=${getEndpointsThroughputQuery(filterOptions)}`).then(res =>
+          res.json()
+        ),
+      retry: false,
+      initialData: [],
+    });
+
+  const throughputGroupedByURL = {};
+  endpointsThroughputData.forEach(({description, interval, count}) => {
+    if (description in throughputGroupedByURL) {
+      throughputGroupedByURL[description].push({name: interval, value: count});
+    } else {
+      throughputGroupedByURL[description] = [{name: interval, value: count}];
+    }
+  });
+
+  const combinedEndpointData = endpointsData.map(data => {
+    const url = data.description;
+
+    const throughputSeries: Series = {
+      seriesName: 'throughput',
+      data: throughputGroupedByURL[url],
+    };
+
+    const zeroFilled = zeroFillSeries(throughputSeries, moment.duration(12, 'hours'));
+    return {...data, throughput: zeroFilled};
+  });
+
   return (
     <GridEditable
-      isLoading={areEndpointsLoading}
-      data={endpointsData}
-      columnOrder={COLUMN_ORDER}
+      isLoading={areEndpointsLoading || isEndpointsThroughputLoading}
+      data={combinedEndpointData}
+      columnOrder={columns ?? COLUMN_ORDER}
       columnSortBy={[]}
       grid={{
         renderHeadCell,
@@ -89,6 +141,14 @@ export default function EndpointTable({location, onSelect, filterOptions}: Props
 }
 
 export function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+  if (column.key === 'throughput') {
+    return (
+      <TextAlignLeft>
+        <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
+      </TextAlignLeft>
+    );
+  }
+
   // TODO: come up with a better way to identify number columns to align to the right
   if (
     column.key.toString().match(/^p\d\d/) ||
@@ -118,23 +178,41 @@ export function renderBodyCell(
     );
   }
 
-  // TODO: come up with a better way to identify number columns to align to the right
-  if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
+  if (column.key === 'throughput') {
     return (
-      <TextAlignRight>
-        <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />
-      </TextAlignRight>
-    );
-  }
-  if (!['description', 'transaction'].includes(column.key.toString())) {
-    return (
-      <TextAlignRight>
-        <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
-      </TextAlignRight>
+      <Sparkline
+        color={CHART_PALETTE[3][0]}
+        series={row[column.key]}
+        width={column.width ? column.width - column.width / 5 : undefined}
+      />
     );
   }
 
-  return <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>;
+  // TODO: come up with a better way to identify number columns to align to the right
+  let node: ReactElement | null = null;
+  if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
+    node = <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
+  } else if (!['description', 'transaction'].includes(column.key.toString())) {
+    node = (
+      <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
+    );
+  } else {
+    node = (
+      <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
+    );
+  }
+
+  const isNumericColumn =
+    column.key === 'total_exclusive_time' ||
+    column.key === 'user_count' ||
+    column.key === 'transaction_count' ||
+    column.key.toString().match(/^p\d\d/);
+
+  if (isNumericColumn) {
+    return <TextAlignRight>{node}</TextAlignRight>;
+  }
+
+  return <TextAlignLeft>{node}</TextAlignLeft>;
 }
 
 export const OverflowEllipsisTextContainer = styled('span')`
@@ -145,5 +223,10 @@ export const OverflowEllipsisTextContainer = styled('span')`
 
 export const TextAlignRight = styled('span')`
   text-align: right;
+  width: 100%;
+`;
+
+export const TextAlignLeft = styled('span')`
+  text-align: left;
   width: 100%;
 `;

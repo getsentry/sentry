@@ -1,13 +1,22 @@
-import {CSSProperties, isValidElement, memo, MouseEvent, useCallback} from 'react';
+import {
+  CSSProperties,
+  isValidElement,
+  memo,
+  MouseEvent,
+  useCallback,
+  useMemo,
+} from 'react';
 import styled from '@emotion/styled';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ObjectInspector from 'sentry/components/objectInspector';
 import {PanelItem} from 'sentry/components/panels';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import type {Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+import useProjects from 'sentry/utils/useProjects';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
@@ -57,7 +66,7 @@ function BreadcrumbItem({
   startTimestampMs,
   style,
 }: Props) {
-  const {title, description} = getDetails(crumb);
+  const {title, description, projectSlug} = getDetails(crumb);
 
   const handleMouseEnter = useCallback(
     (e: React.MouseEvent<HTMLElement>) => onMouseEnter && onMouseEnter(crumb, e),
@@ -121,10 +130,35 @@ function BreadcrumbItem({
             />
           </InspectorWrapper>
         )}
+        {crumb.type === BreadcrumbType.ERROR && projectSlug && (
+          <CrumbProject projectSlug={projectSlug} />
+        )}
       </CrumbDetails>
     </CrumbItem>
   );
 }
+
+function CrumbProject({projectSlug}: {projectSlug: string}) {
+  const {projects} = useProjects();
+  const project = useMemo(
+    () => projects.find(p => p.slug === projectSlug),
+    [projects, projectSlug]
+  );
+  if (!project) {
+    return <CrumbProjectBadgeWrapper>{projectSlug}</CrumbProjectBadgeWrapper>;
+  }
+  return (
+    <CrumbProjectBadgeWrapper>
+      <ProjectBadge project={project} avatarSize={16} disableLink />
+    </CrumbProjectBadgeWrapper>
+  );
+}
+
+const CrumbProjectBadgeWrapper = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  margin-top: ${space(0.25)};
+`;
 
 const InspectorWrapper = styled('div')`
   font-family: ${p => p.theme.text.familyMono};

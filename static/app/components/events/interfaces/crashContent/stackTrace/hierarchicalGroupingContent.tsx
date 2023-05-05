@@ -7,7 +7,7 @@ import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {Frame, Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
+import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
 import Line from '../../frame/line';
@@ -28,7 +28,6 @@ type Props = {
   includeSystemFrames?: boolean;
   isHoverPreviewed?: boolean;
   maxDepth?: number;
-  mechanism?: StackTraceMechanism | null;
   meta?: Record<any, any>;
   newestFirst?: boolean;
 };
@@ -47,7 +46,6 @@ export function HierarchicalGroupingContent({
   hideIcon,
   includeSystemFrames = true,
   expandFirstFrame = true,
-  mechanism,
 }: Props) {
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
   const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
@@ -207,8 +205,6 @@ export function HierarchicalGroupingContent({
             frameMeta: meta?.frames?.[frameIndex],
             registersMeta: meta?.registers,
             debugFrames,
-            mechanism,
-            isNewestFrame: frameIndex === lastFrameIndex,
           };
 
           nRepeats = 0;

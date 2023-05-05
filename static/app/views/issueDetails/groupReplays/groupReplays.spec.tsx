@@ -107,7 +107,6 @@ describe('GroupReplays', () => {
               returnIds: true,
               query: `issue.id:[${mockGroup.id}]`,
               statsPeriod: '14d',
-              project: '2',
             },
           })
         );

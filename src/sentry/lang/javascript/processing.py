@@ -9,6 +9,8 @@ from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import EventError
 from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.utils import metrics
+from sentry.utils.http import get_origins
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -51,6 +53,10 @@ def _merge_frame(new_frame, symbolicated):
     if data_sourcemap := get_path(symbolicated, "data", "sourcemap"):
         frame_meta = new_frame.setdefault("data", {})
         frame_meta["sourcemap"] = data_sourcemap
+    if symbolicated.get("module"):
+        new_frame["module"] = symbolicated["module"]
+    if symbolicated.get("in_app") is not None:
+        new_frame["in_app"] = symbolicated["in_app"]
     # if symbolicated.get("status"):
     # NOTE: We don't need this currently, and it's not clear whether we'll use it at all.
     # frame_meta["symbolicator_status"] = symbolicated["status"]
@@ -110,6 +116,8 @@ def map_symbolicator_process_js_errors(errors):
             mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
         elif ty == "missing_sourcemap" and not should_skip_missing_source_error(abs_path):
             mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
+        elif ty == "scraping_disabled":
+            mapped_errors.append({"type": EventError.JS_SCRAPING_DISABLED, "url": abs_path})
         elif ty == "malformed_sourcemap":
             mapped_errors.append({"type": EventError.JS_INVALID_SOURCEMAP, "url": error["url"]})
         elif ty == "missing_source_content":
@@ -146,6 +154,22 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
     allow_scraping = allow_scraping_org_level and allow_scraping_project_level
 
+    allowed_origins = []
+    scraping_headers = {}
+    if allow_scraping:
+        allowed_origins = list(get_origins(project))
+
+        token = project.get_option("sentry:token")
+        if token:
+            token_header = project.get_option("sentry:token_header") or "X-Sentry-Token"
+            scraping_headers[token_header] = token
+
+    scraping_config = {
+        "enabled": allow_scraping,
+        "headers": scraping_headers,
+        "allowed_origins": allowed_origins,
+    }
+
     modules = sourcemap_images_from_data(data)
 
     stacktrace_infos = find_stacktraces_in_data(data)
@@ -160,7 +184,10 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         for sinfo in stacktrace_infos
     ]
 
+    metrics.incr("sourcemaps.symbolicator.events")
+
     if not any(stacktrace["frames"] for stacktrace in stacktraces):
+        metrics.incr("sourcemaps.symbolicator.events.skipped")
         return
 
     response = symbolicator.process_js(
@@ -168,7 +195,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         modules=modules,
         release=data.get("release"),
         dist=data.get("dist"),
-        allow_scraping=allow_scraping,
+        scraping_config=scraping_config,
     )
 
     if not _handle_response_status(data, response):

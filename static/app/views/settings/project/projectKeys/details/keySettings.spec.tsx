@@ -19,7 +19,7 @@ describe('Key Settings', function () {
       keyId: '1',
     };
 
-    const {organization} = initializeOrg({
+    const {organization, project} = initializeOrg({
       ...initializeOrg(),
       organization: {
         ...initializeOrg().organization,
@@ -39,12 +39,13 @@ describe('Key Settings', function () {
         data={data}
         onRemove={jest.fn()}
         organization={organization}
+        project={project}
         params={params}
       />
     );
 
     // Panel title
-    expect(screen.getByText('JavaScript Loader')).toBeInTheDocument();
+    expect(screen.getByText('JavaScript Loader Script')).toBeInTheDocument();
 
     // SDK loader options
     for (const key of Object.keys(sdkLoaderOptions)) {

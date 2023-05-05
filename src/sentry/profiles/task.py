@@ -287,9 +287,15 @@ def symbolicate(
 ) -> Any:
     if profile["platform"] in ["javascript", "node"]:
         return process_js_stacktraces(
-            symbolicator=symbolicator, profile=profile, modules=modules, stacktraces=stacktraces
+            symbolicator=symbolicator,
+            profile=profile,
+            modules=modules,
+            stacktraces=stacktraces,
+            apply_source_context=False,
         )
-    return symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
+    return symbolicator.process_payload(
+        stacktraces=stacktraces, modules=modules, apply_source_context=False
+    )
 
 
 @metrics.wraps("process_profile.symbolicate.request")

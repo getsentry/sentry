@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment';
+import * as qs from 'query-string';
 
 import Duration from 'sentry/components/duration';
 import GridEditable, {
@@ -10,20 +11,22 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
-import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
 import {
   OverflowEllipsisTextContainer,
   renderHeadCell,
-  TextAlignRight,
+  TextAlignLeft,
 } from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {
   getEndpointDetailSeriesQuery,
   getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
+import {HOST} from 'sentry/views/starfish/utils/constants';
+import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 export type EndpointDataRow = {
@@ -81,17 +84,18 @@ export default function EndpointDetail({
 }
 
 function EndpointDetailBody({row}: EndpointDetailBodyProps) {
+  const pageFilter = usePageFilters();
   const location = useLocation();
   const seriesQuery = getEndpointDetailSeriesQuery({
     description: null,
     transactionName: null,
-    datetime: null,
+    datetime: pageFilter.selection.datetime,
     groupId: row.group_id,
   });
   const tableQuery = getEndpointDetailTableQuery({
     description: null,
     transactionName: null,
-    datetime: null,
+    datetime: pageFilter.selection.datetime,
     groupId: row.group_id,
   });
   const {isLoading: seriesIsLoading, data: seriesData} = useQuery({
@@ -106,9 +110,17 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
     retry: false,
     initialData: [],
   });
+
+  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
+  const startTime =
+    num && unit
+      ? moment().subtract(num, unit as 'h' | 'd')
+      : moment(pageFilter.selection.datetime.start);
+  const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
+
   const [p50Series, p95Series, countSeries, _errorCountSeries, errorRateSeries] =
     endpointDetailDataToChartData(seriesData).map(series =>
-      zeroFillSeries(series, moment.duration(12, 'hours'))
+      zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
     );
 
   return (
@@ -204,9 +216,7 @@ function renderBodyCell(
     return (
       <OverflowEllipsisTextContainer>
         <Link
-          to={`/starfish/span/${encodeURIComponent(groupId)}:${encodeURIComponent(
-            row.transaction
-          )}`}
+          to={`/starfish/span/${groupId}?${qs.stringify({transaction: row.transaction})}`}
         >
           {row[column.key]}
         </Link>
@@ -214,19 +224,18 @@ function renderBodyCell(
     );
   }
 
-  // TODO: come up with a better way to identify number columns to align to the right
   if (column.key.toString().match(/^p\d\d/)) {
     return (
-      <TextAlignRight>
+      <TextAlignLeft>
         <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />
-      </TextAlignRight>
+      </TextAlignLeft>
     );
   }
   if (!['description', 'transaction'].includes(column.key.toString())) {
     return (
-      <TextAlignRight>
+      <TextAlignLeft>
         <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
-      </TextAlignRight>
+      </TextAlignLeft>
     );
   }
 
@@ -273,7 +282,6 @@ function APIDetailChart(props: {
       end=""
       loading={props.isLoading}
       utc={false}
-      disableMultiAxis
       stacked
       isLineChart
       disableXAxis
