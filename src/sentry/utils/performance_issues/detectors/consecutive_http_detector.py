@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
@@ -36,6 +36,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             self.lcp = lcp_value
 
     def visit_span(self, span: Span) -> None:
+        if is_event_from_browser_javascript_sdk(self.event()):
+            return
+
         span_id = span.get("span_id", None)
 
         if not span_id or not self._is_eligible_http_span(span):
@@ -68,20 +71,10 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             for idx in range(1, len(self.consecutive_http_spans))
         )
 
-        exceeds_min_lcp_threshold = (
-            self.lcp is not None
-            and self.lcp > 0
-            and self._sum_span_duration(self.consecutive_http_spans) / self.lcp
-            >= self.settings.get("lcp_ratio_threshold")
-            if is_event_from_browser_javascript_sdk(self.event())
-            else True
-        )
-
         if (
             exceeds_count_threshold
             and exceeds_span_duration_threshold
             and exceeds_duration_between_spans_threshold
-            and exceeds_min_lcp_threshold
         ):
             self._store_performance_problem()
 
@@ -146,22 +139,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if any([x in description for x in ["_next/static/", "_next/data/"]]):
             return False
 
-        # If the event is from a JS SDK and the span ends after the LCP, we ignore it
-        # because it won't be a candidate for improving LCP
-        if is_event_from_browser_javascript_sdk(self.event()) and self._span_occurs_after_lcp(span):
-            return False
-
         return True
-
-    def _span_occurs_after_lcp(self, span):
-        if self.lcp is None:
-            return True
-
-        span_end = datetime.fromtimestamp(span.get("timestamp"))
-        lcp_timestamp = datetime.fromtimestamp(self._event.get("start_timestamp")) + timedelta(
-            milliseconds=self.lcp
-        )
-        return span_end > lcp_timestamp
 
     def _fingerprint(self) -> str:
         hashed_url_paths = fingerprint_http_spans(self.consecutive_http_spans)
