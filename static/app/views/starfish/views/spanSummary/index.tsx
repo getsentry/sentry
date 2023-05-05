@@ -71,6 +71,7 @@ const COLUMN_ORDER = [
 
 type SpanTableRow = {
   exclusive_time: number;
+  'project.name': string;
   spanDuration: number;
   spanOp: string;
   span_id: string;
@@ -159,7 +160,7 @@ export default function SpanSummary({location, params}: Props) {
     data: {data: Transaction[]};
   }>(
     [
-      `/organizations/sentry/events/?field=id&field=timestamp&field=transaction.duration&query=id:[${spanSampleData
+      `/organizations/sentry/events/?field=id&field=timestamp&field=transaction.duration&field=project.name&query=id:[${spanSampleData
         .map(datum => datum.transaction_id.replaceAll('-', ''))
         .join(
           ','
@@ -185,6 +186,7 @@ export default function SpanSummary({location, params}: Props) {
 
     return {
       transaction_id: datum.transaction_id,
+      'project.name': transaction?.['project.name'],
       span_id: datum.span_id,
       timestamp: transaction?.timestamp,
       spanOp: datum.span_operation,
@@ -409,7 +411,7 @@ function renderBodyCell(
   if (column.key === 'transaction_id') {
     return (
       <Link
-        to={`/performance/sentry:${row.transaction_id}#span-${row.span_id
+        to={`/performance/${row['project.name']}:${row.transaction_id}#span-${row.span_id
           .slice(19)
           .replace('-', '')}`}
       >
