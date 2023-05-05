@@ -1,5 +1,8 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import getOutputType, {
   Output,
@@ -21,9 +24,21 @@ import {
 type Props = Parameters<typeof getOutputType>[0] & SectionProps;
 
 export default function NetworkDetailsContent(props: Props) {
-  const {visibleTab} = props;
+  const {item, visibleTab} = props;
 
   const output = getOutputType(props);
+
+  const organization = useOrganization();
+  useEffect(() => {
+    trackAnalytics('replay.details-network-tab-changed', {
+      organization,
+      output,
+      resource_method: item.data.method,
+      resource_status: item.data.statusCode,
+      resource_type: item.op,
+      tab: visibleTab,
+    });
+  }, [item, organization, output, visibleTab]);
 
   switch (visibleTab) {
     case 'request':

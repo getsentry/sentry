@@ -1,9 +1,23 @@
 import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
+import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
 
 export type ReplayEventParameters = {
   'replay.details-layout-changed': {
     chosen_layout: LayoutKey;
     default_layout: LayoutKey;
+  };
+  'replay.details-network-panel-closed': {};
+  'replay.details-network-panel-opened': {
+    resource_method: string;
+    resource_status: string;
+    resource_type: string;
+  };
+  'replay.details-network-tab-changed': {
+    output: Output;
+    resource_method: string;
+    resource_status: string;
+    resource_type: string;
+    tab: string;
   };
   'replay.details-resized-panel': {
     layout: LayoutKey;
@@ -59,6 +73,9 @@ export type ReplayEventKey = keyof ReplayEventParameters;
 
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-layout-changed': 'Changed Replay Details Layout',
+  'replay.details-network-panel-closed': 'Closed Replay Network Details Panel',
+  'replay.details-network-panel-opened': 'Opened Replay Network Details Panel',
+  'replay.details-network-tab-changed': 'Changed Replay Network Details Tab',
   'replay.details-resized-panel': 'Resized Replay Details Panel',
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
