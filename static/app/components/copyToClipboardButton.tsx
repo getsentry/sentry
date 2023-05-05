@@ -1,5 +1,4 @@
 import {ComponentProps, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Button, ButtonProps} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
@@ -46,7 +45,7 @@ export function CopyToClipboardButton({
       }}
       value={text}
     >
-      <CopyButton
+      <Button
         aria-label={t('Copy')}
         size={props.size || 'xs'}
         title={tooltipTitle}
@@ -58,12 +57,8 @@ export function CopyToClipboardButton({
           setTooltipState('copy');
           onMouseLeave?.(e);
         }}
-        icon={<IconCopy size={iconSize || props.size || 'xs'} />}
+        icon={<IconCopy size={iconSize || props.size || 'xs'} color="subText" />}
       />
     </Clipboard>
   );
 }
-
-const CopyButton = styled(Button)`
-  color: ${p => p.theme.subText};
-`;
