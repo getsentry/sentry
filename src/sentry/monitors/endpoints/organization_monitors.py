@@ -2,7 +2,6 @@ from typing import List
 
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
-from rest_framework import status
 
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
@@ -20,17 +19,8 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.query import in_iexact
-from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
-from sentry.models import (
-    Environment,
-    Organization,
-    RuleActivity,
-    RuleActivityType,
-    RuleSource,
-    Team,
-    User,
-)
+from sentry.models import Environment, Organization, RuleActivity, RuleActivityType, RuleSource
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
@@ -42,7 +32,6 @@ from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResp
 from sentry.monitors.utils import get_alert_rule, signal_first_monitor_created
 from sentry.monitors.validators import MonitorValidator
 from sentry.search.utils import tokenize_query
-from sentry.tasks.integrations.slack import find_channel_id_for_rule
 
 from .base import OrganizationMonitorPermission
 
@@ -258,22 +247,6 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
                     "frequency": data.get("frequency"),
                     "user_id": request.user.id,
                 }
-                owner = data.get("owner")
-                if owner:
-                    try:
-                        kwargs["owner"] = owner.resolve_to_actor().id
-                    except (User.DoesNotExist, Team.DoesNotExist):
-                        return Response(
-                            "Could not resolve owner",
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-
-                if data.get("pending_save"):
-                    client = RedisRuleStatus()
-                    uuid_context = {"uuid": client.uuid}
-                    kwargs.update(uuid_context)
-                    find_channel_id_for_rule.apply_async(kwargs=kwargs)
-                    return Response(uuid_context, status=202)
 
                 rule = project_rules.Creator.run(request=request, **kwargs)
                 rule.update(source=RuleSource.CRON_MONITOR)
