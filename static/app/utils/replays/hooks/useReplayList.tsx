@@ -11,13 +11,19 @@ type Options = {
   eventView: EventView;
   location: Location<ReplayListLocationQuery>;
   organization: Organization;
+  queryReferrer?: 'issueReplays';
 };
 
 type State = Awaited<ReturnType<typeof fetchReplayList>> & {isFetching: boolean};
 
 type Result = State;
 
-function useReplayList({eventView, location, organization}: Options): Result {
+function useReplayList({
+  eventView,
+  location,
+  organization,
+  queryReferrer,
+}: Options): Result {
   const api = useApi();
 
   const [data, setData] = useState<State>({
@@ -38,10 +44,11 @@ function useReplayList({eventView, location, organization}: Options): Result {
       organization,
       location,
       eventView,
+      queryReferrer,
     });
 
     setData({...response, isFetching: false});
-  }, [api, organization, location, eventView]);
+  }, [api, organization, location, eventView, queryReferrer]);
 
   useEffect(() => {
     loadReplays();
