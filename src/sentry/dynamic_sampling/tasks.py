@@ -214,7 +214,7 @@ def adjust_sample_rates(
 
     # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
     if sample_rate is None:
-        return  # type:ignore
+        return
 
     projects = []
     for project_id, count_per_root, count_keep, count_drop in projects_with_tx_count:
