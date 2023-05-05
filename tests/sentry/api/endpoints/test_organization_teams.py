@@ -91,7 +91,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert len(response.data[0]["externalTeams"]) == 1
         assert response.data[0]["externalTeams"][0] == {
             "id": str(self.external_team.id),
-            "integrationId": str(self.external_team.integration.id),
+            "integrationId": str(self.external_team.integration_id),
             "provider": get_provider_string(self.external_team.provider),
             "externalName": self.external_team.external_name,
             "teamId": str(self.team.id),
