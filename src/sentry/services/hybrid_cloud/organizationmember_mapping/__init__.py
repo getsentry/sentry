@@ -71,12 +71,18 @@ class OrganizationMemberMappingService(RpcService):
     ) -> RpcOrganizationMemberMapping:
         pass
 
-    @rpc_method
-    @abstractmethod
     def create_with_organization_member(
         self, *, org_member: OrganizationMember
     ) -> RpcOrganizationMemberMapping:
-        pass
+        return self.create_mapping(
+            organizationmember_id=org_member.id,
+            organization_id=org_member.organization_id,
+            role=org_member.role,
+            user_id=org_member.user_id,
+            email=org_member.email,
+            inviter_id=org_member.inviter_id,
+            invite_status=org_member.invite_status,
+        )
 
     @rpc_method
     @abstractmethod

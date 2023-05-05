@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.conf import settings
 from django.db import models
 
@@ -126,6 +127,15 @@ class NotificationSetting(Model):
         "type_str",
         "value_str",
     )
+
+    def save(self, *args, **kwargs):
+        try:
+            assert (
+                self.user_id is not None and self.team_id is not None
+            ), "Notification setting missing user & team"
+        except AssertionError as err:
+            sentry_sdk.capture_exception(err)
+        super().save(*args, **kwargs)
 
 
 # REQUIRED for migrations to run

@@ -3,7 +3,7 @@ import {RouteContextInterface} from 'react-router';
 import {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import {Category} from 'sentry/components/platformPicker';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {Organization, PlatformIntegration, Project} from 'sentry/types';
+import {Group, Organization, PlatformIntegration, Project} from 'sentry/types';
 
 import type {AvatarUser} from './user';
 
@@ -139,4 +139,13 @@ export type OnboardingSelectedSDK = {
   key: PlatformKey;
   language: PlatformIntegration['language'];
   type: PlatformIntegration['type'];
+};
+
+export type OnboardingRecentCreatedProject = Project & {
+  firstError: boolean;
+  firstTransaction: boolean;
+  hasReplays: boolean;
+  hasSessions: boolean;
+  olderThanOneHour: boolean;
+  firstIssue?: Group;
 };
