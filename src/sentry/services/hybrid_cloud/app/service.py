@@ -115,7 +115,7 @@ class AppService(RpcService):
     @abc.abstractmethod
     def trigger_sentry_app_action_creators(
         self, *, fields: List[Mapping[str, Any]], install_uuid: Optional[str]
-    ) -> AlertRuleActionResult:
+    ) -> "AlertRuleActionResult":
         pass
 
 
