@@ -54,7 +54,7 @@ from sentry.utils import json
 
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
-    ObjectStatus.HIDDEN: "deleted",
+    ObjectStatus.DISABLED: "deleted",
     ObjectStatus.PENDING_DELETION: "deleted",
     ObjectStatus.DELETION_IN_PROGRESS: "deleted",
 }
