@@ -1,5 +1,6 @@
 import datetime
 import logging
+from copy import deepcopy
 from typing import Dict, Mapping, Optional
 
 import msgpack
@@ -77,7 +78,11 @@ def _ensure_monitor_with_config(
 
     # Update existing monitor
     if monitor and not created and monitor.config != validated_config:
-        monitor.update(config=validated_config)
+        monitor_config = deepcopy(monitor.config)
+        # Only update keys that were specified in the payload
+        for key in config.keys():
+            monitor_config[key] = validated_config[key]
+        monitor.update(config=monitor_config)
 
     return monitor
 
