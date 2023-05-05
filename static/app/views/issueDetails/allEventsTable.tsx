@@ -8,12 +8,11 @@ import {
   profiling as PROFILING_PLATFORMS,
 } from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {EventTransaction, Group, IssueCategory, Organization} from 'sentry/types';
+import {Group, IssueCategory, Organization} from 'sentry/types';
 import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {platformToCategory} from 'sentry/utils/platform';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
@@ -25,10 +24,6 @@ export interface Props {
   excludedTags?: string[];
 }
 
-const makeGroupPreviewRequestUrl = ({groupId}: {groupId: string}) => {
-  return `/issues/${groupId}/events/latest/`;
-};
-
 function AllEventsTable(props: Props) {
   const {location, organization, issueId, excludedTags, group} = props;
   const config = getConfigForIssueType(props.group);
@@ -36,25 +31,8 @@ function AllEventsTable(props: Props) {
   const routes = useRoutes();
   const {fields, columnTitles} = getColumns(group, organization);
 
-  const endpointUrl = makeGroupPreviewRequestUrl({
-    groupId: group.id,
-  });
-
-  const {data, isLoading, isLoadingError} = useApiQuery<EventTransaction>([endpointUrl], {
-    staleTime: 60000,
-    enabled: group.issueCategory === IssueCategory.PERFORMANCE,
-  });
-
-  // TODO: this is a temporary way to check whether
-  // perf issue is backed by occurrences or transactions
-  // Once migration to the issue platform is complete a call to /latest should be removed
-  const groupIsOccurrenceBacked = !!data?.occurrence;
-
   const eventView: EventView = EventView.fromLocation(props.location);
-  if (
-    config.usesIssuePlatform ||
-    (group.issueCategory === IssueCategory.PERFORMANCE && groupIsOccurrenceBacked)
-  ) {
+  if (config.usesIssuePlatform) {
     eventView.dataset = DiscoverDatasets.ISSUE_PLATFORM;
   }
   eventView.fields = fields.map(fieldName => ({field: fieldName}));
@@ -70,17 +48,15 @@ function AllEventsTable(props: Props) {
   }
 
   const idQuery =
-    group.issueCategory === IssueCategory.PERFORMANCE && !groupIsOccurrenceBacked
+    group.issueCategory === IssueCategory.PERFORMANCE
       ? `performance.issue_ids:${issueId} event.type:transaction`
       : `issue.id:${issueId}`;
   eventView.project = [parseInt(group.project.id, 10)];
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
   eventView.statsPeriod = '90d';
 
-  if (error || isLoadingError) {
-    return (
-      <LoadingError message={error || isLoadingError} onRetry={() => setError('')} />
-    );
+  if (error) {
+    return <LoadingError message={error} onRetry={() => setError('')} />;
   }
 
   return (
@@ -97,7 +73,6 @@ function AllEventsTable(props: Props) {
       transactionName=""
       columnTitles={columnTitles.slice()}
       referrer="api.issues.issue_events"
-      isEventLoading={isLoading}
     />
   );
 }

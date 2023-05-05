@@ -72,7 +72,6 @@ type Props = {
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
   excludedTags?: string[];
-  isEventLoading?: boolean;
   issueId?: string;
   projectSlug?: string;
   referrer?: string;
@@ -341,8 +340,7 @@ class EventsTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, organization, location, setError, referrer, isEventLoading} =
-      this.props;
+    const {eventView, organization, location, setError, referrer} = this.props;
 
     const totalEventsView = eventView.clone();
     totalEventsView.sorts = [];
@@ -486,8 +484,7 @@ class EventsTable extends Component<Props, State> {
                           isLoading={
                             isTotalEventsLoading ||
                             isDiscoverQueryLoading ||
-                            shouldFetchAttachments ||
-                            isEventLoading
+                            shouldFetchAttachments
                           }
                           data={tableData?.data ?? []}
                           columnOrder={columnOrder}
