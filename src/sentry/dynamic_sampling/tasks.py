@@ -202,7 +202,7 @@ def adjust_sample_rates(
     # We need the organization object for the feature flag.
     organization = Organization.objects.get_from_cache(id=org_id)
 
-    # We get the sample rate either directly from billing or from the new sliding window org mechanism.
+    # We get the sample rate either directly from quotas or from the new sliding window org mechanism.
     if features.has("organizations:ds-sliding-window-org", organization, actor=None):
         sample_rate = get_adjusted_base_rate_from_cache_or(org_id)
     else:
@@ -365,8 +365,7 @@ def adjust_base_sample_rate_per_project(
     org_id: int, projects_with_total_root_count: Sequence[Tuple[ProjectId, int]], window_size: int
 ) -> None:
     """
-    Adjusts the base sample rate per project by considering its volume and how it fits w.r.t. to the sampling tiers
-    defined on the billing side.
+    Adjusts the base sample rate per project by considering its volume and how it fits w.r.t. to the sampling tiers.
     """
     projects_with_rebalanced_sample_rate = []
     for project_id, total_root_count in projects_with_total_root_count:
@@ -439,8 +438,7 @@ def sliding_window_org() -> None:
 
 def adjust_base_sample_rate_per_org(org_id: int, total_root_count: int, window_size: int) -> None:
     """
-    Adjusts the base sample rate per org by considering its volume and how it fits w.r.t. to the sampling tiers
-    defined on the billing side.
+    Adjusts the base sample rate per org by considering its volume and how it fits w.r.t. to the sampling tiers.
     """
     sample_rate = compute_sliding_window_org_sample_rate(org_id, total_root_count, window_size)
     # If the sample rate is None, we don't want to store a value into Redis.
@@ -513,5 +511,5 @@ def compute_sliding_window_org_sample_rate(
     # under the assumption that the sampling_tier tuple contains both non-null values.
     _, sample_rate = sampling_tier
 
-    # We assume that the sample_rate is a float, since it is returned from billing.
+    # We assume that the sample_rate is a float.
     return float(sample_rate)
