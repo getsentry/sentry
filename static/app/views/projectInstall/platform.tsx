@@ -116,7 +116,9 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   });
 
   const loadingProjects = !initiallyLoaded;
-  const project = projects.filter(proj => proj.slug === params.projectId)[0];
+  const project = !loadingProjects
+    ? projects.find(proj => proj.slug === params.projectId)
+    : undefined;
 
   const heartbeatFooter = !!organization?.features.includes(
     'onboarding-heartbeat-footer'
@@ -132,7 +134,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   };
 
   const redirectToNeutralDocs = useCallback(() => {
-    if (!project.slug) {
+    if (!project?.slug) {
       return;
     }
 
@@ -159,6 +161,10 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   const gettingStartedLink = `/organizations/${organization.slug}/projects/${params.projectId}/getting-started/`;
   const showPerformancePrompt = performancePlatforms.includes(platform.id as PlatformKey);
   const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
+
+  if (!project) {
+    return null;
+  }
 
   return (
     <Fragment>
