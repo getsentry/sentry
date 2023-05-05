@@ -169,7 +169,7 @@ class OrganizationRepositoriesListTest(APITestCase):
             provider="github",
             external_id="github:2",
         )
-        repo = Repository.objects.create(
+        Repository.objects.create(
             name="example2", organization_id=self.org.id, integration_id=integration2.id
         )
         response = self.client.get(f"{self.url}?integration_id={integration.id}", format="json")

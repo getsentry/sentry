@@ -58,12 +58,13 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const orgId = this.props.organization.slug;
-    return [['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}]];
-  }
-
-  getIntegrationRepos() {
-    const integrationId = this.props.integration.id;
-    return this.state.itemList.filter(repo => repo.integrationId === integrationId);
+    return [
+      [
+        'itemList',
+        `/organizations/${orgId}/repos/`,
+        {query: {status: '', integration_id: this.props.integration.id}},
+      ],
+    ];
   }
 
   // Called by row to signal repository change.
@@ -199,7 +200,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
   renderBody() {
     const {itemListPageLinks, integrationReposErrorStatus} = this.state;
     const orgId = this.props.organization.slug;
-    const itemList = this.getIntegrationRepos() || [];
+    const itemList = this.state.itemList || [];
     return (
       <Fragment>
         {integrationReposErrorStatus === 400 && (
