@@ -104,7 +104,7 @@ SPAN_COLUMN_MAP = {
     "span.self_time": "exclusive_time",
     "span.op": "op",
     "span.status": "span_status",
-    "timestamp": "end_timestamp",
+    "timestamp": "timestamp",
     "trace": "trace_id",
     "transaction": "segment_name",
     "transaction.id": "transaction_id",
