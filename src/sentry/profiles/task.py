@@ -279,7 +279,9 @@ def _symbolicate(
     while True:
         try:
             with sentry_sdk.start_span(op="task.profiling.symbolicate.process_payload"):
-                response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
+                response = symbolicator.process_payload(
+                    stacktraces=stacktraces, modules=modules, apply_source_context=False
+                )
                 return (
                     response.get("modules", modules),
                     response.get("stacktraces", stacktraces),
