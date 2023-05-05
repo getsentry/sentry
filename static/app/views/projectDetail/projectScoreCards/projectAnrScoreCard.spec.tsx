@@ -134,7 +134,7 @@ describe('ProjectDetail > ProjectAnr', function () {
 
     expect(screen.getByRole('button', {name: 'View Issues'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/?project=1&query=mechanism%3AANR%20release%3Aabc&sort=freq&statsPeriod=7d'
+      '/organizations/org-slug/issues/?project=1&query=mechanism%3A%5BANR%2CAppExitInfo%5D%20release%3Aabc&sort=freq&statsPeriod=7d'
     );
   });
 });
