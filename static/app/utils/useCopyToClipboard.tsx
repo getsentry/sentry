@@ -55,7 +55,6 @@ export default function useCopyToClipboard({
   const timeoutRef = useRef<undefined | ReturnType<typeof setTimeout>>();
   const [state, setState] = useState<'ready' | 'copied' | 'error'>('ready');
 
-  ClipboardItem;
   const handleOnClick = useCallback(() => {
     navigator.clipboard
       .writeText(text)
