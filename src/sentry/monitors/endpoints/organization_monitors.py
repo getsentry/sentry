@@ -22,7 +22,15 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.query import in_iexact
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
-from sentry.models import Environment, Organization, RuleActivity, RuleActivityType, Team, User
+from sentry.models import (
+    Environment,
+    Organization,
+    RuleActivity,
+    RuleActivityType,
+    RuleSource,
+    Team,
+    User,
+)
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
@@ -225,7 +233,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         signal_first_monitor_created(project, request.user, False)
 
         alert_rule = request.data.get("alert_rule", {})
-        if alert_rule:
+        if alert_rule or True:
             alert_rule_data = get_alert_rule(project, request.user, monitor, alert_rule)
             serializer = RuleSerializer(
                 context={"project": project, "organization": project.organization},
@@ -268,6 +276,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
                     return Response(uuid_context, status=202)
 
                 rule = project_rules.Creator.run(request=request, **kwargs)
+                rule.update(source=RuleSource.CRON_MONITOR)
                 RuleActivity.objects.create(
                     rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
                 )
