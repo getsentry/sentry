@@ -7,10 +7,12 @@ from sentry_sdk import Scope
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import patch_configure_scope_with_scope
 from sentry.utils.sdk import (
+    bind_organization_context,
     capture_exception_with_scope_check,
     check_current_scope_transaction,
     check_tag,
     merge_context_into_scope,
+    settings,
 )
 
 
@@ -238,3 +240,56 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
         assert "new_org.slug_tag" in passed_scope._contexts["scope_bleed"]
         assert "scope_transaction" in passed_scope._contexts["scope_bleed"]
         assert "request_transaction" in passed_scope._contexts["scope_bleed"]
+
+
+class BindOrganizationContextTest(TestCase):
+    def setUp(self):
+        self.org = self.create_organization()
+
+    def test_simple(self):
+        mock_scope = Scope()
+
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+            bind_organization_context(self.org)
+
+            assert mock_scope._tags == {
+                "organization": self.org.id,
+                "organization.slug": self.org.slug,
+            }
+            assert mock_scope._contexts == {
+                "organization": {
+                    "id": self.org.id,
+                    "slug": self.org.slug,
+                }
+            }
+
+    def test_adds_values_from_context_helper(self):
+        mock_context_helper = MagicMock(
+            wraps=lambda scope, organization: scope.set_tag("organization.name", organization.name)
+        )
+        mock_scope = Scope()
+
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+            with patch.object(settings, "SENTRY_ORGANIZATION_CONTEXT_HELPER", mock_context_helper):
+                bind_organization_context(self.org)
+
+                assert mock_context_helper.call_count == 1
+                assert mock_scope._tags == {
+                    "organization": self.org.id,
+                    "organization.slug": self.org.slug,
+                    "organization.name": self.org.name,
+                }
+
+    def test_handles_context_helper_error(self):
+        mock_context_helper = MagicMock(side_effect=Exception)
+        mock_scope = Scope()
+
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+            with patch.object(settings, "SENTRY_ORGANIZATION_CONTEXT_HELPER", mock_context_helper):
+                bind_organization_context(self.org)
+
+                assert mock_context_helper.call_count == 1
+                assert mock_scope._tags == {
+                    "organization": self.org.id,
+                    "organization.slug": self.org.slug,
+                }
