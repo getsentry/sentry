@@ -103,6 +103,11 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
     def serialize(
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> OrganizationMemberResponse:
+        inviter_name = None
+        if obj.inviter_id:
+            inviter = user_service.get_user(user_id=obj.inviter_id)
+            if inviter:
+                inviter_name = inviter.get_display_name()
         d: OrganizationMemberResponse = {
             "id": str(obj.id),
             "email": obj.get_email(),
@@ -122,7 +127,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             },
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),
-            "inviterName": obj.inviter.get_display_name() if obj.inviter else None,
+            "inviterName": inviter_name,
             "orgRolesFromTeams": attrs.get("orgRolesFromTeams", []),
         }
 

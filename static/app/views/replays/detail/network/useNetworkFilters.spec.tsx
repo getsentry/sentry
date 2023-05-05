@@ -100,7 +100,7 @@ const SPAN_6_PUSH = {
   data: {},
 };
 
-const SPAN_7_FETCH = {
+const SPAN_7_FETCH_GET = {
   id: '7',
   timestamp: 1663131092471,
   op: 'resource.fetch',
@@ -113,7 +113,7 @@ const SPAN_7_FETCH = {
   },
 };
 
-const SPAN_8_FETCH = {
+const SPAN_8_FETCH_POST = {
   id: '8',
   timestamp: 1663131120198,
   op: 'resource.fetch',
@@ -121,7 +121,7 @@ const SPAN_8_FETCH = {
   startTimestamp: 1663131120.198,
   endTimestamp: 1663131122.693,
   data: {
-    method: 'GET',
+    method: 'POST',
     statusCode: 404,
   },
 };
@@ -135,8 +135,8 @@ describe('useNetworkFilters', () => {
     SPAN_4_IMG,
     SPAN_5_CSS,
     SPAN_6_PUSH,
-    SPAN_7_FETCH,
-    SPAN_8_FETCH,
+    SPAN_7_FETCH_GET,
+    SPAN_8_FETCH_POST,
   ];
 
   beforeEach(() => {
@@ -270,7 +270,35 @@ describe('useNetworkFilters', () => {
     const {result} = reactHooks.renderHook(useNetworkFilters, {
       initialProps: {networkSpans},
     });
-    expect(result.current.items.length).toEqual(9);
+    expect(result.current.items).toHaveLength(9);
+  });
+
+  it('should filter by method', () => {
+    mockUseLocation.mockReturnValue({
+      pathname: '/',
+      query: {
+        f_n_method: ['POST'],
+      },
+    } as Location<FilterFields>);
+
+    const {result} = reactHooks.renderHook(useNetworkFilters, {
+      initialProps: {networkSpans},
+    });
+    expect(result.current.items).toStrictEqual([SPAN_8_FETCH_POST]);
+  });
+
+  it('should include css/js/img when method GET is selected', () => {
+    mockUseLocation.mockReturnValue({
+      pathname: '/',
+      query: {
+        f_n_method: ['GET'],
+      },
+    } as Location<FilterFields>);
+
+    const {result} = reactHooks.renderHook(useNetworkFilters, {
+      initialProps: {networkSpans},
+    });
+    expect(result.current.items).toHaveLength(8);
   });
 
   it('should filter by status', () => {
@@ -284,7 +312,7 @@ describe('useNetworkFilters', () => {
     const {result} = reactHooks.renderHook(useNetworkFilters, {
       initialProps: {networkSpans},
     });
-    expect(result.current.items.length).toEqual(2);
+    expect(result.current.items).toHaveLength(2);
   });
 
   it('should filter by type', () => {
@@ -298,7 +326,7 @@ describe('useNetworkFilters', () => {
     const {result} = reactHooks.renderHook(useNetworkFilters, {
       initialProps: {networkSpans},
     });
-    expect(result.current.items.length).toEqual(3);
+    expect(result.current.items).toHaveLength(3);
   });
 
   it('should filter by searchTerm', () => {
@@ -312,7 +340,7 @@ describe('useNetworkFilters', () => {
     const {result} = reactHooks.renderHook(useNetworkFilters, {
       initialProps: {networkSpans},
     });
-    expect(result.current.items.length).toEqual(1);
+    expect(result.current.items).toHaveLength(1);
   });
 
   it('should filter by type, searchTerm and logLevel', () => {
@@ -328,7 +356,42 @@ describe('useNetworkFilters', () => {
     const {result} = reactHooks.renderHook(useNetworkFilters, {
       initialProps: {networkSpans},
     });
-    expect(result.current.items.length).toEqual(1);
+    expect(result.current.items).toHaveLength(1);
+  });
+});
+
+describe('getMethodTypes', () => {
+  it('should default to having GET in the list of method types', () => {
+    const networkSpans = [];
+
+    const {result} = reactHooks.renderHook(useNetworkFilters, {
+      initialProps: {networkSpans},
+    });
+
+    expect(result.current.getMethodTypes()).toStrictEqual([{label: 'GET', value: 'GET'}]);
+  });
+
+  it('should return a sorted list of method types', () => {
+    const networkSpans = [SPAN_8_FETCH_POST, SPAN_7_FETCH_GET];
+
+    const {result} = reactHooks.renderHook(useNetworkFilters, {
+      initialProps: {networkSpans},
+    });
+
+    expect(result.current.getMethodTypes()).toStrictEqual([
+      {label: 'GET', value: 'GET'},
+      {label: 'POST', value: 'POST'},
+    ]);
+  });
+
+  it('should deduplicate BreadcrumbType', () => {
+    const networkSpans = [SPAN_2_SCRIPT, SPAN_3_FETCH, SPAN_7_FETCH_GET];
+
+    const {result} = reactHooks.renderHook(useNetworkFilters, {
+      initialProps: {networkSpans},
+    });
+
+    expect(result.current.getMethodTypes()).toStrictEqual([{label: 'GET', value: 'GET'}]);
   });
 });
 
@@ -366,7 +429,7 @@ describe('getResourceTypes', () => {
       SPAN_1_LINK,
       SPAN_2_SCRIPT,
       SPAN_3_FETCH,
-      SPAN_7_FETCH,
+      SPAN_7_FETCH_GET,
     ];
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
@@ -384,7 +447,7 @@ describe('getResourceTypes', () => {
 
 describe('getStatusTypes', () => {
   it('should return a sorted list of BreadcrumbType', () => {
-    const networkSpans = [SPAN_0_NAVIGATE, SPAN_1_LINK, SPAN_2_SCRIPT, SPAN_8_FETCH];
+    const networkSpans = [SPAN_0_NAVIGATE, SPAN_1_LINK, SPAN_2_SCRIPT, SPAN_8_FETCH_POST];
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
       initialProps: {networkSpans},
@@ -406,8 +469,8 @@ describe('getStatusTypes', () => {
       SPAN_1_LINK,
       SPAN_2_SCRIPT,
       SPAN_3_FETCH,
-      SPAN_7_FETCH,
-      SPAN_8_FETCH,
+      SPAN_7_FETCH_GET,
+      SPAN_8_FETCH_POST,
     ];
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {

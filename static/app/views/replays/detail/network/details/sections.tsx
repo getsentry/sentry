@@ -95,7 +95,7 @@ export function QueryParamsSection({item}: SectionProps) {
   return (
     <SectionItem title={t('Query String Parameters')}>
       <Indent>
-        <ObjectInspector data={queryParams} expandLevel={3} />
+        <ObjectInspector data={queryParams} expandLevel={3} showCopyButton />
       </Indent>
     </SectionItem>
   );
@@ -123,7 +123,7 @@ export function RequestPayloadSection({item}: SectionProps) {
       <Indent>
         <Warning warnings={item.data?.request?._meta?.warnings} />
         {hasRequest ? (
-          <ObjectInspector data={item.data.request.body} expandLevel={2} />
+          <ObjectInspector data={item.data.request.body} expandLevel={2} showCopyButton />
         ) : (
           tct('Request body not found.', item.data)
         )}
@@ -154,7 +154,11 @@ export function ResponsePayloadSection({item}: SectionProps) {
       <Indent>
         <Warning warnings={item.data?.response?._meta?.warnings} />
         {hasResponse ? (
-          <ObjectInspector data={item.data.response.body} expandLevel={2} />
+          <ObjectInspector
+            data={item.data.response.body}
+            expandLevel={2}
+            showCopyButton
+          />
         ) : (
           tct('Response body not found.', item.data)
         )}

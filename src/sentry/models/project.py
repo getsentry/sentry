@@ -42,9 +42,6 @@ from sentry.utils.snowflake import SnowflakeIdMixin
 if TYPE_CHECKING:
     from sentry.models import User
 
-# TODO(dcramer): pull in enum library
-ProjectStatus = ObjectStatus
-
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
 
