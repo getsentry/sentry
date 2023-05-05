@@ -263,7 +263,7 @@ describe('OrganizationMemberDetail', function () {
       await userEvent.click(screen.getByText('#new-team'));
 
       // Assign as admin to new team
-      const teamRoleSelect = screen.getAllByText('Contributor')[1];
+      const teamRoleSelect = screen.getAllByText('Contributor')[0];
       await selectEvent.select(teamRoleSelect, ['Team Admin']);
 
       // Save Member

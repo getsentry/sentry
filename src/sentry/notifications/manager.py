@@ -127,7 +127,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         provider: ExternalProviders,
         type: NotificationSettingTypes,
         value: NotificationSettingOptionValues,
-        user: User | None = None,
+        user: User | RpcUser | None = None,
         team: Team | None = None,
         actor: RpcActor | None = None,
         project: Project | int | None = None,
@@ -169,7 +169,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         if not validate(type, value):
             raise Exception(f"value '{value}' is not valid for type '{type}'")
 
-        scope_type, scope_identifier = get_scope(actor, project=project, organization=organization)
+        scope_type, scope_identifier = get_scope(
+            actor=actor, project=project, organization=organization
+        )
         id_key = "user_id" if actor.actor_type == ActorType.USER else "team_id"
         self._update_settings(
             provider=provider,
@@ -202,6 +204,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             if team is not None:
                 actor = RpcActor.from_object(team)
         assert actor
+        # TODO(hybridcloud) This needs to use user/team
         self.find_settings(
             provider, type, actor=actor, project=project, organization=organization
         ).delete()
@@ -235,6 +238,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def remove_for_user(self, user: User, type: NotificationSettingTypes | None = None) -> None:
         """Bulk delete all Notification Settings for a USER, optionally by type."""
+        # TODO(hybridcloud) This needs to use user_id
         self._filter(target_ids=[get_actor_id_for_user(user)], type=type).delete()
 
     def remove_for_team(
@@ -244,6 +248,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         provider: ExternalProviders | None = None,
     ) -> None:
         """Bulk delete all Notification Settings for a TEAM, optionally by type."""
+        # TODO(hybridcloud) This needs to use team_id
         self._filter(target_ids=[team.actor_id], provider=provider, type=type).delete()
 
     def remove_for_project(
@@ -284,6 +289,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 actor = RpcActor.from_object(team)
         assert actor
 
+        # TODO(hybridcloud) This will need to use team/user
         scope_type, scope_identifier = get_scope(actor, project=project, organization=organization)
         target_id = actor.actor_id
         assert target_id, "Cannot find settings for None actor_id"
@@ -454,6 +460,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     scope_type=NotificationScopeType.USER.value,
                     scope_identifier=user.id,
                     target_id=get_actor_id_for_user(user),
+                    user_id=user.id,
                     defaults={"value": NotificationSettingOptionValues.NEVER.value},
                 )
 
@@ -463,6 +470,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         if recipient.actor_id is None:
             return False
 
+        # TODO(hybridcloud) This will need to filter on user_id or team_id
         # Explicitly typing to satisfy mypy.
         has_settings: bool = (
             self._filter(provider=provider, target_ids={recipient.actor_id})
@@ -489,4 +497,5 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 type=type_,
                 value=NOTIFICATION_SETTINGS_ALL_SOMETIMES[type_],
                 actor=RpcActor.from_object(recipient),
+                user=recipient,
             )

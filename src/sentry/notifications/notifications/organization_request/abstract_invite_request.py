@@ -12,6 +12,7 @@ from sentry.notifications.notifications.strategies.member_write_role_recipient_s
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -51,7 +52,11 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
                 reverse("sentry-organization-settings", args=[self.organization.slug])
             )
         else:
-            context["inviter_name"] = self.pending_member.inviter.get_salutation_name
+            inviter_name = ""
+            inviter = user_service.get_user(user_id=self.pending_member.inviter_id)
+            if inviter:
+                context["inviter_name"] = inviter.get_salutation_name()
+            context["inviter_name"] = inviter_name
         return context
 
     def get_message_actions(
@@ -78,9 +83,9 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
         return {"member_id": self.pending_member.id, "member_email": self.pending_member.email}
 
     def get_log_params(self, recipient: RpcActor) -> MutableMapping[str, Any]:
-        # TODO: figure out who the user should be when pending_member.inviter is None
+        # TODO: figure out who the user should be when pending_member.inviter_id is None
         return {
             **super().get_log_params(recipient),
-            "user_id": self.pending_member.inviter.id if self.pending_member.inviter else None,
+            "user_id": self.pending_member.inviter_id if self.pending_member.inviter_id else None,
             "invited_member_id": self.pending_member.id,
         }

@@ -235,15 +235,17 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         with self.feature("organizations:escalating-issues"):
             # The group had 6 events in the last hour
             event = self._create_events_for_group(count=6)
-            group_escalating = event.group
-            self.archive_until_escalating(group_escalating)
+            archived_group = event.group
+            self.archive_until_escalating(archived_group)
 
             # The escalating forecast for today is 5, thus, it should escalate
             forecast_values = [5] + [6] * 13
             self.save_mock_escalating_group_forecast(
-                group=group_escalating, forecast_values=forecast_values, date_added=datetime.now()
+                group=archived_group, forecast_values=forecast_values, date_added=datetime.now()
             )
-            assert is_escalating(group_escalating)
+            assert is_escalating(archived_group)
+            group_escalating = Group.objects.get(id=archived_group.id)
+
             record_mock.assert_called_with(
                 "issue.escalating",
                 organization_id=group_escalating.project.organization.id,

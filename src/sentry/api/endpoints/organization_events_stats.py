@@ -83,6 +83,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",
             "organizations:use-metrics-layer",
+            "organizations:starfish-view",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -168,7 +169,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
 
             use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
 
-            use_custom_dataset = use_metrics or use_profiles or use_occurrences
+            starfish_view = batch_features.get("organizations:starfish_view", False)
+
+            use_custom_dataset = use_metrics or use_profiles or use_occurrences or starfish_view
             dataset = self.get_dataset(request) if use_custom_dataset else discover
             metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
@@ -224,6 +227,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                         request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
                     ),
                     comparison_delta=comparison_delta,
+                    dataset=discover if top_events > 0 else dataset,
                 ),
                 status=200,
             )
