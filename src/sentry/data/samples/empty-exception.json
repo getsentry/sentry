@@ -13,7 +13,7 @@
   "platform": "python",
   "server_name": "mcbk.local",
   "exception": {
-    "values": []
+    "values": [null]
   },
   "sdk": {
     "name": "sentry.python",

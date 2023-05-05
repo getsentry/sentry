@@ -432,7 +432,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
                     "search_issues": "generic-events",
                 }[entity]
             )
-        except Exception:
+        except (sentry_kafka_schemas.SchemaNotFound, KeyError):
             # Needed since "generic-events" does not have a schema yet
             # and the "transactions" one is not compatible with
             # existing test cases
