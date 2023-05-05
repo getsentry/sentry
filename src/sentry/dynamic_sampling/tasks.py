@@ -202,6 +202,7 @@ def adjust_sample_rates(
     # We need the organization object for the feature flag.
     organization = Organization.objects.get_from_cache(id=org_id)
 
+    sample_rate = None
     # We get the sample rate either directly from billing or from the new sliding window org mechanism.
     if features.has("organizations:ds-sliding-window-org", organization, actor=None):
         # We want to rebalance the project based on the sliding window sample rate which is org scoped. In case
