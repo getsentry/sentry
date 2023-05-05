@@ -123,7 +123,7 @@ function renderBadge(row, selectedRow) {
   return response;
 }
 
-export default function APIModuleView({
+export default function DatabaseTableView({
   location,
   data,
   onSelect,
