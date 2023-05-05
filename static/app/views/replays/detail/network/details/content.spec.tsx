@@ -90,7 +90,6 @@ const mockItems = {
 
 function basicSectionProps() {
   return {
-    onScrollToRow: () => {},
     projectId: '',
     startTimestampMs: new Date('2023-12-24').getTime(),
   };
