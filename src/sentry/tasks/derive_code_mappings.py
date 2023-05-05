@@ -170,11 +170,18 @@ def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
 def get_installation(
     organization: Organization,
 ) -> Tuple[IntegrationInstallation | None, RpcOrganizationIntegration | None]:
-    integration, organization_integration = integration_service.get_organization_context(
-        organization_id=organization.id, provider="github"
+    integrations = integration_service.get_integrations(
+        organization_id=organization.id, providers=["github"]
     )
+    if len(integrations) == 0:
+        return None, None
 
-    if not integration or not organization_integration:
+    # XXX: We only operate on the first github integration for an organization.
+    integration = integrations[0]
+    organization_integration = integration_service.get_organization_integration(
+        integration_id=integration.id, organization_id=organization.id
+    )
+    if not organization_integration:
         return None, None
 
     installation = integration_service.get_installation(
