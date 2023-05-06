@@ -5,8 +5,10 @@ from rest_framework.request import Request
 from sentry_sdk import Scope
 
 from sentry.testutils import TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import patch_configure_scope_with_scope
 from sentry.utils.sdk import (
+    bind_ambiguous_org_context,
     bind_organization_context,
     capture_exception_with_scope_check,
     check_current_scope_transaction,
@@ -293,3 +295,103 @@ class BindOrganizationContextTest(TestCase):
                     "organization": self.org.id,
                     "organization.slug": self.org.slug,
                 }
+
+
+class BindAmbiguousOrgContextTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.orgs = [Factories.create_organization() for _ in [None] * 52]
+
+    def test_simple(self):
+        orgs = self.orgs[:3]
+        mock_scope = Scope()
+
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+            bind_ambiguous_org_context(orgs, "integration id=1231")
+
+            assert mock_scope._tags == {
+                "organization": "[multiple orgs]",
+                "organization.slug": "[multiple orgs]",
+            }
+            assert mock_scope._contexts == {
+                "organization": {
+                    "multiple possible": [org.slug for org in orgs],
+                    "source": "integration id=1231",
+                },
+            }
+
+    def test_doesnt_overwrite_org_in_list(self):
+        orgs = self.orgs[:3]
+        single_org = orgs[2]
+        expected_tags = {
+            "organization": single_org.id,
+            "organization.slug": single_org.slug,
+        }
+        expected_contexts = {
+            "organization": {
+                "id": single_org.id,
+                "slug": single_org.slug,
+            }
+        }
+        mock_scope = Scope()
+
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+            # First add data from a single org in our list
+            bind_organization_context(single_org)
+
+            assert mock_scope._tags == expected_tags
+            assert mock_scope._contexts == expected_contexts
+
+            # Now try to overwrite that with the whole list, which should be a no-op
+            bind_ambiguous_org_context(orgs, "integration id=1231")
+
+            assert mock_scope._tags == expected_tags
+            assert mock_scope._contexts == expected_contexts
+
+    def test_does_overwrite_org_not_in_list(self):
+        orgs = self.orgs[:3]
+        other_org = self.create_organization()
+        assert other_org.slug not in [org.slug for org in orgs]
+
+        mock_scope = Scope()
+
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+            # First add data from a single org not in our list
+            bind_organization_context(other_org)
+
+            assert mock_scope._tags == {
+                "organization": other_org.id,
+                "organization.slug": other_org.slug,
+            }
+
+            # Now try to overwrite that with the whole list, which should work
+            bind_ambiguous_org_context(orgs, "integration id=1231")
+
+            assert mock_scope._tags == {
+                "organization": "[multiple orgs]",
+                "organization.slug": "[multiple orgs]",
+                "possible_mistag": True,
+                "scope_bleed.organization.slug": True,
+            }
+            assert mock_scope._contexts == {
+                "organization": {
+                    "multiple possible": [org.slug for org in orgs],
+                    "source": "integration id=1231",
+                },
+                "scope_bleed": {
+                    "previous_organization.slug_tag": other_org.slug,
+                    "new_organization.slug_tag": "[multiple orgs]",
+                },
+            }
+
+    def test_truncates_list_at_50_entries(self):
+        orgs = self.orgs
+        mock_scope = Scope()
+
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+            bind_ambiguous_org_context(orgs, "integration id=1231")
+
+            slug_list_in_org_context = mock_scope._contexts["organization"]["multiple possible"]
+            assert len(slug_list_in_org_context) == 50
+            assert slug_list_in_org_context[-1] == "... (3 more)"
