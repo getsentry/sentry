@@ -278,7 +278,7 @@ class SnubaEventStorage(EventStorage):
         else:
             return snuba.Dataset.Discover
 
-    def get_prev_next_event_ids(self, event, filter):
+    def get_adjacent_event_ids(self, event, filter):
         """
         Returns (project_id, event_id) of a previous event given a current event
         and a filter. Returns None if no previous event is found.
@@ -286,7 +286,7 @@ class SnubaEventStorage(EventStorage):
         assert filter, "You must provide a filter"
 
         if not event:
-            return None
+            return (None, None)
 
         prev_filter = deepcopy(filter)
         prev_filter.conditions = prev_filter.conditions or []

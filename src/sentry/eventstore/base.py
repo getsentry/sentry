@@ -122,7 +122,7 @@ class EventStorage(Service):
         "get_event_by_id",
         "get_events",
         "get_unfetched_events",
-        "get_prev_next_event_ids",
+        "get_adjacent_event_ids",
         "bind_nodes",
         "get_unfetched_transactions",
     )
@@ -212,7 +212,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_prev_next_event_ids(self, event, snuba_filter):
+    def get_adjacent_event_ids(self, event, snuba_filter):
         """
         Gets the previous and next event IDs given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id) for (prev_ids, next_ids)

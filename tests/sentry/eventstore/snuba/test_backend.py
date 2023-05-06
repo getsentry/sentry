@@ -211,12 +211,12 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
             event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
             assert event is None
 
-    def test_get_prev_next_event_ids(self):
+    def test_get_adjacent_event_ids(self):
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
 
         _filter = Filter(project_ids=[self.project1.id, self.project2.id])
 
-        prev_event, next_event = self.eventstore.get_prev_next_event_ids(event, filter=_filter)
+        prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=_filter)
 
         assert prev_event == (str(self.project1.id), "a" * 32)
 
@@ -224,10 +224,13 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert next_event == (str(self.project2.id), "c" * 32)
 
         # Returns None if no event
-        assert self.eventstore.get_prev_event_id(None, filter=_filter) is None
-        assert self.eventstore.get_next_event_id(None, filter=_filter) is None
+        prev_event_none, next_event_none = self.eventstore.get_adjacent_event_ids(
+            None, filter=_filter
+        )
+        assert prev_event_none is None
+        assert next_event_none is None
 
-    def test_prev_next_event_ids_same_timestamp(self):
+    def test_adjacent_event_ids_same_timestamp(self):
         project = self.create_project()
 
         event1 = self.store_event(
@@ -264,14 +267,13 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
         event = self.eventstore.get_event_by_id(project.id, "a" * 32)
 
-        prev_event, next_event = self.eventstore.get_prev_next_event_ids(event, filter=_filter)
+        prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=_filter)
         assert prev_event is None
         assert next_event == (str(project.id), "b" * 32)
 
         event = self.eventstore.get_event_by_id(project.id, "b" * 32)
 
-        prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
-        next_event = self.eventstore.get_next_event_id(event, filter=_filter)
+        prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=_filter)
         assert prev_event == (str(project.id), "a" * 32)
         assert next_event is None
 
@@ -282,13 +284,13 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
             conditions=apply_performance_conditions([], group),
         )
         event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)
-        prev_event, next_event = self.eventstore.get_prev_next_event_ids(event, filter=_filter)
+        prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=_filter)
 
         assert prev_event == (str(self.project2.id), "e" * 32)
         assert next_event is None
 
         event = self.eventstore.get_event_by_id(self.project2.id, "e" * 32)
-        prev_event, next_event = self.eventstore.get_prev_next_event_ids(event, filter=_filter)
+        prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=_filter)
 
         assert prev_event is None
         assert next_event == (str(self.project2.id), "f" * 32)
