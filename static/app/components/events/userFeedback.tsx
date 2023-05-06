@@ -2,13 +2,14 @@ import styled from '@emotion/styled';
 
 import ActivityAuthor from 'sentry/components/activity/author';
 import ActivityItem from 'sentry/components/activity/item';
-import Clipboard from 'sentry/components/clipboard';
+import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {UserReport} from 'sentry/types';
 import {escape, nl2br} from 'sentry/utils';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 type Props = {
   issueId: string;
@@ -26,20 +27,35 @@ export function EventUserFeedback({className, report, orgId, issueId}: Props) {
     ip_address: '',
   };
 
+  const {onClick, label} = useCopyToClipboard({text: report.email});
+
   return (
     <div className={className}>
       <StyledActivityItem
         date={report.dateCreated}
         author={{type: 'user', user}}
         header={
-          <div>
+          <Items>
             <ActivityAuthor>{report.name}</ActivityAuthor>
-            <Clipboard value={report.email}>
+            {/* <Clipboard value={report.email}>
               <Email>
                 {report.email}
                 <StyledIconCopy size="xs" />
               </Email>
-            </Clipboard>
+            </Clipboard> */}
+            <CopyButton
+              aria-label={label}
+              borderless
+              onClick={onClick}
+              size="zero"
+              title={label}
+              tooltipProps={{delay: 0}}
+              translucentBorder
+              icon={<StyledIconCopy size="xs" />}
+            >
+              {report.email}
+            </CopyButton>
+
             {report.eventID && (
               <ViewEventLink
                 to={`/organizations/${orgId}/issues/${issueId}/events/${report.eventID}/?referrer=user-feedback`}
@@ -47,7 +63,7 @@ export function EventUserFeedback({className, report, orgId, issueId}: Props) {
                 {t('View event')}
               </ViewEventLink>
             )}
-          </div>
+          </Items>
         }
       >
         <p
@@ -64,19 +80,21 @@ const StyledActivityItem = styled(ActivityItem)`
   margin-bottom: 0;
 `;
 
-const Email = styled('span')`
+const Items = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const CopyButton = styled(Button)`
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: normal;
-  cursor: pointer;
-  margin-left: ${space(1)};
 `;
+
+const StyledIconCopy = styled(IconCopy)``;
 
 const ViewEventLink = styled(Link)`
   font-weight: 300;
-  margin-left: ${space(1)};
   font-size: 0.9em;
-`;
-
-const StyledIconCopy = styled(IconCopy)`
-  margin-left: ${space(1)};
 `;
