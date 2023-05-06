@@ -68,6 +68,7 @@ def test_adjust_instruction_addr_sample_format():
     ]
     profile = {
         "version": "1",
+        "platform": "cocoa",
         "profile": {
             "frames": copy(original_frames),
             "stacks": [[1, 0], [0, 1, 2]],
@@ -75,7 +76,7 @@ def test_adjust_instruction_addr_sample_format():
         "debug_meta": {"images": []},
     }
 
-    _, stacktraces = _prepare_frames_from_profile(profile)
+    _, stacktraces, _ = _prepare_frames_from_profile(profile)
     assert profile["profile"]["stacks"] == [[3, 0], [4, 1, 2]]
     frames = stacktraces[0]["frames"]
 
@@ -88,6 +89,7 @@ def test_adjust_instruction_addr_sample_format():
 
 def test_adjust_instruction_addr_original_format():
     profile = {
+        "platform": "cocoa",
         "sampled_profile": {
             "samples": [
                 {
@@ -101,7 +103,7 @@ def test_adjust_instruction_addr_original_format():
         "debug_meta": {"images": []},
     }
 
-    _, stacktraces = _prepare_frames_from_profile(profile)
+    _, stacktraces, _ = _prepare_frames_from_profile(profile)
     frames = stacktraces[0]["frames"]
 
     assert not frames[0]["adjust_instruction_addr"]
