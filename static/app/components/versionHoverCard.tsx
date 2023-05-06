@@ -189,10 +189,10 @@ export class VersionHoverHeader extends Component<VersionHoverHeaderProps> {
         <VersionWrapper>
           <StyledVersion version={this.props.releaseVersion} truncate anchor={false} />
 
-          <StyledCopyToClipboardButton
+          <CopyToClipboardButton
             borderless
             iconSize="xs"
-            size="xs"
+            size="zero"
             text={this.props.releaseVersion}
           />
         </VersionWrapper>
@@ -234,10 +234,6 @@ const VersionWrapper = styled('div')`
 const StyledVersion = styled(Version)`
   margin-right: ${space(0.5)};
   max-width: 190px;
-`;
-
-const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
-  margin-block: -${space(1)};
 `;
 
 const CountSince = styled('div')`
