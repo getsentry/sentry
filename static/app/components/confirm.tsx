@@ -82,6 +82,10 @@ export type OpenConfirmOptions = {
    */
   onCancel?: () => void;
   /**
+   * User closes the modal
+   */
+  onClose?: () => void;
+  /**
    * Callback when user confirms
    */
   onConfirm?: () => void;
@@ -90,6 +94,10 @@ export type OpenConfirmOptions = {
    * confirm modal is opened
    */
   onConfirming?: () => void;
+  /**
+   * Modal is rendered
+   */
+  onRender?: () => void;
   /**
    * Button priority
    */
@@ -136,6 +144,7 @@ export const openConfirmModal = ({
   cancelText = t('Cancel'),
   confirmText = t('Confirm'),
   disableConfirmButton = false,
+  onClose,
   ...rest
 }: OpenConfirmOptions) => {
   if (bypass) {
@@ -152,7 +161,7 @@ export const openConfirmModal = ({
   };
 
   onConfirming?.();
-  openModal(renderProps => <ConfirmModal {...renderProps} {...modalProps} />);
+  openModal(renderProps => <ConfirmModal {...renderProps} {...modalProps} />, {onClose});
 };
 
 /**
@@ -205,6 +214,7 @@ type ModalProps = ModalRenderProps &
     | 'onConfirm'
     | 'onCancel'
     | 'disableConfirmButton'
+    | 'onRender'
   >;
 
 type ModalState = {
@@ -223,6 +233,10 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
     disableConfirmButton: !!this.props.disableConfirmButton,
     confirmCallback: null,
   };
+
+  componentDidMount() {
+    this.props.onRender?.();
+  }
 
   confirming: boolean = false;
 

@@ -101,7 +101,7 @@ describe('Onboarding Setup Docs', function () {
           genSkipOnboardingLink={() => ''}
           orgId={organization.slug}
           search=""
-          selectedProjectSlug="python"
+          recentCreatedProject={project}
         />
       </OnboardingContextProvider>,
       {
@@ -160,7 +160,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            selectedProjectSlug="javascript-react"
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
@@ -219,7 +219,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            selectedProjectSlug="javascript-react"
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
@@ -272,7 +272,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            selectedProjectSlug="javascript-react"
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
@@ -325,7 +325,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            selectedProjectSlug="javascript-react"
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
@@ -386,7 +386,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            selectedProjectSlug="javascript"
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
@@ -432,7 +432,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            selectedProjectSlug="javascript"
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>
       );

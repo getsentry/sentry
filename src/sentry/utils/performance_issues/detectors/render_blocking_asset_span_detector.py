@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Optional
+from typing import Any, Mapping, Optional
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.models import Organization, Project
 
-from ..base import DetectorType, PerformanceDetector, fingerprint_resource_span, get_span_duration
+from ..base import (
+    DetectorType,
+    PerformanceDetector,
+    fingerprint_resource_span,
+    get_span_duration,
+    get_span_evidence_value,
+)
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
@@ -24,6 +30,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         self.stored_problems = {}
         self.transaction_start = timedelta(seconds=self.event().get("start_timestamp", 0))
         self.fcp = None
+        self.fcp_value = 0
 
         # Only concern ourselves with transactions where the FCP is within the
         # range we care about.
@@ -40,6 +47,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             )
             if fcp >= fcp_minimum_threshold and fcp < fcp_maximum_threshold:
                 self.fcp = fcp
+                self.fcp_value = fcp_value
 
     def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
         return features.has(
@@ -76,6 +84,13 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                         "parent_span_ids": [],
                         "cause_span_ids": [],
                         "offender_span_ids": [span_id],
+                        "transaction_name": self.event().get("description", ""),
+                        "slow_span_description": span.get("description", ""),
+                        "slow_span_duration": self._get_duration(span),
+                        "transaction_duration": self._get_duration(self._event),
+                        "fcp": self.fcp_value,
+                        "repeating_spans": get_span_evidence_value(span),
+                        "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
                     },
                     evidence_display=[],
                 )
@@ -87,6 +102,16 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         if span_start_timestamp >= fcp_timestamp:
             # Early return for all future span visits.
             self.fcp = None
+            self.fcp_value = 0
+
+    def _get_duration(self, item: Mapping[str, Any] | None) -> float:
+        if not item:
+            return 0
+
+        start = float(item.get("start_timestamp", 0))
+        end = float(item.get("timestamp", 0))
+
+        return (end - start) * 1000
 
     def _is_blocking_render(self, span):
         data = span.get("data", None)
@@ -100,6 +125,8 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             return False
 
         minimum_size_bytes = self.settings.get("minimum_size_bytes")
+        # TODO(nar): `Encoded Body Size` can be removed once SDK adoption has increased and
+        # we are receiving `http.response_content_length` consistently, likely beyond October 2023
         encoded_body_size = (
             data
             and (data.get("http.response_content_length", 0) or data.get("Encoded Body Size", 0))

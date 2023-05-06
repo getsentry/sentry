@@ -77,7 +77,11 @@ class RpcMethodSignature:
 
         def create_field(param: inspect.Parameter) -> Tuple[Any, Any]:
             if param.annotation is param.empty:
-                raise RpcServiceSetupException("Type hints are required on RPC methods")
+                raise RpcServiceSetupException("Type annotations are required on RPC methods")
+            if isinstance(param.annotation, str):
+                raise RpcServiceSetupException(
+                    "Type annotations on RPC methods must be actual type tokens, not strings"
+                )
 
             default_value = ... if param.default is param.empty else param.default
             return param.annotation, default_value

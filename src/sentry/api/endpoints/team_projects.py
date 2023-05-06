@@ -8,7 +8,8 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
-from sentry.models import Project, ProjectStatus
+from sentry.constants import ObjectStatus
+from sentry.models import Project
 from sentry.signals import project_created
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
@@ -62,7 +63,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         if request.auth and hasattr(request.auth, "project"):
             queryset = Project.objects.filter(id=request.auth.project.id)
         else:
-            queryset = Project.objects.filter(teams=team, status=ProjectStatus.VISIBLE)
+            queryset = Project.objects.filter(teams=team, status=ObjectStatus.ACTIVE)
 
         stats_period = request.GET.get("statsPeriod")
         if stats_period not in (None, "", "24h", "14d", "30d"):

@@ -28,6 +28,7 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     update_organization_mapping_from_instance,
 )
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
+    RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
 
@@ -54,6 +55,16 @@ def process_user_ip_event(payload: Any, **kwds: Any):
         DatabaseBackedLogService().record_user_ip(event=UserIpEvent(**payload))
 
 
+@receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_CREATE)
+def process_organization_member_create(
+    object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
+):
+    if (org_member := OrganizationMember.objects.filter(id=object_identifier).last()) is None:
+        return
+
+    organizationmember_mapping_service.create_with_organization_member(org_member=org_member)
+
+
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_UPDATE)
 def process_organization_member_updates(
     object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
@@ -69,7 +80,13 @@ def process_organization_member_updates(
         )
         return
 
-    organizationmember_mapping_service.create_with_organization_member(org_member=org_member)
+    rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(org_member)
+
+    organizationmember_mapping_service.update_with_organization_member(
+        organizationmember_id=org_member.id,
+        organization_id=shard_identifier,
+        rpc_update_org_member=rpc_org_member_update,
+    )
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.TEAM_UPDATE)

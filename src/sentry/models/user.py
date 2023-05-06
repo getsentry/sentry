@@ -269,7 +269,7 @@ class User(BaseModel, AbstractBaseUser):
     def get_full_name(self):
         return self.name
 
-    def get_salutation_name(self):
+    def get_salutation_name(self) -> str:
         name = self.name or self.username.split("@", 1)[0].split(".", 1)[0]
         first_name = name.split(" ", 1)[0]
         return first_name.capitalize()
@@ -441,7 +441,7 @@ class User(BaseModel, AbstractBaseUser):
 
         return Organization.objects.filter(
             flags=models.F("flags").bitor(Organization.flags.require_2fa),
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
             member_set__user=self,
         )
 

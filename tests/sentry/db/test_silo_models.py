@@ -1,6 +1,5 @@
 from sentry.api.serializers.base import registry
-from sentry.models import Actor, NotificationSetting, OrganizationMember, User
-from sentry.models.integrations import ExternalActor, ExternalIssue, Integration
+from sentry.models import Actor, OrganizationMember, User
 from sentry.testutils.silo import (
     validate_models_have_silos,
     validate_no_cross_silo_deletions,
@@ -10,9 +9,6 @@ from sentry.testutils.silo import (
 decorator_exemptions = set()
 fk_exemptions = {
     (OrganizationMember, User),
-    (Integration, ExternalActor),
-    (Integration, ExternalIssue),
-    (NotificationSetting, Actor),
     (User, Actor),
 }
 

@@ -4,7 +4,6 @@ from typing import Any, Callable, Mapping
 
 import sentry_kafka_schemas
 import sentry_sdk
-from arroyo.codecs.json import JsonCodec
 from arroyo.types import Message
 from django.conf import settings
 
@@ -25,8 +24,8 @@ STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
     IndexerStorage.MOCK: MockIndexer,
 }
 
-_INGEST_SCHEMA: JsonCodec[Any] = JsonCodec(
-    schema=sentry_kafka_schemas.get_schema("ingest-metrics")["schema"]
+_INGEST_CODEC: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
+    "ingest-metrics"
 )
 
 
@@ -89,7 +88,7 @@ class MessageProcessor:
             outer_message,
             should_index_tag_values=should_index_tag_values,
             is_output_sliced=is_output_sliced,
-            arroyo_input_codec=_INGEST_SCHEMA,
+            input_codec=_INGEST_CODEC,
         )
 
         sdk.set_measurement("indexer_batch.payloads.len", len(batch.parsed_payloads_by_offset))

@@ -1,6 +1,6 @@
 import uuid
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Mapping, Sequence
 from unittest import mock
@@ -10,16 +10,22 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.db.models import F
 from django.utils import timezone
+from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
+from sentry.issues.grouptype import (
+    NoiseConfig,
+    PerformanceNPlusOneGroupType,
+    ProfileFileIOGroupType,
+)
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
     Activity,
+    Group,
     GroupRelease,
     Integration,
     NotificationSetting,
@@ -58,6 +64,7 @@ from sentry.types.rules import RuleFuture
 from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry.utils.samples import load_data
+from sentry.utils.snuba import raw_snql_query
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, send_notification
 
@@ -372,6 +379,87 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         ):
             event = perf_event_manager.save(self.project.id)
         event = event.for_group(event.groups[0])
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        msg = mail.outbox[0]
+        assert msg.subject == "[Sentry] BAR-1 - N+1 Query"
+        checked_values = [
+            "Transaction Name",
+            # TODO: Not sure if this is right
+            "db - SELECT `books_author`.`id`, `books_author`.`",
+            "Parent Span",
+            "django.view - index",
+            "Repeating Spans (10)",
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_autho...",
+        ]
+        for checked_value in checked_values:
+            assert (
+                checked_value in msg.alternatives[0][0]
+            ), f"{checked_value} not present in message"
+
+    def test_simple_notification_perf_issue_platform(self):
+        # Copy and paste of test_simple_notification_perf to work on the issue platform.
+        # We can remove this after we've started using issue platform everywhere
+        event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=before_now(minutes=10),
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
+        )
+        perf_event_manager = EventManager(event_data)
+        perf_event_manager.normalize()
+        self.project.update_option("sentry:performance_issue_create_issue_through_platform", True)
+
+        with override_options(
+            {
+                "performance.issues.all.problem-detection": 1.0,
+                "performance.issues.n_plus_one_db.problem-creation": 1.0,
+                "performance.issues.send_to_issues_platform": True,
+                "performance.issues.create_issues_through_platform": True,
+            }
+        ), self.feature(
+            [
+                "projects:performance-suspect-spans-ingestion",
+                PerformanceNPlusOneGroupType.build_ingest_feature_name(),
+            ]
+        ), mock.patch.object(
+            PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
+        ):
+            event = perf_event_manager.save(self.project.id)
+
+        # Write a query to get the occurrence id etc from snuba, or patch to get it so we can get
+        # the right event here.
+        where_conditions = [
+            Condition(Column("project_id"), Op.EQ, self.project.id),
+            Condition(Column("event_id"), Op.EQ, event.event_id),
+            Condition(Column("timestamp"), Op.GTE, before_now(hours=1)),
+            Condition(Column("timestamp"), Op.LT, datetime.now()),
+        ]
+
+        snuba_request = Request(
+            dataset="search_issues",
+            app_id="tagstore",
+            query=Query(
+                match=Entity("search_issues"),
+                select=[
+                    Column("group_id"),
+                    Column("occurrence_id"),
+                    Column("group_id"),
+                ],
+                where=where_conditions,
+            ),
+        )
+        result = raw_snql_query(
+            snuba_request, referrer="tagstore.get_generic_group_list_tag_value", use_cache=True
+        )["data"][0]
+        event = event.for_group(Group.objects.get(id=int(result["group_id"])))
+        event.occurrence = IssueOccurrence.fetch(result["occurrence_id"], self.project.id)
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)

@@ -71,12 +71,8 @@ def strict(filename: str, dryrun: bool):
         click.echo("Dryrun flag on. ")
 
     with open(filename) as stream:
-        data = yaml.safe_load(stream)
+        data = yaml.safe_load(stream).get("data", {})
 
-        if data is None:
-            for key in TRACKED:
-                _delete(key)
-            return
         for key in TRACKED:
             if key not in data.keys():
                 _delete(key)

@@ -291,6 +291,20 @@ class Factories:
         kwargs.setdefault("role", "member")
         teamRole = kwargs.pop("teamRole", None)
 
+        # user_id will have precedence over user
+        user = kwargs.pop("user", None)
+        user_id = kwargs.pop("user_id", None)
+        if not user_id and user:
+            user_id = user.id
+        kwargs["user_id"] = user_id
+
+        # inviter_id will have precedence over inviter
+        inviter = kwargs.pop("inviter", None)
+        inviter_id = kwargs.pop("inviter_id", None)
+        if not inviter_id and inviter:
+            inviter_id = inviter.id
+        kwargs["inviter_id"] = inviter_id
+
         om = OrganizationMember.objects.create(**kwargs)
         organizationmember_mapping_service.create_with_organization_member(org_member=om)
 
@@ -307,7 +321,9 @@ class Factories:
     def create_team_membership(team, member=None, user=None, role=None):
         if member is None:
             member, _ = OrganizationMember.objects.get_or_create(
-                user=user, organization=team.organization, defaults={"role": "member"}
+                user_id=user.id if user else None,
+                organization=team.organization,
+                defaults={"role": "member"},
             )
 
         return OrganizationMemberTeam.objects.create(

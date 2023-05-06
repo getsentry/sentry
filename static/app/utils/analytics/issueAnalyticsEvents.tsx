@@ -161,6 +161,7 @@ export type IssueEventParameters = {
     num_perf_issues: number;
     page: number;
     query: string;
+    sort: string;
     tab?: string;
   };
   'quick_trace.connected_services': {

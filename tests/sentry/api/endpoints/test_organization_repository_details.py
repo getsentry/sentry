@@ -135,7 +135,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert response.status_code == 200
 
         repo = Repository.objects.get(id=repo.id)
-        assert repo.status == ObjectStatus.VISIBLE
+        assert repo.status == ObjectStatus.ACTIVE
         assert repo.integration_id == integration.id
 
     @with_feature("organizations:integrations-custom-scm")
@@ -236,7 +236,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert response.status_code == 200
 
         repo = Repository.objects.get(id=repo.id)
-        assert repo.status == ObjectStatus.VISIBLE
+        assert repo.status == ObjectStatus.ACTIVE
         assert repo.integration_id == integration.id
         assert repo.provider == "integrations:example"
         assert repo.name == "example-name"
@@ -266,7 +266,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             name="example_name",
             external_id="uuid-external-id",
             organization_id=org.id,
-            status=ObjectStatus.VISIBLE,
+            status=ObjectStatus.ACTIVE,
         )
 
         OrganizationOption.objects.create(
@@ -289,7 +289,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert repo.name == "uuid-name"
 
         repo2 = Repository.objects.get(id=repo2.id)
-        assert repo2.status == ObjectStatus.VISIBLE
+        assert repo2.status == ObjectStatus.ACTIVE
         assert repo2.name == "example_name"
 
     def test_put_bad_integration_org(self):
