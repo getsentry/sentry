@@ -5,8 +5,9 @@ from datetime import datetime
 from typing import Any, Dict, List, Mapping, Sequence
 
 import sentry_sdk
+from requests import PreparedRequest
 
-from sentry.integrations.client import ApiClient
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.utils.code_mapping import (
     MAX_CONNECTION_ERRORS,
@@ -16,7 +17,11 @@ from sentry.integrations.utils.code_mapping import (
 )
 from sentry.models import Integration, Repository
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.silo.util import trim_leading_slashes
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import jwt
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
@@ -43,7 +48,106 @@ class GithubRateLimitInfo:
         return f"GithubRateLimit(limit={self.limit},rem={self.remaining},reset={self.reset})"
 
 
-class GitHubClientMixin(ApiClient):  # type: ignore
+class GithubProxyClient(IntegrationProxyClient):
+    @control_silo_function
+    def _refresh_access_token(self) -> str | None:
+        integration = Integration.objects.filter(id=self.integration.id).first()
+        if not integration:
+            return None
+
+        logger.info(
+            "token.refresh_start",
+            extra={
+                "old_expires_at": self.integration.metadata.get("expires_at"),
+                "integration_id": self.integration.id,
+            },
+        )
+        data = self.post(f"/app/installations/{self.integration.external_id}/access_tokens")
+        token = data["token"]
+        expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
+        integration.metadata.update({"access_token": token, "expires_at": expires_at})
+        integration.save()
+        logger.info(
+            "token.refresh_end",
+            extra={
+                "new_expires_at": integration.metadata.get("expires_at"),
+                "integration_id": integration.id,
+            },
+        )
+
+        self.integration = integration
+        return token
+
+    @control_silo_function
+    def _get_token(self, prepared_request: PreparedRequest) -> str | None:
+        """
+        Get token retrieves the active access token from the integration model.
+        Should the token have expired, a new token will be generated and
+        automatically persisted into the integration.
+        """
+        self.integration: RpcIntegration
+
+        if not self.integration:
+            return None
+
+        logger_extra = {
+            "path_url": prepared_request.path_url,
+            "integration_id": self.integration.id,
+        }
+
+        # Only certain routes are authenticated with JWTs....
+        should_use_jwt = prepared_request.path_url.startswith("/app/installations")
+        if should_use_jwt:
+            token = get_jwt()
+            logger.info("token.jwt", extra=logger_extra)
+            return token
+
+        # The rest should use access tokens...
+        now = datetime.utcnow()
+        token: str | None = self.integration.metadata.get("access_token")
+        expires_at: str | None = self.integration.metadata.get("expires_at")
+        is_expired = bool(expires_at) and datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%S") < now
+        should_refresh = not token or not expires_at or is_expired
+
+        if should_refresh:
+            token = self._refresh_access_token()
+
+        logger.info("token.access_token", extra=logger_extra)
+        return token
+
+    @control_silo_function
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+
+        integration = None
+        if self.integration:
+            integration = self.integration
+        elif self.integration_id:
+            integration = Integration.objects.filter(
+                id=self.integration_id,
+                provider=EXTERNAL_PROVIDERS[ExternalProviders.GITHUB],
+                status=ObjectStatus.ACTIVE,
+            ).first()
+
+        if not integration:
+            logger.info("no_integration", extra={"path_url": prepared_request.path_url})
+            return prepared_request
+
+        token = self._get_token(prepared_request=prepared_request)
+        if not token:
+            logger.info(
+                "no_token",
+                extra={"path_url": prepared_request.path_url, "integration_id": integration.id},
+            )
+            return prepared_request
+
+        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        prepared_request.headers["Authorization"] = f"Bearer {token}"
+        print(prepared_request.__dict__)
+
+        return prepared_request
+
+
+class GitHubClientMixin(GithubProxyClient):  # type: ignore
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -461,59 +565,6 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         """
         return self.get(f"/users/{gh_username}")
 
-    # subclassing BaseApiClient request method
-    def request(
-        self,
-        method: str,
-        path: str,
-        headers: Mapping[str, Any] | None = None,
-        data: Mapping[str, Any] | None = None,
-        params: Mapping[str, Any] | None = None,
-    ) -> JSONData:
-        if headers is None:
-            headers = {
-                "Authorization": f"token {self.get_token()}",
-                # TODO(jess): remove this whenever it's out of preview
-                "Accept": "application/vnd.github.machine-man-preview+json",
-            }
-        return self._request(method, path, headers=headers, data=data, params=params)
-
-    def get_token(self, force_refresh: bool = False) -> str:
-        """
-        Get token retrieves the active access token from the integration model.
-        Should the token have expired, a new token will be generated and
-        automatically persisted into the integration.
-        """
-        self.integration: RpcIntegration
-
-        token: str | None = self.integration.metadata.get("access_token")
-        expires_at: str | None = self.integration.metadata.get("expires_at")
-        now = datetime.utcnow()
-
-        if (
-            not token
-            or not expires_at
-            or (datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%S") < now)
-            or force_refresh
-        ):
-            logger.info(f"Token to be refreshed (expires: {expires_at}, now: {now}).")
-            from copy import deepcopy
-
-            res = self.create_token()
-            token = res["token"]
-            expires_at = datetime.strptime(res["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
-            new_metadata = deepcopy(self.integration.metadata)
-            new_metadata.update({"access_token": token, "expires_at": expires_at})
-            self.integration = integration_service.update_integration(  # type: ignore
-                integration_id=self.integration.id, metadata=new_metadata
-            )
-            logger.info("The token has been refreshed.")
-
-        if expires_at:
-            logger.info(f"The token will expire at {expires_at} (now: {now}).")
-
-        return token or ""
-
     def create_token(self) -> JSONData:
         headers = {
             # TODO(jess): remove this whenever it's out of preview
@@ -604,6 +655,6 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
 
 class GitHubAppsClient(GitHubClientMixin):
-    def __init__(self, integration: Integration) -> None:
+    def __init__(self, integration: Integration, **kwargs) -> None:
         self.integration = integration
-        super().__init__()
+        super().__init__(integration_id=integration.id, **kwargs)

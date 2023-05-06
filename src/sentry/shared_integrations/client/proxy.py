@@ -32,7 +32,7 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
     """
 
     _should_proxy_to_control = False
-    _use_proxy_url_for_tests = False
+    _use_proxy_url_for_tests = True
 
     def __init__(
         self,
@@ -43,6 +43,7 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
         super().__init__(**kwargs)
 
         self.integration_id = integration_id
+        # TODO(Leander): Fix org_integration_id not always being set
         self.org_integration_id = org_integration_id
 
         is_region_silo = SiloMode.get_current_mode() == SiloMode.REGION
