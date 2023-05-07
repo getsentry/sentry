@@ -241,6 +241,21 @@ class ManageDashboards extends AsyncView<Props, State> {
     );
     this.onDashboardsChange();
     addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
+    setTimeout(() => {
+      this.loadDashboard(dashboard.title);
+    }, 500);
+  }
+
+  loadDashboard(dashboardTitle: string) {
+    const {organization, location} = this.props;
+    const {dashboards} = this.state;
+    const dashboard = dashboards?.find(val => val.title === dashboardTitle);
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/${dashboard?.id}/`,
+        query: location.query,
+      })
+    );
   }
 
   onPreview(dashboardId: string) {
