@@ -59,7 +59,7 @@ def process_user_ip_event(payload: Any, **kwds: Any):
 def process_organization_member_create(
     object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
 ):
-    if (org_member := maybe_process_tombstone(OrganizationMember, object_identifier)) is None:
+    if (org_member := OrganizationMember.objects.filter(id=object_identifier).last()) is None:
         return
 
     organizationmember_mapping_service.create_with_organization_member(org_member=org_member)
@@ -80,9 +80,7 @@ def process_organization_member_updates(
         )
         return
 
-    rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(
-        organization_member=org_member
-    )
+    rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(org_member)
 
     organizationmember_mapping_service.update_with_organization_member(
         organizationmember_id=org_member.id,

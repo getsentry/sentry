@@ -84,7 +84,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
 
         with transaction.atomic():
             updated = OrganizationIntegration.objects.filter(
-                id=org_integration.id, status=ObjectStatus.VISIBLE
+                id=org_integration.id, status=ObjectStatus.ACTIVE
             ).update(status=ObjectStatus.PENDING_DELETION)
 
             if updated:

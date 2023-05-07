@@ -1,3 +1,6 @@
+from typing import Mapping
+
+
 class GroupSubStatus:
     # GroupStatus.IGNORED
     UNTIL_ESCALATING = 1
@@ -28,7 +31,7 @@ IGNORED_SUBSTATUS_CHOICES = {
     None,
 }
 
-SUBSTATUS_UPDATE_CHOICES = {
+SUBSTATUS_UPDATE_CHOICES: Mapping[str, int] = {
     "until_escalating": GroupSubStatus.UNTIL_ESCALATING,
     "escalating": GroupSubStatus.ESCALATING,
     "ongoing": GroupSubStatus.ONGOING,

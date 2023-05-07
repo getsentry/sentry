@@ -8,33 +8,34 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
-import NetworkDetailsContent from 'sentry/views/replays/detail/network/networkDetailsContent';
+import NetworkDetailsContent from 'sentry/views/replays/detail/network/details/content';
 import NetworkDetailsTabs, {
   TabKey,
-} from 'sentry/views/replays/detail/network/networkDetailsTabs';
+} from 'sentry/views/replays/detail/network/details/tabs';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 type Props = {
+  isSetup: boolean;
   item: null | NetworkSpan;
   onClose: () => void;
-  onScrollToRow: () => void;
+  projectId: undefined | string;
   startTimestampMs: number;
 } & Omit<ReturnType<typeof useResizableDrawer>, 'size'>;
 
-function NetworkRequestDetails({
+function NetworkDetails({
   isHeld,
+  isSetup,
   item,
   onClose,
   onDoubleClick,
   onMouseDown,
-  onScrollToRow,
+  projectId,
   startTimestampMs,
 }: Props) {
   const {getParamValue: getDetailTab} = useUrlParams('n_detail_tab', 'details');
 
-  if (!item) {
+  if (!item || !projectId) {
     return null;
   }
 
@@ -63,14 +64,14 @@ function NetworkRequestDetails({
           />
         </CloseButtonWrapper>
       </StyledStacked>
-      <FluidHeight>
-        <NetworkDetailsContent
-          visibleTab={visibleTab}
-          item={item}
-          onScrollToRow={onScrollToRow}
-          startTimestampMs={startTimestampMs}
-        />
-      </FluidHeight>
+
+      <NetworkDetailsContent
+        isSetup={isSetup}
+        item={item}
+        projectId={projectId}
+        startTimestampMs={startTimestampMs}
+        visibleTab={visibleTab}
+      />
     </Fragment>
   );
 }
@@ -97,7 +98,7 @@ const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
     padding-left: ${space(2)};
   }
   & > li:last-child {
-    padding-right: 0;
+    padding-right: ${space(1)};
   }
 
   & > li > a {
@@ -124,4 +125,4 @@ const StyledSplitDivider = styled(SplitDivider)<{isHeld: boolean}>`
   }
 `;
 
-export default NetworkRequestDetails;
+export default NetworkDetails;

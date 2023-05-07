@@ -2152,9 +2152,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             metrics.incr("sourcemaps.ab-test.performed")
 
             # TODO: we currently have known differences:
-            # - small `abs_path`/`filename` differences because of different url joining
-            # - python resolves a `module` in the processor, whereas symbolicator does that
-            #   indirectly in the Plugin preprocessor
+            # - python prefixes sourcemaps fetched by debug-id with `debug-id://`
+            # - some insignificant differences in source context application
+            #   related to different column offsets
+            # - python adds a `data.sourcemap` even if none was fetched successfully
             # - symbolicator does not add trailing empty lines to `post_context`
             interesting_keys = {
                 "abs_path",
@@ -2205,11 +2206,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
                 for symbolicator_frame, python_frame in zip(
                     symbolicator_stacktrace,
-                    (
-                        frame
-                        for frame in python_stacktrace["frames"]
-                        if frame and frame.get("abs_path")
-                    ),
+                    python_stacktrace["frames"],
                 ):
                     symbolicator_frame = filtered_frame(symbolicator_frame)
                     python_frame = filtered_frame(python_frame)
@@ -2223,7 +2220,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 with sentry_sdk.push_scope() as scope:
                     scope.set_extra("different_frames", different_frames)
                     scope.set_extra("event_id", self.data.get("event_id"))
-                    scope.set_tag("project_id", self.project.id)
                     sentry_sdk.capture_message(
                         "JS symbolication differences between symbolicator and python."
                     )

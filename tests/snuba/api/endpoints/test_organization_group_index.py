@@ -331,6 +331,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response = self.get_response()
             assert response.status_code == 200
 
+    def test_replay_feature_gate(self):
+        # allow replays to query for backend
+        self.create_project(organization=self.project.organization)
+        self.login_as(user=self.user)
+        self.get_success_response(extra_headers={"HTTP_X-Sentry-Replay-Request": "1"})
+
     def test_with_all_projects(self):
         # ensure there are two or more projects
         self.create_project(organization=self.project.organization)

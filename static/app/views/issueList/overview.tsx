@@ -836,6 +836,7 @@ class IssueListOverview extends Component<Props, State> {
       num_old_issues: numOldIssues,
       num_new_issues: numNewIssues,
       num_issues: data.length,
+      sort: this.getSort(),
     });
   }
 
@@ -1253,7 +1254,7 @@ class IssueListOverview extends Component<Props, State> {
             </Panel>
             <StyledPagination
               caption={
-                !issuesLoading
+                !issuesLoading && modifiedQueryCount > 0
                   ? tct('[start]-[end] of [total]', {
                       start: numPreviousIssues + 1,
                       end: numPreviousIssues + numIssuesOnPage,

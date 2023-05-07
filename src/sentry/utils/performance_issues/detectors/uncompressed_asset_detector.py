@@ -4,11 +4,17 @@ from sentry import features
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
 from sentry.models import Organization, Project
 
-from ..base import DetectorType, PerformanceDetector, fingerprint_resource_span, get_span_duration
+from ..base import (
+    DetectorType,
+    PerformanceDetector,
+    fingerprint_resource_span,
+    get_span_duration,
+    get_span_evidence_value,
+)
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
-FILE_EXTENSION_DENYLIST = ("woff", "woff2")
+FILE_EXTENSION_ALLOWLIST = ("css", "json", "js")
 
 
 class UncompressedAssetSpanDetector(PerformanceDetector):
@@ -68,7 +74,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         # Ignore assets with certain file extensions
-        if description.endswith(FILE_EXTENSION_DENYLIST):
+        if not description.endswith(FILE_EXTENSION_ALLOWLIST):
             return
 
         # Ignore assets under a certain duration threshold
@@ -93,6 +99,10 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
                     "parent_span_ids": [],
                     "cause_span_ids": [],
                     "offender_span_ids": [span.get("span_id", None)],
+                    "transaction_name": self._event.get("description", ""),
+                    "repeating_spans": get_span_evidence_value(span),
+                    "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
+                    "num_repeating_spans": str(len(span.get("span_id", None))),
                 },
                 evidence_display=[],
             )

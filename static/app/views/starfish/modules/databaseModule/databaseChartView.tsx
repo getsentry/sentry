@@ -47,7 +47,7 @@ function parseOptions(options, label) {
   ];
 }
 
-export default function APIModuleView({action, table, onChange}: Props) {
+export default function DatabaseChartView({action, table, onChange}: Props) {
   const pageFilter = usePageFilters();
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
     pageFilter.selection.datetime
@@ -198,9 +198,9 @@ export default function APIModuleView({action, table, onChange}: Props) {
         </ChartsContainerItem>
       </ChartsContainer>
       <Selectors>
-        Operation:
         <CompactSelect
           value={action}
+          triggerProps={{prefix: t('Operation')}}
           options={parseOptions(operationData, 'query')}
           menuTitle="Operation"
           onChange={opt => onChange('action', opt.value)}
@@ -257,9 +257,9 @@ export default function APIModuleView({action, table, onChange}: Props) {
             </ChartsContainerItem>
           </ChartsContainer>
           <Selectors>
-            Table:
             <CompactSelect
               value={table}
+              triggerProps={{prefix: t('Table')}}
               options={parseOptions(tableData, 'p75')}
               menuTitle="Table"
               onChange={opt => onChange('table', opt.value)}

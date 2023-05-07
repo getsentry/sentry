@@ -28,18 +28,17 @@ from rest_framework.request import Request
 
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
+    RpcOrganizationMember,
+    RpcOrganizationMemberSummary,
+)
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
-
-    from sentry.services.hybrid_cloud.organization import (
-        RpcOrganization,
-        RpcOrganizationMember,
-        RpcOrganizationMemberSummary,
-    )
 
 
 class RpcAuthenticatorType(IntEnum):
@@ -341,7 +340,7 @@ class AuthService(RpcService):
         user_id: int,
         is_superuser: bool,
         organization_id: Optional[int],
-        org_member: Optional["RpcOrganizationMemberSummary"],
+        org_member: Optional[RpcOrganizationMemberSummary],
     ) -> RpcAuthState:
         pass
 
@@ -371,10 +370,10 @@ class AuthService(RpcService):
         self,
         *,
         request: Request,
-        organization: "RpcOrganization",
+        organization: RpcOrganization,
         auth_identity: RpcAuthIdentity,
         auth_provider: RpcAuthProvider,
-    ) -> Tuple[RpcUser, "RpcOrganizationMember"]:
+    ) -> Tuple[RpcUser, RpcOrganizationMember]:
         pass
 
     @rpc_method
