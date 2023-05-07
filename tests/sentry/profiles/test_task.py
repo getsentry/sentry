@@ -344,6 +344,8 @@ class ProfilesProcessTaskTest(TestCase):
             },
         ]
 
-        _process_symbolicator_results_for_sample(profile, stacktraces)
+        _process_symbolicator_results_for_sample(
+            profile, stacktraces, list(range(len(profile["profile"]["frames"])))
+        )
 
         assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
