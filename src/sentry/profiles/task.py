@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
 from time import sleep, time
@@ -392,18 +393,6 @@ def _process_symbolicator_results(
 def _process_symbolicator_results_for_sample(
     profile: Profile, stacktraces: List[Any], frames_sent: list[int]
 ) -> None:
-    if len(frames_sent) > 0:
-        for idx, f in zip(frames_sent, stacktraces[0]["frames"]):
-            profile["profile"]["frames"][idx] = f
-    else:
-        profile["profile"]["frames"] = stacktraces[0]["frames"]
-
-    if profile["platform"] in SHOULD_SYMBOLICATE:
-        for frame in profile["profile"]["frames"]:
-            frame.pop("pre_context", None)
-            frame.pop("context_line", None)
-            frame.pop("post_context", None)
-
     if profile["platform"] == "rust":
 
         def truncate_stack_needed(frames: List[dict[str, Any]], stack: List[Any]) -> List[Any]:
@@ -433,6 +422,25 @@ def _process_symbolicator_results_for_sample(
             stack: List[Any],
         ) -> List[Any]:
             return stack
+
+    symbolicated_frames = stacktraces[0]["frames"]
+
+    if len(frames_sent) > 0:
+        raw_frames = profile["profile"]["frames"]
+        new_frames = []
+        raw_frame_idx = 0
+        frames_dict = get_frame_index_map(symbolicated_frames)
+
+        for idx in range(len(frames_sent)):
+            if idx in set(frames_sent):
+                for frame_idx in frames_dict[idx]:
+                    new_frames.append(symbolicated_frames[frame_idx])
+            else:
+                new_frames.append(raw_frames[raw_frame_idx])
+            raw_frame_idx += 1
+        profile["profile"]["frames"] = new_frames
+    else:
+        profile["profile"]["frames"] = symbolicated_frames
 
     if profile["platform"] in SHOULD_SYMBOLICATE:
         idx_map = get_frame_index_map(profile["profile"]["frames"])
@@ -526,12 +534,9 @@ The sorting order is callee to caller (child to parent)
 
 
 def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
-    index_map: dict[int, List[int]] = {}
+    index_map: dict[int, List[int]] = defaultdict(list)
     for i, frame in enumerate(frames):
-        original_idx = frame["original_index"]
-        idx_list = index_map.get(original_idx, [])
-        idx_list.append(i)
-        index_map[original_idx] = idx_list
+        index_map[frame["original_index"]].append(i)
     return index_map
 
 
