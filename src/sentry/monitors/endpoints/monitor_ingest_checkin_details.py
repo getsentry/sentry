@@ -75,8 +75,8 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             context={
                 "project": project,
                 "request": request,
-                "monitor": monitor,
                 "monitor_slug": monitor.slug,
+                "monitor": monitor,
             },
         )
         if not serializer.is_valid():
