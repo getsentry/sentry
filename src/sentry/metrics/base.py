@@ -2,11 +2,19 @@ __all__ = ["MetricsBackend"]
 
 from random import random
 from threading import local
-from typing import Any, Mapping, Optional, Union
+from typing import Mapping, MutableMapping, Optional, Union
 
 from django.conf import settings
 
-Tags = Mapping[str, Any]
+# Note: One can pass a lot without TypeErrors, but some values such as None
+# don't actually get serialized as tags properly all the way to statsd (they
+# just get lost)
+# We still loosely type here because we have too many places where we send None
+# for a tag value, and sometimes even keys. It doesn't cause real bugs, your
+# monitoring is just slightly broken.
+TagValue = Union[str, int, float, None]
+Tags = Mapping[str, TagValue]
+MutableTags = MutableMapping[str, TagValue]
 
 
 class MetricsBackend(local):
