@@ -411,7 +411,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             # we'll fallback to querying for errors only
             if GroupCategory.ERROR.value in query_params_for_categories.keys():
                 bulk_query_results = bulk_raw_query(
-                    query_params_for_categories[GroupCategory.ERROR.value], referrer=referrer
+                    [query_params_for_categories[GroupCategory.ERROR.value]], referrer=referrer
                 )
             else:
                 raise e
