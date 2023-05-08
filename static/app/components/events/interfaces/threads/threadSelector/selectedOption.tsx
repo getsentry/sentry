@@ -9,7 +9,7 @@ import {space} from 'sentry/styles/space';
 type Props = {
   details: ThreadInfo;
   id: number;
-  name: string | null | undefined;
+  name?: string | null;
 };
 
 type ThreadInfo = {
