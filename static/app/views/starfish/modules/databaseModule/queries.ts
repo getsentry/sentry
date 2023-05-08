@@ -51,6 +51,23 @@ const getDomainSubquery = (date_filters: string, action: string) => {
   `;
 };
 
+const getTransactionsFromTableSubquery = (tableNames: string[], dateFilters: string) => {
+  const tableFilter = `domain IN ('${tableNames.join(`', '`)}')`;
+
+  const filters = [DEFAULT_WHERE, tableFilter];
+  return `
+  SELECT
+    transaction
+  FROM default.spans_experimental_starfish
+  WHERE
+    ${filters.join(' AND ')}
+    ${dateFilters}
+  GROUP BY transaction
+  ORDER BY ${ORDERBY}
+  LIMIT 5
+`;
+};
+
 const getActionQuery = (action: string) =>
   action !== 'ALL' ? `and action = '${action}'` : '';
 
@@ -164,12 +181,53 @@ export const useQueryTopDbOperationsChart = (
   });
 };
 
+export const useGetTransactionsForTables = (tableNames: string[], interval: number) => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+  const transactionFilter = `transaction IN (${getTransactionsFromTableSubquery(
+    tableNames,
+    dateFilters
+  )})`;
+
+  const filters = [transactionFilter];
+
+  const query = `
+    SELECT
+      transaction,
+      floor(quantile(0.75)(exclusive_time), 5) as p75,
+      count() as count,
+      toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
+    FROM default.spans_experimental_starfish
+    WHERE
+      ${filters.join(' AND ')}
+      ${dateFilters}
+    GROUP BY interval, transaction
+    ORDER BY interval
+  `;
+
+  const {start, end} = pageFilter.selection.datetime;
+
+  return useQuery({
+    enabled: !!tableNames?.length,
+    queryKey: ['topTable', tableNames.join(','), start, end],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+};
+
+type TopTableQuery = {
+  count: number;
+  domain: string;
+  interval: string;
+  p75: number;
+}[];
+
 export const useQueryTopTablesChart = (
   action: string,
   interval: number
-): DefinedUseQueryResult<
-  {count: number; domain: string; interval: string; p75: number}[]
-> => {
+): DefinedUseQueryResult<TopTableQuery> => {
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
@@ -188,12 +246,41 @@ export const useQueryTopTablesChart = (
   group by interval, domain
   order by interval, domain
   `;
-  return useQuery({
+
+  const result1 = useQuery<TopTableQuery>({
     queryKey: ['topTable', action, pageFilter.selection.datetime],
     queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
+
+  const tables = [...new Set(result1.data.map(d => d.domain))];
+
+  const query2 = `
+  select
+  floor(quantile(0.75)(exclusive_time), 5) as p75,
+  count() as count,
+  toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
+  from default.spans_experimental_starfish
+  where
+    domain not in ('${tables.join(`', '`)}')
+    AND ${DEFAULT_WHERE}
+    ${dateFilters}
+  group by interval
+  order by interval
+  `;
+
+  const result2 = useQuery<TopTableQuery>({
+    enabled: !result1.isLoading && !!result1.data?.length,
+    queryKey: ['topTableOther', action, pageFilter.selection.datetime],
+    queryFn: () => fetch(`${HOST}/?query=${query2}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+  result2.data.forEach(d => (d.domain = 'other'));
+  const joinedData = [...result1.data, ...result2.data];
+
+  return {...result2, data: joinedData};
 };
 
 export const useQueryPanelTable = (

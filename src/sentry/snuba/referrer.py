@@ -363,6 +363,9 @@ class ReferrerBase(Enum):
     DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES = (
         "dynamic_sampling.counters.get_org_transaction_volumes"
     )
+    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_ORGS_WITH_COUNT_PER_ROOT = (
+        "dynamic_sampling.distribution.fetch_orgs_with_count_per_root_total_volumes"
+    )
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
         "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
     )
