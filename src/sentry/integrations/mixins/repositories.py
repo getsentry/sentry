@@ -96,6 +96,10 @@ class RepositoryMixin:
         raise NotImplementedError
 
     def get_unmigratable_repositories(self) -> Sequence[Repository]:
+        """
+        Get all repositories which are in our database but no longer exist as far as
+        the external service is concerned.
+        """
         return []
 
     def reinstall_repositories(self) -> None:
@@ -105,7 +109,7 @@ class RepositoryMixin:
             organization_id__in=[i.organization_id for i in installs],
             provider=f"integrations:{self.model.provider}",
             integration_id=self.model.id,
-        ).update(status=ObjectStatus.VISIBLE)
+        ).update(status=ObjectStatus.ACTIVE)
 
     def has_repo_access(self, repo: Repository) -> bool:
         raise NotImplementedError

@@ -104,6 +104,9 @@ from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallati
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.services.hybrid_cloud.organizationmember_mapping import (
+    organizationmember_mapping_service,
+)
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.silo import exempt_from_silo_limits
@@ -288,7 +291,22 @@ class Factories:
         kwargs.setdefault("role", "member")
         teamRole = kwargs.pop("teamRole", None)
 
+        # user_id will have precedence over user
+        user = kwargs.pop("user", None)
+        user_id = kwargs.pop("user_id", None)
+        if not user_id and user:
+            user_id = user.id
+        kwargs["user_id"] = user_id
+
+        # inviter_id will have precedence over inviter
+        inviter = kwargs.pop("inviter", None)
+        inviter_id = kwargs.pop("inviter_id", None)
+        if not inviter_id and inviter:
+            inviter_id = inviter.id
+        kwargs["inviter_id"] = inviter_id
+
         om = OrganizationMember.objects.create(**kwargs)
+        organizationmember_mapping_service.create_with_organization_member(org_member=om)
 
         if team_roles:
             for team, role in team_roles:
@@ -303,7 +321,9 @@ class Factories:
     def create_team_membership(team, member=None, user=None, role=None):
         if member is None:
             member, _ = OrganizationMember.objects.get_or_create(
-                user=user, organization=team.organization, defaults={"role": "member"}
+                user_id=user.id if user else None,
+                organization=team.organization,
+                defaults={"role": "member"},
             )
 
         return OrganizationMemberTeam.objects.create(
@@ -1307,8 +1327,8 @@ class Factories:
             type,
             target_type,
             target_identifier,
-            integration,
-            sentry_app,
+            integration.id if integration else None,
+            sentry_app.id if sentry_app else None,
             sentry_app_config=sentry_app_config,
         )
 

@@ -51,6 +51,7 @@ from sentry.search.events.constants import (
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -329,6 +330,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
         with self.feature("organizations:global-views"):
             response = self.get_response()
             assert response.status_code == 200
+
+    def test_replay_feature_gate(self):
+        # allow replays to query for backend
+        self.create_project(organization=self.project.organization)
+        self.login_as(user=self.user)
+        self.get_success_response(extra_headers={"HTTP_X-Sentry-Replay-Request": "1"})
 
     def test_with_all_projects(self):
         # ensure there are two or more projects
@@ -1658,6 +1665,39 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert int(response.data[0]["id"]) == event.group.id
         assert response.data[0]["inbox"] is not None
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
+        assert response.data[0]["inbox"]["reason_details"] == snooze_details
+
+    @with_feature("organizations:issue-states")
+    def test_inbox_fields_issue_states(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        add_group_to_inbox(event.group, GroupInboxReason.NEW)
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
+        remove_group_from_inbox(event.group)
+        snooze_details = {
+            "until": None,
+            "count": 3,
+            "window": None,
+            "user_count": None,
+            "user_window": 5,
+        }
+        add_group_to_inbox(event.group, GroupInboxReason.ONGOING, snooze_details)
+        response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["inbox"] is not None
+        assert response.data[0]["inbox"]["reason"] == GroupInboxReason.ONGOING.value
         assert response.data[0]["inbox"]["reason_details"] == snooze_details
 
     def test_expand_string(self):

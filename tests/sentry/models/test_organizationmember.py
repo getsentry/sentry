@@ -17,6 +17,7 @@ from sentry.models import (
 )
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.outbox import outbox_runner
@@ -81,7 +82,8 @@ class OrganizationMemberTest(TestCase):
         provider = manager.get("dummy")
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            member.send_sso_unlink_email(user, provider)
+            rpc_user = user_service.get_user(user_id=user.id)
+            member.send_sso_unlink_email(rpc_user, provider)
 
         context = builder.call_args[1]["context"]
 

@@ -21,7 +21,9 @@ function FocusArea({}: Props) {
     case TabKey.network:
       return (
         <NetworkList
+          isNetworkDetailsSetup={Boolean(replay?.isNetworkDetailsSetup())}
           networkSpans={replay?.getNetworkSpans()}
+          projectId={replay?.getReplay()?.project_id}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );

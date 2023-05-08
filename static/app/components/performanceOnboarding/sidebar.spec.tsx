@@ -2,13 +2,12 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
 import {generateDocKeys} from './utils';
@@ -38,20 +37,19 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
           routes: [],
         }}
       >
-        <OrganizationContext.Provider value={props.organization}>
-          <PersistedStoreProvider>
-            <SidebarContainer
-              organization={props.organization}
-              location={location}
-              {...props}
-            />
-          </PersistedStoreProvider>
-        </OrganizationContext.Provider>
+        <OnboardingContextProvider>
+          <SidebarContainer
+            organization={props.organization}
+            location={location}
+            {...props}
+          />
+        </OnboardingContextProvider>
       </RouteContext.Provider>
     );
   };
 
-  const renderSidebar = props => render(getElement(props));
+  const renderSidebar = props =>
+    render(getElement(props), {organization: props.organization});
 
   beforeEach(function () {
     jest.resetAllMocks();

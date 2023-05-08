@@ -1,6 +1,8 @@
+import {ReactElement} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
+import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import Duration from 'sentry/components/duration';
@@ -9,10 +11,14 @@ import GridEditable, {
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {Series} from 'sentry/types/echarts';
+import Sparkline from 'sentry/views/starfish/components/sparkline';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
-import {getEndpointListQuery} from './queries';
+import {getEndpointAggregatesQuery, getEndpointListQuery} from './queries';
 
 type Props = {
   filterOptions: {
@@ -44,9 +50,14 @@ const COLUMN_ORDER = [
     width: 600,
   },
   {
-    key: 'tpm',
-    name: 'tpm',
-    width: COL_WIDTH_UNDEFINED,
+    key: 'throughput',
+    name: 'throughput',
+    width: 200,
+  },
+  {
+    key: 'p50_trend',
+    name: 'p50 Trend',
+    width: 200,
   },
   {
     key: 'p50(exclusive_time)',
@@ -86,10 +97,57 @@ export default function EndpointTable({
     initialData: [],
   });
 
+  const {isLoading: areEndpointAggregatesLoading, data: endpointsThroughputData} =
+    useQuery({
+      queryKey: ['endpointAggregates', filterOptions],
+      queryFn: () =>
+        fetch(`${HOST}/?query=${getEndpointAggregatesQuery(filterOptions)}`).then(res =>
+          res.json()
+        ),
+      retry: false,
+      initialData: [],
+    });
+
+  const aggregatesGroupedByURL = {};
+  endpointsThroughputData.forEach(({description, interval, count, p50}) => {
+    if (description in aggregatesGroupedByURL) {
+      aggregatesGroupedByURL[description].push({name: interval, count, p50});
+    } else {
+      aggregatesGroupedByURL[description] = [{name: interval, count, p50}];
+    }
+  });
+
+  const combinedEndpointData = endpointsData.map(data => {
+    const url = data.description;
+
+    const throughputSeries: Series = {
+      seriesName: 'throughput',
+      data: aggregatesGroupedByURL[url].map(({name, count}) => ({
+        name,
+        value: count,
+      })),
+    };
+
+    const p50Series: Series = {
+      seriesName: 'p50 Trend',
+      data: aggregatesGroupedByURL[url].map(({name, p50}) => ({
+        name,
+        value: p50,
+      })),
+    };
+
+    const zeroFilledThroughput = zeroFillSeries(
+      throughputSeries,
+      moment.duration(12, 'hours')
+    );
+    const zeroFilledP50 = zeroFillSeries(p50Series, moment.duration(12, 'hours'));
+    return {...data, throughput: zeroFilledThroughput, p50_trend: zeroFilledP50};
+  });
+
   return (
     <GridEditable
-      isLoading={areEndpointsLoading}
-      data={endpointsData}
+      isLoading={areEndpointsLoading || areEndpointAggregatesLoading}
+      data={combinedEndpointData}
       columnOrder={columns ?? COLUMN_ORDER}
       columnSortBy={[]}
       grid={{
@@ -103,6 +161,14 @@ export default function EndpointTable({
 }
 
 export function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+  if (column.key === 'throughput' || column.key === 'p50_trend') {
+    return (
+      <TextAlignLeft>
+        <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
+      </TextAlignLeft>
+    );
+  }
+
   // TODO: come up with a better way to identify number columns to align to the right
   if (
     column.key.toString().match(/^p\d\d/) ||
@@ -132,23 +198,51 @@ export function renderBodyCell(
     );
   }
 
-  // TODO: come up with a better way to identify number columns to align to the right
-  if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
+  if (column.key === 'throughput') {
     return (
-      <TextAlignRight>
-        <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />
-      </TextAlignRight>
-    );
-  }
-  if (!['description', 'transaction'].includes(column.key.toString())) {
-    return (
-      <TextAlignRight>
-        <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
-      </TextAlignRight>
+      <Sparkline
+        color={CHART_PALETTE[3][0]}
+        series={row[column.key]}
+        width={column.width ? column.width - column.width / 5 : undefined}
+      />
     );
   }
 
-  return <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>;
+  if (column.key === 'p50_trend') {
+    return (
+      <Sparkline
+        color={CHART_PALETTE[3][3]}
+        series={row[column.key]}
+        width={column.width ? column.width - column.width / 5 : undefined}
+      />
+    );
+  }
+
+  // TODO: come up with a better way to identify number columns to align to the right
+  let node: ReactElement | null = null;
+  if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
+    node = <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
+  } else if (!['description', 'transaction'].includes(column.key.toString())) {
+    node = (
+      <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
+    );
+  } else {
+    node = (
+      <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
+    );
+  }
+
+  const isNumericColumn =
+    column.key === 'total_exclusive_time' ||
+    column.key === 'user_count' ||
+    column.key === 'transaction_count' ||
+    column.key.toString().match(/^p\d\d/);
+
+  if (isNumericColumn) {
+    return <TextAlignRight>{node}</TextAlignRight>;
+  }
+
+  return <TextAlignLeft>{node}</TextAlignLeft>;
 }
 
 export const OverflowEllipsisTextContainer = styled('span')`
@@ -159,5 +253,10 @@ export const OverflowEllipsisTextContainer = styled('span')`
 
 export const TextAlignRight = styled('span')`
   text-align: right;
+  width: 100%;
+`;
+
+export const TextAlignLeft = styled('span')`
+  text-align: left;
   width: 100%;
 `;

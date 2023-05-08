@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useContext} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {motion} from 'framer-motion';
@@ -13,18 +13,21 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {createProject} from 'sentry/actionCreators/projects';
 import {Button} from 'sentry/components/button';
 import {SUPPORTED_LANGUAGES} from 'sentry/components/onboarding/frameworkSuggestionModal';
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {OnboardingSelectedSDK, Organization} from 'sentry/types';
+import {
+  OnboardingProjectStatus,
+  OnboardingSelectedSDK,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
 import useTeams from 'sentry/utils/useTeams';
-
-import {OnboardingState} from '../types';
-import {usePersistedOnboardingState} from '../utils';
 
 import GenericFooter from './genericFooter';
 
@@ -49,35 +52,33 @@ export function CreateProjectsFooter({
 
   const api = useApi();
   const {teams} = useTeams();
-  const [clientState, setClientState] = usePersistedOnboardingState();
+  const onboardingContext = useContext(OnboardingContext);
   const {projects} = useProjects();
 
   const createPlatformProject = useCallback(
     async (selectedFramework?: OnboardingSelectedSDK) => {
-      if (!clientState || !selectedPlatform) {
-        // Do nothing if client state is not loaded yet.
+      if (!selectedPlatform) {
         return;
       }
 
-      const createProjectForPlatform = selectedFramework
-        ? projects.find(p => p.platform === selectedFramework.key)
+      let createProjectForPlatform: OnboardingSelectedSDK | undefined = undefined;
+
+      if (selectedFramework) {
+        createProjectForPlatform = projects.find(
+          p => p.platform === selectedFramework.key
+        )
           ? undefined
-          : selectedFramework
-        : projects.find(p => p.platform === selectedPlatform.key)
-        ? undefined
-        : clientState.platformToProjectIdMap[selectedPlatform.key]
-        ? undefined
-        : selectedPlatform;
+          : selectedFramework;
+      } else {
+        createProjectForPlatform = projects.find(
+          p => p.platform === onboardingContext.data.selectedSDK?.key
+        )
+          ? undefined
+          : onboardingContext.data.selectedSDK;
+      }
 
       if (!createProjectForPlatform) {
         const platform = selectedFramework ? selectedFramework : selectedPlatform;
-
-        setClientState({
-          platformToProjectIdMap: clientState.platformToProjectIdMap,
-          selectedPlatform: platform,
-          state: 'projects_selected',
-          url: 'setup-docs/',
-        });
 
         trackAnalytics('growth.onboarding_set_up_your_project', {
           platform: selectedPlatform.key,
@@ -89,9 +90,9 @@ export function CreateProjectsFooter({
       }
 
       try {
-        addLoadingMessage(t('Creating project'));
+        addLoadingMessage(t('Loading SDK configuration\u2026'));
 
-        const response = await createProject({
+        const response = (await createProject({
           api,
           orgSlug: organization.slug,
           team: teams[0].slug,
@@ -100,21 +101,32 @@ export function CreateProjectsFooter({
           options: {
             defaultRules: true,
           },
-        });
-
-        const nextState: OnboardingState = {
-          platformToProjectIdMap: clientState.platformToProjectIdMap,
-          selectedPlatform: createProjectForPlatform,
-          state: 'projects_selected',
-          url: 'setup-docs/',
-        };
-
-        nextState.platformToProjectIdMap[createProjectForPlatform.key] =
-          createProjectForPlatform.key;
-
-        setClientState(nextState);
+        })) as Project;
 
         ProjectsStore.onCreateSuccess(response, organization.slug);
+
+        // Measure to filter out projects that might have been created during the onboarding and not deleted from the session due to an error
+        // Note: in the onboarding flow the projects are created based on the platform slug
+        const newProjects = Object.keys(onboardingContext.data.projects).reduce(
+          (acc, key) => {
+            if (onboardingContext.data.projects[key].slug !== response.slug) {
+              acc[key] = onboardingContext.data.projects[key];
+            }
+            return acc;
+          },
+          {}
+        );
+
+        onboardingContext.setData({
+          selectedSDK: createProjectForPlatform,
+          projects: {
+            ...newProjects,
+            [response.id]: {
+              slug: response.slug,
+              status: OnboardingProjectStatus.WAITING,
+            },
+          },
+        });
 
         trackAnalytics('growth.onboarding_set_up_your_project', {
           platform: selectedPlatform.key,
@@ -122,22 +134,13 @@ export function CreateProjectsFooter({
         });
 
         clearIndicators();
-        setTimeout(() => onComplete(createProjectForPlatform));
+        setTimeout(() => onComplete(createProjectForPlatform!));
       } catch (err) {
-        addErrorMessage(t('Failed to create project'));
+        addErrorMessage(t('Failed to load SDK configuration'));
         Sentry.captureException(err);
       }
     },
-    [
-      clientState,
-      setClientState,
-      selectedPlatform,
-      api,
-      organization,
-      teams,
-      projects,
-      onComplete,
-    ]
+    [onboardingContext, selectedPlatform, api, organization, teams, projects, onComplete]
   );
 
   const handleProjectCreation = useCallback(async () => {
@@ -166,6 +169,10 @@ export function CreateProjectsFooter({
           organization={organization}
           selectedPlatform={selectedPlatform}
           onConfigure={selectedFramework => {
+            onboardingContext.setData({
+              ...onboardingContext.data,
+              selectedSDK: selectedFramework,
+            });
             createPlatformProject(selectedFramework);
           }}
           onSkip={createPlatformProject}
@@ -181,7 +188,7 @@ export function CreateProjectsFooter({
         },
       }
     );
-  }, [selectedPlatform, createPlatformProject, organization]);
+  }, [selectedPlatform, createPlatformProject, onboardingContext, organization]);
 
   return (
     <GenericFooter>
@@ -196,7 +203,7 @@ export function CreateProjectsFooter({
               />
             </div>
             <PlatformsSelected>
-              {t('1 platform selected')}
+              {t('platform selected')}
               <ClearButton priority="link" onClick={clearPlatform} size="zero">
                 {t('Clear')}
               </ClearButton>
@@ -213,7 +220,7 @@ export function CreateProjectsFooter({
           disabled={!selectedPlatform}
           data-test-id="platform-select-next"
         >
-          {t('Create Project')}
+          {t('Configure SDK')}
         </Button>
       </ButtonWrapper>
     </GenericFooter>

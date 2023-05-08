@@ -18,9 +18,10 @@ type Props = {
   columnIndex: number;
   currentHoverTime: number | undefined;
   currentTime: number;
-  handleClick: (span: NetworkSpan) => void;
   handleMouseEnter: (span: NetworkSpan) => void;
   handleMouseLeave: (span: NetworkSpan) => void;
+  onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
+  onClickTimestamp: (crumb: NetworkSpan) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortNetwork>['sortConfig'];
   span: NetworkSpan;
@@ -43,9 +44,10 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       columnIndex,
       currentHoverTime,
       currentTime,
-      handleClick,
       handleMouseEnter,
       handleMouseLeave,
+      onClickCell,
+      onClickTimestamp,
       rowIndex,
       sortConfig,
       span,
@@ -55,14 +57,17 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     ref
   ) => {
     // Rows include the sortable header, the dataIndex does not
-    const dataIndex = String(rowIndex - 1);
+    const dataIndex = rowIndex - 1;
 
-    const {getParamValue, setParamValue} = useUrlParams('n_detail_row', '');
-    const isDetailsOpen = getParamValue() === dataIndex;
+    const {getParamValue} = useUrlParams('n_detail_row', '');
+    const isDetailsOpen = getParamValue() === String(dataIndex);
 
     const startMs = span.startTimestamp * 1000;
     const endMs = span.endTimestamp * 1000;
+    const method = span.data.method;
     const statusCode = span.data.statusCode;
+    // `data.responseBodySize` is from SDK version 7.44-7.45
+    const size = span.data.size ?? span.data.response?.size ?? span.data.responseBodySize;
 
     const spanTime = useMemo(
       () => relativeTimeInMs(span.startTimestamp * 1000, startTimestampMs),
@@ -101,17 +106,19 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       hasOccurred: isByTimestamp ? hasOccurred : undefined,
       isDetailsOpen,
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
-      onClick: () => setParamValue(dataIndex),
+      onClick: () => onClickCell({dataIndex, rowIndex}),
       onMouseEnter: () => handleMouseEnter(span),
       onMouseLeave: () => handleMouseLeave(span),
       ref,
       style,
     } as CellProps;
 
-    // `data.responseBodySize` is from SDK version 7.44-7.45
-    const size = span.data.size ?? span.data.response?.size ?? span.data.responseBodySize;
-
     const renderFns = [
+      () => (
+        <Cell {...columnProps}>
+          <Text>{method ? method : 'GET'}</Text>
+        </Cell>
+      ),
       () => (
         <Cell {...columnProps}>
           <Text>{statusCode ? statusCode : EMPTY_CELL}</Text>
@@ -150,11 +157,11 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps} numeric>
-          <TimestampButton
+          <StyledTimestampButton
             format="mm:ss.SSS"
             onClick={(event: MouseEvent) => {
               event.stopPropagation();
-              handleClick(span);
+              onClickTimestamp(span);
             }}
             startTimestampMs={startTimestampMs}
             timestampMs={startMs}
@@ -184,7 +191,7 @@ const cellColor = p => {
     const colors = p.isStatusError
       ? [p.theme.alert.error.background]
       : [p.theme.background];
-    return `color: ${p.hasOccurred !== false ? colors[0] : colors[0]};`;
+    return `color: ${colors[0]};`;
   }
   const colors = p.isStatusError
     ? [p.theme.alert.error.borderHover, p.theme.alert.error.iconColor]
@@ -215,6 +222,10 @@ const Text = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   padding: ${space(0.75)} ${space(1.5)};
+`;
+
+const StyledTimestampButton = styled(TimestampButton)`
+  padding-inline: ${space(1.5)};
 `;
 
 export default NetworkTableCell;

@@ -23,7 +23,7 @@ function TimestampButton({
   timestampMs,
 }: Props) {
   return (
-    <Tooltip title={<DateTime date={timestampMs} />} skipWrapper>
+    <Tooltip title={<DateTime seconds date={timestampMs} />} skipWrapper>
       <StyledButton
         as={onClick ? 'button' : 'span'}
         onClick={onClick}

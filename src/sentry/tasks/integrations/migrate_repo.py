@@ -32,7 +32,7 @@ def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> Non
         # Check against disabled specifically -- don't want to accidentally un-delete repos.
         original_status = repo.status
         if repo.status == ObjectStatus.DISABLED:
-            repo.status = ObjectStatus.VISIBLE
+            repo.status = ObjectStatus.ACTIVE
         repo.save()
         logger.info(
             "repo.migrated",

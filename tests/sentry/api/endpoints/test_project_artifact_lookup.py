@@ -1,3 +1,4 @@
+import uuid
 import zipfile
 from datetime import datetime, timezone
 from io import BytesIO
@@ -66,7 +67,8 @@ class ArtifactLookupTest(APITestCase):
                 zf.writestr(filename, content)
 
         buffer.seek(0)
-        file_ = File.objects.create(name=str(hash(tuple(files.items()))))
+        name = f"release-artifacts-{uuid.uuid4().hex}.zip"
+        file_ = File.objects.create(name=name, type="release.bundle")
         file_.putfile(buffer)
         file_.update(timestamp=datetime(2021, 6, 11, 9, 13, 1, 317902, tzinfo=timezone.utc))
 
@@ -165,21 +167,19 @@ class ArtifactLookupTest(APITestCase):
         assert response[0]["type"] == "bundle"
         self.assert_download_matches_file(response[0]["url"], file_ab)
 
-        # query by two debug-ids pointing to the same bundle
-        response = self.client.get(f"{url}?debug_id={debug_id_a}&debug_id={debug_id_b}").json()
+        # query by another debug-id pointing to the same bundle
+        response = self.client.get(f"{url}?debug_id={debug_id_b}").json()
 
         assert len(response) == 1
         assert response[0]["type"] == "bundle"
         self.assert_download_matches_file(response[0]["url"], file_ab)
 
-        # query by two debug-ids pointing to different bundles
-        response = self.client.get(f"{url}?debug_id={debug_id_a}&debug_id={debug_id_c}").json()
+        # query by another debug-id pointing to different bundles
+        response = self.client.get(f"{url}?debug_id={debug_id_c}").json()
 
-        assert len(response) == 2
+        assert len(response) == 1
         assert response[0]["type"] == "bundle"
-        self.assert_download_matches_file(response[0]["url"], file_ab)
-        assert response[1]["type"] == "bundle"
-        self.assert_download_matches_file(response[1]["url"], file_c)
+        self.assert_download_matches_file(response[0]["url"], file_c)
 
     def test_query_by_url(self):
         debug_id_a = "aaaaaaaa-0000-0000-0000-000000000000"
@@ -252,23 +252,16 @@ class ArtifactLookupTest(APITestCase):
             },
         )
 
-        # query by url that is in both files, we only want to get the most recent one though
+        # query by url that is in both files, so we get both files
         response = self.client.get(
             f"{url}?release={self.release.version}&dist={dist.name}&url=path/to/app"
         ).json()
 
-        assert len(response) == 1
+        assert len(response) == 2
         assert response[0]["type"] == "bundle"
-        self.assert_download_matches_file(response[0]["url"], file_b)
-
-        # query by two urls should yield the most recent bundle matching those urls
-        response = self.client.get(
-            f"{url}?release={self.release.version}&dist={dist.name}&url=path/to/app&url=path/to/other/app"
-        ).json()
-
-        assert len(response) == 1
-        assert response[0]["type"] == "bundle"
-        self.assert_download_matches_file(response[0]["url"], file_b)
+        assert response[1]["type"] == "bundle"
+        self.assert_download_matches_file(response[0]["url"], file_a)
+        self.assert_download_matches_file(response[1]["url"], file_b)
 
         # query by both debug-id and url with overlapping bundles
         response = self.client.get(
@@ -278,17 +271,6 @@ class ArtifactLookupTest(APITestCase):
         assert len(response) == 1
         assert response[0]["type"] == "bundle"
         self.assert_download_matches_file(response[0]["url"], file_a)
-
-        # query by both debug-id and url with non-overlapping bundles
-        response = self.client.get(
-            f"{url}?release={self.release.version}&dist={dist.name}&debug_id={debug_id_a}&url=path/to/other/app"
-        ).json()
-
-        assert len(response) == 2
-        assert response[0]["type"] == "bundle"
-        self.assert_download_matches_file(response[0]["url"], file_a)
-        assert response[1]["type"] == "bundle"
-        self.assert_download_matches_file(response[1]["url"], file_b)
 
     def test_query_by_url_from_releasefiles(self):
         file_headers = {"Sourcemap": "application.js.map"}
@@ -320,7 +302,7 @@ class ArtifactLookupTest(APITestCase):
         assert response[0]["headers"] == file_headers
         self.assert_download_matches_file(response[0]["url"], file)
 
-    def test_query_by_url_from_artifact_index(self):
+    def test_query_by_url_from_legacy_bundle(self):
         self.login_as(user=self.user)
 
         url = reverse(
@@ -396,12 +378,13 @@ class ArtifactLookupTest(APITestCase):
 
         response = self.client.get(f"{url}?release={self.release.version}&url=foo").json()
 
-        assert len(response) == 1
+        assert len(response) == 2
         assert response[0]["type"] == "bundle"
         self.assert_download_matches_file(response[0]["url"], archive1_file)
+        assert response[1]["type"] == "bundle"
+        self.assert_download_matches_file(response[1]["url"], archive2_file)
 
-        # Should download 2 archives as they have different `archive_ident`
-        response = self.client.get(f"{url}?release={self.release.version}&url=foo&url=bar").json()
+        response = self.client.get(f"{url}?release={self.release.version}&url=bar").json()
 
         assert len(response) == 2
         assert response[0]["type"] == "bundle"
@@ -409,7 +392,7 @@ class ArtifactLookupTest(APITestCase):
         assert response[1]["type"] == "bundle"
         self.assert_download_matches_file(response[1]["url"], archive2_file)
 
-    def test_query_by_url_and_dist_from_artifact_index(self):
+    def test_query_by_url_and_dist_from_legacy_bundle(self):
         self.login_as(user=self.user)
 
         url = reverse(
@@ -491,16 +474,18 @@ class ArtifactLookupTest(APITestCase):
         }
 
         response = self.client.get(
-            f"{url}?release={self.release.version}&url=foo&dist={dist.name}"
+            f"{url}?release={self.release.version}&dist={dist.name}&url=foo"
         ).json()
 
-        assert len(response) == 1
+        assert len(response) == 2
         assert response[0]["type"] == "bundle"
         self.assert_download_matches_file(response[0]["url"], archive1_file)
+        assert response[1]["type"] == "bundle"
+        self.assert_download_matches_file(response[1]["url"], archive2_file)
 
         # Should download 2 archives as they have different `archive_ident`
         response = self.client.get(
-            f"{url}?release={self.release.version}&url=foo&url=bar&dist={dist.name}"
+            f"{url}?release={self.release.version}&dist={dist.name}&url=bar"
         ).json()
 
         assert len(response) == 2

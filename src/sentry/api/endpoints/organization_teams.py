@@ -82,7 +82,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             return Response(status=403)
 
         queryset = (
-            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE)
+            Team.objects.filter(organization=organization, status=TeamStatus.ACTIVE)
             .order_by("slug")
             .select_related("organization")  # Used in TeamSerializer
         )

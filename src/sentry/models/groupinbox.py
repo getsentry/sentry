@@ -29,12 +29,14 @@ INBOX_REASON_DETAILS = {
 
 class GroupInboxReason(Enum):
     NEW = 0
-    UNIGNORED = 1
     REGRESSION = 2
     MANUAL = 3
     REPROCESSED = 4
     ESCALATING = 5
     ONGOING = 6
+
+    # DEPRECATED: Use ONGOING instead
+    UNIGNORED = 1
 
 
 class GroupInboxRemoveAction(Enum):
@@ -87,7 +89,7 @@ def add_group_to_inbox(group, reason, reason_details=None):
 
     if reason == GroupInboxReason.REGRESSION:
         group.substatus = GroupSubStatus.REGRESSED
-        group.save()
+        group.save(update_fields=["substatus"])
 
     if reason is GroupInboxReason.NEW:
         group.substatus = GroupSubStatus.NEW

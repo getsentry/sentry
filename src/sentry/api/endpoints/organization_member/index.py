@@ -90,7 +90,7 @@ class OrganizationMemberSerializer(serializers.Serializer):
     def validate_teams(self, teams):
         valid_teams = list(
             Team.objects.filter(
-                organization=self.context["organization"], status=TeamStatus.VISIBLE, slug__in=teams
+                organization=self.context["organization"], status=TeamStatus.ACTIVE, slug__in=teams
             )
         )
 

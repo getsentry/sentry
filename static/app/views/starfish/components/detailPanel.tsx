@@ -32,14 +32,18 @@ export default function Detail({children, detailKey, onClose}: DetailProps) {
 
   const panelRef = useRef<HTMLDivElement>(null);
   useOnClickOutside(panelRef, () => {
-    onClose?.();
-    setState({collapsed: true});
+    if (!state.collapsed) {
+      onClose?.();
+      setState({collapsed: true});
+    }
   });
 
   useEffect(() => {
     if (escapeKeyPressed) {
-      onClose?.();
-      setState({collapsed: true});
+      if (!state.collapsed) {
+        onClose?.();
+        setState({collapsed: true});
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [escapeKeyPressed]);
