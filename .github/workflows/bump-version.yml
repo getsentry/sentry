@@ -49,6 +49,7 @@ jobs:
 
         re="$(sed 's/[_-]/[_-]/g' <<< "$PACKAGE")"
         sed -i "s/^$re==.*/$PACKAGE==$VERSION/g" -- requirements*.txt
+        sed -i "s/^$re>=.*/$PACKAGE>=$VERSION/g" -- requirements*.txt
 
         if git diff --exit-code; then
           exit 0
