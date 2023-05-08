@@ -37,12 +37,6 @@ export function EventUserFeedback({className, report, orgId, issueId}: Props) {
         header={
           <Items>
             <ActivityAuthor>{report.name}</ActivityAuthor>
-            {/* <Clipboard value={report.email}>
-              <Email>
-                {report.email}
-                <StyledIconCopy size="xs" />
-              </Email>
-            </Clipboard> */}
             <CopyButton
               aria-label={label}
               borderless
