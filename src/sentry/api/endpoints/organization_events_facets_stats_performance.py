@@ -1,5 +1,5 @@
-from datetime import timedelta
-from typing import Dict, Sequence
+from datetime import datetime, timedelta
+from typing import Dict, Optional, Sequence
 
 import sentry_sdk
 from rest_framework.request import Request
@@ -79,7 +79,9 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
                 query_columns: Sequence[str],
                 query: str,
                 params: Dict[str, str],
-                *args,
+                rollup: int,
+                zerofill_results: bool,
+                comparison_delta: Optional[datetime],
             ):
                 return top_events_timeseries(
                     timeseries_columns=query_columns,
