@@ -17,6 +17,7 @@ import {
   getOtherDomains,
   getTopHttpDomains,
 } from 'sentry/views/starfish/views/webServiceView/queries';
+import TopSpansWidget from 'sentry/views/starfish/views/webServiceView/topSpansWidget';
 
 const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
 const TOOLTIP_DELAY = 800;
@@ -202,6 +203,7 @@ function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Pro
             <TagHeader>
               {renderTitle()}
               {renderSegments()}
+              <TopSpansWidget module={currentSegment} />
             </TagHeader>
           </StyledSummary>
           {renderLegend()}

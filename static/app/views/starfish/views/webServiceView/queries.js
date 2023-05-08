@@ -95,3 +95,12 @@ export const FAILURE_RATE_QUERY = `SELECT
  GROUP BY interval
  ORDER BY interval asc
  `;
+
+export const getTopSpansInModule = module => `SELECT
+  description,
+  sum(exclusive_time) as cumulative_time, module
+  FROM spans_experimental_starfish
+  WHERE module = '${module}'
+  GROUP BY description, module
+  ORDER BY -cumulative_time
+`;
