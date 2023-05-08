@@ -123,6 +123,7 @@ function EventEntries({
           showGroupingConfig={
             orgFeatures.includes('set-grouping-config') && 'groupingConfig' in event
           }
+          group={group}
         />
       )}
       {!isShare && (
