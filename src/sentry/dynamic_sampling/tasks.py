@@ -5,9 +5,8 @@ from typing import Dict, Optional, Sequence, Tuple
 import sentry_sdk
 from django.core.exceptions import ObjectDoesNotExist
 
-from sentry import options, quotas
-from sentry.dynamic_sampling.models import utils
 from sentry import features, options, quotas
+from sentry.dynamic_sampling.models import utils
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
 from sentry.dynamic_sampling.models.utils import DSElement
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
