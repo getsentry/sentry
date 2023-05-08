@@ -5,22 +5,20 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.base import (
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationProvider,
+)
 from sentry.models.integrations import Integration, OrganizationIntegration
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
-
-if TYPE_CHECKING:
-    from sentry.integrations.base import (
-        IntegrationFeatures,
-        IntegrationInstallation,
-        IntegrationProvider,
-    )
 
 
 class RpcIntegration(RpcModel):
@@ -34,7 +32,7 @@ class RpcIntegration(RpcModel):
     def __hash__(self) -> int:
         return hash(self.id)
 
-    def get_provider(self) -> "IntegrationProvider":
+    def get_provider(self) -> IntegrationProvider:
         from sentry import integrations
 
         return integrations.get(self.provider)  # type: ignore
@@ -299,13 +297,12 @@ class IntegrationService(RpcService):
 
     # The following methods replace instance methods of the ORM objects!
 
-    @rpc_method
     def get_installation(
         self,
         *,
         integration: Union[RpcIntegration, Integration],
         organization_id: int,
-    ) -> "IntegrationInstallation":
+    ) -> IntegrationInstallation:
         """
         Returns the IntegrationInstallation class for a given integration.
         Intended to replace calls of `integration.get_installation`.
@@ -314,14 +311,13 @@ class IntegrationService(RpcService):
         from sentry import integrations
 
         provider = integrations.get(integration.provider)
-        installation: "IntegrationInstallation" = provider.get_installation(
+        installation: IntegrationInstallation = provider.get_installation(
             model=integration,
             organization_id=organization_id,
         )
         return installation
 
-    @rpc_method
-    def has_feature(self, *, provider: str, feature: "IntegrationFeatures") -> bool:
+    def has_feature(self, *, provider: str, feature: IntegrationFeatures) -> bool:
         """
         Returns True if the IntegrationProvider subclass contains a given feature
         Intended to replace calls of `integration.has_feature`.
@@ -329,7 +325,7 @@ class IntegrationService(RpcService):
         """
         from sentry import integrations
 
-        int_provider: "IntegrationProvider" = integrations.get(provider)
+        int_provider: IntegrationProvider = integrations.get(provider)
         return feature in int_provider.features
 
     @rpc_method

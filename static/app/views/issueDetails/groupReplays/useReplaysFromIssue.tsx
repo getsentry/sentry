@@ -2,7 +2,6 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {Group, Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -45,8 +44,6 @@ function useReplayFromIssue({
     }
   }, [api, organization.slug, group.id]);
 
-  const hasMultiProjectSupport = organization.features.includes('global-views');
-
   const eventView = useMemo(() => {
     if (!replayIds) {
       return null;
@@ -56,14 +53,12 @@ function useReplayFromIssue({
       name: '',
       version: 2,
       fields: REPLAY_LIST_FIELDS,
-      projects: hasMultiProjectSupport
-        ? [ALL_ACCESS_PROJECTS]
-        : [Number(group.project.id)],
       query: `id:[${String(replayIds)}]`,
       range: '14d',
+      projects: [],
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     });
-  }, [location.query.sort, replayIds, hasMultiProjectSupport, group.project.id]);
+  }, [location.query.sort, replayIds]);
 
   useCleanQueryParamsOnRouteLeave({fieldsToClean: ['cursor']});
   useEffect(() => {

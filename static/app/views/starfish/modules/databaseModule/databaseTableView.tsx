@@ -10,6 +10,8 @@ import {space} from 'sentry/styles/space';
 import {Sort} from 'sentry/views/starfish/modules/databaseModule';
 import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
 
+import {highlightSql} from './panel';
+
 type Props = {
   isDataLoading: boolean;
   location: Location;
@@ -123,7 +125,7 @@ function renderBadge(row, selectedRow) {
   return response;
 }
 
-export default function APIModuleView({
+export default function DatabaseTableView({
   location,
   data,
   onSelect,
@@ -188,7 +190,7 @@ export default function APIModuleView({
         headerExtra = `Query (Last seen ${row.lastSeen})`;
       }
       return (
-        <Hovercard header={headerExtra} body={value}>
+        <Hovercard header={headerExtra} body={highlightSql(row.formatted_desc, row)}>
           <Link onClick={() => onSelect(row, rowIndex)} to="" style={rowStyle}>
             {value.substring(0, 30)}
             {value.length > 30 ? '...' : ''}
