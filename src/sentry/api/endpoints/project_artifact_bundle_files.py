@@ -1,5 +1,4 @@
-import base64
-from typing import List, Tuple
+from typing import Dict, List
 
 from django.utils.functional import cached_property
 from rest_framework.request import Request
@@ -9,11 +8,25 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.artifactbundle import ArtifactBundleFilesSerializer
 from sentry.constants import MAX_ARTIFACT_BUNDLE_FILES_OFFSET
-from sentry.models import ArtifactBundle, ArtifactBundleArchive, SourceFileType
+from sentry.models import ArtifactBundle, ArtifactBundleArchive
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 
-INVALID_SOURCE_FILE_TYPE = 0
+
+class ArtifactFile:
+    def __init__(self, file_path: str, info: Dict[str, str]):
+        self.file_path = file_path
+        self.info = info
+
+    def __eq__(self, other):
+        return self.file_path == other.file_path
+
+    def __hash__(self):
+        return hash(self.file_path)
+
+    def __lt__(self, other):
+        return self.file_path < other.file_path
 
 
 class ArtifactBundleSource:
@@ -21,8 +34,13 @@ class ArtifactBundleSource:
         self._files = files
 
     @cached_property
-    def sorted_and_filtered_files(self) -> List[Tuple[str, dict]]:
-        return sorted(list(self._files.items()))
+    def sorted_and_filtered_files(self) -> List[ArtifactFile]:
+        return sorted(
+            [
+                ArtifactFile(file_path=file_path, info=info)
+                for file_path, info in self._files.items()
+            ]
+        )
 
     def __len__(self):
         return len(self.sorted_and_filtered_files)
@@ -75,27 +93,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                 {"error": f"The archive of artifact bundle {bundle_id} can't be opened"}
             )
 
-        def expose_artifact_bundle_file(file_path, info):
-            headers = archive.normalize_headers(info.get("headers", {}))
-            debug_id = archive.normalize_debug_id(headers.get("debug-id"))
-
-            file_info = archive.get_file_info(file_path)
-
-            file_type = SourceFileType.from_lowercase_key(info.get("type"))
-
-            return {
-                "id": base64.urlsafe_b64encode(bytes(file_path.encode("utf-8"))).decode("utf-8"),
-                # In case the file type string was invalid, we return the sentinel value INVALID_SOURCE_FILE_TYPE.
-                "fileType": file_type.value if file_type is not None else INVALID_SOURCE_FILE_TYPE,
-                "filePath": archive.get_file_url_by_file_path(file_path),
-                "fileSize": file_info.file_size if file_info is not None else None,
-                "debugId": debug_id,
-            }
-
         def serialize_results(r):
-            artifact_bundle_files = [
-                expose_artifact_bundle_file(file_path, info) for file_path, info in r
-            ]
             release, dist = ArtifactBundle.get_release_dist_pair(
                 project.organization.id, artifact_bundle
             )
@@ -105,7 +103,12 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                     "bundleId": str(artifact_bundle.bundle_id),
                     "release": release,
                     "dist": dist if dist != "" else None,
-                    "files": artifact_bundle_files,
+                    "files": serialize(
+                        # We need to convert the dictionary to a list in order to properly use the serializer.
+                        r,
+                        request.user,
+                        ArtifactBundleFilesSerializer(archive),
+                    ),
                 },
                 request.user,
             )

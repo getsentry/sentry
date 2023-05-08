@@ -16,7 +16,7 @@ type Props = ModalRenderProps & {
   sentryAppInstallationUuid: string;
 };
 
-const SentryAppRuleModal = ({
+function SentryAppRuleModal({
   Header,
   Body,
   sentryAppInstallationUuid,
@@ -24,28 +24,30 @@ const SentryAppRuleModal = ({
   config,
   resetValues,
   onSubmitSuccess,
-}: Props) => (
-  <Fragment>
-    <Header closeButton>
-      <div>{tct('[name] Settings', {name: appName})}</div>
-      {config.description && <Description>{config.description}</Description>}
-    </Header>
-    <Body>
-      <SentryAppExternalForm
-        sentryAppInstallationUuid={sentryAppInstallationUuid}
-        appName={appName}
-        config={resetValues?.formFields || config}
-        element="alert-rule-action"
-        action="create"
-        onSubmitSuccess={(...params) => {
-          onSubmitSuccess(...params);
-          closeModal();
-        }}
-        resetValues={{settings: resetValues?.settings}}
-      />
-    </Body>
-  </Fragment>
-);
+}: Props) {
+  return (
+    <Fragment>
+      <Header closeButton>
+        <div>{tct('[name] Settings', {name: appName})}</div>
+        {config.description && <Description>{config.description}</Description>}
+      </Header>
+      <Body>
+        <SentryAppExternalForm
+          sentryAppInstallationUuid={sentryAppInstallationUuid}
+          appName={appName}
+          config={resetValues?.formFields || config}
+          element="alert-rule-action"
+          action="create"
+          onSubmitSuccess={(...params) => {
+            onSubmitSuccess(...params);
+            closeModal();
+          }}
+          resetValues={{settings: resetValues?.settings}}
+        />
+      </Body>
+    </Fragment>
+  );
+}
 
 const Description = styled('div')`
   padding-top: ${space(0)};

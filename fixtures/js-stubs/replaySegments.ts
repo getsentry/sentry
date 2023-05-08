@@ -1,6 +1,8 @@
 import {EventType} from '@sentry-internal/rrweb';
 import {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
 
+import type {ReplaySpan as TReplaySpan} from 'sentry/views/replays/types';
+
 type FullSnapshotEvent = {
   data: {
     initialOffset: {
@@ -60,8 +62,6 @@ export function ReplaySegmentFullsnapshot({
         node: {
           type: 0, // NodeType.DocumentType
           id: 0,
-          tagName: 'html',
-          attributes: {},
           childNodes: [
             ReplayRRWebNode({
               tagName: 'body',
@@ -106,6 +106,7 @@ export function ReplaySegmentNavigation({
   return ReplaySegmentBreadcrumb({
     timestamp,
     payload: {
+      timestamp: timestamp.getTime() / 1000, // sentry data inside rrweb is in seconds
       type: 'default',
       category: 'navigation',
       data: {
@@ -126,6 +127,22 @@ export function ReplaySegmentBreadcrumb({
       timestamp: timestamp.getTime(), // rrweb timestamps are in ms
       data: {
         tag: 'breadcrumb',
+        payload,
+      },
+    },
+  ];
+}
+
+export function ReplaySegmentSpan({
+  timestamp = new Date(),
+  payload,
+}: BaseReplayProps & {payload: any}) {
+  return [
+    {
+      type: EventType.Custom,
+      timestamp: timestamp.getTime(), // rrweb timestamps are in ms
+      data: {
+        tag: 'performanceSpan',
         payload,
       },
     },
@@ -181,5 +198,58 @@ export function ReplayRRWebDivHelloWorld() {
         ],
       }),
     ],
+  });
+}
+
+export function ReplaySpanPayload({
+  startTimestamp = new Date(),
+  endTimestamp = new Date(),
+  ...extra
+}: {
+  op: string;
+  data?: Record<string, any>;
+  description?: string;
+  endTimestamp?: Date;
+  startTimestamp?: Date;
+}): TReplaySpan<Record<string, any>> {
+  return {
+    data: {},
+    id: '0',
+    ...extra,
+    startTimestamp: startTimestamp.getTime() / 1000, // in seconds, with ms precision
+    endTimestamp: endTimestamp?.getTime() / 1000, // in seconds, with ms precision
+    timestamp: startTimestamp?.getTime(), // in ms, same as startTimestamp
+  };
+}
+
+export function ReplaySpanPayloadNavigate({
+  description = 'http://test.com',
+  endTimestamp = new Date(),
+  startTimestamp = new Date(),
+}: {
+  // The url goes into the description field
+  description: string;
+  endTimestamp: Date;
+  startTimestamp: Date;
+}) {
+  const duration = endTimestamp.getTime() - startTimestamp.getTime(); // in MS
+  return ReplaySpanPayload({
+    op: 'navigation.navigate',
+    description,
+    startTimestamp,
+    endTimestamp,
+    data: {
+      size: 1149,
+      decodedBodySize: 1712,
+      encodedBodySize: 849,
+      duration,
+      domInteractive: duration - 200,
+      domContentLoadedEventStart: duration - 50,
+      domContentLoadedEventEnd: duration - 48,
+      loadEventStart: duration, // real value would be approx the same
+      loadEventEnd: duration, // real value would be approx the same
+      domComplete: duration, // real value would be approx the same
+      redirectCount: 0,
+    },
   });
 }

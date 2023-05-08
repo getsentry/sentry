@@ -12,7 +12,7 @@ type Props = {
   showNonContributing: boolean;
 };
 
-const GroupingComponent = ({component, showNonContributing}: Props) => {
+function GroupingComponent({component, showNonContributing}: Props) {
   const shouldInlineValue = shouldInlineComponentValue(component);
 
   const GroupingComponentListItems =
@@ -35,7 +35,7 @@ const GroupingComponent = ({component, showNonContributing}: Props) => {
       </GroupingComponentList>
     </GroupingComponentWrapper>
   );
-};
+}
 
 const GroupingComponentList = styled('ul')<{isInline: boolean}>`
   padding: 0;

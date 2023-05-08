@@ -96,10 +96,12 @@ function GenericTraceFullQuery<T>({
   );
 }
 
-export const TraceFullQuery = (props: Omit<QueryProps<TraceFull[]>, 'detailed'>) => (
-  <GenericTraceFullQuery<TraceFull[]> {...props} detailed={false} />
-);
+export function TraceFullQuery(props: Omit<QueryProps<TraceFull[]>, 'detailed'>) {
+  return <GenericTraceFullQuery<TraceFull[]> {...props} detailed={false} />;
+}
 
-export const TraceFullDetailedQuery = (
+export function TraceFullDetailedQuery(
   props: Omit<QueryProps<TraceFullDetailed[]>, 'detailed'>
-) => <GenericTraceFullQuery<TraceFullDetailed[]> {...props} detailed />;
+) {
+  return <GenericTraceFullQuery<TraceFullDetailed[]> {...props} detailed />;
+}

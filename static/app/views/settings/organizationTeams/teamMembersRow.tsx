@@ -3,19 +3,14 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import {PanelItem} from 'sentry/components/panels';
-import RoleSelectControl from 'sentry/components/roleSelectControl';
+import TeamRoleSelect from 'sentry/components/teamRoleSelect';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Member, Organization, Team, TeamMember, User} from 'sentry/types';
-import {getEffectiveOrgRole} from 'sentry/utils/orgRole';
-import {
-  hasOrgRoleOverwrite,
-  RoleOverwriteIcon,
-} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
-const TeamMembersRow = (props: {
+interface Props {
   hasWriteAccess: boolean;
   isOrgOwner: boolean;
   member: TeamMember;
@@ -24,130 +19,82 @@ const TeamMembersRow = (props: {
   team: Team;
   updateMemberRole: (member: Member, newRole: string) => void;
   user: User;
-}) => {
-  const {
-    organization,
-    team,
-    member,
-    user,
-    hasWriteAccess,
-    isOrgOwner,
-    removeMember,
-    updateMemberRole,
-  } = props;
+}
+
+function TeamMembersRow({
+  organization,
+  team,
+  member,
+  user,
+  hasWriteAccess,
+  isOrgOwner,
+  removeMember,
+  updateMemberRole,
+}: Props) {
+  const isSelf = user.email === member.email;
 
   return (
     <TeamRolesPanelItem key={member.id}>
       <div>
         <IdBadge avatarSize={36} member={member} useLink orgId={organization.slug} />
       </div>
-      <div>
+      <RoleSelectWrapper>
         <TeamRoleSelect
-          hasWriteAccess={hasWriteAccess}
-          updateMemberRole={updateMemberRole}
+          disabled={isSelf || !hasWriteAccess}
           organization={organization}
           team={team}
           member={member}
+          onChangeTeamRole={newRole => updateMemberRole(member, newRole)}
         />
-      </div>
+      </RoleSelectWrapper>
       <div>
         <RemoveButton
           hasWriteAccess={hasWriteAccess}
           hasOrgRoleFromTeam={team.orgRole !== null}
           isOrgOwner={isOrgOwner}
+          isSelf={isSelf}
           onClick={() => removeMember(member)}
           member={member}
-          user={user}
         />
       </div>
     </TeamRolesPanelItem>
   );
-};
+}
 
-const TeamRoleSelect = (props: {
-  hasWriteAccess: boolean;
-  member: TeamMember;
-  organization: Organization;
-  team: Team;
-  updateMemberRole: (member: TeamMember, newRole: string) => void;
-}) => {
-  const {hasWriteAccess, organization, team, member, updateMemberRole} = props;
-  const {orgRoleList, teamRoleList, features} = organization;
-  if (!features.includes('team-roles')) {
-    return null;
-  }
-
-  // Determine the team-role, including if the current team has an org role
-  // and if adding the user to the current team changes their minimum team-role
-  const possibleOrgRoles = [member.orgRole];
-  if (member.orgRolesFromTeams && member.orgRolesFromTeams.length > 0) {
-    possibleOrgRoles.push(member.orgRolesFromTeams[0].role.id);
-  }
-  if (team.orgRole) {
-    possibleOrgRoles.push(team.orgRole);
-  }
-  const effectiveOrgRole = getEffectiveOrgRole(possibleOrgRoles, orgRoleList);
-
-  const teamRoleId = member.teamRole || effectiveOrgRole?.minimumTeamRole;
-  const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];
-
-  if (
-    !hasWriteAccess ||
-    hasOrgRoleOverwrite({orgRole: effectiveOrgRole?.id, orgRoleList, teamRoleList})
-  ) {
-    return (
-      <RoleName>
-        {teamRole.name}
-        <IconWrapper>
-          <RoleOverwriteIcon
-            orgRole={effectiveOrgRole?.id}
-            orgRoleList={orgRoleList}
-            teamRoleList={teamRoleList}
-          />
-        </IconWrapper>
-      </RoleName>
-    );
-  }
-
-  return (
-    <RoleSelectWrapper>
-      <RoleSelectControl
-        roles={teamRoleList}
-        value={teamRole.id}
-        onChange={option => updateMemberRole(member, option.value)}
-        disableUnallowed
-      />
-    </RoleSelectWrapper>
-  );
-};
-
-const RemoveButton = (props: {
+function RemoveButton(props: {
   hasOrgRoleFromTeam: boolean;
   hasWriteAccess: boolean;
   isOrgOwner: boolean;
+  isSelf: boolean;
   member: TeamMember;
   onClick: () => void;
-  user: User;
-}) => {
-  const {member, user, hasWriteAccess, isOrgOwner, hasOrgRoleFromTeam, onClick} = props;
+}) {
+  const {member, hasWriteAccess, isOrgOwner, isSelf, hasOrgRoleFromTeam, onClick} = props;
 
-  const isSelf = member.email === user.email;
   const canRemoveMember = hasWriteAccess || isSelf;
   if (!canRemoveMember) {
-    return null;
+    return (
+      <Button
+        size="xs"
+        disabled
+        icon={<IconSubtract size="xs" isCircled />}
+        aria-label={t('Remove')}
+        title={t('You do not have permission to remove a member from this team.')}
+      >
+        {t('Remove')}
+      </Button>
+    );
   }
+
   const isIdpProvisioned = member.flags['idp:provisioned'];
   const isPermissionGroup = hasOrgRoleFromTeam && !isOrgOwner;
-
   const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
-
   if (isIdpProvisioned || isPermissionGroup) {
     return (
       <Button
         size="xs"
         disabled
         icon={<IconSubtract size="xs" isCircled />}
-        onClick={onClick}
         aria-label={t('Remove')}
         title={buttonHelpText}
       >
@@ -155,27 +102,21 @@ const RemoveButton = (props: {
       </Button>
     );
   }
+
+  const buttonRemoveText = isSelf ? t('Leave') : t('Remove');
   return (
     <Button
+      data-test-id={`button-remove-${member.id}`}
       size="xs"
       disabled={!canRemoveMember}
       icon={<IconSubtract size="xs" isCircled />}
       onClick={onClick}
-      aria-label={t('Remove')}
+      aria-label={buttonRemoveText}
     >
-      {t('Remove')}
+      {buttonRemoveText}
     </Button>
   );
-};
-
-const RoleName = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-const IconWrapper = styled('div')`
-  height: ${space(2)};
-  margin-left: ${space(1)};
-`;
+}
 
 const RoleSelectWrapper = styled('div')`
   display: flex;

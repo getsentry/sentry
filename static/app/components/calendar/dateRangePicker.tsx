@@ -17,12 +17,12 @@ function isRangeSelection(rangesByKey: RangeKeyDict): rangesByKey is RangeSelect
   return rangesByKey?.[PRIMARY_RANGE_KEY] !== undefined;
 }
 
-const DateRangePicker = ({
+function DateRangePicker({
   onChange: incomingOnChange,
   startDate,
   endDate,
   ...props
-}: DateRangePickerProps) => {
+}: DateRangePickerProps) {
   const onChange = useCallback(
     (rangesByKey: RangeKeyDict) => {
       if (!isRangeSelection(rangesByKey)) {
@@ -43,6 +43,6 @@ const DateRangePicker = ({
       <DateRange {...props} onChange={onChange} ranges={ranges} />
     </CalendarStylesWrapper>
   );
-};
+}
 
 export default DateRangePicker;

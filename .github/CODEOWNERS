@@ -1,6 +1,6 @@
 # General ownership rules
 #
-# The folloowing rules are not specific to any particular area of the product
+# The following rules are not specific to any particular area of the product
 # and are more general
 
 
@@ -36,7 +36,6 @@
 /src/sentry/web/api.py                                   @getsentry/owners-ingest
 /src/sentry/scripts/quotas/                              @getsentry/owners-ingest
 /src/sentry/scripts/tsdb/                                @getsentry/owners-ingest
-/src/sentry/tasks/store.py                               @getsentry/owners-ingest
 /src/sentry/tasks/relay.py                               @getsentry/owners-ingest
 /src/sentry/tasks/unmerge.py                             @getsentry/owners-ingest
 /tests/sentry/event_manager/                             @getsentry/owners-ingest
@@ -65,6 +64,13 @@ Makefile                                                 @getsentry/owners-sentr
 
 mypy.ini                                                 @getsentry/python-typing
 /fixtures/stubs                                          @getsentry/python-typing
+
+# GitHub Routing Automations - notion.so/473791bae5bf43399d46093050b77bf0
+/.github/labels.yml                                      @getsentry/open-source
+/.github/workflows/react-to-product-owners-yml-changes.yml @getsentry/open-source
+/bin/react-to-product-owners-yml-changes.py              @getsentry/open-source
+/bin/react-to-product-owners-yml-changes.sh              @getsentry/open-source
+/static/app/components/sidebar/index.tsx                 @getsentry/open-source
 
 ## Build & Releases
 /.github/workflows/release.yml                           @getsentry/release-approvers
@@ -219,6 +225,10 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/components/dashboards/                                   @getsentry/discover-n-dashboards
 ## Endof Discover/Dashboards
 
+## Starfish
+/static/app/views/starfish/                                          @getsentry/team-starfish
+## Endof Starfish
+
 
 ## Profiling
 /static/app/components/profiling                                      @getsentry/profiling
@@ -341,11 +351,10 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/tasks/symbolication.py                                   @getsentry/owners-native
 /src/sentry/utils/appleconnect/                                      @getsentry/owners-native
 /tests/sentry/tasks/test_low_priority_symbolication.py               @getsentry/owners-native
-
-# Shared ownership of reprocessing as transitionary phase
-/src/sentry/tasks/reprocessing.py                                    @getsentry/owners-ingest @getsentry/owners-native
-/src/sentry/tasks/reprocessing2.py                                   @getsentry/owners-ingest @getsentry/owners-native
-/src/sentry/reprocessing2.py                                         @getsentry/owners-ingest @getsentry/owners-native
+/src/sentry/tasks/reprocessing.py                                    @getsentry/owners-processing
+/src/sentry/tasks/reprocessing2.py                                   @getsentry/owners-processing
+/src/sentry/reprocessing2.py                                         @getsentry/owners-processing
+/src/sentry/tasks/store.py                                           @getsentry/owners-processing
 ## End of Native
 
 

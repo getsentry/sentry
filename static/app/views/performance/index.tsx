@@ -12,7 +12,7 @@ import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
-  children: React.ReactChildren;
+  children: React.ReactNode;
   location: Location;
   organization: Organization;
 };

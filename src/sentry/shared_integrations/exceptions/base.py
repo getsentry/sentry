@@ -10,6 +10,10 @@ from sentry.utils import json
 
 
 class ApiError(Exception):
+    """
+    Base class for errors which arise while making outgoing requests to third-party APIs.
+    """
+
     code: int | None = None
 
     def __init__(
@@ -54,12 +58,15 @@ class ApiError(Exception):
 
         super().__init__(text[:1024])
 
+    def __str__(self) -> str:
+        return self.text
+
     @classmethod
     def from_response(cls, response: Response, url: str | None = None) -> ApiError:
         from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
 
         if response.status_code == 401:
-            return ApiUnauthorized(response.text)
+            return ApiUnauthorized(response.text, url=url)
         elif response.status_code == 429:
-            return ApiRateLimitedError(response.text)
+            return ApiRateLimitedError(response.text, url=url)
         return cls(response.text, response.status_code, url=url)

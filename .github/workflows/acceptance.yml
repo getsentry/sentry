@@ -55,7 +55,7 @@ jobs:
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2, 3, 4]
-        pg-version: ['9.6']
+        pg-version: ['14']
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
       MATRIX_INSTANCE_TOTAL: 5
@@ -126,6 +126,8 @@ jobs:
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   acceptance-required-checks:
     # this is a required check so we need this job to always run and report a status.

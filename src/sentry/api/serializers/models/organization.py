@@ -35,6 +35,7 @@ from sentry.app import env
 from sentry.auth.access import Access
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
+    AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
@@ -48,6 +49,7 @@ from sentry.constants import (
     SAFE_FIELDS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
+    ObjectStatus,
 )
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
@@ -59,7 +61,6 @@ from sentry.models import (
     OrganizationOption,
     OrganizationStatus,
     Project,
-    ProjectStatus,
     Team,
     TeamStatus,
 )
@@ -434,6 +435,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     pendingAccessRequests: int
     onboardingTasks: OnboardingTasksSerializerResponse
     codecovAccess: bool
+    aiSuggestedSolution: bool
+    isDynamicallySampled: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -535,6 +538,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
                 "codecovAccess": bool(obj.flags.codecov_access),
+                "aiSuggestedSolution": bool(
+                    obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
+                ),
             }
         )
 
@@ -550,6 +556,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             team__organization=obj
         ).count()
         context["onboardingTasks"] = serialize(tasks_to_serialize, user)
+        sample_rate = quotas.get_blended_sample_rate(None, obj.id)
+        context["isDynamicallySampled"] = sample_rate is not None and sample_rate < 1.0
+
         return context
 
 
@@ -568,9 +577,9 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
     def _project_list(self, organization: Organization, access: Access) -> list[Project]:
         project_list = list(
-            Project.objects.filter(
-                organization=organization, status=ProjectStatus.VISIBLE
-            ).order_by("slug")
+            Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).order_by(
+                "slug"
+            )
         )
 
         for project in project_list:
@@ -580,7 +589,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
     def _team_list(self, organization: Organization, access: Access) -> list[Team]:
         team_list = list(
-            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE).order_by(
+            Team.objects.filter(organization=organization, status=TeamStatus.ACTIVE).order_by(
                 "slug"
             )
         )

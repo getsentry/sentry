@@ -31,7 +31,10 @@ from sentry.ingest.inbound_filters import (
     get_all_filter_specs,
     get_filter_key,
 )
-from sentry.ingest.transaction_clusterer.rules import get_sorted_rules
+from sentry.ingest.transaction_clusterer.rules import (
+    TRANSACTION_NAME_RULE_TTL_SECS,
+    get_sorted_rules,
+)
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project, ProjectKey
 from sentry.relay.config.metric_extraction import get_metric_conditional_tagging_rules
@@ -44,8 +47,9 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
-    "organizations:transaction-name-normalize",
+    "projects:span-metrics-extraction",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
+    "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
     "organizations:session-replay-recording-scrubbing",
@@ -149,7 +153,14 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
 
 def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) -> List[str]:
-    return [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
+    try:
+        computed_quotas = [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
+    except BaseException:
+        metrics.incr("relay.config.get_quotas", tags={"success": False}, sample_rate=1.0)
+        raise
+    else:
+        metrics.incr("relay.config.get_quotas", tags={"success": True}, sample_rate=1.0)
+        return computed_quotas
 
 
 def get_project_config(
@@ -212,10 +223,6 @@ def get_transaction_names_config(project: Project) -> Optional[Sequence[Transact
     return [_get_tx_name_rule(p, s) for p, s in cluster_rules]
 
 
-#: How long a transaction name rule lasts, in seconds.
-TRANSACTION_NAME_RULE_TTL_SECS = 90 * 24 * 60 * 60  # 90 days
-
-
 def _get_tx_name_rule(pattern: str, seen_last: int) -> TransactionNameRule:
     rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
     expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat()
@@ -260,7 +267,7 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 def _get_project_config(
     project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
 ) -> "ProjectConfig":
-    if project.status != ObjectStatus.VISIBLE:
+    if project.status != ObjectStatus.ACTIVE:
         return ProjectConfig(project, disabled=True)
 
     public_keys = get_public_key_configs(project, full_config, project_keys=project_keys)

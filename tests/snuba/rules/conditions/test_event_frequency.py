@@ -91,6 +91,18 @@ class PerfEventMixin(PerfIssueTransactionTestMixin):
         return event.for_group(event.groups[0])
 
 
+class PerfIssuePlatformEventMixin(PerfEventMixin):
+    def add_event(self, data, project_id, timestamp):
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            return super().add_event(data, project_id, timestamp)
+
+    def assertPasses(self, rule, event=None, **kwargs):
+        self.project.update_option("sentry:performance_issue_create_issue_through_platform", True)
+        with self.options({"performance.issues.create_issues_through_platform": True}):
+            super().assertPasses(rule, event=event, **kwargs)
+        self.project.update_option("sentry:performance_issue_create_issue_through_platform", False)
+
+
 class StandardIntervalMixin:
     def test_one_minute_with_events(self):
         data = {"interval": "1m", "value": 6}
@@ -432,6 +444,18 @@ class PerfIssueFrequencyConditionTestCase(
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
+class PerfIssuePlatformIssueFrequencyConditionTestCase(
+    PerfIssuePlatformEventMixin,
+    EventFrequencyConditionTestCase,
+    RuleTestCase,
+):
+    # TODO: Remove this once we've finished migrating perf issues to issue platform and removed
+    # related options
+    pass
+
+
+@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
+@region_silo_test
 class ErrorIssueUniqueUserFrequencyConditionTestCase(
     EventUniqueUserFrequencyConditionTestCase, RuleTestCase, ErrorEventMixin
 ):
@@ -448,6 +472,18 @@ class PerfIssueUniqueUserFrequencyConditionTestCase(
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
+class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
+    PerfIssuePlatformEventMixin,
+    EventUniqueUserFrequencyConditionTestCase,
+    RuleTestCase,
+):
+    # TODO: Remove this once we've finished migrating perf issues to issue platform and removed
+    # related options
+    pass
+
+
+@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
+@region_silo_test
 class ErrorIssueEventFrequencyPercentConditionTestCase(
     EventFrequencyPercentConditionTestCase, RuleTestCase, ErrorEventMixin
 ):
@@ -459,4 +495,16 @@ class ErrorIssueEventFrequencyPercentConditionTestCase(
 class PerfIssueEventFrequencyPercentConditionTestCase(
     EventFrequencyPercentConditionTestCase, RuleTestCase, PerfEventMixin
 ):
+    pass
+
+
+@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
+@region_silo_test
+class PerfIssuePlatformIssueEventFrequencyPercentConditionTestCase(
+    PerfIssuePlatformEventMixin,
+    EventFrequencyPercentConditionTestCase,
+    RuleTestCase,
+):
+    # TODO: Remove this once we've finished migrating perf issues to issue platform and removed
+    # related options
     pass

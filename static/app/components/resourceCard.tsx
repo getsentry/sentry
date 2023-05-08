@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import Card from 'sentry/components/card';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {space} from 'sentry/styles/space';
-import {analytics} from 'sentry/utils/analytics';
 
 type Props = {
   imgUrl: string;
@@ -11,17 +10,16 @@ type Props = {
   title: string;
 };
 
-const ResourceCard = ({title, link, imgUrl}: Props) => (
-  <Card interactive>
-    <StyledLink
-      href={link}
-      onClick={() => analytics('orgdash.resource_clicked', {link, title})}
-    >
-      <StyledImg src={imgUrl} alt={title} />
-      <StyledTitle>{title}</StyledTitle>
-    </StyledLink>
-  </Card>
-);
+function ResourceCard({title, link, imgUrl}: Props) {
+  return (
+    <Card interactive>
+      <StyledLink href={link}>
+        <StyledImg src={imgUrl} alt={title} />
+        <StyledTitle>{title}</StyledTitle>
+      </StyledLink>
+    </Card>
+  );
+}
 
 export default ResourceCard;
 

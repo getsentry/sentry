@@ -22,6 +22,7 @@ import theme from 'sentry/utils/theme';
 
 type Props = {
   target: string;
+  children?: React.ReactNode;
   /**
    * Hovercard renders the container
    */

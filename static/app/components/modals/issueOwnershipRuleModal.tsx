@@ -15,7 +15,7 @@ interface CreateOwnershipRuleProps extends ModalRenderProps {
   eventData?: Event;
 }
 
-const IssueOwnershipRuleModal = ({
+function IssueOwnershipRuleModal({
   Body,
   Header,
   Footer: _Footer,
@@ -24,7 +24,7 @@ const IssueOwnershipRuleModal = ({
   issueId,
   eventData,
   closeModal,
-}: CreateOwnershipRuleProps) => {
+}: CreateOwnershipRuleProps) {
   useEffect(() => {
     trackIntegrationAnalytics('project_ownership.modal_opened', {
       page: 'issue_details',
@@ -48,7 +48,7 @@ const IssueOwnershipRuleModal = ({
       </Body>
     </Fragment>
   );
-};
+}
 
 export const modalCss = css`
   @media (min-width: ${theme.breakpoints.small}) {

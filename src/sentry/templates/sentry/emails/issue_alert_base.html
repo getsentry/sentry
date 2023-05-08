@@ -50,7 +50,7 @@
 {% if not group.project.flags.has_transactions %}
 <div class="banner">
   <div class="container banner-content">
-    <img src="{% absolute_asset_url 'sentry' 'images/logos/logo-lightning.svg' %}" class="banner-icon"/>
+    <img src="{% absolute_asset_url 'sentry' 'images/email/icon-lightning.png' %}" class="banner-icon"/>
     <span>
       <span class="text-desktop-only">Errors are half the story.</span> Start tracking latency across your application.
     </span>
@@ -215,11 +215,14 @@
     {% endif %}
 
     <p class="info-box">
-        You are receiving this email due to matching rules:
-        {% for rule in rules %}
-            <a href="{% absolute_uri rule.status_url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
-        {% endfor %}
-    </p>
+      {% if snooze_alert %}
+         <a class='mute' href="{% absolute_uri snooze_alert_url %}">Mute for me</a>
+      {% endif %}
+      This email was triggered by
+      {% for rule in rules %}
+          <a href="{% absolute_uri rule.status_url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
+      {% endfor %}
+  </p>
 
     {% if not has_integrations %}
         <div class="logo-container">

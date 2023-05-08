@@ -13,6 +13,7 @@ from sentry.sentry_metrics.indexer.base import (
     KeyResults,
     StringIndexer,
 )
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
@@ -108,9 +109,13 @@ class CachingIndexer(StringIndexer):
         cache_keys = KeyCollection(org_strings)
         metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
         cache_key_strs = cache_keys.as_strings()
-        cache_results = self.cache.get_many(cache_key_strs, use_case_id.value)
+        cache_results = self.cache.get_many(
+            cache_key_strs, REVERSE_METRIC_PATH_MAPPING[use_case_id].value
+        )
 
         hits = [k for k, v in cache_results.items() if v is not None]
+
+        # record all the cache hits we had
         metrics.incr(
             _INDEXER_CACHE_METRIC,
             tags={"cache_hit": "true", "caller": "get_many_ids"},
@@ -140,9 +145,12 @@ class CachingIndexer(StringIndexer):
             return cache_key_results
 
         db_record_key_results = self.indexer.bulk_record(use_case_id, db_record_keys.mapping)
+
         self.cache.set_many(
-            db_record_key_results.get_mapped_key_strings_to_ints(), use_case_id.value
+            db_record_key_results.get_mapped_key_strings_to_ints(),
+            REVERSE_METRIC_PATH_MAPPING[use_case_id].value,
         )
+
         return cache_key_results.merge(db_record_key_results)
 
     def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:

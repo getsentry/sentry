@@ -16,7 +16,7 @@ import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {CodeOwner, ParsedOwnershipRule} from 'sentry/types';
 import useTeams from 'sentry/utils/useTeams';
 import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';
@@ -61,6 +61,7 @@ export function OwnershipRulesTable({
   const allActors = useMemo(() => {
     const actors = combinedRules
       .flatMap(rule => rule.owners)
+      .filter(actor => actor.name)
       .map(owner => ({...owner, id: `${owner.id}`}));
     return (
       uniqBy(actors, actor => `${actor.type}:${actor.id}`)
@@ -243,7 +244,7 @@ const RulesTableWrapper = styled('div')`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: min-content 1fr 0.5fr;
+  grid-template-columns: min-content minmax(1fr, max-content) auto;
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: 0;
 
@@ -267,9 +268,13 @@ const RowItem = styled('div')`
   gap: ${space(1)};
 `;
 
-const RowRule = styled(RowItem)`
+const RowRule = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
+  word-break: break-word;
 `;
 
 const AvatarContainer = styled('div')<{numAvatars: number}>`

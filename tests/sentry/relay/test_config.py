@@ -46,7 +46,6 @@ PII_CONFIG = """
 }
 """
 
-
 DEFAULT_ENVIRONMENT_RULE = {
     "sampleRate": 1,
     "type": "trace",
@@ -234,15 +233,13 @@ def test_project_config_exposed_features_raise_exc(default_project):
 @pytest.mark.django_db
 @region_silo_test(stable=True)
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
-@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.apply_dynamic_factor")
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
 def test_project_config_with_all_biases_enabled(
-    eval_dynamic_factor_tk, eval_dynamic_factor_lr, default_project, default_team
+    eval_dynamic_factor_lr, default_project, default_team
 ):
     """
     Tests that dynamic sampling information return correct uniform rules
     """
-    eval_dynamic_factor_tk.return_value = 2.0
     eval_dynamic_factor_lr.return_value = 1.5
 
     redis_client = get_redis_client_for_ds()
@@ -255,7 +252,6 @@ def test_project_config_with_all_biases_enabled(
             {"id": "boostEnvironments", "active": True},
             {"id": "ignoreHealthChecks", "active": True},
             {"id": "boostLatestRelease", "active": True},
-            {"id": "boostKeyTransactions", "active": True},
         ],
     )
     default_project.add_team(default_team)
@@ -290,16 +286,13 @@ def test_project_config_with_all_biases_enabled(
 
     # Set factor
     default_factor = 0.5
-    redis_client.hset(
-        f"ds::o:{default_project.organization.id}:rate_rebalance_factor",
-        f"{default_project.id}",
-        default_factor,
+    redis_client.set(
+        f"ds::o:{default_project.organization.id}:rate_rebalance_factor2", default_factor
     )
 
     with Feature(
         {
             "organizations:dynamic-sampling": True,
-            "organizations:ds-apply-actual-sample-rate-to-biases": True,
         }
     ):
         with patch(
@@ -329,22 +322,26 @@ def test_project_config_with_all_biases_enabled(
                 },
                 "id": 1002,
             },
-            {
-                "condition": {
-                    "inner": [
-                        {
-                            "name": "event.transaction",
-                            "op": "eq",
-                            "options": {"ignoreCase": True},
-                            "value": ["/foo"],
-                        }
-                    ],
-                    "op": "or",
-                },
-                "id": 1003,
-                "samplingValue": {"type": "factor", "value": 2.0},
-                "type": "transaction",
-            },
+            # {
+            #     "condition": {
+            #         "inner": {
+            #             "name": "trace.replay_id",
+            #             "op": "eq",
+            #             "options": {"ignoreCase": True},
+            #             "value": None,
+            #         },
+            #         "op": "not",
+            #     },
+            #     "id": 1005,
+            #     "samplingValue": {"type": "sampleRate", "value": 1.0},
+            #     "type": "trace",
+            # },
+            # {
+            #     "condition": {"inner": [], "op": "and"},
+            #     "id": 1004,
+            #     "samplingValue": {"type": "factor", "value": default_factor},
+            #     "type": "trace",
+            # },
             {
                 "samplingValue": {"type": "sampleRate", "value": 1.0},
                 "type": "trace",
@@ -401,12 +398,6 @@ def test_project_config_with_all_biases_enabled(
                     "end": "2022-10-21T19:50:25Z",
                 },
                 "decayingFn": {"type": "linear", "decayedValue": 1.0},
-            },
-            {
-                "condition": {"inner": [], "op": "and"},
-                "id": 1004,
-                "samplingValue": {"type": "factor", "value": default_factor},
-                "type": "trace",
             },
             {
                 "samplingValue": {"type": "sampleRate", "value": 0.1},

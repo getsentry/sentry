@@ -302,17 +302,9 @@ class DatabaseBackedAuthService(AuthService):
             organization_id=organization.id,
             default_org_role=organization.default_role,
             role=organization.default_role,
-            user=serial_user,
+            user_id=user.id,
             flags=flags,
         )
-
-        # TODO: Combine into one query
-        provider_model = AuthProvider.objects.get(id=auth_provider.id)
-        default_team_ids = provider_model.default_teams.values_list("id", flat=True)
-
-        for team_id in default_team_ids:
-            organization_service.add_team_member(team_id=team_id, organization_member=om)
-
         return serial_user, om
 
 

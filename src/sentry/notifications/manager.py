@@ -8,6 +8,7 @@ from typing import (
     Mapping,
     MutableMapping,
     MutableSet,
+    Optional,
     Sequence,
     Union,
 )
@@ -93,8 +94,17 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         scope_type: NotificationScopeType,
         scope_identifier: int,
         target_id: int,
+        user_id: Optional[int] = None,
+        team_id: Optional[int] = None,
     ) -> None:
         """Save a NotificationSettings row."""
+
+        defaults = {"value": value.value}
+        if user_id is not None:
+            defaults.update(user_id=user_id)
+        elif team_id is not None:
+            defaults.update(team_id=team_id)
+
         with configure_scope() as scope:
             with transaction.atomic():
                 setting, created = self.get_or_create(
@@ -103,7 +113,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     scope_type=scope_type.value,
                     scope_identifier=scope_identifier,
                     target_id=target_id,
-                    defaults={"value": value.value},
+                    defaults=defaults,
                 )
                 if not created and setting.value != value.value:
                     scope.set_tag("notif_setting_type", setting.type_str)
@@ -117,7 +127,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         provider: ExternalProviders,
         type: NotificationSettingTypes,
         value: NotificationSettingOptionValues,
-        user: User | None = None,
+        user: User | RpcUser | None = None,
         team: Team | None = None,
         actor: RpcActor | None = None,
         project: Project | int | None = None,
@@ -159,7 +169,10 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         if not validate(type, value):
             raise Exception(f"value '{value}' is not valid for type '{type}'")
 
-        scope_type, scope_identifier = get_scope(actor, project=project, organization=organization)
+        scope_type, scope_identifier = get_scope(
+            actor=actor, project=project, organization=organization
+        )
+        id_key = "user_id" if actor.actor_type == ActorType.USER else "team_id"
         self._update_settings(
             provider=provider,
             type=type,
@@ -167,6 +180,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             scope_type=scope_type,
             scope_identifier=scope_identifier,
             target_id=target_id,
+            **{id_key: actor.id},
         )
 
     def remove_settings(
@@ -190,6 +204,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             if team is not None:
                 actor = RpcActor.from_object(team)
         assert actor
+        # TODO(hybridcloud) This needs to use user/team
         self.find_settings(
             provider, type, actor=actor, project=project, organization=organization
         ).delete()
@@ -223,7 +238,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def remove_for_user(self, user: User, type: NotificationSettingTypes | None = None) -> None:
         """Bulk delete all Notification Settings for a USER, optionally by type."""
-        self._filter(target_ids=[user.actor_id], type=type).delete()
+        # TODO(hybridcloud) This needs to use user_id
+        self._filter(target_ids=[get_actor_id_for_user(user)], type=type).delete()
 
     def remove_for_team(
         self,
@@ -232,6 +248,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         provider: ExternalProviders | None = None,
     ) -> None:
         """Bulk delete all Notification Settings for a TEAM, optionally by type."""
+        # TODO(hybridcloud) This needs to use team_id
         self._filter(target_ids=[team.actor_id], provider=provider, type=type).delete()
 
     def remove_for_project(
@@ -272,6 +289,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 actor = RpcActor.from_object(team)
         assert actor
 
+        # TODO(hybridcloud) This will need to use team/user
         scope_type, scope_identifier = get_scope(actor, project=project, organization=organization)
         target_id = actor.actor_id
         assert target_id, "Cannot find settings for None actor_id"
@@ -320,7 +338,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 scope_identifier__in=team_ids,
             ),
             type=type_.value,
-            target__in=actor_ids,
+            target_id__in=actor_ids,
         )
 
     def filter_to_accepting_recipients(
@@ -393,8 +411,15 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             if value == NotificationSettingOptionValues.DEFAULT:
                 self._filter(provider, type, scope_type, scope_identifier, [target_id]).delete()
             else:
+                id_key = "user_id" if actor.actor_type == ActorType.USER else "team_id"
                 self._update_settings(
-                    provider, type, value, scope_type, scope_identifier, target_id
+                    provider,
+                    type,
+                    value,
+                    scope_type,
+                    scope_identifier,
+                    target_id,
+                    **{id_key: actor.id},
                 )
         analytics.record(
             "notifications.settings_updated",
@@ -435,6 +460,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     scope_type=NotificationScopeType.USER.value,
                     scope_identifier=user.id,
                     target_id=get_actor_id_for_user(user),
+                    user_id=user.id,
                     defaults={"value": NotificationSettingOptionValues.NEVER.value},
                 )
 
@@ -444,6 +470,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         if recipient.actor_id is None:
             return False
 
+        # TODO(hybridcloud) This will need to filter on user_id or team_id
         # Explicitly typing to satisfy mypy.
         has_settings: bool = (
             self._filter(provider=provider, target_ids={recipient.actor_id})
@@ -470,4 +497,5 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 type=type_,
                 value=NOTIFICATION_SETTINGS_ALL_SOMETIMES[type_],
                 actor=RpcActor.from_object(recipient),
+                user=recipient,
             )

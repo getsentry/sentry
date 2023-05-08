@@ -168,7 +168,7 @@ class SpanTreeModel {
         type: 'gap',
         start_timestamp: previousSiblingEndTimestamp || this.span.start_timestamp,
         timestamp: this.span.start_timestamp, // this is essentially end_timestamp
-        description: t('Missing instrumentation'),
+        description: t('Missing span instrumentation'),
         isOrphan: isOrphanSpan(this.span),
       },
       numOfSpanChildren: 0,

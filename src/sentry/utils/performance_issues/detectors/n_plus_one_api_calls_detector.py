@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import hashlib
 import os
 import random
+from collections import defaultdict
 from datetime import timedelta
-from typing import Optional
-from urllib.parse import urlparse
+from typing import List, Mapping, Optional, Sequence
+from urllib.parse import parse_qs, urlparse
+
+from django.utils.encoding import force_bytes
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
@@ -16,6 +20,7 @@ from ..base import (
     PerformanceDetector,
     fingerprint_http_spans,
     get_span_duration,
+    get_span_evidence_value,
     get_url_from_span,
     parameterize_url,
 )
@@ -45,6 +50,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.stored_problems: PerformanceProblemsMap = {}
         self.spans: list[Span] = []
+        self.span_hashes = {}
 
     def visit_span(self, span: Span) -> None:
         if not NPlusOneAPICallsDetector.is_span_eligible(span):
@@ -59,6 +65,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         if span_duration < duration_threshold:
             return
+
+        self.span_hashes[span["span_id"]] = get_span_hash(span)
 
         previous_span = self.spans[-1] if len(self.spans) > 0 else None
 
@@ -160,6 +168,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not fingerprint:
             return
 
+        offender_span_ids = [span["span_id"] for span in self.spans]
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op=last_span["op"],
@@ -167,15 +177,47 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             type=DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key],
             cause_span_ids=[],
             parent_span_ids=[last_span.get("parent_span_id", None)],
-            offender_span_ids=[span["span_id"] for span in self.spans],
+            offender_span_ids=offender_span_ids,
             evidence_data={
                 "op": last_span["op"],
                 "cause_span_ids": [],
                 "parent_span_ids": [last_span.get("parent_span_id", None)],
-                "offender_span_ids": [span["span_id"] for span in self.spans],
+                "offender_span_ids": offender_span_ids,
+                "transaction_name": self._event.get("transaction", ""),
+                "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
+                "repeating_spans": self._get_path_prefix(self.spans[0]),
+                "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
+                "parameters": self._get_parameters(),
             },
             evidence_display=[],
         )
+
+    def _get_parameters(self) -> List[str]:
+        if not self.spans or len(self.spans) == 0:
+            return []
+
+        urls = [get_url_from_span(span) for span in self.spans]
+
+        all_parameters: Mapping[str, List[str]] = defaultdict(list)
+
+        for url in urls:
+            parsed_url = urlparse(url)
+            parameters = parse_qs(parsed_url.query)
+
+            for key, value in parameters.items():
+                all_parameters[key] += value
+
+        return [
+            "{{{}: {}}}".format(key, ",".join(values)) for key, values in all_parameters.items()
+        ]
+
+    def _get_path_prefix(self, repeating_span) -> str:
+        if not repeating_span:
+            return ""
+
+        url = get_url_from_span(repeating_span)
+        parsed_url = urlparse(url)
+        return parsed_url.path or ""
 
     def _fingerprint(self) -> Optional[str]:
         first_url = get_url_from_span(self.spans[0])
@@ -202,9 +244,61 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     def _spans_are_similar(self, span_a: Span, span_b: Span) -> bool:
         return (
-            span_a["hash"] == span_b["hash"]
+            self.span_hashes[span_a["span_id"]] == self.span_hashes[span_b["span_id"]]
             and span_a["parent_span_id"] == span_b["parent_span_id"]
         )
+
+
+HTTP_METHODS = {
+    "GET",
+    "HEAD",
+    "POST",
+    "PUT",
+    "DELETE",
+    "CONNECT",
+    "OPTIONS",
+    "TRACE",
+    "PATCH",
+}
+
+
+def get_span_hash(span: Span) -> Optional[str]:
+    if span.get("op") != "http.client":
+        return span.get("hash")
+
+    parts = remove_http_client_query_string_strategy(span)
+    if not parts:
+        return None
+
+    hash = hashlib.md5()
+    for part in parts:
+        hash.update(force_bytes(part, errors="replace"))
+
+    return hash.hexdigest()[:16]
+
+
+def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[str]]:
+    """
+    This is an inline version of the `http.client` parameterization code in
+    `"default:2022-10-27"`, the default span grouping strategy at time of
+    writing. It's inlined here to insulate this detector from changes in the
+    strategy, which are coming soon.
+    """
+
+    # Check the description is of the form `<HTTP METHOD> <URL>`
+    description = span.get("description") or ""
+    parts = description.split(" ", 1)
+    if len(parts) != 2:
+        return None
+
+    # Ensure that this is a valid http method
+    method, url_str = parts
+    method = method.upper()
+    if method not in HTTP_METHODS:
+        return None
+
+    url = urlparse(url_str)
+    return [method, url.scheme, url.netloc, url.path]
 
 
 def without_query_params(url: str) -> str:

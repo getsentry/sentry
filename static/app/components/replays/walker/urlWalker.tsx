@@ -2,12 +2,7 @@ import {memo} from 'react';
 
 import ChevronDividedList from 'sentry/components/replays/walker/chevronDividedList';
 import splitCrumbs from 'sentry/components/replays/walker/splitCrumbs';
-import {
-  BreadcrumbLevelType,
-  BreadcrumbType,
-  BreadcrumbTypeNavigation,
-  Crumb,
-} from 'sentry/types/breadcrumbs';
+import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -24,9 +19,9 @@ export const CrumbWalker = memo(function CrumbWalker({crumbs, replayRecord}: Cru
   const startTimestampMs = replayRecord.started_at.getTime();
   const {handleClick} = useCrumbHandlers(startTimestampMs);
 
-  const navCrumbs = crumbs.filter(
-    crumb => crumb.type === BreadcrumbType.NAVIGATION
-  ) as BreadcrumbTypeNavigation[];
+  const navCrumbs = crumbs.filter(crumb =>
+    [BreadcrumbType.INIT, BreadcrumbType.NAVIGATION].includes(crumb.type)
+  ) as Crumb[];
 
   return (
     <ChevronDividedList
@@ -51,7 +46,7 @@ export const StringWalker = memo(function StringWalker({urls}: StringProps) {
   );
 });
 
-function urlToCrumb(url: string) {
+function urlToCrumb(url: string): Crumb {
   return {
     type: BreadcrumbType.NAVIGATION,
     category: BreadcrumbType.NAVIGATION,
@@ -62,5 +57,5 @@ function urlToCrumb(url: string) {
     color: 'green300',
     timestamp: undefined,
     data: {to: url},
-  } as BreadcrumbTypeNavigation;
+  };
 }
