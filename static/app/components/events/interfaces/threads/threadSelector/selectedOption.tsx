@@ -18,7 +18,7 @@ type ThreadInfo = {
   state?: ThreadStates;
 };
 
-function getThreadLabel(details: ThreadInfo, name: string | null | undefined) {
+function getThreadLabel(details: ThreadInfo, name?: string | null) {
   if (!isNil(name) && name) {
     return name;
   }
