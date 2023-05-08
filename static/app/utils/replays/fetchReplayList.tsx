@@ -23,6 +23,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  queryReferrer?: 'issueReplays';
 };
 
 async function fetchReplayList({
@@ -30,6 +31,7 @@ async function fetchReplayList({
   organization,
   location,
   eventView,
+  queryReferrer,
 }: Props): Promise<Result> {
   try {
     const path = `/organizations/${organization.slug}/replays/`;
@@ -48,6 +50,7 @@ async function fetchReplayList({
       query: {
         ...payload,
         cursor: location.query.cursor,
+        queryReferrer,
       },
     });
 

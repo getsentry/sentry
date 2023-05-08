@@ -39,7 +39,7 @@ class TagKey(TagType):
     _sort_key = "values_seen"
 
     def __init__(
-        self, key, values_seen=None, status=TagKeyStatus.VISIBLE, count=None, top_values=None
+        self, key, values_seen=None, status=TagKeyStatus.ACTIVE, count=None, top_values=None
     ):
         self.key = key
         self.values_seen = values_seen

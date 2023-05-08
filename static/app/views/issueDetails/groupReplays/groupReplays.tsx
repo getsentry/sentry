@@ -75,6 +75,7 @@ function GroupReplaysTable({
     eventView,
     location,
     organization,
+    queryReferrer: 'issueReplays',
   });
 
   return (
