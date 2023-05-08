@@ -13,6 +13,8 @@ from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
 from sentry.utils.snuba import Dataset, SnubaTSResult
 
+INLIER_QUERY_CLAUSE = "histogram_outlier:inlier"
+
 
 def query(
     selected_columns,
@@ -179,6 +181,12 @@ def histogram_query(
     :param [Condition] extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
     :param bool normalize_results: Indicate whether to normalize the results by column into bins.
     """
+
+    if data_filter == "exclude_outliers":
+        if user_query is None:
+            user_query = INLIER_QUERY_CLAUSE
+        elif INLIER_QUERY_CLAUSE not in user_query:
+            user_query += " " + INLIER_QUERY_CLAUSE
 
     multiplier = int(10**precision)
     if max_value is not None:
