@@ -124,22 +124,11 @@ def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
 
     redis_client = get_redis_client_for_ds()
     factor_key = generate_cache_key_rebalance_factor(org_volume.org_id)
-    # we need a project from the current org... unfortunately get_blended_sample_rate
-    # takes a project (not an org)
-    # TODO RaduW is there a better way to get an org Project than filtering ?
-    org_projects = Project.objects.filter(organization__id=org_volume.org_id)
 
-    desired_sample_rate = None
-    for project in org_projects:
-        desired_sample_rate = quotas.get_blended_sample_rate(project)
-        break
-    else:
-        redis_client.delete(factor_key)  # cleanup just to be sure
-        # org with no project this shouldn't happen
-        return "no project found"
+    desired_sample_rate = quotas.get_blended_sample_rate(organisation_id=org_volume.org_id)
 
     if desired_sample_rate is None:
-        return f"project with desired_sample_rate==None for {org_volume.org_id}"
+        return f"Organisation with desired_sample_rate==None org_id={org_volume.org_id}"
 
     if org_volume.total == 0 or org_volume.indexed == 0:
         # not enough info to make adjustments ( we don't consider this an error)
