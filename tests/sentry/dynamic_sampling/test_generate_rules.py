@@ -567,6 +567,7 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
     assert rules[0]["id"] == uniform_id
 
 
+@pytest.mark.skip("Disabled rebalancing rule.")
 @pytest.mark.django_db
 @freeze_time("2022-10-21T18:50:25Z")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")

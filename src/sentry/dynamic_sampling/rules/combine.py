@@ -1,4 +1,3 @@
-from sentry import features
 from sentry.dynamic_sampling.rules.biases.boost_environments_bias import BoostEnvironmentsBias
 from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias
 from sentry.dynamic_sampling.rules.biases.boost_rare_transactions_rule import (
@@ -13,15 +12,16 @@ from sentry.dynamic_sampling.rules.utils import RuleType
 from sentry.models import Organization
 
 
-def get_relay_biases_combinator(organization: Organization) -> BiasesCombinator:
+def get_relay_biases_combinator(_: Organization) -> BiasesCombinator:
     default_combinator = OrderedBiasesCombinator()
 
     default_combinator.add(RuleType.IGNORE_HEALTH_CHECKS_RULE, IgnoreHealthChecksBias())
 
+    # TODO: rethink how to add this rule in case we agree on keeping the sliding window org.
     default_combinator.add_if(
         RuleType.RECALIBRATION_RULE,
         RecalibrationBias(),
-        lambda: not features.has("organizations:ds-sliding-window", organization, actor=None),
+        lambda: False,
     )
     default_combinator.add(RuleType.BOOST_ENVIRONMENTS_RULE, BoostEnvironmentsBias())
     default_combinator.add(RuleType.BOOST_LATEST_RELEASES_RULE, BoostLatestReleasesBias())
