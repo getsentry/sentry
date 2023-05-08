@@ -258,7 +258,8 @@ class Monitor(Model):
         monitor_config = self.config
         # Only update keys that were specified in the payload
         for key in config_payload.keys():
-            monitor_config[key] = validated_config[key]
+            if key in validated_config:
+                monitor_config[key] = validated_config[key]
         self.save()
 
 
