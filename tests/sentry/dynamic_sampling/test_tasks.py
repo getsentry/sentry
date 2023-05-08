@@ -258,7 +258,6 @@ class TestPrioritiseTransactionsTask(BaseMetricsLayerTestCase, TestCase, SnubaTe
         with self.options(
             {
                 "dynamic-sampling.prioritise_transactions.load_rate": 1.0,
-                "dynamic-sampling.prioritise_transactions.rebalance_intensity": 7.0,
             }
         ):
             with self.tasks():
