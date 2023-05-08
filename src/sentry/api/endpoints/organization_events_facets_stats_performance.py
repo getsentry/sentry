@@ -13,6 +13,7 @@ from sentry.api.endpoints.organization_events_facets_performance import (
     query_tag_data,
 )
 from sentry.snuba import discover
+from sentry.snuba.referrer import Referrer
 
 TAG_ALIASES = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
 SIX_HOURS = int(timedelta(hours=6).total_seconds())
@@ -38,7 +39,7 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
             tag_key = TAG_ALIASES.get(tag_key)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
-            referrer = "api.organization-events-facets-stats-performance.top-tags"
+            referrer = Referrer.API_PERFORMANCE_EVENTS_FACETS_STATS
             tag_data = query_tag_data(
                 filter_query=filter_query,
                 aggregate_column=aggregate_column,

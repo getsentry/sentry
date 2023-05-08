@@ -405,10 +405,8 @@ def query_facet_performance(
         )
         middle = datetime.strftime(middle, DateArg.date_format)
 
-        count_column = "count_range({condition}, {boundary})"
         count_range_1 = tag_query.resolve_function(
-            count_column.format(condition="lessOrEquals", boundary=middle),
-            overwrite_alias="count_range_1",
+            f"count_range(lessOrEquals, {middle})", overwrite_alias="count_range_1"
         )
         count_range_total = tag_query.resolve_function(
             "count()",
