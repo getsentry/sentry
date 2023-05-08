@@ -89,7 +89,7 @@ export enum PROJECT_PERFORMANCE_TYPE {
 
 // The native SDK is equally used on clients and end-devices as on
 // backend, the default view should be "All Transactions".
-const FRONTEND_PLATFORMS: string[] = [...frontend].filter(
+const FRONTEND_PLATFORMS: string[] = frontend.filter(
   platform =>
     // Next, Remix and Sveltekit habe both, frontend and backend transactions.
     !['javascript-nextjs', 'javascript-remix', 'javascript-sveltekit'].includes(platform)
