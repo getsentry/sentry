@@ -1,6 +1,15 @@
 import {Moment, unix} from 'moment';
 
+import {NewQuery} from 'sentry/types';
+import {
+  DiscoverQueryComponentProps,
+  DiscoverQueryPropsWithThresholds,
+} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DefinedUseQueryResult, useQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {TransactionListDataRow} from 'sentry/views/starfish/modules/databaseModule/panel';
@@ -193,6 +202,7 @@ export const useGetTransactionsForTables = (
   interval: number
 ): DefinedUseQueryResult<TopTransactionData[]> => {
   const pageFilter = usePageFilters();
+  const location = useLocation();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
 
@@ -209,34 +219,38 @@ export const useGetTransactionsForTables = (
     initialData: [],
   });
 
-  const queryParams = [
-    'dataset=metricsEnhanced',
-    'excludeOther=1',
-    'field=transaction',
-    `field=epm%28%29`,
-    `field=p75%28transaction.duration%29`,
-    `interval=${interval}h`,
-    'partial=1',
-    `query=${encodeURIComponent(
-      `transaction:[${result1.data?.map(d => d.transaction).join(',')}]`
-    )}`,
-    `statsPeriod=${period}`,
-    'topEvents=5',
-    `yAxis=epm%28%29`,
-    `yAxis=p75%28transaction.duration%29`,
-    'project=1',
-  ].join('&');
+  const query: NewQuery = {
+    id: undefined,
+    name: 'Db module - epm/p75 for top transactions',
+    query: `transaction:[${result1.data?.map(d => d.transaction).join(',')}]`,
+    projects: [1],
+    fields: ['transaction', 'epm()', 'p75(transaction.duration)'],
+    version: 1,
+    topEvents: '5',
+    start: start?.toString(),
+    end: end?.toString(),
+    dataset: DiscoverDatasets.METRICS_ENHANCED,
+    interval: `${interval}h`,
+    yAxis: ['epm()', 'p75(transaction.duration)'],
+  };
 
-  const result2 = useQuery({
-    enabled: !!result1.data?.length,
-    queryKey: ['topTransactionP75Epm', tableNames.join(','), start, end],
-    queryFn: () =>
-      fetch(`/api/0/organizations/sentry/events-stats/?${queryParams}`).then(res =>
-        res.json()
-      ),
-    retry: false,
-    initialData: [],
+  const eventView = EventView.fromNewQueryWithLocation(query, location);
+  eventView.statsPeriod = period ?? undefined;
+
+  const result2 = useDiscoverEventsStatsQuery({
+    eventView,
+    referrer: 'api.starfish.database.charts',
+    location,
+    orgSlug: 'sentry',
+    queryExtras: {
+      interval: `${interval}h`, // This interval isn't being propogated from eventView
+      yAxis: ['epm()', 'p75(transaction.duration)'], // workaround - eventView actually doesn't support multiple yAxis
+      excludeOther: '1',
+      topEvents: '5',
+      per_page: undefined,
+    },
   });
+
   const data: TopTransactionData[] = [];
   if (!result2.isLoading && result2.data) {
     Object.entries(result2.data).forEach(([transactionName, result]: [string, any]) => {
@@ -257,7 +271,7 @@ export const useGetTransactionsForTables = (
     });
   }
 
-  return {...result2, data};
+  return {...result2, data} as DefinedUseQueryResult<TopTransactionData[]>;
 };
 
 export const useQueryTopTablesChart = (
@@ -544,3 +558,34 @@ export const getDateQueryFilter = (startTime: Moment, endTime: Moment) => {
   ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
   `;
 };
+
+const shouldRefetchData = (
+  prevProps: DiscoverQueryPropsWithThresholds,
+  nextProps: DiscoverQueryPropsWithThresholds
+) => {
+  return (
+    prevProps.transactionName !== nextProps.transactionName ||
+    prevProps.transactionThreshold !== nextProps.transactionThreshold ||
+    prevProps.transactionThresholdMetric !== nextProps.transactionThresholdMetric
+  );
+};
+
+// We should find a way to use this in discover
+export function useDiscoverEventsStatsQuery(
+  props: Omit<DiscoverQueryComponentProps, 'children'>
+) {
+  const afterFetch = (data, _) => {
+    const {fields, ...otherMeta} = data.meta ?? {};
+    return {
+      ...data,
+      meta: {...fields, ...otherMeta},
+    };
+  };
+
+  return useGenericDiscoverQuery({
+    route: 'events-stats',
+    shouldRefetchData,
+    afterFetch,
+    ...props,
+  });
+}
