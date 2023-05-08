@@ -14,6 +14,7 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import NotificationsService, RpcNotificationSetting
+from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
@@ -81,7 +82,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             value=value.value,
             scope_type=NotificationScopeType.USER.value,
         )
-        return [self.serialize_notification_setting(u) for u in settings]
+        return [serialize_notification_setting(u) for u in settings]
 
     def get_settings_for_recipient_by_parent(
         self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[RpcActor]
@@ -108,7 +109,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             target_id__in=actor_ids,
         )
 
-        return [self.serialize_notification_setting(s) for s in notification_settings]
+        return [serialize_notification_setting(s) for s in notification_settings]
 
     def get_settings_for_user_by_projects(
         self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
@@ -120,7 +121,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
 
         scope_type = get_scope_type(type)
         return [
-            self.serialize_notification_setting(s)
+            serialize_notification_setting(s)
             for s in NotificationSetting.objects.filter(
                 Q(
                     scope_type=scope_type.value,
