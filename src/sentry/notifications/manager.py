@@ -297,7 +297,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 actor = RpcActor.from_object(team)
         assert actor
 
-        # TODO(hybridcloud) This will need to use team/user
+        # TODO(actorid) This will need to use team/user. This method also needs to handle RpcUser
         scope_type, scope_identifier = get_scope(actor, project=project, organization=organization)
         target_id = actor.actor_id
         assert target_id, "Cannot find settings for None actor_id"
@@ -324,6 +324,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 team_ids.add(recipient.id)
             if recipient.actor_type == ActorType.USER:
                 user_ids.add(recipient.id)
+            # TODO(actorid) Remove this once actor writes are removed..
             if recipient.actor_id is not None:
                 actor_ids.add(recipient.actor_id)
 
