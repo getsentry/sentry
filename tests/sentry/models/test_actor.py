@@ -12,6 +12,7 @@ class ActorTest(TestCase):
         assert type(team.actor) is Actor
         assert team.actor.team_id == team.id
 
+        # TODO(hybridcloud) Remove when writes to User.actor_id are removed.
         actor = Actor.objects.create(type=1)
         user2 = User.objects.create(username="meow", actor_id=actor.id)
         assert user2.actor == actor

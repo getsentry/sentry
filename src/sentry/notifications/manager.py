@@ -467,6 +467,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def has_any_provider_settings(
         self, recipient: RpcActor | Team | User, provider: ExternalProviders
     ) -> bool:
+        # TODO(actorid) Going to need to handle User coming in here.
         if recipient.actor_id is None:
             return False
 

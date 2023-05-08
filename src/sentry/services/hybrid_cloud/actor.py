@@ -24,8 +24,14 @@ class RpcActor(RpcModel):
     """Can represent any model object with a foreign key to Actor."""
 
     id: int
+    """The id of the user/team this actor represents"""
+
     actor_id: Optional[int]
+    """The id of the Actor record"""
+
     actor_type: ActorType
+    """Whether this actor is a User or Team"""
+
     slug: Optional[str] = None
     is_superuser: bool = False
 

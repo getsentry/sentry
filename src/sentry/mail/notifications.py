@@ -127,7 +127,7 @@ def send_notification_as_email(
             with sentry_sdk.start_span(op="notification.send_email", description="build_message"):
                 msg = MessageBuilder(
                     **get_builder_args(
-                        notification, recipient, shared_context, extra_context_by_actor_id
+                        notification, recipient_actor, shared_context, extra_context_by_actor_id
                     )
                 )
 
@@ -143,7 +143,7 @@ def send_notification_as_email(
 
 def get_builder_args(
     notification: BaseNotification,
-    recipient: RpcActor | RpcUser,
+    recipient: RpcActor,
     shared_context: Mapping[str, Any] | None = None,
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None = None,
 ) -> Mapping[str, Any]:
