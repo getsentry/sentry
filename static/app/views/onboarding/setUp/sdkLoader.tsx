@@ -20,7 +20,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {DynamicSDKLoaderOption} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
 
-export function SetupDocsLoader({
+export function SdkLoader({
   organization,
   location,
   project,

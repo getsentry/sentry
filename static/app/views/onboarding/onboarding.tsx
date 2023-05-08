@@ -28,7 +28,7 @@ import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
 import Stepper from './components/stepper';
 import {PlatformSelection} from './platformSelection';
-import SetupDocs from './setupDocs';
+import {Setup} from './setUp';
 import {StepDescriptor} from './types';
 import TargetedOnboardingWelcome from './welcome';
 
@@ -56,7 +56,7 @@ function getOrganizationOnboardingSteps(): StepDescriptor[] {
     {
       id: 'setup-docs',
       title: t('Install the Sentry SDK'),
-      Component: SetupDocs,
+      Component: Setup,
       hasFooter: true,
       cornerVariant: 'top-left',
     },

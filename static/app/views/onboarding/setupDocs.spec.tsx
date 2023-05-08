@@ -7,7 +7,7 @@ import {OnboardingContextProvider} from 'sentry/components/onboarding/onboarding
 import {PRODUCT} from 'sentry/components/onboarding/productSelection';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
-import SetupDocs from 'sentry/views/onboarding/setupDocs';
+import SetupDocs from 'sentry/views/onboarding/setUp';
 
 const PROJECT_KEY = TestStubs.ProjectKeys()[0];
 
