@@ -192,7 +192,6 @@
 - name: 'Waiting for: Community'
   color: '8D5494'
 
-
 # Product Areas - notion.so/sentry/473791bae5bf43399d46093050b77bf0
 - name: 'Product Area: Unknown'
   color: '8D5494'
