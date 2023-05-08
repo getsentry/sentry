@@ -1,5 +1,6 @@
-import styled from '@emotion/styled';
 import {Link} from 'react-router';
+import styled from '@emotion/styled';
+
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {useQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -8,7 +9,7 @@ import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 import {getTopSpansInModule} from 'sentry/views/starfish/views/webServiceView/queries';
 
 type Props = {
-  module?: string;
+  module: string;
 };
 
 const COLUMN_ORDER = [
