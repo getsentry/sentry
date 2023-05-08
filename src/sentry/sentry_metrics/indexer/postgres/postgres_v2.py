@@ -250,7 +250,9 @@ class PGStringIndexerV2(StringIndexer):
 
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
+
         Returns None if the entry cannot be found.
+
         """
         table = self._get_table_from_metric_path_key(use_case_id)
         try:
@@ -262,6 +264,7 @@ class PGStringIndexerV2(StringIndexer):
 
     def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
+
         Returns None if the entry cannot be found.
         """
         table = self._get_table_from_metric_path_key(use_case_id)
