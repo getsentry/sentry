@@ -427,8 +427,9 @@ class SqlFormatEventSerializer(EventSerializer):
 
     def serialize(self, obj, attrs, user):
         result = super().serialize(obj, attrs, user)
-        result = self._format_breadcrumb_messages(result, obj, user)
-        result = self._format_db_spans(result, obj, user)
+        with sentry_sdk.start_span(op="event_serializer.format_sql"):
+            result = self._format_breadcrumb_messages(result, obj, user)
+            result = self._format_db_spans(result, obj, user)
         return result
 
 

@@ -148,6 +148,7 @@ function GroupEventDetailsContent({
             organization.features.includes('set-grouping-config') &&
             'groupingConfig' in event
           }
+          group={group}
         />
       )}
 

@@ -210,8 +210,7 @@ function SetupInstructions({
           }
         )}
       </p>
-
-      {showSnippet === Output.URL_SKIPPED && (
+      {showSnippet === Output.URL_SKIPPED && url !== '[Filtered]' && (
         <Alert type="warning">
           {tct('Add [url] to your [field] list to start capturing data.', {
             url: <kbd>{url}</kbd>,
@@ -219,7 +218,6 @@ function SetupInstructions({
           })}
         </Alert>
       )}
-
       {showSnippet === Output.BODY_SKIPPED && (
         <Alert type="warning">
           {tct('Enable [field] to capture both Request and Response payloads.', {
@@ -227,7 +225,6 @@ function SetupInstructions({
           })}
         </Alert>
       )}
-
       <h1>{t('Prerequisites')}</h1>
       <ol>
         {sdkNeedsUpdate ? (
@@ -240,10 +237,11 @@ function SetupInstructions({
         <li>{t('Edit the Replay integration configuration to allow this URL.')}</li>
         <li>{t('That’s it!')}</li>
       </ol>
-
-      <CodeSnippet filename="JavaScript" language="javascript">
-        {code}
-      </CodeSnippet>
+      {url !== '[Filtered]' && (
+        <CodeSnippet filename="JavaScript" language="javascript">
+          {code}
+        </CodeSnippet>
+      )}
     </StyledInstructions>
   );
 }
