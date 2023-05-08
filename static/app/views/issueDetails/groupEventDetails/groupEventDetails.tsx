@@ -9,7 +9,6 @@ import {Client} from 'sentry/api';
 import ArchivedBox from 'sentry/components/archivedBox';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
-import GroupSidebar from 'sentry/components/group/sidebar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -36,6 +35,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
+import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
 
 import ReprocessingProgress from '../reprocessingProgress';
 import {
