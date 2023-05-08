@@ -351,7 +351,7 @@ class SnubaEventStorage(EventStorage):
         except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
             # This can happen when the date conditions for paging
             # and the current event generate impossible conditions.
-            return None
+            return [None for _ in filters]
 
         return [self.__get_event_id_from_result(result) for result in results]
 
