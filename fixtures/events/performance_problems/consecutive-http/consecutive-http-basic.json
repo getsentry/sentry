@@ -1105,13 +1105,7 @@
   "level": "info",
   "location": "/",
   "logger": "",
-  "measurements": {
-    "connection.rtt": {"value": 2150.0, "unit": "millisecond"},
-    "fcp": {"value": 15997.49994277954, "unit": "millisecond"},
-    "fp": {"value": 15997.49994277954, "unit": "millisecond"},
-    "ttfb": {"value": 3169.8999404907227, "unit": "millisecond"},
-    "ttfb.requesttime": {"value": 3157.2999954223633, "unit": "millisecond"}
-  },
+  "measurements": {},
   "metadata": {"location": "/", "title": "/"},
   "nodestore_insert": 1677610408.724872,
   "received": 1677610406.707657,
