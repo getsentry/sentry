@@ -2358,7 +2358,7 @@ class MonitorIngestTestCase(MonitorTestCase):
         # Token based auth
         sentry_app = self.create_sentry_app(
             organization=self.organization,
-            scopes=["project:write"],
+            scopes=["project:read", "project:write"],
         )
         app = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization

@@ -178,7 +178,14 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             )
 
             path = path_func(monitor.guid, self.latest.guid)
-            resp = self.client.put(path, data={"status": "ok"}, **self.token_auth_headers)
+            resp = self.client.put(
+                path,
+                data={
+                    "status": "ok",
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "* * * * *"},
+                },
+                **self.token_auth_headers,
+            )
             assert resp.status_code == 200, resp.content
 
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
