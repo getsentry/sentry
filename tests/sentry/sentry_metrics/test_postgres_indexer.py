@@ -1,16 +1,10 @@
 from typing import Mapping, Set
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.base import (
-    FetchType,
-    KeyCollection,
-    Metadata,
-    UseCaseKeyCollection,
-)
+from sentry.sentry_metrics.indexer.base import FetchType, KeyCollection, Metadata
 from sentry.sentry_metrics.indexer.cache import CachingIndexer
 from sentry.sentry_metrics.indexer.postgres.models import StringIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PGStringIndexerV2, indexer_cache
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
 
@@ -26,8 +20,7 @@ class PostgresIndexerV2Test(TestCase):
         self.strings = {"hello", "hey", "hi"}
         self.indexer = CachingIndexer(indexer_cache, PGStringIndexerV2())
         self.org2 = self.create_organization()
-        self.use_case_id = UseCaseID.SESSIONS
-        self.use_case_key = UseCaseKey.RELEASE_HEALTH
+        self.use_case_id = UseCaseKey("release-health")
         self.cache_namespace = self.use_case_id.value
 
     def tearDown(self) -> None:
@@ -44,7 +37,7 @@ class PostgresIndexerV2Test(TestCase):
         assert indexer_cache.get(key, self.cache_namespace) is None
         assert indexer_cache.get(string.id, self.cache_namespace) is None
 
-        self.indexer.indexer._get_db_records(UseCaseKeyCollection({self.use_case_id: collection}))
+        self.indexer.indexer._get_db_records(self.use_case_id, collection)
 
         assert indexer_cache.get(string.id, self.cache_namespace) is None
         assert indexer_cache.get(key, self.cache_namespace) is None

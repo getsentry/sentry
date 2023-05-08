@@ -20,11 +20,20 @@ from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPI
 from sentry.testutils.helpers.options import override_options
 
 BACKENDS = [
+    # TODO: add cloud spanner here
     RawSimpleIndexer,
     pytest.param(PGStringIndexerV2, marks=pytest.mark.django_db),
 ]
 
-USE_CASE_KEYS = [UseCaseKey.PERFORMANCE, UseCaseKey.RELEASE_HEALTH]
+
+@pytest.fixture(params=BACKENDS)
+def indexer_cls(request):
+    return request.param
+
+
+@pytest.fixture
+def indexer(indexer_cls):
+    return indexer_cls()
 
 
 @pytest.fixture
@@ -39,26 +48,7 @@ def indexer_cache():
     indexer_cache.cache.clear()
 
 
-@pytest.fixture(params=BACKENDS)
-def indexer_cls(request):
-    return request.param
-
-
-@pytest.fixture(params=USE_CASE_KEYS)
-def use_case_id(request):
-    return request.param
-
-
-@pytest.fixture
-def writes_limiter_option_name(use_case_id):
-    if use_case_id is UseCaseKey.RELEASE_HEALTH:
-        return "sentry-metrics.writes-limiter.limits.releasehealth"
-    return "sentry-metrics.writes-limiter.limits.performance"
-
-
-@pytest.fixture
-def indexer(indexer_cls):
-    return indexer_cls()
+use_case_id = UseCaseKey("release-health")
 
 
 def assert_fetch_type_for_tag_string_set(
@@ -67,7 +57,7 @@ def assert_fetch_type_for_tag_string_set(
     assert all([meta[string].fetch_type == fetch_type for string in str_set])
 
 
-def test_static_and_non_static_strings(indexer, use_case_id):
+def test_static_and_non_static_strings(indexer):
     static_indexer = StaticStringIndexer(indexer)
     org_strings = {
         2: {"release", "1.0.0"},
@@ -95,7 +85,7 @@ def test_static_and_non_static_strings(indexer, use_case_id):
     assert_fetch_type_for_tag_string_set(meta[3], FetchType.FIRST_SEEN, {"2.0.0"})
 
 
-def test_indexer(indexer, indexer_cache, use_case_id):
+def test_indexer(indexer, indexer_cache):
     org1_id = 1
     org2_id = 2
     strings = {"hello", "hey", "hi"}
@@ -152,7 +142,7 @@ def test_indexer(indexer, indexer_cache, use_case_id):
     assert not results.get(999)
 
 
-def test_resolve_and_reverse_resolve(indexer, indexer_cache, use_case_id):
+def test_resolve_and_reverse_resolve(indexer, indexer_cache):
     """
     Test `resolve` and `reverse_resolve` methods
     """
@@ -179,7 +169,7 @@ def test_resolve_and_reverse_resolve(indexer, indexer_cache, use_case_id):
     assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=1234) is None
 
 
-def test_already_created_plus_written_results(indexer, indexer_cache, use_case_id) -> None:
+def test_already_created_plus_written_results(indexer, indexer_cache) -> None:
     """
     Test that we correctly combine db read results with db write results
     for the same organization.
@@ -222,7 +212,7 @@ def test_already_created_plus_written_results(indexer, indexer_cache, use_case_i
     assert_fetch_type_for_tag_string_set(fetch_meta[org_id], FetchType.FIRST_SEEN, {"v1.2.3"})
 
 
-def test_already_cached_plus_read_results(indexer, indexer_cache, use_case_id) -> None:
+def test_already_cached_plus_read_results(indexer, indexer_cache) -> None:
     """
     Test that we correctly combine cached results with read results
     for the same organization.
@@ -259,7 +249,7 @@ def test_already_cached_plus_read_results(indexer, indexer_cache, use_case_id) -
     assert_fetch_type_for_tag_string_set(fetch_meta[org_id], FetchType.DB_READ, {"bam"})
 
 
-def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
+def test_rate_limited(indexer):
     """
     Assert that rate limits per-org and globally are applied at all.
 
@@ -274,7 +264,7 @@ def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
 
     with override_options(
         {
-            f"{writes_limiter_option_name}.per-org": [
+            "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 1}
             ],
         }
@@ -308,7 +298,7 @@ def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
     # attempt to index even more strings, and assert that we can't get any indexed
     with override_options(
         {
-            f"{writes_limiter_option_name}.per-org": [
+            "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 1}
             ],
         }
@@ -328,7 +318,7 @@ def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
     # assert that if we reconfigure limits, the quota resets
     with override_options(
         {
-            f"{writes_limiter_option_name}.global": [
+            "sentry-metrics.writes-limiter.limits.releasehealth.global": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 2}
             ],
         }
