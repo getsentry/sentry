@@ -12,21 +12,11 @@ from sentry.api.endpoints.organization_events_facets_performance import (
     query_facet_performance,
     query_tag_data,
 )
-from sentry.snuba.discover import top_events_timeseries
+from sentry.snuba import discover
 from sentry.snuba.referrer import Referrer
 
-ALLOWED_AGGREGATE_COLUMNS = {
-    "transaction.duration",
-    "measurements.lcp",
-    "spans.browser",
-    "spans.http",
-    "spans.db",
-    "spans.resource",
-}
-
 TAG_ALIASES = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
-DEFAULT_TAG_KEY_LIMIT = 5
-ONE_DAY = int(timedelta(hours=6).total_seconds())
+SIX_HOURS = int(timedelta(hours=6).total_seconds())
 
 
 @region_silo_endpoint
@@ -76,7 +66,7 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
             if not top_facets:
                 return {"data": []}
 
-            def get_event_stats(
+            def top_events_stats(
                 query_columns: Sequence[str],
                 query: str,
                 params: Dict[str, str],
@@ -84,7 +74,7 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
                 zerofill_results: bool,
                 comparison_delta: Optional[datetime],
             ):
-                return top_events_timeseries(
+                return discover.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=["tags_key", "tags_value"],
                     top_events=top_facets,
@@ -94,29 +84,63 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
                     # TODO: Better selection of granularity,
                     # but we generally only need pretty low granularity
                     # for this since it's only being used for sparklines
-                    rollup=ONE_DAY,
+                    rollup=SIX_HOURS,
                     limit=10000,
                     organization=None,
                     referrer=referrer,
                 )
 
-        results = self.get_event_stats_data(
-            request,
-            organization,
-            get_event_stats,
-            top_events=5,
-            query=filter_query,
-            query_column="count()",
-            additional_query_column="p75(transaction.duration)",
-        )
+            results = self.get_event_stats_data(
+                request,
+                organization,
+                top_events_stats,
+                top_events=5,
+                query=filter_query,
+                query_column="count()",
+                additional_query_column="p75(transaction.duration)",
+            )
 
-        totals = {}
-        for facet in top_facets["data"]:
-            key = facet.pop("tags_key")
-            value = facet.pop("tags_value")
-            totals[f"{key},{value}"] = facet
+            def get_event_stats(
+                query_columns: Sequence[str],
+                query: str,
+                params: Dict[str, str],
+                rollup: int,
+                zerofill_results: bool,
+                comparison_delta: Optional[datetime] = None,
+            ):
+                return discover.timeseries_query(
+                    selected_columns=query_columns,
+                    query=query,
+                    params=params,
+                    # TODO: Better selection of granularity,
+                    # but we generally only need pretty low granularity
+                    # for this since it's only being used for sparklines
+                    rollup=SIX_HOURS,
+                )
 
-        results["totals"] = totals
+            events_stats = self.get_event_stats_data(
+                request,
+                organization,
+                get_event_stats,
+                top_events=5,
+                query=filter_query,
+                query_column="p75(transaction.duration)",
+            )
+
+        with sentry_sdk.start_span(op="discover.endpoint", description="find_correlation"):
+            totals = {}
+            for facet in top_facets["data"]:
+                key = facet.pop("tags_key")
+                value = facet.pop("tags_value")
+                new_key = f"{key},{value}"
+
+                sum_correlation = discover.corr_snuba_timeseries(
+                    results[new_key]["count()"]["data"], events_stats["data"]
+                )
+                facet["sum_correlation"] = sum_correlation
+                totals[new_key] = facet
+
+            results["totals"] = totals
 
         return Response(
             results,
