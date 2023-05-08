@@ -242,7 +242,6 @@ function SetupInstructions({
           {code}
         </CodeSnippet>
       )}
-      › has copy, print and download buttons
     </StyledInstructions>
   );
 }
