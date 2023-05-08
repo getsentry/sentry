@@ -25,11 +25,7 @@ export const getSpanListQuery = (
 
   return `SELECT
     group_id, span_operation, description,
-    count() as count,
-    count(DISTINCT transaction) as transaction_count,
-    count / transaction_count as count_per_transaction,
     sum(exclusive_time) as total_exclusive_time,
-    quantile(0.999)(exclusive_time) as p999,
     quantile(0.95)(exclusive_time) as p95,
     quantile(0.50)(exclusive_time) as p50
     FROM spans_experimental_starfish
