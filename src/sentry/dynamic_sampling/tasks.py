@@ -212,6 +212,12 @@ def adjust_sample_rates(
     if sample_rate is None:
         return
 
+    all_projects_ids = Project.objects.filter(organization=organization).values_list(
+        "id", flat=True
+    )
+    for project_id in all_projects_ids:
+        pass
+
     projects = []
     for project_id, count_per_root, count_keep, count_drop in projects_with_tx_count:
         projects.append(
