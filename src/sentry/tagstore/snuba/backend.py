@@ -692,7 +692,7 @@ class SnubaTagStorage(TagStorage):
         dataset = Dataset.Events
         if group:
             filters["group_id"] = [group.id]
-            if not group.issue_category == GroupCategory.ERROR:
+            if group.issue_category != GroupCategory.ERROR:
                 dataset = Dataset.IssuePlatform
         return dataset, conditions, filters
 

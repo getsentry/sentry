@@ -1603,8 +1603,6 @@ class DiscoverDatasetConfig(DatasetConfig):
         group_short_ids = [v for v in value if v and v != "unknown"]
         general_group_filter_values = ["" for v in value if not v or v == "unknown"]
 
-        group_ids = []
-
         if group_short_ids and self.builder.params.organization is not None:
             try:
                 groups = Group.objects.by_qualified_short_id_bulk(
@@ -1614,10 +1612,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
-                for group in groups:
-                    group_ids.append(group.id)
-                group_ids = sorted(group_ids)
-                general_group_filter_values.extend(group_ids)
+                general_group_filter_values.extend(sorted([group.id for group in groups]))
 
         if general_group_filter_values:
             return self.builder.convert_search_filter_to_condition(

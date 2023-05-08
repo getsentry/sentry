@@ -483,9 +483,7 @@ class GroupSerializerBase(Serializer, ABC):
         # partition the item_list by type
         error_issues = [group for group in item_list if GroupCategory.ERROR == group.issue_category]
         generic_issues = [
-            group
-            for group in item_list
-            if group.issue_category and group.issue_category != GroupCategory.ERROR
+            group for group in item_list if group.issue_category != GroupCategory.ERROR
         ]
 
         # bulk query for the seen_stats by type
