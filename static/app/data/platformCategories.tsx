@@ -55,6 +55,7 @@ export const frontend = [
   'javascript-nextjs',
   'javascript-remix',
   'javascript-svelte',
+  'javascript-sveltekit',
   'unity',
 ] as const;
 
@@ -226,6 +227,7 @@ export const profiling: PlatformKey[] = [
   'node-connect',
   'javascript-nextjs',
   'javascript-remix',
+  'javascript-sveltekit',
   // python
   'python',
   'python-django',
@@ -264,6 +266,7 @@ export const releaseHealth: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-remix',
   'javascript-svelte',
+  'javascript-sveltekit',
   // mobile
   'android',
   'apple-ios',
@@ -310,6 +313,7 @@ export const replayPlatforms: readonly PlatformKey[] = [
   'javascript-react',
   'javascript-remix',
   'javascript-svelte',
+  'javascript-sveltekit',
   'javascript-vue',
   'javascript',
 ];
@@ -330,6 +334,7 @@ export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   'javascript-react',
   'javascript-remix',
   'javascript-svelte',
+  'javascript-sveltekit',
   'javascript-vue',
   'javascript',
 ];
