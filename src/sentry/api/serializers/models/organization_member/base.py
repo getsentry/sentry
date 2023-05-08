@@ -10,7 +10,7 @@ from sentry.models import ExternalActor, OrganizationMember, User
 from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.team import Team
 from sentry.roles import organization_roles
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 from .response import OrganizationMemberResponse
 from .utils import get_organization_id
@@ -82,7 +82,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
                 if organization_member.inviter_id
             }
         )
-        inviters_by_id: Mapping[int, Any] = {
+        inviters_by_id: Mapping[int, RpcUser] = {
             u.id: u for u in user_service.get_many(filter={"user_ids": inviters_set})
         }
         external_users_map = defaultdict(list)
