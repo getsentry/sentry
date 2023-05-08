@@ -96,7 +96,9 @@ class GroupingInfo extends AsyncComponent<Props, State> {
     const {group, event} = this.props;
 
     const groupInfo =
-      group?.issueCategory === IssueCategory.PERFORMANCE && event.occurrence
+      group?.issueCategory === IssueCategory.PERFORMANCE &&
+      event.occurrence &&
+      event.type === 'transaction'
         ? // performance issue grouping details are generated clint-side
           this.generatePerformanceGroupInfo()
         : _groupInfo;
@@ -140,7 +142,9 @@ class GroupingInfo extends AsyncComponent<Props, State> {
     const {event, showGroupingConfig, group} = this.props;
 
     const groupInfo =
-      group?.issueCategory === IssueCategory.PERFORMANCE && event.occurrence
+      group?.issueCategory === IssueCategory.PERFORMANCE &&
+      event.occurrence &&
+      event.type === 'transaction'
         ? this.generatePerformanceGroupInfo()
         : _groupInfo;
 
