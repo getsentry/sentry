@@ -73,7 +73,7 @@ class GroupingInfo extends AsyncComponent<Props, State> {
     const variant = group
       ? {
           [group.issueType]: {
-            description: 'performance problem',
+            description: t('performance problem'),
             hash: occurrence?.fingerprint[0] || '',
             hasMismatch: false,
             key: group.issueType,
@@ -107,11 +107,11 @@ class GroupingInfo extends AsyncComponent<Props, State> {
           .map(variant => variant.description)
           .sort((a, b) => a!.toLowerCase().localeCompare(b!.toLowerCase()))
           .join(', ')
-      : 'nothing';
+      : t('nothing');
 
     return (
       <p data-test-id="loaded-grouping-info">
-        <strong>{t('Grouped by:')}</strong> {groupedBy || t('nothing')}
+        <strong>{t('Grouped by:')}</strong> {groupedBy}
       </p>
     );
   }
