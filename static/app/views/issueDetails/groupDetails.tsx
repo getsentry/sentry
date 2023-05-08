@@ -334,11 +334,10 @@ function useFetchGroupDetails({
     }
 
     try {
-      const groupPromise = api.requestPromise(`/issues/${params.groupId}/`, {
+      const groupResponse = await api.requestPromise(`/issues/${params.groupId}/`, {
         query: getGroupQuery({environments}),
       });
 
-      const [groupResponse] = await Promise.all([groupPromise]);
       fetchGroupReleases();
 
       const matchingProject = projects?.find(p => p.id === groupResponse.project.id);
