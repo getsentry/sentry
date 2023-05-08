@@ -34,6 +34,10 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
             - type: NotificationSettingTypes enum value. e.g. WORKFLOW, DEPLOY.
         """
         type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
+
+        # TODO(actorid) This needs to be reworked. `item_list` can either be
+        # a list of Team or User instances. Each item type requires different
+        # query logic for getting notification settings.
         actor_mapping = {recipient.actor_id: recipient for recipient in item_list}
 
         notifications_settings = NotificationSetting.objects._filter(

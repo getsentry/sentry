@@ -1237,6 +1237,7 @@ class IssueListOverview extends Component<Props, State> {
                 <VisuallyCompleteWithData
                   hasData={this.state.groupIds.length > 0}
                   id="IssueList-Body"
+                  isLoading={this.state.issuesLoading}
                 >
                   <GroupListBody
                     memberList={this.state.memberList}
