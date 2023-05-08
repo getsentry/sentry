@@ -208,7 +208,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         ExternalActor.objects.create(
             actor=self.team.actor,
             organization=self.organization,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name="goma",
             external_id="CXXXXXXX2",
@@ -279,7 +279,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         ExternalActor.objects.create(
             actor=self.team.actor,
             organization=self.organization,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name="goma",
             external_id="CXXXXXXX2",
@@ -375,7 +375,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         ExternalActor.objects.create(
             actor=self.team.actor,
             organization=self.organization,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name="goma",
             external_id="CXXXXXXX2",
@@ -467,7 +467,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         ExternalActor.objects.create(
             actor=self.team.actor,
             organization=self.organization,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name="goma",
             external_id="CXXXXXXX2",
@@ -543,7 +543,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         ExternalActor.objects.create(
             actor=self.team.actor,
             organization=self.organization,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name="goma",
             external_id="CXXXXXXX2",
@@ -605,7 +605,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         ExternalActor.objects.create(
             actor=self.team.actor,
             organization=self.organization,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name="goma",
             external_id="CXXXXXXX2",

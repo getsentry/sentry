@@ -23,6 +23,7 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.models import AlertRule, Incident
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.models import OrganizationMemberTeam, Project, Rule, RuleStatus, Team
+from sentry.models.rule import RuleSource
 from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, StringCursor
 
@@ -73,7 +74,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
         issue_rules = Rule.objects.filter(
-            status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=projects
+            status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE],
+            source__in=[RuleSource.ISSUE],
+            project__in=projects,
         )
         name = request.GET.get("name", None)
         if name:

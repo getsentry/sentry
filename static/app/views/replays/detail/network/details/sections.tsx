@@ -1,9 +1,7 @@
-import {Fragment, MouseEvent} from 'react';
+import {MouseEvent, useEffect} from 'react';
 import queryString from 'query-string';
 
-import {Button} from 'sentry/components/button';
 import ObjectInspector from 'sentry/components/objectInspector';
-import {IconShow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
@@ -14,35 +12,24 @@ import {
   SizeTooltip,
   Warning,
 } from 'sentry/views/replays/detail/network/details/components';
+import {useDismissReqRespBodiesAlert} from 'sentry/views/replays/detail/network/details/onboarding';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 export type SectionProps = {
   item: NetworkSpan;
-  onScrollToRow: () => void;
   projectId: string;
   startTimestampMs: number;
 };
 
-export function GeneralSection({item, onScrollToRow, startTimestampMs}: SectionProps) {
+export function GeneralSection({item, startTimestampMs}: SectionProps) {
   const {handleClick} = useCrumbHandlers(startTimestampMs);
 
   const startMs = item.startTimestamp * 1000;
   const endMs = item.endTimestamp * 1000;
 
   const data = {
-    [t('URL')]: (
-      <Fragment>
-        {item.description}
-        <Button
-          aria-label={t('Scroll into view')}
-          borderless
-          icon={<IconShow color="gray500" size="xs" />}
-          onClick={onScrollToRow}
-          size="xs"
-        />
-      </Fragment>
-    ),
+    [t('URL')]: item.description,
     [t('Type')]: item.op,
     [t('Method')]: item.data?.method ?? '',
     [t('Status Code')]: item.data?.statusCode ?? '',
@@ -94,14 +81,22 @@ export function QueryParamsSection({item}: SectionProps) {
   return (
     <SectionItem title={t('Query String Parameters')}>
       <Indent>
-        <ObjectInspector data={queryParams} expandLevel={3} />
+        <ObjectInspector data={queryParams} expandLevel={3} showCopyButton />
       </Indent>
     </SectionItem>
   );
 }
 
 export function RequestPayloadSection({item}: SectionProps) {
+  const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
+
   const hasRequest = 'request' in item.data;
+  useEffect(() => {
+    if (!isDismissed && hasRequest) {
+      dismiss();
+    }
+  }, [dismiss, hasRequest, isDismissed]);
+
   return (
     <SectionItem
       title={t('Request Payload')}
@@ -114,7 +109,7 @@ export function RequestPayloadSection({item}: SectionProps) {
       <Indent>
         <Warning warnings={item.data?.request?._meta?.warnings} />
         {hasRequest ? (
-          <ObjectInspector data={item.data.request.body} expandLevel={2} />
+          <ObjectInspector data={item.data.request.body} expandLevel={2} showCopyButton />
         ) : (
           tct('Request body not found.', item.data)
         )}
@@ -124,7 +119,14 @@ export function RequestPayloadSection({item}: SectionProps) {
 }
 
 export function ResponsePayloadSection({item}: SectionProps) {
+  const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
+
   const hasResponse = 'response' in item.data;
+  useEffect(() => {
+    if (!isDismissed && hasResponse) {
+      dismiss();
+    }
+  }, [dismiss, hasResponse, isDismissed]);
 
   return (
     <SectionItem
@@ -138,7 +140,11 @@ export function ResponsePayloadSection({item}: SectionProps) {
       <Indent>
         <Warning warnings={item.data?.response?._meta?.warnings} />
         {hasResponse ? (
-          <ObjectInspector data={item.data.response.body} expandLevel={2} />
+          <ObjectInspector
+            data={item.data.response.body}
+            expandLevel={2}
+            showCopyButton
+          />
         ) : (
           tct('Response body not found.', item.data)
         )}
