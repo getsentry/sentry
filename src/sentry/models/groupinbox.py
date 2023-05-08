@@ -91,7 +91,7 @@ def add_group_to_inbox(group, reason, reason_details=None):
         group.substatus = GroupSubStatus.REGRESSED
         group.save(update_fields=["substatus"])
 
-    if reason is GroupInboxReason.NEW:
+    if reason == GroupInboxReason.NEW:
         group.substatus = GroupSubStatus.NEW
         group.save(update_fields=["substatus"])
     else:

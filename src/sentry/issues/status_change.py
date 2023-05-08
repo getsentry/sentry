@@ -12,6 +12,7 @@ from sentry.models import (
     User,
     record_group_history_from_activity_type,
 )
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox, remove_group_from_inbox
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_ignored, issue_unignored, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
@@ -60,6 +61,8 @@ def handle_status_update(
                     transition_type="manual",
                     sender=sender,
                 )
+            remove_group_from_inbox(group)
+            add_group_to_inbox(group, GroupInboxReason.ONGOING)
     elif new_status == GroupStatus.IGNORED:
         ignore_duration = (
             status_details.pop("ignoreDuration", None) or status_details.pop("snoozeDuration", None)
