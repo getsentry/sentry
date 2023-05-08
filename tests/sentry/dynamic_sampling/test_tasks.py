@@ -32,12 +32,8 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
     def now(self):
         return MOCK_DATETIME
 
-    def create_project_and_add_metrics(self, name, count, org, tags=None, store_metric=True):
-        if tags is None:
-            tags = {"transaction": "foo_transaction"}
-
-        proj = self.create_project(name=name, organization=org)
-        proj.update_option(
+    def disable_all_biases(self, project):
+        project.update_option(
             "sentry:dynamic_sampling_biases",
             [
                 {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
@@ -49,15 +45,27 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
             ],
         )
 
-        if store_metric:
-            self.store_performance_metric(
-                name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-                tags=tags,
-                minutes_before_now=30,
-                value=count,
-                project_id=proj.id,
-                org_id=org.id,
-            )
+    def create_project_and_add_metrics(self, name, count, org, tags=None):
+        if tags is None:
+            tags = {"transaction": "foo_transaction"}
+
+        proj = self.create_project(name=name, organization=org)
+        self.disable_all_biases(project=proj)
+
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags=tags,
+            minutes_before_now=30,
+            value=count,
+            project_id=proj.id,
+            org_id=org.id,
+        )
+
+        return proj
+
+    def create_project_without_metrics(self, name, org):
+        proj = self.create_project(name=name, organization=org)
+        self.disable_all_biases(project=proj)
 
         return proj
 
@@ -127,7 +135,7 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
         proj_b = self.create_project_and_add_metrics("b", 7, test_org)
         proj_c = self.create_project_and_add_metrics("c", 3, test_org)
         proj_d = self.create_project_and_add_metrics("d", 1, test_org)
-        proj_e = self.create_project_and_add_metrics("e", 0, test_org, store_metric=False)
+        proj_e = self.create_project_without_metrics("e", test_org)
 
         with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
             with self.tasks():
