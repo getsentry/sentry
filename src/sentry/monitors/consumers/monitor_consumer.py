@@ -211,6 +211,12 @@ def _process_message(wrapper: Dict) -> None:
                     logger.debug("check-in duration is invalid: %s", project.organization_id)
                     return
 
+                expected_time = None
+                if monitor_environment.last_checkin:
+                    expected_time = monitor.get_next_scheduled_checkin_without_margin(
+                        monitor_environment.last_checkin
+                    )
+
                 check_in = MonitorCheckIn.objects.create(
                     project_id=project_id,
                     monitor=monitor,
@@ -220,6 +226,8 @@ def _process_message(wrapper: Dict) -> None:
                     status=status,
                     date_added=date_added,
                     date_updated=start_time,
+                    expected_time=expected_time,
+                    monitor_config=monitor.get_validated_config(),
                 )
 
                 signal_first_checkin(project, monitor)
