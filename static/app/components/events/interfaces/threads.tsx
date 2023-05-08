@@ -157,6 +157,8 @@ export function Threads({
       return null;
     }
 
+    const threadStateDisplay = getMappedThreadState(threadState);
+
     return (
       <Pills>
         {!isNil(id) && <Pill name={t('id')} value={String(id)} />}
@@ -167,7 +169,9 @@ export function Threads({
             {crashed ? t('yes') : t('no')}
           </Pill>
         )}
-        {!isNil(threadState) && <Pill name={t('state')} value={threadState} />}
+        {!isNil(threadStateDisplay) && (
+          <Pill name={t('state')} value={threadStateDisplay} />
+        )}
         {!isNil(lockReason) && <Pill name={t('lock reason')} value={lockReason} />}
       </Pills>
     );
