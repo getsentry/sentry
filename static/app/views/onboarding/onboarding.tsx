@@ -12,6 +12,8 @@ import LogoSentry from 'sentry/components/logoSentry';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import categoryList from 'sentry/data/platformCategories';
+import platforms from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -91,6 +93,48 @@ function Onboarding(props: Props) {
       window.clearTimeout(cornerVariantTimeoutRed.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      props.location.query?.platform &&
+      onboardingContext.data.selectedSDK === undefined
+    ) {
+      const platformKey = Object.keys(platforms).find(
+        key => platforms[key].id === props.location.query.platform
+      );
+
+      const platform = platformKey ? platforms[platformKey] : undefined;
+
+      // if no platform found, we redirect the user to the platform select page
+      if (!platform) {
+        props.router.push(
+          normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[1].id}/`)
+        );
+        return;
+      }
+
+      const frameworkCategory =
+        categoryList.find(category => {
+          return category.platforms.includes(platform.id as never);
+        })?.id ?? 'all';
+
+      onboardingContext.setData({
+        ...onboardingContext.data,
+        selectedSDK: {
+          key: props.location.query.platform,
+          category: frameworkCategory,
+          language: platform.language,
+          type: platform.type,
+        },
+      });
+    }
+  }, [
+    props.location.query,
+    props.router,
+    onboardingContext,
+    onboardingSteps,
+    organization.slug,
+  ]);
 
   const heartbeatFooter = !!organization?.features.includes(
     'onboarding-heartbeat-footer'
