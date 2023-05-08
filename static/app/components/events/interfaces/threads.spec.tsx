@@ -900,7 +900,7 @@ describe('Threads', function () {
 
         expect(screen.getByText('Threads')).toBeInTheDocument();
         expect(screen.getByText('Thread State')).toBeInTheDocument();
-        expect(screen.getByText('Blocked')).toBeInTheDocument();
+        expect(screen.getAllByText('Blocked')).toHaveLength(2);
         expect(screen.getAllByText('waiting on tid=1')).toHaveLength(2);
         expect(screen.getByText('Thread Tags')).toBeInTheDocument();
 
@@ -988,7 +988,7 @@ describe('Threads', function () {
           id: 0,
           current: false,
           crashed: true,
-          name: null,
+          name: 'main',
           stacktrace: {
             frames: [
               {
@@ -1039,8 +1039,9 @@ describe('Threads', function () {
 
         expect(screen.getByText('Threads')).toBeInTheDocument();
         expect(screen.getByText('Thread State')).toBeInTheDocument();
-        // WaitingPerformingGc maps to Waiting
-        expect(screen.getByText('Waiting')).toBeInTheDocument();
+        // WaitingPerformingGc maps to Waiting for both Thread tag and Thread State
+        expect(screen.getByText('Thread Tags')).toBeInTheDocument();
+        expect(screen.getAllByText('Waiting')).toHaveLength(2);
       });
 
       it('toggle full stack trace button', async function () {

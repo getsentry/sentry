@@ -39,7 +39,7 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
             tag_key = TAG_ALIASES.get(tag_key)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
-            referrer = Referrer.API_PERFORMANCE_EVENTS_FACETS_STATS
+            referrer = Referrer.API_PERFORMANCE_EVENTS_FACETS_STATS.value
             tag_data = query_tag_data(
                 filter_query=filter_query,
                 aggregate_column=aggregate_column,
