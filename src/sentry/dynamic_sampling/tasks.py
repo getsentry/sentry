@@ -371,9 +371,11 @@ def adjust_base_sample_rate_per_project(
     for project_id, total_root_count in projects_with_total_root_count:
         extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
         if extrapolated_volume is None:
-            sentry_sdk.capture_message(
-                f"The volume of the current month with window size of {window_size} hours can't be extrapolated for org {org_id} and project {project_id}."
-            )
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("org_id", org_id)
+                scope.set_extra("project_id", org_id)
+                scope.set_extra("window_size", window_size)
+                sentry_sdk.capture_message("The volume of the current month can't be extrapolated.")
             continue
 
         sampling_tier = quotas.get_transaction_sampling_tier_for_volume(org_id, extrapolated_volume)
@@ -384,10 +386,6 @@ def adjust_base_sample_rate_per_project(
         if sampling_tier is None:
             # In case we want to track this error, we could use a sentinel value in the Redis hash to signal the
             # rules generator that we want to fall back to a specific sample rate instead of 100%.
-            sentry_sdk.capture_message(
-                f"The sampling tier for org {org_id} and project {project_id} can't be determined, either an error "
-                f"occurred or the org doesn't have dynamic sampling."
-            )
             continue
 
         # We unpack the tuple containing the sampling tier information in the form (volume, sample_rate). This is done
@@ -498,13 +496,7 @@ def compute_sliding_window_org_sample_rate(
     # There might be a situation in which the old key is set into Redis still and in that case, we prefer to keep it
     # instead of deleting it. This behavior can be changed anytime, by just doing an "HDEL" on the failing key.
     if sampling_tier is None:
-        # In case we want to track this error, we could use a sentinel value in the Redis hash to signal the
-        # rules generator that we want to fall back to a specific sample rate instead of 100%.
-        with sentry_sdk.push_scope() as scope:
-            scope.set_extra("org_id", org_id)
-            scope.set_extra("volume", total_root_count)
-            sentry_sdk.capture_message("The sampling tier for the volume can't be determined.")
-
+        # In case we want to track this error, we could use a sentinel value in the Redis hash.
         return None
 
     # We unpack the tuple containing the sampling tier information in the form (volume, sample_rate). This is done
