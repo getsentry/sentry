@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
-from math import sqrt
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Dict, Optional, Sequence
 
 import sentry_sdk
 from rest_framework.request import Request
@@ -134,7 +133,7 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
                 value = facet.pop("tags_value")
                 new_key = f"{key},{value}"
 
-                sum_correlation = corr_snuba_timeseries(
+                sum_correlation = discover.corr_snuba_timeseries(
                     results[new_key]["count()"]["data"], events_stats["data"]
                 )
                 facet["sum_correlation"] = sum_correlation
@@ -146,34 +145,3 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
             results,
             status=200,
         )
-
-
-def corr_snuba_timeseries(
-    x: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
-    y: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
-):
-    if len(x) != len(y):
-        return
-
-    n = len(x)
-    sum_x, sum_y, sum_xy, sum_x_squared, sum_y_squared = 0, 0, 0, 0, 0
-    for i in range(n):
-        x_datum = x[i]
-        y_datum = y[i]
-
-        x_ = x_datum[1][0]["count"]
-        y_ = y_datum[1][0]["count"]
-
-        sum_x += x_
-        sum_y += y_
-        sum_xy += x_ * y_
-        sum_x_squared += x_ * x_
-        sum_y_squared += y_ * y_
-
-    denominator = sqrt((n * sum_x_squared - sum_x * sum_x) * (n * sum_y_squared - sum_y * sum_y))
-    if denominator == 0:
-        return
-
-    pearsons_corr_coeff = ((n * sum_xy) - (sum_x * sum_y)) / denominator
-
-    return pearsons_corr_coeff
