@@ -212,6 +212,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
       <VisuallyCompleteWithData
         id="IssueDetails-EventBody"
         hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
+        isLoading={loadingEvent}
       >
         <StyledLayoutBody data-test-id="group-event-details">
           {hasReprocessingV2Feature &&

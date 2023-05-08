@@ -216,6 +216,7 @@ class Table extends PureComponent<TableProps, TableState> {
                   <VisuallyCompleteWithData
                     id="Discover-Table"
                     hasData={(tableData?.data?.length ?? 0) > 0}
+                    isLoading={isLoading}
                   >
                     <TableView
                       {...this.props}

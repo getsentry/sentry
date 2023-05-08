@@ -307,6 +307,7 @@ export class TagValueTable extends Component<Props, State> {
         <VisuallyCompleteWithData
           id="TransactionTags-TagValueTable"
           hasData={!!tableData?.data?.length}
+          isLoading={isLoading}
         >
           <GridEditable
             isLoading={isLoading}

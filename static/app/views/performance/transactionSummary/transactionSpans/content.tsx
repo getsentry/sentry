@@ -153,6 +153,7 @@ function SpansContent(props: Props) {
                   <VisuallyCompleteWithData
                     id="TransactionSpans-SuspectSpansTable"
                     hasData={!!suspectSpans?.length}
+                    isLoading={isLoading}
                   >
                     <SuspectSpansTable
                       location={location}

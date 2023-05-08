@@ -232,7 +232,11 @@ class TransactionsTable extends PureComponent<Props> {
 
     return (
       <ReplayIdCountProvider organization={organization} replayIds={replayIds}>
-        <VisuallyCompleteWithData id="TransactionsTable" hasData={hasResults}>
+        <VisuallyCompleteWithData
+          id="TransactionsTable"
+          hasData={hasResults}
+          isLoading={isLoading}
+        >
           <PanelTable
             data-test-id="transactions-table"
             isEmpty={!hasResults}
