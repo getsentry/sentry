@@ -90,7 +90,11 @@ export default function SpanTable(props: Props) {
 
   return (
     <Fragment>
-      <VisuallyCompleteWithData id="SpanDetails-SpanDetailsTable" hasData={!!data.length}>
+      <VisuallyCompleteWithData
+        id="SpanDetails-SpanDetailsTable"
+        hasData={!!data.length}
+        isLoading={isLoading}
+      >
         <GridEditable
           isLoading={isLoading}
           data={data}
