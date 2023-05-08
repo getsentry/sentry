@@ -98,7 +98,7 @@ function AllEventsTable(props: Props) {
       transactionName=""
       columnTitles={columnTitles.slice()}
       referrer="api.issues.issue_events"
-      isEventLoading={(isLoading && queryEnabled) || false}
+      isEventLoading={queryEnabled ? isLoading : false}
     />
   );
 }
