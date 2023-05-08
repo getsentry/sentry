@@ -172,7 +172,8 @@ class ChartZoom extends Component<Props> {
               : startFormatted,
             end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
           },
-          router
+          router,
+          {skipDesyncUpdate: true}
         );
       }
 
