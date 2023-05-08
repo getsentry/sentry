@@ -1,7 +1,8 @@
 import logging
 import random
-from copy import deepcopy
+from copy import copy, deepcopy
 from datetime import datetime, timedelta
+from typing import Any, Mapping
 
 import sentry_sdk
 from django.utils import timezone
@@ -277,29 +278,7 @@ class SnubaEventStorage(EventStorage):
         else:
             return snuba.Dataset.Discover
 
-    def get_next_event_id(self, event, filter):
-        """
-        Returns (project_id, event_id) of a next event given a current event
-        and any filters/conditions. Returns None if no next event is found.
-        """
-        assert filter, "You must provide a filter"
-
-        if not event:
-            return None
-
-        filter = deepcopy(filter)
-        filter.conditions = filter.conditions or []
-        filter.conditions.extend(get_after_event_condition(event))
-        filter.start = event.datetime
-        dataset = self._get_dataset_for_event(event)
-        return self.__get_event_id_from_filter(
-            filter=filter,
-            orderby=ASC_ORDERING,
-            dataset=dataset,
-            tenant_ids={"organization_id": event.project.organization_id},
-        )
-
-    def get_prev_event_id(self, event, filter):
+    def get_adjacent_event_ids(self, event, filter):
         """
         Returns (project_id, event_id) of a previous event given a current event
         and a filter. Returns None if no previous event is found.
@@ -307,18 +286,27 @@ class SnubaEventStorage(EventStorage):
         assert filter, "You must provide a filter"
 
         if not event:
-            return None
+            return (None, None)
 
-        filter = deepcopy(filter)
-        filter.conditions = filter.conditions or []
-        filter.conditions.extend(get_before_event_condition(event))
+        prev_filter = deepcopy(filter)
+        prev_filter.conditions = prev_filter.conditions or []
+        prev_filter.conditions.extend(get_before_event_condition(event))
+        prev_filter.start = datetime.utcfromtimestamp(0)
         # the previous event can have the same timestamp, add 1 second
         # to the end condition since it uses a less than condition
-        filter.end = event.datetime + timedelta(seconds=1)
+        prev_filter.end = event.datetime + timedelta(seconds=1)
+        prev_filter.orderby = DESC_ORDERING
+
+        next_filter = deepcopy(filter)
+        next_filter.conditions = next_filter.conditions or []
+        next_filter.conditions.extend(get_after_event_condition(event))
+        next_filter.start = event.datetime
+        next_filter.end = datetime.utcnow()
+        next_filter.orderby = ASC_ORDERING
+
         dataset = self._get_dataset_for_event(event)
-        return self.__get_event_id_from_filter(
-            filter=filter,
-            orderby=DESC_ORDERING,
+        return self.__get_event_ids_from_filters(
+            filters=(prev_filter, next_filter),
             dataset=dataset,
             tenant_ids={"organization_id": event.project.organization_id},
         )
@@ -326,36 +314,46 @@ class SnubaEventStorage(EventStorage):
     def __get_columns(self, dataset: Dataset):
         return [col.value.event_name for col in EventStorage.minimal_columns[dataset]]
 
-    def __get_event_id_from_filter(
-        self, filter=None, orderby=None, dataset=snuba.Dataset.Discover, tenant_ids=None
+    def __get_event_ids_from_filters(
+        self, filters=(), dataset=snuba.Dataset.Discover, tenant_ids=None
     ):
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
         try:
             # This query uses the discover dataset to enable
             # getting events across both errors and transactions, which is
             # required when doing pagination in discover
-            result = snuba.aliased_query(
-                selected_columns=columns,
-                conditions=filter.conditions,
-                filter_keys=filter.filter_keys,
-                start=filter.start,
-                end=filter.end,
-                limit=1,
+            results = snuba.bulk_raw_query(
+                [
+                    snuba.SnubaQueryParams(
+                        **snuba.aliased_query_params(
+                            selected_columns=copy(columns),
+                            conditions=filter.conditions,
+                            filter_keys=filter.filter_keys,
+                            start=filter.start,
+                            end=filter.end,
+                            orderby=filter.orderby,
+                            limit=1,
+                            referrer="eventstore.get_next_or_prev_event_id",
+                            dataset=dataset,
+                            tenant_ids=tenant_ids,
+                        )
+                    )
+                    for filter in filters
+                ],
                 referrer="eventstore.get_next_or_prev_event_id",
-                orderby=orderby,
-                dataset=dataset,
-                tenant_ids=tenant_ids,
             )
         except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
             # This can happen when the date conditions for paging
             # and the current event generate impossible conditions.
             return None
 
+        return [self.__get_event_id_from_result(result) for result in results]
+
+    def __get_event_id_from_result(self, result: Mapping[str, Any]):
         if "error" in result or len(result["data"]) == 0:
             return None
 
         row = result["data"][0]
-
         return (str(row["project_id"]), str(row["event_id"]))
 
     def __make_event(self, snuba_data):
