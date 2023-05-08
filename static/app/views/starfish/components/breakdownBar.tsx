@@ -203,10 +203,10 @@ function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Pro
             <TagHeader>
               {renderTitle()}
               {renderSegments()}
-              <TopSpansWidget module={currentSegment} />
             </TagHeader>
           </StyledSummary>
           {renderLegend()}
+          <TopSpansWidget module={currentSegment} />
         </details>
       </TagSummary>
       {renderChart(currentSegment)}

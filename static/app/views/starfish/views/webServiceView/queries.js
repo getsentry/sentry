@@ -103,4 +103,5 @@ export const getTopSpansInModule = module => `SELECT
   WHERE module = '${module}'
   GROUP BY description, module
   ORDER BY -cumulative_time
+  LIMIT 5
 `;
