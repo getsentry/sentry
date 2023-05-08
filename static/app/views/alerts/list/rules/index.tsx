@@ -1,6 +1,7 @@
 import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import isEmpty from 'lodash/isEmpty';
 import uniq from 'lodash/uniq';
 
 import {addErrorMessage, addMessage} from 'sentry/actionCreators/indicator';
@@ -16,6 +17,7 @@ import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import Projects from 'sentry/utils/projects';
 import Teams from 'sentry/utils/teams';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -210,26 +212,33 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                 isEmpty={ruleList.length === 0}
                 emptyMessage={t('No alert rules found for the current query.')}
               >
-                <Projects orgId={organization.slug} slugs={projectsFromResults}>
-                  {({initiallyLoaded, projects}) =>
-                    ruleList.map(rule => (
-                      <RuleListRow
-                        // Metric and issue alerts can have the same id
-                        key={`${
-                          isIssueAlert(rule) ? AlertRuleType.METRIC : AlertRuleType.ISSUE
-                        }-${rule.id}`}
-                        projectsLoaded={initiallyLoaded}
-                        projects={projects as Project[]}
-                        rule={rule}
-                        orgId={organization.slug}
-                        onOwnerChange={this.handleOwnerChange}
-                        onDelete={this.handleDeleteRule}
-                        userTeams={new Set(teams.map(team => team.id))}
-                        hasEditAccess={hasEditAccess}
-                      />
-                    ))
-                  }
-                </Projects>
+                <VisuallyCompleteWithData
+                  id="AlertRules-Body"
+                  hasData={loadedTeams && !isEmpty(ruleList)}
+                >
+                  <Projects orgId={organization.slug} slugs={projectsFromResults}>
+                    {({initiallyLoaded, projects}) =>
+                      ruleList.map(rule => (
+                        <RuleListRow
+                          // Metric and issue alerts can have the same id
+                          key={`${
+                            isIssueAlert(rule)
+                              ? AlertRuleType.METRIC
+                              : AlertRuleType.ISSUE
+                          }-${rule.id}`}
+                          projectsLoaded={initiallyLoaded}
+                          projects={projects as Project[]}
+                          rule={rule}
+                          orgId={organization.slug}
+                          onOwnerChange={this.handleOwnerChange}
+                          onDelete={this.handleDeleteRule}
+                          userTeams={new Set(teams.map(team => team.id))}
+                          hasEditAccess={hasEditAccess}
+                        />
+                      ))
+                    }
+                  </Projects>
+                </VisuallyCompleteWithData>
               </StyledPanelTable>
             )}
           </Teams>
