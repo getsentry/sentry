@@ -212,6 +212,13 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                     raise PermissionDenied(
                         detail="You must be a member of the organization to join a new team as a Team Admin"
                     )
+            # catch generic exception to ensure the team gets deleted if we can't add the user as
+            # a Team Admin
+            except Exception as e:
+                if set_team_admin:
+                    team.delete()
+                raise ValidationError({"detail": str(e)})
+
         self.create_audit_entry(
             request=request,
             organization=organization,
