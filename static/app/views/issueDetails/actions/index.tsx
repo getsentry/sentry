@@ -35,7 +35,6 @@ import {space} from 'sentry/styles/space';
 import {
   Group,
   GroupStatusResolution,
-  GroupSubstatus,
   IssueCategory,
   Organization,
   Project,
@@ -62,8 +61,7 @@ type UpdateData =
   | {isBookmarked: boolean}
   | {isSubscribed: boolean}
   | {inbox: boolean}
-  | GroupStatusResolution
-  | {substatus: GroupSubstatus};
+  | GroupStatusResolution;
 
 const isResolutionStatus = (data: UpdateData): data is GroupStatusResolution => {
   return (data as GroupStatusResolution).status !== undefined;
@@ -517,7 +515,6 @@ export function Actions(props: Props) {
             onUpdate({
               status: ResolutionStatus.UNRESOLVED,
               statusDetails: {},
-              substatus: GroupSubstatus.ONGOING,
             })
           }
         >
