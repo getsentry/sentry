@@ -63,6 +63,8 @@ const TriggerLabel = styled('span')`
 
 const TriggerIconWrap = styled('div')`
   position: relative;
+  display: flex;
+  align-items: center;
 `;
 
 const StyledBadge = styled(Badge)`
