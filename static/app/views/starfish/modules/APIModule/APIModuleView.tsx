@@ -16,12 +16,17 @@ import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {HostDetails} from 'sentry/views/starfish/modules/APIModule/hostDetails';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
 import EndpointTable from './endpointTable';
 import HostTable from './hostTable';
-import {getEndpointDomainsQuery, getEndpointGraphQuery} from './queries';
+import {
+  getEndpointDomainsEventView,
+  getEndpointDomainsQuery,
+  getEndpointGraphQuery,
+} from './queries';
 
 const HTTP_ACTION_OPTIONS = [
   {value: '', label: 'All'},
@@ -56,15 +61,16 @@ export default function APIModuleView({location, onSelect}: Props) {
   });
   const endpointTableRef = useRef<HTMLInputElement>(null);
 
-  const {isLoading: _isDomainsLoading, data: domains} = useQuery({
-    queryKey: ['domains'],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getEndpointDomainsQuery({
-          datetime: undefined,
-        })}`
-      ).then(res => res.json()),
-    retry: false,
+  const endpointsDomainEventView = getEndpointDomainsEventView({
+    datetime: pageFilter.selection.datetime,
+  });
+  const endpointsDomainQuery = getEndpointDomainsQuery({
+    datetime: pageFilter.selection.datetime,
+  });
+
+  const {isLoading: _isDomainsLoading, data: domains} = useSpansQuery({
+    eventView: endpointsDomainEventView,
+    queryString: endpointsDomainQuery,
     initialData: [],
   });
 
