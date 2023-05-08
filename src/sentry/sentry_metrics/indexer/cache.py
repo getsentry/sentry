@@ -169,7 +169,7 @@ class CachingIndexer(StringIndexer):
 
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         key = f"{org_id}:{string}"
-        result = self.cache.get(key, use_case_id.value)
+        result = self.cache.get(key)
 
         if result and isinstance(result, int):
             metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "true", "caller": "resolve"})
@@ -179,7 +179,7 @@ class CachingIndexer(StringIndexer):
         id = self.indexer.resolve(use_case_id, org_id, string)
 
         if id is not None:
-            self.cache.set(key, id, use_case_id.value)
+            self.cache.set(key, id)
 
         return id
 
