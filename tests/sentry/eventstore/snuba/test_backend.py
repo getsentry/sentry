@@ -102,7 +102,8 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
                 conditions=[
                     ["type", "!=", "transaction"]
                 ],  # TODO: Remove once errors storage rolled out
-            )
+            ),
+            tenant_ids={"organization_id": 123, "referrer": "r"},
         )
         assert len(events) == 3
         # Default sort is timestamp desc, event_id desc
@@ -112,7 +113,10 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
         # No events found
         project = self.create_project()
-        events = self.eventstore.get_events(filter=Filter(project_ids=[project.id]))
+        events = self.eventstore.get_events(
+            filter=Filter(project_ids=[project.id]),
+            tenant_ids={"organization_id": 123, "referrer": "r"},
+        )
         assert events == []
 
         # Test with a list of event IDs and project ID filters
@@ -120,7 +124,8 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
             filter=Filter(
                 project_ids=[self.project1.id, self.project2.id],
                 event_ids=["a" * 32, "b" * 32, "c" * 32, "x" * 32, "y" * 32, "z" * 32],
-            )
+            ),
+            tenant_ids={"organization_id": 123, "referrer": "r"},
         )
         assert len(events) == 3
         assert events[0].event_id == "c" * 32
@@ -129,7 +134,10 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
     @mock.patch("sentry.nodestore.get_multi")
     def test_get_unfetched_events(self, get_multi):
-        events = self.eventstore.get_unfetched_events(filter=Filter(project_ids=[self.project1.id]))
+        events = self.eventstore.get_unfetched_events(
+            filter=Filter(project_ids=[self.project1.id]),
+            tenant_ids={"organization_id": 123, "referrer": "r"},
+        )
         assert len(events) == 1
         assert get_multi.call_count == 0
 

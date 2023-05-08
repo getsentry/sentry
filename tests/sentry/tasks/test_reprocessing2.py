@@ -150,11 +150,16 @@ def test_basic(
                 eventstore.Filter(
                     project_ids=[default_project.id],
                     conditions=[["tags[processing_counter]", "=", n]],
-                )
+                ),
+                tenant_ids={"organization_id": 1234, "referrer": "eventstore.get_events"},
             )
         )
 
-    event = eventstore.get_event_by_id(default_project.id, event_id)
+    event = eventstore.get_event_by_id(
+        default_project.id,
+        event_id,
+        tenant_ids={"organization_id": 1234, "referrer": "eventstore.get_events"},
+    )
     assert event.get_tag("processing_counter") == "x0"
     assert not event.data.get("errors")
 

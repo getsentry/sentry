@@ -188,7 +188,12 @@ class SnubaEventStorage(EventStorage):
         return []
 
     def get_event_by_id(
-        self, project_id, event_id, group_id=None, skip_transaction_groupevent=False
+        self,
+        project_id,
+        event_id,
+        group_id=None,
+        skip_transaction_groupevent=False,
+        tenant_ids=None,
     ):
         """
         Get an event given a project ID and event ID
@@ -231,6 +236,7 @@ class SnubaEventStorage(EventStorage):
                 Dataset.IssuePlatform if event.get_event_type() == "generic" else Dataset.Events
             )
             try:
+                tenant_ids = tenant_ids or {"organization_id": event.project.organization_id}
                 result = snuba.raw_query(
                     dataset=dataset,
                     selected_columns=self.__get_columns(dataset),
@@ -239,7 +245,7 @@ class SnubaEventStorage(EventStorage):
                     filter_keys={"project_id": [project_id], "event_id": [event_id]},
                     limit=1,
                     referrer="eventstore.get_event_by_id_nodestore",
-                    tenant_ids={"organization_id": event.project.organization_id},
+                    tenant_ids=tenant_ids,
                     **raw_query_kwargs,
                 )
             except snuba.QueryOutsideRetentionError:
