@@ -366,36 +366,55 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not features.has("organizations:performance-issues-search", organization):
             group_categories.discard(GroupCategory.PERFORMANCE.value)
 
-        query_params_for_categories = []
+        query_params_for_categories = {}
 
         for gc in group_categories:
             try:
-                query_params_for_categories.append(
-                    self._prepare_params_for_category(
-                        gc,
-                        query_partial,
-                        organization,
-                        project_ids,
-                        environments,
-                        group_ids,
-                        filters,
-                        snuba_search_filters,
-                        sort_field,
-                        start,
-                        end,
-                        cursor,
-                        get_sample,
-                        actor,
-                    )
+                query_params_for_categories[gc] = self._prepare_params_for_category(
+                    gc,
+                    query_partial,
+                    organization,
+                    project_ids,
+                    environments,
+                    group_ids,
+                    filters,
+                    snuba_search_filters,
+                    sort_field,
+                    start,
+                    end,
+                    cursor,
+                    get_sample,
+                    actor,
                 )
             except UnsupportedSearchQuery:
                 pass
 
-        query_params_for_categories = [
-            query_params for query_params in query_params_for_categories if query_params is not None
-        ]
+        query_params_for_categories = {
+            gc: query_params
+            for gc, query_params in query_params_for_categories.items()
+            if query_params is not None
+        }
 
-        bulk_query_results = bulk_raw_query(query_params_for_categories, referrer=referrer)
+        try:
+            bulk_query_results = bulk_raw_query(
+                list(query_params_for_categories.values()), referrer=referrer
+            )
+        except Exception as e:
+            metrics.incr(
+                "snuba.search.group_category_bulk",
+                tags={
+                    GroupCategory(gc_val).name.lower(): True
+                    for gc_val, _ in query_params_for_categories.items()
+                },
+            )
+            # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
+            # we'll fallback to querying for errors only
+            if GroupCategory.ERROR.value in query_params_for_categories.keys():
+                bulk_query_results = bulk_raw_query(
+                    query_params_for_categories[GroupCategory.ERROR.value], referrer=referrer
+                )
+            else:
+                raise e
 
         rows: list[MergeableRow] = []
         total = 0
