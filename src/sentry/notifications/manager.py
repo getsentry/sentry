@@ -476,6 +476,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def has_any_provider_settings(
         self, recipient: RpcActor | Team | User, provider: ExternalProviders
     ) -> bool:
+        from sentry.models.team import Team
+        from sentry.models.user import User
+
         key_field = None
         if isinstance(recipient, RpcActor):
             key_field = "user_id" if recipient.actor_type == ActorType.USER else "team_id"
