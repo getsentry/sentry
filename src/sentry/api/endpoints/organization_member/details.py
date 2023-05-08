@@ -212,15 +212,19 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 return Response({"teams": "Invalid team"}, status=400)
 
         assigned_org_role = result.get("orgRole") or result.get("role")
-        if assigned_org_role and getattr(member.flags, "idp:role-restricted"):
-            return Response(
-                {
-                    "role": "This user's org-role is managed through your organization's identity provider."
-                },
-                status=403,
-            )
-        elif assigned_org_role:
+        is_update_org_role = assigned_org_role and assigned_org_role != member.role
+
+        if is_update_org_role:
+            if getattr(member.flags, "idp:role-restricted"):
+                return Response(
+                    {
+                        "role": "This user's org-role is managed through your organization's identity provider."
+                    },
+                    status=403,
+                )
+
             allowed_role_ids = {r.id for r in allowed_roles}
+
             # A user cannot promote others above themselves
             if assigned_org_role not in allowed_role_ids:
                 return Response(

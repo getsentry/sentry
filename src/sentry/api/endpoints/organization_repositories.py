@@ -39,6 +39,10 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         """
         queryset = Repository.objects.filter(organization_id=organization.id)
 
+        integration_id = request.GET.get("integration_id", None)
+        if integration_id:
+            queryset = queryset.filter(integration_id=integration_id)
+
         status = request.GET.get("status", "active")
         query = request.GET.get("query")
         if query:

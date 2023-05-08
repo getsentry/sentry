@@ -836,6 +836,7 @@ class IssueListOverview extends Component<Props, State> {
       num_old_issues: numOldIssues,
       num_new_issues: numNewIssues,
       num_issues: data.length,
+      sort: this.getSort(),
     });
   }
 
@@ -1235,6 +1236,7 @@ class IssueListOverview extends Component<Props, State> {
                 <VisuallyCompleteWithData
                   hasData={this.state.groupIds.length > 0}
                   id="IssueList-Body"
+                  isLoading={this.state.issuesLoading}
                 >
                   <GroupListBody
                     memberList={this.state.memberList}
