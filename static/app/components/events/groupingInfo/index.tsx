@@ -34,7 +34,11 @@ class GroupingInfo extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, event, projectSlug, group} = this.props;
 
-    if (event.occurrence && group?.issueCategory === IssueCategory.PERFORMANCE) {
+    if (
+      event.occurrence &&
+      group?.issueCategory === IssueCategory.PERFORMANCE &&
+      event.type === 'transaction'
+    ) {
       return [];
     }
 
