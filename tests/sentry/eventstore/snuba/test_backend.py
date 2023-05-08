@@ -11,6 +11,7 @@ from sentry.issues.query import apply_performance_conditions
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.utils import snuba
 from sentry.utils.samples import load_data
 
 
@@ -235,6 +236,18 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         prev_event_none, next_event_none = self.eventstore.get_adjacent_event_ids(
             None, filter=_filter
         )
+
+        assert prev_event_none is None
+        assert next_event_none is None
+
+        # Returns None if the query fails for a known reason
+        with mock.patch(
+            "sentry.utils.snuba.bulk_raw_query", side_effect=snuba.QueryOutsideRetentionError()
+        ):
+            prev_event_none, next_event_none = self.eventstore.get_adjacent_event_ids(
+                event, filter=_filter
+            )
+
         assert prev_event_none is None
         assert next_event_none is None
 
