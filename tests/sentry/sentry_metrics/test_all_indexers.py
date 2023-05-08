@@ -16,7 +16,7 @@ from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCac
 from sentry.sentry_metrics.indexer.mock import RawSimpleIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PGStringIndexerV2
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS, StaticStringIndexer
-from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
 from sentry.testutils.helpers.options import override_options
 
 BACKENDS = [
@@ -24,7 +24,7 @@ BACKENDS = [
     pytest.param(PGStringIndexerV2, marks=pytest.mark.django_db),
 ]
 
-USE_CASE_KEYS = [UseCaseKey.PERFORMANCE, UseCaseKey.RELEASE_HEALTH]
+USE_CASE_IDS = [UseCaseID.TRANSACTIONS, UseCaseID.SESSIONS]
 
 
 @pytest.fixture
@@ -44,7 +44,7 @@ def indexer_cls(request):
     return request.param
 
 
-@pytest.fixture(params=USE_CASE_KEYS)
+@pytest.fixture(params=USE_CASE_IDS)
 def use_case_id(request):
     return request.param
 
@@ -110,8 +110,7 @@ def test_indexer(indexer, indexer_cache, use_case_id):
 
     assert list(
         indexer_cache.get_many(
-            [f"{org1_id}:{string}" for string in strings],
-            cache_namespace=REVERSE_METRIC_PATH_MAPPING[use_case_id].value,
+            [f"{use_case_id.value}:{org1_id}:{string}" for string in strings],
         ).values()
     ) == [None, None, None]
 
@@ -134,8 +133,7 @@ def test_indexer(indexer, indexer_cache, use_case_id):
         assert value in org1_string_ids
 
     for cache_value in indexer_cache.get_many(
-        [f"{org1_id}:{string}" for string in strings],
-        cache_namespace=REVERSE_METRIC_PATH_MAPPING[use_case_id].value,
+        [f"{use_case_id.value}:{org1_id}:{string}" for string in strings],
     ).values():
         assert cache_value in org1_string_ids
 
@@ -228,8 +226,8 @@ def test_already_cached_plus_read_results(indexer, indexer_cache, use_case_id) -
     for the same organization.
     """
     org_id = 8
-    cached = {f"{org_id}:beep": 10, f"{org_id}:boop": 11}
-    indexer_cache.set_many(cached, REVERSE_METRIC_PATH_MAPPING[use_case_id].value)
+    cached = {f"{use_case_id.value}:{org_id}:beep": 10, f"{use_case_id.value}:{org_id}:boop": 11}
+    indexer_cache.set_many(cached)
 
     raw_indexer = indexer
     indexer = CachingIndexer(indexer_cache, indexer)
