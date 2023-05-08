@@ -7,7 +7,7 @@ from django.test import RequestFactory
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.models import ApiKey, ApiToken, UserIP
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
-from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.outbox import outbox_runner

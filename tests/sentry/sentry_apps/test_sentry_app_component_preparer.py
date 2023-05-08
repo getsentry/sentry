@@ -2,7 +2,7 @@ from unittest.mock import call, patch
 
 from sentry.models import Organization
 from sentry.sentry_apps.components import SentryAppComponentPreparer
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 from sentry.utils import json
@@ -58,9 +58,7 @@ class TestPreparerIssueLink(TestCase):
 
         self.preparer.run()
 
-        install = app_service.serialize_sentry_app_installation(
-            self.install, self.install.sentry_app
-        )
+        install = serialize_sentry_app_installation(self.install, self.install.sentry_app)
         assert (
             call(
                 install=install,
@@ -194,9 +192,7 @@ class TestPreparerAlertRuleAction(TestCase):
 
         self.preparer.run()
 
-        install = app_service.serialize_sentry_app_installation(
-            self.install, self.install.sentry_app
-        )
+        install = serialize_sentry_app_installation(self.install, self.install.sentry_app)
 
         assert (
             call(

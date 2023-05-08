@@ -102,7 +102,7 @@ from sentry.models.notificationaction import (
 from sentry.models.releasefile import update_artifact_index
 from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
 from sentry.sentry_apps.apps import SentryAppCreator
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     organizationmember_mapping_service,
@@ -944,7 +944,7 @@ class Factories:
 
         install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
         install.save()
-        rpc_install = app_service.serialize_sentry_app_installation(install, install.sentry_app)
+        rpc_install = serialize_sentry_app_installation(install, install.sentry_app)
         if not prevent_token_exchange and (install.sentry_app.status != SentryAppStatus.INTERNAL):
 
             token_exchange.GrantExchanger.run(
