@@ -18,7 +18,7 @@ from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
+from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import join_request_link_viewed, user_signup
@@ -72,7 +72,7 @@ class AuthLoginView(BaseView):
     def get_auth_provider(self, organization_slug):
         try:
             organization = Organization.objects.get(
-                slug=organization_slug, status=OrganizationStatus.VISIBLE
+                slug=organization_slug, status=OrganizationStatus.ACTIVE
             )
         except Organization.DoesNotExist:
             return None
@@ -196,8 +196,10 @@ class AuthLoginView(BaseView):
             # the association for them.
             if settings.SENTRY_SINGLE_ORGANIZATION and not invite_helper:
                 organization = Organization.get_default()
-                OrganizationMember.objects.create(
-                    organization=organization, role=organization.default_role, user=user
+                organization_service.add_organization_member(
+                    organization_id=organization.id,
+                    default_org_role=organization.default_role,
+                    user_id=user.id,
                 )
 
             if invite_helper and invite_helper.valid_request:

@@ -50,8 +50,8 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             date_added=timezone.now() - timedelta(minutes=1),
         )
 
-    def _create_monitor_environment(self, monitor):
-        environment = Environment.get_or_create(project=self.project, name="production")
+    def _create_monitor_environment(self, monitor, name="production"):
+        environment = Environment.get_or_create(project=self.project, name=name)
 
         monitorenvironment_defaults = {
             "status": monitor.status,
@@ -85,7 +85,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
 
     def test_passing(self):
         monitor = self._create_monitor()
-        monitor_environment = self._create_monitor_environment(monitor)
+        monitor_environment = self._create_monitor_environment(monitor, name="dev")
         for path_func in self._get_path_functions():
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
@@ -100,11 +100,9 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
 
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
             assert checkin.status == CheckInStatus.OK
-
-            monitor = Monitor.objects.get(id=monitor.id)
-            assert monitor.next_checkin > checkin.date_added
-            assert monitor.status == MonitorStatus.OK
-            assert monitor.last_checkin > checkin.date_added
+            assert (
+                checkin.monitor_environment.environment.name == monitor_environment.environment.name
+            )
 
             monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
             assert monitor_environment.next_checkin > checkin.date_added
@@ -113,8 +111,12 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
 
     def test_passing_with_slug(self):
         monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor, project_id=self.project.id, date_added=monitor.date_added
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            date_added=monitor.date_added,
         )
 
         path = reverse(
@@ -143,11 +145,6 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
 
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
             assert checkin.status == CheckInStatus.ERROR
-
-            monitor = Monitor.objects.get(id=monitor.id)
-            assert monitor.next_checkin > checkin.date_added
-            assert monitor.status == MonitorStatus.ERROR
-            assert monitor.last_checkin > checkin.date_added
 
             monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
             assert monitor_environment.next_checkin > checkin.date_added
@@ -192,11 +189,6 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
 
             checkin3 = MonitorCheckIn.objects.get(id=checkin3.id)
             assert checkin3.status == CheckInStatus.OK
-
-            monitor = Monitor.objects.get(id=monitor.id)
-            assert monitor.next_checkin > checkin2.date_added
-            assert monitor.status == MonitorStatus.OK
-            assert monitor.last_checkin > checkin2.date_added
 
             monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
             assert monitor_environment.next_checkin > checkin2.date_added

@@ -1,4 +1,4 @@
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 
 """Sentry API to manage the App Store Connect credentials for a project.
 
@@ -79,7 +79,7 @@ class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ign
     id = serializers.CharField(max_length=40, min_length=1, required=False)
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
     """Retrieves available applications with provided credentials.
 
@@ -194,7 +194,7 @@ class AppStoreCreateCredentialsSerializer(serializers.Serializer):  # type: igno
     bundleId = serializers.CharField(min_length=1, required=True)
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
     """Returns all the App Store Connect symbol source settings ready to be saved.
 
@@ -268,7 +268,7 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
         return validate_secret(private_key_json)
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
     """Updates a subset of the existing credentials.
 
@@ -330,7 +330,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         return Response(symbol_source_config.to_redacted_json(), status=200)
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class AppStoreConnectRefreshEndpoint(ProjectEndpoint):  # type: ignore
     """Triggers an immediate check for new App Store Connect builds.
 
@@ -380,7 +380,7 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):  # type: ignore
         return Response(status=200)
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
     """Returns a summary of the project's App Store Connect configuration
     and builds.

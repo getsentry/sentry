@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {duration} from 'moment';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
@@ -45,7 +46,21 @@ export default class ReplayReader {
       return null;
     }
 
-    return new ReplayReader({attachments, replayRecord, errors});
+    try {
+      return new ReplayReader({attachments, replayRecord, errors});
+    } catch (err) {
+      Sentry.captureException(err);
+
+      // If something happens then we don't really know if it's the attachments
+      // array or errors array to blame (it's probably attachments though).
+      // Either way we can use the replayRecord to show some metadata, and then
+      // put an error message below it.
+      return new ReplayReader({
+        attachments: [],
+        errors: [],
+        replayRecord,
+      });
+    }
   }
 
   private constructor({
@@ -88,6 +103,8 @@ export default class ReplayReader {
   private networkSpans: ReplaySpan[];
   private memorySpans: MemorySpanType[];
 
+  private _isDetailsSetup: undefined | boolean;
+
   /**
    * @returns Duration of Replay (milliseonds)
    */
@@ -117,5 +134,16 @@ export default class ReplayReader {
 
   getMemorySpans = () => {
     return this.memorySpans;
+  };
+
+  isNetworkDetailsSetup = () => {
+    if (this._isDetailsSetup === undefined) {
+      // TODO(replay): there must be a better way
+      const hasHeaders = span =>
+        Object.keys(span.data.request?.headers || {}).length ||
+        Object.keys(span.data.response?.headers || {}).length;
+      this._isDetailsSetup = this.networkSpans.some(hasHeaders);
+    }
+    return this._isDetailsSetup;
   };
 }

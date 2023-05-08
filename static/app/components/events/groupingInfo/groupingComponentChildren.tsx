@@ -14,7 +14,7 @@ type Props = {
   showNonContributing: boolean;
 };
 
-const GroupingComponentChildren = ({component, showNonContributing}: Props) => {
+function GroupingComponentChildren({component, showNonContributing}: Props) {
   return (
     <Fragment>
       {(component.values as EventGroupComponent[])
@@ -37,6 +37,6 @@ const GroupingComponentChildren = ({component, showNonContributing}: Props) => {
         ))}
     </Fragment>
   );
-};
+}
 
 export default GroupingComponentChildren;

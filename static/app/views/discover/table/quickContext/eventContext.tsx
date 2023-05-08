@@ -9,7 +9,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDuration} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -50,7 +50,7 @@ function EventContext(props: EventContextProps) {
 
   useEffect(() => {
     if (data) {
-      trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+      trackAnalytics('discover_v2.quick_context_hover_contexts', {
         organization,
         contextType: ContextType.EVENT,
         eventType: data.type,

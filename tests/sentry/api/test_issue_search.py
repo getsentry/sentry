@@ -25,7 +25,9 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -215,6 +217,24 @@ class ConvertStatusValueTest(TestCase):
             InvalidSearchQuery,
             match=r"Aggregate filters \(count_unique\(user\)\) are not supported in issue searches.",
         ):
+            convert_query_values(filters, [self.project], self.user, None)
+
+
+@apply_feature_flag_on_cls("organizations:issue-states")
+class ConvertSubStatusValueTest(TestCase):
+    def test_valid(self):
+        for substatus_string, substatus_val in SUBSTATUS_UPDATE_CHOICES.items():
+            filters = [SearchFilter(SearchKey("substatus"), "=", SearchValue([substatus_string]))]
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value == [substatus_val]
+
+            filters = [SearchFilter(SearchKey("substatus"), "=", SearchValue([substatus_val]))]
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value == [substatus_val]
+
+    def test_invalid(self):
+        filters = [SearchFilter(SearchKey("substatus"), "=", SearchValue("wrong"))]
+        with pytest.raises(InvalidSearchQuery, match="invalid substatus value"):
             convert_query_values(filters, [self.project], self.user, None)
 
 

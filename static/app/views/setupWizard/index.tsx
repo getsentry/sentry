@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
+import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
@@ -66,7 +66,7 @@ function SetupWizard({hash = false, organizations}: Props) {
   });
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('setup_wizard.viewed', analyticsParams);
+    trackAnalytics('setup_wizard.viewed', analyticsParams);
   }, [analyticsParams]);
 
   const checkFinished = useCallback(async () => {
@@ -79,7 +79,7 @@ function SetupWizard({hash = false, organizations}: Props) {
       setFinished(true);
       window.clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = window.setTimeout(() => window.close(), 10000);
-      trackAdvancedAnalyticsEvent('setup_wizard.complete', analyticsParams);
+      trackAnalytics('setup_wizard.complete', analyticsParams);
     }
   }, [api, hash, analyticsParams, finished]);
 
@@ -105,10 +105,7 @@ function SetupWizard({hash = false, organizations}: Props) {
                 priority="primary"
                 to="/"
                 onClick={() =>
-                  trackAdvancedAnalyticsEvent(
-                    'setup_wizard.clicked_viewed_issues',
-                    analyticsParams
-                  )
+                  trackAnalytics('setup_wizard.clicked_viewed_issues', analyticsParams)
                 }
               >
                 {t('View Issues')}
@@ -117,10 +114,7 @@ function SetupWizard({hash = false, organizations}: Props) {
                 href={docsLink}
                 external
                 onClick={() =>
-                  trackAdvancedAnalyticsEvent(
-                    'setup_wizard.clicked_viewed_docs',
-                    analyticsParams
-                  )
+                  trackAnalytics('setup_wizard.clicked_viewed_docs', analyticsParams)
                 }
               >
                 {t('See Docs')}

@@ -1,5 +1,6 @@
+from sentry.constants import ObjectStatus
 from sentry.models import ScheduledDeletion
-from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType
+from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -97,12 +98,12 @@ class UpdateMonitorTest(MonitorTestCase):
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.DISABLED
+        assert monitor.status == ObjectStatus.DISABLED
 
     def test_can_enable(self):
         monitor = self._create_monitor()
 
-        monitor.update(status=MonitorStatus.DISABLED)
+        monitor.update(status=ObjectStatus.DISABLED)
 
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
@@ -110,20 +111,7 @@ class UpdateMonitorTest(MonitorTestCase):
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.ACTIVE
-
-    def test_cannot_enable_if_enabled(self):
-        monitor = self._create_monitor()
-
-        monitor.update(status=MonitorStatus.OK)
-
-        resp = self.get_success_response(
-            self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
-        )
-        assert resp.data["slug"] == monitor.slug
-
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.OK
+        assert monitor.status == ObjectStatus.ACTIVE
 
     def test_timezone(self):
         monitor = self._create_monitor()
@@ -233,6 +221,32 @@ class UpdateMonitorTest(MonitorTestCase):
             **{"config": {"schedule": "* * * *"}},
         )
 
+    def test_crontab_unsupported(self):
+        monitor = self._create_monitor()
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"config": {"schedule": "0 0 0 * * *"}},
+        )
+        assert (
+            resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported"
+        ), resp.content
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            # Using a \u3000 ideographic space
+            **{"config": {"schedule": "0 0 0 * *　*"}},
+        )
+        assert (
+            resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported"
+        ), resp.content
+
     def test_cronjob_interval(self):
         monitor = self._create_monitor()
 
@@ -320,10 +334,43 @@ class DeleteMonitorTest(MonitorTestCase):
         )
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.PENDING_DELETION
+        assert monitor.status == ObjectStatus.PENDING_DELETION
         # ScheduledDeletion only available in control silo
         assert ScheduledDeletion.objects.filter(object_id=monitor.id, model_name="Monitor").exists()
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
         self.get_error_response("asdf", monitor.slug, status_code=404)
+
+    def test_environment(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
+
+        self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="DELETE",
+            status_code=202,
+            qs_params={"environment": "production"},
+        )
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == ObjectStatus.ACTIVE
+
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status == ObjectStatus.PENDING_DELETION
+        # ScheduledDeletion only available in control silo
+        assert ScheduledDeletion.objects.filter(
+            object_id=monitor_environment.id, model_name="MonitorEnvironment"
+        ).exists()
+
+    def test_bad_environment(self):
+        monitor = self._create_monitor()
+        self._create_monitor_environment(monitor)
+
+        self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            status_code=404,
+            qs_params={"environment": "jungle"},
+        )

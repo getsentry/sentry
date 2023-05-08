@@ -12,7 +12,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
@@ -71,7 +71,7 @@ class MetricAlertDetails extends Component<Props, State> {
   trackView() {
     const {params, organization, location} = this.props;
 
-    trackAdvancedAnalyticsEvent('alert_rule_details.viewed', {
+    trackAnalytics('alert_rule_details.viewed', {
       organization,
       rule_id: parseInt(params.ruleId, 10),
       alert: (location.query.alert as string) ?? '',

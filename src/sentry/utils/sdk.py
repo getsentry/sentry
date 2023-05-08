@@ -1,16 +1,22 @@
+from __future__ import annotations
+
 import copy
 import inspect
 import logging
 import random
+from typing import Any, Mapping
 
 import sentry_sdk
 from django.conf import settings
 from django.urls import resolve
+from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import capture_exception, capture_message, configure_scope, push_scope  # NOQA
+from sentry_sdk import push_scope  # NOQA
+from sentry_sdk import Scope, capture_exception, capture_message, configure_scope
 from sentry_sdk.client import get_options
+from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
 
@@ -90,7 +96,7 @@ if settings.ADDITIONAL_SAMPLED_URLS:
     SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
 
 # Tasks not included here are not sampled
-# If a parent task schedules other tasks you should add it in here or the children
+# If a parent task schedules other tasks you should add it in here or the child
 # tasks will not be sampled
 SAMPLED_TASKS = {
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
@@ -109,6 +115,8 @@ SAMPLED_TASKS = {
     "sentry.tasks.reprocessing2.finish_reprocessing": settings.SENTRY_REPROCESSING_APM_SAMPLING,
     "sentry.tasks.relay.build_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.relay.invalidate_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
+    "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
+    "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.process_buffer.process_incr": 0.01,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.weekly_reports.schedule_organizations": 1.0,
@@ -403,7 +411,7 @@ def configure_sdk():
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),
-            DjangoIntegration(),
+            DjangoIntegration(signals_spans=False),
             CeleryIntegration(),
             # This makes it so all levels of logging are recorded as breadcrumbs,
             # but none are captured as events (that's handled by the `internal`
@@ -446,20 +454,97 @@ class RavenShim:
             scope.fingerprint = fingerprint
 
 
-def check_tag(tag_key: str, expected_value: str) -> bool:
+def check_tag(tag_key: str, expected_value: str) -> None:
     """Detect a tag already set and being different than what we expect.
 
     This function checks if a tag has been already been set and if it differs
     from what we want to set it to.
     """
     with configure_scope() as scope:
-        if scope._tags and tag_key in scope._tags and scope._tags[tag_key] != expected_value:
+        # First check that the tag exists, because though it's true that "no value yet" doesn't
+        # match "some new value," we don't want to flag that as a mismatch.
+        if tag_key in scope._tags and scope._tags[tag_key] != expected_value:
+            scope.set_tag("possible_mistag", True)
+            scope.set_tag(f"scope_bleed.{tag_key}", True)
             extra = {
-                f"previous_{tag_key}": scope._tags[tag_key],
-                f"new_{tag_key}": expected_value,
+                f"previous_{tag_key}_tag": scope._tags[tag_key],
+                f"new_{tag_key}_tag": expected_value,
             }
+            merge_context_into_scope("scope_bleed", extra, scope)
             logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
-            return True
+
+
+def get_transaction_name_from_request(request: Request) -> str:
+    """
+    Given an incoming request, derive a parameterized transaction name, if possible. Based on the
+    implementation in `_set_transaction_name_and_source` in the SDK, which is what it uses to label
+    request transactions. See https://github.com/getsentry/sentry-python/blob/6c68cf4742e6f65da431210085ee095ba6535cee/sentry_sdk/integrations/django/__init__.py#L333.
+
+    If parameterization isn't possible, use the request's path.
+    """
+
+    transaction_name = request.path_info
+    try:
+        # Note: In spite of the name, the legacy resolver is still what's used in the python SDK
+        transaction_name = LEGACY_RESOLVER.resolve(
+            request.path_info, urlconf=getattr(request, "urlconf", None)
+        )
+    except Exception:
+        pass
+
+    return transaction_name
+
+
+def check_current_scope_transaction(
+    request: Request,
+) -> dict[str, str] | None:
+    """
+    Check whether the name of the transaction on the current scope matches what we'd expect, given
+    the request being handled.
+
+    If the transaction values match, return None. If they don't, return a dictionary including both
+    values.
+
+    Note: Ignores scope `transaction` values with `source = "custom"`, indicating a value which has
+    been set maunually. (See the `transaction_start` decorator, for example.)
+    """
+
+    with configure_scope() as scope:
+        transaction_from_request = get_transaction_name_from_request(request)
+
+        if (
+            scope._transaction != transaction_from_request
+            and scope._transaction_info.get("source") != "custom"
+        ):
+            return {
+                "scope_transaction": scope._transaction,
+                "request_transaction": transaction_from_request,
+            }
+
+
+def capture_exception_with_scope_check(
+    error, scope: Scope | None = None, request: Request | None = None, **scope_args
+):
+    """
+    A wrapper around `sentry_sdk.capture_exception` which checks scope `transaction` against the
+    given Request object, to help debug scope bleed problems.
+    """
+
+    # The SDK's version of `capture_exception` accepts either a `Scope` object or scope kwargs.
+    # Regardless of which one the caller passed, convert the data into a `Scope` object
+    extra_scope = scope or Scope()
+    extra_scope.update_from_kwargs(**scope_args)
+
+    # We've got a weird scope bleed problem, where, among other things, errors are getting tagged
+    # with the wrong transaction value, so record any possible mismatch.
+    transaction_mismatch = check_current_scope_transaction(request) if request else None
+    if transaction_mismatch:
+        # TODO: We probably should add this data to the scope in `check_current_scope_transaction`
+        # instead, but the whole point is that right now it's unclear how trustworthy ambient scope is
+        extra_scope.set_tag("scope_bleed.transaction", True)
+        merge_context_into_scope("scope_bleed", transaction_mismatch, extra_scope)
+
+    return sentry_sdk.capture_exception(error, scope=extra_scope)
 
 
 def bind_organization_context(organization):
@@ -467,12 +552,11 @@ def bind_organization_context(organization):
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with sentry_sdk.configure_scope() as scope, sentry_sdk.start_span(
+    with configure_scope() as scope, sentry_sdk.start_span(
         op="other", description="bind_organization_context"
     ):
-        if check_tag("organization.slug", organization.slug):
-            # This can be used to find errors that may have been mistagged
-            scope.set_tag("possible_mistag", True)
+        # This can be used to find errors that may have been mistagged
+        check_tag("organization.slug", organization.slug)
 
         scope.set_tag("organization", organization.id)
         scope.set_tag("organization.slug", organization.slug)
@@ -494,3 +578,15 @@ def set_measurement(measurement_name, value, unit=None):
             transaction.set_measurement(measurement_name, value, unit)
     except Exception:
         pass
+
+
+def merge_context_into_scope(
+    context_name: str, context_data: Mapping[str, Any], scope: Scope
+) -> None:
+    """
+    Add the given context to the given scope, merging the data in if a context with the given name
+    already exists.
+    """
+
+    existing_context = scope._contexts.setdefault(context_name, {})
+    existing_context.update(context_data)

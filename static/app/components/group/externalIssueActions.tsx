@@ -8,7 +8,7 @@ import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Group, GroupIntegration} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -27,7 +27,7 @@ type LinkedIssues = {
   unlinked: GroupIntegration[];
 };
 
-const ExternalIssueActions = ({configurations, group, onChange}: Props) => {
+function ExternalIssueActions({configurations, group, onChange}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const {linked, unlinked} = configurations
@@ -67,7 +67,7 @@ const ExternalIssueActions = ({configurations, group, onChange}: Props) => {
   };
 
   const doOpenModal = (integration: GroupIntegration) => {
-    trackAdvancedAnalyticsEvent('issue_details.external_issue_modal_opened', {
+    trackAnalytics('issue_details.external_issue_modal_opened', {
       organization,
       ...getAnalyticsDataForGroup(group),
       external_issue_provider: integration.provider.key,
@@ -127,7 +127,7 @@ const ExternalIssueActions = ({configurations, group, onChange}: Props) => {
       )}
     </Fragment>
   );
-};
+}
 
 const IssueTitle = styled('div')`
   font-size: 1.1em;

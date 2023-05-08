@@ -8,6 +8,7 @@ from typing import Any, Iterable, List, Mapping, Optional, cast
 
 from pydantic import Field
 
+from sentry.constants import ObjectStatus
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmember import InviteStatus
 from sentry.roles import team_roles
@@ -20,14 +21,13 @@ from sentry.services.hybrid_cloud.region import (
     UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 
 def team_status_visible() -> int:
     from sentry.models import TeamStatus
 
-    return int(TeamStatus.VISIBLE)
+    return int(TeamStatus.ACTIVE)
 
 
 class RpcTeam(RpcModel):
@@ -56,9 +56,7 @@ class RpcTeamMember(RpcModel):
 
 
 def project_status_visible() -> int:
-    from sentry.models import ProjectStatus
-
-    return int(ProjectStatus.VISIBLE)
+    return int(ObjectStatus.ACTIVE)
 
 
 class RpcProject(RpcModel):
@@ -149,7 +147,7 @@ class RpcOrganization(RpcOrganizationSummary):
     projects: List[RpcProject] = Field(default_factory=list)
 
     flags: RpcOrganizationFlags = Field(default_factory=lambda: RpcOrganizationFlags())
-    status: OrganizationStatus = OrganizationStatus.VISIBLE
+    status: OrganizationStatus = OrganizationStatus.ACTIVE
 
     default_role: str = ""
 
@@ -196,6 +194,21 @@ class OrganizationService(RpcService):
         Fetches the organization, team, and project data given by an organization id, regardless of its visibility
         status.  When user_id is provided, membership data related to that user from the organization
         is also given in the response.  See RpcUserOrganizationContext for more info.
+        """
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationSlug())
+    @abstractmethod
+    def get_org_by_slug(
+        self,
+        *,
+        slug: str,
+        user_id: Optional[int] = None,
+    ) -> Optional[RpcOrganizationSummary]:
+        """
+        Fetches the organization, by an organization slug. If user_id is passed, it will enforce visibility
+        rules. This method is differentiated from get_organization_by_slug by not being cached and returning
+        RpcOrganizationSummary instead of org contexts
         """
         pass
 
@@ -272,7 +285,7 @@ class OrganizationService(RpcService):
         *,
         organization_id: int,
         default_org_role: str,
-        user: Optional[RpcUser] = None,
+        user_id: Optional[int] = None,
         email: Optional[str] = None,
         flags: Optional[RpcOrganizationMemberFlags] = None,
         role: Optional[str] = None,
@@ -309,6 +322,16 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_top_dog_team_member_ids(self, *, organization_id: int) -> List[int]:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def reset_idp_flags(self, *, organization_id: int) -> None:
         pass
 
 

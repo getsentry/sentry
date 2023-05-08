@@ -12,7 +12,14 @@ from sentry.ratelimits.sliding_windows import (
     Timestamp,
 )
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
-from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, KeyCollection, KeyResult
+from sentry.sentry_metrics.indexer.base import (
+    FetchType,
+    FetchTypeExt,
+    KeyCollection,
+    KeyResult,
+    UseCaseKeyCollection,
+)
+from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING
 from sentry.utils import metrics
 
 OrgId = int
@@ -91,7 +98,7 @@ class RateLimitState:
     _grants: Sequence[GrantedQuota]
     _timestamp: Timestamp
 
-    accepted_keys: KeyCollection
+    accepted_keys: UseCaseKeyCollection
     dropped_strings: Sequence[DroppedString]
 
     def __enter__(self) -> RateLimitState:
@@ -116,8 +123,7 @@ class WritesLimiter:
     @metrics.wraps("sentry_metrics.indexer.check_write_limits")
     def check_write_limits(
         self,
-        use_case_id: UseCaseKey,
-        keys: KeyCollection,
+        use_case_keys: UseCaseKeyCollection,
     ) -> RateLimitState:
         """
         Takes a KeyCollection and applies DB write limits as configured via sentry.options.
@@ -131,7 +137,13 @@ class WritesLimiter:
 
         Upon (successful) exit, rate limits are consumed.
         """
-        org_ids, requests = _construct_quota_requests(use_case_id, self.namespace, keys)
+        use_case_id = next(iter(use_case_keys.mapping.keys()))
+        keys = next(iter(use_case_keys.mapping.values()))
+        org_ids, requests = _construct_quota_requests(
+            METRIC_PATH_MAPPING[use_case_id],
+            self.namespace,
+            keys,
+        )
         timestamp, grants = self.rate_limiter.check_within_quotas(requests)
 
         granted_key_collection = dict(keys.mapping)
@@ -162,12 +174,14 @@ class WritesLimiter:
 
         state = RateLimitState(
             _writes_limiter=self,
-            _use_case_id=use_case_id,
+            _use_case_id=METRIC_PATH_MAPPING[use_case_id],
             _namespace=self.namespace,
             _requests=requests,
             _grants=grants,
             _timestamp=timestamp,
-            accepted_keys=KeyCollection(granted_key_collection),
+            accepted_keys=UseCaseKeyCollection(
+                {use_case_id: KeyCollection(granted_key_collection)}
+            ),
             dropped_strings=dropped_strings,
         )
         return state
@@ -177,7 +191,7 @@ class WritesLimiterFactory:
     """
     The WritesLimiterFactory is in charge of initializing the WritesLimiter
     based on a configuration's namespace and options. Ideally this logic would
-    live in the initialization of the backends (postgres, cloudspanner etc) but
+    live in the initialization of the backends (postgres etc) but
     since each backend supports multiple use cases dynamically we just keep the
     mapping of rate limiters in this factory.
     """

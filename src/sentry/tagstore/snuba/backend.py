@@ -11,6 +11,7 @@ from pytz import UTC
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
+from sentry import features
 from sentry.api.utils import default_start_end_dates
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.query import apply_performance_conditions
@@ -68,8 +69,10 @@ SEEN_COLUMN = "timestamp"
 # all values for a given tag/column
 BLACKLISTED_COLUMNS = frozenset(["project_id"])
 
+BOOLEAN_KEYS = frozenset(["error.handled", "error.unhandled", "error.main_thread", "stack.in_app"])
+
 FUZZY_NUMERIC_KEYS = frozenset(
-    ["stack.colno", "stack.in_app", "stack.lineno", "stack.stack_level", "transaction.duration"]
+    ["stack.colno", "stack.lineno", "stack.stack_level", "transaction.duration"]
 )
 FUZZY_NUMERIC_DISTANCE = 50
 
@@ -79,6 +82,10 @@ FUZZY_NUMERIC_DISTANCE = 50
 DEFAULT_TYPE_CONDITION = ["type", "!=", "transaction"]
 
 tag_value_data_transformers = {"first_seen": parse_datetime, "last_seen": parse_datetime}
+
+
+def is_boolean_key(key):
+    return key in BOOLEAN_KEYS
 
 
 def is_fuzzy_numeric_key(key):
@@ -392,11 +399,11 @@ class SnubaTagStorage(TagStorage):
         project_id,
         environment_id,
         key,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         tenant_ids=None,
         **kwargs,
     ):
-        assert status is TagKeyStatus.VISIBLE
+        assert status is TagKeyStatus.ACTIVE
         return self.__get_tag_key_and_top_values(
             project_id, None, environment_id, key, tenant_ids=tenant_ids, **kwargs
         )
@@ -405,12 +412,12 @@ class SnubaTagStorage(TagStorage):
         self,
         project_id,
         environment_id,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         include_values_seen=False,
         denylist=None,
         tenant_ids=None,
     ):
-        assert status is TagKeyStatus.VISIBLE
+        assert status is TagKeyStatus.ACTIVE
         return self.__get_tag_keys(
             project_id,
             None,
@@ -425,7 +432,7 @@ class SnubaTagStorage(TagStorage):
         environments,
         start,
         end,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         use_cache=False,
         include_transactions=False,
         tenant_ids=None,
@@ -686,7 +693,9 @@ class SnubaTagStorage(TagStorage):
     def apply_group_filters_conditions(self, group: Group, conditions, filters):
         dataset = Dataset.Events
         if group:
-            if group.issue_category == GroupCategory.PERFORMANCE:
+            if group.issue_category == GroupCategory.PERFORMANCE and not features.has(
+                "organizations:issue-platform-search-perf-issues", group.organization
+            ):
                 dataset = Dataset.Transactions
                 apply_performance_conditions(conditions, group)
             else:
@@ -1299,7 +1308,7 @@ class SnubaTagStorage(TagStorage):
 
         # These columns have fixed values and we don't need to emit queries to find out the
         # potential options.
-        if key in {"error.handled", "error.unhandled"}:
+        if is_boolean_key(key):
             return SequencePaginator(
                 [
                     (

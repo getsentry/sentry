@@ -18,7 +18,7 @@ from .models import (
 logger = logging.getLogger("sentry")
 
 # default maximum runtime for a monitor, in minutes
-TIMEOUT = 12 * 60
+TIMEOUT = 30
 
 # This is the MAXIMUM number of MONITOR this job will check.
 #
@@ -69,16 +69,17 @@ def check_monitors(current_datetime=None):
             monitor_environment=monitor_environment,
             status=CheckInStatus.MISSED,
         )
-        monitor_environment.monitor.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
         monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
 
-    qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related("monitor")[
-        :CHECKINS_LIMIT
-    ]
+    qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related(
+        "monitor", "monitor_environment"
+    )[:CHECKINS_LIMIT]
     metrics.gauge("sentry.monitors.tasks.check_monitors.timeout_count", qs.count())
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
         timeout = timedelta(minutes=(checkin.monitor.config or {}).get("max_runtime") or TIMEOUT)
+        # Check against date_updated to allow monitors to run for longer as
+        # long as they continute to send heart beats updating the checkin
         if checkin.date_updated > current_datetime - timeout:
             continue
 
@@ -89,17 +90,16 @@ def check_monitors(current_datetime=None):
         )
         affected = MonitorCheckIn.objects.filter(
             id=checkin.id, status=CheckInStatus.IN_PROGRESS
-        ).update(status=CheckInStatus.ERROR)
+        ).update(status=CheckInStatus.TIMEOUT)
         if not affected:
             continue
 
         # we only mark the monitor as failed if a newer checkin wasn't responsible for the state
         # change
         has_newer_result = MonitorCheckIn.objects.filter(
-            monitor=monitor_environment.id,
+            monitor_environment=monitor_environment,
             date_added__gt=checkin.date_added,
             status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
         ).exists()
         if not has_newer_result:
-            monitor_environment.monitor.mark_failed(reason=MonitorFailure.DURATION)
             monitor_environment.mark_failed(reason=MonitorFailure.DURATION)

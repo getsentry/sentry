@@ -22,7 +22,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   formatTagKey,
@@ -31,6 +31,10 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {
+  MetricsEnhancedPerformanceDataContext,
+  useMEPDataContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -100,6 +104,7 @@ function SummaryContent({
   unfilteredTotalValues,
 }: Props) {
   const routes = useRoutes();
+  const mepDataContext = useMEPDataContext();
   function handleSearch(query: string) {
     const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
@@ -151,7 +156,7 @@ function SummaryContent({
   }
 
   function handleAllEventsViewClick() {
-    trackAdvancedAnalyticsEvent('performance_views.summary.view_in_transaction_events', {
+    trackAnalytics('performance_views.summary.view_in_transaction_events', {
       organization,
     });
   }
@@ -180,12 +185,13 @@ function SummaryContent({
     return sortedEventView;
   }
 
-  function generateActionBarItems(_org: Organization, _location: Location) {
+  function generateActionBarItems(
+    _org: Organization,
+    _location: Location,
+    _mepDataContext: MetricsEnhancedPerformanceDataContext
+  ) {
     let items: ActionBarItem[] | undefined = undefined;
-    if (
-      _org.features.includes('performance-metrics-backed-transaction-summary') &&
-      !canUseTransactionMetricsData(_org, _location)
-    ) {
+    if (!canUseTransactionMetricsData(_org, _mepDataContext)) {
       items = [
         {
           key: 'alert',
@@ -196,7 +202,11 @@ function SummaryContent({
                   'Based on your search criteria and sample rate, the events available may be limited.'
                 )}
               >
-                <StyledIconWarning size="sm" color="warningText" />
+                <StyledIconWarning
+                  data-test-id="search-metrics-fallback-warning"
+                  size="sm"
+                  color="warningText"
+                />
               </Tooltip>
             ),
             menuItem: {
@@ -343,7 +353,11 @@ function SummaryContent({
             fields={eventView.fields}
             onSearch={handleSearch}
             maxQueryLength={MAX_QUERY_LENGTH}
-            actionBarItems={generateActionBarItems(organization, location)}
+            actionBarItems={generateActionBarItems(
+              organization,
+              location,
+              mepDataContext
+            )}
           />
         </FilterActions>
         <TransactionSummaryCharts
@@ -419,7 +433,6 @@ function SummaryContent({
       </Layout.Main>
       <Layout.Side>
         <TransactionPercentage
-          organization={organization}
           isLoading={isLoading}
           error={error}
           totals={totalValues}

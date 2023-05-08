@@ -68,7 +68,10 @@ function renderHeadCell(column: TableColumn, _index: number): ReactNode {
 }
 
 function renderBodyCellWithMeta(location: Location, organization: Organization) {
-  return (column: TableColumn, dataRow: TableDataRowWithExtras): React.ReactNode => {
+  return function (
+    column: TableColumn,
+    dataRow: TableDataRowWithExtras
+  ): React.ReactNode {
     const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
 
     if (column.key === 'confidence') {

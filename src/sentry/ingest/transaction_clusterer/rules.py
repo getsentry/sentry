@@ -11,6 +11,9 @@ from .base import ReplacementRule
 #: Map from rule string to last_seen timestamp
 RuleSet = Mapping[ReplacementRule, int]
 
+#: How long a transaction name rule lasts, in seconds.
+TRANSACTION_NAME_RULE_TTL_SECS = 90 * 24 * 60 * 60  # 90 days
+
 
 class RuleStore(Protocol):
     def read(self, project: Project) -> RuleSet:
@@ -21,15 +24,19 @@ class RuleStore(Protocol):
 
 
 class RedisRuleStore:
-    """We store rules in both project options and redis.
-    The reason for the additional redis store is that in the future, we want
-    to extend rule lifetimes when we see a sanitized transaction.
-    The load of writes on every sanitized transaction name is very high, but
-    the load of writes on the generation of new rules is low. Both postgres and
-    redis can handle the latter, but only redis can handle the former. The
-    approach consists of writing the former only on redis, and when we generate
-    rules (the latter) we merge and update the contents of both postgres and
-    redis.
+    """Store rules in both project options and Redis.
+
+    Why Redis?
+    We want to update the rule lifetimes when a transaction has been sanitized
+    with that rule.  That load is very high for the project options to handle,
+    but Redis is capable of doing so.
+
+    Then, why project options?
+    Redis is not a persistent store, and rules should be persistent. As a
+    result, at some point the up-to-date lifetimes of rules in Redis must be
+    updated and merged back to project options. This operation can't happen too
+    frequently, and the task to generate rules meets the criteria and thus is
+    responsible for that.
     """
 
     @staticmethod
@@ -49,7 +56,8 @@ class RedisRuleStore:
         with client.pipeline() as p:
             # to be consistent with other stores, clear previous hash entries:
             p.delete(key)
-            p.hmset(key, rules)
+            if len(rules) > 0:
+                p.hmset(key, rules)
 
 
 class ProjectOptionRuleStore:
@@ -103,9 +111,14 @@ class CompositeRuleStore:
 
     def _trim_rules(self, rules: RuleSet) -> RuleSet:
         sorted_rules = sorted(rules.items(), key=lambda p: p[1], reverse=True)
+        last_seen_deadline = _now() - TRANSACTION_NAME_RULE_TTL_SECS
+        sorted_rules = [rule for rule in sorted_rules if rule[1] >= last_seen_deadline]
+
         if self.MERGE_MAX_RULES < len(rules):
             with sentry_sdk.configure_scope() as scope:
-                scope.set_tag("discarded", len(rules) - self.MERGE_MAX_RULES)
+                sentry_sdk.set_measurement(
+                    "discarded_transactions", len(rules) - self.MERGE_MAX_RULES
+                )
                 scope.set_context(
                     "clustering_rules_max",
                     {
@@ -139,6 +152,10 @@ def _get_rules(project: Project) -> RuleSet:
     return ProjectOptionRuleStore().read(project)
 
 
+def get_redis_rules(project: Project) -> RuleSet:
+    return RedisRuleStore().read(project)
+
+
 def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
     """Public interface for fetching rules for a project.
 
@@ -152,6 +169,24 @@ def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
 
 
 def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
+    # Run the updates even if there aren't any new rules, to get all the stores
+    # up-to-date.
+    # NOTE: keep in mind this function writes to Postgres, so it shouldn't be
+    # called often.
+
+    last_seen = _now()
+    new_rule_set = {rule: last_seen for rule in new_rules}
+    rule_store = CompositeRuleStore(
+        [
+            RedisRuleStore(),
+            ProjectOptionRuleStore(),
+            LocalRuleStore(new_rule_set),
+        ]
+    )
+    rule_store.merge(project)
+
+
+def update_redis_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
     if not new_rules:
         return
 
@@ -160,7 +195,6 @@ def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None
     rule_store = CompositeRuleStore(
         [
             RedisRuleStore(),
-            ProjectOptionRuleStore(),
             LocalRuleStore(new_rule_set),
         ]
     )

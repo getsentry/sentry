@@ -11,9 +11,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {NewQuery, Organization, SavedQuery} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -30,7 +29,7 @@ export function handleCreateQuery(
   const payload = eventView.toNewQuery();
   payload.yAxis = yAxis;
 
-  trackAdvancedAnalyticsEvent(getAnalyticsCreateEventKeyName(isNewQuery, 'request'), {
+  trackAnalytics(getAnalyticsCreateEventKeyName(isNewQuery, 'request'), {
     organization,
     ...extractAnalyticsQueryFields(payload),
   });
@@ -39,7 +38,7 @@ export function handleCreateQuery(
   promise
     .then((savedQuery: SavedQuery) => {
       addSuccessMessage(t('Query saved'));
-      trackAdvancedAnalyticsEvent(getAnalyticsCreateEventKeyName(isNewQuery, 'success'), {
+      trackAnalytics(getAnalyticsCreateEventKeyName(isNewQuery, 'success'), {
         organization,
         ...extractAnalyticsQueryFields(payload),
       });
@@ -48,7 +47,7 @@ export function handleCreateQuery(
     })
     .catch((err: Error) => {
       addErrorMessage(t('Query not saved'));
-      trackAdvancedAnalyticsEvent(getAnalyticsCreateEventKeyName(isNewQuery, 'failed'), {
+      trackAnalytics(getAnalyticsCreateEventKeyName(isNewQuery, 'failed'), {
         organization,
         ...extractAnalyticsQueryFields(payload),
         error:
@@ -74,7 +73,7 @@ export function handleUpdateQuery(
     return Promise.reject();
   }
 
-  trackAdvancedAnalyticsEvent('discover_v2.update_query_request', {
+  trackAnalytics('discover_v2.update_query_request', {
     organization,
     ...extractAnalyticsQueryFields(payload),
   });
@@ -85,7 +84,7 @@ export function handleUpdateQuery(
     .then((savedQuery: SavedQuery) => {
       addSuccessMessage(t('Query updated'));
 
-      trackAdvancedAnalyticsEvent('discover_v2.update_query_success', {
+      trackAnalytics('discover_v2.update_query_success', {
         organization,
         ...extractAnalyticsQueryFields(payload),
       });
@@ -98,7 +97,7 @@ export function handleUpdateQuery(
     .catch((err: Error) => {
       addErrorMessage(t('Query not updated'));
 
-      trackAdvancedAnalyticsEvent('discover_v2.update_query_failed', {
+      trackAnalytics('discover_v2.update_query_failed', {
         organization,
         ...extractAnalyticsQueryFields(payload),
         error: (err && err.message) || 'Failed to update a query',
@@ -118,11 +117,8 @@ export function handleUpdateQueryName(
   eventView: EventView
 ) {
   const payload = eventView.toNewQuery();
-
-  trackAnalyticsEvent({
-    eventKey: 'discover_v2.update_query_name_request',
-    eventName: "Discoverv2: Request to update a saved query's name",
-    organization_id: parseInt(organization.id, 10),
+  trackAnalytics('discover_v2.update_query_name_request', {
+    organization,
     ...extractAnalyticsQueryFields(payload),
   });
 
@@ -132,20 +128,16 @@ export function handleUpdateQueryName(
     .then(_saved => {
       addSuccessMessage(t('Query name saved'));
 
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.update_query_name_success',
-        eventName: "Discoverv2: Successfully updated a saved query's name",
-        organization_id: parseInt(organization.id, 10),
+      trackAnalytics('discover_v2.update_query_name_successs', {
+        organization,
         ...extractAnalyticsQueryFields(payload),
       });
     })
     .catch((err: Error) => {
       addErrorMessage(t('Query name not saved'));
 
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.update_query_failed',
-        eventName: "Discoverv2: Failed to update a saved query's name",
-        organization_id: parseInt(organization.id, 10),
+      trackAnalytics('discover_v2.update_query_failed', {
+        organization,
         ...extractAnalyticsQueryFields(payload),
         error: (err && err.message) || 'Failed to update a query name',
       });
@@ -159,10 +151,8 @@ export function handleDeleteQuery(
   organization: Organization,
   eventView: EventView
 ): Promise<void> {
-  trackAnalyticsEvent({
-    eventKey: 'discover_v2.delete_query_request',
-    eventName: 'Discoverv2: Request to delete a saved query',
-    organization_id: parseInt(organization.id, 10),
+  trackAnalytics('discover_v2.delete_query_request', {
+    organization,
     ...extractAnalyticsQueryFields(eventView.toNewQuery()),
   });
 
@@ -171,21 +161,15 @@ export function handleDeleteQuery(
   promise
     .then(() => {
       addSuccessMessage(t('Query deleted'));
-
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.delete_query_success',
-        eventName: 'Discoverv2: Successfully deleted a saved query',
-        organization_id: parseInt(organization.id, 10),
+      trackAnalytics('discover_v2.delete_query_success', {
+        organization,
         ...extractAnalyticsQueryFields(eventView.toNewQuery()),
       });
     })
     .catch((err: Error) => {
       addErrorMessage(t('Query not deleted'));
-
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.delete_query_failed',
-        eventName: 'Discoverv2: Failed to delete a saved query',
-        organization_id: parseInt(organization.id, 10),
+      trackAnalytics('discover_v2.delete_query_failed', {
+        organization,
         ...extractAnalyticsQueryFields(eventView.toNewQuery()),
         error: (err && err.message) || 'Failed to delete query',
       });

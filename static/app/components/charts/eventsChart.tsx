@@ -44,6 +44,7 @@ import {
   getEquation,
   isEquation,
 } from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList} from 'sentry/utils/queryString';
 
 import EventsGeoRequest from './eventsGeoRequest';
@@ -404,6 +405,10 @@ export type EventsChartProps = {
    */
   currentSeriesName?: string;
   /**
+   * Specifies the dataset to query from. Defaults to discover.
+   */
+  dataset?: DiscoverDatasets;
+  /**
    * Don't show the previous period's data. Will automatically disable
    * when start/end are used.
    */
@@ -548,6 +553,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       additionalSeries,
       loadingAdditionalSeries,
       reloadingAdditionalSeries,
+      dataset,
       ...props
     } = this.props;
 
@@ -679,6 +685,7 @@ class EventsChart extends React.Component<EventsChartProps> {
                 end={end}
                 environments={environments}
                 referrer={props.referrer}
+                dataset={dataset}
               >
                 {({errored, loading, reloading, tableData}) =>
                   chartImplementation({
@@ -715,6 +722,7 @@ class EventsChart extends React.Component<EventsChartProps> {
               partial
               // Cannot do interpolation when stacking series
               withoutZerofill={withoutZerofill && !this.isStacked()}
+              dataset={dataset}
             >
               {eventData => {
                 return chartImplementation({

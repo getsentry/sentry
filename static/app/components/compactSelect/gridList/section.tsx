@@ -14,6 +14,7 @@ import {
   SectionTitle,
   SectionWrap,
 } from '../styles';
+import {SelectSection} from '../types';
 import {SectionToggle} from '../utils';
 
 import {GridListOption} from './option';
@@ -22,13 +23,14 @@ interface GridListSectionProps {
   listState: ListState<any>;
   node: Node<any>;
   size: FormSize;
+  onToggle?: (section: SelectSection<React.Key>, type: 'select' | 'unselect') => void;
 }
 
 /**
  * A <li /> element that functions as a grid list section (renders a nested <ul />
  * inside). https://react-spectrum.adobe.com/react-aria/useGridList.html
  */
-export function GridListSection({node, listState, size}: GridListSectionProps) {
+export function GridListSection({node, listState, onToggle, size}: GridListSectionProps) {
   const titleId = domId('grid-section-title-');
   const {separatorProps} = useSeparator({elementType: 'li'});
 
@@ -58,7 +60,9 @@ export function GridListSection({node, listState, size}: GridListSectionProps) {
                 {node.rendered}
               </SectionTitle>
             )}
-            {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
+            {showToggleAllButton && (
+              <SectionToggle item={node} listState={listState} onToggle={onToggle} />
+            )}
           </SectionHeader>
         )}
         <SectionGroup role="presentation">

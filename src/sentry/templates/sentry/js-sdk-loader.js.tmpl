@@ -1,4 +1,4 @@
-{% load sentry_helpers %}(function sentryLoader(_window, _document, _script, _onerror, _onunhandledrejection, _namespace, _publicKey, _sdkBundleUrl, _config, _lazy) {
+{% load sentry_helpers %}(function sentryLoader(_window, _document, _errorEvent, _unhandledrejectionEvent, _namespace, _publicKey, _sdkBundleUrl, _config, _lazy) {
     var lazy = _lazy;
     var forceLoad = false;
     for (var i = 0; i < document.scripts.length; i++) {
@@ -32,6 +32,21 @@
         queue.data.push(content);
     };
     queue.data = [];
+    function onError() {
+        // Use keys as "data type" to save some characters"
+        queue({
+            e: [].slice.call(arguments),
+        });
+    }
+    function onUnhandledRejection(e) {
+        queue({
+            p: 'reason' in e
+                ? e.reason
+                : 'detail' in e && 'reason' in e.detail
+                    ? e.detail.reason
+                    : e,
+        });
+    }
     function injectSdk(callbacks) {
         if (injected) {
             return;
@@ -44,30 +59,30 @@
         // it was probably(?) a legacy behavior that they left to not modify few years old snippet
         // https://www.html5rocks.com/en/tutorials/speed/script-loading/
         var _currentScriptTag = _document.scripts[0];
-        var _newScriptTag = _document.createElement(_script);
+        var _newScriptTag = _document.createElement('script');
         _newScriptTag.src = _sdkBundleUrl;
         _newScriptTag.crossOrigin = 'anonymous';
         // Once our SDK is loaded
         _newScriptTag.addEventListener('load', function () {
             try {
-                // Restore onerror/onunhandledrejection handlers
-                _window[_onerror] = _oldOnerror;
-                _window[_onunhandledrejection] = _oldOnunhandledrejection;
+                _window.removeEventListener(_errorEvent, onError);
+                _window.removeEventListener(_unhandledrejectionEvent, onUnhandledRejection);
                 // Add loader as SDK source
                 _window.SENTRY_SDK_SOURCE = 'loader';
-                var SDK = _window[_namespace];
-                var oldInit_1 = SDK.init;
+                var SDK_1 = _window[_namespace];
+                var oldInit_1 = SDK_1.init;
                 // Configure it using provided DSN and config object
-                SDK.init = function (options) {
+                SDK_1.init = function (options) {
                     var target = _config;
                     for (var key in options) {
                         if (Object.prototype.hasOwnProperty.call(options, key)) {
                             target[key] = options[key];
                         }
                     }
+                    setupDefaultIntegrations(target, SDK_1);
                     oldInit_1(target);
                 };
-                sdkLoaded(callbacks, SDK);
+                sdkLoaded(callbacks, SDK_1);
             }
             catch (o_O) {
                 console.error(o_O);
@@ -75,23 +90,43 @@
         });
         _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
     }
+    // We want to ensure to only add default integrations if they haven't been added by the user.
+    function setupDefaultIntegrations(config, SDK) {
+        var integrations = config.integrations || [];
+        // integrations can be a function, in which case we will not add any defaults
+        if (!Array.isArray(integrations)) {
+            return;
+        }
+        var integrationNames = integrations.map(function (integration) { return integration.name; });
+        // Add necessary integrations based on config
+        if (config.tracesSampleRate && integrationNames.indexOf('BrowserTracing') === -1) {
+            integrations.push(new SDK.BrowserTracing());
+        }
+        if ((config.replaysSessionSampleRate || config.replaysOnErrorSampleRate) &&
+            integrationNames.indexOf('Replay') === -1) {
+            integrations.push(new SDK.Replay());
+        }
+        config.integrations = integrations;
+    }
+    function sdkIsLoaded() {
+        var __sentry = _window.__SENTRY__;
+        // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
+        return !!(!(typeof __sentry === 'undefined') &&
+            __sentry.hub &&
+            __sentry.hub.getClient());
+    }
     function sdkLoaded(callbacks, SDK) {
         try {
-            var data = queue.data;
             // We have to make sure to call all callbacks first
             for (var i = 0; i < callbacks.length; i++) {
                 if (typeof callbacks[i] === 'function') {
                     callbacks[i]();
                 }
             }
-            var initAlreadyCalled = false;
-            var __sentry = _window.__SENTRY__;
-            // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
-            if (!(typeof __sentry === 'undefined') &&
-                __sentry.hub &&
-                __sentry.hub.getClient()) {
-                initAlreadyCalled = true;
-            }
+            var data = queue.data;
+            var initAlreadyCalled = sdkIsLoaded();
+            // Call init first, if provided
+            data.sort(function (a) { return (a.f === 'init' ? -1 : 0); });
             // We want to replay all calls to Sentry and also make sure that `init` is called if it wasn't already
             // We replay all calls to `Sentry.*` now
             var calledSentry = false;
@@ -113,8 +148,8 @@
             }
             // Because we installed the SDK, at this point we have an access to TraceKit's handler,
             // which can take care of browser differences (eg. missing exception argument in onerror)
-            var tracekitErrorHandler = _window[_onerror];
-            var tracekitUnhandledRejectionHandler = _window[_onunhandledrejection];
+            var tracekitErrorHandler = _window.onerror;
+            var tracekitUnhandledRejectionHandler = _window.onunhandledrejection;
             // And now capture all previously caught exceptions
             for (var i = 0; i < data.length; i++) {
                 if ('e' in data[i] && tracekitErrorHandler) {
@@ -160,35 +195,11 @@
             queue({ f: f, a: arguments });
         };
     });
-    // Store reference to the old `onerror` handler and override it with our own function
-    // that will just push exceptions to the queue and call through old handler if we found one
-    var _oldOnerror = _window[_onerror];
-    _window[_onerror] = function () {
-        // Use keys as "data type" to save some characters"
-        queue({
-            e: [].slice.call(arguments),
-        });
-        if (_oldOnerror) {
-            _oldOnerror.apply(_window, arguments);
-        }
-    };
-    // Do the same store/queue/call operations for `onunhandledrejection` event
-    var _oldOnunhandledrejection = _window[_onunhandledrejection];
-    _window[_onunhandledrejection] = function (e) {
-        queue({
-            p: 'reason' in e
-                ? e.reason
-                : 'detail' in e && 'reason' in e.detail
-                    ? e.detail.reason
-                    : e,
-        });
-        if (_oldOnunhandledrejection) {
-            _oldOnunhandledrejection.apply(_window, arguments);
-        }
-    };
+    _window.addEventListener(_errorEvent, onError);
+    _window.addEventListener(_unhandledrejectionEvent, onUnhandledRejection);
     if (!lazy) {
         setTimeout(function () {
             injectSdk(onLoadCallbacks);
         });
     }
-})(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }}, {{ isLazy|safe|lower }});
+})(window, document, 'error', 'unhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }}, {{ isLazy|safe|lower }});

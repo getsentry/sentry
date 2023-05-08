@@ -1108,6 +1108,7 @@
   "measurements": {
     "connection.rtt": {"value": 2150.0, "unit": "millisecond"},
     "fcp": {"value": 15997.49994277954, "unit": "millisecond"},
+    "lcp": {"value": 30000.49994277954, "unit": "millisecond"},
     "fp": {"value": 15997.49994277954, "unit": "millisecond"},
     "ttfb": {"value": 3169.8999404907227, "unit": "millisecond"},
     "ttfb.requesttime": {"value": 3157.2999954223633, "unit": "millisecond"}
@@ -1176,7 +1177,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "xhr",
         "url": "https://my-api.io/api/users?page=1"
       },
@@ -1205,7 +1206,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "xhr",
         "url": "https://my-api.io/api/users?page=2"
       },
@@ -1223,7 +1224,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "xhr",
         "url": "https://my-api.io/api/users?page=3"
       },
@@ -1241,7 +1242,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "xhr",
         "url": "https://my-api.io/api/users?page=4"
       },
@@ -1259,7 +1260,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "xhr",
         "url": "https://my-api.io/api/users?page=5"
       },
@@ -1277,7 +1278,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "xhr",
         "url": "https://my-api.io/api/users?page=6"
       },
@@ -1381,9 +1382,9 @@
       "parent_span_id": "90747d4310a2a358",
       "trace_id": "dfbb4f07016a450791bf09d308d66af4",
       "data": {
-        "Decoded Body Size": 2573190,
-        "Encoded Body Size": 527961,
-        "Transfer Size": 528261,
+        "http.decoded_response_content_length": 2573190,
+        "http.response_content_length": 527961,
+        "http.transfer_size": 528261,
         "resource.render_blocking_status": "non-blocking"
       },
       "hash": "032ded07ff89c3b4"
@@ -1431,9 +1432,9 @@
       "parent_span_id": "90747d4310a2a358",
       "trace_id": "dfbb4f07016a450791bf09d308d66af4",
       "data": {
-        "Decoded Body Size": 3870,
-        "Encoded Body Size": 3461,
-        "Transfer Size": 3761,
+        "http.decoded_response_content_length": 3870,
+        "http.response_content_length": 3461,
+        "http.transfer_size": 3761,
         "resource.render_blocking_status": "non-blocking"
       },
       "hash": "35a63c8a85b1279a"
@@ -1448,9 +1449,9 @@
       "parent_span_id": "90747d4310a2a358",
       "trace_id": "dfbb4f07016a450791bf09d308d66af4",
       "data": {
-        "Decoded Body Size": 492,
-        "Encoded Body Size": 492,
-        "Transfer Size": 792,
+        "http.decoded_response_content_length": 492,
+        "http.response_content_length": 492,
+        "http.transfer_size": 792,
         "resource.render_blocking_status": "non-blocking"
       },
       "hash": "a2a63063e1bd6ed2"
@@ -1465,9 +1466,9 @@
       "parent_span_id": "90747d4310a2a358",
       "trace_id": "dfbb4f07016a450791bf09d308d66af4",
       "data": {
-        "Decoded Body Size": 5347,
-        "Encoded Body Size": 5347,
-        "Transfer Size": 5647,
+        "http.decoded_response_content_length": 5347,
+        "http.response_content_length": 5347,
+        "http.transfer_size": 5647,
         "resource.render_blocking_status": "non-blocking"
       },
       "hash": "03cf160ff9190e10"

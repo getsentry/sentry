@@ -8,7 +8,6 @@ from typing import Collection, FrozenSet, Optional, Sequence
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.db.models import QuerySet
-from django.db.models.signals import post_delete
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -85,7 +84,7 @@ class OrganizationManager(BaseManager):
     def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
         """Returns the QuerySet of all organizations that a set of Users have access to."""
         return self.filter(
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
             member_set__user_id__in=user_ids,
         )
 
@@ -94,7 +93,7 @@ class OrganizationManager(BaseManager):
         from sentry.models import Team
 
         return self.filter(
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
             id__in=Team.objects.filter(id__in=team_ids).values("organization"),
         )
 
@@ -131,13 +130,13 @@ class OrganizationManager(BaseManager):
 
         orgs = Organization.objects.filter(
             member_set__user_id=user_id,
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
         )
 
         # get owners from orgs
         owner_role_orgs = Organization.objects.filter(
             member_set__user_id=user_id,
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
             member_set__role=roles.get_top_dog().id,
         )
 
@@ -676,13 +675,6 @@ class Organization(Model, SnowflakeIdMixin):
 
         return Team.objects.filter(organization=self).exclude(org_role=None)
 
-    # TODO(hybrid-cloud): Replace with Region tombstone when it's implemented
-    @classmethod
-    def remove_organization_mapping(cls, instance, **kwargs):
-        from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-
-        organization_mapping_service.delete(organization_id=instance.id)
-
 
 def organization_absolute_url(
     has_customer_domain: bool,
@@ -716,11 +708,3 @@ def organization_absolute_url(
     if fragment:
         parts.append(fragment)
     return "".join(parts)
-
-
-post_delete.connect(
-    Organization.remove_organization_mapping,
-    dispatch_uid="sentry.remove_organization_mapping",
-    sender=Organization,
-    weak=False,
-)

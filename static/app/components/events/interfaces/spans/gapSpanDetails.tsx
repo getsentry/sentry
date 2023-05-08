@@ -1,18 +1,24 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
+
 import {Button} from 'sentry/components/button';
+import {SectionHeading} from 'sentry/components/charts/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
-import {IconProfiling} from 'sentry/icons';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {getProfilingDocsForPlatform} from 'sentry/utils/profiling/platforms';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {Rect} from 'sentry/utils/profiling/speedscope';
@@ -77,23 +83,25 @@ export function GapSpanDetails({
   // Found the profile, render the preview
   if (transactionHasProfile) {
     return (
-      <Container>
-        <ProfilePreview
-          canvasView={canvasView}
-          event={event}
-          organization={organization}
-        />
-        <FlamegraphContainer>
-          <FlamegraphThemeProvider>
+      <FlamegraphThemeProvider>
+        <div>
+          <ProfilePreviewHeader
+            canvasView={canvasView}
+            event={event}
+            organization={organization}
+          />
+          <ProfilePreviewLegend />
+          <FlamegraphContainer>
             <FlamegraphPreview
               flamegraph={flamegraph}
               relativeStartTimestamp={relativeStartTimestamp}
               relativeStopTimestamp={relativeStopTimestamp}
               updateFlamegraphView={setCanvasView}
             />
-          </FlamegraphThemeProvider>
-        </FlamegraphContainer>
-      </Container>
+          </FlamegraphContainer>
+          <ManualInstrumentationInstruction />
+        </div>
+      </FlamegraphThemeProvider>
     );
   }
 
@@ -120,56 +128,35 @@ export function GapSpanDetails({
   // platform that has not setup profiling yet
   return (
     <Container>
-      <SetupProfilingInstructions docsLink={docsLink} />
-      <FlamegraphContainer>
-        <FlamegraphThemeProvider>
-          <FlamegraphPreview
-            flamegraph={flamegraph}
-            relativeStartTimestamp={relativeStartTimestamp}
-            relativeStopTimestamp={relativeStopTimestamp}
-            renderText={false}
-            updateFlamegraphView={setCanvasView}
-          />
-        </FlamegraphThemeProvider>
-      </FlamegraphContainer>
+      <Image src={emptyStateImg} />
+      <InstructionsContainer>
+        <h5>{t('With Profiling, we could paint a better picture')}</h5>
+        <p>
+          {t(
+            'Profiles can give you additional context on which functions are sampled at the same time of these spans.'
+          )}
+        </p>
+        <Button size="sm" priority="primary" href={docsLink} external>
+          {t('Set Up Profiling')}
+        </Button>
+        <ManualInstrumentationInstruction />
+      </InstructionsContainer>
     </Container>
   );
 }
 
-interface SetupProfilingInstructionsProps {
-  docsLink: string;
-}
-
-function SetupProfilingInstructions({docsLink}: SetupProfilingInstructionsProps) {
+function ManualInstrumentationInstruction() {
   return (
-    <InstructionsContainer>
-      <Heading>{t('Requires Manual Instrumentation')}</Heading>
-      <p>
-        {tct(
-          `To manually instrument certain regions of your code, view [docLink:our documentation].`,
-          {
-            docLink: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
-            ),
-          }
-        )}
-      </p>
-      <Heading>{t('With Profiling, we could paint a better picture')}</Heading>
-      <p>
-        {t(
-          'Profiles can give you additional context on which functions are sampled at the same time of these spans.'
-        )}
-      </p>
-      <Button
-        icon={<IconProfiling />}
-        size="sm"
-        priority="primary"
-        href={docsLink}
-        external
-      >
-        {t('Set Up Profiling')}
-      </Button>
-    </InstructionsContainer>
+    <SubText>
+      {tct(
+        `You can also [docLink:manually instrument] certain regions of your code to see span details for future transactions.`,
+        {
+          docLink: (
+            <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
+          ),
+        }
+      )}
+    </SubText>
   );
 }
 
@@ -179,7 +166,7 @@ interface ProfilePreviewProps {
   organization: Organization;
 }
 
-function ProfilePreview({canvasView, event, organization}: ProfilePreviewProps) {
+function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewProps) {
   const profileId = event.contexts.profile?.profile_id || '';
 
   // we want to try to go straight to the same config view as the preview
@@ -202,51 +189,130 @@ function ProfilePreview({canvasView, event, organization}: ProfilePreviewProps) 
   });
 
   function handleGoToProfile() {
-    trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+    trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
       source: 'performance.missing_instrumentation',
     });
   }
 
   return (
-    <InstructionsContainer>
-      <Heading>{t('Requires Manual Instrumentation')}</Heading>
-      <p>
-        {tct(
-          `To manually instrument certain regions of your code, view [docLink:our documentation].`,
-          {
-            docLink: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
-            ),
-          }
-        )}
-      </p>
-      <Heading>{t('A Profile is available for this transaction!')}</Heading>
-      <p>
-        {t(
-          'We have a profile that can give you some additional context on which functions were sampled during this span.'
-        )}
-      </p>
-      <Button icon={<IconProfiling />} size="sm" onClick={handleGoToProfile} to={target}>
-        {t('Go to Profile')}
+    <HeaderContainer>
+      <HeaderContainer>
+        <SectionHeading>{t('Related Profile')}</SectionHeading>
+        <QuestionTooltip
+          position="top"
+          size="sm"
+          containerDisplayMode="block"
+          title={t(
+            'This profile was collected concurrently with the transaction. It displays the relevant stacks and functions for the duration of this span.'
+          )}
+        />
+      </HeaderContainer>
+      <Button size="xs" onClick={handleGoToProfile} to={target}>
+        {t('View Profile')}
       </Button>
-    </InstructionsContainer>
+    </HeaderContainer>
+  );
+}
+
+function ProfilePreviewLegend() {
+  const theme = useFlamegraphTheme();
+  const applicationFrameColor = colorComponentsToRGBA(
+    theme.COLORS.FRAME_APPLICATION_COLOR
+  );
+  const systemFrameColor = colorComponentsToRGBA(theme.COLORS.FRAME_SYSTEM_COLOR);
+
+  return (
+    <LegendContainer>
+      <LegendItem>
+        <LegendMarker color={applicationFrameColor} />
+        {t('Application Function')}
+      </LegendItem>
+      <LegendItem>
+        <LegendMarker color={systemFrameColor} />
+        {t('System Function')}
+      </LegendItem>
+    </LegendContainer>
   );
 }
 
 const Container = styled('div')`
   display: flex;
-  flex-direction: row;
-`;
+  gap: ${space(2)};
+  justify-content: space-between;
+  flex-direction: column;
 
-const Heading = styled('h4')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    flex-direction: row-reverse;
+  }
 `;
 
 const InstructionsContainer = styled('div')`
-  width: 300px;
+  > p {
+    margin: 0;
+  }
+
+  display: flex;
+  gap: ${space(3)};
+  flex-direction: column;
+  align-items: start;
+`;
+
+const Image = styled('img')`
+  user-select: none;
+  width: 420px;
+  align-self: center;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    width: 300px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    width: 380px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    width: 420px;
+  }
 `;
 
 const FlamegraphContainer = styled('div')`
-  flex: auto;
+  height: 300px;
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+const LegendContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1.5)};
+`;
+
+const LegendItem = styled('span')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: ${space(0.5)};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const LegendMarker = styled('span')<{color: string}>`
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 1px;
+  background-color: ${p => p.color};
+`;
+
+const HeaderContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${space(1)};
+`;
+
+const SubText = styled('p')`
+  color: ${p => p.theme.subText};
 `;

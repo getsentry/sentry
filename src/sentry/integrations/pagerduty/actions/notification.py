@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from typing import Sequence
 
-from sentry.constants import ObjectStatus
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
 from sentry.integrations.pagerduty.client import PagerDutyClient
 from sentry.models import PagerDutyService
@@ -81,13 +80,19 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         yield self.future(send_notification, key=key)
 
     def get_services(self) -> Sequence[PagerDutyService]:
-        return list(
-            PagerDutyService.objects.filter(
-                organization_integration__organization_id=self.project.organization.id,
-                organization_integration__integration__provider=self.provider,
-                organization_integration__integration__status=ObjectStatus.VISIBLE,
-            ).values_list("id", "service_name")
+        from sentry.services.hybrid_cloud.integration import integration_service
+
+        organization_integrations = integration_service.get_organization_integrations(
+            providers=[self.provider], organization_id=self.project.organization_id
         )
+        integration_ids = [oi.integration_id for oi in organization_integrations]
+
+        return [
+            service
+            for service in PagerDutyService.objects.filter(
+                organization_id=self.project.organization_id, integration_id__in=integration_ids
+            ).values_list("id", "service_name")
+        ]
 
     def render_label(self):
         try:
@@ -99,5 +104,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
 
     def get_form_instance(self):
         return self.form_cls(
-            self.data, integrations=self.get_integrations(), services=self.get_services()
+            self.data,
+            integrations=self.get_integrations(),
+            services=self.get_services(),
         )

@@ -247,15 +247,17 @@ def record_first_replay(project, **kwargs):
 
 
 @first_cron_monitor_created.connect(weak=False)
-def record_first_cron_monitor(project, user, **kwargs):
-    project.update(flags=F("flags").bitor(Project.flags.has_cron_monitors))
+def record_first_cron_monitor(project, user, from_upsert, **kwargs):
+    updated = project.update(flags=F("flags").bitor(Project.flags.has_cron_monitors))
 
-    analytics.record(
-        "first_cron_monitor.created",
-        user_id=user.id if user else project.organization.default_owner_id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-    )
+    if updated:
+        analytics.record(
+            "first_cron_monitor.created",
+            user_id=user.id if user else project.organization.default_owner_id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            from_upsert=from_upsert,
+        )
 
 
 @first_cron_checkin_received.connect(weak=False)
@@ -533,6 +535,7 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
 
 @integration_added.connect(weak=False)
 def record_integration_added(integration, organization, user, **kwargs):
+    # TODO(Leander): This function must be executed on region after being prompted by control
     task = OrganizationOnboardingTask.objects.filter(
         organization_id=organization.id,
         task=OnboardingTask.INTEGRATIONS,

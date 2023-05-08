@@ -21,11 +21,11 @@ const withApi = <P extends InjectedApiProps>(
   WrappedComponent: React.ComponentType<P>,
   options: Parameters<typeof useApi>[0] = {}
 ) => {
-  const WithApi: React.FC<WrappedProps<P>> = ({api: propsApi, ...props}) => {
+  function WithApi({api: propsApi, ...props}: WrappedProps<P>) {
     const api = useApi({api: propsApi, ...options});
 
     return <WrappedComponent {...(props as P)} api={api} />;
-  };
+  }
 
   WithApi.displayName = `withApi(${getDisplayName(WrappedComponent)})`;
 
