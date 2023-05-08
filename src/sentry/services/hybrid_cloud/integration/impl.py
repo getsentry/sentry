@@ -18,6 +18,10 @@ from sentry.services.hybrid_cloud.integration import (
     RpcIntegration,
     RpcOrganizationIntegration,
 )
+from sentry.services.hybrid_cloud.integration.serial import (
+    serialize_integration,
+    serialize_organization_integration,
+)
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.shared_integrations.exceptions import ApiError
@@ -121,7 +125,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if limit is not None:
             integrations = integrations[:limit]
 
-        return [self._serialize_integration(integration) for integration in integrations]
+        return [serialize_integration(integration) for integration in integrations]
 
     def get_integration(
         self,
@@ -147,8 +151,11 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if not integration_kwargs:
             return None
 
-        integration = Integration.objects.filter(**integration_kwargs).first()
-        return self._serialize_integration(integration) if integration else None
+        try:
+            integration = Integration.objects.get(**integration_kwargs)
+        except Integration.DoesNotExist:
+            return None
+        return serialize_integration(integration)
 
     def get_organization_integrations(
         self,
@@ -186,7 +193,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if limit is not None:
             ois = ois[:limit]
 
-        return [self._serialize_organization_integration(oi) for oi in ois]
+        return [serialize_organization_integration(oi) for oi in ois]
 
     def get_organization_context(
         self,
@@ -226,8 +233,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
             organization_id=organization_id,
         )
         return (
-            self._serialize_integration(integration),
-            [self._serialize_organization_integration(oi) for oi in organization_integrations],
+            serialize_integration(integration),
+            [serialize_organization_integration(oi) for oi in organization_integrations],
         )
 
     def update_integrations(
@@ -255,7 +262,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         integrations.update(**integration_kwargs)
 
-        return [self._serialize_integration(integration) for integration in integrations]
+        return [serialize_integration(integration) for integration in integrations]
 
     def update_integration(
         self,
@@ -271,7 +278,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             status=status,
             metadata=metadata,
         )
-        return self._serialize_integration(integrations[0]) if len(integrations) > 0 else None
+        return serialize_integration(integrations[0]) if len(integrations) > 0 else None
 
     def update_organization_integrations(
         self,
@@ -301,7 +308,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         ois.update(**oi_kwargs)
 
-        return [self._serialize_organization_integration(oi) for oi in ois]
+        return [serialize_organization_integration(oi) for oi in ois]
 
     def update_organization_integration(
         self,
@@ -319,7 +326,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             grace_period_end=grace_period_end,
             set_grace_period_end_null=set_grace_period_end_null,
         )
-        return self._serialize_organization_integration(ois[0]) if len(ois) > 0 else None
+        return serialize_organization_integration(ois[0]) if len(ois) > 0 else None
 
     def send_incident_alert_notification(
         self,

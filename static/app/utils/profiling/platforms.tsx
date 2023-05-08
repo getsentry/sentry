@@ -15,6 +15,7 @@ export const supportedProfilingPlatformSDKs = [
   'ruby',
   'javascript-nextjs',
   'javascript-remix',
+  'javascript-sveltekit',
 ] as const;
 export type SupportedProfilingPlatform = (typeof supportedProfilingPlatforms)[number];
 export type SupportedProfilingPlatformSDK =
@@ -44,6 +45,9 @@ export function getDocsPlatformSDKForPlatform(
   }
   if (platform === 'javascript-remix') {
     return 'javascript-remix';
+  }
+  if (platform === 'javascript-sveltekit') {
+    return 'javascript-sveltekit';
   }
 
   // Python
