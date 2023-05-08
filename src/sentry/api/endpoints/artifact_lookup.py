@@ -22,7 +22,7 @@ logger = logging.getLogger("sentry.api")
 # The marker for "release" bundles
 RELEASE_BUNDLE_TYPE = "release.bundle"
 # The number of bundles ("artifact" or "release") that we query
-MAX_BUNDLES_QUERY = 4
+MAX_BUNDLES_QUERY = 5
 # The number of files returned by the `get_releasefiles` query
 MAX_RELEASEFILES_QUERY = 10
 
