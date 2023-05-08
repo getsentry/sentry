@@ -19,6 +19,7 @@ def break_inviter_fk():
                 related_name="sentry_inviter_set",
                 to=settings.AUTH_USER_MODEL,
                 db_constraint=False,
+                db_index=True,
             ),
         ),
     ]
@@ -26,7 +27,7 @@ def break_inviter_fk():
     state_operations = [
         migrations.AlterField(
             model_name="organizationmember",
-            name="inviter_id",
+            name="inviter",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                 settings.AUTH_USER_MODEL, blank=True, db_index=True, null=True, on_delete="SET_NULL"
             ),
