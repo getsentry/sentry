@@ -7,7 +7,7 @@ import {OnboardingContextProvider} from 'sentry/components/onboarding/onboarding
 import {PRODUCT} from 'sentry/components/onboarding/productSelection';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
-import SetupDocs from 'sentry/views/onboarding/setUp';
+import {Setup} from 'sentry/views/onboarding/setUp';
 
 const PROJECT_KEY = TestStubs.ProjectKeys()[0];
 
@@ -91,7 +91,7 @@ describe('Onboarding Setup Docs', function () {
 
     render(
       <OnboardingContextProvider>
-        <SetupDocs
+        <Setup
           active
           onComplete={() => {}}
           stepIndex={2}
@@ -150,7 +150,7 @@ describe('Onboarding Setup Docs', function () {
 
       render(
         <OnboardingContextProvider>
-          <SetupDocs
+          <Setup
             active
             onComplete={() => {}}
             stepIndex={2}
@@ -209,7 +209,7 @@ describe('Onboarding Setup Docs', function () {
 
       render(
         <OnboardingContextProvider>
-          <SetupDocs
+          <Setup
             active
             onComplete={() => {}}
             stepIndex={2}
@@ -262,7 +262,7 @@ describe('Onboarding Setup Docs', function () {
 
       render(
         <OnboardingContextProvider>
-          <SetupDocs
+          <Setup
             active
             onComplete={() => {}}
             stepIndex={2}
@@ -315,7 +315,7 @@ describe('Onboarding Setup Docs', function () {
 
       render(
         <OnboardingContextProvider>
-          <SetupDocs
+          <Setup
             active
             onComplete={() => {}}
             stepIndex={2}
@@ -376,7 +376,7 @@ describe('Onboarding Setup Docs', function () {
 
       const {rerender} = render(
         <OnboardingContextProvider>
-          <SetupDocs
+          <Setup
             active
             onComplete={() => {}}
             stepIndex={2}
@@ -422,7 +422,7 @@ describe('Onboarding Setup Docs', function () {
       };
       rerender(
         <OnboardingContextProvider>
-          <SetupDocs
+          <Setup
             active
             onComplete={() => {}}
             stepIndex={2}
