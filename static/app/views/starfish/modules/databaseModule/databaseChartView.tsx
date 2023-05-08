@@ -12,12 +12,17 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {
+  useGetTransactionsForTables,
   useQueryDbOperations,
   useQueryDbTables,
   useQueryTopDbOperationsChart,
   useQueryTopTablesChart,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
-import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
+import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
+import {
+  datetimeToClickhouseFilterTimestamps,
+  getDateFilters,
+} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 const INTERVAL = 12;
@@ -51,6 +56,7 @@ function parseOptions(options, label) {
 export default function DatabaseChartView({action, table, onChange}: Props) {
   const pageFilter = usePageFilters();
   const theme = useTheme();
+  const {startTime, endTime} = getDateFilters(pageFilter);
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
     pageFilter.selection.datetime
   );
@@ -89,6 +95,26 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
       });
     });
   }
+
+  const tableNames = [...new Set(tableGraphData.map(d => d.domain))];
+  const {isLoading: isTopTransactionDataLoading, data: topTransactionsData} =
+    useGetTransactionsForTables(tableNames, INTERVAL);
+
+  const tpmTransactionSeries = queryToSeries(
+    topTransactionsData,
+    'transaction',
+    'count',
+    startTime,
+    endTime
+  );
+
+  const p75TransactionSeries = queryToSeries(
+    topTransactionsData,
+    'transaction',
+    'p75',
+    startTime,
+    endTime
+  );
 
   const topDomains = Object.values(seriesByDomain).map(series =>
     zeroFillSeries(
@@ -134,37 +160,20 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
     });
   }
 
-  const tpmData = Object.values(tpmByQuery).map(series =>
-    zeroFillSeries(
-      series,
-      moment.duration(INTERVAL, 'hours'),
-      moment(start_timestamp),
-      moment(end_timestamp)
-    )
-  );
-  const topData = Object.values(seriesByQuery).map(series =>
-    zeroFillSeries(
-      series,
-      moment.duration(INTERVAL, 'hours'),
-      moment(start_timestamp),
-      moment(end_timestamp)
-    )
-  );
-
   const chartColors = [...theme.charts.getColorPalette(6).slice(2, 7), theme.gray300];
 
   return (
     <Fragment>
       <ChartsContainer>
         <ChartsContainerItem>
-          <ChartPanel title={t('Slowest Operations P75')}>
+          <ChartPanel title={t('Top Transactions P75')}>
             <Chart
               statsPeriod="24h"
               height={180}
-              data={topData}
+              data={p75TransactionSeries}
               start=""
               end=""
-              loading={isTopGraphLoading}
+              loading={isTopTransactionDataLoading}
               utc={false}
               grid={{
                 left: '0',
@@ -179,14 +188,14 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
           </ChartPanel>
         </ChartsContainerItem>
         <ChartsContainerItem>
-          <ChartPanel title={t('Operation Throughput')}>
+          <ChartPanel title={t('Top Transactions Throughput')}>
             <Chart
               statsPeriod="24h"
               height={180}
-              data={tpmData}
+              data={tpmTransactionSeries}
               start=""
               end=""
-              loading={isTopGraphLoading}
+              loading={isTopTransactionDataLoading}
               utc={false}
               grid={{
                 left: '0',

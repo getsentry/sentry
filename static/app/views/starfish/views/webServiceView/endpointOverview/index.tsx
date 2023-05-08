@@ -41,6 +41,11 @@ const HTTP_SPAN_COLUMN_ORDER = [
     width: 350,
   },
   {
+    key: 'p50_trend',
+    name: 'p50 Trend',
+    width: 200,
+  },
+  {
     key: 'p50(exclusive_time)',
     name: 'p50',
     width: COL_WIDTH_UNDEFINED,

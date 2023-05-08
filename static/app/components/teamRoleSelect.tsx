@@ -66,7 +66,8 @@ function TeamRoleSelect({
 
   const teamRoleId =
     member.teamRole || // From TeamMemberEndpoint
-    member.teamRoles.find(tr => tr.teamSlug === team.slug)?.role; // From OrgMemberDetailEndpoint
+    member.teamRoles?.find(tr => tr.teamSlug === team.slug)?.role || // From OrgMemberDetailEndpoint
+    null;
   const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];
 
   return (

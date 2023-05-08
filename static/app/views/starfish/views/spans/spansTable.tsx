@@ -7,6 +7,7 @@ import GridEditable, {
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
@@ -127,6 +128,14 @@ function renderBodyCell(column: GridColumnHeader, row: SpanDataRow): React.React
     );
   }
 
+  if (column.key === 'description') {
+    return (
+      <Link to={`/starfish/span/${encodeURIComponent(row.group_id)}`}>
+        {row.description}
+      </Link>
+    );
+  }
+
   if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
     return <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
   }
@@ -141,11 +150,6 @@ const COLUMN_ORDER = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'action',
-    name: 'Action',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
     key: 'description',
     name: 'Description',
     width: COL_WIDTH_UNDEFINED,
@@ -153,11 +157,6 @@ const COLUMN_ORDER = [
   {
     key: 'total_exclusive_time',
     name: 'Exclusive Time',
-    width: 250,
-  },
-  {
-    key: 'p95_trend',
-    name: 'p95 Trend',
     width: 250,
   },
   {
@@ -171,23 +170,8 @@ const COLUMN_ORDER = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p999',
-    name: 'p99.9',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'count',
-    name: 'Count',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'transaction_count',
-    name: 'Transactions',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'count_per_transaction',
-    name: 'Spans per Transaction',
-    width: COL_WIDTH_UNDEFINED,
+    key: 'p95_trend',
+    name: 'p95 Trend',
+    width: 250,
   },
 ];
