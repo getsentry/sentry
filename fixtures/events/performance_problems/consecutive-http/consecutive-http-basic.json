@@ -1108,7 +1108,6 @@
   "measurements": {
     "connection.rtt": {"value": 2150.0, "unit": "millisecond"},
     "fcp": {"value": 15997.49994277954, "unit": "millisecond"},
-    "lcp": {"value": 30000.49994277954, "unit": "millisecond"},
     "fp": {"value": 15997.49994277954, "unit": "millisecond"},
     "ttfb": {"value": 3169.8999404907227, "unit": "millisecond"},
     "ttfb.requesttime": {"value": 3157.2999954223633, "unit": "millisecond"}
@@ -1126,7 +1125,7 @@
     ]
   },
   "sdk": {
-    "name": "sentry.javascript.react",
+    "name": "sentry.javascript.node",
     "version": "7.39.0",
     "integrations": [
       "InboundFilters",
