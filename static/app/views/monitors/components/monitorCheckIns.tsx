@@ -31,7 +31,10 @@ type State = {
   checkInList: CheckIn[];
 };
 
-const checkStatusToIndicatorStatus: Record<CheckInStatus, string> = {
+const checkStatusToIndicatorStatus: Record<
+  CheckInStatus,
+  React.ComponentProps<typeof StatusIndicator>['status']
+> = {
   [CheckInStatus.OK]: 'success',
   [CheckInStatus.ERROR]: 'error',
   [CheckInStatus.IN_PROGRESS]: 'muted',

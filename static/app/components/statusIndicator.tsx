@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Tooltip} from 'sentry/components/tooltip';
 
 type Props = {
-  status: string;
+  status: 'muted' | 'info' | 'warning' | 'success' | 'resolved' | 'error';
   tooltipTitle: React.ReactNode;
 };
 
