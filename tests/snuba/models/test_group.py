@@ -101,6 +101,5 @@ class GroupTestSnuba(TestCase, SnubaTestCase):
             )
         perf_group = self.transaction_event_1.groups[0]
 
-        with self.feature("organizations:issue-platform-search-perf-issues"):
-            assert perf_group.get_latest_event_for_environments().event_id == "d" * 32
-            assert perf_group.get_oldest_event_for_environments().event_id == "f" * 32
+        assert perf_group.get_latest_event_for_environments().event_id == "d" * 32
+        assert perf_group.get_oldest_event_for_environments().event_id == "f" * 32

@@ -638,10 +638,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             "query": f"project:{self.project.slug} issue:{event.groups[0].qualified_short_id}",
             "dataset": "issuePlatform",
         }
-        with self.feature(
-            ["organizations:issue-platform-search-perf-issues", "organizations:profiling"]
-        ):
-            response = self.do_request(query)
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 

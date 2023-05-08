@@ -680,13 +680,12 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             },
         ]
 
-        with self.feature("organizations:issue-platform-search-perf-issues"):
-            result = preview(self.project, conditions, [], *MATCH_ARGS)
-            assert group.id in result
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert group.id in result
 
-            conditions[1]["value"] = 1
-            result = preview(self.project, conditions, [], *MATCH_ARGS)
-            assert group.id not in result
+        conditions[1]["value"] = 1
+        result = preview(self.project, conditions, [], *MATCH_ARGS)
+        assert group.id not in result
 
     def test_no_activity_event_filter(self):
         conditions = [

@@ -2529,7 +2529,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         group_type = PerformanceNPlusOneGroupType
         self.project.update_option("sentry:performance_issue_create_issue_through_platform", True)
 
-        with self.feature("organizations:issue-platform-search-perf-issues"), self.options(
+        with self.options(
             {"performance.issues.create_issues_through_platform": True}
         ), mock.patch.object(
             PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
