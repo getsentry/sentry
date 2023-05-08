@@ -144,10 +144,20 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
             }),
         };
       case GroupInboxReason.NEW:
-      default:
         return {
           tagType: 'warning',
           reasonBadgeText: t('New Issue'),
+          tooltipText:
+            dateAdded &&
+            t('Created %(relative)s', {
+              relative: relativeDateAdded,
+            }),
+        };
+      case GroupInboxReason.ONGOING:
+      default:
+        return {
+          tagType: 'info',
+          reasonBadgeText: t('Ongoing'),
           tooltipText:
             dateAdded &&
             t('Created %(relative)s', {
