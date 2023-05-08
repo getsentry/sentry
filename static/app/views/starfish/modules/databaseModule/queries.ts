@@ -198,20 +198,6 @@ export const useGetTransactionsForTables = (
 
   const transactionNameQuery = getTransactionsFromTableSubquery(tableNames, dateFilters);
 
-  // const transactionNameQuery = `
-  //   SELECT
-  //     transaction,
-  //     floor(quantile(0.75)(exclusive_time), 5) as p75,
-  //     count() as count,
-  //     toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
-  //   FROM default.spans_experimental_starfish
-  //   WHERE
-  //     ${filters.join(' AND ')}
-  //     ${dateFilters}
-  //   GROUP BY interval, transaction
-  //   ORDER BY interval
-  // `;
-
   const {start, end, period} = pageFilter.selection.datetime;
 
   const result1 = useQuery<{transaction: string}[]>({
