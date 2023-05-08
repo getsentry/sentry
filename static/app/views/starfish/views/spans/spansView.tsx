@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useQueries, useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import keyBy from 'lodash/keyBy';
+import _orderBy from 'lodash/orderBy';
 import sumBy from 'lodash/sumBy';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -118,16 +119,20 @@ export default function SpansView(props: Props) {
 
           const clusters = Object.keys(exclusiveTimeBySubCluster);
 
-          const segments = (clusters || []).map(clusterName => {
-            const subCluster = CLUSTERS[clusterName];
+          const segments = _orderBy(
+            (clusters || []).map(clusterName => {
+              const subCluster = CLUSTERS[clusterName];
 
-            return {
-              name: subCluster?.label || clusterName,
-              value: clusterName,
-              count: exclusiveTimeBySubCluster[clusterName]?.exclusive_time,
-              url: '',
-            };
-          });
+              return {
+                name: subCluster?.label || clusterName,
+                value: clusterName,
+                count: exclusiveTimeBySubCluster[clusterName]?.exclusive_time,
+                url: '',
+              };
+            }),
+            'count',
+            'desc'
+          );
 
           if (segments.length === 0) {
             return null;
