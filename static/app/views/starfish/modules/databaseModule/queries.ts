@@ -181,40 +181,97 @@ export const useQueryTopDbOperationsChart = (
   });
 };
 
-export const useGetTransactionsForTables = (tableNames: string[], interval: number) => {
+type TopTransactionData = {
+  interval: string;
+  transaction: string;
+  epm?: number;
+  p75?: number;
+};
+
+export const useGetTransactionsForTables = (
+  tableNames: string[],
+  interval: number
+): DefinedUseQueryResult<TopTransactionData[]> => {
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
-  const transactionFilter = `transaction IN (${getTransactionsFromTableSubquery(
-    tableNames,
-    dateFilters
-  )})`;
 
-  const filters = [transactionFilter];
+  const transactionNameQuery = getTransactionsFromTableSubquery(tableNames, dateFilters);
 
-  const query = `
-    SELECT
-      transaction,
-      floor(quantile(0.75)(exclusive_time), 5) as p75,
-      count() as count,
-      toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
-    FROM default.spans_experimental_starfish
-    WHERE
-      ${filters.join(' AND ')}
-      ${dateFilters}
-    GROUP BY interval, transaction
-    ORDER BY interval
-  `;
+  // const transactionNameQuery = `
+  //   SELECT
+  //     transaction,
+  //     floor(quantile(0.75)(exclusive_time), 5) as p75,
+  //     count() as count,
+  //     toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
+  //   FROM default.spans_experimental_starfish
+  //   WHERE
+  //     ${filters.join(' AND ')}
+  //     ${dateFilters}
+  //   GROUP BY interval, transaction
+  //   ORDER BY interval
+  // `;
 
-  const {start, end} = pageFilter.selection.datetime;
+  const {start, end, period} = pageFilter.selection.datetime;
 
-  return useQuery({
+  const result1 = useQuery<{transaction: string}[]>({
     enabled: !!tableNames?.length,
-    queryKey: ['topTable', tableNames.join(','), start, end],
-    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    queryKey: ['topTransactionNames', tableNames.join(','), start, end],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${transactionNameQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
+
+  const queryParams = [
+    'dataset=metricsEnhanced',
+    'excludeOther=1',
+    'field=transaction',
+    `field=epm%28%29`,
+    `field=p75%28transaction.duration%29`,
+    `interval=${interval}h`,
+    'partial=1',
+    `query=${encodeURIComponent(
+      `transaction:[${result1.data?.map(d => d.transaction).join(',')}]`
+    )}`,
+    `statsPeriod=${period}`,
+    'topEvents=5',
+    `yAxis=epm%28%29`,
+    `yAxis=p75%28transaction.duration%29`,
+    'project=1',
+  ].join('&');
+
+  const result2 = useQuery({
+    enabled: !!result1.data?.length,
+    queryKey: ['topTransactionP75Epm', tableNames.join(','), start, end],
+    queryFn: () =>
+      fetch(`/api/0/organizations/sentry/events-stats/?${queryParams}`).then(res =>
+        res.json()
+      ),
+    retry: false,
+    initialData: [],
+  });
+  const data: TopTransactionData[] = [];
+  if (!result2.isLoading && result2.data) {
+    Object.entries(result2.data).forEach(([transactionName, result]: [string, any]) => {
+      result['epm()'].data.forEach(entry => {
+        data.push({
+          transaction: transactionName,
+          interval: unix(entry[0]).format('YYYY-MM-DDTHH:mm:ss'),
+          epm: entry[1][0].count,
+        });
+      });
+      result['p75(transaction.duration)'].data.forEach(entry => {
+        data.push({
+          transaction: transactionName,
+          interval: unix(entry[0]).format('YYYY-MM-DDTHH:mm:ss'),
+          p75: entry[1][0].count,
+        });
+      });
+    });
+  }
+
+  return {...result2, data};
 };
 
 export const useQueryTopTablesChart = (

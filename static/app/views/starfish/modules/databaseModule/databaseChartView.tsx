@@ -101,7 +101,7 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
   const tpmTransactionSeries = queryToSeries(
     topTransactionsData,
     'transaction',
-    'count',
+    'epm',
     startTime,
     endTime
   );
