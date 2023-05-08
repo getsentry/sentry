@@ -338,6 +338,18 @@ function useFetchGroupDetails({
         query: getGroupQuery({environments}),
       });
 
+      const reprocessingNewRoute = getReprocessingNewRoute({
+        group: groupResponse,
+        event: event ?? null,
+        router,
+        organization,
+      });
+
+      if (reprocessingNewRoute) {
+        browserHistory.push(reprocessingNewRoute);
+        return;
+      }
+
       fetchGroupReleases();
 
       const matchingProject = projects?.find(p => p.id === groupResponse.project.id);
@@ -393,6 +405,8 @@ function useFetchGroupDetails({
     organization,
     params,
     projects,
+    event,
+    router,
   ]);
 
   // Refetch when group is stale
@@ -406,22 +420,6 @@ function useFetchGroupDetails({
       }
     }
   }, [fetchData, group]);
-
-  useEffect(() => {
-    if (group && event) {
-      const reprocessingNewRoute = getReprocessingNewRoute({
-        group,
-        event,
-        router,
-        organization,
-      });
-
-      if (reprocessingNewRoute) {
-        browserHistory.push(reprocessingNewRoute);
-        return;
-      }
-    }
-  }, [group, event, organization, router]);
 
   useTrackView({group, event: event ?? null, project});
 
