@@ -212,14 +212,20 @@ def adjust_sample_rates(
     if sample_rate is None:
         return
 
+    projects_with_counts = {
+        project_id: count_per_root for project_id, count_per_root, _, _ in projects_with_tx_count
+    }
     all_projects_ids = Project.objects.filter(organization=organization).values_list(
         "id", flat=True
     )
     for project_id in all_projects_ids:
-        pass
+        # In case a specific project has not been considered in the count query, it means that no metrics were extracted
+        # for it, thus we consider it as having 0 transactions for the query's time window.
+        if project_id not in projects_with_counts:
+            projects_with_counts[project_id] = 0
 
     projects = []
-    for project_id, count_per_root, count_keep, count_drop in projects_with_tx_count:
+    for project_id, count_per_root in projects_with_counts.items():
         projects.append(
             DSElement(
                 id=project_id,

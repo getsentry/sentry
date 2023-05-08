@@ -32,13 +32,11 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
     def now(self):
         return MOCK_DATETIME
 
-    def create_project_and_add_metrics(self, name, count, org, tags=None):
+    def create_project_and_add_metrics(self, name, count, org, tags=None, store_metric=True):
         if tags is None:
             tags = {"transaction": "foo_transaction"}
-        # Create 4 projects
-        proj = self.create_project(name=name, organization=org)
 
-        # disable all biases
+        proj = self.create_project(name=name, organization=org)
         proj.update_option(
             "sentry:dynamic_sampling_biases",
             [
@@ -50,15 +48,17 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             ],
         )
-        # Store performance metrics for proj A
-        self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags=tags,
-            minutes_before_now=30,
-            value=count,
-            project_id=proj.id,
-            org_id=org.id,
-        )
+
+        if store_metric:
+            self.store_performance_metric(
+                name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags=tags,
+                minutes_before_now=30,
+                value=count,
+                project_id=proj.id,
+                org_id=org.id,
+            )
+
         return proj
 
     @staticmethod
@@ -112,6 +112,44 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
             "value": pytest.approx(0.4444444444444444),
         }
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
+
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    def test_prioritise_projects_simple_with_empty_project(
+        self,
+        get_blended_sample_rate,
+    ):
+        get_blended_sample_rate.return_value = 0.25
+        # Create a org
+        test_org = self.create_organization(name="sample-org")
+
+        # Create 4 projects
+        proj_a = self.create_project_and_add_metrics("a", 9, test_org)
+        proj_b = self.create_project_and_add_metrics("b", 7, test_org)
+        proj_c = self.create_project_and_add_metrics("c", 3, test_org)
+        proj_d = self.create_project_and_add_metrics("d", 1, test_org)
+        proj_e = self.create_project_and_add_metrics("e", 0, test_org, store_metric=False)
+
+        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
+            with self.tasks():
+                sliding_window_org()
+                prioritise_projects()
+
+        # we expect only uniform rule
+        # also we test here that `generate_rules` can handle trough redis long floats
+        assert generate_rules(proj_a)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.14814814814814817),
+        }
+        assert generate_rules(proj_b)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.1904761904761905),
+        }
+        assert generate_rules(proj_c)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.4444444444444444),
+        }
+        assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
+        assert generate_rules(proj_e)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
