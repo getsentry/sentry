@@ -37,7 +37,7 @@ def adjust_sample_rates(
     classes = sorted(classes, key=lambda x: (x.count, x.id), reverse=True)
 
     # total count for the explicitly specified classes
-    total_explicit = get_total(classes)
+    total_explicit = sum_counts(classes)
 
     if total is None:
         total = total_explicit
@@ -139,7 +139,7 @@ def _adjust_sample_rates_full(
     minimum_consumption if passed)
     """
 
-    total = get_total(classes)
+    total = sum_counts(classes)
     num_classes = len(classes)
 
     if min_budget is None:
@@ -180,7 +180,7 @@ def _adjust_sample_rates_full(
     return ret_val, used_budget
 
 
-def get_total(transactions: List[DSElement]) -> float:
+def sum_counts(transactions: List[DSElement]) -> float:
     ret_val = 0.0
     for elm in transactions:
         ret_val += elm.count

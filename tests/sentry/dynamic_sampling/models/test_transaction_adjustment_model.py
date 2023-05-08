@@ -2,7 +2,7 @@ from typing import List, Mapping
 
 import pytest
 
-from sentry.dynamic_sampling.models.utils import DSElement, adjust_sample_rates, get_total
+from sentry.dynamic_sampling.models.utils import DSElement, adjust_sample_rates, sum_counts
 
 
 def create_transaction_counts(big: int, med: int, small: int):
@@ -53,7 +53,7 @@ def test_maintains_overall_sample_rate(intensity, sample_rate, transactions, idx
     Tests that the overall sampling rate is maintained after applying new rates
     """
     explict_transactions = transactions[idx_low:idx_high]
-    total = get_total(transactions)
+    total = sum_counts(transactions)
     total_classes = len(transactions)
 
     trans, global_rate = adjust_sample_rates(
@@ -86,7 +86,7 @@ def test_explicit_elements_ideal_rate(sample_rate, transactions, idx_low, idx_hi
     * the budget per transaction
     """
     explict_transactions = transactions[idx_low:idx_high]
-    total = get_total(transactions)
+    total = sum_counts(transactions)
     total_classes = len(transactions)
 
     trans, global_rate = adjust_sample_rates(
