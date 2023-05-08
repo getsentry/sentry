@@ -6,7 +6,6 @@ from django.db.models import QuerySet
 
 from sentry.api.serializers.base import Serializer
 from sentry.models.options.user_option import UserOption
-from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import (
     FilterQueryDatabaseImpl,
     OpaqueSerializedResponse,
@@ -25,9 +24,8 @@ class DatabaseBackedUserOptionService(UserOptionService):
         *,
         filter: UserOptionFilterArgs,
         as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
     ) -> List[OpaqueSerializedResponse]:
-        return self._FQ.serialize_many(filter, as_user, auth_context)
+        return self._FQ.serialize_many(filter, as_user)
 
     def get_many(self, *, filter: UserOptionFilterArgs) -> List[RpcUserOption]:
         return self._FQ.get_many(filter)

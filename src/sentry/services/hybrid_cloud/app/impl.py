@@ -23,7 +23,6 @@ from sentry.services.hybrid_cloud.app.serial import (
     serialize_sentry_app,
     serialize_sentry_app_installation,
 )
-from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import (
     FilterQueryDatabaseImpl,
     OpaqueSerializedResponse,
@@ -37,9 +36,8 @@ class DatabaseBackedAppService(AppService):
         *,
         filter: SentryAppInstallationFilterArgs,
         as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
     ) -> List[OpaqueSerializedResponse]:
-        return self._FQ.serialize_many(filter, as_user, auth_context)
+        return self._FQ.serialize_many(filter, as_user)
 
     def get_many(
         self, *, filter: SentryAppInstallationFilterArgs

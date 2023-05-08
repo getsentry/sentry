@@ -14,7 +14,6 @@ from sentry.db.models import BaseQuerySet
 from sentry.db.models.query import in_iexact
 from sentry.models.group import Group
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import (
     FilterQueryDatabaseImpl,
     OpaqueSerializedResponse,
@@ -35,10 +34,9 @@ class DatabaseBackedUserService(UserService):
         *,
         filter: UserFilterArgs,
         as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
         serializer: Optional[UserSerializeType] = None,
     ) -> List[OpaqueSerializedResponse]:
-        return self._FQ.serialize_many(filter, as_user, auth_context, serializer)
+        return self._FQ.serialize_many(filter, as_user, serializer)
 
     def get_many(self, *, filter: UserFilterArgs) -> List[RpcUser]:
         return self._FQ.get_many(filter)

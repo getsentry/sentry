@@ -7,7 +7,6 @@ from django.db.models import QuerySet
 
 if TYPE_CHECKING:
     from sentry.api.serializers import Serializer
-    from sentry.services.hybrid_cloud.auth import AuthenticationContext
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
@@ -33,7 +32,7 @@ OpaqueSerializedResponse = Any
 # E.g.
 # class DatabaseBackedUserService(UserService):
 #     def serialize_many(...) -> List[OpaqueSerializedResponse]:
-#         return self._FQ.serialize_many(filter, as_user, auth_context, serializer)
+#         return self._FQ.serialize_many(filter, as_user, serializer)
 #
 #     class _UserFilterQuery(FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType]):
 #        ...
@@ -100,13 +99,9 @@ class FilterQueryDatabaseImpl(
         self,
         filter: FILTER_ARGS,
         as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
         serializer: Optional[SERIALIZER_ENUM] = None,
     ) -> List[OpaqueSerializedResponse]:
         from sentry.api.serializers import serialize
-
-        if as_user is None and auth_context:
-            as_user = auth_context.user
 
         return serialize(  # type: ignore
             self._query_many(filter=filter),

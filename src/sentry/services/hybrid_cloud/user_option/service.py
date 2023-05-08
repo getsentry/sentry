@@ -6,7 +6,6 @@
 from abc import abstractmethod
 from typing import Any, List, Optional, cast
 
-from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -47,7 +46,6 @@ class UserOptionService(RpcService):
         *,
         filter: UserOptionFilterArgs,
         as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
     ) -> List[OpaqueSerializedResponse]:
         pass
 

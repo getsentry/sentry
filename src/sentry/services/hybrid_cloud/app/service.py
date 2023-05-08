@@ -21,7 +21,6 @@ from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
-    from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
 class AppService(RpcService):
@@ -41,7 +40,6 @@ class AppService(RpcService):
         *,
         filter: SentryAppInstallationFilterArgs,
         as_user: Optional[RpcUser] = None,
-        auth_context: Optional["AuthenticationContext"] = None,
     ) -> List[OpaqueSerializedResponse]:
         pass
 

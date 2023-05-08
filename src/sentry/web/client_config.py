@@ -230,13 +230,11 @@ def get_client_config(request=None):
         },
     }
     if user and user.is_authenticated:
+        auth_context = AuthenticationContext(auth=getattr(request, "auth", None), user=request.user)
         (serialized_user,) = user_service.serialize_many(
             filter={"user_ids": [user.id]},
             serializer=UserSerializeType.SELF_DETAILED,
-            auth_context=AuthenticationContext(
-                auth=getattr(request, "auth", None),
-                user=request.user,
-            ),
+            as_user=auth_context.user,
         )
         context.update(
             {

@@ -18,7 +18,6 @@ from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.models import Group
-    from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
 class UserService(RpcService):
@@ -38,7 +37,6 @@ class UserService(RpcService):
         *,
         filter: UserFilterArgs,
         as_user: Optional[RpcUser] = None,
-        auth_context: Optional["AuthenticationContext"] = None,
         serializer: Optional[UserSerializeType] = None,
     ) -> List[OpaqueSerializedResponse]:
         pass
