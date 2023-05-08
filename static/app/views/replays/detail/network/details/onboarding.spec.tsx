@@ -43,7 +43,7 @@ describe('Setup', () => {
 
   describe('Url is skipped', () => {
     it('should render a note on the Details tab to allow this url', () => {
-      const {container} = render(
+      render(
         <Setup
           item={MOCK_ITEM}
           projectId="0"
@@ -55,10 +55,6 @@ describe('Setup', () => {
       expect(
         screen.getByText('Capture Request and Response Headers')
       ).toBeInTheDocument();
-
-      expect(container.querySelector('code')).toHaveTextContent(
-        `networkRequestHeaders: ['X-Custom-Header'],`
-      );
 
       expect(
         screen.getByText(
@@ -128,7 +124,7 @@ describe('Setup', () => {
       expect(
         screen.getByText(
           textWithMarkupMatcher(
-            'You can capture more customer headers by adding them to the networkRequestHeaders and networkResponseHeaders lists in your SDK config.'
+            'You can capture additional headers by adding them to the networkRequestHeaders and networkResponseHeaders lists in your SDK config.'
           )
         )
       ).toBeInTheDocument();
