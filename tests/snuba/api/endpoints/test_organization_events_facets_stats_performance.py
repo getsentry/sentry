@@ -106,6 +106,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
             "count_delta": -1.0,
             "count_range_1": 5,
             "count_range_total": 5,
+            "sum_correlation": 0.9718819143525331,
         }
 
         assert data["color,blue"]
