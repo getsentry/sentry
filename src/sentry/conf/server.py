@@ -933,6 +933,11 @@ CELERYBEAT_SCHEDULE = {
         # Run every 10 minutes
         "schedule": crontab(minute="*/10"),
     },
+    "dynamic-sampling-sliding-window-org": {
+        "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
+    },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results

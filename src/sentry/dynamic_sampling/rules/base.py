@@ -26,7 +26,10 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
     if sample_rate is None:
         raise Exception("get_blended_sample_rate returns none")
 
-    if features.has("organizations:ds-sliding-window", organization, actor=None):
+    # We want to use the normal sliding window only if the sliding window at the org level is disabled.
+    if not features.has(
+        "organizations:ds-sliding-window-org", organization, actor=None
+    ) and features.has("organizations:ds-sliding-window", organization, actor=None):
         # In case we didn't find the sliding window sample rate, we assume the project is new, and we give it a 100%
         # sample rate. Note that technically if there is no value in cache an error might have happened, but we are
         # tracking those errors, thus if they happen lots of time we are going to implement a proper fallback
