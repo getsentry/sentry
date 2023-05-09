@@ -195,7 +195,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             )
 
         if self.should_add_creator_to_team(request):
-            cleanup_needed = False
+            cleanup_needed = True
             try:
                 with transaction.atomic():
                     member = OrganizationMember.objects.get(
@@ -206,21 +206,15 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                         organizationmember=member,
                         role="admin" if set_team_admin else None,
                     )
+                cleanup_needed = False
             except OrganizationMember.DoesNotExist:
                 if set_team_admin:
                     # delete team if we can't add the user as a team admin
-                    cleanup_needed = True
                     raise PermissionDenied(
                         detail="You must be a member of the organization to join a new team as a Team Admin"
                     )
-            # catch generic exception to ensure the team gets deleted if we can't add the user as
-            # a Team Admin
-            except Exception as err:
-                if set_team_admin:
-                    cleanup_needed = True
-                raise err
             finally:
-                if cleanup_needed:
+                if set_team_admin and cleanup_needed:
                     team.delete()
 
         self.create_audit_entry(
