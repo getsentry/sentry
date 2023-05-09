@@ -37,22 +37,12 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
 
     def __init__(
         self,
-        integration_id: int | None = None,
         org_integration_id: int | None = None,
         verify_ssl: bool = True,
         logging_context: Mapping[str, Any] | None = None,
     ) -> None:
         super().__init__(verify_ssl=verify_ssl, logging_context=logging_context)
-
-        self.integration_id = integration_id
         self.org_integration_id = org_integration_id
-
-        # if not self.integration_id and self.org_integration_id is not None:
-        #     integration = integration_service.get_integration(
-        #         organization_integration_id=self.org_integration_id
-        #     )
-        #     if integration:
-        #         self.integration_id = integration.id
 
         is_region_silo = SiloMode.get_current_mode() == SiloMode.REGION
         subnet_secret = getattr(settings, "SENTRY_SUBNET_SECRET", None)
