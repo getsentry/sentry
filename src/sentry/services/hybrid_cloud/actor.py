@@ -66,7 +66,13 @@ class RpcActor(RpcModel):
 
     @classmethod
     def from_orm_user(cls, user: "User", fetch_actor: bool = True) -> "RpcActor":
-        actor_id = get_actor_id_for_user(user) if fetch_actor else user.actor_id
+        actor_id = (
+            get_actor_id_for_user(user)
+            if fetch_actor
+            else user.actor_id
+            if hasattr(user, "actor_id")
+            else None
+        )
         return cls(
             id=user.id,
             actor_id=actor_id,
@@ -76,7 +82,13 @@ class RpcActor(RpcModel):
 
     @classmethod
     def from_rpc_user(cls, user: RpcUser, fetch_actor: bool = True) -> "RpcActor":
-        actor_id = get_actor_id_for_user(user) if fetch_actor else user.actor_id
+        actor_id = (
+            get_actor_id_for_user(user)
+            if fetch_actor
+            else user.actor_id
+            if hasattr(user, "actor_id")
+            else None
+        )
         return cls(
             id=user.id,
             actor_id=actor_id,
