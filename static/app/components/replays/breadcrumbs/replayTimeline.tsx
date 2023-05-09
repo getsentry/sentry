@@ -14,16 +14,8 @@ import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Resizeable} from 'sentry/components/replays/resizeable';
-import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 type Props = {};
-
-const USER_ACTIONS = [
-  BreadcrumbType.ERROR,
-  BreadcrumbType.NAVIGATION,
-  BreadcrumbType.UI,
-  BreadcrumbType.USER,
-];
 
 function ReplayTimeline({}: Props) {
   const {replay} = useReplayContext();
@@ -37,8 +29,7 @@ function ReplayTimeline({}: Props) {
 
   const durationMs = replay.getDurationMs();
   const startTimestampMs = replay.getReplay().started_at.getTime();
-  const crumbs = replay.getRawCrumbs();
-  const userCrumbs = crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
+  const userCrumbs = replay.getUserActionCrumbs();
   const networkSpans = replay.getNetworkSpans();
 
   return (

@@ -23,7 +23,6 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getNextReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
@@ -32,14 +31,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 const SECOND = 1000;
 
 const COMPACT_WIDTH_BREAKPOINT = 500;
-
-const USER_ACTIONS = [
-  BreadcrumbType.ERROR,
-  BreadcrumbType.INIT,
-  BreadcrumbType.NAVIGATION,
-  BreadcrumbType.UI,
-  BreadcrumbType.USER,
-];
 
 interface Props {
   speedOptions?: number[];
@@ -92,9 +83,8 @@ function ReplayPlayPauseBar() {
           if (!startTimestampMs) {
             return;
           }
-          const transformedCrumbs = replay?.getRawCrumbs() || [];
           const next = getNextReplayEvent({
-            items: transformedCrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type)),
+            items: replay?.getUserActionCrumbs() || [],
             targetTimestampMs: startTimestampMs + currentTime,
           });
 

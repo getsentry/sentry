@@ -9,7 +9,7 @@ import {
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
+import type {Crumb} from 'sentry/types/breadcrumbs';
 import ConsoleFilters from 'sentry/views/replays/detail/console/consoleFilters';
 import ConsoleLogRow from 'sentry/views/replays/detail/console/consoleLogRow';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
@@ -21,7 +21,7 @@ import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 import useVirtualizedInspector from '../useVirtualizedInspector';
 
 interface Props {
-  breadcrumbs: undefined | Extract<Crumb, BreadcrumbTypeDefault>[];
+  breadcrumbs: undefined | Crumb[];
   startTimestampMs: number;
 }
 
