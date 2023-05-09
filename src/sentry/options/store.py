@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import abc
 import dataclasses
 import logging
 from random import random
@@ -10,8 +9,6 @@ from typing import Any, Optional
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 from django.utils.functional import cached_property
-
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle
 
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
 CACHE_UPDATE_ERR = "Unable to update option cache for %s"
@@ -44,33 +41,7 @@ def _make_cache_value(key, value):
     return (value, now + key.ttl, now + key.ttl + key.grace)
 
 
-class AbstractOptionsStore(InterfaceWithLifecycle, abc.ABC):
-    @abc.abstractmethod
-    def get(self, key: Key, silent=False) -> Any | None:
-        pass
-
-    @abc.abstractmethod
-    def set(self, key: Key, value: Any) -> None:
-        pass
-
-    @abc.abstractmethod
-    def set_cache(self, key: Key, vlaue: Any) -> None:
-        pass
-
-    @abc.abstractmethod
-    def delete(self, key: Key) -> None:
-        pass
-
-    @abc.abstractmethod
-    def set_cache_impl(self, cache: Any) -> None:
-        pass
-
-    @abc.abstractmethod
-    def maybe_clean_local_cache(self):
-        pass
-
-
-class OptionsStore(AbstractOptionsStore):
+class OptionsStore:
     """
     Abstraction for the Option storage logic that should be driven
     by the OptionsManager.
@@ -89,8 +60,15 @@ class OptionsStore(AbstractOptionsStore):
 
     @cached_property
     def model(self):
-        from sentry.models.options import Option
+        return self.model_cls()
 
+    @classmethod
+    def model_cls(cls):
+        from sentry.models.options import ControlOption, Option
+        from sentry.silo import SiloMode
+
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            return ControlOption
         return Option
 
     def get(self, key, silent=False):

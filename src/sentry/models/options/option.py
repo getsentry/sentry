@@ -1,12 +1,11 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import Model, control_silo_only_model, sane_repr
+from sentry.db.models import Model, control_silo_only_model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.picklefield import PickledObjectField
 
 
-@control_silo_only_model
-class Option(Model):  # type: ignore
+class BaseOption(Model):  # type: ignore
     """
     Global options which apply in most situations as defaults,
     and generally can be overwritten by per-project options.
@@ -22,7 +21,28 @@ class Option(Model):  # type: ignore
     last_updated = models.DateTimeField(default=timezone.now)
 
     class Meta:
+        abstract = True
+
+    __repr__ = sane_repr("key", "value")
+
+
+@region_silo_only_model
+class Option(BaseOption):  # type: ignore
+    __include_in_export__ = True
+
+    class Meta:
         app_label = "sentry"
         db_table = "sentry_option"
+
+    __repr__ = sane_repr("key", "value")
+
+
+@control_silo_only_model
+class ControlOption(BaseOption):  # type: ignore
+    __include_in_export__ = False
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_controloption"
 
     __repr__ = sane_repr("key", "value")

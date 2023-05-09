@@ -1,5 +1,4 @@
 from html import escape
-from pprint import saferepr
 
 from django import forms
 from django.conf import settings
@@ -21,7 +20,6 @@ from sentry.models import (
     AuditLogEntry,
     AuthIdentity,
     AuthProvider,
-    Option,
     Organization,
     OrganizationMember,
     Project,
@@ -31,24 +29,6 @@ from sentry.models import (
 
 csrf_protect_m = method_decorator(csrf_protect)
 sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
-
-
-class OptionAdmin(admin.ModelAdmin):
-    list_display = ("key", "last_updated")
-    fields = ("key", "value_repr", "last_updated")
-    readonly_fields = ("key", "value_repr", "last_updated")
-    search_fields = ("key",)
-
-    def value_repr(self, instance):
-        return '<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(
-            escape(saferepr(instance.value))
-        )
-
-    value_repr.short_description = "Value"
-    value_repr.allow_tags = True
-
-
-admin.site.register(Option, OptionAdmin)
 
 
 class ProjectAdmin(admin.ModelAdmin):

@@ -5,7 +5,6 @@ import pytest
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
 
-from sentry.models import Option
 from sentry.options.manager import (
     DEFAULT_FLAGS,
     FLAG_IMMUTABLE,
@@ -18,9 +17,11 @@ from sentry.options.manager import (
 )
 from sentry.options.store import OptionsStore
 from sentry.testutils import TestCase
+from sentry.testutils.silo import all_silo_test
 from sentry.utils.types import Int, String
 
 
+@all_silo_test(stable=True)
 class OptionsManagerTest(TestCase):
     @cached_property
     def store(self):
@@ -149,7 +150,7 @@ class OptionsManagerTest(TestCase):
 
         # Make sure that we don't touch either of the stores
         with patch.object(self.store.cache, "get", side_effect=RuntimeError()):
-            with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
+            with patch.object(self.store.model.objects, "get_queryset", side_effect=RuntimeError()):
                 assert self.manager.get("nostore") == ""
                 self.store.flush_local_cache()
 
@@ -206,7 +207,7 @@ class OptionsManagerTest(TestCase):
             assert self.manager.get("prioritize_disk") == "foo"
 
     def test_db_unavailable(self):
-        with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
+        with patch.object(self.store.model.objects, "get_queryset", side_effect=RuntimeError()):
             # we can't update options if the db is unavailable
             with pytest.raises(RuntimeError):
                 self.manager.set("foo", "bar")
@@ -214,7 +215,7 @@ class OptionsManagerTest(TestCase):
         self.manager.set("foo", "bar")
         self.store.flush_local_cache()
 
-        with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
+        with patch.object(self.store.model.objects, "get_queryset", side_effect=RuntimeError()):
             assert self.manager.get("foo") == "bar"
             self.store.flush_local_cache()
 
@@ -227,11 +228,12 @@ class OptionsManagerTest(TestCase):
                     self.store.flush_local_cache()
 
     def test_db_and_cache_unavailable(self):
+        self.store.cache.clear()
         self.manager.set("foo", "bar")
         self.store.flush_local_cache()
 
         with self.settings(SENTRY_OPTIONS={"foo": "baz"}):
-            with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
+            with patch.object(self.store.model.objects, "get_queryset", side_effect=RuntimeError()):
                 with patch.object(self.store.cache, "get", side_effect=RuntimeError()):
                     assert self.manager.get("foo") == "baz"
                     self.store.flush_local_cache()
