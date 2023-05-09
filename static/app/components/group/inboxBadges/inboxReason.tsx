@@ -92,6 +92,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
     tooltipText?: string;
   } {
     const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
+    const hasIssueStates = organization.features.includes('issue-states');
     switch (reason) {
       case GroupInboxReason.UNIGNORED:
         return {
@@ -154,10 +155,30 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
             }),
         };
       case GroupInboxReason.ONGOING:
-      default:
         return {
           tagType: 'info',
           reasonBadgeText: t('Ongoing'),
+          tooltipText:
+            dateAdded &&
+            t('Created %(relative)s', {
+              relative: relativeDateAdded,
+            }),
+        };
+      default:
+        if (hasIssueStates) {
+          return {
+            tagType: 'info',
+            reasonBadgeText: t('Ongoing'),
+            tooltipText:
+              dateAdded &&
+              t('Created %(relative)s', {
+                relative: relativeDateAdded,
+              }),
+          };
+        }
+        return {
+          tagType: 'warning',
+          reasonBadgeText: t('New Issue'),
           tooltipText:
             dateAdded &&
             t('Created %(relative)s', {
