@@ -77,7 +77,7 @@ def _ensure_monitor_with_config(
 
     # Update existing monitor
     if monitor and not created and monitor.config != validated_config:
-        monitor.update(config=validated_config)
+        monitor.update_config(config, validated_config)
 
     return monitor
 
