@@ -484,6 +484,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     ) -> bool:
         from sentry.models.team import Team
         from sentry.models.user import User
+        from sentry.services.hybrid_cloud.user import RpcUser
 
         key_field = None
         if isinstance(recipient, RpcActor):
