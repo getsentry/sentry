@@ -97,6 +97,16 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def check_membership_by_invite_token(
+        self, organization_id: int, member_id: int, invite_token: str
+    ) -> Optional[RpcOrganizationMember]:
+        """
+        Query for an organization member by the invite_token.
+        """
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def check_membership_by_id(
         self, *, organization_id: int, user_id: int
     ) -> Optional[RpcOrganizationMember]:
