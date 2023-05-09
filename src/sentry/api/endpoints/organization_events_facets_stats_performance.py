@@ -100,6 +100,9 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
                 additional_query_column="p75(transaction.duration)",
             )
 
+            if not results:
+                return {"data": []}
+
             def get_event_stats(
                 query_columns: Sequence[str],
                 query: str,
@@ -122,7 +125,6 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
                 request,
                 organization,
                 get_event_stats,
-                top_events=5,
                 query=filter_query,
                 query_column="p75(transaction.duration)",
             )
@@ -133,6 +135,10 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
                 key = facet.pop("tags_key")
                 value = facet.pop("tags_value")
                 new_key = f"{key},{value}"
+
+                if not events_stats:
+                    totals[new_key] = facet
+                    continue
 
                 sum_correlation = discover.corr_snuba_timeseries(
                     results[new_key]["count()"]["data"], events_stats["data"]
