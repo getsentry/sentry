@@ -160,6 +160,17 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         },
     }
 
+    def build_better_priority_sort_kwargs(self, request: Request):
+        """Temporary function to be used while developing the new priority sort"""
+        return {
+            "better_priority": {
+                "age": request.GET.get("age", 5),
+                "log_level": request.GET.get("logLevel", 5),
+                "frequency": request.GET.get("frequency", 5),
+                "has_stacktrace": request.GET.get("hasStacktrace", False),
+            }
+        }
+
     def _search(
         self, request: Request, organization, projects, environments, extra_query_kwargs=None
     ):
@@ -170,6 +181,10 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             if extra_query_kwargs is not None:
                 assert "environment" not in extra_query_kwargs
                 query_kwargs.update(extra_query_kwargs)
+
+            # TODO check feature flag too
+            if query_kwargs["sort_by"] == "better priority":
+                query_kwargs["aggregate_kwargs"] = self.build_better_priority_sort_kwargs(request)
 
             query_kwargs["environments"] = environments if environments else None
 
@@ -334,7 +349,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         results = list(cursor_result)
 
-        print("query_kwargs: ", query_kwargs)  # this has sort_by, but it isn't used
         context = serialize(
             results,
             request.user,

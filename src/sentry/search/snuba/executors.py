@@ -192,6 +192,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         start: datetime,
         end: datetime,
         having: Sequence[Sequence[Any]],
+        aggregate_kwargs: Optional[Mapping[str, Any]] = None,
     ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
@@ -205,7 +206,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             if callable(aggregation):
                 # TODO: If we want to expand this pattern we should probably figure out
                 # more generic things to pass here.
-                aggregation = aggregation(start, end)
+                if aggregate_kwargs:  # maybe add start and end to aggregate_kwargs?
+                    aggregation = aggregation(start, end, **aggregate_kwargs.get(alias, {}))
+                else:
+                    aggregation = aggregation(start, end)
             aggregations.append(aggregation + [alias])
 
         return aggregations
@@ -226,6 +230,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         cursor: Optional[Cursor],
         get_sample: bool,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[Mapping[str, Any]] = None,
     ) -> SnubaQueryParams:
         """
         :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
@@ -251,7 +256,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 else:
                     conditions.append(converted_filter)
 
-        aggregations = self._prepare_aggregations(sort_field, start, end, having)
+        aggregations = self._prepare_aggregations(sort_field, start, end, having, aggregate_kwargs)
 
         if cursor is not None:
             having.append((sort_field, ">=" if cursor.is_prev else "<=", cursor.value))
@@ -309,6 +314,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         search_filters: Optional[Sequence[SearchFilter]] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[Mapping[str, Any]] = None,
     ) -> Tuple[List[Tuple[int, Any]], int]:
         """Queries Snuba for events with associated Groups based on the input criteria.
 
@@ -385,6 +391,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     cursor,
                     get_sample,
                     actor,
+                    aggregate_kwargs,
                 )
             except UnsupportedSearchQuery:
                 pass
@@ -453,27 +460,21 @@ def trend_aggregation(start: datetime, end: datetime) -> Sequence[str]:
     ]
 
 
-def better_priority_aggregation(start: datetime, end: datetime) -> Sequence[str]:
-    # how will this use the weights of the issue attributes?
-
-    # does this formula assume we have all of an issue's events / event timestamps? how do I get em
-    event_age = int(
-        (timezone.now() - start).total_seconds() / 3600
-    )  # Convert to hours, can be whatever unit
-    event_score = (
-        1  # Can substitute other event level scoring methods here, but start with a baseline of 1
+def better_priority_aggregation(
+    start: datetime, end: datetime, age: int, log_level: int, frequency: int, has_stacktrace: int
+) -> Sequence[str]:
+    event_age = "divide((now() - max(timestamp)), 3600)"
+    event_score = "1"
+    event_score_halflife = "4"  # halves score every 4 hours
+    aggregate_event_score = (
+        f"sum(divide({event_score}, (pow(2, divide({event_age}, {event_score_halflife})))))"
     )
-    event_score_halflife = 4  # halves score every 4 hours
-    event_score = int(event_score / (2 ** (event_age / event_score_halflife)))
 
-    # If we want to experiment with using issue score to downweight (yes we do)
-    issue_age = int(
-        (timezone.now() - min(start)).total_seconds() / 3600
-    )  # Convert to hours, can be whatever unit
-    issue_halflife = 24 * 7  # issues half in value every week
-    issue_score = 1 / 2 ** (issue_age / issue_halflife)
+    issue_age = "divide((now() - min(timestamp), 3600))"
+    issue_halflife = "multiply(24, 7)"  # issues half in value every week
+    issue_score = f"divide(1, (pow(2, divide({issue_age}, {issue_halflife}))))"
 
-    return [f"multiply({event_score}, {issue_score})", ""]
+    return [f"multiply({aggregate_event_score}, {issue_score})", ""]
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
@@ -493,7 +494,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
         "inbox": "",
-        "better_priority": "better_priority",
+        "better priority": "better_priority",
     }
 
     aggregation_defs = {
@@ -530,6 +531,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[Mapping[str, Any]] = None,
     ) -> CursorResult[Group]:
         now = timezone.now()
         end = None
@@ -722,6 +724,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 search_filters=search_filters,
                 referrer=referrer,
                 actor=actor,
+                aggregate_kwargs=aggregate_kwargs,
             )
             metrics.timing("snuba.search.num_snuba_results", len(snuba_groups))
             count = len(snuba_groups)

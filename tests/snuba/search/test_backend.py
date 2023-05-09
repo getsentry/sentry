@@ -64,6 +64,7 @@ class SharedSnubaTest(TestCase, SnubaTestCase):
         date_from=None,
         date_to=None,
         cursor=None,
+        aggregate_kwargs=None,
     ):
         search_filters = []
         projects = projects if projects is not None else [self.project]
@@ -75,6 +76,8 @@ class SharedSnubaTest(TestCase, SnubaTestCase):
         kwargs = {}
         if limit is not None:
             kwargs["limit"] = limit
+        if aggregate_kwargs:
+            kwargs["aggregate_kwargs"] = {"better_priority": {**aggregate_kwargs}}
 
         return self.backend.query(
             projects,
@@ -354,7 +357,10 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert list(results) == [self.group1, self.group2]
 
     def test_better_priority_sort(self):
-        results = self.make_query(sort_by="better_priority")
+        results = self.make_query(
+            sort_by="better priority",
+            aggregate_kwargs={"age": 5, "log_level": 5, "frequency": 5, "has_stacktrace": 5},
+        )
         assert list(results) == [self.group1, self.group2]
 
     def test_sort_with_environment(self):

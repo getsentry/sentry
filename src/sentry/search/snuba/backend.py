@@ -363,9 +363,9 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[Mapping[str, Any]] = None,
     ) -> CursorResult[Group]:
         search_filters = search_filters if search_filters is not None else []
-
         # ensure projects are from same org
         if len({p.organization_id for p in projects}) != 1:
             raise RuntimeError("Cross organization search not supported")
@@ -388,7 +388,6 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             date_from=date_from,
             date_to=date_to,
         )
-        print("group queryset: ", group_queryset)
 
         query_executor = self._get_query_executor(
             group_queryset=group_queryset,
@@ -398,7 +397,6 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             date_from=date_from,
             date_to=date_to,
         )
-        print("query_executor: ", query_executor)
 
         # ensure sort strategy is supported by executor
         if not query_executor.has_sort_strategy(sort_by):
@@ -420,6 +418,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             max_hits=max_hits,
             referrer=referrer,
             actor=actor,
+            aggregate_kwargs=aggregate_kwargs,
         )
 
     def _build_group_queryset(
@@ -500,7 +499,6 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
 
 class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     def _get_query_executor(self, *args: Any, **kwargs: Any) -> AbstractQueryExecutor:
-        print("before")
         return PostgresSnubaQueryExecutor()
 
     def _get_queryset_conditions(
