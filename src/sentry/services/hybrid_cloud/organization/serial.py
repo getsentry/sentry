@@ -54,6 +54,7 @@ def serialize_member(member: OrganizationMember) -> RpcOrganizationMember:
         flags=_serialize_member_flags(member),
         invite_status=member.invite_status,
         token=member.token,
+        is_pending=member.is_pending,
     )
 
     omts = OrganizationMemberTeam.objects.filter(
