@@ -28,7 +28,7 @@
 {% endblock %}
 
 {% block preheader %}
-  New alert from {{ project_label }}.
+  {{ group_header }} from {{ project_label }}.
 {% endblock %}
 
 {% block header %}
@@ -64,8 +64,12 @@
 <div class="container">
   <div class="inner">
     <h2 {% if notification_reason %}style="margin-bottom: 4px"{% else %}style="margin-bottom: 15px"{% endif %}>
+        {% if has_escalating_issues and group_header %}
+        {{ group_header }}
+        {% else %}
         New alert from <a href="{{group.project.get_absolute_url}}">{{ project_label }}</a>
         {% if environment %} in {{ environment }}{% endif %}
+        {% endif %}
     </h2>
     {% if notification_reason %}
       <div class="event-notification-reason">
@@ -91,9 +95,11 @@
             <th colspan="2">Issue</th>
         </tr>
         <tr>
+          {% if not has_escalating_issues %}
           <td class="error-level">
               <span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span>
           </td>
+          {% endif %}
           <td class="event-detail">
             <div class="issue">
               {% with type=event.get_event_type metadata=event.get_event_metadata transaction=event.transaction %}
@@ -137,7 +143,11 @@
                   <div class="event-type default">
                     <h3>
                       {% if issue_title %}
+                      {% if has_escalating_issues %}
+                      <a href="{% absolute_uri link %}">{{ issue_title|truncatechars:80 }}</a>
+                      {% else %}
                       <a href="{% absolute_uri link %}">{{ issue_title|truncatechars:40 }}</a>
+                      {% endif %}
                       {% else %}
                       <a href="{% absolute_uri link %}">{{ event.title|truncatechars:40 }}</a>
                       {% endif %}
@@ -167,6 +177,31 @@
             <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e"}}</div>
         {% endif %}
       </div>
+
+      <div class="interface">
+        <table>
+          <colgroup>
+            <col style="width:130px;">
+          </colgroup>
+          <tbody>
+            <tr>
+              <th>project</th>
+              <td><a href="{{group.project.get_absolute_url}}">{{ project_label }}</a></td>
+            </tr>
+            {% if environment %}
+              <tr>
+                <th>environment</th>
+                <td>{{ environment }}</td>
+              </tr>
+            {% endif %}
+            <tr>
+              <th>level</th>
+              <td>{{ group.get_level_display }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
 
       {% if commits %}
       <div class="committers">

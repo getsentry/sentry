@@ -43,6 +43,7 @@ from sentry.models import (
     UserOption,
     UserReport,
 )
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -1208,6 +1209,25 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 {"user": {"username": "someemail@example.com"}},
                 [],
             )
+
+    @with_feature("organizations:escalating-issues")
+    def test_has_inbox_reason(self):
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        msg = mail.outbox[0]
+        assert msg.subject == "[Sentry] BAR-1 - Hello world"
+        assert "Issue regressed" in msg.alternatives[0][0]
 
 
 class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):

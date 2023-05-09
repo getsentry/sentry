@@ -153,3 +153,14 @@ def get_inbox_details(group_list):
     }
 
     return inbox_stats
+
+
+def get_inbox_reason_text(inbox_reason: GroupInboxReason):
+    if inbox_reason == GroupInboxReason.NEW:
+        return "New issue"
+    elif inbox_reason == GroupInboxReason.REGRESSION:
+        return "Issue regressed"
+    elif inbox_reason == GroupInboxReason.ONGOING:
+        return "Issue ongoing"
+    else:
+        return "New Alert"

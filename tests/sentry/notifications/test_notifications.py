@@ -22,8 +22,10 @@ from sentry.models import (
     UserOption,
 )
 from sentry.models.actor import Actor
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.utils import json
@@ -456,3 +458,30 @@ class ActivityNotificationTest(APITestCase):
             organization_id=self.organization.id,
             group_id=event.group_id,
         )
+
+    @with_feature("organizations:escalating-issues")
+    def test_sends_regression_inbox_reason(self):
+        # resolve and unresolve the issue
+        ts = time() - 300
+        manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
+        with self.tasks():
+            event = manager.save(self.project.id)
+
+        group = Group.objects.get(id=event.group_id)
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.save()
+        assert group.is_resolved()
+
+        manager = EventManager(make_event(event_id="b" * 32, checksum="a" * 32, timestamp=ts + 50))
+        with self.tasks():
+            event2 = manager.save(self.project.id)
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=group.id)
+        add_group_to_inbox(group, GroupInboxReason.REGRESSION)
+        assert not group.is_resolved()
+
+        msg = mail.outbox[0]
+        # check the html version
+        assert "Issue regressed" in msg.alternatives[0][0]
