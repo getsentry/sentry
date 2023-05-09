@@ -209,7 +209,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 cleanup_needed = False
             except OrganizationMember.DoesNotExist:
                 if set_team_admin:
-                    # delete team if we can't add the user as a team admin
                     raise PermissionDenied(
                         detail="You must be a member of the organization to join a new team as a Team Admin"
                     )
