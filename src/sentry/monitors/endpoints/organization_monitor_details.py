@@ -157,6 +157,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                         ]
                     )
                 )
+                event = audit_log.get_event_id("MONITOR_ENVIRONMENT_REMOVE")
             else:
                 monitor_objects = Monitor.objects.filter(id=monitor.id).exclude(
                     status__in=[
@@ -164,6 +165,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                         ObjectStatus.DELETION_IN_PROGRESS,
                     ]
                 )
+                event = audit_log.get_event_id("MONITOR_REMOVE")
 
             # create copy of queryset as update will remove objects
             monitor_objects_list = list(monitor_objects)
@@ -178,7 +180,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     request=request,
                     organization=project.organization,
                     target_object=monitor_object.id,
-                    event=audit_log.get_event_id("MONITOR_REMOVE"),
+                    event=event,
                     data=monitor_object.get_audit_log_data(),
                     transaction_id=schedule.guid,
                 )
