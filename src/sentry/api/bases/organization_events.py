@@ -476,18 +476,35 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if top_events > 0 and isinstance(result, dict):
                 results = {}
                 for key, event_result in result.items():
-                    results[key] = self.serialize_multiple_axis(
-                        request,
-                        organization,
-                        serializer,
-                        event_result,
-                        params,
-                        columns,
-                        query_columns,
-                        allow_partial_buckets,
-                        zerofill_results=zerofill_results,
-                        dataset=dataset,
-                    )
+                    if is_multiple_axis:
+                        results[key] = self.serialize_multiple_axis(
+                            request,
+                            organization,
+                            serializer,
+                            event_result,
+                            params,
+                            columns,
+                            query_columns,
+                            allow_partial_buckets,
+                            zerofill_results=zerofill_results,
+                            dataset=dataset,
+                        )
+                    else:
+                        results[key] = serializer.serialize(
+                            event_result,
+                            column=resolve_axis_column(query_columns[0]),
+                            allow_partial_buckets=allow_partial_buckets,
+                            zerofill_results=zerofill_results,
+                        )
+                        results[key]["meta"] = self.handle_results_with_meta(
+                            request,
+                            organization,
+                            params.get("project_id", []),
+                            event_result.data,
+                            True,
+                            dataset=dataset,
+                        )["meta"]
+
                 serialized_result = results
             elif is_multiple_axis:
                 serialized_result = self.serialize_multiple_axis(
