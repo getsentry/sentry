@@ -94,14 +94,26 @@ export const FAILURE_RATE_QUERY = `SELECT
  WHERE module = 'http'
  GROUP BY interval
  ORDER BY interval asc
- `;
+`;
 
 export const getTopSpansInModule = module => `SELECT
   description,
-  sum(exclusive_time) as cumulative_time, module
+  sum(exclusive_time) as cumulative_time,
+  module
   FROM spans_experimental_starfish
   WHERE module = '${module}'
   GROUP BY description, module
   ORDER BY -cumulative_time
   LIMIT 5
+`;
+
+export const getSpanDurationSeries = spans => `SELECT
+  quantile(0.75)(exclusive_time) as p75,
+  count() as count,
+  toStartOfInterval(start_timestamp, INTERVAL 1 HOUR) as interval,
+  description
+  FROM spans_experimental_starfish
+  WHERE description IN ('http://127.0.0.1:10006/discover/snql', 'http://127.0.0.1:10006/events/snql', 'http://127.0.0.1:10006/transactions/snql', 'http://127.0.0.1:10006/search_issues/snql', 'http://127.0.0.1:10007/api/v1/evaluation/batch')
+  GROUP BY interval, description
+  ORDER BY interval
 `;
