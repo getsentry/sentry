@@ -108,6 +108,7 @@ def _serialize_team_member(
 ) -> RpcTeamMember:
     result = RpcTeamMember(
         id=team_member.id,
+        slug=team_member.team.slug,
         is_active=team_member.is_active,
         role_id=team_member.get_team_role().id,
         team_id=team_member.team_id,

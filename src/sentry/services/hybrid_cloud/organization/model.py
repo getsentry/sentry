@@ -49,6 +49,7 @@ class RpcTeam(RpcModel):
 
 class RpcTeamMember(RpcModel):
     id: int = -1
+    slug: str = ""
     is_active: bool = False
     role_id: str = ""
     project_ids: List[int] = Field(default_factory=list)
