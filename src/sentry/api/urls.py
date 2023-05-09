@@ -2,6 +2,9 @@ from django.conf.urls import include, url
 
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
+from sentry.api.endpoints.organization_events_facets_stats_performance import (
+    OrganizationEventsFacetsStatsPerformanceEndpoint,
+)
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
@@ -1159,6 +1162,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events-facets/$",
         OrganizationEventsFacetsEndpoint.as_view(),
         name="sentry-api-0-organization-events-facets",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/events-facets-stats/$",
+        OrganizationEventsFacetsStatsPerformanceEndpoint.as_view(),
+        name="sentry-api-0-organization-events-facets-stats-performance",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/events-facets-performance/$",
