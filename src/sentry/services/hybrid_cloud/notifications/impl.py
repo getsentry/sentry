@@ -1,20 +1,21 @@
 from __future__ import annotations
 
-from typing import List, Mapping, Optional, Sequence
+from typing import List, Mapping, Optional, Sequence, Union
 
 from django.db import transaction
 from django.db.models import Q
 
-from sentry.models import NotificationSetting, User
+from sentry.models import NotificationSetting, Team, User
 from sentry.notifications.helpers import get_scope_type
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import NotificationsService, RpcNotificationSetting
 from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
+from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
@@ -38,6 +39,8 @@ class DatabaseBackedNotificationsService(NotificationsService):
         notification_type: NotificationSettingTypes,
         setting_option: NotificationSettingOptionValues,
         actor: RpcActor,
+        team: Optional[Union[RpcTeam, Team]] = None,
+        user: Optional[Union[RpcUser, User]] = None,
         project_id: Optional[int] = None,
         organization_id: Optional[int] = None,
     ) -> None:
@@ -45,6 +48,8 @@ class DatabaseBackedNotificationsService(NotificationsService):
             provider=external_provider,
             type=notification_type,
             value=setting_option,
+            team=team,
+            user=user,
             actor=actor,
             project=project_id,
             organization=organization_id,
@@ -58,12 +63,16 @@ class DatabaseBackedNotificationsService(NotificationsService):
         ],
         external_provider: ExternalProviders,
         actor: RpcActor,
+        team: Optional[Union[RpcTeam, Team]] = None,
+        user: Optional[Union[RpcUser, User]] = None,
     ) -> None:
         with transaction.atomic():
             for notification_type, setting_option in notification_type_to_value_map.items():
                 self.update_settings(
                     external_provider=external_provider,
                     actor=actor,
+                    team=team,
+                    user=user,
                     notification_type=notification_type,
                     setting_option=setting_option,
                 )
@@ -85,10 +94,14 @@ class DatabaseBackedNotificationsService(NotificationsService):
         return [serialize_notification_setting(u) for u in settings]
 
     def get_settings_for_recipient_by_parent(
-        self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[RpcActor]
+        self,
+        *,
+        type: NotificationSettingTypes,
+        parent_id: int,
+        recipients: Sequence[Team | RpcTeam | User | RpcUser],
     ) -> List[RpcNotificationSetting]:
-        team_ids = [r.id for r in recipients if r.actor_type == ActorType.TEAM]
-        user_ids = [r.id for r in recipients if r.actor_type == ActorType.USER]
+        team_ids = [r.id for r in recipients if isinstance(r, (Team, RpcTeam))]
+        user_ids = [r.id for r in recipients if isinstance(r, (User, RpcUser))]
         actor_ids: List[int] = [r.actor_id for r in recipients if r.actor_id is not None]
 
         parent_specific_scope_type = get_scope_type(type)
@@ -136,12 +149,18 @@ class DatabaseBackedNotificationsService(NotificationsService):
             )
         ]
 
-    def remove_notification_settings(self, *, actor_id: int, provider: ExternalProviders) -> None:
+    def remove_notification_settings(
+        self, *, team_id: Optional[int], user_id: Optional[int], provider: ExternalProviders
+    ) -> None:
         """
         Delete notification settings based on an actor_id
         There is no foreign key relationship so we have to manually cascade.
         """
-        NotificationSetting.objects._filter(target_ids=[actor_id], provider=provider).delete()
+        team_ids = [team_id] if team_id else None
+        user_ids = [user_id] if user_id else None
+        NotificationSetting.objects._filter(
+            team_ids=team_ids, user_ids=user_ids, provider=provider
+        ).delete()
 
     def close(self) -> None:
         pass

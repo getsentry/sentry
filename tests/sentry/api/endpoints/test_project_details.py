@@ -26,7 +26,6 @@ from sentry.models import (
     Rule,
     ScheduledDeletion,
 )
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, faux, with_feature
 from sentry.testutils.silo import region_silo_test
@@ -600,7 +599,7 @@ class ProjectUpdateTest(APITestCase):
         value0 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             project=self.project,
         )
         assert value0 == NotificationSettingOptionValues.ALWAYS
@@ -609,7 +608,7 @@ class ProjectUpdateTest(APITestCase):
         value1 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             project=self.project,
         )
         assert value1 == NotificationSettingOptionValues.NEVER

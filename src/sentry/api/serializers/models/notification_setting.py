@@ -6,6 +6,8 @@ from sentry.models import NotificationSetting, Team, User
 from sentry.notifications.helpers import get_fallback_settings
 from sentry.notifications.types import VALID_VALUES_FOR_KEY, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.organization import RpcTeam
+from sentry.services.hybrid_cloud.user import RpcUser
 
 
 class NotificationSettingsSerializer(Serializer):  # type: ignore
@@ -34,15 +36,17 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
             - type: NotificationSettingTypes enum value. e.g. WORKFLOW, DEPLOY.
         """
         type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
-
-        # TODO(actorid) This needs to be reworked. `item_list` can either be
-        # a list of Team or User instances. Each item type requires different
-        # query logic for getting notification settings.
-        actor_mapping = {recipient.actor_id: recipient for recipient in item_list}
+        team_map = {
+            t.id: t for t in list(filter(lambda x: isinstance(x, (Team, RpcTeam)), item_list))
+        }
+        user_map = {
+            u.id: u for u in list(filter(lambda x: isinstance(x, (User, RpcUser)), item_list))
+        }
 
         notifications_settings = NotificationSetting.objects._filter(
             type=type_option,
-            target_ids=actor_mapping.keys(),
+            team_ids=list(team_map.keys()),
+            user_ids=list(user_map.keys()),
         )
 
         results: MutableMapping[Union["Team", "User"], MutableMapping[str, Set[Any]]] = defaultdict(
@@ -50,7 +54,13 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         )
 
         for notifications_setting in notifications_settings:
-            target = actor_mapping.get(notifications_setting.target_id)
+            target = (
+                user_map.get(notifications_setting.user_id)
+                if notifications_setting.user_id
+                else team_map.get(notifications_setting.team_id)
+                if notifications_setting.team_id
+                else None
+            )
             results[target]["settings"].add(notifications_setting)
 
         for recipient in item_list:

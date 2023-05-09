@@ -1,6 +1,5 @@
 from sentry.models import NotificationSetting, UserEmail, UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -73,14 +72,14 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         value1 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             project=self.project,
         )
 
         value2 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             project=self.project2,
         )
 
@@ -94,13 +93,13 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         value1 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             project=self.project,
         )
         value2 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             project=self.project2,
         )
 
@@ -114,13 +113,13 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         value = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.WORKFLOW,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             project=self.project,
         )
         value2 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.WORKFLOW,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             project=self.project2,
         )
 
@@ -134,13 +133,13 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         value1 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.WORKFLOW,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             project=self.project,
         )
         value2 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.WORKFLOW,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             project=self.project2,
         )
 
@@ -186,7 +185,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         value = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.DEPLOY,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             organization=self.organization,
         )
         assert value == NotificationSettingOptionValues.NEVER
@@ -197,7 +196,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         value = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.DEPLOY,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             organization=self.organization,
         )
         assert value == NotificationSettingOptionValues.ALWAYS
@@ -208,7 +207,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         value = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.DEPLOY,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             organization=self.organization,
         )
         assert value == NotificationSettingOptionValues.DEFAULT
@@ -278,7 +277,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         value = NotificationSetting.objects.get_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             project=new_project,
         )
         assert value == NotificationSettingOptionValues.DEFAULT

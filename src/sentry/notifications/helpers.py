@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from django.contrib.auth.models import AnonymousUser
 
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
@@ -18,8 +20,10 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud import extract_id_from
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
+from sentry.services.hybrid_cloud.organization import RpcTeam
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
     ExternalProviders,
@@ -29,13 +33,13 @@ from sentry.types.integrations import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import Group, GroupSubscription, Organization, Project, Team, User
+    from sentry.models import Group, GroupSubscription, Organization, Project
 
 
 def _get_notification_setting_default(
     provider: ExternalProviders,
     type: NotificationSettingTypes,
-    recipient: RpcActor | None = None,  # not needed right now
+    recipient: Team | RpcTeam | User | RpcUser | None = None,
 ) -> NotificationSettingOptionValues:
     """
     In order to increase engagement, we automatically opt users into receiving
@@ -44,14 +48,14 @@ def _get_notification_setting_default(
     """
 
     # every team default is off
-    if recipient is not None and recipient.actor_type == ActorType.TEAM:
+    if isinstance(recipient, (Team, RpcTeam)):
         return NotificationSettingOptionValues.NEVER
     return NOTIFICATION_SETTING_DEFAULTS[provider][type]
 
 
 def _get_default_value_by_provider(
     type: NotificationSettingTypes,
-    recipient: RpcActor | None = None,
+    recipient: Team | RpcTeam | User | RpcUser | None = None,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     return {
         provider: _get_notification_setting_default(provider, type, recipient)
@@ -61,10 +65,10 @@ def _get_default_value_by_provider(
 
 def _get_setting_mapping_from_mapping(
     notification_settings_by_recipient: Mapping[
-        RpcActor,
+        Team | RpcTeam | User | RpcUser,
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    recipient: RpcActor,
+    recipient: Team | RpcTeam | User | RpcUser | None,
     type: NotificationSettingTypes,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     """
@@ -86,10 +90,10 @@ def _get_setting_mapping_from_mapping(
 
 def where_should_recipient_be_notified(
     notification_settings_by_recipient: Mapping[
-        RpcActor,
+        Team | RpcTeam | User | RpcUser,
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    recipient: RpcActor,
+    recipient: Team | RpcTeam | User | RpcUser | None,
     type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
 ) -> list[ExternalProviders]:
     """
@@ -123,10 +127,10 @@ def should_be_participating(
 
 
 def where_should_be_participating(
-    recipient: RpcActor,
+    recipient: Team | RpcTeam | User | RpcUser,
     subscription: GroupSubscription | None,
     notification_settings_by_recipient: Mapping[
-        RpcActor,
+        Team | RpcTeam | User | RpcUser,
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
 ) -> list[ExternalProviders]:
@@ -155,7 +159,7 @@ def get_values_by_provider_by_type(
     ],
     all_providers: Iterable[ExternalProviders],
     type: NotificationSettingTypes,
-    recipient: RpcActor | None = None,
+    recipient: Team | RpcTeam | User | RpcUser | None = None,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     """
     Given a mapping of scopes to a mapping of default and specific notification
@@ -183,9 +187,9 @@ def get_values_by_provider_by_type(
 
 def transform_to_notification_settings_by_recipient(
     notification_settings: Iterable[RpcNotificationSetting],
-    recipients: Iterable[RpcActor],
+    recipients: Iterable[Team | RpcTeam | User | RpcUser],
 ) -> Mapping[
-    RpcActor,
+    Team | RpcTeam | User | RpcUser,
     Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
 ]:
     """
@@ -194,14 +198,14 @@ def transform_to_notification_settings_by_recipient(
     """
     actor_mapping = {recipient.actor_id: recipient for recipient in recipients}
     notification_settings_by_recipient: MutableMapping[
-        RpcActor,
+        Team | RpcTeam | User | RpcUser,
         MutableMapping[
             NotificationScopeType,
             MutableMapping[ExternalProviders, NotificationSettingOptionValues],
         ],
     ] = defaultdict(lambda: defaultdict(dict))
     for notification_setting in notification_settings:
-        recipient = actor_mapping[notification_setting.target_id]
+        recipient = actor_mapping[notification_setting.target_id]  # .get ??
         scope_type = NotificationScopeType(notification_setting.scope_type)
         value = NotificationSettingOptionValues(notification_setting.value)
         provider = ExternalProviders(notification_setting.provider)
@@ -268,9 +272,8 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
 
 
 def get_scope(
-    user: User | None = None,
-    team: Team | None = None,
-    actor: RpcActor | None = None,
+    user: RpcUser | User | None = None,
+    team: RpcTeam | Team | None = None,
     project: Project | int | None = None,
     organization: Organization | int | None = None,
 ) -> tuple[NotificationScopeType, int]:
@@ -285,14 +288,10 @@ def get_scope(
         return NotificationScopeType.ORGANIZATION, extract_id_from(organization)
 
     if user is not None:
-        actor = RpcActor.from_object(user)
+        return NotificationScopeType.USER, user.id
+
     if team is not None:
-        actor = RpcActor.from_object(team)
-    if actor:
-        if actor.actor_type == ActorType.TEAM:
-            return NotificationScopeType.TEAM, extract_id_from(actor)
-        else:
-            return NotificationScopeType.USER, extract_id_from(actor)
+        return NotificationScopeType.TEAM, team.id
 
     raise Exception("scope must be either user, team, organization, or project")
 
@@ -373,7 +372,7 @@ def get_user_subscriptions_for_groups(
     for project_id, groups in groups_by_project.items():
         notification_settings_by_provider = get_values_by_provider(
             notification_settings_by_scope,
-            recipient=RpcActor.from_orm_user(user),
+            recipient=user,
             parent_id=project_id,
             type=NotificationSettingTypes.WORKFLOW,
         )
@@ -431,7 +430,7 @@ def get_fallback_settings(
     types_to_serialize: Iterable[NotificationSettingTypes],
     project_ids: Iterable[int],
     organization_ids: Iterable[int],
-    recipient: RpcActor | None = None,
+    recipient: Team | RpcTeam | User | RpcUser | None = None,
 ) -> MutableMapping[str, MutableMapping[str, MutableMapping[int, MutableMapping[str, str]]]]:
     """
     The API is responsible for calculating the implied setting values when a
@@ -516,7 +515,7 @@ def _get_value_for_actor(
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    recipient: RpcActor,
+    recipient: Team | RpcTeam | User | RpcUser,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     """
     Instead of checking the DB to see if `recipient` is a Team or User, just
@@ -534,7 +533,7 @@ def get_most_specific_notification_setting_value(
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    recipient: RpcActor | Team | User | AnonymousUser,
+    recipient: Team | RpcTeam | User | RpcUser | AnonymousUser,
     parent_id: int,
     type: NotificationSettingTypes,
 ) -> NotificationSettingOptionValues:
@@ -545,15 +544,14 @@ def get_most_specific_notification_setting_value(
     if isinstance(recipient, AnonymousUser):
         return _get_notification_setting_default(ExternalProviders.EMAIL, type, None)
 
-    recipient_actor = RpcActor.from_object(recipient)
     return (
         get_highest_notification_setting_value(
             get_value_for_parent(notification_settings_by_scope, parent_id, type)
         )
         or get_highest_notification_setting_value(
-            _get_value_for_actor(notification_settings_by_scope, recipient_actor)
+            _get_value_for_actor(notification_settings_by_scope, recipient)
         )
-        or _get_notification_setting_default(ExternalProviders.EMAIL, type, recipient_actor)
+        or _get_notification_setting_default(ExternalProviders.EMAIL, type, recipient)
     )
 
 
@@ -575,7 +573,7 @@ def get_values_by_provider(
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    recipient: RpcActor,
+    recipient: Team | RpcTeam | User | RpcUser,
     parent_id: int,
     type: NotificationSettingTypes,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
@@ -592,13 +590,12 @@ def get_values_by_provider(
 
 
 def get_providers_for_recipient(
-    raw_recipient: RpcActor | User | Team,
+    recipient: Team | RpcTeam | User | RpcUser,
 ) -> Iterable[ExternalProviders]:
     from sentry.models import ExternalActor, Identity
 
-    recipient = RpcActor.from_object(raw_recipient)
     possible_providers = NOTIFICATION_SETTING_DEFAULTS.keys()
-    if recipient.actor_type == ActorType.TEAM:
+    if isinstance(recipient, (Team, RpcTeam)):
         team_providers = ExternalActor.objects.filter(
             actor_id=recipient.actor_id, provider__in=possible_providers
         ).values_list("provider", flat=True)

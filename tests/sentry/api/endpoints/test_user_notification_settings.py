@@ -2,7 +2,6 @@ from rest_framework import status
 
 from sentry.models import NotificationSetting
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -225,7 +224,7 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
             NotificationSetting.objects.get_settings(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.DEPLOY,
-                actor=RpcActor.from_orm_user(self.user),
+                user=self.user,
             )
             == NotificationSettingOptionValues.DEFAULT
         )
@@ -240,7 +239,7 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
             NotificationSetting.objects.get_settings(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.DEPLOY,
-                actor=RpcActor.from_orm_user(self.user),
+                user=self.user,
             )
             == NotificationSettingOptionValues.ALWAYS
         )

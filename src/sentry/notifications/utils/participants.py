@@ -38,7 +38,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization import RpcTeam, organization_service
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.integrations import ExternalProviders
@@ -87,10 +87,17 @@ class ParticipantMap:
         self, provider: ExternalProviders, actor_type: ActorType, participant_id: int
     ) -> None:
         provider_group = self._dict[provider]
+        instance_types = (
+            (User, RpcUser)
+            if actor_type == ActorType.USER
+            else (Team, RpcTeam)
+            if actor_type == ActorType.TEAM
+            else tuple()
+        )
         to_delete = [
             participant
             for participant in provider_group.keys()
-            if participant.actor_type == actor_type and participant.id == participant_id
+            if isinstance(participant, instance_types) and participant.id == participant_id
         ]
         for participant in to_delete:
             del provider_group[participant]
@@ -169,15 +176,14 @@ def get_participants_for_release(
 ) -> ParticipantMap:
     # Collect all users with verified emails on a team in the related projects.
     users = {
-        RpcActor.from_orm_user(user)
-        for user in User.objects.get_team_members_with_verified_email_for_projects(projects)
+        user for user in User.objects.get_team_members_with_verified_email_for_projects(projects)
     }
 
     # Get all the involved users' settings for deploy-emails (including
     # users' organization-independent settings.)
     notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
         NotificationSettingTypes.DEPLOY,
-        recipients=users,
+        user_ids=[user.id for user in users],
         parent=organization,
     )
     notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
@@ -193,7 +199,7 @@ def get_participants_for_release(
             notification_settings_by_scope,
             notification_providers(),
             NotificationSettingTypes.DEPLOY,
-            user,
+            recipient=user,
         )
         for provider, value in values_by_provider.items():
             reason_option = get_reason(user, value, user_ids)

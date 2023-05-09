@@ -8,7 +8,6 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
@@ -105,7 +104,7 @@ class GetParticipantsTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
         )
 
     @exempt_from_silo_limits()
@@ -114,7 +113,7 @@ class GetParticipantsTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
         )
 
     @exempt_from_silo_limits()
@@ -123,7 +122,7 @@ class GetParticipantsTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
         )
 
     @exempt_from_silo_limits()
@@ -132,7 +131,7 @@ class GetParticipantsTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             project=self.group.project,
         )
 
@@ -142,7 +141,7 @@ class GetParticipantsTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             project=self.group.project,
         )
 
@@ -152,7 +151,7 @@ class GetParticipantsTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(self.user),
+            user=self.user,
             project=self.project,
         )
 
@@ -169,8 +168,7 @@ class GetParticipantsTest(TestCase):
         for provider in ExternalProviders:
             actual = dict(all_participants.get_participants_by_provider(provider))
             expected = {
-                RpcActor.from_orm_user(user): reason
-                for (user, reason) in (all_expected.get(provider) or {}).items()
+                user: reason for (user, reason) in (all_expected.get(provider) or {}).items()
             }
             assert actual == expected
 
@@ -299,7 +297,7 @@ class GetParticipantsTest(TestCase):
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.WORKFLOW,
                 NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                actor=RpcActor.from_orm_user(self.user),
+                user=self.user,
                 project=self.project,
             )
         self._assert_subscribers_are()
@@ -432,7 +430,7 @@ class GetParticipantsTest(TestCase):
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.WORKFLOW,
                 NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                actor=RpcActor.from_orm_user(user),
+                user=user,
                 project=project,
             )
 
@@ -449,7 +447,7 @@ class GetParticipantsTest(TestCase):
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.WORKFLOW,
                 NotificationSettingOptionValues.ALWAYS,
-                actor=RpcActor.from_orm_user(user),
+                user=user,
                 project=project,
             )
 
