@@ -674,6 +674,7 @@ register("performance.issues.render_blocking_assets.size_threshold", default=100
 register("performance.issues.consecutive_http.max_duration_between_spans", default=1000)
 register("performance.issues.consecutive_http.consecutive_count_threshold", default=3)
 register("performance.issues.consecutive_http.span_duration_threshold", default=1000)
+register("performance.issues.large_http_payload.size_threshold", default=1000000)  # 1MB
 
 # System-wide option for sending occurrences to the issues platform
 register("performance.issues.send_to_issues_platform", default=False, flags=FLAG_MODIFIABLE_BOOL)
