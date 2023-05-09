@@ -5,7 +5,7 @@ import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import Clipboard from 'sentry/components/clipboard';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import DateTime from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import FileSize from 'sentry/components/fileSize';
@@ -28,7 +28,6 @@ import {
   generateTraceTarget,
 } from 'sentry/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconLink} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -421,14 +420,15 @@ function SpanDetail(props: Props) {
                       )}
                     >
                       Span ID
-                      <Clipboard
-                        value={`${window.location.href.replace(
+                      <CopyToClipboardButton
+                        borderless
+                        size="zero"
+                        iconSize="xs"
+                        text={`${window.location.href.replace(
                           window.location.hash,
                           ''
                         )}#span-${span.span_id}`}
-                      >
-                        <StyledIconLink />
-                      </Clipboard>
+                      />
                     </SpanIdTitle>
                   )
                 }
@@ -612,11 +612,11 @@ const SpanIdTitle = styled('a')`
   }
 `;
 
-const StyledIconLink = styled(IconLink)`
-  display: block;
-  color: ${p => p.theme.gray300};
-  margin-left: ${space(1)};
-`;
+// const StyledIconLink = styled(IconLink)`
+//   display: block;
+//   color: ${p => p.theme.gray300};
+//   margin-left: ${space(1)};
+// `;
 
 export function Row({
   title,
