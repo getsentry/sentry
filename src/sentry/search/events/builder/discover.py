@@ -1471,7 +1471,7 @@ class QueryBuilder(BaseQueryBuilder):
         return value
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        if referrer is None:
+        if referrer is None:  # type: ignore
             InvalidSearchQuery("Query missing referrer.")
         return raw_snql_query(self.get_snql_query(), referrer, use_cache)
 
