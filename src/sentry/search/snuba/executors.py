@@ -463,18 +463,19 @@ def trend_aggregation(start: datetime, end: datetime) -> Sequence[str]:
 def better_priority_aggregation(
     start: datetime, end: datetime, age: int, log_level: int, frequency: int, has_stacktrace: int
 ) -> Sequence[str]:
-    event_age = "divide((now() - max(timestamp)), 3600)"
-    event_score = "1"
-    event_score_halflife = "4"  # halves score every 4 hours
+    event_age = "divide(now() - timestamp, 3600)"
+    event_score = 1
+    event_score_halflife = 4  # halves score every 4 hours
     aggregate_event_score = (
-        f"sum(divide({event_score}, (pow(2, divide({event_age}, {event_score_halflife})))))"
+        f"sum(divide({event_score}, pow(2, divide({event_age}, {event_score_halflife}))))"
     )
 
-    issue_age = "divide((now() - min(timestamp), 3600))"
+    issue_age = "divide(toUInt64(now() - min(timestamp)), 3600)"
+    issue_score = 1
     issue_halflife = "multiply(24, 7)"  # issues half in value every week
-    issue_score = f"divide(1, (pow(2, divide({issue_age}, {issue_halflife}))))"
+    aggregate_issue_score = f"divide({issue_score}, pow(2, divide({issue_age}, {issue_halflife})))"
 
-    return [f"multiply({aggregate_event_score}, {issue_score})", ""]
+    return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
