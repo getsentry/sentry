@@ -80,6 +80,11 @@ export function ModuleBreakdownChart({module, topSpans}: Props) {
     }
   });
 
+  seriesBySpan['Other'] = {seriesName: 'p75 — Other Spans', data: []};
+  otherSpanDurationData.forEach(({interval, p75}) =>
+    seriesBySpan['Other'].data.push({name: interval, value: p75})
+  );
+
   return (
     <ChartPanel title={t('Top Spans p75 Breakdown')}>
       <Chart
@@ -100,7 +105,7 @@ export function ModuleBreakdownChart({module, topSpans}: Props) {
           bottom: '8px',
         }}
         definedAxisTicks={4}
-        chartColors={CHART_PALETTE[4]}
+        chartColors={CHART_PALETTE[5]}
         throughput={throughputData}
       />
     </ChartPanel>
