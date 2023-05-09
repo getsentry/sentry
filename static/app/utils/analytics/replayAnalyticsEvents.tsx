@@ -38,6 +38,13 @@ export type ReplayEventParameters = {
     referrer: undefined | string;
     user_email: string;
   };
+  // similar purpose as "replay.details-viewed", however we're capturing the navigation action
+  // in order to also include a project platform
+  'replay.list-navigate-to-details': {
+    platform: string | undefined;
+    project_id: string | undefined;
+    referrer: string;
+  };
   'replay.list-paginated': {
     direction: 'next' | 'prev';
   };
@@ -52,6 +59,11 @@ export type ReplayEventParameters = {
   'replay.play-pause': {
     play: boolean;
     user_email: string;
+  };
+  'replay.render-issues-detail-count': {
+    count: number;
+    platform: string;
+    project_id: string;
   };
   'replay.render-player': {
     aspect_ratio: 'portrait' | 'landscape';
@@ -84,11 +96,13 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
   'replay.details-viewed': 'Viewed Replay Details',
+  'replay.list-navigate-to-details': 'Replays List Navigate to Replay Details',
   'replay.list-paginated': 'Paginated Replay List',
   'replay.list-sorted': 'Sorted Replay List',
   'replay.list-time-spent': 'Time Spent Viewing Replay List',
   'replay.list-view-setup-sidebar': 'Views Set Up Replays Sidebar',
   'replay.play-pause': 'Played/Paused Replay',
+  'replay.render-issues-detail-count': 'Render Issues Detail Replay Count',
   'replay.render-player': 'Rendered ReplayPlayer',
   'replay.search': 'Searched Replay',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',

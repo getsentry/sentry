@@ -15,7 +15,7 @@ class DebugOrganizationIntegrationRequestEmailView(View):
         org = Organization(id=1, slug="default", name="Default")
         requester = User(name="Rick Swan", actor_id=1)
         recipient = User(name="James Bond", actor_id=2)
-        recipient_member = OrganizationMember(user=recipient, organization=org)
+        recipient_member = OrganizationMember(user_id=recipient.id, organization=org)
 
         notification = IntegrationRequestNotification(
             org,
