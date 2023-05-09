@@ -36,7 +36,7 @@ export type SpanDataRow = {
 export type SpanTrendDataRow = {
   group_id: string;
   interval: string;
-  p95: string;
+  percentile: string;
   span_operation: string;
 };
 
@@ -51,20 +51,20 @@ export default function SpansTable({
 }: Props) {
   const spansTrendsGrouped = {};
 
-  spansTrendsData?.forEach(({group_id, span_operation, interval, p95}) => {
+  spansTrendsData?.forEach(({group_id, span_operation, interval, percentile_value}) => {
     if (span_operation in spansTrendsGrouped) {
       if (group_id in spansTrendsGrouped[span_operation]) {
         return spansTrendsGrouped[span_operation][group_id].push({
           name: interval,
-          value: p95,
+          value: percentile_value,
         });
       }
       return (spansTrendsGrouped[span_operation][group_id] = [
-        {name: interval, value: p95},
+        {name: interval, value: percentile_value},
       ]);
     }
     return (spansTrendsGrouped[span_operation] = {
-      [group_id]: [{name: interval, value: p95}],
+      [group_id]: [{name: interval, value: percentile_value}],
     });
   });
 
@@ -73,13 +73,13 @@ export default function SpansTable({
     if (spansTrendsGrouped[span_operation] === undefined) {
       return spanData;
     }
-    const p95_trend: Series = {
-      seriesName: 'p95_trend',
+    const percentile_trend: Series = {
+      seriesName: 'percentile_trend',
       data: spansTrendsGrouped[span_operation][group_id],
     };
 
-    const zeroFilled = zeroFillSeries(p95_trend, moment.duration(12, 'hours'));
-    return {...spanData, p95_trend: zeroFilled};
+    const zeroFilled = zeroFillSeries(percentile_trend, moment.duration(1, 'day'));
+    return {...spanData, percentile_trend: zeroFilled};
   });
 
   return (
@@ -104,7 +104,7 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
     return (
       <SortLink
         align="left"
-        canSort={column.key !== 'p95_trend'}
+        canSort={column.key !== 'percentile_trend'}
         direction={orderBy === column.key ? 'desc' : undefined}
         onClick={() => {
           onSetOrderBy(`${column.key}`);
@@ -123,7 +123,7 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
 }
 
 function renderBodyCell(column: GridColumnHeader, row: SpanDataRow): React.ReactNode {
-  if (column.key === 'p95_trend' && row[column.key]) {
+  if (column.key === 'percentile_trend' && row[column.key]) {
     return (
       <Sparkline
         color={CHART_PALETTE[3][0]}
@@ -189,13 +189,8 @@ function getColumns(clusters: Cluster[]): GridColumnOrder[] {
       width: COL_WIDTH_UNDEFINED,
     },
     {
-      key: 'p75',
-      name: 'p75',
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: 'p95_trend',
-      name: 'p95 Trend',
+      key: 'percentile_trend',
+      name: 'p50 Trend',
       width: 250,
     },
   ];

@@ -45,8 +45,8 @@ export const getSpansTrendsQuery = (datetime: DateTimeObject, groupIDs: string[]
   return `
     SELECT
     group_id, span_operation,
-    toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
-    quantile(0.95)(exclusive_time) as p95
+    toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval,
+    quantile(0.50)(exclusive_time) as percentile_value
     FROM spans_experimental_starfish
     WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
