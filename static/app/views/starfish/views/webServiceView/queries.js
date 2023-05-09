@@ -97,7 +97,7 @@ export const FAILURE_RATE_QUERY = `SELECT
 `;
 
 export const getTopSpansInModule = module => `SELECT
-  description,
+  description as span,
   sum(exclusive_time) as cumulative_time,
   module
   FROM spans_experimental_starfish
@@ -107,12 +107,12 @@ export const getTopSpansInModule = module => `SELECT
   LIMIT 5
 `;
 
-export const getSpanDurationSeries = spans => `SELECT
+export const getSpanDurationSeries = spansQueryString => `SELECT
   quantile(0.75)(exclusive_time) as p75,
   toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval,
   description as span
   FROM spans_experimental_starfish
-  WHERE description IN ('http://127.0.0.1:10006/discover/snql', 'http://127.0.0.1:10006/events/snql', 'http://127.0.0.1:10006/transactions/snql', 'http://127.0.0.1:10006/search_issues/snql', 'http://127.0.0.1:10007/api/v1/evaluation/batch')
+  WHERE description IN (${spansQueryString})
   GROUP BY interval, description
   ORDER BY interval
 `;

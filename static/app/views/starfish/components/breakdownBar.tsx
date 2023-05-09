@@ -7,7 +7,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
-import {ModuleBreakdownChart} from 'sentry/views/starfish/views/webServiceView/moduleBreakdownChart';
 import TopSpansWidget from 'sentry/views/starfish/views/webServiceView/topSpansWidget';
 
 const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
@@ -127,7 +126,6 @@ function FacetBreakdownBar({segments, title}: Props) {
             </TagHeader>
           </StyledSummary>
           {renderLegend()}
-          <ModuleBreakdownChart />
           <TopSpansWidget moduleSegment={currentSegment} />
         </details>
       </TagSummary>

@@ -12,11 +12,19 @@ import {HOST} from 'sentry/views/starfish/utils/constants';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {getSpanDurationSeries} from 'sentry/views/starfish/views/webServiceView/queries';
 
-export function ModuleBreakdownChart() {
+type Props = {
+  topSpans: string[];
+};
+
+export function ModuleBreakdownChart({topSpans}: Props) {
+  const topSpansQueryString = topSpans.join(', ');
+
   const {isLoading, data} = useQuery({
-    queryKey: ['spanDurationSeries'],
+    queryKey: ['spanDurationSeries', topSpansQueryString],
     queryFn: () =>
-      fetch(`${HOST}/?query=${getSpanDurationSeries('')}`).then(res => res.json()),
+      fetch(`${HOST}/?query=${getSpanDurationSeries(topSpansQueryString)}`).then(res =>
+        res.json()
+      ),
     retry: false,
     initialData: [],
   });
