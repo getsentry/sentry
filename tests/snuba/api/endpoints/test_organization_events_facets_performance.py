@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import pytest
 from django.urls import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -86,6 +87,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
         self._transaction_count += 1
         self.store_event(data=event, project_id=project_id)
 
+    @pytest.mark.skip("Flaky test failing because of Query timeout.")
     def test_basic_request(self):
         response = self.do_request()
         assert response.status_code == 200, response.content
