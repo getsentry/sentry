@@ -9,7 +9,6 @@ from sentry import features, options
 from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.auth import superuser
 from sentry.auth.superuser import is_active_superuser
-from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.services.hybrid_cloud.user import UserSerializeType, user_service
@@ -230,11 +229,10 @@ def get_client_config(request=None):
         },
     }
     if user and user.is_authenticated:
-        auth_context = AuthenticationContext(auth=getattr(request, "auth", None), user=request.user)
         (serialized_user,) = user_service.serialize_many(
             filter={"user_ids": [user.id]},
             serializer=UserSerializeType.SELF_DETAILED,
-            as_user=auth_context.user,
+            as_user=request.user,
         )
         context.update(
             {
