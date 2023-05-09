@@ -7,22 +7,11 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
-import {useQuery} from 'sentry/utils/queryClient';
-import {DatabaseDurationChart} from 'sentry/views/starfish/views/webServiceView/databaseDurationChart';
-import {HttpBreakdownChart} from 'sentry/views/starfish/views/webServiceView/httpBreakdownChart';
 import {ModuleBreakdownChart} from 'sentry/views/starfish/views/webServiceView/moduleBreakdownChart';
-import {
-  getDatabaseTimeSpent,
-  getDbThroughput,
-  getHttpThroughput,
-  getOtherDomains,
-  getTopHttpDomains,
-} from 'sentry/views/starfish/views/webServiceView/queries';
 import TopSpansWidget from 'sentry/views/starfish/views/webServiceView/topSpansWidget';
 
 const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
 const TOOLTIP_DELAY = 800;
-const HOST = 'http://localhost:8080';
 
 export type ModuleSegment = {
   module: string;
@@ -34,57 +23,12 @@ type Props = {
   transaction?: string;
 };
 
-function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Props) {
+function FacetBreakdownBar({segments, title}: Props) {
   const [hoveredValue, setHoveredValue] = useState<ModuleSegment | null>(null);
   const [currentSegment, setCurrentSegment] = useState<ModuleSegment>(
     segments[0] ?? {module: 'db', sum: 1}
   );
   const totalValues = segments.reduce((acc, segment) => acc + segment.sum, 0);
-
-  const transaction = maybeTransaction ?? '';
-
-  const {isLoading: isHttpDurationDataLoading, data: httpDurationData} = useQuery({
-    queryKey: [`topDomains${transaction}`],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getTopHttpDomains({transaction})}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
-  const {isLoading: isOtherHttpDurationDataLoading, data: otherHttpDurationData} =
-    useQuery({
-      queryKey: [`otherDomains${transaction}`],
-      queryFn: () =>
-        fetch(`${HOST}/?query=${getOtherDomains({transaction})}`).then(res => res.json()),
-      retry: false,
-      initialData: [],
-    });
-
-  const {isLoading: isDbDurationLoading, data: dbDurationData} = useQuery({
-    queryKey: [`databaseDuration${transaction}`],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getDatabaseTimeSpent({transaction})}`).then(res =>
-        res.json()
-      ),
-    retry: false,
-    initialData: [],
-  });
-
-  const {data: dbThroughputData} = useQuery({
-    queryKey: [`dbThroughputData${transaction}`],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getDbThroughput({transaction})}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
-  const {data: httpThroughputData} = useQuery({
-    queryKey: [`httpThroughputData${transaction}`],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getHttpThroughput({transaction})}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
 
   function renderTitle() {
     return (
@@ -172,30 +116,6 @@ function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Pro
     );
   }
 
-  function renderChart(mod: string | undefined) {
-    switch (mod) {
-      case 'http':
-        return (
-          <HttpBreakdownChart
-            isHttpDurationDataLoading={isHttpDurationDataLoading}
-            isOtherHttpDurationDataLoading={isOtherHttpDurationDataLoading}
-            httpDurationData={httpDurationData}
-            otherHttpDurationData={otherHttpDurationData}
-            httpThroughputData={httpThroughputData}
-          />
-        );
-      case 'db':
-      default:
-        return (
-          <DatabaseDurationChart
-            isDbDurationLoading={isDbDurationLoading}
-            dbDurationData={dbDurationData}
-            dbThroughputData={dbThroughputData}
-          />
-        );
-    }
-  }
-
   return (
     <Fragment>
       <TagSummary>
@@ -211,7 +131,6 @@ function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Pro
           <TopSpansWidget moduleSegment={currentSegment} />
         </details>
       </TagSummary>
-      {renderChart(currentSegment.module)}
     </Fragment>
   );
 }
