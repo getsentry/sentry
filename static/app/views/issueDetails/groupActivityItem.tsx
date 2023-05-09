@@ -243,14 +243,16 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;
-        return tct('[author] has created a PR for this issue: [version]', {
+        return tct('[author] has created a PR for this issue: [pullRequest]', {
           author,
-          version: (
+          pullRequest: pullRequest ? (
             <PullRequestLink
               inline
               pullRequest={pullRequest}
               repository={pullRequest.repository}
             />
+          ) : (
+            t('PR not available')
           ),
         });
       }
