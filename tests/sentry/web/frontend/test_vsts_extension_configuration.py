@@ -2,6 +2,7 @@ from urllib.parse import parse_qsl, urlparse
 
 from django.urls import reverse
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import OrganizationMember
 from sentry.testutils import TestCase
 
@@ -15,7 +16,8 @@ class VstsExtensionConfigurationTest(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        OrganizationMember.objects.create(user=self.user, organization=self.org, role="admin")
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.create(user=self.user, organization=self.org, role="admin")
 
     def test_logged_in_one_org(self):
         self.login_as(self.user)
@@ -29,8 +31,9 @@ class VstsExtensionConfigurationTest(TestCase):
     def test_logged_in_many_orgs(self):
         self.login_as(self.user)
 
-        org = self.create_organization()
-        OrganizationMember.objects.create(user=self.user, organization=org)
+        with in_test_psql_role_override("postgres"):
+            org = self.create_organization()
+            OrganizationMember.objects.create(user=self.user, organization=org)
 
         resp = self.client.get(self.path, {"targetId": "1", "targetName": "foo"})
 
