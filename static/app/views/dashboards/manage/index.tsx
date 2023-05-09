@@ -230,7 +230,7 @@ class ManageDashboards extends AsyncView<Props, State> {
       was_previewed: false,
     });
 
-    await createDashboard(
+    const newDashboard = await createDashboard(
       api,
       organization.slug,
       {
@@ -239,20 +239,15 @@ class ManageDashboards extends AsyncView<Props, State> {
       },
       true
     );
-    this.onDashboardsChange();
     addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
-    setTimeout(() => {
-      this.loadDashboard(dashboard.title);
-    }, 500);
+    this.loadDashboard(newDashboard.id);
   }
 
-  loadDashboard(dashboardTitle: string) {
+  loadDashboard(dashboardId: string) {
     const {organization, location} = this.props;
-    const {dashboards} = this.state;
-    const dashboard = dashboards?.find(val => val.title === dashboardTitle);
     browserHistory.push(
       normalizeUrl({
-        pathname: `/organizations/${organization.slug}/dashboards/${dashboard?.id}/`,
+        pathname: `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
         query: location.query,
       })
     );
