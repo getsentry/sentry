@@ -23,6 +23,18 @@ describe('Grouping Variant', () => {
       },
     ],
   };
+  const occurrenceEvent = {
+    ...event,
+    occurrence: {
+      fingerprint: ['test-fingerprint'],
+      evidenceData: {
+        op: 'db',
+        offenderSpanIds: ['2'],
+        causeSpanIds: ['1'],
+        parentSpanIds: [],
+      },
+    },
+  };
   const performanceIssueVariant = {
     type: EventGroupVariantType.PERFORMANCE_PROBLEM,
     description: 'performance issue',
@@ -44,6 +56,32 @@ describe('Grouping Variant', () => {
         showGroupingConfig={false}
         variant={performanceIssueVariant}
         event={event}
+      />
+    );
+
+    expect(
+      within(screen.getByText('Parent Span Hashes').closest('tr') as HTMLElement)
+        .getByText('[')
+        .closest('td')
+    ).toHaveTextContent('[]');
+    expect(
+      within(
+        screen.getByText('Source Span Hashes').closest('tr') as HTMLElement
+      ).getByText('hash1')
+    ).toBeInTheDocument();
+    expect(
+      within(
+        screen.getByText('Offender Span Hashes').closest('tr') as HTMLElement
+      ).getByText('hash2')
+    ).toBeInTheDocument();
+  });
+
+  it('renders grouping details for occurrence-backed performance issues', () => {
+    render(
+      <GroupingVariant
+        showGroupingConfig={false}
+        variant={performanceIssueVariant}
+        event={occurrenceEvent}
       />
     );
 
