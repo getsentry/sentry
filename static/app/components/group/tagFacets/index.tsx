@@ -1,18 +1,22 @@
-import {Fragment, ReactNode, useEffect, useState} from 'react';
+import {Fragment, ReactNode, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import keyBy from 'lodash/keyBy';
 
+import {GroupTagResponseItem} from 'sentry/actionCreators/group';
+import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Environment, Event, Organization, Project, TagWithTopValues} from 'sentry/types';
+import {Environment, Event, Organization, Project} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import {appendTagCondition} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useFetchIssueTagsForDetailsPage} from 'sentry/views/issueDetails/utils';
 
 import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
 
@@ -37,7 +41,7 @@ export const BACKEND_TAGS = [
 
 export const DEFAULT_TAGS = ['transaction', 'environment', 'release'];
 
-export function TAGS_FORMATTER(tagsData: Record<string, TagWithTopValues>) {
+export function TAGS_FORMATTER(tagsData: Record<string, GroupTagResponseItem>) {
   // For "release" tag keys, format the release tag value to be more readable (ie removing version prefix)
   const transformedTagsData = {};
   Object.keys(tagsData).forEach(tagKey => {
@@ -75,109 +79,118 @@ type Props = {
   tagKeys: string[];
   event?: Event;
   tagFormatter?: (
-    tagsData: Record<string, TagWithTopValues>
-  ) => Record<string, TagWithTopValues>;
-  title?: ReactNode;
+    tagsData: Record<string, GroupTagResponseItem>
+  ) => Record<string, GroupTagResponseItem>;
 };
-
-type State = {
-  loading: boolean;
-  tagsData: Record<string, TagWithTopValues>;
-};
-
-const LIMIT = 4;
 
 export default function TagFacets({
   tagKeys,
   environments,
   groupId,
-  title,
   tagFormatter,
   project,
 }: Props) {
-  const [state, setState] = useState<State>({
-    tagsData: {},
-    loading: true,
-  });
   const organization = useOrganization();
-  const api = useApi();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      // Fetch the top values for the current group's top tags.
-      const data = await api.requestPromise(`/issues/${groupId}/tags/`, {
-        query: {
-          environment: environments.map(env => env.name),
-          readable: true,
-          limit: LIMIT,
-        },
-      });
-      const tagsData = keyBy(data, 'key');
-      setState({
-        ...state,
-        tagsData,
-        loading: false,
-      });
-    };
-    setState({...state, loading: true});
-    fetchData().catch(() => {
-      setState({...state, tagsData: {}, loading: false});
-    });
-    // Don't want to requery everytime state changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, JSON.stringify(environments), groupId, tagKeys]);
+  const {isLoading, isError, data, refetch} = useFetchIssueTagsForDetailsPage({
+    groupId,
+    environments,
+  });
 
-  const tagsData = tagFormatter?.(state.tagsData) ?? state.tagsData;
-  if (!organization.features.includes('device-classification')) {
-    delete tagsData['device.class'];
-  }
+  const tagsData = useMemo(() => {
+    if (!data) {
+      return {};
+    }
+
+    const keyed = keyBy(data, 'key');
+    const formatted = tagFormatter?.(keyed) ?? keyed;
+
+    if (!organization.features.includes('device-classification')) {
+      delete formatted['device.class'];
+    }
+
+    return formatted;
+  }, [data, tagFormatter, organization]);
 
   const topTagKeys = tagKeys.filter(tagKey => Object.keys(tagsData).includes(tagKey));
   const remainingTagKeys = Object.keys(tagsData)
     .filter(tagKey => !tagKeys.includes(tagKey))
     .sort();
 
-  return (
-    <SidebarSection.Wrap>
-      {state.loading || !tagsData ? (
+  if (isLoading) {
+    return (
+      <WrapperWithTitle>
         <TagPlaceholders>
           <Placeholder height="40px" />
           <Placeholder height="40px" />
           <Placeholder height="40px" />
           <Placeholder height="40px" />
         </TagPlaceholders>
-      ) : (
-        <Fragment>
-          <SidebarSection.Title>{title || t('All Tags')}</SidebarSection.Title>
-          {Object.keys(tagsData).length === 0 ? (
-            <NoTagsFoundContainer data-test-id="no-tags">
-              {environments.length
-                ? t('No tags found in the selected environments')
-                : t('No tags found')}
-            </NoTagsFoundContainer>
-          ) : (
-            <Content>
-              <span data-test-id="top-distribution-wrapper">
-                <TagFacetsDistributionMeterWrapper
-                  groupId={groupId}
-                  organization={organization}
-                  project={project}
-                  tagKeys={topTagKeys}
-                  tagsData={tagsData}
-                  expandFirstTag
-                />
-              </span>
+      </WrapperWithTitle>
+    );
+  }
+
+  if (isError) {
+    return (
+      <WrapperWithTitle>
+        <LoadingError
+          message={t('There was an error loading tags for this issue.')}
+          onRetry={refetch}
+        />
+      </WrapperWithTitle>
+    );
+  }
+
+  return (
+    <WrapperWithTitle>
+      <Fragment>
+        {Object.keys(tagsData).length === 0 ? (
+          <NoTagsFoundContainer data-test-id="no-tags">
+            {environments.length
+              ? t('No tags found in the selected environments')
+              : t('No tags found')}
+          </NoTagsFoundContainer>
+        ) : (
+          <Content>
+            <span data-test-id="top-distribution-wrapper">
               <TagFacetsDistributionMeterWrapper
                 groupId={groupId}
                 organization={organization}
                 project={project}
-                tagKeys={remainingTagKeys}
+                tagKeys={topTagKeys}
                 tagsData={tagsData}
+                expandFirstTag
               />
-            </Content>
-          )}
-        </Fragment>
-      )}
+            </span>
+            <TagFacetsDistributionMeterWrapper
+              groupId={groupId}
+              organization={organization}
+              project={project}
+              tagKeys={remainingTagKeys}
+              tagsData={tagsData}
+            />
+          </Content>
+        )}
+      </Fragment>
+    </WrapperWithTitle>
+  );
+}
+
+function WrapperWithTitle({children}: {children: ReactNode}) {
+  return (
+    <SidebarSection.Wrap>
+      <div>
+        {t('All Tags')}
+        <TooltipWrapper>
+          <Tooltip
+            title={t('The tags associated with all events in this issue')}
+            disableForVisualTest
+          >
+            <IconQuestion size="sm" color="gray200" />
+          </Tooltip>
+        </TooltipWrapper>
+      </div>
+      {children}
     </SidebarSection.Wrap>
   );
 }
@@ -194,7 +207,7 @@ function TagFacetsDistributionMeterWrapper({
   organization: Organization;
   project: Project;
   tagKeys: string[];
-  tagsData: Record<string, TagWithTopValues>;
+  tagsData: Record<string, GroupTagResponseItem>;
   expandFirstTag?: boolean;
 }) {
   const location = useLocation();
@@ -250,6 +263,7 @@ const TagPlaceholders = styled('div')`
   display: grid;
   gap: ${space(1)};
   grid-auto-flow: row;
+  margin-top: ${space(1)};
 `;
 
 const Content = styled('div')`
@@ -264,4 +278,9 @@ export const TagFacetsList = styled('ol')`
   list-style: none;
   padding: 0;
   margin: 0 0 ${space(2)};
+`;
+
+const TooltipWrapper = styled('span')`
+  vertical-align: middle;
+  padding-left: ${space(0.5)};
 `;

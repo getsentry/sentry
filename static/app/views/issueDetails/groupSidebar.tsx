@@ -18,9 +18,7 @@ import TagFacets, {
 } from 'sentry/components/group/tagFacets';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {Tooltip} from 'sentry/components/tooltip';
 import {backend, frontend} from 'sentry/data/platformCategories';
-import {IconQuestion} from 'sentry/icons/iconQuestion';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -228,19 +226,6 @@ export default function GroupSidebar({
             ? BACKEND_TAGS
             : DEFAULT_TAGS
         }
-        title={
-          <div>
-            {t('All Tags')}
-            <TooltipWrapper>
-              <Tooltip
-                title={t('The tags associated with all events in this issue')}
-                disableForVisualTest
-              >
-                <IconQuestion size="sm" color="gray200" />
-              </Tooltip>
-            </TooltipWrapper>
-          </div>
-        }
         event={event}
         tagFormatter={TAGS_FORMATTER}
         project={project}
@@ -268,9 +253,4 @@ const StyledAvatarList = styled(AvatarList)`
 
 const StyledSidebarSectionTitle = styled(SidebarSection.Title)`
   gap: ${space(1)};
-`;
-
-const TooltipWrapper = styled('span')`
-  vertical-align: middle;
-  padding-left: ${space(0.5)};
 `;
