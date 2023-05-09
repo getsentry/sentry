@@ -26,6 +26,7 @@ export const getSpanListQuery = (
   return `SELECT
     group_id, span_operation, domain, description,
     sum(exclusive_time) as total_exclusive_time,
+    uniq(transaction) as transactions,
     quantile(0.75)(exclusive_time) as p75
     FROM spans_experimental_starfish
     WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
