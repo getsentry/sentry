@@ -11,6 +11,7 @@ import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {
+  getOtherSpanDurationSeries,
   getSpanDurationSeries,
   getThroughputByModule,
 } from 'sentry/views/starfish/views/webServiceView/queries';
@@ -24,7 +25,7 @@ export function ModuleBreakdownChart({module, topSpans}: Props) {
   const topSpansQueryString = topSpans.join(', ');
 
   const {isLoading, data} = useQuery({
-    queryKey: ['spanDurationSeries', topSpansQueryString],
+    queryKey: ['topSpanDurationSeries', topSpansQueryString],
     queryFn: () =>
       fetch(`${HOST}/?query=${getSpanDurationSeries(topSpansQueryString)}`).then(res =>
         res.json()
@@ -33,8 +34,23 @@ export function ModuleBreakdownChart({module, topSpans}: Props) {
     initialData: [],
   });
 
+  console.log(getOtherSpanDurationSeries(topSpansQueryString));
+  console.dir(data);
+  const {isLoading: isOtherSpanDurationDataLoading, data: otherSpanDurationData} =
+    useQuery({
+      queryKey: ['otherSpanDurationSeries', topSpansQueryString],
+      queryFn: () =>
+        fetch(`${HOST}/?query=${getOtherSpanDurationSeries(topSpansQueryString)}`).then(
+          res => res.json()
+        ),
+      retry: false,
+      initialData: [],
+    });
+
+  console.dir(otherSpanDurationData);
+
   const {data: throughputData} = useQuery({
-    queryKey: ['sdfsdfsdfs', module],
+    queryKey: ['topSpansThroughputData', module],
     queryFn: () =>
       fetch(`${HOST}/?query=${getThroughputByModule(module)}`).then(res => res.json()),
     retry: false,

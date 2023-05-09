@@ -117,6 +117,21 @@ export const getSpanDurationSeries = spansQueryString => `SELECT
   ORDER BY interval
 `;
 
+export const getOtherSpanDurationSeries = spansQueryString => `SELECT
+  quantile(0.75)(exclusive_time) as p75,
+  toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+  FROM spans_experimental_starfish
+  WHERE description NOT IN (
+    SELECT description
+      FROM spans_experimental_starfish
+      WHERE description IN (${spansQueryString})
+      GROUP BY description
+      ORDER BY -sum(exclusive_time)
+  )
+  GROUP BY interval
+  ORDER BY interval
+`;
+
 export const getThroughputByModule = module => {
   return `SELECT
   count() as count,
