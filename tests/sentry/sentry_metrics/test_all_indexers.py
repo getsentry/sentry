@@ -146,9 +146,7 @@ def test_indexer(indexer, indexer_cache, use_case_id):
     # verify org2 results and cache values
     assert results[org2_id]["sup"] == org2_string_id
     assert (
-        indexer_cache.get(
-            f"{org2_id}:sup", cache_namespace=REVERSE_METRIC_PATH_MAPPING[use_case_id].value
-        )
+        indexer_cache.get(f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org2_id}:sup")
         == org2_string_id
     )
 

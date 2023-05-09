@@ -168,7 +168,7 @@ class CachingIndexer(StringIndexer):
         return result[use_case_id][org_id][string]
 
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        key = f"{org_id}:{string}"
+        key = f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org_id}:{string}"
         result = self.cache.get(key)
 
         if result and isinstance(result, int):
