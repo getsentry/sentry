@@ -226,7 +226,10 @@ yarn.lock                                                @getsentry/owners-js-de
 ## Endof Discover/Dashboards
 
 ## Starfish
-/static/app/views/starfish/                                          @getsentry/team-starfish
+/src/sentry/api/endpoints/organization_events_facets_stats_performance.py           @getsentry/team-starfish
+/tests/snuba/api/endpoints/test_organization_events_facets_stats_performance.py     @getsentry/team-starfish
+
+/static/app/views/starfish/                                                         @getsentry/team-starfish
 ## Endof Starfish
 
 
