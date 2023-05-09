@@ -324,7 +324,6 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
 export type CommonGroupAnalyticsData = {
   days_since_last_seen: number;
   error_count: number;
-  group_has_replay: boolean;
   group_id: number;
   group_num_user_feedback: number;
   has_external_issue: boolean;
@@ -360,7 +359,6 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
     issue_level: group?.level,
     is_assigned: !!group?.assignedTo,
     error_count: Number(group?.count || -1),
-    group_has_replay: Boolean(group?.tags?.find(({key}) => key === 'replayId')),
     num_comments: group ? group.numComments : -1,
     has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
     has_owner: group?.owners ? group?.owners.length > 0 : false,
