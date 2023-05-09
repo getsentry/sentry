@@ -57,7 +57,7 @@ def test_make_cache_key(use_case_id: str) -> None:
 
 
 def test_formatted_results(use_case_id: str) -> None:
-    values = {f"{use_case_id}::hello": 2, f"{use_case_id}::bye": 3}
+    values = {f"{use_case_id}:1:::hello": 2, f"{use_case_id}:1:::bye": 3}
     results = {indexer_cache.make_cache_key(k): v for k, v in values.items()}
     assert indexer_cache._format_results(list(values.keys()), results) == values
 
