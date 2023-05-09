@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {SpanProfileDetails} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -27,8 +29,6 @@ export function ProfileView(props: Props) {
     return <LoadingIndicator />;
   }
 
-  let profileView: React.ReactNode = 'No profile found';
-
   if (eventResult.data.id) {
     const event = eventResult.data;
     const spans = event.entries[0].data as RawSpanType[];
@@ -36,7 +36,7 @@ export function ProfileView(props: Props) {
     const currentSpan = spans.find(s => s.hash === spanHash);
     const profileId = event.contexts?.profile?.profile_id ?? undefined;
     if (currentSpan && profileId) {
-      profileView = (
+      return (
         <ProfilesProvider
           orgSlug={organization.slug}
           profileId={profileId}
@@ -58,7 +58,7 @@ export function ProfileView(props: Props) {
     }
   }
 
-  return profileView;
+  return <Fragment>'No profile found'</Fragment>;
 }
 
 export default ProfileView;
