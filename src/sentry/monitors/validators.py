@@ -7,6 +7,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorStatus, MonitorType, ScheduleType
 
@@ -258,3 +259,12 @@ class MonitorCheckInValidator(serializers.Serializer):
             del attrs["monitor_config"]
 
         return attrs
+
+
+class MonitorAlertRuleTargetValidator(serializers.Serializer):
+    target_identifier = serializers.IntegerField()
+    target_type = serializers.CharField()
+
+
+class MonitorAlertRuleValidator(CamelSnakeSerializer):
+    targets = MonitorAlertRuleTargetValidator(many=True)

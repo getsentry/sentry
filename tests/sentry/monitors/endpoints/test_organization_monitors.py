@@ -235,7 +235,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "name": "My Monitor",
             "type": "cron_job",
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
-            "alert_rule": {"targetIdentifier": self.user.id, "targetType": "Member"},
+            "alert_rule": {"targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}]},
         }
         response = self.get_success_response(self.organization.slug, **data)
 

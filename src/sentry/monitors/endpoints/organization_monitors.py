@@ -30,7 +30,7 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.utils import get_alert_rule, signal_first_monitor_created
-from sentry.monitors.validators import MonitorValidator
+from sentry.monitors.validators import MonitorAlertRuleValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
 
 from .base import OrganizationMonitorPermission
@@ -221,9 +221,15 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         project = result["project"]
         signal_first_monitor_created(project, request.user, False)
 
-        alert_rule = request.data.get("alert_rule", {})
-        if alert_rule:
-            alert_rule_data = get_alert_rule(project, request.user, monitor, alert_rule)
+        # alert_rule = request.data.get("alert_rule", {})
+        alert_rule = MonitorAlertRuleValidator(
+            data=request.data.get("alert_rule", {}),
+            context={"organization": organization, "access": request.access},
+        )
+
+        if alert_rule.is_valid():
+            validated_alert_rule = alert_rule.validated_data
+            alert_rule_data = get_alert_rule(project, request.user, monitor, validated_alert_rule)
             serializer = RuleSerializer(
                 context={"project": project, "organization": project.organization},
                 data=alert_rule_data,
