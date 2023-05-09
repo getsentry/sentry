@@ -1,20 +1,27 @@
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 
-export const getTimeSpentQuery = (groupingColumn: string, conditions: string[] = []) => {
+export const getTimeSpentQuery = (
+  descriptionFilter: string | undefined,
+  groupingColumn: string,
+  conditions: string[] = []
+) => {
   const validConditions = conditions.filter(Boolean);
 
   return `SELECT
     ${groupingColumn} AS primary_group,
     sum(exclusive_time) AS exclusive_time
     FROM spans_experimental_starfish
-    ${validConditions.length > 0 ? 'WHERE' : ''}
+    WHERE 1 = 1
+    ${validConditions.length > 0 ? 'AND' : ''}
     ${validConditions.join(' AND ')}
+    ${descriptionFilter ? `AND match(lower(description), '${descriptionFilter}')` : ''}
     GROUP BY primary_group
   `;
 };
 
 export const getSpanListQuery = (
+  descriptionFilter: string | undefined,
   datetime: DateTimeObject,
   conditions: string[] = [],
   orderBy: string,
@@ -34,12 +41,17 @@ export const getSpanListQuery = (
     ${validConditions.length > 0 ? 'AND' : ''}
     ${validConditions.join(' AND ')}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
+    ${descriptionFilter ? `AND match(lower(description), '${descriptionFilter}')` : ''}
     GROUP BY group_id, span_operation, domain, description
     ORDER BY ${orderBy ?? 'count'} desc
     ${limit ? `LIMIT ${limit}` : ''}`;
 };
 
-export const getSpansTrendsQuery = (datetime: DateTimeObject, groupIDs: string[]) => {
+export const getSpansTrendsQuery = (
+  descriptionFilter: string | undefined,
+  datetime: DateTimeObject,
+  groupIDs: string[]
+) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
 
   return `
@@ -51,6 +63,7 @@ export const getSpansTrendsQuery = (datetime: DateTimeObject, groupIDs: string[]
     WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     AND group_id IN (${groupIDs.map(id => `'${id}'`).join(',')})
+    ${descriptionFilter ? `AND match(lower(description), '${descriptionFilter}')` : ''}
     GROUP BY group_id, span_operation, interval
     ORDER BY interval asc
   `;
