@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import isNil from 'lodash/isNil';
 import moment from 'moment';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -30,6 +31,10 @@ export default function FailureDetailPanel({
 }) {
   const location = useLocation();
   const organization = useOrganization();
+
+  if (isNil(spike)) {
+    return null;
+  }
 
   const hasStartAndEnd = spike?.startTimestamp && spike.endTimestamp;
 
