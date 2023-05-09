@@ -322,6 +322,44 @@ export const useQueryPanelTable = (
   });
 };
 
+export const useGetExampleTransaction = (
+  row: DataRow
+): DefinedUseQueryResult<{first: string; latest: string}[]> => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+  const query = `
+    SELECT
+      minIf(transaction_id, equals(timestamp, '${row.lastSeen}')) as latest,
+      minIf(transaction_id, equals(timestamp, '${row.firstSeen}')) as first
+    FROM spans_experimental_starfish
+    WHERE
+      ${DEFAULT_WHERE}
+      ${dateFilters} AND
+      group_id = '${row.group_id}'
+    HAVING latest > 0 and first > 0
+    LIMIT 10
+  `;
+  return useQuery({
+    queryKey: ['getExampleTransaction', row.group_id],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: true,
+    initialData: [],
+  });
+};
+
+export const useExampleTransactionDetails = (event_id: string) => {
+  return useQuery({
+    queryKey: ['getExampleTransactionDetails', event_id],
+    queryFn: () =>
+      fetch(`/api/0/projects/sentry/sentry/events/${event_id.replaceAll('-', '')}/`).then(
+        res => res.json()
+      ),
+    retry: true,
+    initialData: [],
+  });
+};
+
 export const useQueryPanelGraph = (row: DataRow, interval: number) => {
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
