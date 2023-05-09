@@ -493,9 +493,16 @@ class OrganizationMember(Model):
             scopes.update(self.organization.get_scopes(role_obj))
         return frozenset(scopes)
 
+    __org_roles_from_teams = None
+
     def get_org_roles_from_teams(self) -> Set[str]:
-        # results in an extra query when calling get_scopes()
-        return set(self.teams.all().exclude(org_role=None).values_list("org_role", flat=True))
+        if self.__org_roles_from_teams is None:
+            # Store team_roles so that we don't repeat this query when possible.
+            team_roles = set(
+                self.teams.all().exclude(org_role=None).values_list("org_role", flat=True)
+            )
+            self.__org_roles_from_teams = team_roles
+        return self.__org_roles_from_teams
 
     def get_all_org_roles(self) -> List[str]:
         all_org_roles = self.get_org_roles_from_teams()
