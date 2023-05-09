@@ -169,7 +169,7 @@ export function ProjectPageFilter({
       });
     },
     [
-      pageFilterValue,
+      value,
       resetParamsOnChange,
       router,
       allowMultiple,
