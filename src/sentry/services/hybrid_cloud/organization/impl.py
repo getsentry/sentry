@@ -122,6 +122,26 @@ class DatabaseBackedOrganizationService(OrganizationService):
         num_deleted, _deleted = member.delete()
         return num_deleted > 0
 
+    def set_user_for_organization_member(
+        self,
+        *,
+        organization_member_id: int,
+        user_id: int,
+    ) -> Optional[RpcOrganizationMember]:
+        region_outbox = None
+        with transaction.atomic():
+            try:
+                org_member = OrganizationMember.objects.get(id=organization_member_id)
+                org_member.set_user(user_id)
+                org_member.save()
+                region_outbox = org_member.outbox_for_update()
+                region_outbox.save()
+            except OrganizationMember.DoesNotExist:
+                return None
+        if region_outbox:
+            region_outbox.drain_shard(max_updates_to_drain=10)
+        return serialize_member(org_member)
+
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         try:
             org = Organization.objects.get_from_cache(slug=slug)
