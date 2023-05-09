@@ -137,7 +137,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        self.store_event(
+        group_2 = self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=5)),
                 "fingerprint": ["group-2"],
@@ -163,8 +163,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
             end=iso_format(before_now(seconds=1)),
             aggregate_kwargs={"better_priority": {**aggregate_kwargs}},
         )
-        assert len(response.data) == 1
-        assert [item["id"] for item in response.data] == [str(group.id)]
+        assert len(response.data) == 2
+        assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
 
     def test_sort_by_trend(self):
         group = self.store_event(
