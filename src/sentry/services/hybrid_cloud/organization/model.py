@@ -106,6 +106,7 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     is_pending: bool = False
     invite_approved: bool = False
     token_expired: bool = False
+    legacy_token: str = ""
 
     def get_audit_log_metadata(self, user_email: str) -> Mapping[str, Any]:
         team_ids = [mt.team_id for mt in self.member_teams]
