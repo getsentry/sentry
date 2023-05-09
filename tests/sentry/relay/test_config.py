@@ -322,20 +322,20 @@ def test_project_config_with_all_biases_enabled(
                 },
                 "id": 1002,
             },
-            # {
-            #     "condition": {
-            #         "inner": {
-            #             "name": "trace.replay_id",
-            #             "op": "eq",
-            #             "options": {"ignoreCase": True},
-            #             "value": None,
-            #         },
-            #         "op": "not",
-            #     },
-            #     "id": 1005,
-            #     "samplingValue": {"type": "sampleRate", "value": 1.0},
-            #     "type": "trace",
-            # },
+            {
+                "condition": {
+                    "inner": {
+                        "name": "trace.replay_id",
+                        "op": "eq",
+                        "options": {"ignoreCase": True},
+                        "value": None,
+                    },
+                    "op": "not",
+                },
+                "id": 1005,
+                "samplingValue": {"type": "sampleRate", "value": 1.0},
+                "type": "trace",
+            },
             # {
             #     "condition": {"inner": [], "op": "and"},
             #     "id": 1004,
