@@ -107,6 +107,7 @@ function SpanDetail(props: Props) {
     trackAnalytics('performance_views.event_details.open_span_details', {
       organization,
       operation: span.op ?? 'undefined',
+      origin: span.origin ?? 'undefined',
       project_platform: event.platform ?? 'undefined',
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
