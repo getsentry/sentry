@@ -317,7 +317,6 @@ def _get_project_config(
 
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
 
-
     if features.has("organizations:metrics-extraction", project.organization):
         config["sessionMetrics"] = {
             "version": EXTRACT_ABNORMAL_MECHANISM_VERSION
