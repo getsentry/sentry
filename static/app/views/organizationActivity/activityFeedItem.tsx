@@ -151,14 +151,16 @@ class ActivityItem extends Component<Props, State> {
           issue: issueLink,
         });
       case 'set_resolved_in_pull_request':
-        return tct('[author] marked [issue] as resolved in [version]', {
+        return tct('[author] marked [issue] as resolved in [pullRequest]', {
           author,
-          version: (
+          pullRequest: data.pullRequest ? (
             <PullRequestLink
               inline
               pullRequest={data.pullRequest}
-              repository={data.pullRequest && data.pullRequest.repository}
+              repository={data.pullRequest.repository}
             />
+          ) : (
+            t('Not available')
           ),
           issue: issueLink,
         });
