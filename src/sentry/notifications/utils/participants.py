@@ -100,7 +100,9 @@ class ParticipantMap:
 
     def split_participants_and_context(
         self,
-    ) -> Iterable[Tuple[ExternalProviders, Iterable[RpcActor], Mapping[int, Mapping[str, Any]]]]:
+    ) -> Iterable[
+        Tuple[ExternalProviders, Iterable[RpcActor], Mapping[RpcActor, Mapping[str, Any]]]
+    ]:
         for provider, participants_with_reasons in self._dict.items():
             extra_context = {
                 participant: {"reason": reason}
