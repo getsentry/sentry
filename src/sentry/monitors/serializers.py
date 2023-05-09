@@ -45,35 +45,35 @@ class MonitorSerializer(Serializer):
             )
         }
 
-        environment_data = {}
+        serialized_monitor_environments = defaultdict(list)
+        monitor_environments = (
+            MonitorEnvironment.objects.filter(monitor__in=item_list)
+            .select_related("environment")
+            .order_by("-last_checkin")
+            .exclude(
+                status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
+            )
+        )
         if self.environments:
-            monitor_environments = defaultdict(list)
-            for monitor_environment in (
-                MonitorEnvironment.objects.filter(
-                    monitor__in=item_list, environment__in=self.environments
-                )
-                .select_related("environment")
-                .order_by("-last_checkin")
-                .exclude(
-                    status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
-                )
-            ):
-                # individually serialize as related objects are prefetched
-                monitor_environments[monitor_environment.monitor_id].append(
-                    serialize(
-                        monitor_environment,
-                        user,
-                    )
-                )
+            monitor_environments.filter(environment__in=self.environments)
 
-            environment_data = {
-                str(item.id): monitor_environments.get(item.id, []) for item in item_list
-            }
+        for monitor_environment in monitor_environments:
+            # individually serialize as related objects are prefetched
+            serialized_monitor_environments[monitor_environment.monitor_id].append(
+                serialize(
+                    monitor_environment,
+                    user,
+                )
+            )
+
+        environment_data = {
+            str(item.id): serialized_monitor_environments.get(item.id, []) for item in item_list
+        }
 
         return {
             item: {
                 "project": projects[str(item.project_id)] if item.project_id else None,
-                "environments": environment_data[str(item.id)] if self.environments else [],
+                "environments": environment_data[str(item.id)],
             }
             for item in item_list
         }
