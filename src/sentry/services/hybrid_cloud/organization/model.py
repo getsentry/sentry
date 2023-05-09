@@ -103,6 +103,7 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     scopes: List[str] = Field(default_factory=list)
     invite_status: int = Field(default_factory=_DefaultEnumHelpers.get_default_invite_status_value)
     email: str = ""
+    token: str = ""
 
     def get_audit_log_metadata(self, user_email: Optional[str] = None) -> Mapping[str, Any]:
         from sentry.models.organizationmember import invite_status_names
