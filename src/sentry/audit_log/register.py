@@ -257,7 +257,7 @@ default_manager.add(
     AuditLogEvent(
         event_id=123,
         name="MONITOR_ENVIRONMENT_REMOVE",
-        api_name="monitor_environment.remove",
+        api_name="monitor.environment.remove",
         template="Monitor environment removed",
     )
 )
