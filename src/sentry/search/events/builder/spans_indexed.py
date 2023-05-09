@@ -2,7 +2,7 @@ from typing import Optional
 
 from snuba_sdk import Column, Function
 
-from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
+from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder, TopEventsQueryBuilder
 
 
 class SpansIndexedQueryBuilder(QueryBuilder):
@@ -19,3 +19,7 @@ class SpansIndexedQueryBuilder(QueryBuilder):
 
 class TimeseriesSpanIndexedQueryBuilder(TimeseriesQueryBuilder):
     time_column = Function("toStartOfHour", [Column("end_timestamp")], "time")
+
+
+class TopEventsSpanIndexedQueryBuilder(TopEventsQueryBuilder):
+    time_column = Function("toStartOfHour", [Column("timestamp")], "time")
