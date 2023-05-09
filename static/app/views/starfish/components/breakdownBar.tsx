@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -28,6 +28,12 @@ function FacetBreakdownBar({segments, title}: Props) {
     segments[0] ?? {module: 'db', sum: 1}
   );
   const totalValues = segments.reduce((acc, segment) => acc + segment.sum, 0);
+
+  useEffect(() => {
+    if (segments[0]) {
+      setCurrentSegment(segments[0]);
+    }
+  }, [segments]);
 
   function renderTitle() {
     return (
