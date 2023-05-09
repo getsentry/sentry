@@ -110,8 +110,10 @@ def test_indexer(indexer, indexer_cache, use_case_id):
 
     assert list(
         indexer_cache.get_many(
-            [f"{org1_id}:{string}" for string in strings],
-            cache_namespace=REVERSE_METRIC_PATH_MAPPING[use_case_id].value,
+            [
+                f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org1_id}:{string}"
+                for string in strings
+            ],
         ).values()
     ) == [None, None, None]
 
@@ -134,17 +136,17 @@ def test_indexer(indexer, indexer_cache, use_case_id):
         assert value in org1_string_ids
 
     for cache_value in indexer_cache.get_many(
-        [f"{org1_id}:{string}" for string in strings],
-        cache_namespace=REVERSE_METRIC_PATH_MAPPING[use_case_id].value,
+        [
+            f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org1_id}:{string}"
+            for string in strings
+        ],
     ).values():
         assert cache_value in org1_string_ids
 
     # verify org2 results and cache values
     assert results[org2_id]["sup"] == org2_string_id
     assert (
-        indexer_cache.get(
-            f"{org2_id}:sup", cache_namespace=REVERSE_METRIC_PATH_MAPPING[use_case_id].value
-        )
+        indexer_cache.get(f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org2_id}:sup")
         == org2_string_id
     )
 
@@ -228,8 +230,11 @@ def test_already_cached_plus_read_results(indexer, indexer_cache, use_case_id) -
     for the same organization.
     """
     org_id = 8
-    cached = {f"{org_id}:beep": 10, f"{org_id}:boop": 11}
-    indexer_cache.set_many(cached, REVERSE_METRIC_PATH_MAPPING[use_case_id].value)
+    cached = {
+        f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org_id}:beep": 10,
+        f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org_id}:boop": 11,
+    }
+    indexer_cache.set_many(cached)
 
     raw_indexer = indexer
     indexer = CachingIndexer(indexer_cache, indexer)
