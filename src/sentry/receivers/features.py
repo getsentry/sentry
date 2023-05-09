@@ -494,12 +494,13 @@ def record_issue_archived(project, user, group_list, activity_data, **kwargs):
 
 
 @issue_escalating.connect(weak=False)
-def record_issue_escalating(project, group, **kwargs):
+def record_issue_escalating(project, group, event, **kwargs):
     analytics.record(
         "issue.escalating",
         organization_id=project.organization_id,
         project_id=project.id,
         group_id=group.id,
+        event_id=event.event_id,
     )
 
 

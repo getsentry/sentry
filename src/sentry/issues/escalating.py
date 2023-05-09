@@ -21,6 +21,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry.eventstore.models import GroupEvent
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
@@ -250,7 +251,7 @@ def get_group_hourly_count(group: Group) -> int:
     return int(hourly_count)
 
 
-def is_escalating(group: Group) -> bool:
+def is_escalating(group: Group, event: GroupEvent) -> bool:
     """Return boolean depending on if the group is escalating or not"""
     group_hourly_count = get_group_hourly_count(group)
     forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
@@ -261,7 +262,9 @@ def is_escalating(group: Group) -> bool:
         group.save()
         add_group_to_inbox(group, GroupInboxReason.ESCALATING)
 
-        issue_escalating.send_robust(project=group.project, group=group, sender=is_escalating)
+        issue_escalating.send_robust(
+            project=group.project, group=group, event=event, sender=is_escalating
+        )
         return True
     return False
 
