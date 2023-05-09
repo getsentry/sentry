@@ -53,7 +53,11 @@ class MonitorConsumerTest(TestCase):
             project_id=self.project.id,
             next_checkin=timezone.now() + timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "checkin_margin": 5,
+            },
             **kwargs,
         )
 
@@ -214,6 +218,8 @@ class MonitorConsumerTest(TestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["schedule"] == "13 * * * *"
+        # The monitor config is merged, so checkin_margin is not overwritten
+        assert monitor.config["checkin_margin"] == 5
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK

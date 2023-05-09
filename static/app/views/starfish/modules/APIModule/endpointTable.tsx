@@ -123,7 +123,7 @@ export default function EndpointTable({
 
     const throughputSeries: Series = {
       seriesName: 'throughput',
-      data: aggregatesGroupedByURL[url].map(({name, count}) => ({
+      data: aggregatesGroupedByURL[url]?.map(({name, count}) => ({
         name,
         value: count,
       })),
@@ -131,7 +131,7 @@ export default function EndpointTable({
 
     const p50Series: Series = {
       seriesName: 'p50 Trend',
-      data: aggregatesGroupedByURL[url].map(({name, p50}) => ({
+      data: aggregatesGroupedByURL[url]?.map(({name, p50}) => ({
         name,
         value: p50,
       })),
