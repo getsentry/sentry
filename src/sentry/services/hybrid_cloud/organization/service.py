@@ -128,9 +128,7 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationMemberId())
     @abstractmethod
-    def delete_organization_member(
-        self, *, organization_member_id: int
-    ) -> Optional[RpcOrganizationMember]:
+    def delete_organization_member(self, *, organization_member_id: int) -> bool:
         """
         Delete an organization member by its id.
         """

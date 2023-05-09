@@ -154,7 +154,7 @@ class ApiInviteHelper:
         if self.om.token_expired:
             return False
         tokens_are_equal = constant_time_compare(self.om.token or self.om.legacy_token, self.token)
-        return tokens_are_equal
+        return tokens_are_equal  # type: ignore[no-any-return]
 
     @property
     def user_authenticated(self) -> bool:
@@ -203,9 +203,11 @@ class ApiInviteHelper:
                 self.handle_member_has_no_sso()
                 return None
 
-        self.om = om = organization_service.set_user_for_organization_member(
+        new_om = organization_service.set_user_for_organization_member(
             organization_member_id=self.om.id, user_id=user.id
         )
+        if new_om:
+            self.om = om = new_om
 
         create_audit_entry(
             self.request,

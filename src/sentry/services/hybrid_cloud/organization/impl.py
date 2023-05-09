@@ -121,7 +121,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             except OrganizationMember.DoesNotExist:
                 return False
             num_deleted, _deleted = member.delete()
-            return num_deleted > 0
+            return num_deleted > 0  # type: ignore[no-any-return]
 
     def set_user_for_organization_member(
         self,
