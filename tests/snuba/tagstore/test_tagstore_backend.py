@@ -758,19 +758,6 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
             tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {self.proj1group1.id: 3, self.proj1group2.id: 1}
 
-    def test_get_group_ids_for_users(self):
-        assert self.ts.get_group_ids_for_users(
-            [self.proj1.id],
-            [EventUser(project_id=self.proj1.id, ident="user1")],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        ) == {self.proj1group1.id, self.proj1group2.id}
-
-        assert self.ts.get_group_ids_for_users(
-            [self.proj1.id],
-            [EventUser(project_id=self.proj1.id, ident="user2")],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        ) == {self.proj1group1.id}
-
     def test_get_group_tag_values_for_users(self):
         result = self.ts.get_group_tag_values_for_users(
             [EventUser(project_id=self.proj1.id, ident="user1")],

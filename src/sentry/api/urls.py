@@ -377,7 +377,6 @@ from .endpoints.organization_transaction_anomaly_detection import (
     OrganizationTransactionAnomalyDetectionEndpoint,
 )
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
-from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
@@ -1429,11 +1428,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/sessions/$",
         OrganizationSessionsEndpoint.as_view(),
         name="sentry-api-0-organization-sessions",
-    ),
-    url(
-        r"^(?P<organization_slug>[^\/]+)/users/issues/$",
-        OrganizationUserIssuesSearchEndpoint.as_view(),
-        name="sentry-api-0-organization-issue-search",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$",
