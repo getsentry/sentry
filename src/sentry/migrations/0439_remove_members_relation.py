@@ -23,8 +23,12 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name="organization",
-            name="members",
-        ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.RemoveField(
+                    model_name="organization",
+                    name="members",
+                ),
+            ]
+        )
     ]
