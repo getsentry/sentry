@@ -246,7 +246,7 @@ def get_group_hourly_count(group: Group) -> int:
     return int(hourly_count)
 
 
-def is_escalating(group: Group, event: GroupEvent) -> bool:
+def is_escalating(group: Group) -> bool:
     """Return boolean depending on if the group is escalating or not"""
     group_hourly_count = get_group_hourly_count(group)
     forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)

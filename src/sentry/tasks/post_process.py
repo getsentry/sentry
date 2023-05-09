@@ -719,7 +719,7 @@ def process_snoozes(job: PostProcessJob) -> None:
                 group.status = GroupStatus.UNRESOLVED
                 group.save(update_fields=["status", "substatus"])
                 issue_escalating.send_robust(
-                    project=group.project, group=group, event=event, sender=is_escalating
+                    project=group.project, group=group, event=job["event"], sender=is_escalating
                 )
 
             else:

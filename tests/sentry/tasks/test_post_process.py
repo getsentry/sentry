@@ -1341,10 +1341,12 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
 
 class SnoozeTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:escalating-issues")
+    @patch("sentry.signals.issue_escalating.send_robust")
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processor.RuleProcessor")
-    @patch("sentry.signals.issue_escalating.send_robust")
-    def test_invalidates_snooze(self, mock_processor, send_robust, mock_send_robust):
+    def test_invalidates_snooze(
+        self, mock_processor, mock_send_unignored_robust, mock_send_escalating_robust
+    ):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         group = event.group
@@ -1373,10 +1375,10 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         )
 
         mock_processor.assert_called_with(EventMatcher(event), False, False, True, True)
-        mock_send_robust.assert_called_once_with(
+        mock_send_escalating_robust.assert_called_once_with(
             project=group.project,
             group=group,
-            event=event,
+            event=EventMatcher(event),
             sender=is_escalating,
         )
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
@@ -1390,7 +1392,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         assert Activity.objects.filter(
             group=group, project=group.project, type=ActivityType.SET_UNRESOLVED.value
         ).exists()
-        assert send_robust.called
+        assert mock_send_unignored_robust.called
 
     @override_settings(SENTRY_BUFFER="sentry.buffer.redis.RedisBuffer")
     @patch("sentry.signals.issue_unignored.send_robust")
