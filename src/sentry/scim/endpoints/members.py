@@ -575,7 +575,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                         organization=organization,
                         email=result["email"],
                         role=result["role"],
-                        inviter=request.user,
+                        inviter_id=request.user.id,
                     )
 
                     # TODO: are invite tokens needed for SAML orgs?

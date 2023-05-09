@@ -26,6 +26,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.exceptions import UnableToAcceptMemberInvitationException
@@ -201,12 +202,11 @@ class OrganizationMember(Model):
     teams = models.ManyToManyField(
         "sentry.Team", blank=True, through="sentry.OrganizationMemberTeam"
     )
-    inviter = FlexibleForeignKey(
+    inviter_id = HybridCloudForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
-        related_name="sentry_inviter_set",
-        on_delete=models.SET_NULL,
+        on_delete="SET_NULL",
     )
     invite_status = models.PositiveSmallIntegerField(
         choices=InviteStatus.as_choices(),

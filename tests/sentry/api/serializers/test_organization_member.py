@@ -7,6 +7,7 @@ from sentry.api.serializers.models.organization_member import (
     OrganizationMemberSCIMSerializer,
     OrganizationMemberWithTeamsSerializer,
 )
+from sentry.models.organizationmember import InviteStatus
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -29,6 +30,28 @@ class OrganizationMemberSerializerTest(TestCase):
                 "user__email"
             )
         )
+
+    def test_inviter(self):
+        inviter = self.create_user(name="bob")
+        member = self.create_member(
+            organization=self.org,
+            email="foo@sentry.io",
+            inviter_id=inviter.id,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+        result = serialize(member, self.user_2, OrganizationMemberSerializer())
+        assert result["inviteStatus"] == "requested_to_join"
+        assert result["inviterName"] == "bob"
+
+    def test_user(self):
+        user = self.create_user(name="bob")
+        member = self.create_member(
+            organization=self.org,
+            user_id=user.id,
+        )
+        result = serialize(member, self.user_2, OrganizationMemberSerializer())
+        assert result["user"]["id"] == str(user.id)
+        assert result["user"]["name"] == "bob"
 
 
 @region_silo_test(stable=True)

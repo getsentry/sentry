@@ -420,7 +420,7 @@ class StatusActionTest(BaseEventTest):
             organization=self.organization,
             email="hello@sentry.io",
             role="member",
-            inviter=other_user,
+            inviter_id=other_user.id,
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
 
@@ -447,7 +447,7 @@ class StatusActionTest(BaseEventTest):
             organization=self.organization,
             email="hello@sentry.io",
             role="member",
-            inviter=other_user,
+            inviter_id=other_user.id,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
 
@@ -472,7 +472,7 @@ class StatusActionTest(BaseEventTest):
             organization=self.organization,
             email="hello@sentry.io",
             role="member",
-            inviter=other_user,
+            inviter_id=other_user.id,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
         callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
@@ -489,7 +489,7 @@ class StatusActionTest(BaseEventTest):
             organization=self.organization,
             email="hello@sentry.io",
             role="member",
-            inviter=other_user,
+            inviter_id=other_user.id,
             invite_status=InviteStatus.APPROVED.value,
         )
         callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
@@ -506,7 +506,7 @@ class StatusActionTest(BaseEventTest):
             organization=self.organization,
             email="hello@sentry.io",
             role="owner",
-            inviter=other_user,
+            inviter_id=other_user.id,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
         callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
@@ -534,7 +534,7 @@ class StatusActionTest(BaseEventTest):
             organization=another_org,
             email="hello@sentry.io",
             role="member",
-            inviter=other_user,
+            inviter_id=other_user.id,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
         callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
@@ -551,7 +551,7 @@ class StatusActionTest(BaseEventTest):
             organization=self.organization,
             email="hello@sentry.io",
             role="member",
-            inviter=other_user,
+            inviter_id=other_user.id,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
         callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
