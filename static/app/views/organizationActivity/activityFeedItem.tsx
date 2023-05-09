@@ -139,15 +139,21 @@ class ActivityItem extends Component<Props, State> {
           issue: issueLink,
         });
       case 'set_resolved_in_commit':
-        return tct('[author] marked [issue] as resolved in [version]', {
+        if (data.commit) {
+          return tct('[author] marked [issue] as resolved in [commit]', {
+            author,
+            commit: (
+              <CommitLink
+                inline
+                commitId={data.commit.id}
+                repository={data.commit.repository}
+              />
+            ),
+            issue: issueLink,
+          });
+        }
+        return tct('[author] marked [issue] as resolved in a commit', {
           author,
-          version: (
-            <CommitLink
-              inline
-              commitId={data.commit && data.commit.id}
-              repository={data.commit && data.commit.repository}
-            />
-          ),
           issue: issueLink,
         });
       case 'set_resolved_in_pull_request':
