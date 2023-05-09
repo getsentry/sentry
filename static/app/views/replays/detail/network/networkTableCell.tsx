@@ -12,7 +12,7 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import {operationName} from 'sentry/views/replays/detail/utils';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
-const EMPTY_CELL = '\u00A0';
+const EMPTY_CELL = '--';
 
 type Props = {
   columnIndex: number;
@@ -121,7 +121,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps}>
-          <Text>{statusCode ? statusCode : EMPTY_CELL}</Text>
+          <Text>{typeof statusCode === 'number' ? statusCode : EMPTY_CELL}</Text>
         </Cell>
       ),
       () => (
