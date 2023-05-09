@@ -44,7 +44,7 @@ def indexer_cls(request):
     return request.param
 
 
-@pytest.fixture(params=UseCaseKey)
+@pytest.fixture(params=USE_CASE_KEYS)
 def use_case_id(request):
     return request.param
 
