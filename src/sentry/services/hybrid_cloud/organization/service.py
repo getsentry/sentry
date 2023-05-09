@@ -15,6 +15,7 @@ from sentry.services.hybrid_cloud.organization import (
 from sentry.services.hybrid_cloud.region import (
     ByOrganizationId,
     ByOrganizationIdAttribute,
+    ByOrganizationMemberId,
     ByOrganizationSlug,
     UnimplementedRegionResolution,
 )

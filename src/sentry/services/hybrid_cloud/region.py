@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud import ArgumentDict
 from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
 from sentry.types.region import Region, get_region_by_name
@@ -80,6 +81,23 @@ class ByOrganizationIdAttribute(RegionResolution):
         argument = arguments[self.parameter_name]
         organization_id = getattr(argument, self.attribute_name)
         mapping = self.organization_mapping_manager.get(organization_id=organization_id)
+        return self._resolve_from_mapping(mapping)
+
+
+@dataclass(frozen=True)
+class ByOrganizationMemberId(RegionResolution):
+    """Resolve from an `int` parameter representing the organization member's ID."""
+
+    parameter_name: str = "organization_member_id"
+
+    def resolve(self, arguments: ArgumentDict) -> Region:
+        organization_member_id = arguments[self.parameter_name]
+        org_member_map = OrganizationMemberMapping.objects.filter(
+            organizationmember_id=organization_member_id
+        )
+        mapping = self.organization_mapping_manager.get(
+            organization_id=org_member_map.organization_id
+        )
         return self._resolve_from_mapping(mapping)
 
 
