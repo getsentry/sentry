@@ -52,7 +52,6 @@ function AssigneeAvatar({
         actor={assignedTo}
         className="avatar"
         size={24}
-        suggested={Boolean(assignedToSuggestion)}
         tooltip={
           <TooltipWrapper>
             {tct('Assigned to [name]', {
@@ -73,7 +72,7 @@ function AssigneeAvatar({
   if (suggestedActors.length > 0) {
     return (
       <SuggestedAvatarStack
-        size={28}
+        size={26}
         owners={suggestedActors}
         tooltipOptions={{isHoverable: true}}
         tooltip={
