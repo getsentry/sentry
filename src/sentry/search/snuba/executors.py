@@ -442,7 +442,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
 
 def trend_aggregation(start: datetime, end: datetime) -> Sequence[str]:
-    print("sfkgjhsjghsdgfjh")
     middle_date = start + timedelta(seconds=(end - start).total_seconds() * 0.5)
     middle = datetime.strftime(middle_date, DateArg.date_format)
 
@@ -457,7 +456,7 @@ def trend_aggregation(start: datetime, end: datetime) -> Sequence[str]:
 def better_priority_aggregation(start: datetime, end: datetime) -> Sequence[str]:
     # how will this use the weights of the issue attributes?
 
-    # does this formula assume we have all the events / event timestamps?
+    # does this formula assume we have all of an issue's events / event timestamps? how do I get em
     event_age = int(
         (timezone.now() - start).total_seconds() / 3600
     )  # Convert to hours, can be whatever unit
