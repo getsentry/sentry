@@ -31,13 +31,13 @@ type State = {
   checkInList: CheckIn[];
 };
 
-const checkStatusToIndicatorStatus: Record<CheckInStatus, string> = {
+const checkStatusToIndicatorStatus = {
   [CheckInStatus.OK]: 'success',
   [CheckInStatus.ERROR]: 'error',
   [CheckInStatus.IN_PROGRESS]: 'muted',
   [CheckInStatus.MISSED]: 'warning',
   [CheckInStatus.TIMEOUT]: 'error',
-};
+} as const;
 
 const statusToText = {
   [CheckInStatus.OK]: t('Okay'),
