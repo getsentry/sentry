@@ -512,7 +512,10 @@ export function Actions(props: Props) {
           }
           disabled={disabled || isAutoResolved}
           onClick={() =>
-            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+            onUpdate({
+              status: ResolutionStatus.UNRESOLVED,
+              statusDetails: {},
+            })
           }
         >
           {isIgnored
