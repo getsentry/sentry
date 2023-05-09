@@ -96,6 +96,8 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
   'replay.details-viewed': 'Viewed Replay Details',
+  'replay.issues-detail-count': 'Issues Detail Replay Count',
+  'replay.list-navigate-to-details': 'Replays List Navigate to Replay Details',
   'replay.list-paginated': 'Paginated Replay List',
   'replay.list-sorted': 'Sorted Replay List',
   'replay.list-time-spent': 'Time Spent Viewing Replay List',
@@ -104,6 +106,4 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.render-player': 'Rendered ReplayPlayer',
   'replay.search': 'Searched Replay',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',
-  'replay.issues-detail-count': 'Issues Detail Replay Count',
-  'replay.list-navigate-to-details': 'Replays List Navigate to Replay Details',
 };
