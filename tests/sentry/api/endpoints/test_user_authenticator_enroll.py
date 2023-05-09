@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
+from sentry.services.hybrid_cloud.organization.serial import serialize_member
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test, region_silo_test
@@ -308,7 +309,7 @@ class AcceptOrganizationInviteTest(APITestCase):
             target_object=om.id,
             target_user=self.user,
             event=audit_log.get_event_id("MEMBER_ACCEPT"),
-            data=om.get_audit_log_data(),
+            data=serialize_member(om).get_audit_log_metadata(),
         )
 
         assert not self.client.session.get("invite_token")

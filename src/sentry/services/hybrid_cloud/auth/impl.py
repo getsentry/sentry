@@ -42,7 +42,6 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMemberSummary,
     organization_service,
 )
-from sentry.services.hybrid_cloud.organization.serial import serialize_member
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.silo import SiloMode
@@ -269,8 +268,8 @@ class DatabaseBackedAuthService(AuthService):
         # organization, do so, otherwise handle new membership
         if invite_helper:
             if invite_helper.invite_approved:
-                om = invite_helper.accept_invite(user)
-                return serial_user, serialize_member(om)
+                rpc_om = invite_helper.accept_invite(user)
+                return serial_user, rpc_om
 
             # It's possible the user has an _invite request_ that hasn't been approved yet,
             # and is able to join the organization without an invite through the SSO flow.

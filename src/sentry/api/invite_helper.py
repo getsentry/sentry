@@ -7,8 +7,8 @@ from django.utils.crypto import constant_time_compare
 from rest_framework.request import Request
 
 from sentry import audit_log, features
-from sentry.models import AuthIdentity, AuthProvider, OrganizationMember, User, UserEmail
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.models import AuthIdentity, AuthProvider, User, UserEmail
+from sentry.services.hybrid_cloud.organization import RpcOrganizationMember, organization_service
 from sentry.signals import member_joined
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
@@ -80,18 +80,19 @@ class ApiInviteHelper:
         if not invite_token or not invite_member_id:
             return None
 
-        try:
-            return ApiInviteHelper(
-                request=request,
-                member_id=invite_member_id,
-                token=invite_token,
-                instance=instance,
-                logger=logger,
-            )
-        except OrganizationMember.DoesNotExist:
+        api_invite_helper = ApiInviteHelper(
+            request=request,
+            member_id=invite_member_id,
+            token=invite_token,
+            instance=instance,
+            logger=logger,
+        )
+
+        if api_invite_helper.om is None:
             if logger:
                 logger.error("Invalid pending invite cookie", exc_info=True)
             return None
+        return api_invite_helper
 
     def __init__(
         self,
@@ -106,13 +107,13 @@ class ApiInviteHelper:
         self.token = token
         self.instance = instance
         self.logger = logger
-        self.om = self.organization_member
-        self.organization = self.om.organization
+        self.om = organization_service.get_organization_member(organization_member_id=member_id)
+        self.organization_id = self.om.organization_id if self.om else None
 
     def handle_success(self) -> None:
         member_joined.send_robust(
             member=self.om,
-            organization=self.organization,
+            organization_id=self.organization_id,
             sender=self.instance if self.instance else self,
         )
 
@@ -120,40 +121,40 @@ class ApiInviteHelper:
         if self.logger:
             self.logger.info(
                 "Pending org invite not accepted - User already org member",
-                extra={"organization_id": self.organization.id, "user_id": self.request.user.id},
+                extra={"organization_id": self.organization_id, "user_id": self.request.user.id},
             )
 
     def handle_member_has_no_sso(self) -> None:
         if self.logger:
             self.logger.info(
                 "Pending org invite not accepted - User did not have SSO",
-                extra={"organization_id": self.organization.id, "user_id": self.request.user.id},
+                extra={"organization_id": self.organization_id, "user_id": self.request.user.id},
             )
 
     def handle_invite_not_approved(self) -> None:
         if not self.invite_approved:
-            self.om.delete()
-
-    @property
-    def organization_member(self) -> OrganizationMember:
-        return OrganizationMember.objects.select_related("organization").get(pk=self.member_id)
+            assert self.om
+            organization_service.delete_organization_member(organization_member_id=self.om.id)
 
     @property
     def member_pending(self) -> bool:
-        return self.om.is_pending  # type: ignore[no-any-return]
+        assert self.om
+        return self.om.is_pending
 
     @property
     def invite_approved(self) -> bool:
-        return self.om.invite_approved  # type: ignore[no-any-return]
+        assert self.om
+        return self.om.invite_approved
 
     @property
     def valid_token(self) -> bool:
         if self.token is None:
             return False
+        assert self.om
         if self.om.token_expired:
             return False
         tokens_are_equal = constant_time_compare(self.om.token or self.om.legacy_token, self.token)
-        return tokens_are_equal  # type: ignore[no-any-return]
+        return tokens_are_equal
 
     @property
     def user_authenticated(self) -> bool:
@@ -164,7 +165,7 @@ class ApiInviteHelper:
         if not self.user_authenticated:
             return False
         rpc_org_member = organization_service.check_membership_by_id(
-            organization_id=self.organization.id, user_id=self.request.user.id
+            organization_id=self.organization_id, user_id=self.request.user.id
         )
         return rpc_org_member is not None
 
@@ -178,7 +179,8 @@ class ApiInviteHelper:
             and not any(self.get_onboarding_steps().values())
         )
 
-    def accept_invite(self, user: User | None = None) -> OrganizationMember | None:
+    def accept_invite(self, user: User | None = None) -> RpcOrganizationMember | None:
+        assert self.om
         om = self.om
 
         if user is None:
@@ -186,11 +188,11 @@ class ApiInviteHelper:
 
         if self.member_already_exists:
             self.handle_member_already_exists()
-            om.delete()
+            organization_service.delete_organization_member(organization_member_id=self.om.id)
             return None
 
         try:
-            provider = AuthProvider.objects.get(organization_id=om.organization.id)
+            provider = AuthProvider.objects.get(organization_id=om.organization_id)
         except AuthProvider.DoesNotExist:
             provider = None
 
@@ -201,17 +203,18 @@ class ApiInviteHelper:
                 self.handle_member_has_no_sso()
                 return None
 
-        om.set_user(user)
-        om.save()
+        self.om = om = organization_service.set_user_for_organization_member(
+            organization_member_id=self.om.id, user_id=user.id
+        )
 
         create_audit_entry(
             self.request,
             actor=user,
-            organization=om.organization,
+            organization_id=self.organization_id,
             target_object=om.id,
             target_user=user,
             event=audit_log.get_event_id("MEMBER_ACCEPT"),
-            data=om.get_audit_log_data(),
+            data=om.get_audit_log_metadata(),
         )
 
         self.handle_success()
@@ -220,13 +223,17 @@ class ApiInviteHelper:
         return om
 
     def _needs_2fa(self) -> bool:
-        org_requires_2fa = self.organization.flags.require_2fa.is_set
+        rpc_user_org = organization_service.get_organization_by_id(id=self.organization_id)
+        assert rpc_user_org
+        org_requires_2fa = rpc_user_org.organization.flags.require_2fa
         return org_requires_2fa and (
             not self.request.user.is_authenticated or not self.request.user.has_2fa()
         )
 
     def _needs_email_verification(self) -> bool:
-        organization = self.organization
+        rpc_user_org = organization_service.get_organization_by_id(id=self.organization_id)
+        assert rpc_user_org
+        organization = rpc_user_org.organization
         if not (
             features.has("organizations:required-email-verification", organization)
             and organization.flags.require_email_verification

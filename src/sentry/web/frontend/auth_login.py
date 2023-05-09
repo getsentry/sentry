@@ -203,7 +203,13 @@ class AuthLoginView(BaseView):
 
             if invite_helper and invite_helper.valid_request:
                 invite_helper.accept_invite()
-                self.determine_active_organization(request, invite_helper.organization.slug)
+                rpc_user_org = organization_service.get_organization_by_id(
+                    id=invite_helper.organization_id
+                )
+                organization_slug = None
+                if rpc_user_org:
+                    organization_slug = rpc_user_org.organization.slug
+                self.determine_active_organization(request, organization_slug)
                 response = self.redirect_to_org(request)
                 remove_invite_details_from_session(request)
 

@@ -11,7 +11,7 @@ from sentry.api.invite_helper import (
     add_invite_details_to_session,
     remove_invite_details_from_session,
 )
-from sentry.models import AuthProvider, OrganizationMember
+from sentry.models import AuthProvider, Organization
 from sentry.utils import auth
 
 
@@ -30,13 +30,13 @@ class AcceptOrganizationInvite(Endpoint):
     def get(
         self, request: Request, member_id: int, token: str, organization_slug: Optional[str] = None
     ) -> Response:
-        try:
-            helper = self.get_helper(request, member_id, token)
-        except OrganizationMember.DoesNotExist:
+        helper = self.get_helper(request, member_id, token)
+        if helper.om is None:
             return self.respond_invalid()
 
         organization_member = helper.om
-        organization = helper.organization
+        organization_id = helper.organization_id
+        organization = Organization.objects.get_from_cache(id=organization_id)
 
         if organization_slug:
             if organization_slug != organization.slug:
@@ -55,7 +55,7 @@ class AcceptOrganizationInvite(Endpoint):
         request.session["invite_email"] = organization_member.email
 
         try:
-            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+            auth_provider = AuthProvider.objects.get(organization_id=organization_id)
         except AuthProvider.DoesNotExist:
             auth_provider = None
 
@@ -115,9 +115,8 @@ class AcceptOrganizationInvite(Endpoint):
     def post(
         self, request: Request, member_id: int, token: str, organization_slug: Optional[str] = None
     ) -> Response:
-        try:
-            helper = self.get_helper(request, member_id, token)
-        except OrganizationMember.DoesNotExist:
+        helper = self.get_helper(request, member_id, token)
+        if helper.om is None:
             return self.respond_invalid()
 
         if not helper.valid_request:
@@ -133,7 +132,7 @@ class AcceptOrganizationInvite(Endpoint):
         else:
             response = Response(status=status.HTTP_204_NO_CONTENT)
 
-        organization = helper.organization
+        organization = Organization.objects.get_from_cache(id=helper.organization_id)
 
         if organization_slug:
             if organization_slug != organization.slug:
