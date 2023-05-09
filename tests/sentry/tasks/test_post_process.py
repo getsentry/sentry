@@ -16,6 +16,7 @@ from sentry.buffer.redis import RedisBuffer
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
+from sentry.issues.escalating import is_escalating
 from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
@@ -1339,9 +1340,11 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
 
 
 class SnoozeTestMixin(BasePostProgressGroupMixin):
+    @with_feature("organizations:escalating-issues")
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processor.RuleProcessor")
-    def test_invalidates_snooze(self, mock_processor, send_robust):
+    @patch("sentry.signals.issue_escalating.send_robust")
+    def test_invalidates_snooze(self, mock_processor, send_robust, mock_send_robust):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         group = event.group
@@ -1370,13 +1373,19 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         )
 
         mock_processor.assert_called_with(EventMatcher(event), False, False, True, True)
-
+        mock_send_robust.assert_called_once_with(
+            project=group.project,
+            group=group,
+            event=event,
+            sender=is_escalating,
+        )
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ESCALATING
         assert GroupInbox.objects.filter(
-            group=group, reason=GroupInboxReason.UNIGNORED.value
+            group=group, reason=GroupInboxReason.ESCALATING.value
         ).exists()
         assert Activity.objects.filter(
             group=group, project=group.project, type=ActivityType.SET_UNRESOLVED.value

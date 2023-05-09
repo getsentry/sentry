@@ -711,7 +711,8 @@ def process_snoozes(job: PostProcessJob) -> None:
                 "user_count": snooze.user_count,
                 "user_window": snooze.user_window,
             }
-            if features.has("organizations:escalating-issue", group.organization):
+
+            if features.has("organizations:escalating-issues", group.organization):
                 add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
                 record_group_history(group, GroupHistoryStatus.ESCALATING)
                 group.substatus = GroupSubStatus.ESCALATING
