@@ -8,6 +8,7 @@ from rest_framework.request import Request
 
 from sentry import audit_log, features
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember, User, UserEmail
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import member_joined
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
@@ -158,11 +159,10 @@ class ApiInviteHelper:
     def member_already_exists(self) -> bool:
         if not self.user_authenticated:
             return False
-
-        query = OrganizationMember.objects.filter(
-            organization=self.organization, user_id=self.request.user.id
+        rpc_org_member = organization_service.check_membership_by_id(
+            organization_id=self.organization.id, user_id=self.request.user.id
         )
-        return query.exists()  # type: ignore[no-any-return]
+        return rpc_org_member is not None
 
     @property
     def valid_request(self) -> bool:
