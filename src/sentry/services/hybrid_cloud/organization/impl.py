@@ -115,12 +115,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return serialize_member(member)
 
     def delete_organization_member(self, *, organization_member_id: int) -> bool:
-        try:
-            member = OrganizationMember.objects.get(id=organization_member_id)
-        except OrganizationMember.DoesNotExist:
-            return False
-        num_deleted, _deleted = member.delete()
-        return num_deleted > 0
+        with in_test_psql_role_override("postgres"):
+            try:
+                member = OrganizationMember.objects.get(id=organization_member_id)
+            except OrganizationMember.DoesNotExist:
+                return False
+            num_deleted, _deleted = member.delete()
+            return num_deleted > 0
 
     def set_user_for_organization_member(
         self,
@@ -129,7 +130,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         user_id: int,
     ) -> Optional[RpcOrganizationMember]:
         region_outbox = None
-        with transaction.atomic():
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
             try:
                 org_member = OrganizationMember.objects.get(id=organization_member_id)
                 org_member.set_user(user_id)

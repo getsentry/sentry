@@ -6,6 +6,7 @@ from django.db.models import F
 from django.urls import reverse
 
 from sentry import audit_log
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
 from sentry.services.hybrid_cloud.organization.serial import serialize_member
 from sentry.testutils import APITestCase
@@ -282,26 +283,32 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert self.client.session["invite_member_id"] == om.id
 
     def create_existing_om(self):
-        OrganizationMember.objects.create(
-            user=self.user, role="member", organization=self.organization
-        )
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.create(
+                user=self.user, role="member", organization=self.organization
+            )
 
     def get_om_and_init_invite(self):
-        om = OrganizationMember.objects.create(
-            email="newuser@example.com", role="member", token="abc", organization=self.organization
-        )
+        with in_test_psql_role_override("postgres"):
+            om = OrganizationMember.objects.create(
+                email="newuser@example.com",
+                role="member",
+                token="abc",
+                organization=self.organization,
+            )
 
         resp = self.client.get(
             reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
         )
         assert resp.status_code == 200
+        om.refresh_from_db()
         self._assert_pending_invite_details_in_session(om)
 
         return om
 
     def assert_invite_accepted(self, response, member_id: int) -> None:
         om = OrganizationMember.objects.get(id=member_id)
-        assert om.user == self.user
+        assert om.user_id == self.user.id
         assert om.email is None
 
         AuditLogEntry.objects.get(
@@ -427,7 +434,8 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         # Mutate the OrganizationMember, putting it out of sync with the
         # pending member cookie.
-        om.update(id=om.id + 1)
+        with in_test_psql_role_override("postgres"):
+            om.update(id=om.id + 1)
 
         self.setup_u2f(om)
 
@@ -445,7 +453,8 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         # Mutate the OrganizationMember, putting it out of sync with the
         # pending member cookie.
-        om.update(token="123")
+        with in_test_psql_role_override("postgres"):
+            om.update(token="123")
 
         self.setup_u2f(om)
 
