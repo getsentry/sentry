@@ -7,6 +7,7 @@ import abc
 from typing import TYPE_CHECKING, Any, List, Mapping, Optional, cast
 
 from sentry.services.hybrid_cloud.app import (
+    RpcAlertRuleActionResult,
     RpcSentryApp,
     RpcSentryAppComponent,
     RpcSentryAppEventData,
@@ -20,7 +21,6 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
-    from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
     from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
@@ -115,7 +115,7 @@ class AppService(RpcService):
     @abc.abstractmethod
     def trigger_sentry_app_action_creators(
         self, *, fields: List[Mapping[str, Any]], install_uuid: Optional[str]
-    ) -> "AlertRuleActionResult":
+    ) -> RpcAlertRuleActionResult:
         pass
 
 
