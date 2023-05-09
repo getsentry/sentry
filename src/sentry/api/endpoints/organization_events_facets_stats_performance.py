@@ -115,6 +115,7 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
                     selected_columns=query_columns,
                     query=query,
                     params=params,
+                    referrer=referrer,
                     # TODO: Better selection of granularity,
                     # but we generally only need pretty low granularity
                     # for this since it's only being used for sparklines
