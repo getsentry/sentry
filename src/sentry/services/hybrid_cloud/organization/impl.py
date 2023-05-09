@@ -92,6 +92,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return serialize_member(member)
 
+    def check_membership_by_invite_token(
+        self, organization_id: int, org_member_id: int, invite_token: str
+    ) -> Optional[RpcOrganizationMember]:
+        try:
+            member = OrganizationMember.objects.get(
+                id=org_member_id, organization_id=organization_id, token=invite_token
+            )
+        except OrganizationMember.DoesNotExist:
+            return None
+
+        return serialize_member(member)
+
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         try:
             org = Organization.objects.get_from_cache(slug=slug)
