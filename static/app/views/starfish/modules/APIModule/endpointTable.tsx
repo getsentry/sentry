@@ -15,10 +15,15 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
-import {getEndpointAggregatesQuery, getEndpointListQuery} from './queries';
+import {
+  getEndpointAggregatesQuery,
+  getEndpointListEventView,
+  getEndpointListQuery,
+} from './queries';
 
 type Props = {
   filterOptions: {
@@ -60,22 +65,22 @@ const COLUMN_ORDER = [
     width: 200,
   },
   {
-    key: 'p50(exclusive_time)',
+    key: 'p50(span.self_time)',
     name: 'p50',
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'user_count',
+    key: 'count_unique(user)',
     name: 'Users',
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'transaction_count',
+    key: 'count_unique(transaction)',
     name: 'Transactions',
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'total_exclusive_time',
+    key: 'sum(span.self_time)',
     name: 'Total Time',
     width: COL_WIDTH_UNDEFINED,
   },
@@ -87,13 +92,9 @@ export default function EndpointTable({
   filterOptions,
   columns,
 }: Props) {
-  const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
-    queryKey: ['endpoints', filterOptions],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getEndpointListQuery(filterOptions)}`).then(res =>
-        res.json()
-      ),
-    retry: false,
+  const {isLoading: areEndpointsLoading, data: endpointsData} = useSpansQuery({
+    queryString: getEndpointListQuery(filterOptions),
+    eventView: getEndpointListEventView(filterOptions),
     initialData: [],
   });
 
@@ -220,7 +221,7 @@ export function renderBodyCell(
 
   // TODO: come up with a better way to identify number columns to align to the right
   let node: ReactElement | null = null;
-  if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
+  if (column.key.toString().match(/^p\d\d/) || column.key === 'sum(span.self_time)') {
     node = <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
   } else if (!['description', 'transaction'].includes(column.key.toString())) {
     node = (
@@ -233,10 +234,7 @@ export function renderBodyCell(
   }
 
   const isNumericColumn =
-    column.key === 'total_exclusive_time' ||
-    column.key === 'user_count' ||
-    column.key === 'transaction_count' ||
-    column.key.toString().match(/^p\d\d/);
+    column.key.toString().match(/^p\d\d/) || column.key.toString().match(/^.*\(.*\)/);
 
   if (isNumericColumn) {
     return <TextAlignRight>{node}</TextAlignRight>;

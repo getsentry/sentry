@@ -1,4 +1,4 @@
-from typing import Optional, cast
+from typing import Optional
 
 from django.db import transaction
 
@@ -8,6 +8,7 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMapping,
     RpcOrganizationMappingUpdate,
 )
+from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 
 
 class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
@@ -45,14 +46,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
                 customer_id=customer_id,
             )
 
-        return self.serialize_organization_mapping(org_mapping)
-
-    def serialize_organization_mapping(
-        self, org_mapping: OrganizationMapping
-    ) -> RpcOrganizationMapping:
-        return cast(
-            RpcOrganizationMapping, RpcOrganizationMapping.serialize_by_field_name(org_mapping)
-        )
+        return serialize_organization_mapping(org_mapping)
 
     def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         with transaction.atomic():

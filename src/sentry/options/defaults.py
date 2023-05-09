@@ -671,7 +671,6 @@ register("performance.issues.render_blocking_assets.fcp_minimum_threshold", defa
 register("performance.issues.render_blocking_assets.fcp_maximum_threshold", default=10000.0)
 register("performance.issues.render_blocking_assets.fcp_ratio_threshold", default=0.33)
 register("performance.issues.render_blocking_assets.size_threshold", default=1000000)
-register("performance.issues.consecutive_http.lcp_ratio_threshold", default=0.33)
 register("performance.issues.consecutive_http.max_duration_between_spans", default=1000)
 register("performance.issues.consecutive_http.consecutive_count_threshold", default=3)
 register("performance.issues.consecutive_http.span_duration_threshold", default=1000)
