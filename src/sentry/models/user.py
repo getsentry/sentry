@@ -360,7 +360,7 @@ class User(BaseModel, AbstractBaseUser):
             # only applies if both users are members of obj.org
             # if roles are different, grants combined user the higher of the two
             to_member = OrganizationMember.objects.get(
-                organization=obj.organization_id, user=to_user
+                organization=obj.organization_id, user_id=to_user.id
             )
             if roles.get(obj.role).priority > roles.get(to_member.role).priority:
                 to_member.update(role=obj.role)
