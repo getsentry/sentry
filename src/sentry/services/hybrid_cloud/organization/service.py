@@ -115,6 +115,16 @@ class OrganizationService(RpcService):
         """
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationMemberId())
+    @abstractmethod
+    def get_organization_member(
+        self, *, organization_member_id: int
+    ) -> Optional[RpcOrganizationMember]:
+        """
+        Query for an organization member by its id.
+        """
+        pass
+
     @regional_rpc_method(resolve=ByOrganizationSlug())
     @abstractmethod
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
