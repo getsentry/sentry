@@ -420,21 +420,23 @@ function SpanDetail(props: Props) {
                       )}
                     >
                       Span ID
-                      <CopyToClipboardButton
-                        borderless
-                        size="zero"
-                        iconSize="xs"
-                        text={`${window.location.href.replace(
-                          window.location.hash,
-                          ''
-                        )}#span-${span.span_id}`}
-                      />
                     </SpanIdTitle>
                   )
                 }
                 extra={renderTraversalButton()}
               >
-                {span.span_id}
+                <Fragment>
+                  {span.span_id}
+                  <CopyToClipboardButton
+                    borderless
+                    size="zero"
+                    iconSize="xs"
+                    text={`${window.location.href.replace(
+                      window.location.hash,
+                      ''
+                    )}#span-${span.span_id}`}
+                  />
+                </Fragment>
               </Row>
               <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
               {renderSpanChild()}
@@ -611,12 +613,6 @@ const SpanIdTitle = styled('a')`
     color: ${p => p.theme.textColor};
   }
 `;
-
-// const StyledIconLink = styled(IconLink)`
-//   display: block;
-//   color: ${p => p.theme.gray300};
-//   margin-left: ${space(1)};
-// `;
 
 export function Row({
   title,
