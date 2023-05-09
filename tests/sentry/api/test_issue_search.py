@@ -23,11 +23,11 @@ from sentry.api.issue_search import (
 )
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
-from sentry.models.group import STATUS_QUERY_CHOICES
+from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -227,15 +227,32 @@ class ConvertSubStatusValueTest(TestCase):
             filters = [SearchFilter(SearchKey("substatus"), "=", SearchValue([substatus_string]))]
             result = convert_query_values(filters, [self.project], self.user, None)
             assert result[0].value.raw_value == [substatus_val]
+            assert result[1].value.raw_value == [GROUP_SUBSTATUS_TO_STATUS_MAP.get(substatus_val)]
 
             filters = [SearchFilter(SearchKey("substatus"), "=", SearchValue([substatus_val]))]
             result = convert_query_values(filters, [self.project], self.user, None)
             assert result[0].value.raw_value == [substatus_val]
+            assert result[1].value.raw_value == [GROUP_SUBSTATUS_TO_STATUS_MAP.get(substatus_val)]
 
     def test_invalid(self):
         filters = [SearchFilter(SearchKey("substatus"), "=", SearchValue("wrong"))]
         with pytest.raises(InvalidSearchQuery, match="invalid substatus value"):
             convert_query_values(filters, [self.project], self.user, None)
+
+    def test_mixed_with_status(self):
+        filters = [
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
+            SearchFilter(SearchKey("status"), "=", SearchValue(["unresolved"])),
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["until_escalating"])),
+        ]
+        result = convert_query_values(filters, [self.project], self.user, None)
+        assert [sf.value.raw_value for sf in result] == [
+            [GroupSubStatus.ONGOING],
+            [GroupStatus.UNRESOLVED],
+            [GroupSubStatus.UNTIL_ESCALATING],
+            [GroupStatus.UNRESOLVED],
+            [GroupStatus.IGNORED],
+        ]
 
 
 @region_silo_test(stable=True)

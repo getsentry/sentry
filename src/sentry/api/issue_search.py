@@ -264,23 +264,6 @@ def convert_query_values(
             else:
                 operator = "=" if search_filter.operator in EQUALITY_OPERATORS else "!="
 
-            if search_filter.key.name == "substatus":
-                if not features.has("organizations:issue-states", organization):
-                    raise InvalidSearchQuery(
-                        "The substatus filter is not supported for this organization"
-                    )
-
-                if isinstance(new_value, list) and len(new_value) > 1:
-                    raise InvalidSearchQuery("The substatus filter only supports a single value")
-
-                status = GROUP_SUBSTATUS_TO_STATUS_MAP.get(
-                    new_value[0] if isinstance(new_value, list) else new_value
-                )
-                search_filters.append(
-                    SearchFilter(
-                        key=SearchKey(name="status"), operator="IN", value=SearchValue(status)
-                    ),
-                )
             search_filter = search_filter._replace(
                 value=SearchValue(new_value),
                 operator=operator,
@@ -289,7 +272,28 @@ def convert_query_values(
             raise InvalidSearchQuery(
                 f"Aggregate filters ({search_filter.key.name}) are not supported in issue searches."
             )
+
         return search_filter
 
     organization = projects[0].organization
-    return [convert_search_filter(search_filter, organization) for search_filter in search_filters]
+
+    expanded_filters = search_filters
+    for search_filter in search_filters:
+        if search_filter.key.name == "substatus":
+            if not features.has("organizations:issue-states", organization):
+                raise InvalidSearchQuery(
+                    "The substatus filter is not supported for this organization"
+                )
+
+            converted = convert_search_filter(search_filter, organization)
+            new_value = converted.value.raw_value
+            status = GROUP_SUBSTATUS_TO_STATUS_MAP.get(
+                new_value[0] if isinstance(new_value, list) else new_value
+            )
+            expanded_filters.append(
+                SearchFilter(
+                    key=SearchKey(name="status"), operator="IN", value=SearchValue([status])
+                ),
+            )
+
+    return [convert_search_filter(filter, organization) for filter in expanded_filters]
