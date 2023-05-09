@@ -136,6 +136,19 @@ class OrganizationService(RpcService):
         """
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationMemberId())
+    @abstractmethod
+    def set_user_for_organization_member(
+        self,
+        *,
+        organization_member_id: int,
+        user_id: int,
+    ) -> Optional[RpcOrganizationMember]:
+        """
+        Set the user id for an organization member.
+        """
+        pass
+
     @regional_rpc_method(resolve=ByOrganizationSlug())
     @abstractmethod
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
