@@ -114,6 +114,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return serialize_member(member)
 
+    def delete_organization_member(self, *, organization_member_id: int) -> bool:
+        try:
+            member = OrganizationMember.objects.get(id=organization_member_id)
+        except OrganizationMember.DoesNotExist:
+            return False
+        num_deleted, _deleted = member.delete()
+        return num_deleted > 0
+
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         try:
             org = Organization.objects.get_from_cache(slug=slug)

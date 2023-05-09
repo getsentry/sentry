@@ -126,6 +126,16 @@ class OrganizationService(RpcService):
         """
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationMemberId())
+    @abstractmethod
+    def delete_organization_member(
+        self, *, organization_member_id: int
+    ) -> Optional[RpcOrganizationMember]:
+        """
+        Delete an organization member by its id.
+        """
+        pass
+
     @regional_rpc_method(resolve=ByOrganizationSlug())
     @abstractmethod
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
