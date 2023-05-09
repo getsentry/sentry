@@ -104,6 +104,7 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     invite_status: int = Field(default_factory=_DefaultEnumHelpers.get_default_invite_status_value)
     token: str = ""
     is_pending: bool = False
+    invite_approved: bool = False
 
     def get_audit_log_metadata(self, user_email: str) -> Mapping[str, Any]:
         team_ids = [mt.team_id for mt in self.member_teams]
