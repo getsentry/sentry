@@ -607,7 +607,6 @@ def test_generate_rules_return_uniform_rules_and_rebalance_factor_rule(
     _validate_rules(default_project)
 
 
-@pytest.mark.skip("The replay bias is temporarily disabled.")
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_boost_replay_id(get_blended_sample_rate, default_project):

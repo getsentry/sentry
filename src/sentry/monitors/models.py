@@ -254,6 +254,14 @@ class Monitor(Model):
         )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
+    def update_config(self, config_payload, validated_config):
+        monitor_config = self.config
+        # Only update keys that were specified in the payload
+        for key in config_payload.keys():
+            if key in validated_config:
+                monitor_config[key] = validated_config[key]
+        self.save()
+
 
 @receiver(pre_save, sender=Monitor)
 def check_organization_monitor_limits(sender, instance, **kwargs):

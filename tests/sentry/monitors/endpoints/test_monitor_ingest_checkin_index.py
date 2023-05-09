@@ -159,13 +159,18 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 path,
                 {
                     "status": "ok",
-                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
+                    "monitor_config": {
+                        "schedule_type": "crontab",
+                        "schedule": "5 * * * *",
+                        "checkin_margin": 5,
+                    },
                 },
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 201, resp.content
             monitor = Monitor.objects.get(slug=slug)
             assert monitor.config["schedule"] == "5 * * * *"
+            assert monitor.config["checkin_margin"] == 5
 
             checkins = MonitorCheckIn.objects.filter(monitor=monitor)
             assert len(checkins) == 1
@@ -182,6 +187,8 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             monitor = Monitor.objects.get(guid=monitor.guid)
             assert monitor.config["schedule"] == "10 * * * *"
+            # The monitor config is merged, so checkin_margin is not overwritten
+            assert monitor.config["checkin_margin"] == 5
 
             checkins = MonitorCheckIn.objects.filter(monitor=monitor)
             assert len(checkins) == 2

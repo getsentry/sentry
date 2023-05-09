@@ -23,10 +23,12 @@ import {
 } from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {
   getEndpointDetailSeriesQuery,
+  getEndpointDetailTableEventView,
   getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 export type EndpointDataRow = {
@@ -57,12 +59,12 @@ const COLUMN_ORDER = [
     width: 280,
   },
   {
-    key: 'count',
+    key: 'count()',
     name: 'Count',
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p50',
+    key: 'p50(span.self_time)',
     name: 'p50',
     width: COL_WIDTH_UNDEFINED,
   },
@@ -92,22 +94,26 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
     datetime: pageFilter.selection.datetime,
     groupId: row.group_id,
   });
-  const tableQuery = getEndpointDetailTableQuery({
-    description: null,
-    transactionName: null,
-    datetime: pageFilter.selection.datetime,
-    groupId: row.group_id,
-  });
   const {isLoading: seriesIsLoading, data: seriesData} = useQuery({
     queryKey: [seriesQuery],
     queryFn: () => fetch(`${HOST}/?query=${seriesQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
-  const {isLoading: tableIsLoading, data: tableData} = useQuery({
-    queryKey: [tableQuery],
-    queryFn: () => fetch(`${HOST}/?query=${tableQuery}`).then(res => res.json()),
-    retry: false,
+
+  const {isLoading: tableIsLoading, data: tableData} = useSpansQuery({
+    queryString: getEndpointDetailTableQuery({
+      description: null,
+      transactionName: null,
+      datetime: pageFilter.selection.datetime,
+      groupId: row.group_id,
+    }),
+    eventView: getEndpointDetailTableEventView({
+      description: null,
+      transactionName: null,
+      datetime: pageFilter.selection.datetime,
+      groupId: row.group_id,
+    }),
     initialData: [],
   });
 
@@ -140,7 +146,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
           <SubHeader>{t('Duration (P50)')}</SubHeader>
           <SubSubHeader>
             <Duration
-              seconds={row['p50(exclusive_time)'] / 1000}
+              seconds={row['p50(span.self_time)'] / 1000}
               fixedDigits={2}
               abbreviation
             />
@@ -156,7 +162,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
           <SubHeader>{t('Duration (P95)')}</SubHeader>
           <SubSubHeader>
             <Duration
-              seconds={row['p95(exclusive_time)'] / 1000}
+              seconds={row['p95(span.self_time)'] / 1000}
               fixedDigits={2}
               abbreviation
             />
