@@ -3,6 +3,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from sentry.buffer import Buffer
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     Activity,
     Commit,
@@ -171,8 +172,8 @@ class ResolvedInCommitTest(TestCase):
         with exempt_from_silo_limits():
             email.save()
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
-        OrganizationMember.objects.create(organization=group.project.organization, user=user)
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.create(organization=group.project.organization, user=user)
             UserOption.objects.set_value(user=user, key="self_assign_issue", value="1")
 
         commit = Commit.objects.create(
@@ -204,7 +205,7 @@ class ResolvedInCommitTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
             email = UserEmail.objects.get_primary_email(user=user)
             email.is_verified = True
             email.save()
