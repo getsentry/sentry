@@ -334,6 +334,7 @@ function useFetchGroupDetails({
       const groupResponse = await api.requestPromise(`/issues/${params.groupId}/`, {
         query: getGroupQuery({environments}),
       });
+      fetchGroupReleases();
 
       const reprocessingNewRoute = getReprocessingNewRoute({
         group: groupResponse,
@@ -341,8 +342,6 @@ function useFetchGroupDetails({
         router,
         organization,
       });
-
-      fetchGroupReleases();
 
       if (reprocessingNewRoute) {
         browserHistory.push(reprocessingNewRoute);
