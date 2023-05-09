@@ -365,7 +365,6 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         actor: Optional[Any] = None,
         aggregate_kwargs: Optional[Mapping[str, Any]] = None,
     ) -> CursorResult[Group]:
-
         search_filters = search_filters if search_filters is not None else []
         # ensure projects are from same org
         if len({p.organization_id for p in projects}) != 1:
