@@ -7,7 +7,7 @@ import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {
   getTopNConvertedDefaultWidgets,
   WidgetTemplate,
@@ -28,15 +28,9 @@ export function WidgetLibrary({
   bypassOverwriteModal,
   onWidgetSelect,
   selectedWidgetId,
-  organization,
 }: Props) {
   const theme = useTheme();
-  let defaultWidgets = getTopNConvertedDefaultWidgets();
-  if (!organization.features.includes('dashboards-rh-widget')) {
-    defaultWidgets = defaultWidgets.filter(
-      widget => !(widget.widgetType === WidgetType.RELEASE)
-    );
-  }
+  const defaultWidgets = getTopNConvertedDefaultWidgets();
 
   function getLibrarySelectionHandler(
     widget: OverwriteWidgetModalProps['widget'],

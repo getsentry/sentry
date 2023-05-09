@@ -1329,8 +1329,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
-    # Enable release health widget in dashboards
-    "organizations:dashboards-rh-widget": False,
     # Enable the dynamic sampling "Transaction Name" priority in the UI
     "organizations:dynamic-sampling-transaction-name-priority": False,
     # Enable minimap in the widget viewer modal in dashboards

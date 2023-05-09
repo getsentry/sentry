@@ -13,21 +13,16 @@ import {BuildStep} from './buildStep';
 const DATASET_CHOICES: [DataSet, string][] = [
   [DataSet.EVENTS, t('Errors and Transactions')],
   [DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)')],
+  [DataSet.RELEASES, t('Releases (Sessions, Crash rates)')],
 ];
 
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
-  hasReleaseHealthFeature: boolean;
   onChange: (dataSet: DataSet) => void;
 }
 
-export function DataSetStep({
-  dataSet,
-  onChange,
-  hasReleaseHealthFeature,
-  displayType,
-}: Props) {
+export function DataSetStep({dataSet, onChange, displayType}: Props) {
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
 
   if (displayType !== DisplayType.TABLE) {
@@ -61,14 +56,7 @@ export function DataSetStep({
       <DataSetChoices
         label="dataSet"
         value={dataSet}
-        choices={
-          hasReleaseHealthFeature
-            ? [
-                ...DATASET_CHOICES,
-                [DataSet.RELEASES, t('Releases (Sessions, Crash rates)')],
-              ]
-            : DATASET_CHOICES
-        }
+        choices={DATASET_CHOICES}
         disabledChoices={disabledChoices}
         onChange={newDataSet => {
           onChange(newDataSet as DataSet);
