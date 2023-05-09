@@ -23,7 +23,7 @@ const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
 const TOOLTIP_DELAY = 800;
 const HOST = 'http://localhost:8080';
 
-type ModuleSegment = {
+export type ModuleSegment = {
   module: string;
   sum: number;
 };
@@ -35,9 +35,9 @@ type Props = {
 
 function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Props) {
   const [hoveredValue, setHoveredValue] = useState<ModuleSegment | null>(null);
-  const [currentSegment, setCurrentSegment] = useState<
-    ModuleSegment['module'] | undefined
-  >(segments[0]?.module);
+  const [currentSegment, setCurrentSegment] = useState<ModuleSegment>(
+    segments[0] ?? {module: 'db', sum: 1}
+  );
   const totalValues = segments.reduce((acc, segment) => acc + segment.sum, 0);
 
   const transaction = maybeTransaction ?? '';
@@ -110,7 +110,7 @@ function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Pro
           const segmentProps = {
             index,
             onClick: () => {
-              setCurrentSegment(value.module);
+              setCurrentSegment(value);
             },
           };
           return (
@@ -153,7 +153,7 @@ function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Pro
                 <LegendRow
                   onMouseOver={() => setHoveredValue(segment)}
                   onMouseLeave={() => setHoveredValue(null)}
-                  onClick={() => setCurrentSegment(segment.module)}
+                  onClick={() => setCurrentSegment(segment)}
                 >
                   <LegendDot color={COLORS[index]} focus={focus} />
                   <LegendText unfocus={unfocus}>
@@ -206,10 +206,10 @@ function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Pro
             </TagHeader>
           </StyledSummary>
           {renderLegend()}
-          <TopSpansWidget module={currentSegment ?? 'db'} />
+          <TopSpansWidget moduleSegment={currentSegment} />
         </details>
       </TagSummary>
-      {renderChart(currentSegment)}
+      {renderChart(currentSegment.module)}
     </Fragment>
   );
 }
