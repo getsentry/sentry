@@ -1,6 +1,7 @@
 from functools import cached_property
 from unittest.mock import patch
 
+import pytest
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_teams import OrganizationTeamsEndpoint
@@ -370,13 +371,13 @@ class OrganizationTeamsCreateTest(APITestCase):
     @patch.object(OrganizationMemberTeam.objects, "create", side_effect=Exception("test"))
     def test_team_admin_org_member_team_create_generically_fails(self, mock_create):
         prior_team_count = Team.objects.count()
-        response = self.get_error_response(
-            self.organization.slug,
-            name="hello world",
-            slug="foobar",
-            set_team_admin=True,
-            status_code=400,
-        )
+        with pytest.raises(Exception):
+            self.get_error_response(
+                self.organization.slug,
+                name="hello world",
+                slug="foobar",
+                set_team_admin=True,
+                status_code=400,
+            )
         mock_create.assert_called_once()
-        assert response.data == {"detail": "test"}
         assert Team.objects.count() == prior_team_count
