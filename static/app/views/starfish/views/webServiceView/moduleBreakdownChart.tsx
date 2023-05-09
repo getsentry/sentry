@@ -6,6 +6,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getSpanDurationSeries} from 'sentry/views/starfish/views/webServiceView/queries';
+import Chart from 'sentry/views/starfish/components/chart';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import moment from 'moment';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 
 export function ModuleBreakdownChart() {
   const pageFilter = usePageFilters();
@@ -29,7 +33,7 @@ export function ModuleBreakdownChart() {
       seriesGroupedBySpan[span][1].data.push({name: interval, value: count});
     } else {
       seriesGroupedBySpan[span] = [
-        {seriesName: 'p75', data: [{name: interval, value: p75}]},
+        {seriesName: `p75 — ${span}`, data: [{name: interval, value: p75}]},
         {seriesName: 'Throughput', data: [{name: interval, value: count}]},
       ];
     }
@@ -38,14 +42,16 @@ export function ModuleBreakdownChart() {
   console.dir(seriesGroupedBySpan);
 
   return (
-    <ChartPanel title={t('p75 of database spans')}>
-      {/* <Chart
+    <ChartPanel title={t('Top Spans p75 Breakdown')}>
+      <Chart
         statsPeriod="24h"
         height={180}
-        data={data}
+        data={Object.values(seriesGroupedBySpan).map(series =>
+          zeroFillSeries(series[0], moment.duration(1, 'days'))
+        )}
         start=""
         end=""
-        loading={isDbDurationLoading}
+        loading={isLoading}
         utc={false}
         stacked
         grid={{
@@ -55,9 +61,8 @@ export function ModuleBreakdownChart() {
           bottom: '8px',
         }}
         definedAxisTicks={4}
-        chartColors={['#444674', '#7a5088', '#b85586']}
-        throughput={dbThroughputData}
-      /> */}
+        chartColors={CHART_PALETTE[5]}
+      />
     </ChartPanel>
   );
 }
