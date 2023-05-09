@@ -19,7 +19,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
-from sentry.utils.client_state import get_client_state_key, get_redis_client
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
@@ -356,20 +355,6 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         with self.feature("organizations:create"):
             resp = self.client.get(self.path)
             self.assertRedirects(resp, "/organizations/new/")
-
-    def test_redirect_onboarding(self):
-        org = self.create_organization(owner=self.user)
-        key = get_client_state_key(org.slug, "onboarding", None)
-        get_redis_client().set(key, json.dumps({"state": "started", "url": "select-platform/"}))
-
-        self.client.get(self.path)
-
-        resp = self.client.post(
-            self.path, {"username": self.user.username, "password": "admin", "op": "login"}
-        )
-
-        assert resp.status_code == 302
-        assert resp.get("Location", "").endswith(f"/onboarding/{org.slug}/select-platform/")
 
 
 @pytest.mark.skipif(

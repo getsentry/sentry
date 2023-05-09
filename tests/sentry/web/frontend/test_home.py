@@ -4,8 +4,6 @@ from django.urls import reverse
 
 from sentry.models import OrganizationStatus
 from sentry.testutils import TestCase
-from sentry.utils import json
-from sentry.utils.client_state import get_client_state_key, get_redis_client
 
 
 class HomeTest(TestCase):
@@ -43,15 +41,6 @@ class HomeTest(TestCase):
             resp = self.client.get(self.path)
 
         self.assertRedirects(resp, f"/organizations/{org.slug}/issues/")
-
-    def test_redirect_to_onboarding(self):
-        self.login_as(self.user)
-        org = self.create_organization(owner=self.user)
-
-        key = get_client_state_key(org.slug, "onboarding", None)
-        get_redis_client().set(key, json.dumps({"state": "started", "url": "select-platform/"}))
-        resp = self.client.get(self.path)
-        self.assertRedirects(resp, f"/onboarding/{org.slug}/select-platform/")
 
     def test_customer_domain(self):
         org = self.create_organization(owner=self.user)
