@@ -103,6 +103,11 @@ class DatabaseBackedUserService(UserService):
             self._FQ.serialize_rpc(u) for u in self._FQ.base_query().filter(actor_id__in=actor_ids)
         ]
 
+    def flush_nonce(self, *, user_id: int) -> None:
+        user = User.objects.filter(id=user_id).first()
+        if user is not None:
+            user.update(session_nonce="foo")
+
     def update_user(
         self,
         *,
