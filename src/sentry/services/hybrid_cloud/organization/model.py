@@ -106,6 +106,7 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
 
     def get_audit_log_metadata(self, user_email: str) -> Mapping[str, Any]:
         team_ids = [mt.team_id for mt in self.member_teams]
+        team_slugs = [mt.slugs for mt in self.member_teams]
 
         return {
             "email": user_email,
@@ -113,6 +114,8 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
             "has_global_access": self.has_global_access,
             "role": self.role,
             "invite_status": self.invite_status,
+            "user": self.user_id,
+            "teams_slugs": team_slugs,
         }
 
 
