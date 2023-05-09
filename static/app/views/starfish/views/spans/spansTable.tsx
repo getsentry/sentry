@@ -175,7 +175,7 @@ function getColumns(clusters: Cluster[]): GridColumnOrder[] {
     },
     {
       key: 'total_exclusive_time',
-      name: 'Exclusive Time',
+      name: 'Total Time',
       width: 250,
     },
     {
