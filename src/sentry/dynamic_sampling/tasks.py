@@ -215,8 +215,14 @@ def adjust_sample_rates(
     projects_with_counts = {
         project_id: count_per_root for project_id, count_per_root, _, _ in projects_with_tx_count
     }
-    all_projects_ids = Project.objects.filter(organization=organization).values_list(
-        "id", flat=True
+    # Since we don't mind about strong consistency, we query a replica of the main database with the possibility of
+    # having out of date information. This is a trade-off we accept, since we work under the assumption that eventually
+    # the projects of an org will be replicated consistently across replicas, because no org should continue to create
+    # new projects.
+    all_projects_ids = (
+        Project.objects.using_replica()
+        .filter(organization=organization)
+        .values_list("id", flat=True)
     )
     for project_id in all_projects_ids:
         # In case a specific project has not been considered in the count query, it means that no metrics were extracted
