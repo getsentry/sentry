@@ -88,7 +88,7 @@ class DebugWeeklyReportView(MailPreviewView):
             ]
 
             if DEBUG_ESCALATING_ISSUES:
-                # For organizations:escalating-issues
+                # For organizations:issue-states
                 project_context.new_inbox_count = random.randint(5, 200)
                 project_context.escalating_inbox_count = random.randint(5, 200)
                 project_context.regression_inbox_count = random.randint(5, 200)
@@ -100,7 +100,7 @@ class DebugWeeklyReportView(MailPreviewView):
                     + project_context.ongoing_inbox_count
                 )
             else:
-                # Removed after organizations:escalating-issues GA
+                # Removed after organizations:issue-states GA
                 project_context.existing_issue_count = random.randint(0, 10000)
                 project_context.reopened_issue_count = random.randint(0, 1000)
                 project_context.new_issue_count = random.randint(0, 1000)

@@ -176,7 +176,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         assert project_ctx.existing_issue_count == 0
         assert project_ctx.all_issue_count == 2
 
-    @with_feature("organizations:escalating-issues")
+    @with_feature("organizations:issue-states")
     def test_organization_project_issue_inbox_summaries(self):
         self.login_as(user=self.user)
 
@@ -316,7 +316,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert "Weekly Report for" in message_params["subject"]
 
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
-    @with_feature("organizations:escalating-issues")
+    @with_feature("organizations:issue-states")
     def test_message_builder_inbox_simple(self, message_builder):
         now = timezone.now()
 

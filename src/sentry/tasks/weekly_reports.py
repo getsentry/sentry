@@ -81,7 +81,7 @@ class ProjectContext:
     reopened_issue_count = 0
     new_issue_count = 0
 
-    # For organizations:escalating-issues
+    # For organizations:issue-states
     new_inbox_count = 0
     ongoing_inbox_count = 0
     escalating_inbox_count = 0
@@ -167,7 +167,7 @@ def prepare_organization_report(
     set_tag("org.slug", organization.slug)
     set_tag("org.id", organization_id)
     ctx = OrganizationReportContext(timestamp, duration, organization)
-    has_escalating_issues = features.has("organizations:escalating-issues", organization)
+    has_issue_states = features.has("organizations:issue-states", organization)
 
     # Run organization passes
     with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
@@ -175,7 +175,7 @@ def prepare_organization_report(
     with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
         project_event_counts_for_organization(ctx)
 
-    if has_escalating_issues:
+    if has_issue_states:
         with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_inbox_summaries"):
             organization_project_issue_inbox_summaries(ctx)
     else:
@@ -414,7 +414,7 @@ def fetch_key_error_groups(ctx):
 
     group_id_to_group_inbox = {}
     group_id_to_group_history = {}
-    if features.has("organizations:escalating-issues", ctx.organization):
+    if features.has("organizations:issue-states", ctx.organization):
         group_inbox = (
             GroupInbox.objects.filter(
                 group_id__in=all_key_error_group_ids,
