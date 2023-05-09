@@ -1,5 +1,6 @@
 import pytest
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.region import (
@@ -56,10 +57,11 @@ class RegionResolutionTest(TestCase):
     def test_by_organization_id_attribute(self):
         with override_regions(self.regions):
             region_resolution = ByOrganizationIdAttribute("organization_member")
-            org_member = OrganizationMember.objects.create(
-                organization_id=self.organization.id,
-                user_id=self.user.id,
-            )
+            with in_test_psql_role_override("postgres"):
+                org_member = OrganizationMember.objects.create(
+                    organization_id=self.organization.id,
+                    user_id=self.user.id,
+                )
             arguments = {"organization_member": org_member}
             actual_region = region_resolution.resolve(arguments)
             assert actual_region == self.target_region
