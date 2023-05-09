@@ -38,6 +38,18 @@ export type ReplayEventParameters = {
     referrer: undefined | string;
     user_email: string;
   };
+  'replay.issues-detail-count': {
+    count: number;
+    platform: string;
+    project_id: string;
+  };
+  // similar purpose as "replay.details-viewed", however we're capturing the navigation action
+  // in order to also include a project platform
+  'replay.list-navigate-to-details': {
+    platform: string | undefined;
+    project_id: string | undefined;
+    referrer: string;
+  };
   'replay.list-paginated': {
     direction: 'next' | 'prev';
   };
@@ -92,4 +104,6 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.render-player': 'Rendered ReplayPlayer',
   'replay.search': 'Searched Replay',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',
+  'replay.issues-detail-count': 'Issues Detail Replay Count',
+  'replay.list-navigate-to-details': 'Replays List Navigate to Replay Details',
 };
