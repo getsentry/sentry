@@ -269,6 +269,7 @@ class DatabaseBackedAuthService(AuthService):
         if invite_helper:
             if invite_helper.invite_approved:
                 rpc_om = invite_helper.accept_invite(user)
+                assert rpc_om
                 return serial_user, rpc_om
 
             # It's possible the user has an _invite request_ that hasn't been approved yet,
