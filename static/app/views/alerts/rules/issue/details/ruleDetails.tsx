@@ -14,6 +14,7 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -217,8 +218,8 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             'The conditions in this alert rule conflict and might not be working properly. [link:Edit alert rule]',
             {
               link: (
-                <a
-                  href={`/organizations/${organization.slug}/alerts/rules/${projectId}/${ruleId}/`}
+                <Link
+                  to={`/organizations/${organization.slug}/alerts/rules/${projectId}/${ruleId}/`}
                 />
               ),
             }
