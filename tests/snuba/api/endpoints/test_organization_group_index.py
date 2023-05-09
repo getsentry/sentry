@@ -113,6 +113,59 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
+    @with_feature("organizations:issue-list-better-priority-sort")
+    def test_sort_by_better_priority(self):
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=10)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=10)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(hours=13)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=5)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(hours=13)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        aggregate_kwargs = {"age": 1, "log_level": 3, "frequency": 5, "has_stacktrace": 5}
+
+        response = self.get_success_response(
+            sort="better priority",
+            query="is:unresolved",
+            limit=25,
+            start=iso_format(before_now(days=1)),
+            end=iso_format(before_now(seconds=1)),
+            aggregate_kwargs={"better_priority": {**aggregate_kwargs}},
+        )
+        assert len(response.data) == 1
+        assert [item["id"] for item in response.data] == [str(group.id)]
+
     def test_sort_by_trend(self):
         group = self.store_event(
             data={

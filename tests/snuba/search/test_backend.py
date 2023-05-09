@@ -357,10 +357,11 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert list(results) == [self.group1, self.group2]
 
     def test_better_priority_sort(self):
-        results = self.make_query(
-            sort_by="better priority",
-            aggregate_kwargs={"age": 5, "log_level": 5, "frequency": 5, "has_stacktrace": 5},
-        )
+        with self.feature("organizations:issue-list-better-priority-sort"):
+            results = self.make_query(
+                sort_by="better priority",
+                aggregate_kwargs={"age": 5, "log_level": 5, "frequency": 5, "has_stacktrace": 5},
+            )
         assert list(results) == [self.group1, self.group2]
 
     def test_sort_with_environment(self):

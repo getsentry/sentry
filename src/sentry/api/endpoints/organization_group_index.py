@@ -182,8 +182,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 assert "environment" not in extra_query_kwargs
                 query_kwargs.update(extra_query_kwargs)
 
-            # TODO check feature flag too
-            if query_kwargs["sort_by"] == "better priority":
+            if query_kwargs["sort_by"] == "better priority" and features.has(
+                "organizations:issue-list-better-priority-sort", organization, actor=request.user
+            ):
                 query_kwargs["aggregate_kwargs"] = self.build_better_priority_sort_kwargs(request)
 
             query_kwargs["environments"] = environments if environments else None
