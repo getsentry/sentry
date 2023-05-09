@@ -863,7 +863,9 @@ describe('Threads', function () {
       it('renders', function () {
         const {container} = render(<Threads {...props} />, {organization});
         // Title
-        expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
+        const threadSelector = screen.getByTestId('thread-selector');
+        expect(threadSelector).toBeInTheDocument();
+        within(threadSelector).getByText('main');
 
         // Actions
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeInTheDocument();
@@ -1184,6 +1186,61 @@ describe('Threads', function () {
 
         // Raw stack trace option
         expect(screen.getByRole('option', {name: 'Raw stack trace'})).toBeInTheDocument();
+      });
+
+      it('uses thread label in selector if name not available', function () {
+        const newEvent = {...event};
+        const threadsEntry = newEvent.entries[1].data as React.ComponentProps<
+          typeof Threads
+        >['data'];
+        const thread = {
+          id: 0,
+          current: false,
+          crashed: true,
+          name: null,
+          stacktrace: {
+            frames: [
+              {
+                filename: null,
+                absPath: null,
+                module: null,
+                package: '/System/Library/Frameworks/UIKit.framework/UIKit',
+                platform: null,
+                instructionAddr: '0x197885c54',
+                symbolAddr: '0x197885bf4',
+                function: '<redacted>',
+                rawFunction: null,
+                symbol: null,
+                context: [],
+                lineNo: null,
+                colNo: null,
+                inApp: false,
+                trust: null,
+                errors: null,
+                vars: null,
+              },
+            ],
+            registers: {},
+            framesOmitted: null,
+            hasSystemFrames: true,
+          },
+          rawStacktrace: null,
+        };
+        threadsEntry.values = [
+          {
+            ...thread,
+          },
+          {
+            ...thread,
+            id: 1,
+          },
+        ];
+        const newProps = {...props, event: newEvent};
+        render(<Threads {...newProps} />, {organization});
+        // Title
+        const threadSelector = screen.getByTestId('thread-selector');
+        expect(threadSelector).toBeInTheDocument();
+        within(threadSelector).getByText('ViewController.causeCrash');
       });
     });
   });
