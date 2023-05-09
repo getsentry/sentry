@@ -1,13 +1,16 @@
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
-from rest_framework import serializers, status
+from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer
@@ -20,6 +23,7 @@ from sentry.models import (
 )
 from sentry.search.utils import tokenize_query
 from sentry.signals import team_created
+from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
 
@@ -27,10 +31,8 @@ CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
 # OrganizationPermission + team:write
 class OrganizationTeamsPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:write", "org:admin", "team:write"],
-        "PUT": ["org:write", "org:admin", "team:write"],
-        "DELETE": ["org:admin", "team:write"],
+        "GET": ["org:read", "org:write"],
+        "POST": ["org:write", "team:write"],
     }
 
 
@@ -49,10 +51,11 @@ class TeamPostSerializer(serializers.Serializer):
         },
     )
     idp_provisioned = serializers.BooleanField(required=False, default=False)
+    set_team_admin = serializers.BooleanField(required=False, default=False)
 
     def validate(self, attrs):
         if not (attrs.get("name") or attrs.get("slug")):
-            raise serializers.ValidationError("Name or slug is required")
+            raise ValidationError("Name or slug is required")
         return attrs
 
 
@@ -142,56 +145,85 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
-        :param string name: the optional name of the team.
-        :param string slug: the optional slug for this team.  If
-                            not provided it will be auto generated from the
-                            name.
+        :qparam string name: the optional name of the team.
+        :qparam string slug: the optional slug for this team. If not provided it will be auto
+                             generated from the name.
+        :qparam bool set_team_admin: If this is true, the user is added to the as a Team Admin
+                                instead of regular member
         :auth: required
         """
         serializer = TeamPostSerializer(data=request.data)
 
-        if serializer.is_valid():
-            result = serializer.validated_data
+        if not serializer.is_valid():
+            raise ValidationError(serializer.errors)
 
+        result = serializer.validated_data
+        set_team_admin = result.get("set_team_admin")
+
+        if set_team_admin:
+            if not features.has("organizations:team-roles", organization) or not features.has(
+                "organizations:team-project-creation-all", organization
+            ):
+                raise ResourceDoesNotExist(
+                    detail="You do not have permission to join a new team as a team admin"
+                )
+            if not self.should_add_creator_to_team(request):
+                raise ValidationError(
+                    {"detail": "You do not have permission to join a new team as a Team Admin"},
+                )
+        try:
+            with transaction.atomic():
+                team = Team.objects.create(
+                    name=result.get("name") or result["slug"],
+                    slug=result.get("slug"),
+                    idp_provisioned=result.get("idp_provisioned", False),
+                    organization=organization,
+                )
+        except (IntegrityError, MaxSnowflakeRetryError):
+            raise ConflictError(
+                {
+                    "non_field_errors": [CONFLICTING_SLUG_ERROR],
+                    "detail": CONFLICTING_SLUG_ERROR,
+                }
+            )
+        else:
+            team_created.send_robust(
+                organization=organization,
+                user=request.user,
+                team=team,
+                sender=self.__class__,
+            )
+
+        if self.should_add_creator_to_team(request):
+            cleanup_needed = True
             try:
                 with transaction.atomic():
-                    team = Team.objects.create(
-                        name=result.get("name") or result["slug"],
-                        slug=result.get("slug"),
-                        idp_provisioned=result.get("idp_provisioned", False),
-                        organization=organization,
-                    )
-            except IntegrityError:
-                return Response(
-                    {
-                        "non_field_errors": [CONFLICTING_SLUG_ERROR],
-                        "detail": CONFLICTING_SLUG_ERROR,
-                    },
-                    status=409,
-                )
-            else:
-                team_created.send_robust(
-                    organization=organization, user=request.user, team=team, sender=self.__class__
-                )
-            if self.should_add_creator_to_team(request):
-                try:
                     member = OrganizationMember.objects.get(
                         user_id=request.user.id, organization=organization
                     )
-                except OrganizationMember.DoesNotExist:
-                    pass
-                else:
-                    OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
+                    OrganizationMemberTeam.objects.create(
+                        team=team,
+                        organizationmember=member,
+                        role="admin" if set_team_admin else None,
+                    )
+                cleanup_needed = False
+            except OrganizationMember.DoesNotExist:
+                if set_team_admin:
+                    raise PermissionDenied(
+                        detail="You must be a member of the organization to join a new team as a Team Admin"
+                    )
+            finally:
+                if set_team_admin and cleanup_needed:
+                    team.delete()
 
-            self.create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=team.id,
-                event=audit_log.get_event_id("TEAM_ADD"),
-                data=team.get_audit_log_data(),
-            )
-            return Response(
-                serialize(team, request.user, self.team_serializer_for_post()),
-                status=201,
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=team.id,
+            event=audit_log.get_event_id("TEAM_ADD"),
+            data=team.get_audit_log_data(),
+        )
+        return Response(
+            serialize(team, request.user, self.team_serializer_for_post()),
+            status=201,
+        )
