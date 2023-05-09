@@ -5,6 +5,7 @@ import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
+  GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
@@ -14,7 +15,10 @@ import {TableColumnSort} from 'sentry/views/discover/table/types';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
+import type {Cluster} from './clusters';
+
 type Props = {
+  clusters: Cluster[];
   isLoading: boolean;
   location: Location;
   onSetOrderBy: (orderBy: string) => void;
@@ -41,6 +45,7 @@ export default function SpansTable({
   spansData,
   orderBy,
   onSetOrderBy,
+  clusters,
   spansTrendsData,
   isLoading,
 }: Props) {
@@ -81,7 +86,7 @@ export default function SpansTable({
     <GridEditable
       isLoading={isLoading}
       data={combinedSpansData}
-      columnOrder={COLUMN_ORDER}
+      columnOrder={getColumns(clusters)}
       columnSortBy={
         orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<string>]
       }
@@ -143,35 +148,43 @@ function renderBodyCell(column: GridColumnHeader, row: SpanDataRow): React.React
   return row[column.key];
 }
 
-const COLUMN_ORDER = [
-  {
-    key: 'span_operation',
-    name: 'Operation',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'description',
-    name: 'Description',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'total_exclusive_time',
-    name: 'Exclusive Time',
-    width: 250,
-  },
-  {
-    key: 'p50',
-    name: 'p50',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'p95',
-    name: 'p95',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'p95_trend',
-    name: 'p95 Trend',
-    width: 250,
-  },
-];
+function getColumns(clusters: Cluster[]): GridColumnOrder[] {
+  const description =
+    clusters.findLast(cluster => Boolean(cluster.description_label))?.description_label ||
+    'Description';
+
+  const order: Array<GridColumnOrder | false> = [
+    {
+      key: 'span_operation',
+      name: 'Operation',
+      width: COL_WIDTH_UNDEFINED,
+    },
+    {
+      key: 'description',
+      name: description,
+      width: COL_WIDTH_UNDEFINED,
+    },
+    {
+      key: 'total_exclusive_time',
+      name: 'Exclusive Time',
+      width: 250,
+    },
+    {
+      key: 'p50',
+      name: 'p50',
+      width: COL_WIDTH_UNDEFINED,
+    },
+    {
+      key: 'p95',
+      name: 'p95',
+      width: COL_WIDTH_UNDEFINED,
+    },
+    {
+      key: 'p95_trend',
+      name: 'p95 Trend',
+      width: 250,
+    },
+  ];
+
+  return order.filter((x): x is GridColumnOrder => Boolean(x));
+}

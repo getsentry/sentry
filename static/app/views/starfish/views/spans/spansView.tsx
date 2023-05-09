@@ -159,6 +159,7 @@ export default function SpansView(props: Props) {
 
       <SpansTable
         location={props.location}
+        clusters={currentClusters}
         isLoading={areSpansLoading || areSpansTrendsLoading}
         spansData={spansData}
         orderBy={orderBy}

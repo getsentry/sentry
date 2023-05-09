@@ -1,7 +1,8 @@
-type Cluster = {
+export type Cluster = {
   condition: (value: any) => string;
   label: string;
   name: string;
+  description_label?: string;
   grouping_column?: string;
   grouping_condition?: (value: any) => () => string;
   isDynamic?: boolean;
@@ -17,6 +18,7 @@ export const CLUSTERS: Record<string, Cluster> = {
   'top.db': {
     name: 'top.db',
     label: 'DB',
+    description_label: 'Query',
     condition: () => "module == 'db'",
     grouping_column:
       "action IN ['SELECT', 'INSERT'] ? concat('db.',  lower(action)) : 'db.other'",
@@ -41,6 +43,7 @@ export const CLUSTERS: Record<string, Cluster> = {
   'top.http': {
     name: 'top.http',
     label: 'HTTP',
+    description_label: 'URL',
     condition: () => "module == 'http'",
     grouping_column: 'span_operation',
   },
