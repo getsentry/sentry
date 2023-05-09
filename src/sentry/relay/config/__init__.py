@@ -317,21 +317,6 @@ def _get_project_config(
 
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
 
-    if _should_extract_transaction_metrics(project):
-        add_experimental_config(
-            config,
-            "transactionMetrics",
-            get_transaction_metrics_settings,
-            project,
-            config.get("breakdownsV2"),
-        )
-
-        # This config key is technically not specific to _transaction_ metrics,
-        # is however currently both only applied to transaction metrics in
-        # Relay, and only used to tag transaction metrics in Sentry.
-        add_experimental_config(
-            config, "metricConditionalTagging", get_metric_conditional_tagging_rules, project
-        )
 
     if features.has("organizations:metrics-extraction", project.organization):
         config["sessionMetrics"] = {
