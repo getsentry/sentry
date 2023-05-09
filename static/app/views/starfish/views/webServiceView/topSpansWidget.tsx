@@ -2,6 +2,8 @@ import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import {Tooltip} from 'sentry/components/tooltip';
+import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -18,7 +20,7 @@ const COLUMN_ORDER = [
   {
     key: 'description',
     name: 'Span',
-    width: 800,
+    width: 700,
   },
   {
     key: 'cumulative_time',
@@ -70,7 +72,9 @@ export default function TopSpansWidget({moduleSegment}: Props) {
     }
 
     if (column.key === 'cumulative_time') {
-      return <PercentageBar value={row[column.key]} max={totalModuleTime} />;
+      return (
+        <PercentageBar module={module} value={row[column.key]} max={totalModuleTime} />
+      );
     }
 
     return <TextAlignRight>{row[column.key]}</TextAlignRight>;
@@ -92,13 +96,30 @@ export default function TopSpansWidget({moduleSegment}: Props) {
   );
 }
 
-function PercentageBar({value, max}: {max: number; value: number}) {
+function PercentageBar({
+  module,
+  value,
+  max,
+}: {
+  max: number;
+  module: string;
+  value: number;
+}) {
   const percentage = Math.round((value / max) * 100);
-
   return (
-    <BarContainer>
-      <Bar percentage={percentage} />
-    </BarContainer>
+    <Tooltip
+      title={tct(
+        'This span accounts for [percentage]% of all time spent on [module] spans in your web service',
+        {
+          percentage,
+          module,
+        }
+      )}
+    >
+      <BarContainer>
+        <Bar percentage={percentage} />
+      </BarContainer>
+    </Tooltip>
   );
 }
 
