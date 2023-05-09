@@ -342,12 +342,12 @@ function useFetchGroupDetails({
         organization,
       });
 
+      fetchGroupReleases();
+
       if (reprocessingNewRoute) {
         browserHistory.push(reprocessingNewRoute);
         return;
       }
-
-      fetchGroupReleases();
 
       const matchingProject = projects?.find(p => p.id === groupResponse.project.id);
 
@@ -446,6 +446,18 @@ function useFetchGroupDetails({
         query: getGroupQuery({environments}),
       });
 
+      const reprocessingNewRoute = getReprocessingNewRoute({
+        group: updatedGroup,
+        event,
+        organization,
+        router,
+      });
+
+      if (reprocessingNewRoute) {
+        browserHistory.push(reprocessingNewRoute);
+        return;
+      }
+
       setLoadingGroup(false);
       GroupStore.loadInitialData([updatedGroup]);
     } catch (e) {
@@ -459,6 +471,9 @@ function useFetchGroupDetails({
     loadingEvent,
     loadingGroup,
     params.groupId,
+    event,
+    organization,
+    router,
   ]);
 
   useFetchOnMount({fetchData});
@@ -664,6 +679,11 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     fetchError: errorFetchingProjects,
   } = useProjects({slugs: [props.project?.slug ?? '']});
 
+  const project =
+    (props.project?.slug
+      ? projects.find(({slug}) => slug === props.project?.slug)
+      : undefined) ?? projects[0];
+
   if (props.error) {
     return (
       <GroupDetailsContentError errorType={props.errorType} onRetry={props.refetchData} />
@@ -674,7 +694,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     return <StyledLoadingError message={t('Error loading the specified project')} />;
   }
 
-  if (!projectsLoaded || !props.group) {
+  if (!projectsLoaded || !project || !props.group) {
     return <LoadingIndicator />;
   }
 
@@ -683,15 +703,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     // Search for the slug in the projects list if possible. This is because projects
     // is just a complete list of stored projects and the first element may not be
     // the expected project.
-    <GroupDetailsContent
-      {...props}
-      project={
-        (props.project?.slug
-          ? projects.find(({slug}) => slug === props.project?.slug)
-          : undefined) ?? projects[0]
-      }
-      group={props.group}
-    />
+    <GroupDetailsContent {...props} project={project} group={props.group} />
   );
 }
 
