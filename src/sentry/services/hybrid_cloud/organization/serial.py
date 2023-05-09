@@ -47,7 +47,7 @@ def serialize_member(member: OrganizationMember) -> RpcOrganizationMember:
     rpc_member = RpcOrganizationMember(
         id=member.id,
         organization_id=member.organization_id,
-        user_id=member.user.id if member.user is not None else None,
+        user_id=member.user_id if member.user_id is not None else None,
         role=member.role,
         has_global_access=member.has_global_access,
         scopes=list(member.get_scopes()),
