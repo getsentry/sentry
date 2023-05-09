@@ -53,6 +53,7 @@ def serialize_member(member: OrganizationMember) -> RpcOrganizationMember:
         scopes=list(member.get_scopes()),
         flags=_serialize_member_flags(member),
         invite_status=member.invite_status,
+        email=member.get_email(),
     )
 
     omts = OrganizationMemberTeam.objects.filter(
