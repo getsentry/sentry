@@ -27,7 +27,7 @@ class ApiInviteHelperTest(TestCase):
         self.request.user = self.user
 
     @patch("sentry.api.invite_helper.create_audit_entry")
-    @patch("sentry.api.invite_helper.OrganizationMember.get_audit_log_data")
+    @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
     def test_accept_invite(self, get_audit, create_audit):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
@@ -40,7 +40,7 @@ class ApiInviteHelperTest(TestCase):
         assert om.user.id == self.user.id
 
     @patch("sentry.api.invite_helper.create_audit_entry")
-    @patch("sentry.api.invite_helper.OrganizationMember.get_audit_log_data")
+    @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
     @patch("sentry.api.invite_helper.AuthProvider.objects")
     def test_accept_invite_with_SSO(self, mock_provider, get_audit, create_audit):
         self.auth_provider.flags.allow_unlinked = True
@@ -57,7 +57,7 @@ class ApiInviteHelperTest(TestCase):
         assert om.user.id == self.user.id
 
     @patch("sentry.api.invite_helper.create_audit_entry")
-    @patch("sentry.api.invite_helper.OrganizationMember.get_audit_log_data")
+    @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
     @patch("sentry.api.invite_helper.AuthProvider.objects")
     def test_accept_invite_with_required_SSO(self, mock_provider, get_audit, create_audit):
         self.auth_provider.flags.allow_unlinked = False
@@ -75,7 +75,7 @@ class ApiInviteHelperTest(TestCase):
         assert om.user is None
 
     @patch("sentry.api.invite_helper.create_audit_entry")
-    @patch("sentry.api.invite_helper.OrganizationMember.get_audit_log_data")
+    @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
     @patch("sentry.api.invite_helper.AuthProvider.objects")
     @patch("sentry.api.invite_helper.AuthIdentity.objects")
     def test_accept_invite_with_required_SSO_with_identity(

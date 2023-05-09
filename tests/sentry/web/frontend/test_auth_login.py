@@ -211,7 +211,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
         self.client.get(self.path)
 
-        invite_helper = mock.Mock(valid_request=True)
+        invite_helper = mock.Mock(valid_request=True, organization_id=self.organization.id)
         from_session.return_value = invite_helper
 
         resp = self.client.post(
@@ -265,7 +265,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
         self.client.get(self.path)
 
-        invite_helper = mock.Mock(valid_request=True)
+        invite_helper = mock.Mock(valid_request=True, organization_id=self.organization.id)
         from_session.return_value = invite_helper
 
         resp = self.client.post(
