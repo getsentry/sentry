@@ -247,24 +247,22 @@ function useFetchOnMount({fetchData}: Pick<FetchGroupDetailsState, 'fetchData'>)
   }, []);
 }
 
-function useGetApiQuery() {
-  const router = useRouter();
-  const params = router.params;
-
-  return params.eventId ? useSpecificEventApiQuery : useLatestEventApiQuery;
-}
-
-function useLatestEventApiQuery(queryKey: [string, {query: {environment?: string[]}}]) {
-  return useApiQuery<Event>(queryKey, {
+function useEventApiQuery(
+  eventID: string,
+  queryKey: [string, {query: {environment?: string[]}}]
+) {
+  const isLatest = eventID === 'latest';
+  const latestEventQuery = useApiQuery<Event>(queryKey, {
     staleTime: 10000,
     cacheTime: 30000,
+    enabled: isLatest,
   });
-}
-
-function useSpecificEventApiQuery(queryKey: [string, {query: {environment?: string[]}}]) {
-  return useApiQuery<Event>(queryKey, {
+  const otherEventQuery = useApiQuery<Event>(queryKey, {
     staleTime: Infinity,
+    enabled: !isLatest,
   });
+
+  return isLatest ? latestEventQuery : otherEventQuery;
 }
 
 function useFetchGroupDetails({
@@ -287,8 +285,7 @@ function useFetchGroupDetails({
   const [loadingGroup, setLoadingGroup] = useState<boolean>(false);
   const [error, setError] = useState<boolean>(false);
   const [errorType, setErrorType] = useState<Error | null>(null);
-
-  const useEventApiQuery = useGetApiQuery();
+  const [event, setEvent] = useState<Event | null>(null);
 
   const groupId = params.groupId;
   const eventId = params.eventId ?? 'latest';
@@ -301,16 +298,16 @@ function useFetchGroupDetails({
   }
 
   const {
-    data: event,
+    data: eventData,
     isLoading: loadingEvent,
     isError,
-    error: eventError,
-  } = useEventApiQuery([eventUrl, {query: eventQuery}]);
+  } = useEventApiQuery(eventId, [eventUrl, {query: eventQuery}]);
 
-  if (isError) {
-    // This is an expected error, capture to Sentry so that it is not considered as an unhandled error
-    Sentry.captureException(eventError);
-  }
+  useEffect(() => {
+    if (eventData) {
+      setEvent(eventData);
+    }
+  }, [eventData]);
 
   const fetchGroupReleases = useCallback(async () => {
     const releases = await api.requestPromise(
@@ -340,7 +337,7 @@ function useFetchGroupDetails({
 
       const reprocessingNewRoute = getReprocessingNewRoute({
         group: groupResponse,
-        event: event ?? null,
+        event,
         router,
         organization,
       });
@@ -421,7 +418,7 @@ function useFetchGroupDetails({
     }
   }, [fetchData, group]);
 
-  useTrackView({group, event: event ?? null, project});
+  useTrackView({group, event, project});
 
   const refetchData = useCallback(() => {
     // Set initial state
@@ -479,7 +476,7 @@ function useFetchGroupDetails({
     loadingEvent,
     fetchData,
     group,
-    event: event ?? null,
+    event,
     errorType,
     error,
     eventError: isError,
