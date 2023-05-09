@@ -71,8 +71,8 @@ def check_monitors(current_datetime=None):
                 status=CheckInStatus.MISSED,
             )
             monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
-        except Exception as e:
-            logger.exception(e)
+        except Exception:
+            logger.exception("Exception in check_monitors - mark missed")
 
     qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related(
         "monitor", "monitor_environment"
@@ -109,5 +109,5 @@ def check_monitors(current_datetime=None):
             ).exists()
             if not has_newer_result:
                 monitor_environment.mark_failed(reason=MonitorFailure.DURATION)
-        except Exception as e:
-            logger.exception(e)
+        except Exception:
+            logger.exception("Exception in check_monitors - mark timeout")
