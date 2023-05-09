@@ -406,6 +406,18 @@ const performanceOptionDefinitions: Field[] = [
     step: 1,
   },
   {
+    key: 'performance.issues.large_http_payload.size_threshold',
+    label: t('Payload Size Threshold'),
+    help: t(
+      'The threshold at which the payload size of an HTTP span is considered to be too large, in bytes.'
+    ),
+    defaultValue: () => '1000000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
     key: 'profile.issues.blocked_main_thread-ingest.la-rollout',
     label: t('Limited Availability Detection Rate'),
     help: t(
