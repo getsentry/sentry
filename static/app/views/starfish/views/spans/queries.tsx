@@ -24,7 +24,7 @@ export const getSpanListQuery = (
   const validConditions = conditions.filter(Boolean);
 
   return `SELECT
-    group_id, span_operation, description,
+    group_id, span_operation, domain, description,
     sum(exclusive_time) as total_exclusive_time,
     quantile(0.75)(exclusive_time) as p75
     FROM spans_experimental_starfish
@@ -32,7 +32,7 @@ export const getSpanListQuery = (
     ${validConditions.length > 0 ? 'AND' : ''}
     ${validConditions.join(' AND ')}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    GROUP BY group_id, span_operation, description
+    GROUP BY group_id, span_operation, domain, description
     ORDER BY ${orderBy ?? 'count'} desc
     ${limit ? `LIMIT ${limit}` : ''}`;
 };

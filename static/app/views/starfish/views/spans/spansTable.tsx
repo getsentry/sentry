@@ -154,6 +154,9 @@ function getColumns(clusters: Cluster[]): GridColumnOrder[] {
     clusters.findLast(cluster => Boolean(cluster.description_label))?.description_label ||
     'Description';
 
+  const domain =
+    clusters.findLast(cluster => Boolean(cluster.domain_label))?.domain_label || 'Domain';
+
   const order: Array<GridColumnOrder | false> = [
     !secondCluster && {
       key: 'span_operation',
@@ -163,6 +166,11 @@ function getColumns(clusters: Cluster[]): GridColumnOrder[] {
     {
       key: 'description',
       name: description,
+      width: COL_WIDTH_UNDEFINED,
+    },
+    !!secondCluster && {
+      key: 'domain',
+      name: domain,
       width: COL_WIDTH_UNDEFINED,
     },
     {
