@@ -179,7 +179,7 @@ export default function TagFacets({
 function WrapperWithTitle({children}: {children: ReactNode}) {
   return (
     <SidebarSection.Wrap>
-      <div>
+      <SidebarSection.Title>
         {t('All Tags')}
         <TooltipWrapper>
           <Tooltip
@@ -189,7 +189,7 @@ function WrapperWithTitle({children}: {children: ReactNode}) {
             <IconQuestion size="sm" color="gray200" />
           </Tooltip>
         </TooltipWrapper>
-      </div>
+      </SidebarSection.Title>
       {children}
     </SidebarSection.Wrap>
   );
