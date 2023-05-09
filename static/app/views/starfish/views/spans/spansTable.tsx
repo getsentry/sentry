@@ -149,12 +149,13 @@ function renderBodyCell(column: GridColumnHeader, row: SpanDataRow): React.React
 }
 
 function getColumns(clusters: Cluster[]): GridColumnOrder[] {
+  const secondCluster = clusters.at(1);
   const description =
     clusters.findLast(cluster => Boolean(cluster.description_label))?.description_label ||
     'Description';
 
   const order: Array<GridColumnOrder | false> = [
-    {
+    !secondCluster && {
       key: 'span_operation',
       name: 'Operation',
       width: COL_WIDTH_UNDEFINED,
