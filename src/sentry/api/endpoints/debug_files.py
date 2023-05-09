@@ -247,27 +247,13 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         queryset = ProjectDebugFile.objects.filter(q, project_id=project.id).select_related("file")
 
-        def on_results(results):
-            for result in results:
-                if result.object_name == "proguard-mapping":
-                    bundles = ProguardArtifactRelease.objects.filter(proguard_uuid=result.debug_id)
-                    associated_releases = [str(bundle.release_name) for bundle in bundles]
-                    if associated_releases:
-                        result_dict = serialize(result, request.user)
-                        result_dict["associated_releases"] = associated_releases
-                        yield result_dict
-                    else:
-                        yield serialize(result, request.user)
-                else:
-                    yield serialize(result, request.user)
-
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-id",
             paginator_cls=OffsetPaginator,
             default_per_page=20,
-            on_results=on_results,
+            on_results=lambda x: serialize(x, request.user),
         )
 
     def delete(self, request: Request, project) -> Response:
