@@ -118,7 +118,9 @@ class AlertRuleNotification(ProjectNotification):
             fallthrough_choice=self.fallthrough_choice,
         )
         fallback_params: MutableMapping[str, str] = {}
-        group_inbox_reason = GroupInbox.objects.filter(group=self.group).first()
+        group_inbox_reason = GroupInbox.objects.filter(
+            group=self.group, project=self.project
+        ).first()
 
         context = {
             "project_label": self.project.get_full_name(),
