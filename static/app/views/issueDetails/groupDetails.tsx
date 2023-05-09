@@ -253,13 +253,15 @@ function useEventApiQuery(
 ) {
   const isLatest = eventID === 'latest';
   const latestEventQuery = useApiQuery<Event>(queryKey, {
-    staleTime: 10000,
+    staleTime: 30000,
     cacheTime: 30000,
     enabled: isLatest,
+    retry: (_, error) => error.status !== 404,
   });
   const otherEventQuery = useApiQuery<Event>(queryKey, {
     staleTime: Infinity,
     enabled: !isLatest,
+    retry: (_, error) => error.status !== 404,
   });
 
   return isLatest ? latestEventQuery : otherEventQuery;
@@ -301,6 +303,7 @@ function useFetchGroupDetails({
     data: eventData,
     isLoading: loadingEvent,
     isError,
+    refetch: refetchEvent,
   } = useEventApiQuery(eventId, [eventUrl, {query: eventQuery}]);
 
   useEffect(() => {
@@ -425,8 +428,10 @@ function useFetchGroupDetails({
     setError(false);
     setErrorType(null);
 
+    // refetchEvent comes from useApiQuery since event and group data are separately fetched
+    refetchEvent();
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, refetchEvent]);
 
   const refetchGroup = useCallback(async () => {
     if (
