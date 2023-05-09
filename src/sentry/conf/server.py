@@ -419,6 +419,7 @@ CSP_DEFAULT_SRC = [
 CSP_SCRIPT_SRC = [
     "'self'",
     "'unsafe-inline'",
+    "'report-sample'",
 ]
 CSP_FONT_SRC = [
     "'self'",
