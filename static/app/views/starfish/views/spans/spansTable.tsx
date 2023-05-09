@@ -171,13 +171,8 @@ function getColumns(clusters: Cluster[]): GridColumnOrder[] {
       width: 250,
     },
     {
-      key: 'p50',
-      name: 'p50',
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: 'p95',
-      name: 'p95',
+      key: 'p75',
+      name: 'p75',
       width: COL_WIDTH_UNDEFINED,
     },
     {
