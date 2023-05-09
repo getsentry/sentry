@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
 
@@ -135,9 +136,11 @@ function renderBodyCell(column: GridColumnHeader, row: SpanDataRow): React.React
 
   if (column.key === 'description') {
     return (
-      <Link to={`/starfish/span/${encodeURIComponent(row.group_id)}`}>
-        {row.description}
-      </Link>
+      <OverflowEllipsisTextContainer>
+        <Link to={`/starfish/span/${encodeURIComponent(row.group_id)}`}>
+          {row.description}
+        </Link>
+      </OverflowEllipsisTextContainer>
     );
   }
 
@@ -197,3 +200,9 @@ function getColumns(clusters: Cluster[]): GridColumnOrder[] {
 
   return order.filter((x): x is GridColumnOrder => Boolean(x));
 }
+
+export const OverflowEllipsisTextContainer = styled('span')`
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+`;
