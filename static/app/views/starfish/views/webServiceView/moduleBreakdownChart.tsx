@@ -10,13 +10,17 @@ import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import {getSpanDurationSeries} from 'sentry/views/starfish/views/webServiceView/queries';
+import {
+  getSpanDurationSeries,
+  getThroughputByModule,
+} from 'sentry/views/starfish/views/webServiceView/queries';
 
 type Props = {
+  module: string;
   topSpans: string[];
 };
 
-export function ModuleBreakdownChart({topSpans}: Props) {
+export function ModuleBreakdownChart({module, topSpans}: Props) {
   const topSpansQueryString = topSpans.join(', ');
 
   const {isLoading, data} = useQuery({
@@ -25,6 +29,14 @@ export function ModuleBreakdownChart({topSpans}: Props) {
       fetch(`${HOST}/?query=${getSpanDurationSeries(topSpansQueryString)}`).then(res =>
         res.json()
       ),
+    retry: false,
+    initialData: [],
+  });
+
+  const {data: throughputData} = useQuery({
+    queryKey: ['sdfsdfsdfs', module],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${getThroughputByModule(module)}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
@@ -72,7 +84,8 @@ export function ModuleBreakdownChart({topSpans}: Props) {
           bottom: '8px',
         }}
         definedAxisTicks={4}
-        chartColors={CHART_PALETTE[5]}
+        chartColors={CHART_PALETTE[4]}
+        throughput={throughputData}
       />
     </ChartPanel>
   );

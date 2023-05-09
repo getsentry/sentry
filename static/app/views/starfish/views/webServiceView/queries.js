@@ -116,3 +116,14 @@ export const getSpanDurationSeries = spansQueryString => `SELECT
   GROUP BY interval, description
   ORDER BY interval
 `;
+
+export const getThroughputByModule = module => {
+  return `SELECT
+  count() as count,
+  toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+  FROM default.spans_experimental_starfish
+  WHERE module = '${module}'
+  GROUP BY interval
+  ORDER BY interval
+ `;
+};

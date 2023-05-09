@@ -84,12 +84,12 @@ export default function TopSpansWidget({moduleSegment}: Props) {
 
   const topSpans = topSpansData.map(
     // Quotes have to be escaped or the query won't work
-    ({span}) => `'${span.replaceAll(/'/g, "\\'").replaceAll(/"/g, '\\"')}'`
+    ({span}) => (span ? `'${span.replaceAll(/'/g, "\\'").replaceAll(/"/g, '\\"')}'` : '')
   );
 
   return (
     <Fragment>
-      <ModuleBreakdownChart topSpans={topSpans} />
+      <ModuleBreakdownChart module={module} topSpans={topSpans} />
       <GridEditable
         isLoading={isTopSpansDataLoading}
         data={topSpansData}
