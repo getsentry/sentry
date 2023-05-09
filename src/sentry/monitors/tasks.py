@@ -38,6 +38,15 @@ def check_monitors(current_datetime=None):
     if current_datetime is None:
         current_datetime = timezone.now()
 
+    # [!!]: We want our reference time to be clamped to the very start of the
+    # minute, otherwise we may mark checkins as missed if they didn't happen
+    # immediately before this task was run (usually a few seconds into the minute)
+    #
+    # Because we query `next_checkin__lt=current_datetime` clamping to the
+    # minute will ignore monitors that haven't had their checkin yet within
+    # this minute.
+    current_datetime = current_datetime.replace(second=0, microsecond=0)
+
     qs = (
         MonitorEnvironment.objects.filter(
             monitor__type__in=[MonitorType.CRON_JOB], next_checkin__lt=current_datetime
