@@ -1,9 +1,9 @@
 import orderBy from 'lodash/orderBy';
 
-import {bulkUpdate} from 'sentry/actionCreators/group';
+import {bulkUpdate, useFetchIssueTags} from 'sentry/actionCreators/group';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {Group, GroupActivity} from 'sentry/types';
+import {Environment, Group, GroupActivity} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
 /**
@@ -159,3 +159,18 @@ export function getGroupReprocessingStatus(
       return ReprocessingStatus.NO_STATUS;
   }
 }
+
+export const useFetchIssueTagsForDetailsPage = ({
+  groupId,
+  environments,
+}: {
+  environments: Environment[];
+  groupId: string;
+}) => {
+  return useFetchIssueTags({
+    groupId,
+    environment: environments.map(({name}) => name),
+    readable: true,
+    limit: 4,
+  });
+};
