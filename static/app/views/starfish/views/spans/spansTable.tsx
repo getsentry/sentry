@@ -1,5 +1,3 @@
-import {useState} from 'react';
-import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import moment from 'moment';
 
@@ -9,137 +7,44 @@ import GridEditable, {
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
-import {HOST} from 'sentry/views/starfish/utils/constants';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-import {getSpanListQuery, getSpansTrendsQuery} from './queries';
-
 type Props = {
+  isLoading: boolean;
   location: Location;
-  orderBy?: string;
+  onSetOrderBy: (orderBy: string) => void;
+  orderBy: string;
+  spansData: SpanDataRow[];
+  spansTrendsData: SpanTrendDataRow[];
 };
 
-type SpanDataRow = {
+export type SpanDataRow = {
   description: string;
   group_id: string;
   span_operation: string;
 };
 
-type SpanTrendDataRow = {
+export type SpanTrendDataRow = {
   group_id: string;
   interval: string;
   p95: string;
   span_operation: string;
 };
 
-const LIMIT = 10;
-
-const COLUMN_ORDER = [
-  {
-    key: 'group_id',
-    name: 'Group',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'span_operation',
-    name: 'Operation',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'description',
-    name: 'Description',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'p95_trend',
-    name: 'p95 Trend',
-    width: 250,
-  },
-  {
-    key: 'p50',
-    name: 'p50',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'p95',
-    name: 'p95',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'p999',
-    name: 'p99.9',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'count',
-    name: 'Count',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'transaction_count',
-    name: 'Transactions',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'count_per_transaction',
-    name: 'Spans per Transaction',
-    width: COL_WIDTH_UNDEFINED,
-  },
-];
-
-type State = {
-  orderBy?: string;
-};
-
-export default function SpansTable({location}: Props) {
-  const pageFilter = usePageFilters();
-  const [state, setState] = useState<State>({});
-  const {orderBy} = state;
-  const {isLoading, data} = useQuery<{
-    spansData?: SpanDataRow[];
-    spansTrendsData?: SpanTrendDataRow[];
-  }>({
-    queryKey: ['spans', pageFilter.selection.datetime, orderBy],
-    queryFn: async () => {
-      const spansData = await (
-        await fetch(
-          `${HOST}/?query=${getSpanListQuery({
-            datetime: pageFilter.selection.datetime,
-            orderBy,
-            limit: LIMIT,
-          })}`
-        )
-      ).json();
-      const group_ids = spansData.map(({group_id}) => group_id);
-      const spansTrendsData =
-        group_ids.length > 0
-          ? await (
-              await fetch(
-                `${HOST}/?query=${getSpansTrendsQuery({
-                  datetime: pageFilter.selection.datetime,
-                  group_ids,
-                })}`
-              )
-            ).json()
-          : undefined;
-      return new Promise(resolve =>
-        resolve({spansData, spansTrendsData} as {
-          spansData?: SpanDataRow[];
-          spansTrendsData?: SpanTrendDataRow[];
-        })
-      );
-    },
-    retry: false,
-    initialData: {},
-  });
-
+export default function SpansTable({
+  location,
+  spansData,
+  orderBy,
+  onSetOrderBy,
+  spansTrendsData,
+  isLoading,
+}: Props) {
   const spansTrendsGrouped = {};
-  const {spansData, spansTrendsData} = data;
 
   spansTrendsData?.forEach(({group_id, span_operation, interval, p95}) => {
     if (span_operation in spansTrendsGrouped) {
@@ -175,13 +80,13 @@ export default function SpansTable({location}: Props) {
   return (
     <GridEditable
       isLoading={isLoading}
-      data={combinedSpansData as SpanDataRow[]}
+      data={combinedSpansData}
       columnOrder={COLUMN_ORDER}
       columnSortBy={
         orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<string>]
       }
       grid={{
-        renderHeadCell: getRenderHeadCell({state, setState}),
+        renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
         renderBodyCell,
       }}
       location={location}
@@ -189,21 +94,15 @@ export default function SpansTable({location}: Props) {
   );
 }
 
-function getRenderHeadCell({
-  state,
-  setState,
-}: {
-  setState: (state: State) => void;
-  state: State;
-}) {
+function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => void) {
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
     return (
       <SortLink
         align="left"
         canSort={column.key !== 'p95_trend'}
-        direction={state.orderBy === column.key ? 'desc' : undefined}
+        direction={orderBy === column.key ? 'desc' : undefined}
         onClick={() => {
-          setState({orderBy: `${column.key}`});
+          onSetOrderBy(`${column.key}`);
         }}
         title={column.name}
         generateSortLink={() => {
@@ -214,11 +113,12 @@ function getRenderHeadCell({
       />
     );
   }
+
   return renderHeadCell;
 }
 
 function renderBodyCell(column: GridColumnHeader, row: SpanDataRow): React.ReactNode {
-  if (column.key === 'p95_trend') {
+  if (column.key === 'p95_trend' && row[column.key]) {
     return (
       <Sparkline
         color={CHART_PALETTE[3][0]}
@@ -228,8 +128,50 @@ function renderBodyCell(column: GridColumnHeader, row: SpanDataRow): React.React
     );
   }
 
+  if (column.key === 'description') {
+    return (
+      <Link to={`/starfish/span/${encodeURIComponent(row.group_id)}`}>
+        {row.description}
+      </Link>
+    );
+  }
+
   if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
     return <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
   }
+
   return row[column.key];
 }
+
+const COLUMN_ORDER = [
+  {
+    key: 'span_operation',
+    name: 'Operation',
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'description',
+    name: 'Description',
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'total_exclusive_time',
+    name: 'Exclusive Time',
+    width: 250,
+  },
+  {
+    key: 'p50',
+    name: 'p50',
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'p95',
+    name: 'p95',
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'p95_trend',
+    name: 'p95 Trend',
+    width: 250,
+  },
+];

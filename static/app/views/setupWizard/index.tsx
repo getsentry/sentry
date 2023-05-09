@@ -18,6 +18,8 @@ type Props = {
 const platformDocsMapping = {
   'javascript-nextjs':
     'https://docs.sentry.io/platforms/javascript/guides/nextjs/#verify',
+  'javascript-sveltekit':
+    'https://docs.sentry.io/platforms/javascript/guides/sveltekit/#verify',
   'react-native': 'https://docs.sentry.io/platforms/react-native/#verify',
   cordova: 'https://docs.sentry.io/platforms/javascript/guides/cordova/#verify',
   'javascript-electron':

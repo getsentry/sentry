@@ -90,7 +90,6 @@ const mockItems = {
 
 function basicSectionProps() {
   return {
-    onScrollToRow: () => {},
     projectId: '',
     startTimestampMs: new Date('2023-12-24').getTime(),
   };
@@ -306,7 +305,7 @@ describe('NetworkDetailsContent', () => {
           );
 
           expect(queryScreenState()).toStrictEqual({
-            dataSectionHeaders: ['Query String Parameters', 'Request PayloadSize: 0 B'],
+            dataSectionHeaders: ['Query String Parameters', 'Request BodySize: 0 B'],
             isShowingUnsupported: false,
             isShowingSetup: false,
           });

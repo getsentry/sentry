@@ -567,6 +567,7 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
     assert rules[0]["id"] == uniform_id
 
 
+@pytest.mark.skip("Disabled rebalancing rule.")
 @pytest.mark.django_db
 @freeze_time("2022-10-21T18:50:25Z")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
@@ -606,7 +607,6 @@ def test_generate_rules_return_uniform_rules_and_rebalance_factor_rule(
     _validate_rules(default_project)
 
 
-@pytest.mark.skip("The replay bias is temporarily disabled.")
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_boost_replay_id(get_blended_sample_rate, default_project):

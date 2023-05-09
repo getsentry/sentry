@@ -1,8 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
-import GroupSidebar from 'sentry/components/group/sidebar';
 import MemberListStore from 'sentry/stores/memberListStore';
+
+import GroupSidebar from './groupSidebar';
 
 describe('GroupSidebar', function () {
   let group = TestStubs.Group({tags: TestStubs.Tags()});
