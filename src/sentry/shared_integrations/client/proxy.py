@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from typing import Any, Mapping
 
 from django.conf import settings
 from requests import PreparedRequest
@@ -39,23 +40,20 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
         self,
         integration_id: int | None = None,
         org_integration_id: int | None = None,
-        **kwargs,
+        verify_ssl: bool = True,
+        logging_context: Mapping[str, Any] | None = None,
     ) -> None:
-        super().__init__(**kwargs)
+        super().__init__(verify_ssl=verify_ssl, logging_context=logging_context)
 
         self.integration_id = integration_id
         self.org_integration_id = org_integration_id
 
-        if not self.integration_id and not self.org_integration_id:
-            raise AttributeError("integration_id or org_integration_id are required to initialize")
-
-        if not self.integration_id:
+        if not self.integration_id and self.org_integration_id is not None:
             integration = integration_service.get_integration(
                 organization_integration_id=self.org_integration_id
             )
-            if not integration:
-                raise AttributeError("Cannot infer integration_id from provided org_integration_id")
-            self.integration_id = integration.id
+            if integration:
+                self.integration_id = integration.id
 
         is_region_silo = SiloMode.get_current_mode() == SiloMode.REGION
         subnet_secret = getattr(settings, "SENTRY_SUBNET_SECRET", None)
