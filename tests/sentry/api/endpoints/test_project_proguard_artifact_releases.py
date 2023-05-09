@@ -81,3 +81,56 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         assert response.data == {
             "error": "Proguard artifact release with this name in this project already exists."
         }
+
+    def test_list_proguard_artifact_releases_with_uuid_successfully(self):
+        project = self.create_project(name="foo")
+
+        proguard_uuid = "660f839b-8bfd-580d-9a7c-ea339a6c9867"
+        ProguardArtifactRelease.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            release_name="test@1.0.0",
+            proguard_uuid=proguard_uuid,
+        )
+
+        url = reverse(
+            "sentry-api-0-proguard-artifact-releases",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.get(url, {"uuid": proguard_uuid})
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert str(response.data[0]["proguard_uuid"]) == proguard_uuid
+        assert response.data[0]["release_name"] == "test@1.0.0"
+
+    def test_list_proguard_artifact_releases_without_uuid_successfully(self):
+        project = self.create_project(name="foo")
+
+        proguard_uuid = "660f839b-8bfd-580d-9a7c-ea339a6c9867"
+        ProguardArtifactRelease.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            release_name="test@1.0.0",
+            proguard_uuid=proguard_uuid,
+        )
+
+        url = reverse(
+            "sentry-api-0-proguard-artifact-releases",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["release_name"] == "test@1.0.0"

@@ -110,6 +110,38 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
                 status=status.HTTP_409_CONFLICT,
             )
 
+    def get(self, request: Request, project) -> Response:
+        """
+        List a Project's Proguard Associated Releases
+        ````````````````````````````````````````
+
+        Retrieve a list of associated releases for a given Proguard File.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          file belongs to.
+        :pparam string project_slug: the slug of the project to list the
+                                     DIFs of.
+        :qparam string uuid: the uuid of the Proguard file.
+        :auth: required
+        """
+
+        proguard_uuid = request.GET.get("proguard_uuid")
+        releases = None
+        if proguard_uuid:
+            releases = ProguardArtifactRelease.objects.filter(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                proguard_uuid=proguard_uuid,
+            )
+        else:
+            releases = ProguardArtifactRelease.objects.filter(
+                organization_id=project.organization_id,
+                project_id=project.id,
+            )
+        releases = releases.values()
+
+        return Response(list(releases))
+
 
 @region_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
