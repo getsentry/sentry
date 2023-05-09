@@ -232,7 +232,7 @@ def test_already_cached_plus_read_results(indexer, indexer_cache, use_case_id) -
     org_id = 8
     cached = {
         f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org_id}:beep": 10,
-        f"{use_case_id.value}:{org_id}:boop": 11,
+        f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org_id}:boop": 11,
     }
     indexer_cache.set_many(cached)
 
