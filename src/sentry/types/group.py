@@ -41,6 +41,16 @@ SUBSTATUS_UPDATE_CHOICES: Mapping[str, int] = {
     "new": GroupSubStatus.NEW,
 }
 
+SUBSTATUS_TO_STR: Mapping[int, str] = {
+    GroupSubStatus.UNTIL_ESCALATING: "archived_until_escalating",
+    GroupSubStatus.UNTIL_CONDITION_MET: "archived_until_condition_met",
+    GroupSubStatus.FOREVER: "archived_forever",
+    GroupSubStatus.ESCALATING: "escalating",
+    GroupSubStatus.ONGOING: "ongoing",
+    GroupSubStatus.REGRESSED: "regressed",
+    GroupSubStatus.NEW: "new",
+}
+
 GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS = {
     GroupSubStatus.ESCALATING: "escalating",
     GroupSubStatus.REGRESSED: "regressed",

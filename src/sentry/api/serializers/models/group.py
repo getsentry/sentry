@@ -73,6 +73,7 @@ from sentry.services.hybrid_cloud.user import user_service
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -339,6 +340,7 @@ class GroupSerializerBase(Serializer, ABC):
             "level": LOG_LEVELS.get(obj.level, "unknown"),
             "status": status_label,
             "statusDetails": status_details,
+            "substatus": SUBSTATUS_TO_STR[obj.substatus] if obj.substatus else None,
             "isPublic": share_id is not None,
             "platform": obj.platform,
             "project": {
