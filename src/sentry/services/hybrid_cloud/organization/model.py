@@ -105,6 +105,7 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     email: str = ""
     token: str = ""
     is_pending: bool = False
+    invite_approved: bool = False
 
     def get_audit_log_metadata(self, user_email: Optional[str] = None) -> Mapping[str, Any]:
         from sentry.models.organizationmember import invite_status_names
