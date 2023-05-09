@@ -67,6 +67,10 @@ def get_next_schedule(last_checkin, schedule_type, schedule):
     else:
         raise NotImplementedError("unknown schedule_type")
 
+    # Ensure we clamp the expected time down to the minute, that is the level
+    # of granularity we're able to support
+    next_schedule = next_schedule.replace(second=0, microsecond=0)
+
     return next_schedule
 
 
