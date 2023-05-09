@@ -87,6 +87,11 @@ class RpcSentryAppComponent(RpcModel):
     app_schema: Mapping[str, Any] = Field(default_factory=dict)
 
 
+class RpcAlertRuleActionResult(RpcModel):
+    success: bool
+    message: str
+
+
 class SentryAppEventDataInterface(Protocol):
     """
     Protocol making RpcSentryAppEvents capable of consuming from various sources, keeping only
