@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0435_add_alert_rule_source"),
+        ("sentry", "0437_remove_fk_notifications_target"),
     ]
 
     operations = [

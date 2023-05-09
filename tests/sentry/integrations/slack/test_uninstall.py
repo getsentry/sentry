@@ -100,6 +100,18 @@ class SlackUninstallTest(APITestCase):
         self.assert_settings(ExternalProviders.EMAIL, NotificationSettingOptionValues.NEVER)
         self.assert_settings(ExternalProviders.SLACK, NotificationSettingOptionValues.NEVER)
 
+    def test_uninstall_generates_settings_with_userid(self):
+        self.uninstall()
+
+        self.assert_settings(ExternalProviders.SLACK, NotificationSettingOptionValues.NEVER)
+        # Ensure uninstall sets user_id.
+        settings = NotificationSetting.objects.find_settings(
+            provider=ExternalProviders.SLACK,
+            type=NotificationSettingTypes.ISSUE_ALERTS,
+            user=self.user,
+        )
+        assert settings[0].user_id == self.user.id
+
     def test_uninstall_with_multiple_organizations(self):
         organization = self.create_organization(owner=self.user)
         integration = self.create_slack_integration(organization, "TXXXXXXX2")

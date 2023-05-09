@@ -47,7 +47,6 @@ const optionsAvailable = [
   'performance.issues.m_n_plus_one_db.la-rollout',
   'performance.issues.m_n_plus_one_db.ea-rollout',
   'performance.issues.m_n_plus_one_db.ga-rollout',
-  'performance.issues.consecutive_http.lcp_ratio_threshold',
   'performance.issues.consecutive_http.max_duration_between_spans',
   'performance.issues.consecutive_http.consecutive_count_threshold',
   'performance.issues.consecutive_http.span_duration_threshold',
@@ -193,7 +192,6 @@ export default class AdminSettings extends AsyncView<{}, State> {
               <PanelHeader>
                 Performance Issues - Consecutive HTTP Span Detector
               </PanelHeader>
-              {fields['performance.issues.consecutive_http.lcp_ratio_threshold']}
               {fields['performance.issues.consecutive_http.max_duration_between_spans']}
               {fields['performance.issues.consecutive_http.consecutive_count_threshold']}
               {fields['performance.issues.consecutive_http.span_duration_threshold']}

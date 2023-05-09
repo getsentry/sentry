@@ -16,6 +16,7 @@ from sentry.dynamic_sampling.tasks import (
     prioritise_transactions,
     recalibrate_orgs,
     sliding_window,
+    sliding_window_org,
 )
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
@@ -60,8 +61,27 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
         )
         return proj
 
+    @staticmethod
+    def sampling_tier_side_effect(*args, **kwargs):
+        volume = args[1]
+
+        if volume == 20:
+            return 100_000, 0.25
+        # We want to also hardcode the error case, to test how the system reacts to errors.
+        elif volume == 0:
+            return None
+
+        return volume, 1.0
+
+    @staticmethod
+    def forecasted_volume_side_effect(*args, **kwargs):
+        return kwargs["volume"]
+
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    def test_prioritise_projects_simple(self, get_blended_sample_rate):
+    def test_prioritise_projects_simple(
+        self,
+        get_blended_sample_rate,
+    ):
         get_blended_sample_rate.return_value = 0.25
         # Create a org
         test_org = self.create_organization(name="sample-org")
@@ -74,7 +94,95 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
 
         with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
             with self.tasks():
+                sliding_window_org()
                 prioritise_projects()
+
+        # we expect only uniform rule
+        # also we test here that `generate_rules` can handle trough redis long floats
+        assert generate_rules(proj_a)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.14814814814814817),
+        }
+        assert generate_rules(proj_b)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.1904761904761905),
+        }
+        assert generate_rules(proj_c)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.4444444444444444),
+        }
+        assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
+
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    def test_prioritise_projects_simple_with_sliding_window_org_from_cache(
+        self,
+        extrapolate_monthly_volume,
+        get_transaction_sampling_tier_for_volume,
+        get_blended_sample_rate,
+    ):
+        extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
+        get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
+        get_blended_sample_rate.return_value = 1.0
+        # Create a org
+        test_org = self.create_organization(name="sample-org")
+
+        # Create 4 projects
+        proj_a = self.create_project_and_add_metrics("a", 9, test_org)
+        proj_b = self.create_project_and_add_metrics("b", 7, test_org)
+        proj_c = self.create_project_and_add_metrics("c", 3, test_org)
+        proj_d = self.create_project_and_add_metrics("d", 1, test_org)
+
+        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
+            with self.feature("organizations:ds-sliding-window-org"):
+                with self.tasks():
+                    sliding_window_org()
+                    prioritise_projects()
+
+        # we expect only uniform rule
+        # also we test here that `generate_rules` can handle trough redis long floats
+        assert generate_rules(proj_a)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.14814814814814817),
+        }
+        assert generate_rules(proj_b)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.1904761904761905),
+        }
+        assert generate_rules(proj_c)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.4444444444444444),
+        }
+        assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
+
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    def test_prioritise_projects_simple_with_sliding_window_org_from_sync(
+        self,
+        extrapolate_monthly_volume,
+        get_transaction_sampling_tier_for_volume,
+        get_blended_sample_rate,
+    ):
+        extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
+        get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
+        get_blended_sample_rate.return_value = 1.0
+        # Create a org
+        test_org = self.create_organization(name="sample-org")
+
+        # Create 4 projects
+        proj_a = self.create_project_and_add_metrics("a", 9, test_org)
+        proj_b = self.create_project_and_add_metrics("b", 7, test_org)
+        proj_c = self.create_project_and_add_metrics("c", 3, test_org)
+        proj_d = self.create_project_and_add_metrics("d", 1, test_org)
+
+        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
+            with self.feature("organizations:ds-sliding-window-org"):
+                with self.tasks():
+                    # We are testing whether the sliding window org sample rate will be synchronously computed
+                    # since the cache value is not there.
+                    prioritise_projects()
 
         # we expect only uniform rule
         # also we test here that `generate_rules` can handle trough redis long floats

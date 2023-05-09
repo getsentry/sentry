@@ -28,6 +28,7 @@ class ExternalActorSerializerTest(TestCase):
         self.org_integration = self.integration.add_organization(self.organization, self.user)
 
     def test_idempotent_actor(self):
+        # TODO(hybridcloud) Remove when writes to User.actor_id are removed.
         get_actor_id_for_user(self.user)
         self.user.actor_id = None
         get_actor_id_for_user(self.user)
@@ -42,7 +43,7 @@ class ExternalActorSerializerTest(TestCase):
         external_actor, _ = ExternalActor.objects.get_or_create(
             actor_id=get_actor_id_for_user(self.user),
             organization=self.organization,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name="Marcos",
             external_id="Gaeta",
@@ -62,7 +63,7 @@ class ExternalActorSerializerTest(TestCase):
         external_actor, _ = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
             organization=self.organization,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name="Marcos",
             external_id="Gaeta",

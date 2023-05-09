@@ -258,6 +258,7 @@ def is_escalating(group: Group) -> bool:
     if group_hourly_count > forecast_today:
         group.substatus = GroupSubStatus.ESCALATING
         group.status = GroupStatus.UNRESOLVED
+        group.save()
         add_group_to_inbox(group, GroupInboxReason.ESCALATING)
 
         analytics.record(

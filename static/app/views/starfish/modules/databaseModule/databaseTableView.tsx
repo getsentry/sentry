@@ -7,7 +7,10 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
-import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel';
+import {Sort} from 'sentry/views/starfish/modules/databaseModule';
+import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
+
+import {highlightSql} from './panel';
 
 type Props = {
   isDataLoading: boolean;
@@ -15,13 +18,7 @@ type Props = {
   onSelect: (row: DataRow, rowIndex: number) => void;
   columns?: any;
   data?: DataRow[];
-  onSortChange?: ({
-    direction,
-    sortHeader,
-  }: {
-    direction: 'desc' | 'asc' | undefined;
-    sortHeader: TableColumnHeader;
-  }) => void;
+  onSortChange?: ({direction, sortHeader}: MainTableSort) => void;
   selectedRow?: DataRow;
 };
 
@@ -46,6 +43,7 @@ export type DataRow = {
 
 type Keys = 'description' | 'domain' | 'epm' | 'p75' | 'transactions' | 'total_time';
 export type TableColumnHeader = GridColumnHeader<Keys>;
+export type MainTableSort = Sort<TableColumnHeader>;
 
 const COLUMN_ORDER: TableColumnHeader[] = [
   {
@@ -76,7 +74,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   },
 ];
 
-function similarity(value: string, other: string): number {
+export function similarity(value: string, other: string): number {
   // If they're identical we don't care
   if (value === other || other === undefined || value === undefined) {
     return -1;
@@ -92,6 +90,7 @@ function similarity(value: string, other: string): number {
       short_words.splice(short_words.indexOf(word), 1);
     }
   }
+
   return count / total;
 }
 
@@ -126,7 +125,7 @@ function renderBadge(row, selectedRow) {
   return response;
 }
 
-export default function APIModuleView({
+export default function DatabaseTableView({
   location,
   data,
   onSelect,
@@ -191,7 +190,7 @@ export default function APIModuleView({
         headerExtra = `Query (Last seen ${row.lastSeen})`;
       }
       return (
-        <Hovercard header={headerExtra} body={value}>
+        <Hovercard header={headerExtra} body={highlightSql(row.formatted_desc, row)}>
           <Link onClick={() => onSelect(row, rowIndex)} to="" style={rowStyle}>
             {value.substring(0, 30)}
             {value.length > 30 ? '...' : ''}

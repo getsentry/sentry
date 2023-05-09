@@ -15,10 +15,15 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
-import {getEndpointListQuery, getEndpointsThroughputQuery} from './queries';
+import {
+  getEndpointAggregatesQuery,
+  getEndpointListEventView,
+  getEndpointListQuery,
+} from './queries';
 
 type Props = {
   filterOptions: {
@@ -55,22 +60,27 @@ const COLUMN_ORDER = [
     width: 200,
   },
   {
-    key: 'p50(exclusive_time)',
+    key: 'p50_trend',
+    name: 'p50 Trend',
+    width: 200,
+  },
+  {
+    key: 'p50(span.self_time)',
     name: 'p50',
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'user_count',
+    key: 'count_unique(user)',
     name: 'Users',
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'transaction_count',
+    key: 'count_unique(transaction)',
     name: 'Transactions',
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'total_exclusive_time',
+    key: 'sum(span.self_time)',
     name: 'Total Time',
     width: COL_WIDTH_UNDEFINED,
   },
@@ -82,33 +92,29 @@ export default function EndpointTable({
   filterOptions,
   columns,
 }: Props) {
-  const {isLoading: areEndpointsLoading, data: endpointsData} = useQuery({
-    queryKey: ['endpoints', filterOptions],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getEndpointListQuery(filterOptions)}`).then(res =>
-        res.json()
-      ),
-    retry: false,
+  const {isLoading: areEndpointsLoading, data: endpointsData} = useSpansQuery({
+    queryString: getEndpointListQuery(filterOptions),
+    eventView: getEndpointListEventView(filterOptions),
     initialData: [],
   });
 
-  const {isLoading: isEndpointsThroughputLoading, data: endpointsThroughputData} =
+  const {isLoading: areEndpointAggregatesLoading, data: endpointsThroughputData} =
     useQuery({
-      queryKey: ['endpointsThroughput', filterOptions],
+      queryKey: ['endpointAggregates', filterOptions],
       queryFn: () =>
-        fetch(`${HOST}/?query=${getEndpointsThroughputQuery(filterOptions)}`).then(res =>
+        fetch(`${HOST}/?query=${getEndpointAggregatesQuery(filterOptions)}`).then(res =>
           res.json()
         ),
       retry: false,
       initialData: [],
     });
 
-  const throughputGroupedByURL = {};
-  endpointsThroughputData.forEach(({description, interval, count}) => {
-    if (description in throughputGroupedByURL) {
-      throughputGroupedByURL[description].push({name: interval, value: count});
+  const aggregatesGroupedByURL = {};
+  endpointsThroughputData.forEach(({description, interval, count, p50}) => {
+    if (description in aggregatesGroupedByURL) {
+      aggregatesGroupedByURL[description].push({name: interval, count, p50});
     } else {
-      throughputGroupedByURL[description] = [{name: interval, value: count}];
+      aggregatesGroupedByURL[description] = [{name: interval, count, p50}];
     }
   });
 
@@ -117,16 +123,31 @@ export default function EndpointTable({
 
     const throughputSeries: Series = {
       seriesName: 'throughput',
-      data: throughputGroupedByURL[url],
+      data: aggregatesGroupedByURL[url].map(({name, count}) => ({
+        name,
+        value: count,
+      })),
     };
 
-    const zeroFilled = zeroFillSeries(throughputSeries, moment.duration(12, 'hours'));
-    return {...data, throughput: zeroFilled};
+    const p50Series: Series = {
+      seriesName: 'p50 Trend',
+      data: aggregatesGroupedByURL[url].map(({name, p50}) => ({
+        name,
+        value: p50,
+      })),
+    };
+
+    const zeroFilledThroughput = zeroFillSeries(
+      throughputSeries,
+      moment.duration(12, 'hours')
+    );
+    const zeroFilledP50 = zeroFillSeries(p50Series, moment.duration(12, 'hours'));
+    return {...data, throughput: zeroFilledThroughput, p50_trend: zeroFilledP50};
   });
 
   return (
     <GridEditable
-      isLoading={areEndpointsLoading || isEndpointsThroughputLoading}
+      isLoading={areEndpointsLoading || areEndpointAggregatesLoading}
       data={combinedEndpointData}
       columnOrder={columns ?? COLUMN_ORDER}
       columnSortBy={[]}
@@ -141,7 +162,7 @@ export default function EndpointTable({
 }
 
 export function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-  if (column.key === 'throughput') {
+  if (column.key === 'throughput' || column.key === 'p50_trend') {
     return (
       <TextAlignLeft>
         <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
@@ -188,9 +209,19 @@ export function renderBodyCell(
     );
   }
 
+  if (column.key === 'p50_trend') {
+    return (
+      <Sparkline
+        color={CHART_PALETTE[3][3]}
+        series={row[column.key]}
+        width={column.width ? column.width - column.width / 5 : undefined}
+      />
+    );
+  }
+
   // TODO: come up with a better way to identify number columns to align to the right
   let node: ReactElement | null = null;
-  if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
+  if (column.key.toString().match(/^p\d\d/) || column.key === 'sum(span.self_time)') {
     node = <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
   } else if (!['description', 'transaction'].includes(column.key.toString())) {
     node = (
@@ -203,10 +234,7 @@ export function renderBodyCell(
   }
 
   const isNumericColumn =
-    column.key === 'total_exclusive_time' ||
-    column.key === 'user_count' ||
-    column.key === 'transaction_count' ||
-    column.key.toString().match(/^p\d\d/);
+    column.key.toString().match(/^p\d\d/) || column.key.toString().match(/^.*\(.*\)/);
 
   if (isNumericColumn) {
     return <TextAlignRight>{node}</TextAlignRight>;

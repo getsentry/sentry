@@ -491,6 +491,7 @@ export type ResolutionStatusDetails = {
   // Sent in requests. ignoreUntil is used in responses.
   ignoreDuration?: number;
   ignoreUntil?: string;
+  ignoreUntilEscalating?: boolean;
   ignoreUserCount?: number;
   ignoreUserWindow?: number;
   ignoreWindow?: number;
@@ -503,7 +504,6 @@ export type ResolutionStatusDetails = {
   inNextRelease?: boolean;
   inRelease?: string;
   repository?: string;
-  untilEscalating?: boolean;
 };
 
 export type GroupStatusResolution = {

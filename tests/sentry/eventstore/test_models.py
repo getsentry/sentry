@@ -236,6 +236,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                     "username",
                 ],
                 filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+                tenant_ids={"referrer": "r", "organization_id": 1234},
             )["data"][0],
         )
 
@@ -295,6 +296,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                     "tags.value",
                 ],
                 filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+                tenant_ids={"referrer": "r", "organization_id": 1234},
             )["data"][0],
         )
         # TODO: Remove this once snuba is writing group_ids, and we can create groups as part

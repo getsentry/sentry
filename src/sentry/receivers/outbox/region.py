@@ -23,8 +23,8 @@ from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent
 from sentry.services.hybrid_cloud.log.impl import DatabaseBackedLogService
-from sentry.services.hybrid_cloud.organization_mapping import (
-    organization_mapping_service,
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+from sentry.services.hybrid_cloud.organization_mapping.serial import (
     update_organization_mapping_from_instance,
 )
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
@@ -59,7 +59,7 @@ def process_user_ip_event(payload: Any, **kwds: Any):
 def process_organization_member_create(
     object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
 ):
-    if (org_member := maybe_process_tombstone(OrganizationMember, object_identifier)) is None:
+    if (org_member := OrganizationMember.objects.filter(id=object_identifier).last()) is None:
         return
 
     organizationmember_mapping_service.create_with_organization_member(org_member=org_member)

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from sentry.constants import ObjectStatus
+
 __all__ = [
     "from_user",
     "from_member",
@@ -28,7 +30,6 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    ProjectStatus,
     SentryApp,
     Team,
     TeamStatus,
@@ -42,7 +43,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
+from sentry.services.hybrid_cloud.organization.serial import summarize_member
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.utils import metrics
 from sentry.utils.request_cache import request_cache
@@ -254,7 +255,7 @@ class DbAccess(Access):
         return {
             omt.team: omt
             for omt in OrganizationMemberTeam.objects.filter(
-                organizationmember=self._member, is_active=True, team__status=TeamStatus.VISIBLE
+                organizationmember=self._member, is_active=True, team__status=TeamStatus.ACTIVE
             ).select_related("team")
         }
 
@@ -298,7 +299,7 @@ class DbAccess(Access):
 
         with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
             projects = frozenset(
-                Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=teams)
+                Project.objects.filter(status=ObjectStatus.ACTIVE, teams__in=teams)
                 .distinct()
                 .values_list("id", flat=True)
             )
@@ -502,7 +503,7 @@ class RpcBackedAccess(Access):
         return self.project_ids_with_team_membership
 
     def has_team_access(self, team: Team) -> bool:
-        if team.status != TeamStatus.VISIBLE:
+        if team.status != TeamStatus.ACTIVE:
             return False
         if (
             self.has_global_access
@@ -545,7 +546,7 @@ class RpcBackedAccess(Access):
         return None
 
     def has_project_access(self, project: Project) -> bool:
-        if project.status != ProjectStatus.VISIBLE:
+        if project.status != ObjectStatus.ACTIVE:
             return False
         if (
             self.has_global_access
@@ -603,7 +604,7 @@ class OrganizationMemberAccess(DbAccess):
         auth_state = auth_service.get_user_auth_state(
             organization_id=member.organization_id,
             is_superuser=False,
-            org_member=DatabaseBackedOrganizationService.summarize_member(member),
+            org_member=summarize_member(member),
             user_id=member.user_id,
         )
         sso_state = auth_state.sso_state
@@ -622,7 +623,7 @@ class OrganizationMemberAccess(DbAccess):
 
     def has_team_access(self, team: Team) -> bool:
         assert self._member is not None
-        if team.status != TeamStatus.VISIBLE:
+        if team.status != TeamStatus.ACTIVE:
             return False
         if self.has_global_access and self._member.organization.id == team.organization_id:
             return True
@@ -630,7 +631,7 @@ class OrganizationMemberAccess(DbAccess):
 
     def has_project_access(self, project: Project) -> bool:
         assert self._member is not None
-        if project.status != ProjectStatus.VISIBLE:
+        if project.status != ObjectStatus.ACTIVE:
             return False
         if self.has_global_access and self._member.organization.id == project.organization_id:
             return True
@@ -651,20 +652,20 @@ class OrganizationGlobalAccess(DbAccess):
 
     def has_team_access(self, team: Team) -> bool:
         return bool(
-            team.organization_id == self._organization_id and team.status == TeamStatus.VISIBLE
+            team.organization_id == self._organization_id and team.status == TeamStatus.ACTIVE
         )
 
     def has_project_access(self, project: Project) -> bool:
         return bool(
             project.organization_id == self._organization_id
-            and project.status == ProjectStatus.VISIBLE
+            and project.status == ObjectStatus.ACTIVE
         )
 
     @cached_property
     def accessible_team_ids(self) -> FrozenSet[int]:
         return frozenset(
             Team.objects.filter(
-                organization_id=self._organization_id, status=TeamStatus.VISIBLE
+                organization_id=self._organization_id, status=TeamStatus.ACTIVE
             ).values_list("id", flat=True)
         )
 
@@ -672,7 +673,7 @@ class OrganizationGlobalAccess(DbAccess):
     def accessible_project_ids(self) -> FrozenSet[int]:
         return frozenset(
             Project.objects.filter(
-                organization_id=self._organization_id, status=ProjectStatus.VISIBLE
+                organization_id=self._organization_id, status=ObjectStatus.ACTIVE
             ).values_list("id", flat=True)
         )
 
@@ -704,13 +705,13 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
     def has_team_access(self, team: Team) -> bool:
         return bool(
             team.organization_id == self.rpc_user_organization_context.organization.id
-            and team.status == TeamStatus.VISIBLE
+            and team.status == TeamStatus.ACTIVE
         )
 
     def has_project_access(self, project: Project) -> bool:
         return bool(
             project.organization_id == self.rpc_user_organization_context.organization.id
-            and project.status == ProjectStatus.VISIBLE
+            and project.status == ObjectStatus.ACTIVE
         )
 
     @cached_property
@@ -718,7 +719,7 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
         return frozenset(
             t.id
             for t in self.rpc_user_organization_context.organization.teams
-            if t.status == TeamStatus.VISIBLE
+            if t.status == TeamStatus.ACTIVE
         )
 
     @cached_property
@@ -726,7 +727,7 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
         return frozenset(
             p.id
             for p in self.rpc_user_organization_context.organization.projects
-            if p.status == ProjectStatus.VISIBLE
+            if p.status == ObjectStatus.ACTIVE
         )
 
 
@@ -996,11 +997,7 @@ def from_request(
             user_id=request.user.id,
             organization_id=organization.id,
             is_superuser=is_superuser,
-            org_member=(
-                DatabaseBackedOrganizationService.summarize_member(member)
-                if member is not None
-                else None
-            ),
+            org_member=(summarize_member(member) if member is not None else None),
         ).sso_state
 
         return OrganizationGlobalAccess(
