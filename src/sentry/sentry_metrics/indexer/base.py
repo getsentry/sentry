@@ -68,7 +68,7 @@ class UseCaseKeyResult:
 
     @classmethod
     def from_string(cls: Type[UR], key: str, id: int) -> UR:
-        use_case_id, org_id, string = key.split(":", 2)
+        use_case_id, org_id, string = key.split(":")
         return cls(UseCaseID(use_case_id), int(org_id), string, id)
 
 

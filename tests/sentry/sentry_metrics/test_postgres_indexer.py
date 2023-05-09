@@ -1,8 +1,14 @@
 from typing import Mapping, Set
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.base import FetchType, Metadata, UseCaseKeyCollection
+from sentry.sentry_metrics.indexer.base import (
+    FetchType,
+    KeyCollection,
+    Metadata,
+    UseCaseKeyCollection,
+)
 from sentry.sentry_metrics.indexer.cache import CachingIndexer
+from sentry.sentry_metrics.indexer.postgres.models import StringIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PGStringIndexerV2, indexer_cache
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.cases import TestCase
@@ -31,12 +37,14 @@ class PostgresIndexerV2Test(TestCase):
         """
         Make sure that calling `_get_db_records` doesn't populate the cache
         """
-        key = f"{self.use_case_id.value}:123:oop"
+        string = StringIndexer.objects.create(organization_id=123, string="oop")
+        collection = KeyCollection({123: {"oop"}})
+        key = "123:oop"
 
-        assert indexer_cache.get(key) is None
+        assert indexer_cache.get(key, self.cache_namespace) is None
+        assert indexer_cache.get(string.id, self.cache_namespace) is None
 
-        self.indexer.indexer._get_db_records(
-            UseCaseKeyCollection({self.use_case_id: {123: {"oop"}}})
-        )
+        self.indexer.indexer._get_db_records(UseCaseKeyCollection({self.use_case_id: collection}))
 
-        assert indexer_cache.get(key) is None
+        assert indexer_cache.get(string.id, self.cache_namespace) is None
+        assert indexer_cache.get(key, self.cache_namespace) is None

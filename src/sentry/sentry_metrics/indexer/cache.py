@@ -8,14 +8,12 @@ from django.core.cache import caches
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
+    KeyCollection,
+    KeyResult,
     KeyResults,
-    OrgId,
     StringIndexer,
-    UseCaseKeyCollection,
-    UseCaseKeyResult,
-    UseCaseKeyResults,
 )
-from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
@@ -40,60 +38,63 @@ class StringIndexerCache:
         jitter = random.uniform(0, 0.25) * cache_ttl
         return int(cache_ttl + jitter)
 
-    def make_cache_key(self, key: str) -> str:
-        use_case_id, org_id, string = key.split(":", 2)
-        org_string = org_id + ":" + string
-        hashed = md5_text(org_string).hexdigest()
-
-        return f"indexer:{self.partition_key}:org:str:{use_case_id}:{hashed}"
+    def make_cache_key(self, key: str, cache_namespace: str) -> str:
+        hashed = md5_text(key).hexdigest()
+        return f"indexer:{self.partition_key}:org:str:{cache_namespace}:{hashed}"
 
     def _format_results(
-        self, keys: Sequence[str], results: Mapping[str, Optional[int]]
+        self, keys: Sequence[str], results: Mapping[str, Optional[int]], cache_namespace: str
     ) -> MutableMapping[str, Optional[int]]:
         """
-        Takes in keys formatted like "use_case_id:org_id:string", and results that have the
+        Takes in keys formatted like "org_id:string", and results that have the
         internally used hashed key such as:
-            {"indexer:org:str:transactions:b0a0e436f6fa42b9e33e73befbdbb9ba": 2}
+            {"indexer:org:str:b0a0e436f6fa42b9e33e73befbdbb9ba": 2}
         and returns results that replace the hashed internal key with the externally
         used key:
-            {"transactions:3:a": 2}
+            {"1.2.0": 2}
         """
         formatted: MutableMapping[str, Optional[int]] = {}
         for key in keys:
-            cache_key = self.make_cache_key(key)
+            cache_key = self.make_cache_key(key, cache_namespace)
             formatted[key] = results.get(cache_key)
 
         return formatted
 
-    def get(self, key: str) -> int:
-        result: int = self.cache.get(self.make_cache_key(key), version=self.version)
+    def get(self, key: str, cache_namespace: str) -> int:
+        result: int = self.cache.get(
+            self.make_cache_key(key, cache_namespace), version=self.version
+        )
         return result
 
-    def set(self, key: str, value: int) -> None:
+    def set(self, key: str, value: int, cache_namespace: str) -> None:
         self.cache.set(
-            key=self.make_cache_key(key),
+            key=self.make_cache_key(key, cache_namespace),
             value=value,
             timeout=self.randomized_ttl,
             version=self.version,
         )
 
-    def get_many(self, keys: Sequence[str]) -> MutableMapping[str, Optional[int]]:
-        cache_keys = {self.make_cache_key(key): key for key in keys}
+    def get_many(
+        self, keys: Sequence[str], cache_namespace: str
+    ) -> MutableMapping[str, Optional[int]]:
+        cache_keys = {self.make_cache_key(key, cache_namespace): key for key in keys}
         results: Mapping[str, Optional[int]] = self.cache.get_many(
             cache_keys.keys(), version=self.version
         )
-        return self._format_results(keys, results)
+        return self._format_results(keys, results, cache_namespace)
 
-    def set_many(self, key_values: Mapping[str, int]) -> None:
-        cache_key_values = {self.make_cache_key(k): v for k, v in key_values.items()}
+    def set_many(self, key_values: Mapping[str, int], cache_namespace: str) -> None:
+        cache_key_values = {
+            self.make_cache_key(k, cache_namespace): v for k, v in key_values.items()
+        }
         self.cache.set_many(cache_key_values, timeout=self.randomized_ttl, version=self.version)
 
-    def delete(self, key: str) -> None:
-        cache_key = self.make_cache_key(key)
+    def delete(self, key: str, cache_namespace: str) -> None:
+        cache_key = self.make_cache_key(key, cache_namespace)
         self.cache.delete(cache_key, version=self.version)
 
-    def delete_many(self, keys: Sequence[str]) -> None:
-        cache_keys = [self.make_cache_key(key) for key in keys]
+    def delete_many(self, keys: Sequence[str], cache_namespace: str) -> None:
+        cache_keys = [self.make_cache_key(key, cache_namespace) for key in keys]
         self.cache.delete_many(cache_keys, version=self.version)
 
 
@@ -105,21 +106,12 @@ class CachingIndexer(StringIndexer):
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
     ) -> KeyResults:
-        res = self._uca_bulk_record({REVERSE_METRIC_PATH_MAPPING[use_case_id]: org_strings})
-        return res.results[REVERSE_METRIC_PATH_MAPPING[use_case_id]]
-
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        """Store a string and return the integer ID generated for it"""
-        result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
-        return result[org_id][string]
-
-    def _uca_bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
-    ) -> UseCaseKeyResults:
-        cache_keys = UseCaseKeyCollection(strings)
+        cache_keys = KeyCollection(org_strings)
         metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
         cache_key_strs = cache_keys.as_strings()
-        cache_results = self.cache.get_many(cache_key_strs)
+        cache_results = self.cache.get_many(
+            cache_key_strs, REVERSE_METRIC_PATH_MAPPING[use_case_id].value
+        )
 
         hits = [k for k, v in cache_results.items() if v is not None]
 
@@ -141,35 +133,33 @@ class CachingIndexer(StringIndexer):
             amount=cache_keys.size,
         )
 
-        cache_key_results = UseCaseKeyResults()
-        cache_key_results.add_use_case_key_results(
-            [UseCaseKeyResult.from_string(k, v) for k, v in cache_results.items() if v is not None],
+        cache_key_results = KeyResults()
+        cache_key_results.add_key_results(
+            [KeyResult.from_string(k, v) for k, v in cache_results.items() if v is not None],
             FetchType.CACHE_HIT,
         )
 
-        db_record_keys = cache_key_results.get_unmapped_use_case_keys(cache_keys)
+        db_record_keys = cache_key_results.get_unmapped_keys(cache_keys)
 
         if db_record_keys.size == 0:
             return cache_key_results
 
-        db_record_key_results = self.indexer._uca_bulk_record(
-            {
-                use_case_id: key_collection.mapping
-                for use_case_id, key_collection in db_record_keys.mapping.items()
-            }
-        )
+        db_record_key_results = self.indexer.bulk_record(use_case_id, db_record_keys.mapping)
 
-        self.cache.set_many(db_record_key_results.get_mapped_strings_to_ints())
+        self.cache.set_many(
+            db_record_key_results.get_mapped_key_strings_to_ints(),
+            REVERSE_METRIC_PATH_MAPPING[use_case_id].value,
+        )
 
         return cache_key_results.merge(db_record_key_results)
 
-    def _uca_record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
-        result = self._uca_bulk_record(strings={use_case_id: {org_id: {string}}})
-        return result[use_case_id][org_id][string]
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+        result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
+        return result[org_id][string]
 
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        key = f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org_id}:{string}"
-        result = self.cache.get(key)
+        key = f"{org_id}:{string}"
+        result = self.cache.get(key, use_case_id.value)
 
         if result and isinstance(result, int):
             metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "true", "caller": "resolve"})
@@ -179,7 +169,7 @@ class CachingIndexer(StringIndexer):
         id = self.indexer.resolve(use_case_id, org_id, string)
 
         if id is not None:
-            self.cache.set(key, id)
+            self.cache.set(key, id, use_case_id.value)
 
         return id
 
