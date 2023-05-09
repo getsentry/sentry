@@ -142,7 +142,7 @@ def serialize_organization(org: Organization) -> RpcOrganization:
         id=org.id,
         flags=_serialize_flags(org),
         name=org.name,
-        status=org.status,
+        status=org.status.value,
         default_role=org.default_role,
     )
 
