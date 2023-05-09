@@ -105,7 +105,8 @@ class RpcActor(RpcModel):
         return cls(id=team.id, actor_id=team.actor_id, actor_type=ActorType.TEAM, slug=team.slug)
 
     def __eq__(self, other: Any) -> bool:
-        try:
-            return self.id == other.id and self.actor_type == other.actor_type
-        except AttributeError:
-            return False
+        return (
+            isinstance(other, self.__class__)
+            and self.id == other.id
+            and self.actor_type == other.actor_type
+        )
