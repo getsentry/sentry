@@ -146,6 +146,23 @@ describe('EnvironmentPageFilter', function () {
     act(() => PageFiltersStore.updateEnvironments(['prod']));
 
     // <EnvironmentPageFilter /> is updated
-    waitFor(() => expect(screen.getByRole('button', {name: 'prod'})).toBeInTheDocument());
+    expect(screen.getByRole('button', {name: 'prod'})).toBeInTheDocument();
+  });
+
+  it('displays a desynced state message', async function () {
+    render(<EnvironmentPageFilter />, {context: routerContext, organization});
+
+    // Manually mark the environment filter as desynced
+    act(() => PageFiltersStore.updateDesyncedFilters(new Set(['environments'])));
+
+    // Open menu
+    await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
+
+    // Desync message is inside the menu
+    expect(screen.getByText('Filters Updated')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Restore Previous Values'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Got It'})).toBeInTheDocument();
   });
 });

@@ -5,7 +5,6 @@ import {
   render,
   screen,
   userEvent,
-  waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -202,8 +201,27 @@ describe('ProjectPageFilter', function () {
     act(() => PageFiltersStore.updateProjects([2], []));
 
     // <ProjectPageFilter /> is updated
-    waitFor(() =>
-      expect(screen.getByRole('button', {name: 'project-2'})).toBeInTheDocument()
-    );
+
+    expect(screen.getByRole('button', {name: 'project-2'})).toBeInTheDocument();
+  });
+
+  it('displays a desynced state message', async function () {
+    render(<ProjectPageFilter />, {
+      context: routerContext,
+      organization,
+    });
+
+    // Manually mark the project filter as desynced
+    act(() => PageFiltersStore.updateDesyncedFilters(new Set(['projects'])));
+
+    // Open menu
+    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+
+    // Desync message is inside the menu
+    expect(screen.getByText('Filters Updated')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Restore Previous Values'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Got It'})).toBeInTheDocument();
   });
 });

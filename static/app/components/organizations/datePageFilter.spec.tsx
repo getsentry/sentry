@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -121,5 +121,22 @@ describe('DatePageFilter', function () {
       'aria-selected',
       'true'
     );
+  });
+
+  it('displays a desynced state message', async function () {
+    render(<DatePageFilter />, {context: routerContext, organization});
+
+    // Manually mark the date filter as desynced
+    act(() => PageFiltersStore.updateDesyncedFilters(new Set(['datetime'])));
+
+    // Open menu
+    await userEvent.click(screen.getByRole('button', {name: '7D', expanded: false}));
+
+    // Desync message is inside the menu
+    expect(screen.getByText('Filters Updated')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Restore Previous Values'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Got It'})).toBeInTheDocument();
   });
 });
