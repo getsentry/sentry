@@ -92,6 +92,14 @@ class RpcAuthState(RpcModel):
     permissions: List[str]
 
 
+class RpcAuthInvite(RpcModel):
+    invite_token: Optional[str]
+    invite_member_id: Optional[int]
+    user_id: int
+    user_is_authenticated: bool
+    user_has_2fa: bool
+
+
 class AuthenticationRequest(RpcModel):
     # HTTP_X_SENTRY_RELAY_ID
     sentry_relay_id: Optional[str] = None

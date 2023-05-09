@@ -5,7 +5,6 @@ from typing import List, Mapping, Tuple
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, Q
-from rest_framework.request import Request
 
 from sentry import features, roles
 from sentry.api.invite_helper import ApiInviteHelper
@@ -29,6 +28,7 @@ from sentry.services.hybrid_cloud.auth import (
     MiddlewareAuthenticationResponse,
     RpcAuthenticatorType,
     RpcAuthIdentity,
+    RpcAuthInvite,
     RpcAuthProvider,
     RpcAuthState,
     RpcMemberSsoState,
@@ -248,7 +248,7 @@ class DatabaseBackedAuthService(AuthService):
 
     def handle_new_membership(
         self,
-        request: Request,
+        invite: RpcAuthInvite,
         organization: RpcOrganization,
         auth_identity: RpcAuthIdentity,
         auth_provider: RpcAuthProvider,
@@ -261,8 +261,8 @@ class DatabaseBackedAuthService(AuthService):
         # If the user is either currently *pending* invite acceptance (as indicated
         # from the invite token and member id in the session) OR an existing invite exists on this
         # organization for the email provided by the identity provider.
-        invite_helper = ApiInviteHelper.from_session_or_email(
-            request=request, organization_id=organization.id, email=user.email
+        invite_helper = ApiInviteHelper.from_rpc_invite(
+            invite=invite, organization_id=organization.id, email=user.email
         )
 
         # If we are able to accept an existing invite for the user for this

@@ -6,8 +6,6 @@
 import abc
 from typing import List, Optional, Tuple, cast
 
-from rest_framework.request import Request
-
 from sentry.services.hybrid_cloud.auth import (
     AuthenticatedToken,
     AuthenticationContext,
@@ -15,6 +13,7 @@ from sentry.services.hybrid_cloud.auth import (
     MiddlewareAuthenticationResponse,
     RpcAuthenticatorType,
     RpcAuthIdentity,
+    RpcAuthInvite,
     RpcAuthProvider,
     RpcAuthState,
     RpcOrganizationAuthConfig,
@@ -95,7 +94,7 @@ class AuthService(RpcService):
     def handle_new_membership(
         self,
         *,
-        request: Request,
+        invite: RpcAuthInvite,
         organization: RpcOrganization,
         auth_identity: RpcAuthIdentity,
         auth_provider: RpcAuthProvider,
