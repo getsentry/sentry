@@ -26,6 +26,7 @@ from sentry.signals import (
     issue_archived,
     issue_assigned,
     issue_deleted,
+    issue_escalating,
     issue_ignored,
     issue_mark_reviewed,
     issue_resolved,
@@ -490,6 +491,16 @@ def record_issue_archived(project, user, group_list, activity_data, **kwargs):
             group_id=group.id,
             until_escalating=activity_data.get("until_escalating"),
         )
+
+
+@issue_escalating.connect(weak=False)
+def record_issue_escalating(project, group, **kwargs):
+    analytics.record(
+        "issue.escalating",
+        organization_id=project.organization_id,
+        project_id=project.id,
+        group_id=group.id,
+    )
 
 
 @issue_unignored.connect(weak=False)

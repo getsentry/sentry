@@ -21,13 +21,13 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import analytics
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
+from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
@@ -261,12 +261,7 @@ def is_escalating(group: Group) -> bool:
         group.save()
         add_group_to_inbox(group, GroupInboxReason.ESCALATING)
 
-        analytics.record(
-            "issue.escalating",
-            organization_id=group.project.organization.id,
-            project_id=group.project.id,
-            group_id=group.id,
-        )
+        issue_escalating.send_robust(project=group.project, group=group, sender=is_escalating)
         return True
     return False
 

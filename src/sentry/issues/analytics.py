@@ -7,15 +7,4 @@ class IssueForecastSaved(analytics.Event):
     attributes = (analytics.Attribute("num_groups"),)
 
 
-class IssueEscalating(analytics.Event):
-    type = "issue.escalating"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("group_id"),
-    )
-
-
 analytics.register(IssueForecastSaved)
-analytics.register(IssueEscalating)

@@ -229,8 +229,8 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         assert GroupInbox.objects.filter(group=group).exists()
 
     @freeze_time(TIME_YESTERDAY)
-    @patch("sentry.analytics.record")
-    def test_is_escalating_issue(self, record_mock: MagicMock) -> None:
+    @patch("sentry.signals.issue_escalating.send_robust")
+    def test_is_escalating_issue(self, mock_send_robust: MagicMock) -> None:
         """Test when an archived until escalating issue starts escalating"""
         with self.feature("organizations:escalating-issues"):
             # The group had 6 events in the last hour
@@ -245,14 +245,8 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             )
             assert is_escalating(archived_group)
             group_escalating = Group.objects.get(id=archived_group.id)
-
-            record_mock.assert_called_with(
-                "issue.escalating",
-                organization_id=group_escalating.project.organization.id,
-                project_id=group_escalating.project.id,
-                group_id=group_escalating.id,
-            )
             self.assert_is_escalating(group_escalating)
+            mock_send_robust.assert_called_once()
 
             # Test cache
             assert (
