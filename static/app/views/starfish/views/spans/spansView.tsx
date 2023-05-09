@@ -40,11 +40,12 @@ export default function SpansView(props: Props) {
         name: clusterName,
       }
   );
+
   const currentCluster = currentClusters.at(-1);
-  if (currentCluster.isDynamic) {
-    currentCluster.condition = currentClusters
-      .at(-2)
-      .grouping_condition(currentCluster.name);
+  if (currentCluster?.isDynamic) {
+    const previousCluster = currentClusters.at(-2);
+    currentCluster.condition =
+      previousCluster?.grouping_condition?.(currentCluster.name) || (() => '');
   }
 
   const clusterBreakdowns = useQueries({
@@ -66,7 +67,7 @@ export default function SpansView(props: Props) {
   });
 
   const {isLoading: areSpansLoading, data: spansData} = useQuery<SpanDataRow[]>({
-    queryKey: ['spans', currentCluster.name, orderBy],
+    queryKey: ['spans', currentCluster?.name || 'none', orderBy],
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getSpanListQuery(
@@ -85,7 +86,7 @@ export default function SpansView(props: Props) {
   const {isLoading: areSpansTrendsLoading, data: spansTrendsData} = useQuery<
     SpanTrendDataRow[]
   >({
-    queryKey: ['spansTrends', currentCluster.name],
+    queryKey: ['spansTrends', currentCluster?.name || 'none'],
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getSpansTrendsQuery(pageFilter.selection.datetime, groupIDs)}`

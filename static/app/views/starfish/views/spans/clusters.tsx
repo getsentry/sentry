@@ -1,4 +1,13 @@
-export const CLUSTERS = {
+type Cluster = {
+  condition: (value: any) => string;
+  label: string;
+  name: string;
+  grouping_column?: string;
+  grouping_condition?: (value: any) => () => string;
+  isDynamic?: boolean;
+};
+
+export const CLUSTERS: Record<string, Cluster> = {
   top: {
     name: 'top',
     label: 'All',
