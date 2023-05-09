@@ -120,7 +120,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         member.save()
 
         user = self.create_user(email="foo@example.com")
-        member.set_user(user)
+        member.set_user(user.id)
 
         assert member.is_pending is False
         assert member.token_expires_at is None
