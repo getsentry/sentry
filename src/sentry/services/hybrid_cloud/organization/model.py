@@ -107,10 +107,14 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     invite_approved: bool = False
     token_expired: bool = False
     legacy_token: str = ""
+    email: str = ""
 
-    def get_audit_log_metadata(self, user_email: str) -> Mapping[str, Any]:
+    def get_audit_log_metadata(self, user_email: str = None) -> Mapping[str, Any]:
         team_ids = [mt.team_id for mt in self.member_teams]
         team_slugs = [mt.slugs for mt in self.member_teams]
+
+        if user_email is None:
+            user_email = self.email
 
         return {
             "email": user_email,

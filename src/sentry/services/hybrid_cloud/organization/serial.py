@@ -58,6 +58,7 @@ def serialize_member(member: OrganizationMember) -> RpcOrganizationMember:
         invite_approved=member.invite_approved,
         token_expired=member.token_expired,
         legacy_token=member.legacy_token,
+        email=member.get_email(),
     )
 
     omts = OrganizationMemberTeam.objects.filter(
