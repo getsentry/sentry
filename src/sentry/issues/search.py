@@ -292,7 +292,7 @@ SEARCH_FILTER_UPDATERS: Mapping[int, GroupSearchFilterUpdater] = {
     GroupCategory.PERFORMANCE.value: lambda search_filters: [
         # need to remove this search filter, so we don't constrain the returned transactions
         sf
-        for sf in search_filters
+        for sf in _update_profiling_search_filters(search_filters)
         if sf.key.name != "message"
     ],
     GroupCategory.PROFILE.value: _update_profiling_search_filters,
