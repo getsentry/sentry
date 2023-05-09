@@ -31,6 +31,7 @@ from sentry.models import (
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
@@ -318,6 +319,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert avatar.get_avatar_type_display() == "upload"
         assert avatar.file_id
 
+    @with_feature("organizations:api-auth-provider")
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
@@ -811,83 +813,84 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
         self.get_error_response(self.organization.slug, slug="taken", status_code=409)
 
+    @with_feature("organizations:api-auth-provider")
     def test_configure_auth_provider(self):
-        with self.feature("organizations:api-auth-provider"):
-            old_config = {"domain": "foo.com"}
-            new_config = {"domain": "bar.com"}
-            provider = "google"
+        old_config = {"domain": "foo.com"}
+        new_config = {"domain": "bar.com"}
+        provider = "google"
 
-            self.get_success_response(
-                self.organization.slug,
-                method="put",
-                providerKey=provider,
-                providerConfig=old_config,
-            )
-            auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
-            assert auth_provider.provider == provider
-            assert auth_provider.config == {
-                "domains": ["foo.com"],
-                "version": DATA_VERSION,
-                "sentry-source": "api-organization-details",
-            }
+        self.get_success_response(
+            self.organization.slug,
+            method="put",
+            providerKey=provider,
+            providerConfig=old_config,
+        )
+        auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
+        assert auth_provider.provider == provider
+        assert auth_provider.config == {
+            "domains": ["foo.com"],
+            "version": DATA_VERSION,
+            "sentry-source": "api-organization-details",
+        }
 
-            self.get_success_response(
-                self.organization.slug,
-                method="put",
-                providerKey=provider,
-                providerConfig=new_config,
-            )
-            auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
-            assert auth_provider.provider == provider
-            assert auth_provider.config == {
-                "domains": ["bar.com"],
-                "version": DATA_VERSION,
-                "sentry-source": "api-organization-details",
-            }
+        self.get_success_response(
+            self.organization.slug,
+            method="put",
+            providerKey=provider,
+            providerConfig=new_config,
+        )
+        auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
+        assert auth_provider.provider == provider
+        assert auth_provider.config == {
+            "domains": ["bar.com"],
+            "version": DATA_VERSION,
+            "sentry-source": "api-organization-details",
+        }
 
-    def test_invalid_auth_provider_configuration(self):
-        with self.feature("organizations:api-auth-provider"):
-            self.get_error_response(
-                self.organization.slug, method="put", providerKey="google", status_code=400
-            )
-            self.get_error_response(
-                self.organization.slug,
-                method="put",
-                providerConfig={"domain": "foo.com"},
-                status_code=400,
-            )
-            self.get_error_response(
-                self.organization.slug,
-                method="put",
-                providerKey="not_valid",
-                providerConfig={"domain": "foo.com"},
-                status_code=400,
-            )
+    def test_invalid_auth_provider_missing_feature_flag(self):
+        original_queryset = AuthProvider.objects.all()
 
-            response = self.get_error_response(
-                self.organization.slug,
-                method="put",
-                providerKey="google",
-                providerConfig={"invalid_domain": "foo.com"},
-                status_code=400,
-            )
-            assert response.data == {
-                "providerConfig": ["Invalid key 'domain' in providerConfig for authprovider google"]
-            }
-
-        # Error if passing in providerKey or providerConfig and feature flag has not been set
         self.get_error_response(
             self.organization.slug,
             method="put",
             providerKey="google",
+            providerConfig={"domain": "foo.com"},
+            status_code=400,
+        )
+        assert set(AuthProvider.objects.all()) == set(original_queryset)
+
+    @with_feature("organizations:api-auth-provider")
+    def test_invalid_auth_provider_configuration(self):
+        original_queryset = AuthProvider.objects.all()
+
+        self.get_error_response(
+            self.organization.slug, method="put", providerKey="google", status_code=400
+        )
+        self.get_error_response(
+            self.organization.slug,
+            method="put",
+            providerConfig={"domain": "foo.com"},
             status_code=400,
         )
         self.get_error_response(
             self.organization.slug,
             method="put",
-            providerConfig={"option": "test"},
+            providerKey="not_valid",
+            providerConfig={"domain": "foo.com"},
             status_code=400,
         )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            method="put",
+            providerKey="google",
+            providerConfig={"invalid_domain": "foo.com"},
+            status_code=400,
+        )
+        assert response.data == {
+            "providerConfig": ["Invalid key 'domain' in providerConfig for authprovider google"]
+        }
+        assert set(AuthProvider.objects.all()) == set(original_queryset)
 
 
 @region_silo_test
