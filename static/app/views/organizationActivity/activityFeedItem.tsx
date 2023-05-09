@@ -160,7 +160,7 @@ class ActivityItem extends Component<Props, State> {
               repository={data.pullRequest.repository}
             />
           ) : (
-            t('Not available')
+            t('PR not available')
           ),
           issue: issueLink,
         });

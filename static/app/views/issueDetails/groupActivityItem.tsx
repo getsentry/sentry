@@ -252,7 +252,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
               repository={pullRequest.repository}
             />
           ) : (
-            t('Not available')
+            t('PR not available')
           ),
         });
       }
