@@ -121,11 +121,14 @@ class AlertRuleNotification(ProjectNotification):
         group_inbox_reason = GroupInbox.objects.filter(
             group=self.group, project=self.project
         ).first()
+        group_header = "New Alert"
+        if group_inbox_reason:
+            group_header = get_inbox_reason_text(GroupInboxReason(group_inbox_reason.reason))
 
         context = {
             "project_label": self.project.get_full_name(),
             "group": self.group,
-            "group_header": get_inbox_reason_text(GroupInboxReason(group_inbox_reason.reason)),
+            "group_header": group_header,
             "event": self.event,
             "link": get_group_settings_link(
                 self.group, environment, rule_details, None, **fallback_params
