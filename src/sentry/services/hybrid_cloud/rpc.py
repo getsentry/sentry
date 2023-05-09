@@ -72,16 +72,31 @@ class RpcMethodSignature:
     def method_name(self) -> str:
         return self._base_method.__name__
 
+    @staticmethod
+    def _validate_type_token(token: Any) -> None:
+        """Check whether a type token is usable.
+
+        Strings as type annotations, which Mypy can use if their types are imported
+        in an `if TYPE_CHECKING` block, can't be used for (de)serialization. Raise an
+        exception if the given token is one of these.
+
+        We can check only on a best-effort basis. String tokens may still be nested
+        in type parameters (e.g., `Optional["RpcThing"]`), which this won't catch.
+        Such a state would cause an exception when we attempt to use the signature
+        object to (de)serialize something.
+        """
+        if isinstance(token, str):
+            raise RpcServiceSetupException(
+                "Type annotations on RPC methods must be actual type tokens, not strings"
+            )
+
     def _create_parameter_model(self) -> Type[pydantic.BaseModel]:
         """Dynamically create a Pydantic model class representing the parameters."""
 
         def create_field(param: inspect.Parameter) -> Tuple[Any, Any]:
             if param.annotation is param.empty:
                 raise RpcServiceSetupException("Type annotations are required on RPC methods")
-            if isinstance(param.annotation, str):
-                raise RpcServiceSetupException(
-                    "Type annotations on RPC methods must be actual type tokens, not strings"
-                )
+            self._validate_type_token(param.annotation)
 
             default_value = ... if param.default is param.empty else param.default
             return param.annotation, default_value
@@ -106,6 +121,8 @@ class RpcMethodSignature:
         return_type = inspect.signature(self._base_method).return_annotation
         if return_type is None:
             return None
+        self._validate_type_token(return_type)
+
         field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
         return pydantic.create_model(name, **field_definitions)  # type: ignore
 
@@ -333,10 +350,10 @@ class RpcService(InterfaceWithLifecycle):
                     return remote_method(service_obj, **kwargs)
                 except RpcServiceUnimplementedException as e:
                     logger.info(f"Could not remotely call {cls.__name__}.{method_name}: {e}")
+                    # Drop out of the except block, so that we don't get a spurious
+                    #     "During handling of the above exception, another exception occurred"
+                    # message in case the fallback method raises an unrelated exception.
 
-                # Drop out of the except block, so that we don't get a spurious
-                #     "During handling of the above exception, another exception occurred"
-                # message in case the fallback method raises an unrelated exception.
                 service = fallback()
                 method = getattr(service, method_name)
                 return method(**kwargs)
