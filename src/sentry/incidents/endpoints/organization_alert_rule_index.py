@@ -46,7 +46,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 "id", flat=True
             )
             user_team_list = OrganizationMemberTeam.objects.filter(
-                organizationmember__user=request.user, team__in=org_team_list
+                organizationmember__user_id=request.user.id, team__in=org_team_list
             ).values_list("team", flat=True)
             project_ids = Project.objects.filter(
                 teams__in=user_team_list, status=ObjectStatus.ACTIVE

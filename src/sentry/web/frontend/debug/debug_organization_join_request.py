@@ -15,11 +15,11 @@ class DebugOrganizationJoinRequestEmailView(View):
         pending_member = OrganizationMember(
             email="test@gmail.com",
             organization=org,
-            user=user_to_join,
+            user_id=user_to_join.id,
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
         recipient = User(name="James Bond", actor_id=1)
-        recipient_member = OrganizationMember(user=recipient, organization=org)
+        recipient_member = OrganizationMember(user_id=recipient.id, organization=org)
 
         notification = JoinRequestNotification(pending_member, user_to_join)
 

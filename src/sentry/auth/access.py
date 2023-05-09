@@ -64,7 +64,7 @@ def get_permissions_for_user(user_id: int) -> FrozenSet[str]:
 def has_role_in_organization(role: str, organization: Organization, user_id: int) -> bool:
     query = OrganizationMember.objects.filter(
         user__is_active=True,
-        user=user_id,
+        user_id=user_id,
         organization_id=organization.id,
     )
     teams_with_org_role = organization.get_teams_with_org_roles([role])
