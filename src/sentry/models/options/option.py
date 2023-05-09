@@ -27,7 +27,7 @@ class BaseOption(Model):  # type: ignore
 
 
 @region_silo_only_model
-class Option(BaseOption):  # type: ignore
+class Option(BaseOption):
     __include_in_export__ = True
 
     class Meta:
@@ -38,7 +38,7 @@ class Option(BaseOption):  # type: ignore
 
 
 @control_silo_only_model
-class ControlOption(BaseOption):  # type: ignore
+class ControlOption(BaseOption):
     __include_in_export__ = False
 
     class Meta:
