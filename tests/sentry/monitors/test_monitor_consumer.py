@@ -12,7 +12,10 @@ from django.test.utils import override_settings
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.monitors.consumers.check_in import StoreMonitorCheckInStrategyFactory, _process_message
+from sentry.monitors.consumers.monitor_consumer import (
+    StoreMonitorCheckInStrategyFactory,
+    _process_message,
+)
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
