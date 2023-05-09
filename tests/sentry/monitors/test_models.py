@@ -28,6 +28,7 @@ class MonitorTestCase(TestCase):
         monitor = Monitor(config={"schedule": "* * * * *"})
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
+        # XXX: Seconds are removed as we clamp to the minute
         assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
@@ -44,6 +45,7 @@ class MonitorTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
+        # XXX: Seconds are removed as we clamp to the minute
         assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
@@ -64,6 +66,7 @@ class MonitorTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
+        # XXX: Seconds are removed as we clamp to the minute
         assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 12, 00, tzinfo=timezone.utc
         )
@@ -82,8 +85,9 @@ class MonitorTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
+        # XXX: Seconds are removed as we clamp to the minute.
         assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
-            2019, 2, 1, 1, 10, 20, tzinfo=timezone.utc
+            2019, 2, 1, 1, 10, 0, tzinfo=timezone.utc
         )
 
     def test_save_defaults_slug_to_name(self):
