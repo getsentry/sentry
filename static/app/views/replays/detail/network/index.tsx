@@ -6,6 +6,7 @@ import Feature from 'sentry/components/acl/feature';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
@@ -98,10 +99,28 @@ function NetworkList({
 
   const onClickCell = useCallback(
     ({dataIndex, rowIndex}: {dataIndex: number; rowIndex: number}) => {
-      setDetailRow(String(dataIndex));
-      setScrollToRow(rowIndex);
+      if (getDetailRow() === String(dataIndex)) {
+        setDetailRow('');
+
+        trackAnalytics('replay.details-network-panel-closed', {
+          is_sdk_setup: isNetworkDetailsSetup,
+          organization,
+        });
+      } else {
+        setDetailRow(String(dataIndex));
+        setScrollToRow(rowIndex);
+
+        const item = items[dataIndex];
+        trackAnalytics('replay.details-network-panel-opened', {
+          is_sdk_setup: isNetworkDetailsSetup,
+          organization,
+          resource_method: item.data.method,
+          resource_status: item.data.statusCode,
+          resource_type: item.op,
+        });
+      }
     },
-    [setDetailRow]
+    [getDetailRow, isNetworkDetailsSetup, items, organization, setDetailRow]
   );
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
@@ -218,7 +237,13 @@ function NetworkList({
               {...resizableDrawerProps}
               isSetup={isNetworkDetailsSetup}
               item={detailDataIndex ? (items[detailDataIndex] as NetworkSpan) : null}
-              onClose={() => setDetailRow('')}
+              onClose={() => {
+                setDetailRow('');
+                trackAnalytics('replay.details-network-panel-closed', {
+                  is_sdk_setup: isNetworkDetailsSetup,
+                  organization,
+                });
+              }}
               projectId={projectId}
               startTimestampMs={startTimestampMs}
             />

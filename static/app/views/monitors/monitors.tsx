@@ -90,12 +90,26 @@ export default function Monitors({location}: RouteComponentProps<{}, {}>) {
       key={`${monitor.slug}-${monitorEnv?.name ?? 'no-env'}`}
       monitor={monitor}
       monitorEnv={monitorEnv}
-      onDelete={() => {
-        setApiQueryData(
-          queryClient,
-          monitorListQueryKey,
-          monitorList?.filter(m => m.slug !== monitor.slug)
-        );
+      onDelete={deletedEnv => {
+        if (deletedEnv) {
+          if (!monitorList) {
+            return;
+          }
+          const deletedEnvMonitor = monitorList.find(m => m.slug === monitor.slug);
+          if (!deletedEnvMonitor) {
+            return;
+          }
+          deletedEnvMonitor.environments = deletedEnvMonitor.environments.filter(
+            e => e.name !== deletedEnv.name
+          );
+          setApiQueryData(queryClient, monitorListQueryKey, monitorList);
+        } else {
+          setApiQueryData(
+            queryClient,
+            monitorListQueryKey,
+            monitorList?.filter(m => m.slug !== monitor.slug)
+          );
+        }
       }}
       organization={organization}
     />
