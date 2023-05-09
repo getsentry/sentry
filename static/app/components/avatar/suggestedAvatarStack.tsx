@@ -34,6 +34,7 @@ function SuggestedAvatarStack({
           key={i}
           index={i}
           reverse={reverse}
+          suggested
         />
       ))}
       <Avatar
@@ -43,6 +44,7 @@ function SuggestedAvatarStack({
         {...props}
         index={numAvatars - 1}
         reverse={reverse}
+        suggested
       />
     </AvatarStack>
   );
