@@ -24,6 +24,8 @@ function getSortTooltip(key: IssueSortOptions) {
       return t('Number of users affected.');
     case IssueSortOptions.TREND:
       return t('% change in event count.');
+    case IssueSortOptions.BETTER_PRIORITY:
+      return t('Stuff you hopefully actually care about.');
     case IssueSortOptions.DATE:
     default:
       return t('Last time the issue occurred.');
@@ -51,6 +53,7 @@ function IssueListSortOptions({onSelect, sort, query}: Props) {
     IssueSortOptions.PRIORITY,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
+    IssueSortOptions.BETTER_PRIORITY,
   ];
 
   return (

@@ -45,6 +45,7 @@ SORT_OPTIONS = {
     "date": _("Last Seen"),
     "new": _("First Seen"),
     "freq": _("Frequency"),
+    "hb": _("Hellboy"),
 }
 
 SEARCH_SORT_OPTIONS = {

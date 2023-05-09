@@ -138,6 +138,7 @@ export enum IssueSortOptions {
   USER = 'user',
   TREND = 'trend',
   INBOX = 'inbox',
+  BETTER_PRIORITY = 'better priority',
 }
 
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
@@ -160,6 +161,8 @@ export function getSortLabel(key: string) {
       return t('Relative Change');
     case IssueSortOptions.INBOX:
       return t('Date Added');
+    case IssueSortOptions.BETTER_PRIORITY:
+      return t('Better Priority');
     case IssueSortOptions.DATE:
     default:
       return t('Last Seen');

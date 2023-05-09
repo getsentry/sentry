@@ -442,6 +442,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
 
 def trend_aggregation(start: datetime, end: datetime) -> Sequence[str]:
+    print("sfkgjhsjghsdgfjh")
     middle_date = start + timedelta(seconds=(end - start).total_seconds() * 0.5)
     middle = datetime.strftime(middle_date, DateArg.date_format)
 
@@ -451,6 +452,31 @@ def trend_aggregation(start: datetime, end: datetime) -> Sequence[str]:
         f"if(greater({agg_range_1}, 0), divide({agg_range_2}, {agg_range_1}), 0)",
         "",
     ]
+
+
+def better_priority_aggregation(start: datetime, end: datetime) -> Sequence[str]:
+    # how will this use the weights of the issue attributes?
+
+    # does this formula assume we have all the events / event timestamps?
+    event_age = int(
+        (timezone.now() - start).total_seconds() / 3600
+    )  # Convert to hours, can be whatever unit
+    event_score = (
+        1  # Can substitute other event level scoring methods here, but start with a baseline of 1
+    )
+    event_score_halflife = 4  # halves score every 4 hours
+    event_score = int(event_score / (2 ** (event_age / event_score_halflife)))
+    print("event score: ", event_score)
+
+    # If we want to experiment with using issue score to downweight (yes we do)
+    issue_age = int(
+        (timezone.now() - min(start)).total_seconds() / 3600
+    )  # Convert to hours, can be whatever unit
+    issue_halflife = 24 * 7  # issues half in value every week
+    issue_score = 1 / 2 ** (issue_age / issue_halflife)
+    print("issue score: ", issue_score)
+
+    return [f"multiply({event_score}, {issue_score})", ""]
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
@@ -470,6 +496,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
         "inbox": "",
+        "better_priority": "better_priority",
     }
 
     aggregation_defs = {
@@ -482,6 +509,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
         "trend": trend_aggregation,
+        "better_priority": better_priority_aggregation,
     }
 
     @property

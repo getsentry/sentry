@@ -388,6 +388,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             date_from=date_from,
             date_to=date_to,
         )
+        print("group queryset: ", group_queryset)
 
         query_executor = self._get_query_executor(
             group_queryset=group_queryset,
@@ -397,6 +398,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             date_from=date_from,
             date_to=date_to,
         )
+        print("query_executor: ", query_executor)
 
         # ensure sort strategy is supported by executor
         if not query_executor.has_sort_strategy(sort_by):
@@ -498,6 +500,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
 
 class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     def _get_query_executor(self, *args: Any, **kwargs: Any) -> AbstractQueryExecutor:
+        print("before")
         return PostgresSnubaQueryExecutor()
 
     def _get_queryset_conditions(

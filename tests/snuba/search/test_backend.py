@@ -353,6 +353,14 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         results = self.make_query(sort_by="user")
         assert list(results) == [self.group1, self.group2]
 
+    def test_better_priority_sort(self):
+        # start = self.group1.first_seen - timedelta(days=1)
+        # end = before_now(days=1).replace(tzinfo=pytz.utc)
+        # self.set_up_multi_project()
+        # results = self.make_query(sort_by="better_priority", date_from=start, date_to=end)
+        results = self.make_query(sort_by="better_priority")
+        assert list(results) == [self.group1, self.group2]
+
     def test_sort_with_environment(self):
         for dt in [
             self.group1.first_seen + timedelta(days=1),

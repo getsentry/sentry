@@ -334,6 +334,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         results = list(cursor_result)
 
+        print("query_kwargs: ", query_kwargs)  # this has sort_by, but it isn't used
         context = serialize(
             results,
             request.user,
