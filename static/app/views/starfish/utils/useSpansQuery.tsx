@@ -86,9 +86,8 @@ function useWrappedDiscoverTimeseriesQuery(eventView: EventView, initialData?: a
     orgSlug: organization.slug,
     getRequestPayload: () => ({
       ...eventView.getEventsAPIPayload(location),
-      yAxis: Array.from(
-        new Set([eventView.yAxis, ...eventView.fields.map(f => f.field)])
-      ),
+      yAxis: eventView.yAxis,
+      topEvents: eventView.topEvents,
     }),
   });
   return {
@@ -128,24 +127,60 @@ function getQueryFunction({
 }
 
 function processDiscoverTimeseriesResult(result, eventView: EventView) {
-  const intervals = {};
-  if (result.data) {
-    result.data.forEach(([timestamp, [{count: value}]]) => {
-      intervals[timestamp] = {
-        ...(intervals[timestamp] ?? {}),
-        [eventView.yAxis ?? eventView.fields[0].field]: value,
-      };
-    });
-  } else {
-    Object.keys(result).forEach(key => {
-      result[key].data.forEach(([timestamp, [{count: value}]]) => {
-        intervals[timestamp] = {...(intervals[timestamp] ?? {}), [key]: value};
-      });
-    });
+  if (!eventView.yAxis) {
+    return [];
   }
+  let intervals = {};
+  const singleYAxis =
+    eventView.yAxis &&
+    (typeof eventView.yAxis === 'string' || eventView.yAxis.length === 1);
+  const firstYAxis =
+    typeof eventView.yAxis === 'string' ? eventView.yAxis : eventView.yAxis[0];
+
+  if (result.data) {
+    return processSingleDiscoverTimeseriesResult(
+      result,
+      singleYAxis ? firstYAxis : 'count'
+    );
+  }
+  Object.keys(result).forEach(key => {
+    if (result[key].data) {
+      intervals = mergeIntervals(
+        intervals,
+        processSingleDiscoverTimeseriesResult(result[key], singleYAxis ? firstYAxis : key)
+      );
+    } else {
+      Object.keys(result[key]).forEach(innerKey => {
+        intervals = mergeIntervals(
+          intervals,
+          processSingleDiscoverTimeseriesResult(result[key][innerKey], innerKey)
+        );
+      });
+    }
+  });
+
   const processed = Object.keys(intervals).map(key => ({
     interval: moment(parseInt(key, 10) * 1000).format(DATE_FORMAT),
     ...intervals[key],
   }));
   return processed;
+}
+
+function processSingleDiscoverTimeseriesResult(result, key: string) {
+  const intervals = {};
+  result.data.forEach(([timestamp, [{count: value}]]) => {
+    intervals[timestamp] = {...(intervals[timestamp] ?? {}), [key]: value};
+  });
+  return intervals;
+}
+
+function mergeIntervals(
+  first: Record<number, Record<string, number>>,
+  second: Record<number, Record<string, number>>
+) {
+  const result = JSON.parse(JSON.stringify(first));
+  Object.keys(second).forEach(key => {
+    result[key] = {...(result[key] ?? {}), ...second[key]};
+  });
+  return result;
 }

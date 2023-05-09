@@ -292,7 +292,7 @@ class EventView {
   statsPeriod: string | undefined;
   utc?: string | boolean | undefined;
   environment: Readonly<string[]>;
-  yAxis: string | undefined;
+  yAxis: string | string[] | undefined;
   display: string | undefined;
   topEvents: string | undefined;
   interval: string | undefined;
@@ -317,7 +317,7 @@ class EventView {
     statsPeriod: string | undefined;
     team: Readonly<('myteams' | number)[]>;
     topEvents: string | undefined;
-    yAxis: string | undefined;
+    yAxis: string | string[] | undefined;
     dataset?: DiscoverDatasets;
     expired?: boolean;
     interval?: string;
@@ -466,8 +466,7 @@ class EventView {
         },
         'environment'
       ),
-      // Workaround to only use the first yAxis since eventView yAxis doesn't accept string[]
-      yAxis: Array.isArray(saved.yAxis) ? saved.yAxis[0] : saved.yAxis,
+      yAxis: saved.yAxis,
       display: saved.display,
       topEvents: saved.topEvents ? saved.topEvents.toString() : undefined,
       interval: saved.interval,
@@ -611,7 +610,7 @@ class EventView {
       end: this.end,
       range: this.statsPeriod,
       environment: this.environment,
-      yAxis: this.yAxis ? [this.yAxis] : undefined,
+      yAxis: typeof this.yAxis === 'string' ? [this.yAxis] : this.yAxis,
       dataset: this.dataset,
       display: this.display,
       topEvents: this.topEvents,
@@ -1344,7 +1343,7 @@ class EventView {
     );
 
     if (result >= 0) {
-      return yAxis;
+      return typeof yAxis === 'string' ? yAxis : yAxis[0];
     }
 
     return defaultOption;

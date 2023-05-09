@@ -21,6 +21,22 @@ export const getHostListQuery = ({datetime}) => {
  `;
 };
 
+export const getHostListEventView = ({datetime}) => {
+  return EventView.fromSavedQuery({
+    name: '',
+    fields: ['domain'],
+    yAxis: ['p99(span.self_time)', 'count()'],
+    query: 'module:http',
+    topEvents: '10',
+    start: datetime.start,
+    end: datetime.end,
+    range: datetime.period,
+    dataset: DiscoverDatasets.SPANS_INDEXED,
+    projects: [1],
+    version: 2,
+  });
+};
+
 export const getEndpointListQuery = ({domain, action, datetime, transaction}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
@@ -63,7 +79,7 @@ export const getEndpointListEventView = ({domain, action, datetime, transaction}
       'count_unique(user)',
       'count_unique(transaction)',
     ],
-    orderby: '-count()',
+    orderby: '-count',
     query: `module:http ${domain ? `domain:${domain}` : ''} ${
       action ? `action:${action}` : ''
     } ${transaction ? `transaction:${transaction}` : ''}`,
@@ -79,11 +95,11 @@ export const getEndpointListEventView = ({domain, action, datetime, transaction}
 export const getEndpointDomainsQuery = ({datetime}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT domain, count(),
-    sum(exclusive_time) as total_exclusive_time,
-    max(exclusive_time) as max,
-    quantile(0.99)(exclusive_time) as p99,
-    quantile(0.95)(exclusive_time) as p95,
-    quantile(0.50)(exclusive_time) as p50
+    sum(exclusive_time) as "sum(span.self_time)",
+    max(exclusive_time) as "p100(span.self_time)",
+    quantile(0.99)(exclusive_time) as "p99(span.self_time)",
+    quantile(0.95)(exclusive_time) as "p95(span.self_time)",
+    quantile(0.50)(exclusive_time) as "p50(span.self_time)"
     FROM spans_experimental_starfish
     WHERE module = 'http'
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
@@ -96,8 +112,16 @@ export const getEndpointDomainsQuery = ({datetime}) => {
 export const getEndpointDomainsEventView = ({datetime}) => {
   return EventView.fromSavedQuery({
     name: '',
-    fields: ['domain', 'count()'],
-    orderby: '-count()',
+    fields: [
+      'domain',
+      'count()',
+      'sum(span.self_time)',
+      'p100(span.self_time)',
+      'p99(span.self_time)',
+      'p95(span.self_time)',
+      'p50(span.self_time)',
+    ],
+    orderby: '-count',
     query: 'module:http',
     start: datetime.start,
     end: datetime.end,
@@ -228,7 +252,7 @@ export const getEndpointDetailTableEventView = ({
       'sum(span.self_time)',
       'count_unique(transaction)',
     ],
-    orderby: '-count()',
+    orderby: '-count',
     query: `module:http ${description ? `description:${description}` : ''} ${
       transactionName ? `transaction:${transactionName}` : ''
     } ${groupId ? `group_id:${groupId}` : ''}`,
@@ -284,7 +308,7 @@ export const getHostStatusBreakdownEventView = ({domain, datetime}) => {
   return EventView.fromSavedQuery({
     name: '',
     fields: ['status', 'count()'],
-    orderby: '-count()',
+    orderby: '-count',
     query: `module:http domain:${domain}`,
     start: datetime.start,
     end: datetime.end,
