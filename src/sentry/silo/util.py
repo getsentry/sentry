@@ -7,12 +7,12 @@ from typing import List, Mapping
 from django.conf import settings
 
 PROXY_BASE_PATH = "/api/0/internal/integration-proxy"
-PROXY_OI_HEADER = "X-Sentry-Subnet-Organization-Integration"
+PROXY_INTEGRATION_HEADER = "X-Sentry-Subnet-Integration"
 PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
 
 INVALID_PROXY_HEADERS = ["Host", "Content-Length"]
 INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS + [
-    PROXY_OI_HEADER,
+    PROXY_INTEGRATION_HEADER,
     PROXY_SIGNATURE_HEADER,
 ]
 

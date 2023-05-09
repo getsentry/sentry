@@ -7,12 +7,13 @@ from django.conf import settings
 from requests import PreparedRequest
 
 from sentry.integrations.client import ApiClient
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     DEFAULT_REQUEST_BODY,
     PROXY_BASE_PATH,
-    PROXY_OI_HEADER,
+    PROXY_INTEGRATION_HEADER,
     PROXY_SIGNATURE_HEADER,
     encode_subnet_signature,
     trim_leading_slashes,
@@ -44,6 +45,17 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
 
         self.integration_id = integration_id
         self.org_integration_id = org_integration_id
+
+        if not self.integration_id and not self.org_integration_id:
+            raise AttributeError("integration_id or org_integration_id are required to initialize")
+
+        if not self.integration_id:
+            integration = integration_service.get_integration(
+                organization_integration_id=self.org_integration_id
+            )
+            if not integration:
+                raise AttributeError("Cannot infer integration_id from provided org_integration_id")
+            self.integration_id = integration.id
 
         is_region_silo = SiloMode.get_current_mode() == SiloMode.REGION
         subnet_secret = getattr(settings, "SENTRY_SUBNET_SECRET", None)
@@ -84,11 +96,11 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
         request_body = prepared_request.body
         if not isinstance(request_body, bytes):
             request_body = request_body.encode("utf-8") if request_body else DEFAULT_REQUEST_BODY
-        prepared_request.headers[PROXY_OI_HEADER] = str(self.org_integration_id)
+        prepared_request.headers[PROXY_INTEGRATION_HEADER] = str(self.integration_id)
         prepared_request.headers[PROXY_SIGNATURE_HEADER] = encode_subnet_signature(
             secret=settings.SENTRY_SUBNET_SECRET,
             path=proxy_path,
-            identifier=str(self.org_integration_id),
+            identifier=str(self.integration_id),
             request_body=request_body,
         )
         prepared_request.url = url
@@ -97,6 +109,7 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
             extra={
                 "desitination": prepared_request.url,
                 "organization_integration_id": self.org_integration_id,
+                "integration_id": self.integration_id,
             },
         )
         return prepared_request

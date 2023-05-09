@@ -6,11 +6,11 @@ from rest_framework.request import Request as DrfRequest
 
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.constants import ObjectStatus
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
-    PROXY_OI_HEADER,
+    PROXY_INTEGRATION_HEADER,
     PROXY_SIGNATURE_HEADER,
     clean_outbound_headers,
     trim_leading_slashes,
@@ -47,7 +47,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         """
         log_extra = {"path": request.path, "host": request.headers.get("Host")}
         signature = request.headers.get(PROXY_SIGNATURE_HEADER)
-        identifier = request.headers.get(PROXY_OI_HEADER)
+        identifier = request.headers.get(PROXY_INTEGRATION_HEADER)
         if signature is None or identifier is None:
             logger.error("invalid_sender_headers", extra=log_extra)
             return False
@@ -70,29 +70,17 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         log_extra = {"path": self.proxy_path}
 
-        # Get the organization integration
-        org_integration_id = request.headers.get(PROXY_OI_HEADER)
-        if org_integration_id is None:
-            logger.error("missing_org_integration", extra=log_extra)
-            return False
-        log_extra["org_integration_id"] = org_integration_id
-
-        self.org_integration = (
-            OrganizationIntegration.objects.filter(
-                id=org_integration_id,
-                status=ObjectStatus.ACTIVE,
-            )
-            .select_related("integration")
-            .first()
-        )
-        if self.org_integration is None:
-            logger.error("invalid_org_integration", extra=log_extra)
-            return False
-        log_extra["integration_id"] = self.org_integration.integration_id
-
         # Get the integration
-        self.integration = self.org_integration.integration
-        if not self.integration or self.integration.status is not ObjectStatus.ACTIVE:
+        integration_id = request.headers.get(PROXY_INTEGRATION_HEADER)
+        if integration_id is None:
+            logger.error("missing_integration", extra=log_extra)
+            return False
+        log_extra["integration_id"] = integration_id
+
+        self.integration = Integration.objects.filter(
+            id=integration_id, status=ObjectStatus.ACTIVE
+        ).first()
+        if not self.integration:
             logger.error("invalid_integration", extra=log_extra)
             return False
 
