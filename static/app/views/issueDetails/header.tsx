@@ -80,7 +80,7 @@ function GroupHeaderTabs({
       return;
     }
 
-    trackAnalytics('replay.issues-detail-count', {
+    trackAnalytics('replay.render-issues-detail-count', {
       platform: project.platform!,
       project_id: project.id,
       count: replaysCount,
