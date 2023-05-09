@@ -1,3 +1,4 @@
+import logging
 import time
 import uuid
 from hashlib import md5
@@ -7,6 +8,8 @@ from django.conf import settings
 
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
+
+logger = logging.getLogger()
 
 EVENT_LIMIT = 20
 
@@ -131,7 +134,10 @@ def get_user_actions(
 
         if event.get("type") == 5 and event.get("data", {}).get("tag") == "breadcrumb":
             payload = event["data"].get("payload", {})
-            if payload.get("category") == "ui.click":
+            category = payload.get("category")
+            if category == "ui.slowClickDetected":
+                logger.info(f"Slow click detected: {json.dumps(payload)}")
+            elif category == "ui.click":
                 node = payload.get("data", {}).get("node")
                 if node is None:
                     continue
