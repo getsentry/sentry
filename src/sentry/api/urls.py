@@ -1,6 +1,10 @@
 from django.conf.urls import include, url
 
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
+from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
+from sentry.api.endpoints.organization_events_facets_stats_performance import (
+    OrganizationEventsFacetsStatsPerformanceEndpoint,
+)
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
@@ -68,6 +72,7 @@ from sentry.monitors.endpoints.organization_monitor_details import (
 from sentry.monitors.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
 from sentry.monitors.endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
+from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
 )
@@ -115,7 +120,6 @@ from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
-from .endpoints.client_state import ClientStateEndpoint, ClientStateListEndpoint
 from .endpoints.codeowners import (
     ExternalTeamDetailsEndpoint,
     ExternalTeamEndpoint,
@@ -416,7 +420,6 @@ from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_processingissues import (
     ProjectProcessingIssuesDiscardEndpoint,
     ProjectProcessingIssuesEndpoint,
-    ProjectProcessingIssuesFixEndpoint,
 )
 from .endpoints.project_profiling_profile import (
     ProjectProfilingEventEndpoint,
@@ -1161,6 +1164,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-events-facets",
     ),
     url(
+        r"^(?P<organization_slug>[^\/]+)/events-facets-stats/$",
+        OrganizationEventsFacetsStatsPerformanceEndpoint.as_view(),
+        name="sentry-api-0-organization-events-facets-stats-performance",
+    ),
+    url(
         r"^(?P<organization_slug>[^\/]+)/events-facets-performance/$",
         OrganizationEventsFacetsPerformanceEndpoint.as_view(),
         name="sentry-api-0-organization-events-facets-performance",
@@ -1366,6 +1374,9 @@ ORGANIZATION_URLS = [
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
+        # XXX(epurkhiser): When removing method dispatch (once the legacy
+        # ingest endpoints are removed) we need to update apidocs/hooks.py to
+        # remove these from the explicit endpoints
         method_dispatch(
             GET=OrganizationMonitorCheckInIndexEndpoint.as_view(),
             POST=MonitorIngestCheckInIndexEndpoint.as_view(),  # Legacy ingest endpoint
@@ -1375,6 +1386,9 @@ ORGANIZATION_URLS = [
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+        # XXX(epurkhiser): When removing method dispatch (once the legacy
+        # ingest endpoints are removed) we need to update apidocs/hooks.py to
+        # remove these from the explicit endpoints
         method_dispatch(
             PUT=MonitorIngestCheckInDetailsEndpoint.as_view(),  # Legacy ingest endpoint
             csrf_exempt=True,
@@ -1648,6 +1662,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-replay-count",
     ),
     url(
+        r"^(?P<organization_slug>[^/]+)/replays/(?P<replay_id>[\w-]+)/$",
+        OrganizationReplayDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-replay-details",
+    ),
+    url(
         r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
         OrganizationReplayEventsMetaEndpoint.as_view(),
         name="sentry-api-0-organization-replay-events-meta",
@@ -1735,16 +1754,6 @@ ORGANIZATION_URLS = [
                 ),
             ],
         ),
-    ),
-    url(
-        r"^(?P<organization_slug>[^/]+)/client-state/$",
-        ClientStateListEndpoint.as_view(),
-        name="sentry-api-0-organization-client-state-list",
-    ),
-    url(
-        r"^(?P<organization_slug>[^/]+)/client-state/(?P<category>[^\/]+)/$",
-        ClientStateEndpoint.as_view(),
-        name="sentry-api-0-organization-client-state",
     ),
 ]
 
@@ -2163,11 +2172,6 @@ PROJECT_URLS = [
         name="sentry-api-0-project-processing-issues",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/fix$",
-        ProjectProcessingIssuesFixEndpoint.as_view(),
-        name="sentry-api-0-project-fix-processing-issues",
-    ),
-    url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/reprocessing/$",
         ProjectReprocessingEndpoint.as_view(),
         name="sentry-api-0-project-reprocessing",
@@ -2528,6 +2532,12 @@ INTERNAL_URLS = [
         r"^project-config/$",
         AdminRelayProjectConfigsEndpoint.as_view(),
         name="sentry-api-0-internal-project-config",
+    ),
+    url(
+        # If modifying, ensure PROXY_BASE_PATH is updated as well
+        r"^integration-proxy/\S+$",
+        InternalIntegrationProxyEndpoint.as_view(),
+        name="sentry-api-0-internal-integration-proxy",
     ),
     url(
         r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",

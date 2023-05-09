@@ -1708,15 +1708,15 @@ function buildRoutes() {
         component={make(() => import('sentry/views/starfish/views/webServiceView'))}
       />
       <Route
-        path="failure-detail/"
-        component={make(
-          () => import('sentry/views/starfish/views/webServiceView/failureDetailView')
-        )}
-      />
-      <Route
         path="failure-detail/:slug/"
         component={make(
           () => import('sentry/views/starfish/views/webServiceView/endpointFailureEvents')
+        )}
+      />
+      <Route
+        path="endpoint-overview/"
+        component={make(
+          () => import('sentry/views/starfish/views/webServiceView/endpointOverview')
         )}
       />
       <Route
@@ -1728,11 +1728,11 @@ function buildRoutes() {
         component={make(() => import('sentry/views/starfish/modules/APIModule'))}
       />
       <Route
-        path="cache/"
-        component={make(() => import('sentry/views/starfish/modules/cacheModule'))}
+        path="spans/"
+        component={make(() => import('sentry/views/starfish/views/spans'))}
       />
       <Route
-        path="span/:slug/"
+        path="span/:groupId/"
         component={make(() => import('sentry/views/starfish/views/spanSummary'))}
       />
     </Fragment>
@@ -1749,10 +1749,9 @@ function buildRoutes() {
           {starfishChildRoutes}
         </Route>
       )}
-
       <Route
-        path="organizations/:orgId/starfish/"
-        component={make(() => import('sentry/views/starfish/'))}
+        path="/organizations/:orgId/starfish/"
+        component={withDomainRedirect(make(() => import('sentry/views/starfish/')))}
         key="org-starfish"
       >
         {starfishChildRoutes}

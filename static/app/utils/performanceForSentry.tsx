@@ -13,11 +13,15 @@ import {
   timestampWithMs,
 } from '@sentry/utils';
 
+import {useLocation} from 'sentry/utils/useLocation';
+import usePrevious from 'sentry/utils/usePrevious';
+
 import getCurrentSentryReactTransaction from './getCurrentSentryReactTransaction';
 
 const MIN_UPDATE_SPAN_TIME = 16; // Frame boundary @ 60fps
 const WAIT_POST_INTERACTION = 50; // Leave a small amount of time for observers and onRenderCallback to log since they come in after they occur and not during.
 const INTERACTION_TIMEOUT = 2 * 60_000; // 2min. Wrap interactions up after this time since we don't want transactions sticking around forever.
+const MEASUREMENT_OUTLIER_VALUE = 5 * 60_000;
 
 /**
  * It depends on where it is called but the way we fetch transactions can be empty despite an ongoing transaction existing.
@@ -136,30 +140,57 @@ export function VisuallyCompleteWithData({
   id,
   hasData,
   children,
+  disabled,
+  isLoading,
 }: {
   children: ReactNode;
   hasData: boolean;
   id: string;
+  disabled?: boolean;
+  /**
+   * Add isLoading to also collect navigation timings, since the data state is sometimes constant before the reload occurs.
+   */
+  isLoading?: boolean;
 }) {
+  const location = useLocation();
+  const previousLocation = usePrevious(location);
+
   const isDataCompleteSet = useRef(false);
 
   const num = useRef(1);
 
   const isVCDSet = useRef(false);
 
-  if (isVCDSet && hasData && performance && performance.mark) {
+  if (isVCDSet && hasData && performance && performance.mark && !disabled) {
     performance.mark(`${id}-vcsd-start`);
     isVCDSet.current = true;
   }
 
+  const _hasData = isLoading === undefined ? hasData : hasData && !isLoading;
+
   useEffect(() => {
+    // Capture changes in location to reset VCD as it's likely indicative of a route change.
+    if (location !== previousLocation) {
+      isDataCompleteSet.current = false;
+      performance
+        .getEntriesByType('mark')
+        .map(m => m.name)
+        .filter(n => n.includes('vcsd'))
+        .forEach(n => performance.clearMarks(n));
+    }
+  }, [location, previousLocation]);
+
+  useEffect(() => {
+    if (disabled) {
+      return;
+    }
     try {
       const transaction: any = getCurrentSentryReactTransaction(); // Using any to override types for private api.
       if (!transaction) {
         return;
       }
 
-      if (!isDataCompleteSet.current && hasData) {
+      if (!isDataCompleteSet.current && _hasData) {
         isDataCompleteSet.current = true;
 
         performance.mark(`${id}-vcsd-end-pre-timeout`);
@@ -180,7 +211,11 @@ export function VisuallyCompleteWithData({
     } catch (_) {
       // Defensive catch since this code is auxiliary.
     }
-  }, [hasData, id]);
+  }, [_hasData, disabled, id]);
+
+  if (disabled) {
+    return <Fragment>{children}</Fragment>;
+  }
 
   return (
     <Profiler id={id} onRender={onRenderCallback}>
@@ -225,11 +260,17 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
         )
     );
     const transfered = filtered.reduce(
-      (acc, curr) => acc + (curr.data['Transfer Size'] ?? 0),
+      (acc, curr) =>
+        acc +
+        (curr.data['http.response_transfer_size'] ?? curr.data['Transfer Size'] ?? 0),
       0
     );
     const encoded = filtered.reduce(
-      (acc, curr) => acc + (curr.data['Encoded Body Size'] ?? 0),
+      (acc, curr) =>
+        acc +
+        (curr.data['http.response_content_length'] ??
+          curr.data['Encoded Body Size'] ??
+          0),
       0
     );
 
@@ -257,34 +298,44 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
 };
 
 const addCustomMeasurements = (transaction: TransactionEvent) => {
-  if (
-    !transaction.measurements ||
-    !browserPerformanceTimeOrigin ||
-    !transaction.start_timestamp
-  ) {
+  if (!browserPerformanceTimeOrigin || !transaction.start_timestamp) {
     return;
   }
 
-  const ttfb = Object.entries(transaction.measurements).find(([key]) =>
+  const measurements: Record<string, Measurement> = {...transaction.measurements};
+
+  const ttfb = Object.entries(measurements).find(([key]) =>
     key.toLowerCase().includes('ttfb')
   );
 
-  if (!ttfb || !ttfb[1]) {
-    return;
-  }
+  const ttfbValue = ttfb?.[1]?.value;
 
   const context: MeasurementContext = {
     transaction,
-    ttfb: ttfb[1].value,
+    ttfb: ttfbValue,
     browserTimeOrigin: browserPerformanceTimeOrigin,
     transactionStart: transaction.start_timestamp,
+    transactionOp: (transaction.contexts?.trace?.op as string) ?? 'pageload',
   };
+
   for (const [name, fn] of Object.entries(customMeasurements)) {
     const measurement = fn(context);
     if (measurement) {
-      transaction.measurements[name] = measurement;
+      if (
+        measurement.unit === 'millisecond' &&
+        measurement.value > MEASUREMENT_OUTLIER_VALUE
+      ) {
+        // exclude outlier measurements and don't add any of the custom measurements in case something is wrong.
+        if (transaction.tags) {
+          transaction.tags.outlier_vcd = name;
+        }
+        return;
+      }
+      measurements[name] = measurement;
     }
   }
+
+  transaction.measurements = measurements;
 };
 
 interface Measurement {
@@ -294,8 +345,9 @@ interface Measurement {
 interface MeasurementContext {
   browserTimeOrigin: number;
   transaction: TransactionEvent;
+  transactionOp: string;
   transactionStart: number;
-  ttfb: number;
+  ttfb?: number;
 }
 
 const getVCDSpan = (transaction: TransactionEvent) =>
@@ -318,7 +370,7 @@ const customMeasurements: Record<
   pre_bundle_load: ({ttfb, browserTimeOrigin, transactionStart}) => {
     const headMark = performance.getEntriesByName('head-start')[0];
 
-    if (!headMark) {
+    if (!headMark || !ttfb) {
       return undefined;
     }
 
@@ -336,9 +388,9 @@ const customMeasurements: Record<
    * Performance budget: **__** ms
    *
    */
-  bundle_load: ({transaction}) => {
+  bundle_load: ({transaction, ttfb}) => {
     const span = getBundleLoadSpan(transaction);
-    if (!span?.endTimestamp || !span?.startTimestamp) {
+    if (!span?.endTimestamp || !span?.startTimestamp || !ttfb) {
       return undefined;
     }
     return {
@@ -351,12 +403,13 @@ const customMeasurements: Record<
    * - Provided by the {@link VisuallyCompleteWithData} wrapper component.
    * - This only fires when it receives a non-empty data set for that component. Which won't capture onboarding or empty states,
    *   but most 'happy path' performance for using any product occurs only in views with data.
+   * - Only record for pageload transactions
    *
    * This should replace LCP as a 'load' metric when it's present, since it also works on navigations.
    */
-  visually_complete_with_data: ({transaction, transactionStart}) => {
+  visually_complete_with_data: ({transaction, ttfb, transactionStart}) => {
     const vcdSpan = getVCDSpan(transaction);
-    if (!vcdSpan?.endTimestamp) {
+    if (!vcdSpan?.endTimestamp || !ttfb) {
       return undefined;
     }
     const value = (vcdSpan?.endTimestamp - transactionStart) * 1000;
@@ -369,20 +422,27 @@ const customMeasurements: Record<
   /**
    * Budget measurement for the time between loading the bundle and a visually complete component finishing it's render.
    *
+   * Fires for navigation components as well using the beginning of the navigation as 'init'
+   *
    * For now this is a quite broad measurement but can be roughly be broken down into:
    * - Post bundle load application initialization
    * - Http waterfalls for data
    * - Rendering of components, including the VCD component.
    */
-  init_to_vcd: ({transaction}) => {
+  init_to_vcd: ({transaction, transactionOp, transactionStart}) => {
     const bundleSpan = getBundleLoadSpan(transaction);
     const vcdSpan = getVCDSpan(transaction);
-    if (!vcdSpan?.endTimestamp) {
+    if (!vcdSpan?.endTimestamp || !['navigation', 'pageload'].includes(transactionOp)) {
       return undefined;
     }
-    const timestamp = bundleSpan?.endTimestamp || 0; // Default to 0 so this works for navigations.
+
+    const startTimestamp =
+      transactionOp === 'navigation' ? transactionStart : bundleSpan?.endTimestamp;
+    if (!startTimestamp) {
+      return undefined;
+    }
     return {
-      value: (vcdSpan.endTimestamp - timestamp) * 1000,
+      value: (vcdSpan.endTimestamp - startTimestamp) * 1000,
       unit: 'millisecond',
     };
   },

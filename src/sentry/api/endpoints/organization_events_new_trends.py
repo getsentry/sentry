@@ -65,10 +65,12 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         selected_columns = self.get_field_list(organization, request)
 
-        top_columns = ["tpm()", "transaction", "project"]
+        top_columns = ["count()", "transaction", "project"]
         query = request.GET.get("query")
 
-        request.yAxis = selected_columns.append(trend_function)
+        selected_columns.append(trend_function)
+        selected_columns.append("count()")
+        request.yAxis = selected_columns
 
         def get_event_stats(
             query_columns,
@@ -84,12 +86,13 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 user_query=query,
                 params=params,
                 rollup=rollup,
-                limit=20,
+                # high limit is set to validate the regression analysis
+                limit=50,
                 organization=organization,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_NEW.value,
                 allow_empty=False,
                 zerofill_results=zerofill_results,
-                orderby=["-tpm()"],
+                orderby=["-count()"],
             )
 
             return results
@@ -103,9 +106,10 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 query_column=trend_function,
                 params=params,
                 query=query,
+                additional_query_column="count()",
             )
 
-            # Handle empty response
+            # handle empty response
             if stats_data.get("data", None):
                 return Response(
                     {
@@ -132,8 +136,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             trends_request["data"] = response.data
 
             # get start and end from the first transaction
-            trends_request["start"] = response.data[list(response.data)[0]]["start"]
-            trends_request["end"] = response.data[list(response.data)[0]]["end"]
+            trends_request["start"] = response.data[list(response.data)[0]][trend_function]["start"]
+            trends_request["end"] = response.data[list(response.data)[0]][trend_function]["end"]
 
             # send the data to microservice
             trends = get_trends(trends_request)
@@ -143,7 +147,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 transaction_name = t["transaction"]
                 project = t["project"]
                 t_p_key = project + "," + transaction_name
-                trending_transaction_names_stats[t_p_key] = response.data[t_p_key]
+                trending_transaction_names_stats[t_p_key] = response.data[t_p_key][trend_function]
 
             # send the results back to the client
             return Response(

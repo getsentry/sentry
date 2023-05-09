@@ -1,65 +1,57 @@
 import {createContext, useCallback} from 'react';
 
-import {OnboardingStatus} from 'sentry/types';
+import {OnboardingProjectStatus, OnboardingSelectedSDK} from 'sentry/types';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
-type Data = Record<
-  string,
-  {
-    slug: string;
-    status: OnboardingStatus;
-    firstIssueId?: string;
-  }
->;
+type Project = {
+  slug: string;
+  status: OnboardingProjectStatus;
+  firstIssueId?: string;
+};
+
+type Data = {
+  projects: Record<string, Project>;
+  selectedSDK?: OnboardingSelectedSDK;
+};
 
 export type OnboardingContextProps = {
   data: Data;
-  setProjectData: (props: {
-    projectId: string;
-    projectSlug: string;
-    status: OnboardingStatus;
-    firstIssueId?: string;
-  }) => void;
+  setData: (data: Data) => void;
 };
 
 export const OnboardingContext = createContext<OnboardingContextProps>({
-  setProjectData: () => {},
-  data: {},
+  data: {
+    projects: {},
+    selectedSDK: undefined,
+  },
+  setData: () => {},
 });
 
 type ProviderProps = {
   children: React.ReactNode;
+  value?: Data;
 };
 
-export function OnboardingContextProvider({children}: ProviderProps) {
-  const [sessionStorage, setSessionStorage] = useSessionStorage<Data>('onboarding', {});
+export function OnboardingContextProvider({children, value}: ProviderProps) {
+  const [sessionStorage, setSessionStorage] = useSessionStorage<Data>('onboarding', {
+    projects: value?.projects ?? {},
+    selectedSDK: value?.selectedSDK,
+  });
 
-  const setProjectData = useCallback(
-    ({
-      projectId,
-      projectSlug,
-      status,
-      firstIssueId,
-    }: {
-      projectId: string;
-      projectSlug: string;
-      status: OnboardingStatus;
-      firstIssueId?: string;
-    }) => {
-      setSessionStorage({
-        ...sessionStorage,
-        [projectId]: {
-          status,
-          firstIssueId,
-          slug: projectSlug,
-        },
-      });
+  const setData = useCallback(
+    (data: Data) => {
+      setSessionStorage(data);
     },
-    [setSessionStorage, sessionStorage]
+    [setSessionStorage]
   );
 
   return (
-    <OnboardingContext.Provider value={{data: sessionStorage, setProjectData}}>
+    <OnboardingContext.Provider
+      value={{
+        data: sessionStorage,
+        setData,
+      }}
+    >
       {children}
     </OnboardingContext.Provider>
   );

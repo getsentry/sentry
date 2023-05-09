@@ -57,13 +57,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             kwargs={"organization_slug": self.organization.slug},
         )
 
-    def do_request(self, query, features=None):
+    def do_request(self, query, features=None, **kwargs):
         if features is None:
             features = {"organizations:discover-basic": True}
         features.update(self.features)
         self.login_as(user=self.user)
         with self.feature(features):
-            return self.client_get(self.reverse_url(), query, format="json")
+            return self.client_get(self.reverse_url(), query, format="json", **kwargs)
 
     def load_data(self, platform="transaction", timestamp=None, duration=None, **kwargs):
         if timestamp is None:
@@ -178,6 +178,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         response = self.do_request(query)
         assert response.status_code == 400
         assert "events from multiple projects" in response.data["detail"]
+
+    def test_multi_project_feature_gate_replays(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+
+        project = self.create_project(organization=self.organization, teams=[team])
+        project2 = self.create_project(organization=self.organization, teams=[team])
+
+        query = {"field": ["id", "project.id"], "project": [project.id, project2.id]}
+        response = self.do_request(query, **{"HTTP_X-Sentry-Replay-Request": "1"})
+        assert response.status_code == 200
 
     def test_invalid_search_terms(self):
         self.create_project()
@@ -607,6 +617,31 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             "query": f"project:{self.project.slug} performance.issue_ids:{event.groups[0].id}",
         }
         response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+    def test_performance_issue_issue_platform_issue_ids_filter(self):
+        # Just a duplicate of `test_generic_issue_ids_filter` to verify that perf issues read from
+        # the issue platform correctly here. Remove once we kill the related flags.
+        data = load_data(
+            platform="transaction",
+            timestamp=self.ten_mins_ago,
+            start_timestamp=self.eleven_mins_ago,
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
+        )
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            event = self.store_event(data=data, project_id=self.project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": f"project:{self.project.slug} issue:{event.groups[0].qualified_short_id}",
+            "dataset": "issuePlatform",
+        }
+        with self.feature(
+            ["organizations:issue-platform-search-perf-issues", "organizations:profiling"]
+        ):
+            response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 

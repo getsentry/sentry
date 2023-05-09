@@ -244,6 +244,29 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is True
 
+    def test_is_dynamically_sampled(self):
+        self.user = self.create_user("super@example.org", is_superuser=True)
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+
+        with patch(
+            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate", return_value=0.5
+        ):
+            response = self.get_success_response(org.slug)
+            assert response.data["isDynamicallySampled"]
+
+        with patch(
+            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate", return_value=1.0
+        ):
+            response = self.get_success_response(org.slug)
+            assert not response.data["isDynamicallySampled"]
+
+        with patch(
+            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate", return_value=None
+        ):
+            response = self.get_success_response(org.slug)
+            assert not response.data["isDynamicallySampled"]
+
 
 @region_silo_test
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
@@ -710,7 +733,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(org.slug, **{"cancelDeletion": True})
 
         org = Organization.objects.get(id=org.id)
-        assert org.status == OrganizationStatus.VISIBLE
+        assert org.status == OrganizationStatus.ACTIVE
         assert not ScheduledDeletion.objects.filter(
             model_name="Organization", object_id=org.id
         ).exists()
@@ -769,7 +792,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             ).exists()
 
     def test_update_name_with_mapping(self):
-        self.create_organization_mapping(self.organization)
         response = self.get_success_response(self.organization.slug, name="SaNtRy")
 
         organization_id = response.data["id"]

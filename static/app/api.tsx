@@ -43,6 +43,12 @@ export class Request {
   }
 }
 
+export type ApiResult<Data = any> = [
+  data: Data,
+  statusText: string | undefined,
+  resp: ResponseMeta | undefined
+];
+
 export type ResponseMeta<R = any> = {
   /**
    * Get a header value from the response
@@ -211,6 +217,10 @@ export type RequestOptions = RequestCallbacks & {
    * Values to attach to the body of the request.
    */
   data?: any;
+  /**
+   * Headers add to the request.
+   */
+  headers?: Record<string, string>;
   /**
    * The HTTP method to use when making the API request
    */
@@ -424,6 +434,7 @@ export class Client {
     const headers = new Headers({
       Accept: 'application/json; charset=utf-8',
       'Content-Type': 'application/json',
+      ...options.headers,
     });
 
     // Do not set the X-CSRFToken header when making a request outside of the
@@ -530,11 +541,7 @@ export class Client {
       includeAllArgs,
       ...options
     }: {includeAllArgs?: IncludeAllArgsType} & Readonly<RequestOptions> = {}
-  ): Promise<
-    IncludeAllArgsType extends true
-      ? [data: any, textStatus: string | undefined, response: ResponseMeta | undefined]
-      : any
-  > {
+  ): Promise<IncludeAllArgsType extends true ? ApiResult : any> {
     // Create an error object here before we make any async calls so that we
     // have a helpful stack trace if it errors
     //

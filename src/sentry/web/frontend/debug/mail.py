@@ -21,7 +21,7 @@ from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
+from sentry import eventstore, options
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
 from sentry.digests.notifications import Notification, build_digest
@@ -48,7 +48,7 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
 from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.notifications import SAMPLE_TO_OCCURRENCE_MAP, TEST_ISSUE_OCCURRENCE
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
@@ -189,40 +189,62 @@ def make_error_event(request, project, platform):
 
 
 def make_performance_event(project, sample_name: str):
-    with override_options(
-        {
-            "performance.issues.all.problem-detection": 1.0,
-            "performance.issues.n_plus_one_db.problem-creation": 1.0,
-            "performance.issues.n_plus_one_api_calls.problem-creation": 1.0,
-            "performance.issues.render_blocking_assets.problem-creation": 1.0,
-        }
-    ), Feature(
-        {
-            "organizations:performance-n-plus-one-api-calls-detector": True,
-            "organizations:performance-issues-render-blocking-assets-detector": True,
-        }
-    ):
-        timestamp = datetime(2017, 9, 6, 0, 0)
-        start_timestamp = timestamp - timedelta(seconds=3)
+    timestamp = datetime(2017, 9, 6, 0, 0)
+    start_timestamp = timestamp - timedelta(seconds=3)
 
-        perf_data = dict(
-            load_data(
-                sample_name,
-                start_timestamp=start_timestamp,
-                timestamp=timestamp,
-            )
+    if options.get(
+        "performance.issues.create_issues_through_platform", True
+    ) and project.get_option("sentry:performance_issue_create_issue_through_platform", True):
+        event_id = "44f1419e73884cd2b45c79918f4b6dc4"
+        occurrence_data = SAMPLE_TO_OCCURRENCE_MAP[sample_name].to_dict()
+        occurrence_data["event_id"] = event_id
+        occurrence, group_info = process_event_and_issue_occurrence(
+            occurrence_data,
+            {
+                "event_id": event_id,
+                "project_id": project.id,
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
         )
-        perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
-        perf_event_manager = EventManager(perf_data)
-        perf_event_manager.normalize()
-        perf_data = perf_event_manager.get_data()
-        perf_event = perf_event_manager.save(project.id)
-        # Prevent CI screenshot from constantly changing
-        perf_event.data["timestamp"] = timestamp.timestamp()
-        perf_event.data["start_timestamp"] = start_timestamp.timestamp()
 
-    perf_event = perf_event.for_group(perf_event.groups[0])
-    return perf_event
+        generic_group = group_info.group
+        group_event = generic_group.get_latest_event()
+        # Prevent CI screenshot from constantly changing
+        group_event.data["timestamp"] = timestamp.timestamp()
+        group_event.data["start_timestamp"] = start_timestamp.timestamp()
+        return group_event
+    else:
+        with override_options(
+            {
+                "performance.issues.all.problem-detection": 1.0,
+                "performance.issues.n_plus_one_db.problem-creation": 1.0,
+                "performance.issues.n_plus_one_api_calls.problem-creation": 1.0,
+                "performance.issues.render_blocking_assets.problem-creation": 1.0,
+            }
+        ), Feature(
+            {
+                "organizations:performance-n-plus-one-api-calls-detector": True,
+                "organizations:performance-issues-render-blocking-assets-detector": True,
+            }
+        ):
+            perf_data = dict(
+                load_data(
+                    sample_name,
+                    start_timestamp=start_timestamp,
+                    timestamp=timestamp,
+                )
+            )
+            perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
+            perf_event_manager = EventManager(perf_data)
+            perf_event_manager.normalize()
+            perf_data = perf_event_manager.get_data()
+            perf_event = perf_event_manager.save(project.id)
+            # Prevent CI screenshot from constantly changing
+            perf_event.data["timestamp"] = timestamp.timestamp()
+            perf_event.data["start_timestamp"] = start_timestamp.timestamp()
+
+        perf_event = perf_event.for_group(perf_event.groups[0])
+        return perf_event
 
 
 def make_generic_event(project):
@@ -560,6 +582,12 @@ def digest(request):
 
     rule_details = get_rules(list(rules.values()), org, project)
     context = DigestNotification.build_context(digest, project, org, rule_details, 1337)
+
+    context["snooze_alert"] = True
+    context["snooze_alert_urls"] = {
+        rule.id: f"{rule.status_url}?{urlencode({'mute': '1'})}" for rule in rule_details
+    }
+
     add_unsubscribe_link(context)
 
     return MailPreview(

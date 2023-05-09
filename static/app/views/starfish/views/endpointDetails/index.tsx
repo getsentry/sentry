@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment';
+import * as qs from 'query-string';
 
 import Duration from 'sentry/components/duration';
 import GridEditable, {
@@ -10,20 +11,24 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
-import {HOST} from 'sentry/views/starfish/modules/APIModule/APIModuleView';
 import {
   OverflowEllipsisTextContainer,
   renderHeadCell,
-  TextAlignRight,
+  TextAlignLeft,
 } from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {
   getEndpointDetailSeriesQuery,
+  getEndpointDetailTableEventView,
   getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
+import {HOST} from 'sentry/views/starfish/utils/constants';
+import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 export type EndpointDataRow = {
@@ -32,6 +37,7 @@ export type EndpointDataRow = {
   domain: string;
   failure_count: number;
   failure_rate: number;
+  group_id: string;
   'p50(exclusive_time)': number;
   'p95(exclusive_time)': number;
   transaction_count: number;
@@ -53,12 +59,12 @@ const COLUMN_ORDER = [
     width: 280,
   },
   {
-    key: 'count',
+    key: 'count()',
     name: 'Count',
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p50',
+    key: 'p50(span.self_time)',
     name: 'p50',
     width: COL_WIDTH_UNDEFINED,
   },
@@ -80,24 +86,47 @@ export default function EndpointDetail({
 }
 
 function EndpointDetailBody({row}: EndpointDetailBodyProps) {
+  const pageFilter = usePageFilters();
   const location = useLocation();
-  const seriesQuery = getEndpointDetailSeriesQuery(row.description);
-  const tableQuery = getEndpointDetailTableQuery(row.description);
+  const seriesQuery = getEndpointDetailSeriesQuery({
+    description: null,
+    transactionName: null,
+    datetime: pageFilter.selection.datetime,
+    groupId: row.group_id,
+  });
   const {isLoading: seriesIsLoading, data: seriesData} = useQuery({
     queryKey: [seriesQuery],
     queryFn: () => fetch(`${HOST}/?query=${seriesQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
-  const {isLoading: tableIsLoading, data: tableData} = useQuery({
-    queryKey: [tableQuery],
-    queryFn: () => fetch(`${HOST}/?query=${tableQuery}`).then(res => res.json()),
-    retry: false,
+
+  const {isLoading: tableIsLoading, data: tableData} = useSpansQuery({
+    queryString: getEndpointDetailTableQuery({
+      description: null,
+      transactionName: null,
+      datetime: pageFilter.selection.datetime,
+      groupId: row.group_id,
+    }),
+    eventView: getEndpointDetailTableEventView({
+      description: null,
+      transactionName: null,
+      datetime: pageFilter.selection.datetime,
+      groupId: row.group_id,
+    }),
     initialData: [],
   });
+
+  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
+  const startTime =
+    num && unit
+      ? moment().subtract(num, unit as 'h' | 'd')
+      : moment(pageFilter.selection.datetime.start);
+  const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
+
   const [p50Series, p95Series, countSeries, _errorCountSeries, errorRateSeries] =
     endpointDetailDataToChartData(seriesData).map(series =>
-      zeroFillSeries(series, moment.duration(12, 'hours'))
+      zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
     );
 
   return (
@@ -117,7 +146,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
           <SubHeader>{t('Duration (P50)')}</SubHeader>
           <SubSubHeader>
             <Duration
-              seconds={row['p50(exclusive_time)'] / 1000}
+              seconds={row['p50(span.self_time)'] / 1000}
               fixedDigits={2}
               abbreviation
             />
@@ -133,7 +162,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
           <SubHeader>{t('Duration (P95)')}</SubHeader>
           <SubSubHeader>
             <Duration
-              seconds={row['p95(exclusive_time)'] / 1000}
+              seconds={row['p95(span.self_time)'] / 1000}
               fixedDigits={2}
               abbreviation
             />
@@ -174,7 +203,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
         grid={{
           renderHeadCell,
           renderBodyCell: (column: GridColumnHeader, dataRow: SpanTransactionDataRow) =>
-            renderBodyCell(column, dataRow, row.description),
+            renderBodyCell(column, dataRow, row.group_id),
         }}
         location={location}
       />
@@ -187,15 +216,13 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
 function renderBodyCell(
   column: GridColumnHeader,
   row: SpanTransactionDataRow,
-  spanDescription: string
+  groupId: string
 ): React.ReactNode {
   if (column.key === 'transaction') {
     return (
       <OverflowEllipsisTextContainer>
         <Link
-          to={`/starfish/span/${encodeURIComponent(spanDescription)}:${encodeURIComponent(
-            row.transaction
-          )}`}
+          to={`/starfish/span/${groupId}?${qs.stringify({transaction: row.transaction})}`}
         >
           {row[column.key]}
         </Link>
@@ -203,19 +230,18 @@ function renderBodyCell(
     );
   }
 
-  // TODO: come up with a better way to identify number columns to align to the right
   if (column.key.toString().match(/^p\d\d/)) {
     return (
-      <TextAlignRight>
+      <TextAlignLeft>
         <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />
-      </TextAlignRight>
+      </TextAlignLeft>
     );
   }
   if (!['description', 'transaction'].includes(column.key.toString())) {
     return (
-      <TextAlignRight>
+      <TextAlignLeft>
         <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
-      </TextAlignRight>
+      </TextAlignLeft>
     );
   }
 
@@ -262,7 +288,6 @@ function APIDetailChart(props: {
       end=""
       loading={props.isLoading}
       utc={false}
-      disableMultiAxis
       stacked
       isLineChart
       disableXAxis

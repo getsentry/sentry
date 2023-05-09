@@ -1,72 +1,30 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {deleteMonitor} from 'sentry/actionCreators/monitors';
+import {deleteMonitor, deleteMonitorEnvironment} from 'sentry/actionCreators/monitors';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import Text from 'sentry/components/text';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
-import {t, tct, tn} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {crontabAsText} from 'sentry/views/monitors/utils';
+import {scheduleAsText} from 'sentry/views/monitors/utils';
 
-import {
-  Monitor,
-  MonitorConfig,
-  MonitorEnvironment,
-  MonitorStatus,
-  ScheduleType,
-} from '../types';
+import {Monitor, MonitorEnvironment, MonitorStatus} from '../types';
 
 import {MonitorBadge} from './monitorBadge';
 
 interface MonitorRowProps {
   monitor: Monitor;
-  onDelete: () => void;
+  onDelete: (monitorEnv?: MonitorEnvironment) => void;
   organization: Organization;
   monitorEnv?: MonitorEnvironment;
-}
-
-function scheduleAsText(config: MonitorConfig) {
-  // Crontab format uses cronstrue
-  if (config.schedule_type === ScheduleType.CRONTAB) {
-    const parsedSchedule = crontabAsText(config.schedule);
-    return parsedSchedule ?? t('Unknown schedule');
-  }
-
-  // Interval format is simpler
-  const [value, timeUnit] = config.schedule;
-
-  if (timeUnit === 'minute') {
-    return tn('Every minute', 'Every %s minutes', value);
-  }
-
-  if (timeUnit === 'hour') {
-    return tn('Every hour', 'Every %s hours', value);
-  }
-
-  if (timeUnit === 'day') {
-    return tn('Every day', 'Every %s days', value);
-  }
-
-  if (timeUnit === 'week') {
-    return tn('Every week', 'Every %s weeks', value);
-  }
-
-  if (timeUnit === 'month') {
-    return tn('Every month', 'Every %s months', value);
-  }
-
-  return t('Unknown schedule');
 }
 
 function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowProps) {
@@ -75,29 +33,15 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
     <TimeSince unitStyle="regular" date={monitorEnv.lastCheckIn} />
   ) : null;
 
-  const deletionModalMessage = (
-    <Fragment>
-      <Text>
-        {tct('Are you sure you want to permanently delete "[name]"?', {
-          name: monitor.name,
-        })}
-      </Text>
-      {monitor.environments.length > 1 && (
-        <AdditionalEnvironmentWarning>
-          <Text>
-            {t(
-              `This will delete check-in data for this monitor associated with these environments:`
-            )}
-          </Text>
-          <List symbol="bullet">
-            {monitor.environments.map(environment => (
-              <ListItem key={environment.name}>{environment.name}</ListItem>
-            ))}
-          </List>
-        </AdditionalEnvironmentWarning>
-      )}
-    </Fragment>
-  );
+  const deletionMessage = monitorEnv
+    ? tct(
+        'Are you sure you want to permanently delete the "[envName]" environment from "[monitorName]"?',
+        {monitorName: monitor.name, envName: monitorEnv.name}
+      )
+    : tct('Are you sure you want to permanently delete "[monitorName]"?', {
+        monitorName: monitor.name,
+      });
+
   const actions: MenuItemProps[] = [
     {
       key: 'edit',
@@ -118,11 +62,20 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
       onAction: () => {
         openConfirmModal({
           onConfirm: async () => {
-            await deleteMonitor(api, organization.slug, monitor.slug);
-            onDelete();
+            if (monitorEnv) {
+              await deleteMonitorEnvironment(
+                api,
+                organization.slug,
+                monitor.slug,
+                monitorEnv.name
+              );
+            } else {
+              await deleteMonitor(api, organization.slug, monitor.slug);
+            }
+            onDelete(monitorEnv);
           },
           header: t('Delete Monitor?'),
-          message: deletionModalMessage,
+          message: deletionMessage,
           confirmText: t('Delete Monitor'),
           priority: 'danger',
         });
@@ -142,10 +95,7 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
     <Fragment>
       <MonitorName>
         <MonitorBadge status={monitorStatus} />
-        <NameAndSlug>
-          <Link to={monitorDetailUrl}>{monitor.name}</Link>
-          <MonitorSlug>{monitor.slug}</MonitorSlug>
-        </NameAndSlug>
+        <Link to={monitorDetailUrl}>{monitor.name}</Link>
       </MonitorName>
       <MonitorColumn>
         <TextOverflow>
@@ -159,6 +109,8 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
             ? tct('Missed [lastCheckin]', {lastCheckin})
             : monitorStatus === MonitorStatus.ERROR
             ? tct('Failed [lastCheckin]', {lastCheckin})
+            : monitorStatus === MonitorStatus.TIMEOUT
+            ? t('Timed out')
             : null}
         </TextOverflow>
       </MonitorColumn>
@@ -205,17 +157,6 @@ const MonitorName = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
-const NameAndSlug = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.25)};
-`;
-
-const MonitorSlug = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-`;
-
 const MonitorColumn = styled('div')`
   display: flex;
   align-items: center;
@@ -225,8 +166,4 @@ const ActionsColumn = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-`;
-
-const AdditionalEnvironmentWarning = styled('div')`
-  margin: ${space(1)} 0;
 `;

@@ -52,7 +52,6 @@ type Props = {
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
   isExpanded?: boolean;
-  isFirst?: boolean;
   isFrameAfterLastNonApp?: boolean;
   /**
    * Is the stack trace being previewed in a hovercard?

@@ -298,7 +298,7 @@ function getAssignmentIntegration(group: Group) {
   return integrationAssignments?.data.integration || '';
 }
 
-export function getAnalyticsDataForEvent(event?: Event): BaseEventAnalyticsParams {
+export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyticsParams {
   return {
     event_id: event?.eventID || '-1',
     num_commits: event?.release?.commitCount || 0,
@@ -340,6 +340,7 @@ export type CommonGroupAnalyticsData = {
   is_assigned?: boolean;
   issue_level?: string;
   issue_status?: string;
+  issue_substatus?: string;
 };
 
 export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnalyticsData {
@@ -353,6 +354,7 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
     issue_category: group?.issueCategory ?? IssueCategory.ERROR,
     issue_type: group?.issueType ?? IssueType.ERROR,
     issue_status: group?.status,
+    issue_substatus: group?.substatus,
     issue_age: group?.firstSeen ? getDaysSinceDatePrecise(group.firstSeen) : -1,
     days_since_last_seen: group?.lastSeen ? getDaysSinceDatePrecise(group.lastSeen) : -1,
     issue_level: group?.level,

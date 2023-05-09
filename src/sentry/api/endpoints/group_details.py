@@ -8,7 +8,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import tagstore, tsdb
+from sentry import features, tagstore, tsdb
 from sentry.api import client
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
@@ -22,6 +22,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer, is_plugin_deprecated
 from sentry.issues.constants import get_issue_tsdb_group_model
+from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
 from sentry.models.groupinbox import get_inbox_details
@@ -125,7 +126,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             environment_ids=environment_ids,
             tenant_ids={"organization_id": group.project.organization_id},
         )
-        model = get_issue_tsdb_group_model(group.issue_category)
+        model = get_issue_tsdb_group_model(group.issue_category, group.project)
         now = timezone.now()
         hourly_stats = tsdb.rollup(
             get_range(model=model, keys=[group.id], end=now, start=now - timedelta(days=1)),
@@ -211,6 +212,21 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 owner_details = get_owner_details([group], request.user)
                 owners = owner_details.get(group.id)
                 data.update({"owners": owners})
+
+            if "forecast" in expand and features.has(
+                "organizations:escalating-issues", group.organization
+            ):
+                fetched_forecast = EscalatingGroupForecast.fetch(
+                    group.project_id, group.id
+                ).to_dict()
+                data.update(
+                    {
+                        "forecast": {
+                            "data": fetched_forecast.get("forecast"),
+                            "date_added": fetched_forecast.get("date_added"),
+                        }
+                    }
+                )
 
             action_list = self._get_actions(request, group)
             data.update(

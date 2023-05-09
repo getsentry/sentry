@@ -1,7 +1,9 @@
+import {useContext} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import omit from 'lodash/omit';
 
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import PlatformPicker from 'sentry/components/platformPicker';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -11,15 +13,14 @@ import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 
 import {CreateProjectsFooter} from './components/createProjectsFooter';
 import {StepProps} from './types';
-import {usePersistedOnboardingState} from './utils';
 
 export function PlatformSelection(props: StepProps) {
   const organization = useOrganization();
-  const [clientState, setClientState] = usePersistedOnboardingState();
+  const onboardingContext = useContext(OnboardingContext);
 
-  const selectedPlatform = clientState?.selectedPlatforms?.[0]
-    ? platforms.find(platform => platform.id === clientState.selectedPlatforms[0].key)
-      ? clientState.selectedPlatforms[0]
+  const selectedPlatform = onboardingContext.data.selectedSDK
+    ? platforms.find(platform => platform.id === onboardingContext.data.selectedSDK?.key)
+      ? onboardingContext.data.selectedSDK
       : undefined
     : undefined;
 
@@ -44,17 +45,15 @@ export function PlatformSelection(props: StepProps) {
         <PlatformPicker
           noAutoFilter
           source="targeted-onboarding"
-          platform={clientState?.selectedPlatforms?.[0]?.key}
-          defaultCategory={clientState?.selectedPlatforms?.[0]?.category}
+          platform={onboardingContext.data.selectedSDK?.key}
+          defaultCategory={onboardingContext.data.selectedSDK?.category}
           setPlatform={platform => {
-            if (clientState) {
-              setClientState({
-                ...clientState,
-                selectedPlatforms: platform
-                  ? [{...omit(platform, 'id'), key: platform.id}]
-                  : [],
-              });
-            }
+            onboardingContext.setData({
+              ...onboardingContext.data,
+              selectedSDK: platform
+                ? {...omit(platform, 'id'), key: platform.id}
+                : undefined,
+            });
           }}
           organization={organization}
         />
@@ -62,15 +61,10 @@ export function PlatformSelection(props: StepProps) {
       <CreateProjectsFooter
         {...props}
         organization={organization}
-        clearPlatforms={() => {
-          if (clientState) {
-            setClientState({
-              ...clientState,
-              selectedPlatforms: [],
-            });
-          }
+        clearPlatform={() => {
+          onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
         }}
-        selectedPlatforms={selectedPlatform ? [selectedPlatform] : []}
+        selectedPlatform={selectedPlatform}
       />
     </Wrapper>
   );

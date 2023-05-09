@@ -10,9 +10,9 @@ import {formatTime} from 'sentry/components/replays/utils';
 import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
-import {IconCalendar, IconDelete, IconLocation} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {IconCalendar, IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -80,30 +80,13 @@ export function ReplayCell({
     );
   }
 
-  const subText = replay.urls ? (
+  const subText = (
     <Cols>
       <StringWalker urls={replay.urls} />
       <Row gap={1}>
         <Row gap={0.5}>
           {project ? <Avatar size={12} project={project} /> : null}
           <Link to={replayDetails}>{getShortEventId(replay.id)}</Link>
-        </Row>
-        <Row gap={0.5}>
-          <IconCalendar color="gray300" size="xs" />
-          <TimeSince date={replay.started_at} />
-        </Row>
-      </Row>
-    </Cols>
-  ) : (
-    <Cols>
-      <Row gap={1}>
-        <Row gap={0.5} minWidth={80}>
-          {project ? <Avatar size={12} project={project} /> : null}
-          <Link to={replayDetails}>{getShortEventId(replay.id)}</Link>
-        </Row>
-        <Row gap={0.5} minWidth={80}>
-          <IconLocation color="green400" size="sm" />
-          {tn('%s Page', '%s Pages', replay.count_urls)}
         </Row>
         <Row gap={0.5}>
           <IconCalendar color="gray300" size="xs" />
@@ -119,10 +102,10 @@ export function ReplayCell({
         avatarSize={24}
         displayName={
           replay.is_archived ? (
-            replay.user?.display_name || t('Unknown User')
+            replay.user.display_name || t('Unknown User')
           ) : (
             <MainLink to={replayDetails}>
-              {replay.user?.display_name || t('Unknown User')}
+              {replay.user.display_name || t('Unknown User')}
             </MainLink>
           )
         }

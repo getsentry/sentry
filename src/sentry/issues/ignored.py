@@ -1,14 +1,23 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, Sequence, TypedDict
 
 from django.utils import timezone
 
 from sentry.issues.forecasts import generate_and_save_forecasts
-from sentry.models import Group, GroupInboxRemoveAction, GroupSnooze, User, remove_group_from_inbox
+from sentry.models import (
+    Group,
+    GroupInboxRemoveAction,
+    GroupSnooze,
+    Project,
+    User,
+    remove_group_from_inbox,
+)
 from sentry.services.hybrid_cloud.user import user_service
+from sentry.signals import issue_archived
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -26,7 +35,9 @@ class IgnoredStatusDetails(TypedDict, total=False):
 def handle_archived_until_escalating(
     group_list: Sequence[Group],
     acting_user: User | None,
-) -> None:
+    projects: Sequence[Project],
+    sender: Any,
+) -> Dict[str, bool]:
     """
     Handle issues that are archived until escalating and create a forecast for them.
 
@@ -45,7 +56,21 @@ def handle_archived_until_escalating(
         },
     )
 
-    return
+    groups_by_project_id = defaultdict(list)
+    for group in group_list:
+        groups_by_project_id[group.project_id].append(group)
+
+    for project in projects:
+        project_groups = groups_by_project_id.get(project.id)
+        issue_archived.send_robust(
+            project=project,
+            user=acting_user,
+            group_list=project_groups,
+            activity_data={"until_escalating": True},
+            sender=sender,
+        )
+
+    return {"ignoreUntilEscalating": True}
 
 
 def handle_ignored(

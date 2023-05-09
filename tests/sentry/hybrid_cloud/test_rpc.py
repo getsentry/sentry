@@ -11,14 +11,14 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMemberFlags,
     RpcUserOrganizationContext,
 )
-from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
+from sentry.services.hybrid_cloud.organization.serial import serialize_organization
 from sentry.services.hybrid_cloud.rpc import (
     RpcSendException,
     dispatch_remote_call,
     dispatch_to_local_service,
 )
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
@@ -37,7 +37,7 @@ class RpcServiceTest(TestCase):
         target_region = _REGIONS[0]
 
         user = self.create_user()
-        organization = self.create_organization()
+        organization = self.create_organization(no_mapping=True)
         OrganizationMapping.objects.create(
             organization_id=organization.id,
             slug=organization.slug,
@@ -46,7 +46,7 @@ class RpcServiceTest(TestCase):
         )
 
         serial_user = RpcUser(id=user.id)
-        serial_org = DatabaseBackedOrganizationService.serialize_organization(organization)
+        serial_org = serialize_organization(organization)
 
         service = OrganizationService.create_delegation()
         with override_regions(_REGIONS), override_settings(SILO_MODE=SiloMode.CONTROL):
@@ -100,7 +100,7 @@ class RpcServiceTest(TestCase):
         user = self.create_user()
         organization = self.create_organization()
 
-        serial_org = DatabaseBackedOrganizationService.serialize_organization(organization)
+        serial_org = serialize_organization(organization)
         serial_arguments = dict(
             organization_id=serial_org.id,
             default_org_role=serial_org.default_role,
@@ -139,9 +139,7 @@ class DispatchRemoteCallTest(TestCase):
     @mock.patch("sentry.services.hybrid_cloud.rpc.urlopen")
     def test_region_to_control_happy_path(self, mock_urlopen):
         org = self.create_organization()
-        response_value = RpcUserOrganizationContext(
-            organization=DatabaseBackedOrganizationService.serialize_organization(org)
-        )
+        response_value = RpcUserOrganizationContext(organization=serialize_organization(org))
         self._set_up_mock_response(mock_urlopen, response_value.dict())
 
         result = dispatch_remote_call(

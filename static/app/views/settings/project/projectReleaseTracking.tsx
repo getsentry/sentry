@@ -18,9 +18,11 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import withPlugins from 'sentry/utils/withPlugins';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';
 const WEBHOOK_PLACEHOLDER = 'YOUR_WEBHOOK_URL';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 
 type Props = {
   organization: Organization;
@@ -103,7 +105,7 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization, project, plugins} = this.props;
-    const hasWrite = organization.access.includes('project:write');
+    const hasWrite = hasEveryAccess(['project:write'], {organization, project});
 
     if (plugins.loading) {
       return <LoadingIndicator />;
@@ -121,6 +123,12 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
     return (
       <div>
         <SettingsPageHeader title={t('Release Tracking')} />
+        <TextBlock>
+          {t(
+            'Configure release tracking for this project to automatically record new releases of your application.'
+          )}
+        </TextBlock>
+
         {!hasWrite && (
           <Alert type="warning">
             {t(
@@ -128,11 +136,6 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
             )}
           </Alert>
         )}
-        <p>
-          {t(
-            'Configure release tracking for this project to automatically record new releases of your application.'
-          )}
-        </p>
 
         <Panel>
           <PanelHeader>{t('Client Configuration')}</PanelHeader>
@@ -180,16 +183,14 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
             >
               <div>
                 <Confirm
-                  disabled={!hasWrite}
+                  disableConfirmButton={!hasWrite}
                   priority="danger"
                   onConfirm={this.handleRegenerateToken}
                   message={t(
                     'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
                   )}
                 >
-                  <Button priority="danger" disabled={!hasWrite}>
-                    {t('Regenerate Token')}
-                  </Button>
+                  <Button priority="danger">{t('Regenerate Token')}</Button>
                 </Confirm>
               </div>
             </FieldGroup>

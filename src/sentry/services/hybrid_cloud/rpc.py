@@ -77,7 +77,11 @@ class RpcMethodSignature:
 
         def create_field(param: inspect.Parameter) -> Tuple[Any, Any]:
             if param.annotation is param.empty:
-                raise RpcServiceSetupException("Type hints are required on RPC methods")
+                raise RpcServiceSetupException("Type annotations are required on RPC methods")
+            if isinstance(param.annotation, str):
+                raise RpcServiceSetupException(
+                    "Type annotations on RPC methods must be actual type tokens, not strings"
+                )
 
             default_value = ... if param.default is param.empty else param.default
             return param.annotation, default_value
@@ -330,9 +334,12 @@ class RpcService(InterfaceWithLifecycle):
                 except RpcServiceUnimplementedException as e:
                     logger.info(f"Could not remotely call {cls.__name__}.{method_name}: {e}")
 
-                    service = fallback()
-                    method = getattr(service, method_name)
-                    return method(**kwargs)
+                # Drop out of the except block, so that we don't get a spurious
+                #     "During handling of the above exception, another exception occurred"
+                # message in case the fallback method raises an unrelated exception.
+                service = fallback()
+                method = getattr(service, method_name)
+                return method(**kwargs)
 
             return remote_method_with_fallback
 
