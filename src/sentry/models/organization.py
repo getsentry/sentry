@@ -167,12 +167,6 @@ class Organization(Model, SnowflakeIdMixin):
         choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
-    members = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through="sentry.OrganizationMember",
-        related_name="org_memberships",
-        through_fields=("organization", "user"),
-    )
     default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
 
     flags = BitField(
