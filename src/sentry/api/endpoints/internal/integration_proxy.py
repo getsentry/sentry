@@ -146,6 +146,8 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             headers=headers,
             data=request.body,
         ).prepare()
+        # Third-party authentication headers will be added in client.authorize_request which runs
+        # in IntegrationProxyClient.finalize_request.
         raw_response: Response = self.client._request(
             request.method,
             self.proxy_path,
