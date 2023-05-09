@@ -58,6 +58,36 @@ function getIssueAlertUrl({projects, organization}: Options) {
   return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`;
 }
 
+function getOnboardingInstructionsUrl({projects, organization}: Options) {
+  // This shall never be the case, since this is step is locked until a project is created,
+  // but if the user falls into this case for some reason,
+  // he needs to select the platform again since it is not available as a parameter here
+  if (!projects || !projects.length) {
+    return `/getting-started/:projectId/`;
+  }
+
+  const allProjectsWithoutErrors = projects.every(project => !project.firstEvent);
+  // If all created projects don't have any errors,
+  // we ask the user to pick a project before navigating to the instructions
+  if (allProjectsWithoutErrors) {
+    return `/getting-started/:projectId/`;
+  }
+
+  // Pick the first project without an error
+  const firstProjectWithoutError = projects.find(project => !project.firstEvent);
+  // If all projects contain errors, this step will not be visible to the user,
+  // but if the user falls into this case for some reason, we pick the first project
+  const project = firstProjectWithoutError ?? projects[0];
+
+  let url = `/${organization.slug}/${project.slug}/getting-started/`;
+
+  if (project.platform) {
+    url = url + `${project.platform}/`;
+  }
+
+  return url;
+}
+
 function getMetricAlertUrl({projects, organization}: Options) {
   if (!projects || !projects.length) {
     return `/organizations/${organization.slug}/alerts/rules/`;
@@ -147,7 +177,7 @@ export function getOnboardingTasks({
       skippable: false,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
-      location: `/settings/${organization.slug}/projects/:projectId/install/`,
+      location: getOnboardingInstructionsUrl({projects, organization}),
       display: true,
       SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
         !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
