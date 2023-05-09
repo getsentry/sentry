@@ -424,7 +424,6 @@ function useFetchGroupDetails({
     setLoadingGroup(true);
     setError(false);
     setErrorType(null);
-    setProject(null);
 
     fetchData();
   }, [fetchData]);
