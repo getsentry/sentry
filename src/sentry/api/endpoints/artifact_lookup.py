@@ -182,7 +182,6 @@ def try_resolve_release_dist(
 ) -> Tuple[Optional[Release], Optional[Distribution]]:
     release = None
     dist = None
-    # TODO: Is there a way to safely query this and return `None` if not existing?
     try:
         release = Release.objects.get(
             organization_id=project.organization_id,
@@ -193,6 +192,8 @@ def try_resolve_release_dist(
         # We cannot query for dist without a release anyway
         if dist_name:
             dist = Distribution.objects.get(release=release, name=dist_name)
+    except (Release.DoesNotExist, Distribution.DoesNotExist):
+        pass
     except Exception as exc:
         logger.error("Failed to read", exc_info=exc)
 
