@@ -36,7 +36,7 @@ const getActionSubquery = (date_filters: string) => {
   `;
 };
 
-const getDomainSubquery = (date_filters: string, action: string) => {
+const getDomainSubquery = (date_filters: string) => {
   return `
   select domain
   from default.spans_experimental_starfish
@@ -44,7 +44,6 @@ const getDomainSubquery = (date_filters: string, action: string) => {
     ${DEFAULT_WHERE}
     ${date_filters} and
     domain != ''
-    ${getActionQuery(action)}
    group by domain
    order by ${ORDERBY}
    limit 5
@@ -67,9 +66,6 @@ const getTransactionsFromTableSubquery = (tableNames: string[], dateFilters: str
   LIMIT 5
 `;
 };
-
-const getActionQuery = (action: string) =>
-  action !== 'ALL' ? `and action = '${action}'` : '';
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60;
 
@@ -100,34 +96,9 @@ const getRetiredColumn = (duration: number, startTime: Moment, endTime: Moment) 
     : '0 as retired';
 };
 
-export const useQueryDbOperations = (): DefinedUseQueryResult<
+export const useQueryDbTables = (): DefinedUseQueryResult<
   {key: string; value: string}[]
 > => {
-  const pageFilter = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilter);
-  const dateFilters = getDateQueryFilter(startTime, endTime);
-  const query = `
-  select
-    action as key,
-    uniq(description) as value
-  from default.spans_experimental_starfish
-  where
-    ${DEFAULT_WHERE}
-    ${dateFilters}
-  group by action
-  order by ${ORDERBY}
-  `;
-  return useQuery({
-    queryKey: ['operation', pageFilter.selection.datetime],
-    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-};
-
-export const useQueryDbTables = (
-  action: string
-): DefinedUseQueryResult<{key: string; value: string}[]> => {
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
@@ -139,12 +110,11 @@ export const useQueryDbTables = (
   where
     ${DEFAULT_WHERE}
     ${dateFilters}
-    ${getActionQuery(action)}
   group by domain
   order by ${ORDERBY}
   `;
   return useQuery({
-    queryKey: ['table', action, pageFilter.selection.datetime],
+    queryKey: ['table', pageFilter.selection.datetime],
     queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -225,7 +195,6 @@ type TopTableQuery = {
 }[];
 
 export const useQueryTopTablesChart = (
-  action: string,
   interval: number
 ): DefinedUseQueryResult<TopTableQuery> => {
   const pageFilter = usePageFilters();
@@ -241,14 +210,13 @@ export const useQueryTopTablesChart = (
   where
     ${DEFAULT_WHERE}
     ${dateFilters} and
-    domain in (${getDomainSubquery(dateFilters, action)})
-    ${getActionQuery(action)}
+    domain in (${getDomainSubquery(dateFilters)})
   group by interval, domain
   order by interval, domain
   `;
 
   const result1 = useQuery<TopTableQuery>({
-    queryKey: ['topTable', action, pageFilter.selection.datetime],
+    queryKey: ['topTable', pageFilter.selection.datetime],
     queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -272,7 +240,7 @@ export const useQueryTopTablesChart = (
 
   const result2 = useQuery<TopTableQuery>({
     enabled: !result1.isLoading && !!result1.data?.length,
-    queryKey: ['topTableOther', action, pageFilter.selection.datetime],
+    queryKey: ['topTableOther', pageFilter.selection.datetime],
     queryFn: () => fetch(`${HOST}/?query=${query2}`).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -402,14 +370,9 @@ export const useQueryMainTable = (options: {
   const newFilter: string | undefined = filterNew ? 'newish = 1' : undefined;
   const oldFilter: string | undefined = filterOld ? 'retired = 1' : undefined;
 
-  const filters = [
-    DEFAULT_WHERE,
-    transactionFilter,
-    tableFilter,
-    actionFilter,
-    newFilter,
-    oldFilter,
-  ].filter(fil => !!fil);
+  const filters = [DEFAULT_WHERE, transactionFilter, tableFilter, actionFilter].filter(
+    fil => !!fil
+  );
   const duration = endTime.unix() - startTime.unix();
   const newColumn = getNewColumn(duration, startTime, endTime);
   const retiredColumn = getRetiredColumn(duration, startTime, endTime);
@@ -445,7 +408,7 @@ export const useQueryMainTable = (options: {
     data_values
   ${havingFilters.length > 0 ? 'having' : ''}
     ${havingFilters.join(' and ')}
-    order by ${orderBy}
+  order by ${orderBy}
   limit ${limit ?? 100}
 `;
 
