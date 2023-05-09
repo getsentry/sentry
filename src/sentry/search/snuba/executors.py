@@ -465,7 +465,6 @@ def better_priority_aggregation(start: datetime, end: datetime) -> Sequence[str]
     )
     event_score_halflife = 4  # halves score every 4 hours
     event_score = int(event_score / (2 ** (event_age / event_score_halflife)))
-    print("event score: ", event_score)
 
     # If we want to experiment with using issue score to downweight (yes we do)
     issue_age = int(
@@ -473,7 +472,6 @@ def better_priority_aggregation(start: datetime, end: datetime) -> Sequence[str]
     )  # Convert to hours, can be whatever unit
     issue_halflife = 24 * 7  # issues half in value every week
     issue_score = 1 / 2 ** (issue_age / issue_halflife)
-    print("issue score: ", issue_score)
 
     return [f"multiply({event_score}, {issue_score})", ""]
 
