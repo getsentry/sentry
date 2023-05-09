@@ -1,19 +1,18 @@
+import isNil from 'lodash/isNil';
+import moment from 'moment';
+
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {useQuery} from 'sentry/utils/queryClient';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {getSpanDurationSeries} from 'sentry/views/starfish/views/webServiceView/queries';
-import Chart from 'sentry/views/starfish/components/chart';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import moment from 'moment';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {getSpanDurationSeries} from 'sentry/views/starfish/views/webServiceView/queries';
 
 export function ModuleBreakdownChart() {
-  const pageFilter = usePageFilters();
-
   const {isLoading, data} = useQuery({
     queryKey: ['spanDurationSeries'],
     queryFn: () =>
@@ -22,32 +21,36 @@ export function ModuleBreakdownChart() {
     initialData: [],
   });
 
-  console.dir(data);
+  const seriesBySpan: {[span: string]: Series} = {};
+  let start: moment.Moment | undefined = undefined;
+  let end: moment.Moment | undefined = undefined;
 
-  const seriesGroupedBySpan: {[span: string]: Series[]} = {};
+  data.forEach(({span, interval, p75}) => {
+    if (isNil(start) || moment(interval) < start) {
+      start = moment(interval);
+    }
+    if (isNil(end) || moment(interval) > end) {
+      end = moment(interval);
+    }
 
-  data.forEach(({span, interval, p75, count}) => {
-    const seriesGroup = seriesGroupedBySpan[span];
-    if (seriesGroup) {
-      seriesGroupedBySpan[span][0].data.push({name: interval, value: p75});
-      seriesGroupedBySpan[span][1].data.push({name: interval, value: count});
+    const series = seriesBySpan[span];
+    if (series) {
+      series.data.push({name: interval, value: p75});
     } else {
-      seriesGroupedBySpan[span] = [
-        {seriesName: `p75 — ${span}`, data: [{name: interval, value: p75}]},
-        {seriesName: 'Throughput', data: [{name: interval, value: count}]},
-      ];
+      seriesBySpan[span] = {
+        seriesName: `p75 — ${span}`,
+        data: [{name: interval, value: p75}],
+      };
     }
   });
-
-  console.dir(seriesGroupedBySpan);
 
   return (
     <ChartPanel title={t('Top Spans p75 Breakdown')}>
       <Chart
         statsPeriod="24h"
         height={180}
-        data={Object.values(seriesGroupedBySpan).map(series =>
-          zeroFillSeries(series[0], moment.duration(1, 'days'))
+        data={Object.values(seriesBySpan).map(series =>
+          zeroFillSeries(series, moment.duration(1, 'days'), start, end)
         )}
         start=""
         end=""

@@ -109,7 +109,6 @@ export const getTopSpansInModule = module => `SELECT
 
 export const getSpanDurationSeries = spans => `SELECT
   quantile(0.75)(exclusive_time) as p75,
-  count() as count,
   toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval,
   description as span
   FROM spans_experimental_starfish
