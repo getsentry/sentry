@@ -59,17 +59,20 @@ def check_monitors(current_datetime=None):
     )
     metrics.gauge("sentry.monitors.tasks.check_monitors.missing_count", qs.count())
     for monitor_environment in qs:
-        logger.info(
-            "monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment.id}
-        )
-        # add missed checkin
-        checkin = MonitorCheckIn.objects.create(
-            project_id=monitor_environment.monitor.project_id,
-            monitor=monitor_environment.monitor,
-            monitor_environment=monitor_environment,
-            status=CheckInStatus.MISSED,
-        )
-        monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
+        try:
+            logger.info(
+                "monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment.id}
+            )
+            # add missed checkin
+            checkin = MonitorCheckIn.objects.create(
+                project_id=monitor_environment.monitor.project_id,
+                monitor=monitor_environment.monitor,
+                monitor_environment=monitor_environment,
+                status=CheckInStatus.MISSED,
+            )
+            monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
+        except Exception:
+            logger.exception("Exception in check_monitors - mark missed")
 
     qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related(
         "monitor", "monitor_environment"
@@ -77,29 +80,34 @@ def check_monitors(current_datetime=None):
     metrics.gauge("sentry.monitors.tasks.check_monitors.timeout_count", qs.count())
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
-        timeout = timedelta(minutes=(checkin.monitor.config or {}).get("max_runtime") or TIMEOUT)
-        # Check against date_updated to allow monitors to run for longer as
-        # long as they continute to send heart beats updating the checkin
-        if checkin.date_updated > current_datetime - timeout:
-            continue
+        try:
+            timeout = timedelta(
+                minutes=(checkin.monitor.config or {}).get("max_runtime") or TIMEOUT
+            )
+            # Check against date_updated to allow monitors to run for longer as
+            # long as they continute to send heart beats updating the checkin
+            if checkin.date_updated > current_datetime - timeout:
+                continue
 
-        monitor_environment = checkin.monitor_environment
-        logger.info(
-            "monitor_environment.checkin-timeout",
-            extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin.id},
-        )
-        affected = MonitorCheckIn.objects.filter(
-            id=checkin.id, status=CheckInStatus.IN_PROGRESS
-        ).update(status=CheckInStatus.TIMEOUT)
-        if not affected:
-            continue
+            monitor_environment = checkin.monitor_environment
+            logger.info(
+                "monitor_environment.checkin-timeout",
+                extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin.id},
+            )
+            affected = MonitorCheckIn.objects.filter(
+                id=checkin.id, status=CheckInStatus.IN_PROGRESS
+            ).update(status=CheckInStatus.TIMEOUT)
+            if not affected:
+                continue
 
-        # we only mark the monitor as failed if a newer checkin wasn't responsible for the state
-        # change
-        has_newer_result = MonitorCheckIn.objects.filter(
-            monitor_environment=monitor_environment,
-            date_added__gt=checkin.date_added,
-            status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
-        ).exists()
-        if not has_newer_result:
-            monitor_environment.mark_failed(reason=MonitorFailure.DURATION)
+            # we only mark the monitor as failed if a newer checkin wasn't responsible for the state
+            # change
+            has_newer_result = MonitorCheckIn.objects.filter(
+                monitor_environment=monitor_environment,
+                date_added__gt=checkin.date_added,
+                status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
+            ).exists()
+            if not has_newer_result:
+                monitor_environment.mark_failed(reason=MonitorFailure.DURATION)
+        except Exception:
+            logger.exception("Exception in check_monitors - mark timeout")
