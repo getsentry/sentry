@@ -466,7 +466,10 @@ class EventView {
         },
         'environment'
       ),
-      yAxis: saved.yAxis,
+      yAxis:
+        Array.isArray(saved.yAxis) && saved.yAxis.length === 1
+          ? saved.yAxis[0]
+          : saved.yAxis,
       display: saved.display,
       topEvents: saved.topEvents ? saved.topEvents.toString() : undefined,
       interval: saved.interval,
