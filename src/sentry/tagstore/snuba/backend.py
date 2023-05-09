@@ -852,26 +852,6 @@ class SnubaTagStorage(TagStorage):
 
         return None
 
-    def get_group_ids_for_users(self, project_ids, event_users, limit=100, tenant_ids=None):
-        filters = {"project_id": project_ids}
-        conditions = [
-            ["tags[sentry:user]", "IN", [_f for _f in [eu.tag_value for eu in event_users] if _f]]
-        ]
-        aggregations = [["max", SEEN_COLUMN, "last_seen"]]
-
-        result = snuba.query(
-            dataset=Dataset.Events,
-            groupby=["group_id"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            limit=limit,
-            orderby="-last_seen",
-            referrer="tagstore.get_group_ids_for_users",
-            tenant_ids=tenant_ids,
-        )
-        return set(result.keys())
-
     def get_group_tag_values_for_users(self, event_users, limit=100, tenant_ids=None):
         """While not specific to a group_id, this is currently only used in issues, so the Events dataset is used"""
         filters = {"project_id": [eu.project_id for eu in event_users]}
