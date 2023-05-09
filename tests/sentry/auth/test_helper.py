@@ -11,6 +11,7 @@ from sentry.auth.helper import (
     AuthIdentityHandler,
 )
 from sentry.auth.providers.dummy import DummyProvider
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     AuthIdentity,
@@ -112,7 +113,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         ]
 
     def test_associated_existing_member_invite_by_email(self):
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
             member = OrganizationMember.objects.create(
                 organization=self.organization, email=self.email
             )
@@ -147,7 +148,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     def test_associate_pending_invite(self):
         # The org member invite should have a non matching email, but the
         # member id and token will match from the session, allowing association
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
             member = OrganizationMember.objects.create(
                 organization=self.organization, email="different.email@example.com", token="abc"
             )
@@ -249,7 +250,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.auth.helper.messages")
     def test_new_identity_with_existing_om(self, mock_messages):
         user = self.set_up_user()
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
             existing_om = OrganizationMember.objects.create(
                 user=user, organization=self.organization
             )
@@ -288,7 +289,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         AuthIdentity.objects.create(
             user=other_user, auth_provider=self.auth_provider, ident=self.identity["id"]
         )
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
             OrganizationMember.objects.create(user=other_user, organization=self.organization)
 
         returned_identity = self.handler.handle_attach_identity()
