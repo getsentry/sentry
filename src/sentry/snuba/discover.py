@@ -137,12 +137,12 @@ def query(
     selected_columns,
     query,
     params,
+    referrer,
     snuba_params=None,
     equations=None,
     orderby=None,
     offset=None,
     limit=50,
-    referrer=None,
     auto_fields=False,
     auto_aggregations=False,
     include_equation_fields=False,
@@ -170,11 +170,11 @@ def query(
     selected_columns (Sequence[str]) List of public aliases to fetch.
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
+    referrer (str) A referrer string to help locate the origin of this query.
     equations (Sequence[str]) List of equations to calculate for the query
     orderby (None|str|Sequence[str]) The field to order results by.
     offset (None|int) The record offset to read.
     limit (int) The number of records to fetch.
-    referrer (str|None) A referrer string to help locate the origin of this query.
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
     auto_aggregations (bool) Whether aggregates should be added automatically if they're used
                     in conditions, and there's at least one aggregate already.
@@ -226,7 +226,7 @@ def timeseries_query(
     query: str,
     params: Dict[str, str],
     rollup: int,
-    referrer: Optional[str] = None,
+    referrer: str,
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[Sequence[str]] = None,
@@ -251,7 +251,7 @@ def timeseries_query(
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
     rollup (int) The bucket width in seconds
-    referrer (str|None) A referrer string to help locate the origin of this query.
+    referrer (str) A referrer string to help locate the origin of this query.
     comparison_delta: A timedelta used to convert this into a comparison query. We make a second
     query time-shifted back by comparison_delta, and compare the results to get the % change for each
     time bucket. Requires that we only pass
@@ -368,9 +368,9 @@ def top_events_timeseries(
     orderby,
     rollup,
     limit,
+    referrer,
     organization,
     equations=None,
-    referrer=None,
     top_events=None,
     allow_empty=True,
     zerofill_results=True,
@@ -390,11 +390,11 @@ def top_events_timeseries(
     user_query (str) Filter query string to create conditions from. needs to be user_query
                     to not conflict with the function query
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
+    referrer (str) A referrer string to help locate the origin of this query.
     orderby (Sequence[str]) The fields to order results by.
     rollup (int) The bucket width in seconds
     limit (int) The number of events to get timeseries for
     organization (Organization) Used to map group ids to short ids
-    referrer (str|None) A referrer string to help locate the origin of this query.
     top_events (dict|None) A dictionary with a 'data' key containing a list of dictionaries that
                     represent the top events matching the query. Useful when you have found
                     the top events earlier and want to save a query.
@@ -661,11 +661,11 @@ def spans_histogram_query(
     user_query,
     params,
     num_buckets,
+    referrer,
     precision=0,
     min_value=None,
     max_value=None,
     data_filter=None,
-    referrer=None,
     group_by=None,
     order_by=None,
     limit_by=None,
@@ -680,6 +680,7 @@ def spans_histogram_query(
     :param str user_query: Filter query string to create conditions from.
     :param {str: str} params: Filtering parameters with start, end, project_id, environment
     :param int num_buckets: The number of buckets the histogram should contain.
+    :param str referrer: A referrer string to help locate the origin of this query.
     :param int precision: The number of decimal places to preserve, default 0.
     :param float min_value: The minimum value allowed to be in the histogram.
         If left unspecified, it is queried using `user_query` and `params`.
@@ -747,11 +748,11 @@ def histogram_query(
     user_query,
     params,
     num_buckets,
+    referrer,
     precision=0,
     min_value=None,
     max_value=None,
     data_filter=None,
-    referrer=None,
     group_by=None,
     order_by=None,
     limit_by=None,
@@ -771,6 +772,7 @@ def histogram_query(
     :param [str] fields: The list of fields for which you want to generate histograms for.
     :param str user_query: Filter query string to create conditions from.
     :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param str referrer: A referrer string to help locate the origin of this query.
     :param int num_buckets: The number of buckets the histogram should contain.
     :param int precision: The number of decimal places to preserve, default 0.
     :param float min_value: The minimum value allowed to be in the histogram.
