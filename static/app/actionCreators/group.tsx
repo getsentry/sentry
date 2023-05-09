@@ -6,6 +6,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import {Actor, Group, Member, Note, User} from 'sentry/types';
 import {buildTeamId, buildUserId} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
+import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
 
 type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 type AssignToUserParams = {
@@ -369,3 +370,46 @@ export function mergeGroups(
     options
   );
 }
+
+export type GroupTagResponseItem = {
+  key: string;
+  name: string;
+  topValues: Array<{
+    count: number;
+    firstSeen: string;
+    lastSeen: string;
+    name: string;
+    value: string;
+    readable?: boolean;
+  }>;
+  totalValues: number;
+};
+
+export type GroupTagsResponse = GroupTagResponseItem[];
+
+type FetchIssueTagsParameters = {
+  environment: string[];
+  groupId: string;
+  limit: number;
+  readable: boolean;
+};
+
+export const makeFetchIssueTagsQueryKey = ({
+  groupId,
+  environment,
+  readable,
+  limit,
+}: FetchIssueTagsParameters): ApiQueryKey => [
+  `/issues/${groupId}/tags/`,
+  {query: {environment, readable, limit}},
+];
+
+export const useFetchIssueTags = (
+  parameters: FetchIssueTagsParameters,
+  options: Partial<UseApiQueryOptions<GroupTagsResponse>> = {}
+) => {
+  return useApiQuery<GroupTagsResponse>(makeFetchIssueTagsQueryKey(parameters), {
+    staleTime: 30000,
+    ...options,
+  });
+};
