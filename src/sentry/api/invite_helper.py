@@ -48,16 +48,18 @@ class ApiInviteHelper:
         """
         invite_token, invite_member_id = get_invite_details(request)
 
-        try:
-            if invite_token and invite_member_id:
-                om = OrganizationMember.objects.get(token=invite_token, id=invite_member_id)
-            else:
-                om = organization_service.check_membership_by_email(
-                    organization_id=organization_id, email=email
-                )
-                if om is None:
-                    return None
-        except OrganizationMember.DoesNotExist:
+        om = None
+        if invite_token and invite_member_id:
+            om = organization_service.check_membership_by_invite_token(
+                organization_id=organization_id,
+                member_id=invite_member_id,
+                invite_token=invite_token,
+            )
+        else:
+            om = organization_service.check_membership_by_email(
+                organization_id=organization_id, email=email
+            )
+        if om is None:
             # Unable to locate the pending organization member. Cannot setup
             # the invite helper.
             return None
