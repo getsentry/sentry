@@ -199,7 +199,7 @@ export default class AdminSettings extends AsyncView<{}, State> {
             </Panel>
             <Panel>
               <PanelHeader>Performance Issues - Large HTTP Payload Detector</PanelHeader>
-              {fields['performance.issues.large_http.size_threshold']}
+              {fields['performance.issues.large_http_payload.size_threshold']}
             </Panel>
             <Panel>
               <PanelHeader>
