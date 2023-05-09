@@ -10,6 +10,7 @@ import {percent} from 'sentry/utils';
 import {useQuery} from 'sentry/utils/queryClient';
 import {DatabaseDurationChart} from 'sentry/views/starfish/views/webServiceView/databaseDurationChart';
 import {HttpBreakdownChart} from 'sentry/views/starfish/views/webServiceView/httpBreakdownChart';
+import {ModuleBreakdownChart} from 'sentry/views/starfish/views/webServiceView/moduleBreakdownChart';
 import {
   getDatabaseTimeSpent,
   getDbThroughput,
@@ -18,7 +19,6 @@ import {
   getTopHttpDomains,
 } from 'sentry/views/starfish/views/webServiceView/queries';
 import TopSpansWidget from 'sentry/views/starfish/views/webServiceView/topSpansWidget';
-import {ModuleBreakdownChart} from 'sentry/views/starfish/views/webServiceView/moduleBreakdownChart';
 
 const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
 const TOOLTIP_DELAY = 800;

@@ -111,7 +111,7 @@ export const getSpanDurationSeries = spans => `SELECT
   quantile(0.75)(exclusive_time) as p75,
   count() as count,
   toStartOfInterval(start_timestamp, INTERVAL 1 HOUR) as interval,
-  description
+  description as span
   FROM spans_experimental_starfish
   WHERE description IN ('http://127.0.0.1:10006/discover/snql', 'http://127.0.0.1:10006/events/snql', 'http://127.0.0.1:10006/transactions/snql', 'http://127.0.0.1:10006/search_issues/snql', 'http://127.0.0.1:10007/api/v1/evaluation/batch')
   GROUP BY interval, description
