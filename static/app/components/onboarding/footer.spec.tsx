@@ -9,7 +9,6 @@ import {
 
 import {Footer} from 'sentry/components/onboarding/footer';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
-import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import {OnboardingProjectStatus} from 'sentry/types';
 import * as useSessionStorage from 'sentry/utils/useSessionStorage';
 
@@ -24,16 +23,14 @@ describe('Onboarding Footer', function () {
 
     render(
       <OnboardingContextProvider>
-        <PersistedStoreProvider>
-          <Footer
-            projectId={project.id}
-            projectSlug={project.slug}
-            location={router.location}
-            route={route}
-            router={router}
-            newOrg
-          />
-        </PersistedStoreProvider>
+        <Footer
+          projectId={project.id}
+          projectSlug={project.slug}
+          location={router.location}
+          route={route}
+          router={router}
+          newOrg
+        />
       </OnboardingContextProvider>,
       {
         organization,
@@ -82,16 +79,14 @@ describe('Onboarding Footer', function () {
 
     render(
       <OnboardingContextProvider>
-        <PersistedStoreProvider>
-          <Footer
-            projectId={project.id}
-            projectSlug={project.slug}
-            location={router.location}
-            route={route}
-            router={router}
-            newOrg
-          />
-        </PersistedStoreProvider>
+        <Footer
+          projectId={project.id}
+          projectSlug={project.slug}
+          location={router.location}
+          route={route}
+          router={router}
+          newOrg
+        />
       </OnboardingContextProvider>,
       {
         organization,
@@ -134,16 +129,14 @@ describe('Onboarding Footer', function () {
 
     render(
       <OnboardingContextProvider>
-        <PersistedStoreProvider>
-          <Footer
-            projectId={project.id}
-            projectSlug={project.slug}
-            location={router.location}
-            route={route}
-            router={router}
-            newOrg
-          />
-        </PersistedStoreProvider>
+        <Footer
+          projectId={project.id}
+          projectSlug={project.slug}
+          location={router.location}
+          route={route}
+          router={router}
+          newOrg
+        />
       </OnboardingContextProvider>,
       {
         organization,

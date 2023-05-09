@@ -1,4 +1,4 @@
-import {CSSProperties} from 'react';
+import {CSSProperties, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -7,7 +7,10 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
-import ArrayValue from 'sentry/utils/discover/arrayValue';
+import {Sort} from 'sentry/views/starfish/modules/databaseModule';
+import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
+
+import {highlightSql} from './panel';
 
 type Props = {
   isDataLoading: boolean;
@@ -15,6 +18,7 @@ type Props = {
   onSelect: (row: DataRow, rowIndex: number) => void;
   columns?: any;
   data?: DataRow[];
+  onSortChange?: ({direction, sortHeader}: MainTableSort) => void;
   selectedRow?: DataRow;
 };
 
@@ -37,7 +41,11 @@ export type DataRow = {
   transactions: number;
 };
 
-const COLUMN_ORDER = [
+type Keys = 'description' | 'domain' | 'epm' | 'p75' | 'transactions' | 'total_time';
+export type TableColumnHeader = GridColumnHeader<Keys>;
+export type MainTableSort = Sort<TableColumnHeader>;
+
+const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'description',
     name: 'Query',
@@ -66,38 +74,115 @@ const COLUMN_ORDER = [
   },
 ];
 
-export default function APIModuleView({
+export function similarity(value: string, other: string): number {
+  // If they're identical we don't care
+  if (value === other || other === undefined || value === undefined) {
+    return -1;
+  }
+  const short_words = value.length < other.length ? value.split(' ') : other.split(' ');
+  const long_words = value.length > other.length ? value.split(' ') : other.split(' ');
+  const total = long_words.length;
+  let count = 0;
+  while (long_words.length > 0) {
+    const word = long_words.pop();
+    if (word && short_words.includes(word)) {
+      count += 1;
+      short_words.splice(short_words.indexOf(word), 1);
+    }
+  }
+
+  return count / total;
+}
+
+function renderBadge(row, selectedRow) {
+  const similar = similarity(selectedRow?.description, row.description) > 0.8;
+  const newish = row?.newish === 1;
+  const retired = row?.retired === 1;
+  let response: React.ReactNode | null = null;
+  if (similar) {
+    if (newish && selectedRow.newish !== 1) {
+      response = (
+        <span>
+          <StyledBadge type="new" text="new" />
+          <StyledBadge type="alpha" text="similar" />
+        </span>
+      );
+    } else if (retired && selectedRow.retired !== 1) {
+      response = (
+        <span>
+          <StyledBadge type="warning" text="old" />
+          <StyledBadge type="alpha" text="similar" />
+        </span>
+      );
+    } else {
+      response = <StyledBadge type="alpha" text="similar" />;
+    }
+  } else if (newish) {
+    response = <StyledBadge type="new" text="new" />;
+  } else if (retired) {
+    response = <StyledBadge type="warning" text="old" />;
+  }
+  return response;
+}
+
+export default function DatabaseTableView({
   location,
   data,
   onSelect,
+  onSortChange,
   selectedRow,
   isDataLoading,
   columns,
 }: Props) {
-  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    return <span>{column.name}</span>;
+  const [sort, setSort] = useState<{
+    direction: 'desc' | 'asc' | undefined;
+    sortHeader: TableColumnHeader | undefined;
+  }>({direction: undefined, sortHeader: undefined});
+
+  function onSortClick(col: TableColumnHeader) {
+    let direction: 'desc' | 'asc' | undefined = undefined;
+    if (!sort.direction || col.key !== sort.sortHeader?.key) {
+      direction = 'desc';
+    } else if (sort.direction === 'desc') {
+      direction = 'asc';
+    }
+    if (onSortChange) {
+      setSort({direction, sortHeader: col});
+      onSortChange({direction, sortHeader: col});
+    }
+  }
+
+  function renderHeadCell(col: TableColumnHeader): React.ReactNode {
+    const sortableKeys: Keys[] = ['p75', 'epm', 'total_time', 'domain', 'transactions'];
+    if (sortableKeys.includes(col.key)) {
+      const isBeingSorted = col.key === sort.sortHeader?.key;
+      const direction = isBeingSorted ? sort.direction : undefined;
+      return (
+        <SortableHeader
+          onClick={() => onSortClick(col)}
+          direction={direction}
+          title={col.name}
+        />
+      );
+    }
+    return <span>{col.name}</span>;
   }
 
   function renderBodyCell(
-    column: GridColumnHeader,
+    column: TableColumnHeader,
     row: DataRow,
     rowIndex: number
   ): React.ReactNode {
+    const {key} = column;
+
     const isSelectedRow = selectedRow?.group_id === row.group_id;
     const rowStyle: CSSProperties | undefined = isSelectedRow
       ? {fontWeight: 'bold'}
       : undefined;
 
-    if (column.key === 'columns') {
-      const value = row.data_values[row.data_keys.indexOf('columns')];
-      return value ? <ArrayValue value={value?.split(',')} /> : <span />;
-    }
-    if (column.key === 'order') {
-      const value = row.data_values[row.data_keys.indexOf('order')];
-      return value ? <ArrayValue value={value?.split(',')} /> : <span />;
-    }
-    if (column.key === 'description') {
-      const value = row[column.key];
+    if (key === 'description') {
+      const value = row[key];
+
       let headerExtra = '';
       if (row.newish === 1) {
         headerExtra = `Query (First seen ${row.firstSeen})`;
@@ -105,32 +190,21 @@ export default function APIModuleView({
         headerExtra = `Query (Last seen ${row.lastSeen})`;
       }
       return (
-        <Hovercard header={headerExtra} body={value}>
+        <Hovercard header={headerExtra} body={highlightSql(row.formatted_desc, row)}>
           <Link onClick={() => onSelect(row, rowIndex)} to="" style={rowStyle}>
             {value.substring(0, 30)}
             {value.length > 30 ? '...' : ''}
             {value.length > 30 ? value.substring(value.length - 30) : ''}
           </Link>
-          {row?.newish === 1 && <StyledBadge type="new" text="new" />}
-          {row?.retired === 1 && <StyledBadge type="warning" text="old" />}
+          {renderBadge(row, selectedRow)}
         </Hovercard>
       );
     }
-    if (['p75', 'total_time'].includes(column.key.toString())) {
-      return <span style={rowStyle}>{row[column.key].toFixed(2)}ms</span>;
+    if (key === 'p75' || key === 'total_time') {
+      const value = row[key];
+      return <span style={rowStyle}>{value.toFixed(2)}ms</span>;
     }
-    if (column.key === 'conditions') {
-      const value = row.data_values[row.data_keys.indexOf('where')];
-      return value ? (
-        <Link onClick={() => onSelect(row, rowIndex)} to="">
-          {value.length > 60 ? '...' : ''}
-          {value.substring(value.length - 60)}
-        </Link>
-      ) : (
-        <span />
-      );
-    }
-    return <span style={rowStyle}>{row[column.key]}</span>;
+    return <span style={rowStyle}>{row[key]}</span>;
   }
 
   return (

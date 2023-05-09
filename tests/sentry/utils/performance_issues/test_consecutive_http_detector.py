@@ -86,6 +86,14 @@ class ConsecutiveDbDetectorTest(TestCase):
             )
         ]
 
+    def test_does_not_detect_consecutive_http_issue_with_frontend_events(self):
+        event = {
+            **self.create_issue_event(),
+            "sdk": {"name": "sentry.javascript.browser"},
+        }
+        problems = self.find_problems(event)
+        assert problems == []
+
     def test_does_not_detect_consecutive_http_issue_with_low_duration(self):
         event = self.create_issue_event(100)
         problems = self.find_problems(event)

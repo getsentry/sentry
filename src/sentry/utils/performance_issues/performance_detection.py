@@ -12,6 +12,7 @@ from sentry.eventstore.models import Event
 from sentry.models import Organization, Project, ProjectOption
 from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
 from sentry.utils import metrics
+from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
 
@@ -144,6 +145,15 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         "render_blocking_bytes_min": options.get(
             "performance.issues.render_blocking_assets.size_threshold"
         ),
+        "consecutive_http_spans_max_duration_between_spans": options.get(
+            "performance.issues.consecutive_http.max_duration_between_spans"
+        ),
+        "consecutive_http_spans_count_threshold": options.get(
+            "performance.issues.consecutive_http.consecutive_count_threshold"
+        ),
+        "consecutive_http_spans_span_duration_threshold": options.get(
+            "performance.issues.consecutive_http.span_duration_threshold"
+        ),
     }
 
     default_project_settings = (
@@ -234,9 +244,13 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "detection_enabled": settings["uncompressed_assets_detection_enabled"],
         },
         DetectorType.CONSECUTIVE_HTTP_OP: {
-            "span_duration_threshold": 1000,  # ms
-            "consecutive_count_threshold": 3,
-            "max_duration_between_spans": 10000,  # ms
+            "span_duration_threshold": settings[
+                "consecutive_http_spans_span_duration_threshold"
+            ],  # ms
+            "consecutive_count_threshold": settings["consecutive_http_spans_count_threshold"],
+            "max_duration_between_spans": settings[
+                "consecutive_http_spans_max_duration_between_spans"
+            ],  # ms
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
         },
         DetectorType.LARGE_HTTP_PAYLOAD: {"payload_size_threshold": 10000000},  # 10mb
@@ -388,6 +402,9 @@ def report_metrics_for_detectors(
 
         if detector.type in [DetectorType.UNCOMPRESSED_ASSETS]:
             detected_tags["browser_name"] = allowed_browser_name
+
+        if detector.type in [DetectorType.CONSECUTIVE_HTTP_OP]:
+            detected_tags["is_frontend"] = is_event_from_browser_javascript_sdk(event)
 
         first_problem = detected_problems[detected_problem_keys[0]]
         if first_problem.fingerprint:

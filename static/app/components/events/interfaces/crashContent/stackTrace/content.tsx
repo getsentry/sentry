@@ -147,7 +147,6 @@ class Content extends Component<Props, State> {
       meta,
       debugFrames,
       hideIcon,
-      mechanism,
     } = this.props;
 
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
@@ -240,11 +239,9 @@ class Content extends Component<Props, State> {
             onFunctionNameToggle={this.handleToggleFunctionName}
             showCompleteFunctionName={showCompleteFunctionName}
             isHoverPreviewed={isHoverPreviewed}
-            isNewestFrame={frameIdx === lastFrameIdx}
             frameMeta={meta?.frames?.[frameIdx]}
             registersMeta={meta?.registers}
             debugFrames={debugFrames}
-            mechanism={mechanism}
           />
         );
       }

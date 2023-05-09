@@ -96,7 +96,7 @@ if settings.ADDITIONAL_SAMPLED_URLS:
     SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
 
 # Tasks not included here are not sampled
-# If a parent task schedules other tasks you should add it in here or the children
+# If a parent task schedules other tasks you should add it in here or the child
 # tasks will not be sampled
 SAMPLED_TASKS = {
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
@@ -411,7 +411,7 @@ def configure_sdk():
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),
-            DjangoIntegration(),
+            DjangoIntegration(signals_spans=False),
             CeleryIntegration(),
             # This makes it so all levels of logging are recorded as breadcrumbs,
             # but none are captured as events (that's handled by the `internal`
@@ -552,7 +552,7 @@ def bind_organization_context(organization):
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with sentry_sdk.configure_scope() as scope, sentry_sdk.start_span(
+    with configure_scope() as scope, sentry_sdk.start_span(
         op="other", description="bind_organization_context"
     ):
         # This can be used to find errors that may have been mistagged

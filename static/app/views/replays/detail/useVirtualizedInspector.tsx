@@ -1,7 +1,7 @@
 import {MouseEvent, RefObject, useCallback} from 'react';
 import {CellMeasurerCache, List} from 'react-virtualized';
 
-import {OnExpand} from 'sentry/components/objectInspector';
+import {OnExpandCallback} from 'sentry/components/objectInspector';
 
 type Opts = {
   cache: CellMeasurerCache;
@@ -38,7 +38,7 @@ function useVirtualizedInspector({cache, listRef, expandPathsRef}: Opts) {
   };
 }
 
-export type OnDimensionChange = OnExpand extends (...a: infer U) => infer R
+export type OnDimensionChange = OnExpandCallback extends (...a: infer U) => infer R
   ? (index: number, ...a: U) => R
   : never;
 export default useVirtualizedInspector;

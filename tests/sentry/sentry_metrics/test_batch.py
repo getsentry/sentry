@@ -2,12 +2,12 @@ import logging
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any
 from unittest.mock import patch
 
 import pytest
 import sentry_kafka_schemas
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.codecs.json import JsonCodec
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch, PartitionIdxOffset
@@ -84,7 +84,9 @@ extracted_string_output = {
     }
 }
 
-_INGEST_SCHEMA = JsonCodec(schema=sentry_kafka_schemas.get_schema("ingest-metrics")["schema"])
+_INGEST_CODEC: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
+    "ingest-metrics"
+)
 
 
 def _construct_messages(payloads):
@@ -129,11 +131,10 @@ def _deconstruct_messages(snuba_messages, kafka_logical_topic="snuba-metrics"):
 
     rv = []
 
-    codec = JsonCodec(schema=sentry_kafka_schemas.get_schema(kafka_logical_topic)["schema"])
+    codec = sentry_kafka_schemas.get_codec(kafka_logical_topic)
 
     for msg in snuba_messages:
-        decoded = json.loads(msg.payload.value.decode("utf-8"))
-        codec.validate(decoded)
+        decoded = codec.decode(msg.payload.value, validate=True)
         rv.append((decoded, msg.payload.headers))
 
     return rv
@@ -236,7 +237,7 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
         outer_message,
         should_index_tag_values,
         False,
-        arroyo_input_codec=_INGEST_SCHEMA,
+        input_codec=_INGEST_CODEC,
     )
 
     assert batch.extract_strings() == expected
@@ -301,7 +302,7 @@ def test_extract_strings_with_multiple_use_case_ids():
         outer_message,
         True,
         False,
-        arroyo_input_codec=_INGEST_SCHEMA,
+        input_codec=_INGEST_CODEC,
     )
     assert batch.extract_strings() == {
         MockUseCaseID.USE_CASE_1: {
@@ -402,7 +403,7 @@ def test_extract_strings_with_invalid_mri():
         outer_message,
         True,
         False,
-        arroyo_input_codec=_INGEST_SCHEMA,
+        input_codec=_INGEST_CODEC,
     )
     assert batch.extract_strings() == {
         MockUseCaseID.USE_CASE_1: {
@@ -488,7 +489,7 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
         outer_message,
         True,
         False,
-        arroyo_input_codec=_INGEST_SCHEMA,
+        input_codec=_INGEST_CODEC,
     )
     assert batch.extract_strings() == {
         MockUseCaseID.USE_CASE_1: {
@@ -534,7 +535,7 @@ def test_all_resolved(caplog, settings):
         outer_message,
         True,
         False,
-        arroyo_input_codec=_INGEST_SCHEMA,
+        input_codec=_INGEST_CODEC,
     )
     assert batch.extract_strings() == (
         {
@@ -557,34 +558,30 @@ def test_all_resolved(caplog, settings):
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": 1,
-                    "d:sessions/duration@second": 2,
-                    "environment": 3,
-                    "errored": 4,
-                    "healthy": 5,
-                    "init": 6,
-                    "production": 7,
-                    "s:sessions/error@none": 8,
-                    "session.status": 9,
-                }
+            1: {
+                "c:sessions/session@none": 1,
+                "d:sessions/duration@second": 2,
+                "environment": 3,
+                "errored": 4,
+                "healthy": 5,
+                "init": 6,
+                "production": 7,
+                "s:sessions/error@none": 8,
+                "session.status": 9,
             }
         },
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                    "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                    "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
-                    "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
-                    "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
-                    "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
-                    "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
-                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
-                }
-            },
+            1: {
+                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
+                "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+            }
         },
     )
 
@@ -681,7 +678,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
         outer_message,
         True,
         True,
-        arroyo_input_codec=_INGEST_SCHEMA,
+        input_codec=_INGEST_CODEC,
     )
     assert batch.extract_strings() == (
         {
@@ -704,33 +701,29 @@ def test_all_resolved_with_routing_information(caplog, settings):
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": 1,
-                    "d:sessions/duration@second": 2,
-                    "environment": 3,
-                    "errored": 4,
-                    "healthy": 5,
-                    "init": 6,
-                    "production": 7,
-                    "s:sessions/error@none": 8,
-                    "session.status": 9,
-                }
+            1: {
+                "c:sessions/session@none": 1,
+                "d:sessions/duration@second": 2,
+                "environment": 3,
+                "errored": 4,
+                "healthy": 5,
+                "init": 6,
+                "production": 7,
+                "s:sessions/error@none": 8,
+                "session.status": 9,
             }
         },
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                    "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                    "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
-                    "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
-                    "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
-                    "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
-                    "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
-                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
-                }
+            1: {
+                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
+                "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
             }
         },
     )
@@ -841,7 +834,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
         outer_message,
         True,
         False,
-        arroyo_input_codec=_INGEST_SCHEMA,
+        input_codec=_INGEST_CODEC,
     )
     assert batch.extract_strings() == (
         {
@@ -864,33 +857,29 @@ def test_all_resolved_retention_days_honored(caplog, settings):
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": 1,
-                    "d:sessions/duration@second": 2,
-                    "environment": 3,
-                    "errored": 4,
-                    "healthy": 5,
-                    "init": 6,
-                    "production": 7,
-                    "s:sessions/error@none": 8,
-                    "session.status": 9,
-                }
+            1: {
+                "c:sessions/session@none": 1,
+                "d:sessions/duration@second": 2,
+                "environment": 3,
+                "errored": 4,
+                "healthy": 5,
+                "init": 6,
+                "production": 7,
+                "s:sessions/error@none": 8,
+                "session.status": 9,
             }
         },
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                    "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                    "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
-                    "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
-                    "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
-                    "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
-                    "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
-                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
-                }
+            1: {
+                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
+                "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
             }
         },
     )
@@ -996,7 +985,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
         outer_message,
         False,
         False,
-        arroyo_input_codec=_INGEST_SCHEMA,
+        input_codec=_INGEST_CODEC,
     )
     assert batch.extract_strings() == (
         {
@@ -1015,25 +1004,21 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": 1,
-                    "d:sessions/duration@second": 2,
-                    "environment": 3,
-                    "s:sessions/error@none": 4,
-                    "session.status": 5,
-                }
+            1: {
+                "c:sessions/session@none": 1,
+                "d:sessions/duration@second": 2,
+                "environment": 3,
+                "s:sessions/error@none": 4,
+                "session.status": 5,
             }
         },
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                    "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                    "s:sessions/error@none": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
-                    "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
-                }
+            1: {
+                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                "s:sessions/error@none": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
             }
         },
     )
@@ -1129,7 +1114,7 @@ def test_metric_id_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA)
+    batch = IndexerBatch(outer_message, True, False, input_codec=_INGEST_CODEC)
     assert batch.extract_strings() == (
         {
             MockUseCaseID.SESSIONS: {
@@ -1151,39 +1136,35 @@ def test_metric_id_rate_limited(caplog, settings):
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": None,
-                    "d:sessions/duration@second": None,
-                    "environment": 3,
-                    "errored": 4,
-                    "healthy": 5,
-                    "init": 6,
-                    "production": 7,
-                    "s:sessions/error@none": 8,
-                    "session.status": 9,
-                }
+            1: {
+                "c:sessions/session@none": None,
+                "d:sessions/duration@second": None,
+                "environment": 3,
+                "errored": 4,
+                "healthy": 5,
+                "init": 6,
+                "production": 7,
+                "s:sessions/error@none": 8,
+                "session.status": 9,
             }
         },
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": Metadata(
-                        id=None,
-                        fetch_type=FetchType.RATE_LIMITED,
-                        fetch_type_ext=FetchTypeExt(is_global=False),
-                    ),
-                    "d:sessions/duration@second": Metadata(
-                        id=None, fetch_type=FetchType.RATE_LIMITED, fetch_type_ext=None
-                    ),
-                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                    "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
-                    "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
-                    "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
-                    "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
-                    "s:sessions/error@none": Metadata(id=None, fetch_type=FetchType.DB_READ),
-                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
-                }
+            1: {
+                "c:sessions/session@none": Metadata(
+                    id=None,
+                    fetch_type=FetchType.RATE_LIMITED,
+                    fetch_type_ext=FetchTypeExt(is_global=False),
+                ),
+                "d:sessions/duration@second": Metadata(
+                    id=None, fetch_type=FetchType.RATE_LIMITED, fetch_type_ext=None
+                ),
+                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
+                "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                "s:sessions/error@none": Metadata(id=None, fetch_type=FetchType.DB_READ),
+                "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
             }
         },
     )
@@ -1236,7 +1217,7 @@ def test_tag_key_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA)
+    batch = IndexerBatch(outer_message, True, False, input_codec=_INGEST_CODEC)
     assert batch.extract_strings() == (
         {
             MockUseCaseID.SESSIONS: {
@@ -1258,37 +1239,33 @@ def test_tag_key_rate_limited(caplog, settings):
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": 1,
-                    "d:sessions/duration@second": 2,
-                    "environment": None,
-                    "errored": 4,
-                    "healthy": 5,
-                    "init": 6,
-                    "production": 7,
-                    "s:sessions/error@none": 8,
-                    "session.status": 9,
-                }
+            1: {
+                "c:sessions/session@none": 1,
+                "d:sessions/duration@second": 2,
+                "environment": None,
+                "errored": 4,
+                "healthy": 5,
+                "init": 6,
+                "production": 7,
+                "s:sessions/error@none": 8,
+                "session.status": 9,
             }
         },
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                    "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                    "environment": Metadata(
-                        id=None,
-                        fetch_type=FetchType.RATE_LIMITED,
-                        fetch_type_ext=FetchTypeExt(is_global=False),
-                    ),
-                    "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
-                    "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
-                    "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
-                    "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
-                    "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
-                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
-                }
+            1: {
+                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                "environment": Metadata(
+                    id=None,
+                    fetch_type=FetchType.RATE_LIMITED,
+                    fetch_type_ext=FetchTypeExt(is_global=False),
+                ),
+                "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
+                "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
             }
         },
     )
@@ -1321,7 +1298,7 @@ def test_tag_value_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(outer_message, True, False, arroyo_input_codec=_INGEST_SCHEMA)
+    batch = IndexerBatch(outer_message, True, False, input_codec=_INGEST_CODEC)
     assert batch.extract_strings() == (
         {
             MockUseCaseID.SESSIONS: {
@@ -1343,37 +1320,33 @@ def test_tag_value_rate_limited(caplog, settings):
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": 1,
-                    "d:sessions/duration@second": 2,
-                    "environment": 3,
-                    "errored": None,
-                    "healthy": 5,
-                    "init": 6,
-                    "production": 7,
-                    "s:sessions/error@none": 8,
-                    "session.status": 9,
-                }
+            1: {
+                "c:sessions/session@none": 1,
+                "d:sessions/duration@second": 2,
+                "environment": 3,
+                "errored": None,
+                "healthy": 5,
+                "init": 6,
+                "production": 7,
+                "s:sessions/error@none": 8,
+                "session.status": 9,
             }
         },
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                    "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                    "errored": Metadata(
-                        id=None,
-                        fetch_type=FetchType.RATE_LIMITED,
-                        fetch_type_ext=FetchTypeExt(is_global=False),
-                    ),
-                    "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
-                    "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
-                    "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
-                    "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
-                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
-                }
+            1: {
+                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                "errored": Metadata(
+                    id=None,
+                    fetch_type=FetchType.RATE_LIMITED,
+                    fetch_type_ext=FetchTypeExt(is_global=False),
+                ),
+                "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
             }
         },
     )
@@ -1456,7 +1429,7 @@ def test_one_org_limited(caplog, settings):
         outer_message,
         True,
         False,
-        arroyo_input_codec=_INGEST_SCHEMA,
+        input_codec=_INGEST_CODEC,
     )
     assert batch.extract_strings() == (
         {
@@ -1482,44 +1455,40 @@ def test_one_org_limited(caplog, settings):
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": 1,
-                    "environment": None,
-                    "init": 3,
-                    "production": 4,
-                    "session.status": 5,
-                },
-                2: {
-                    "d:sessions/duration@second": 1,
-                    "environment": 2,
-                    "healthy": 3,
-                    "production": 4,
-                    "session.status": 5,
-                },
-            }
+            1: {
+                "c:sessions/session@none": 1,
+                "environment": None,
+                "init": 3,
+                "production": 4,
+                "session.status": 5,
+            },
+            2: {
+                "d:sessions/duration@second": 1,
+                "environment": 2,
+                "healthy": 3,
+                "production": 4,
+                "session.status": 5,
+            },
         },
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                    "environment": Metadata(
-                        id=None,
-                        fetch_type=FetchType.RATE_LIMITED,
-                        fetch_type_ext=FetchTypeExt(is_global=False),
-                    ),
-                    "init": Metadata(id=3, fetch_type=FetchType.HARDCODED),
-                    "production": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
-                    "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
-                },
-                2: {
-                    "d:sessions/duration@second": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                    "environment": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                    "healthy": Metadata(id=3, fetch_type=FetchType.HARDCODED),
-                    "production": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
-                    "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
-                },
-            }
+            1: {
+                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                "environment": Metadata(
+                    id=None,
+                    fetch_type=FetchType.RATE_LIMITED,
+                    fetch_type_ext=FetchTypeExt(is_global=False),
+                ),
+                "init": Metadata(id=3, fetch_type=FetchType.HARDCODED),
+                "production": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
+            },
+            2: {
+                "d:sessions/duration@second": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                "environment": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                "healthy": Metadata(id=3, fetch_type=FetchType.HARDCODED),
+                "production": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
+            },
         },
     )
 
@@ -1585,7 +1554,7 @@ def test_cardinality_limiter(caplog, settings):
         outer_message,
         True,
         False,
-        arroyo_input_codec=_INGEST_SCHEMA,
+        input_codec=_INGEST_CODEC,
     )
     keys_to_remove = list(batch.parsed_payloads_by_offset)[:2]
     # the messages come in a certain order, and Python dictionaries preserve
@@ -1611,25 +1580,21 @@ def test_cardinality_limiter(caplog, settings):
 
     snuba_payloads = batch.reconstruct_messages(
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "environment": 1,
-                    "errored": 2,
-                    "production": 3,
-                    "s:sessions/error@none": 4,
-                    "session.status": 5,
-                },
-            }
+            1: {
+                "environment": 1,
+                "errored": 2,
+                "production": 3,
+                "s:sessions/error@none": 4,
+                "session.status": 5,
+            },
         },
         {
-            MockUseCaseID.SESSIONS: {
-                1: {
-                    "environment": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                    "errored": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                    "production": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                    "s:sessions/error@none": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
-                    "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
-                }
+            1: {
+                "environment": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                "errored": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                "production": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                "s:sessions/error@none": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
             }
         },
     )

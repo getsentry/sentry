@@ -7,6 +7,7 @@ from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.role import OrganizationRoleSerializer
 from sentry.models import ExternalActor, OrganizationMember, User
+from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.team import Team
 from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.user import user_service
@@ -72,7 +73,9 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         users_by_id: Mapping[str, Any] = {
             u["id"]: u for u in user_service.serialize_many(filter={"user_ids": users_set})
         }
-        actor_ids = [u.actor_id for u in user_service.get_many(filter={"user_ids": users_set})]
+        actor_ids = Actor.objects.filter(
+            user_id__in=users_set, type=ACTOR_TYPES["user"]
+        ).values_list("id", flat=True)
         external_users_map = defaultdict(list)
 
         if "externalUsers" in self.expand:
@@ -103,6 +106,11 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
     def serialize(
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> OrganizationMemberResponse:
+        inviter_name = None
+        if obj.inviter_id:
+            inviter = user_service.get_user(user_id=obj.inviter_id)
+            if inviter:
+                inviter_name = inviter.get_display_name()
         d: OrganizationMemberResponse = {
             "id": str(obj.id),
             "email": obj.get_email(),
@@ -122,7 +130,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             },
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),
-            "inviterName": obj.inviter.get_display_name() if obj.inviter else None,
+            "inviterName": inviter_name,
             "orgRolesFromTeams": attrs.get("orgRolesFromTeams", []),
         }
 

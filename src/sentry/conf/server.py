@@ -301,6 +301,8 @@ USE_TZ = True
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE = (
+    # Uncomment to enable Content Security Policy on this Sentry installation (experimental)
+    # "csp.middleware.CSPMiddleware",
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -406,6 +408,62 @@ SILENCED_SYSTEM_CHECKS = (
     # It's not our problem; refer to Django issue 32260.
     "urls.E007",
 )
+
+CSP_INCLUDE_NONCE_IN = [
+    "script-src",
+]
+
+CSP_DEFAULT_SRC = [
+    "'none'",
+]
+CSP_SCRIPT_SRC = [
+    "'self'",
+    "'unsafe-inline'",
+]
+CSP_FONT_SRC = [
+    "'self'",
+    "data:",
+]
+CSP_CONNECT_SRC = [
+    "'self'",
+]
+CSP_FRAME_ANCESTORS = [
+    "'none'",
+]
+CSP_OBJECT_SRC = [
+    "'none'",
+]
+CSP_BASE_URI = [
+    "'none'",
+]
+CSP_STYLE_SRC = [
+    "'self'",
+    "'unsafe-inline'",
+]
+CSP_IMG_SRC = [
+    "'self'",
+    "blob:",
+    "data:",
+    "https://secure.gravatar.com",
+]
+
+if ENVIRONMENT == "development":
+    CSP_SCRIPT_SRC += [
+        "'unsafe-eval'",
+    ]
+    CSP_CONNECT_SRC += [
+        "ws://127.0.0.1:8000",
+    ]
+
+# Before enforcing Content Security Policy, we recommend creating a separate
+# Sentry project and collecting CSP violations in report only mode:
+# https://docs.sentry.io/product/security-policy-reporting/
+
+# Point this parameter to your Sentry installation:
+# CSP_REPORT_URI = "https://example.com/api/{PROJECT_ID}/security/?sentry_key={SENTRY_KEY}"
+
+# To enforce CSP (block violated resources), update the following parameter to False
+CSP_REPORT_ONLY = True
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
@@ -928,6 +986,16 @@ CELERYBEAT_SCHEDULE = {
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
+    "dynamic-sampling-sliding-window": {
+        "task": "sentry.dynamic_sampling.tasks.sliding_window",
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
+    },
+    "dynamic-sampling-sliding-window-org": {
+        "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
+    },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
@@ -940,10 +1008,16 @@ CELERYBEAT_SCHEDULE = {
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
-    "schedule_auto_transition": {
-        "task": "sentry.tasks.schedule_auto_transition",
+    "schedule_auto_transition_new": {
+        "task": "sentry.tasks.schedule_auto_transition_new",
         # Run job once a day at 00:30
         "schedule": crontab(minute=30, hour="0"),
+        "options": {"expires": 3600},
+    },
+    "schedule_auto_transition_regressed": {
+        "task": "sentry.tasks.schedule_auto_transition_regressed",
+        # Run job once a day at 02:30
+        "schedule": crontab(minute=30, hour="2"),
         "options": {"expires": 3600},
     },
 }
@@ -1143,6 +1217,8 @@ SENTRY_FEATURES = {
     "organizations:issue-states": False,
     # Enable the task to transition new issues that are 3+ days old to (Unresolved, Ongoing) state
     "organizations:issue-states-auto-transition-new-ongoing": False,
+    # Enable the task to transition regressed issues that are 14+ days old to (Unresolved, Ongoing) state
+    "organizations:issue-states-auto-transition-regressed-ongoing": False,
     # Enable the new issue states and substates
     "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1347,8 +1423,6 @@ SENTRY_FEATURES = {
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
-    # Enable temporary underfetching to improve Replay List query performance
-    "organizations:session-replay-slim-table": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
     # Enables subquery optimizations for the replay_index page
@@ -1357,8 +1431,6 @@ SENTRY_FEATURES = {
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
-    # Enable the new experimental metrics extraction on spans
-    "organizations:span-metrics-extraction": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -1425,6 +1497,10 @@ SENTRY_FEATURES = {
     "organizations:org-roles-for-teams": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
+    # Enable sliding window for dynamic sampling
+    "organizations:ds-sliding-window": False,
+    # If true certain Slack messages will be escaped to prevent rendering markdown
+    "organizations:slack-escape-messages": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1452,6 +1528,8 @@ SENTRY_FEATURES = {
     "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
     "projects:auto-associate-commits-to-release": False,
+    # Starfish: extract metrics from the spans
+    "projects:span-metrics-extraction": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -3237,8 +3315,9 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "options": {"cluster": "default"},
 }
 
-# Killswitch to ignore checkins for explicit monitors
-SENTRY_MONITORS_IGNORED_MONITORS = []
+# Monitor limits to prevent abuse
+MAX_MONITORS_PER_ORG = 10000
+MAX_ENVIRONMENTS_PER_MONITOR = 1000
 
 # Raise schema validation errors and make the indexer crash (only useful in
 # tests)

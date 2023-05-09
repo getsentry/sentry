@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, FrozenSet, Iterable, List, Optional
+from typing import Any, Callable, List, Optional
 
 from django.db.models import QuerySet
 
@@ -20,15 +20,13 @@ from sentry.services.hybrid_cloud.filter_query import (
     OpaqueSerializedResponse,
 )
 from sentry.services.hybrid_cloud.user import (
-    RpcAuthenticator,
-    RpcAvatar,
     RpcUser,
-    RpcUserEmail,
     UserFilterArgs,
     UserSerializeType,
     UserService,
     UserUpdateArgs,
 )
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 
 
 class DatabaseBackedUserService(UserService):
@@ -102,6 +100,7 @@ class DatabaseBackedUserService(UserService):
         ]
 
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
+        # TODO(actorid) this method needs to be removed too
         return [
             self._FQ.serialize_rpc(u) for u in self._FQ.base_query().filter(actor_id__in=actor_ids)
         ]
@@ -157,7 +156,7 @@ class DatabaseBackedUserService(UserService):
             return list(query)
 
         def base_query(self) -> QuerySet:
-            return User.objects.select_related("avatar").extra(
+            return User.objects.extra(
                 select={
                     "permissions": "select array_agg(permission) from sentry_userpermission where user_id=auth_user.id",
                     "roles": """
@@ -167,7 +166,8 @@ class DatabaseBackedUserService(UserService):
                           ON sentry_userrole_users.role_id=sentry_userrole.id
                        WHERE user_id=auth_user.id""",
                     "useremails": "select array_agg(row_to_json(sentry_useremail)) from sentry_useremail where user_id=auth_user.id",
-                    "authenticators": "select array_agg(row_to_json(auth_authenticator)) from auth_authenticator where user_id=auth_user.id",
+                    "authenticators": "SELECT array_agg(row_to_json(auth_authenticator)) FROM auth_authenticator WHERE user_id=auth_user.id",
+                    "useravatar": "SELECT array_agg(row_to_json(sentry_useravatar)) FROM sentry_useravatar WHERE user_id = auth_user.id",
                 }
             )
 
@@ -188,69 +188,3 @@ class DatabaseBackedUserService(UserService):
             return serialize_rpc_user(user)
 
     _FQ = _UserFilterQuery()
-
-
-def serialize_rpc_user(user: User) -> RpcUser:
-    args = {
-        field_name: getattr(user, field_name)
-        for field_name in RpcUser.__fields__
-        if hasattr(user, field_name)
-    }
-    args["pk"] = user.pk
-    args["display_name"] = user.get_display_name()
-    args["label"] = user.get_label()
-    args["is_superuser"] = user.is_superuser
-    args["is_sentry_app"] = user.is_sentry_app or False
-    args["password_usable"] = user.has_usable_password()
-    args["emails"] = frozenset([email.email for email in user.get_verified_emails()])
-    args["session_nonce"] = user.session_nonce
-
-    # And process the _base_query special data additions
-    args["permissions"] = frozenset(getattr(user, "permissions", None) or ())
-
-    if args["name"] is None:
-        # This field is non-nullable according to the Django schema, but may be null
-        # on some servers due to migration history
-        args["name"] = ""
-
-    roles: FrozenSet[str] = frozenset()
-    if hasattr(user, "roles") and user.roles is not None:
-        roles = frozenset(flatten(user.roles))
-    args["roles"] = roles
-
-    args["useremails"] = [
-        RpcUserEmail(id=e["id"], email=e["email"], is_verified=e["is_verified"])
-        for e in (getattr(user, "useremails", None) or ())
-    ]
-
-    avatar = user.avatar.first()
-    if avatar is not None:
-        avatar = RpcAvatar(
-            id=avatar.id,
-            file_id=avatar.file_id,
-            ident=avatar.ident,
-            avatar_type=avatar.get_avatar_type_display(),
-        )
-    args["avatar"] = avatar
-
-    args["authenticators"] = [
-        RpcAuthenticator(
-            id=a["id"],
-            user_id=a["user_id"],
-            created_at=a["created_at"],
-            last_used_at=a["last_used_at"],
-            type=a["type"],
-            config=a["config"],
-        )
-        for a in (getattr(user, "authenticators", None) or ())
-    ]
-
-    return RpcUser(**args)
-
-
-def flatten(iter: Iterable[Any]) -> List[Any]:
-    return (
-        ((flatten(iter[0]) + flatten(iter[1:])) if len(iter) > 0 else [])
-        if type(iter) is list or isinstance(iter, BaseQuerySet)
-        else [iter]
-    )

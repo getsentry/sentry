@@ -1,35 +1,66 @@
+from __future__ import annotations
+
 from typing import Any, Mapping, Optional, Union
 
-from requests import Response
-from sentry_sdk.tracing import Transaction
+from requests import PreparedRequest, Response
+from sentry_sdk.tracing import Span
 
-from sentry.integrations.client import ApiClient
+from sentry.constants import ObjectStatus
+from sentry.models.integrations.integration import Integration
+from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client import BaseApiResponse
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import metrics
 
 SLACK_DATADOG_METRIC = "integrations.slack.http_response"
 
 
-class SlackClient(ApiClient):  # type: ignore
+class SlackClient(IntegrationProxyClient):
     allow_redirects = False
     integration_name = "slack"
     base_url = "https://slack.com/api"
     metrics_prefix = "integrations.slack"
 
+    @control_silo_function
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        integration = None
+        base_qs = {
+            "provider": EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
+            "status": ObjectStatus.ACTIVE,
+        }
+        if self.integration_id:
+            integration = Integration.objects.filter(id=self.integration_id, **base_qs).first()
+        elif self.org_integration_id:
+            integration = Integration.objects.filter(
+                organizationintegration__id=self.org_integration_id, **base_qs
+            ).first()
+
+        if not integration:
+            return prepared_request
+
+        token = (
+            integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+        )
+        prepared_request.headers["Authorization"] = f"Bearer {token}"
+        return prepared_request
+
     def track_response_data(
         self,
         code: Union[str, int],
-        span: Transaction,
+        span: Span | None = None,
         error: Optional[str] = None,
         resp: Optional[Response] = None,
     ) -> None:
+        # if no span was passed, create a dummy to which to add data to avoid having to wrap every
+        # span call in `if span`
+        span = span or Span()
+
         try:
             span.set_http_status(int(code))
         except ValueError:
             span.set_status(str(code))
-
-        span.set_tag("integration", "slack")
 
         is_ok = False
         # If Slack gives us back a 200 we still want to check the 'ok' param
@@ -76,8 +107,6 @@ class SlackClient(ApiClient):  # type: ignore
         json: bool = False,
         timeout: Optional[int] = None,
     ) -> BaseApiResponse:
-        # TODO(meredith): Slack actually supports json now for the chat.postMessage so we
-        # can update that so we don't have to pass json=False here
         response: BaseApiResponse = self._request(
             method, path, headers=headers, data=data, params=params, json=json
         )

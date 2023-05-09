@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
@@ -13,14 +13,20 @@ import {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {HostDetails} from 'sentry/views/starfish/modules/APIModule/hostDetails';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
 import EndpointTable from './endpointTable';
 import HostTable from './hostTable';
-import {getEndpointDomainsQuery, getEndpointGraphQuery} from './queries';
+import {
+  getEndpointDomainsEventView,
+  getEndpointDomainsQuery,
+  getEndpointGraphQuery,
+} from './queries';
 
 const HTTP_ACTION_OPTIONS = [
   {value: '', label: 'All'},
@@ -53,12 +59,18 @@ export default function APIModuleView({location, onSelect}: Props) {
     domain: '',
     transaction: '',
   });
+  const endpointTableRef = useRef<HTMLInputElement>(null);
 
-  const {isLoading: _isDomainsLoading, data: domains} = useQuery({
-    queryKey: ['domains'],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getEndpointDomainsQuery()}`).then(res => res.json()),
-    retry: false,
+  const endpointsDomainEventView = getEndpointDomainsEventView({
+    datetime: pageFilter.selection.datetime,
+  });
+  const endpointsDomainQuery = getEndpointDomainsQuery({
+    datetime: pageFilter.selection.datetime,
+  });
+
+  const {isLoading: _isDomainsLoading, data: domains} = useSpansQuery({
+    eventView: endpointsDomainEventView,
+    queryString: endpointsDomainQuery,
     initialData: [],
   });
 
@@ -180,6 +192,19 @@ export default function APIModuleView({location, onSelect}: Props) {
           </ChartPanel>
         </ChartsContainerItem>
       </ChartsContainer>
+      <HostTable
+        location={location}
+        setDomainFilter={domain => {
+          setDomain(domain);
+          // TODO: Cheap way to scroll to the endpoints table without waiting for async request
+          setTimeout(() => {
+            endpointTableRef.current?.scrollIntoView({
+              behavior: 'smooth',
+              inline: 'start',
+            });
+          }, 200);
+        }}
+      />
       <FilterOptionsContainer>
         <CompactSelect
           triggerProps={{prefix: t('Operation')}}
@@ -195,13 +220,14 @@ export default function APIModuleView({location, onSelect}: Props) {
         />
       </FilterOptionsContainer>
 
-      <EndpointTable
-        location={location}
-        onSelect={onSelect}
-        filterOptions={{...state, datetime: pageFilter.selection.datetime}}
-      />
-
-      <HostTable location={location} />
+      <div ref={endpointTableRef}>
+        {state.domain && <HostDetails host={state.domain} />}
+        <EndpointTable
+          location={location}
+          onSelect={onSelect}
+          filterOptions={{...state, datetime: pageFilter.selection.datetime}}
+        />
+      </div>
     </Fragment>
   );
 }
@@ -231,7 +257,6 @@ function APIModuleChart({
         top: '8px',
         bottom: '0',
       }}
-      disableMultiAxis
       definedAxisTicks={4}
       stacked
       isLineChart

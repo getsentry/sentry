@@ -1,8 +1,9 @@
 from collections import defaultdict, namedtuple
 from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union
 
+import sentry_sdk
 from django.conf import settings
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.db.models.signals import post_save
 from rest_framework import serializers
 
@@ -37,7 +38,10 @@ def fetch_actors_by_actor_ids(cls, actor_ids: List[int]) -> Union[List["Team"], 
     from sentry.models import Team, User
 
     if cls is User:
-        return user_service.get_by_actor_ids(actor_ids=actor_ids)
+        user_ids = Actor.objects.filter(type=ACTOR_TYPES["user"], id__in=actor_ids).values_list(
+            "user_id", flat=True
+        )
+        return user_service.get_many(filter={"user_ids": user_ids})
     if cls is Team:
         return Team.objects.filter(actor_id__in=actor_ids).all()
 
@@ -51,7 +55,6 @@ def fetch_actor_by_id(cls, id: int) -> Union["Team", "RpcUser"]:
         return Team.objects.get(id=id)
 
     if cls is User:
-
         user = user_service.get_user(id)
         if user is None:
             raise User.DoesNotExist()
@@ -112,14 +115,18 @@ def get_actor_id_for_user(user: Union["User", RpcUser]):
     return get_actor_for_user(user).id
 
 
-def get_actor_for_user(user: Union["User", RpcUser]):
-    with transaction.atomic():
+def get_actor_for_user(user: Union["User", RpcUser]) -> "Actor":
+    try:
+        with transaction.atomic():
+            actor, created = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user.id)
+            if created:
+                # TODO(actorid) This RPC call should be removed once all reads to
+                # User.actor_id have been removed.
+                user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
+    except IntegrityError as err:
+        # Likely a race condition. Long term these need to be eliminated.
+        sentry_sdk.capture_exception(err)
         actor = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).first()
-        if not actor:
-            actor = Actor.objects.create(type=ACTOR_TYPES["user"], user_id=user.id)
-            # TODO(hybridcloud) This RPC call should be removed once all reads to User.actor_id have
-            # been removed.
-            user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
     return actor
 
 
@@ -179,8 +186,9 @@ class ActorTuple(namedtuple("Actor", "id type")):
 
     def resolve_to_actor(self) -> Actor:
         obj = self.resolve()
-        if obj.actor_id is None and isinstance(obj, RpcUser):  # This can happen for users now.
-            return Actor.objects.get(id=get_actor_id_for_user(obj))
+        if obj.actor_id is None or isinstance(obj, RpcUser):
+            return get_actor_for_user(obj)
+        # Team case
         return Actor.objects.get(id=obj.actor_id)
 
     @classmethod

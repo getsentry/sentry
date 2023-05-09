@@ -12,7 +12,6 @@ from sentry.exceptions import (
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
@@ -44,7 +43,9 @@ class EntitySubscriptionTestCase(TestCase):
             "init",
             "crashed",
         ]:
-            indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=self.organization.id, string=tag)
+            indexer.record(
+                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string=tag
+            )
 
     def test_get_entity_subscriptions_for_sessions_dataset_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"

@@ -12,6 +12,7 @@ from psycopg2.errorcodes import DEADLOCK_DETECTED
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
+    KeyResults,
     OrgId,
     StringIndexer,
     UseCaseKeyCollection,
@@ -22,7 +23,11 @@ from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCac
 from sentry.sentry_metrics.indexer.limiters.writes import writes_limiter_factory
 from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, BaseIndexer, IndexerTable
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
-from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import (
+    METRIC_PATH_MAPPING,
+    REVERSE_METRIC_PATH_MAPPING,
+    UseCaseID,
+)
 from sentry.utils import metrics
 
 __all__ = ["PostgresIndexer"]
@@ -48,11 +53,9 @@ class PGStringIndexerV2(StringIndexer):
         """
         We are not querying for the use case ID because the order of
         operations for our changes needs to be:
-
         >>> 1. Change write path
             2. do DB backfill
             3. Change Read path (this code)
-
         We are currently at step 1
         """
         conditions = [
@@ -103,6 +106,17 @@ class PGStringIndexerV2(StringIndexer):
             raise last_seen_exception
 
     def bulk_record(
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
+    ) -> KeyResults:
+        res = self._uca_bulk_record({REVERSE_METRIC_PATH_MAPPING[use_case_id]: org_strings})
+        return res.results[REVERSE_METRIC_PATH_MAPPING[use_case_id]]
+
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+        """Store a string and return the integer ID generated for it"""
+        result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
+        return result[org_id][string]
+
+    def _uca_bulk_record(
         self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
     ) -> UseCaseKeyResults:
         db_read_keys = UseCaseKeyCollection(strings)
@@ -112,7 +126,7 @@ class PGStringIndexerV2(StringIndexer):
             [
                 UseCaseKeyResult(
                     use_case_id=(
-                        UseCaseID(db_obj.use_case_id)
+                        UseCaseID.TRANSACTIONS
                         if self._get_metric_path_key(strings.keys()) is UseCaseKey.PERFORMANCE
                         else UseCaseID.SESSIONS
                     ),
@@ -150,14 +164,12 @@ class PGStringIndexerV2(StringIndexer):
         For now, we are going to operate on the assumption that no custom use case ID
         will enter this part of the code path. Therethere strings can only be one of the
         follow 2 types:
-
         {
             "sessions" : {
                 org_id_1: ... ,
                 org_id_n: ... ,
             }
         }
-
         {
             "transactions" : {
                 org_id_1: ... ,
@@ -171,7 +183,10 @@ class PGStringIndexerV2(StringIndexer):
             # After the DB has successfully committed writes, we exit this
             # context manager and consume quotas. If the DB crashes we
             # shouldn't consume quota.
-            filtered_db_write_keys = writes_limiter_state.accepted_keys
+            use_case_collection = writes_limiter_state.accepted_keys
+            # TODO: later we will use the whole use case collection instead
+            # of pulling out the key collection
+            filtered_db_write_keys = use_case_collection.mapping[use_case_id]
             del db_write_keys
 
             rate_limited_key_results = UseCaseKeyResults()
@@ -188,7 +203,7 @@ class PGStringIndexerV2(StringIndexer):
             if filtered_db_write_keys.size == 0:
                 return db_read_key_results.merge(rate_limited_key_results)
 
-            if use_case_path_key is not UseCaseKey.RELEASE_HEALTH:
+            if use_case_path_key is UseCaseKey.PERFORMANCE:
                 new_records = [
                     self._get_table_from_use_case_ids(strings.keys())(
                         organization_id=int(organization_id),
@@ -229,9 +244,8 @@ class PGStringIndexerV2(StringIndexer):
 
         return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
 
-    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
-        """Store a string and return the integer ID generated for it"""
-        result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
+    def _uca_record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        result = self._uca_bulk_record(strings={use_case_id: {org_id: {string}}})
         return result[use_case_id][org_id][string]
 
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:

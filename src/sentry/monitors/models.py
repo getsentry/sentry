@@ -6,8 +6,11 @@ from typing import TYPE_CHECKING
 import pytz
 from croniter import croniter
 from dateutil import rrule
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -38,6 +41,14 @@ SCHEDULE_INTERVAL_MAP = {
     "hour": rrule.HOURLY,
     "minute": rrule.MINUTELY,
 }
+
+
+class MonitorLimitsExceeded(Exception):
+    pass
+
+
+class MonitorEnvironmentLimitsExceeded(Exception):
+    pass
 
 
 def get_next_schedule(last_checkin, schedule_type, schedule):
@@ -74,21 +85,42 @@ def get_monitor_environment_context(monitor_environment):
     }
 
 
-class MonitorStatus(ObjectStatus):
+class MonitorStatus:
+    """
+    The monitor status is an extension of the ObjectStatus constants. In this
+    extension the "status" of a monitor (passing, failing, timed out, etc) is
+    represented.
+
+    [!!]: This is NOT used for the status of the Monitor model itself. That is
+          simply an ObjectStatus.
+    """
+
+    ACTIVE = 0
+    DISABLED = 1
+    PENDING_DELETION = 2
+    DELETION_IN_PROGRESS = 3
+
     OK = 4
     ERROR = 5
     MISSED_CHECKIN = 6
+    TIMEOUT = 7
 
     @classmethod
     def as_choices(cls):
         return (
+            # TODO: It is unlikely a MonitorEnvironment should ever be in the
+            # 'active' state, since for a monitor environmnent to be created
+            # some checkins must have been sent.
             (cls.ACTIVE, "active"),
+            # The DISABLED state is denormalized off of the parent Monitor.
             (cls.DISABLED, "disabled"),
+            # MonitorEnvironment's may be deleted
             (cls.PENDING_DELETION, "pending_deletion"),
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
             (cls.MISSED_CHECKIN, "missed_checkin"),
+            (cls.TIMEOUT, "timeout"),
         )
 
 
@@ -108,7 +140,10 @@ class CheckInStatus:
     MISSED = 4
     """Monitor did not check in on time"""
 
-    FINISHED_VALUES = (OK, ERROR)
+    TIMEOUT = 5
+    """Checkin was left in-progress past max_runtime"""
+
+    FINISHED_VALUES = (OK, ERROR, TIMEOUT)
     """Sentient values used to indicate a monitor is finished running"""
 
     @classmethod
@@ -119,6 +154,7 @@ class CheckInStatus:
             (cls.ERROR, "error"),
             (cls.IN_PROGRESS, "in_progress"),
             (cls.MISSED, "missed"),
+            (cls.TIMEOUT, "timeout"),
         )
 
 
@@ -170,7 +206,7 @@ class Monitor(Model):
     project_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=128)
     status = BoundedPositiveIntegerField(
-        default=MonitorStatus.ACTIVE, choices=MonitorStatus.as_choices()
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )
     type = BoundedPositiveIntegerField(
         default=MonitorType.UNKNOWN,
@@ -218,16 +254,17 @@ class Monitor(Model):
         )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
-    def get_status_display(self) -> str:
-        for status_id, display in MonitorStatus.as_choices():
-            if status_id in [
-                ObjectStatus.ACTIVE,
-                ObjectStatus.DISABLED,
-                ObjectStatus.PENDING_DELETION,
-                ObjectStatus.DELETION_IN_PROGRESS,
-            ]:
-                return display
-        return "active"
+
+@receiver(pre_save, sender=Monitor)
+def check_organization_monitor_limits(sender, instance, **kwargs):
+    if (
+        instance.pk is None
+        and sender.objects.filter(organization_id=instance.organization_id).count()
+        == settings.MAX_MONITORS_PER_ORG
+    ):
+        raise MonitorLimitsExceeded(
+            f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization"
+        )
 
 
 @region_silo_only_model
@@ -353,6 +390,8 @@ class MonitorEnvironment(Model):
         new_status = MonitorStatus.ERROR
         if reason == MonitorFailure.MISSED_CHECKIN:
             new_status = MonitorStatus.MISSED_CHECKIN
+        elif reason == MonitorFailure.DURATION:
+            new_status = MonitorStatus.TIMEOUT
 
         affected = (
             type(self)
@@ -395,3 +434,15 @@ class MonitorEnvironment(Model):
             params["status"] = MonitorStatus.OK
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
+
+
+@receiver(pre_save, sender=MonitorEnvironment)
+def check_monitor_environment_limits(sender, instance, **kwargs):
+    if (
+        instance.pk is None
+        and sender.objects.filter(monitor=instance.monitor).count()
+        == settings.MAX_ENVIRONMENTS_PER_MONITOR
+    ):
+        raise MonitorEnvironmentLimitsExceeded(
+            f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
+        )

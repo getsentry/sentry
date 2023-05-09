@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,10 +17,7 @@ import {
   COMPARISON_TYPE_CHOICE_VALUES,
   COMPARISON_TYPE_CHOICES,
 } from 'sentry/views/alerts/utils/constants';
-import {
-  EVENT_FREQUENCY_PERCENT_CONDITION,
-  REAPPEARED_EVENT_CONDITION,
-} from 'sentry/views/projectInstall/issueAlertOptions';
+import {REAPPEARED_EVENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {AlertRuleComparisonType} from '../metric/types';
 
@@ -61,12 +57,9 @@ const createSelectOptions = (
   organization: Organization
 ): Array<{
   label: React.ReactNode;
-  plainTextLabel: string;
   value: IssueAlertRuleActionTemplate;
 }> => {
   return actions.map(node => {
-    const isNew = node.id === EVENT_FREQUENCY_PERCENT_CONDITION;
-
     if (node.id.includes('NotifyEmailAction')) {
       let label = t('Issue Owners, Team, or Member');
       if (hasStreamlineTargeting(organization)) {
@@ -74,7 +67,6 @@ const createSelectOptions = (
       }
       return {
         value: node,
-        plainTextLabel: label,
         label,
       };
     }
@@ -86,20 +78,13 @@ const createSelectOptions = (
       const label = t('The issue changes state from archived to escalating');
       return {
         value: node,
-        plainTextLabel: label,
         label,
       };
     }
 
     return {
       value: node,
-      plainTextLabel: node.prompt ?? node.label,
-      label: (
-        <Fragment>
-          {isNew && <StyledFeatureBadge type="new" tooltipProps={{disabled: true}} />}
-          {node.prompt ?? node.label}
-        </Fragment>
-      ),
+      label: node.prompt ?? node.label,
     };
   });
 };
@@ -331,8 +316,4 @@ const RuleNodes = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     grid-auto-flow: row;
   }
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin: 0 ${space(1)} 0 0;
 `;

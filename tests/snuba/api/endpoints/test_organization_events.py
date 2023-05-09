@@ -57,13 +57,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             kwargs={"organization_slug": self.organization.slug},
         )
 
-    def do_request(self, query, features=None):
+    def do_request(self, query, features=None, **kwargs):
         if features is None:
             features = {"organizations:discover-basic": True}
         features.update(self.features)
         self.login_as(user=self.user)
         with self.feature(features):
-            return self.client_get(self.reverse_url(), query, format="json")
+            return self.client_get(self.reverse_url(), query, format="json", **kwargs)
 
     def load_data(self, platform="transaction", timestamp=None, duration=None, **kwargs):
         if timestamp is None:
@@ -178,6 +178,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         response = self.do_request(query)
         assert response.status_code == 400
         assert "events from multiple projects" in response.data["detail"]
+
+    def test_multi_project_feature_gate_replays(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+
+        project = self.create_project(organization=self.organization, teams=[team])
+        project2 = self.create_project(organization=self.organization, teams=[team])
+
+        query = {"field": ["id", "project.id"], "project": [project.id, project2.id]}
+        response = self.do_request(query, **{"HTTP_X-Sentry-Replay-Request": "1"})
+        assert response.status_code == 200
 
     def test_invalid_search_terms(self):
         self.create_project()

@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping
 
 from sentry.constants import ObjectStatus
-from sentry.models import ExternalActor, Integration, Organization, Team, User
+from sentry.models import ExternalActor, Organization, Team, User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, RpcIdentityProvider, identity_service
@@ -73,32 +73,33 @@ def _get_channel_and_integration_by_user(
 
 def _get_channel_and_integration_by_team(
     team_actor_id: int, organization: Organization, provider: ExternalProviders
-) -> Mapping[str, Integration]:
+) -> Mapping[str, RpcIntegration]:
+    org_integrations = integration_service.get_organization_integrations(
+        status=ObjectStatus.ACTIVE, organization_id=organization.id
+    )
+
     try:
-        external_actor = (
-            ExternalActor.objects.filter(
-                provider=provider.value,
-                actor_id=team_actor_id,
-                organization_id=organization.id,
-                integration__status=ObjectStatus.ACTIVE,
-                integration__organizationintegration__status=ObjectStatus.ACTIVE,
-                # limit to org here to prevent multiple query results
-                integration__organizationintegration__organization_id=organization.id,
-            )
-            .select_related("integration")
-            .get()
+        external_actor = ExternalActor.objects.get(
+            provider=provider.value,
+            actor_id=team_actor_id,
+            organization_id=organization.id,
+            integration_id__in=[oi.integration_id for oi in org_integrations],
         )
     except ExternalActor.DoesNotExist:
         return {}
-    return {external_actor.external_id: external_actor.integration}
+
+    integration = integration_service.get_integration(integration_id=external_actor.integration_id)
+    if integration.status != ObjectStatus.ACTIVE:
+        return {}
+    return {external_actor.external_id: integration}
 
 
 def get_integrations_by_channel_by_recipient(
     organization: Organization,
     recipients: Iterable[RpcActor | Team | User],
     provider: ExternalProviders,
-) -> Mapping[RpcActor, Mapping[str, RpcIntegration | Integration]]:
-    output: MutableMapping[RpcActor, Mapping[str, RpcIntegration | Integration]] = defaultdict(dict)
+) -> Mapping[RpcActor, Mapping[str, RpcIntegration]]:
+    output: MutableMapping[RpcActor, Mapping[str, RpcIntegration]] = defaultdict(dict)
     for recipient in (RpcActor.from_object(r) for r in recipients):
         channels_to_integrations = None
         if recipient.actor_type == ActorType.USER:

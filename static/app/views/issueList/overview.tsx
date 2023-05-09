@@ -727,10 +727,11 @@ class IssueListOverview extends Component<Props, State> {
     }
   };
 
-  onRealtimePoll = (data: any, _links: any) => {
+  onRealtimePoll = (data: any, {queryCount}: {queryCount: number}) => {
     // Note: We do not update state with cursors from polling,
     // `CursorPoller` updates itself with new cursors
     GroupStore.addToFront(data);
+    this.setState({queryCount});
   };
 
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
@@ -780,7 +781,9 @@ class IssueListOverview extends Component<Props, State> {
         ignoredIds.length > 0 &&
         (query.includes('is:unresolved') || isForReviewQuery(query))
       ) {
-        this.onIssueAction(ignoredIds, 'Ignored');
+        const hasEscalatingIssues =
+          organization.features.includes('escalating-issues-ui');
+        this.onIssueAction(ignoredIds, hasEscalatingIssues ? 'Archived' : 'Ignored');
       }
       // Remove issues that are marked as Reviewed from the For Review tab, but still include the
       // issues if on the All Unresolved tab or saved/custom searches.
@@ -834,6 +837,7 @@ class IssueListOverview extends Component<Props, State> {
       num_old_issues: numOldIssues,
       num_new_issues: numNewIssues,
       num_issues: data.length,
+      sort: this.getSort(),
     });
   }
 
@@ -1084,7 +1088,7 @@ class IssueListOverview extends Component<Props, State> {
 
   onIssueAction = (
     itemIds: string[],
-    actionType: 'Reviewed' | 'Resolved' | 'Ignored'
+    actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived'
   ) => {
     if (itemIds.length > 1) {
       addMessage(`${actionType} ${itemIds.length} ${t('Issues')}`, 'success', {
@@ -1148,7 +1152,7 @@ class IssueListOverview extends Component<Props, State> {
     // validate that it's correct at the first and last page
     if (!links?.next?.results || this.allResultsVisible()) {
       // On last available page
-      numPreviousIssues = queryCount - groupIds.length;
+      numPreviousIssues = Math.max(queryCount - groupIds.length, 0);
     } else if (!links?.previous?.results) {
       // On first available page
       numPreviousIssues = 0;
@@ -1233,6 +1237,7 @@ class IssueListOverview extends Component<Props, State> {
                 <VisuallyCompleteWithData
                   hasData={this.state.groupIds.length > 0}
                   id="IssueList-Body"
+                  isLoading={this.state.issuesLoading}
                 >
                   <GroupListBody
                     memberList={this.state.memberList}
@@ -1251,7 +1256,7 @@ class IssueListOverview extends Component<Props, State> {
             </Panel>
             <StyledPagination
               caption={
-                !issuesLoading
+                !issuesLoading && modifiedQueryCount > 0
                   ? tct('[start]-[end] of [total]', {
                       start: numPreviousIssues + 1,
                       end: numPreviousIssues + numIssuesOnPage,

@@ -39,7 +39,7 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
 
   const {projects} = useProjects();
 
-  const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
+  const [currentProject, setCurrentProject] = useState<Project | undefined>();
   const pageFilters = usePageFilters();
 
   const {supported: supportedProjects, unsupported: unsupportedProjects} = useMemo(
@@ -48,6 +48,11 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
   );
 
   useEffect(() => {
+    // If we already picked a project, don't do anything
+    if (currentProject) {
+      return;
+    }
+
     // we'll only ever select an unsupportedProject if they do not have a supported project in their organization
     if (supportedProjects.length === 0 && unsupportedProjects.length > 0) {
       if (pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS) {
@@ -78,13 +83,19 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
       mapping[project.id] = project;
       return mapping;
     }, {});
+
     for (const projectId of pageFilters.selection.projects) {
       if (supportedProjectsById[String(projectId)]) {
         setCurrentProject(supportedProjectsById[String(projectId)]);
         return;
       }
     }
-  }, [pageFilters.selection.projects, supportedProjects, unsupportedProjects]);
+  }, [
+    pageFilters.selection.projects,
+    currentProject,
+    supportedProjects,
+    unsupportedProjects,
+  ]);
 
   const projectSelectOptions = useMemo(() => {
     const supportedProjectItems: SelectValue<string>[] = supportedProjects.map(
