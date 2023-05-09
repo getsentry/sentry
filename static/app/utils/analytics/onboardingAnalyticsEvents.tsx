@@ -3,6 +3,23 @@ export type OnboardingEventParameters = {
     from: string;
     to: string;
   };
+  'onboarding.data_removal_modal_confirm_button_clicked': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.data_removal_modal_dismissed': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.data_removal_modal_rendered': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.data_removed': {
+    date_created: string;
+    platform: string;
+    project_id: string;
+  };
   'onboarding.explore_sentry_button_clicked': {
     platform: string;
     project_id: string;
@@ -24,6 +41,19 @@ export type OnboardingEventParameters = {
   'onboarding.js_loader_optional_configuration_shown': {
     platform: string;
     project_id: string;
+  };
+  'onboarding.select_framework_modal_close_button_clicked': {
+    platform: string;
+  };
+  'onboarding.select_framework_modal_configure_sdk_button_clicked': {
+    framework: string;
+    platform: string;
+  };
+  'onboarding.select_framework_modal_rendered': {
+    platform: string;
+  };
+  'onboarding.select_framework_modal_skip_button_clicked': {
+    platform: string;
   };
   'onboarding.setup_loader_docs_rendered': {
     platform: string;
@@ -54,4 +84,16 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.view_sample_error_button_clicked':
     'Onboarding: View Sample Error Button Clicked',
   'onboarding.back_button_clicked': 'Onboarding: Back Button Clicked',
+  'onboarding.select_framework_modal_close_button_clicked':
+    'Onboarding: Framework Modal Close Button Clicked',
+  'onboarding.select_framework_modal_configure_sdk_button_clicked':
+    'Onboarding: Framework Modal Configure SDK Button Clicked',
+  'onboarding.select_framework_modal_rendered': 'Onboarding: Framework Modal Rendered',
+  'onboarding.select_framework_modal_skip_button_clicked':
+    'Onboarding: Framework Modal Skip Button Clicked',
+  'onboarding.data_removal_modal_dismissed': 'Onboarding: Data Removal Modal Dismissed',
+  'onboarding.data_removal_modal_confirm_button_clicked':
+    'Onboarding: Data Removal Modal Confirm Button Clicked',
+  'onboarding.data_removal_modal_rendered': 'Onboarding: Data Removal Modal Rendered',
+  'onboarding.data_removed': 'Onboarding: Data Removed',
 };

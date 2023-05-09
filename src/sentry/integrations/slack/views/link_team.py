@@ -62,6 +62,10 @@ class SelectTeamForm(forms.Form):  # type: ignore
 
 
 class SlackLinkTeamView(BaseView):
+    """
+    Django view for linking team to slack channel. Creates an entry on ExternalActor table.
+    """
+
     @transaction_start("SlackLinkTeamView")
     @never_cache
     def handle(self, request: Request, signed_params: str) -> HttpResponse:

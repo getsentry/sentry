@@ -296,7 +296,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         service = PagerDutyService.objects.create(
             service_name=service_name,
             integration_key="abc",
-            organization_integration=second_integration.organizationintegration_set.first(),
+            organization_integration_id=second_integration.organizationintegration_set.first().id,
         )
         data["targetIdentifier"] = service.id
         response = self.get_error_response(
@@ -310,7 +310,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         service = PagerDutyService.objects.create(
             service_name=service_name,
             integration_key="def",
-            organization_integration=integration.organizationintegration_set.first(),
+            organization_integration_id=integration.organizationintegration_set.first().id,
         )
         data["targetIdentifier"] = service.id
         response = self.get_success_response(
@@ -365,6 +365,19 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         assert NotificationAction.objects.filter(id=action.id).exists()
 
     def test_delete_simple(self):
+        assert NotificationAction.objects.filter(id=self.notif_action.id).exists()
+        self.get_success_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_204_NO_CONTENT,
+            method="DELETE",
+        )
+        assert not NotificationAction.objects.filter(id=self.notif_action.id).exists()
+
+    def test_delete_success_as_manager(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, role="manager")
+        self.login_as(user)
         assert NotificationAction.objects.filter(id=self.notif_action.id).exists()
         self.get_success_response(
             self.organization.slug,

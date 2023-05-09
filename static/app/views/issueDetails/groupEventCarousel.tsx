@@ -21,7 +21,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, Organization} from 'sentry/types';
 import {defined, formatBytesBase2} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
 import {
   getAnalyticsDataForEvent,
@@ -127,7 +127,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   const downloadJson = () => {
     const jsonUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
     window.open(jsonUrl);
-    trackAdvancedAnalyticsEvent('issue_details.event_json_clicked', {
+    trackAnalytics('issue_details.event_json_clicked', {
       organization,
       group_id: parseInt(`${event.groupID}`, 10),
     });
@@ -138,7 +138,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
       window.location.origin +
         normalizeUrl(`${makeBaseEventsPath({organization, group})}${event.id}/`)
     );
-    trackAdvancedAnalyticsEvent('issue_details.copy_event_link_clicked', {
+    trackAnalytics('issue_details.copy_event_link_clicked', {
       organization,
       ...getAnalyticsDataForGroup(group),
       ...getAnalyticsDataForEvent(event),
@@ -164,7 +164,12 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             {getDynamicText({
               fixed: 'Jan 1, 12:00 AM',
               value: (
-                <Tooltip showUnderline title={<EventCreatedTooltip event={event} />}>
+                <Tooltip
+                  isHoverable
+                  showUnderline
+                  title={<EventCreatedTooltip event={event} />}
+                  overlayStyle={{maxWidth: 300}}
+                >
                   <DateTime date={event.dateCreated ?? event.dateReceived} />
                 </Tooltip>
               ),
@@ -219,7 +224,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                 orgSlug: organization.slug,
               }),
               onAction: () => {
-                trackAdvancedAnalyticsEvent('issue_details.event_details_clicked', {
+                trackAnalytics('issue_details.event_details_clicked', {
                   organization,
                   ...getAnalyticsDataForGroup(group),
                   ...getAnalyticsDataForEvent(event),
@@ -235,7 +240,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                 if (breadcrumbsHeader) {
                   breadcrumbsHeader.scrollIntoView({behavior: 'smooth'});
                 }
-                trackAdvancedAnalyticsEvent('issue_details.header_view_replay_clicked', {
+                trackAnalytics('issue_details.header_view_replay_clicked', {
                   organization,
                   ...getAnalyticsDataForGroup(group),
                   ...getAnalyticsDataForEvent(event),

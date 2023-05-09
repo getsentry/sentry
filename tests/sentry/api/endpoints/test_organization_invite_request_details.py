@@ -192,7 +192,7 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase):
         assert audit_log_entry.data == member.get_audit_log_data()
 
     def test_member_cannot_approve_invite_request(self):
-        self.invite_request.inviter = self.member.user
+        self.invite_request.inviter_id = self.member.user.id
         self.invite_request.save()
 
         self.login_as(user=self.member.user)

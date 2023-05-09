@@ -103,6 +103,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         )
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
+            monitor_environment=monitor_env,
             project_id=project.id,
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
@@ -169,5 +170,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         assert not Group.objects.filter(id=group.id).exists()
 
         conditions = eventstore.Filter(project_ids=[project.id, keeper.id], group_ids=[group.id])
-        events = eventstore.get_events(conditions)
+        events = eventstore.get_events(
+            conditions, tenant_ids={"organization_id": 123, "referrer": "r"}
+        )
         assert len(events) == 0

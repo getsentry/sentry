@@ -158,15 +158,9 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
             },
           });
 
-          const target = organization.features.includes(
-            'performance-metrics-backed-transaction-summary'
-          )
-            ? transactionTarget
-            : trendsTarget;
-
           return (
             <Fragment>
-              <GrowLink to={target}>
+              <GrowLink to={transactionTarget}>
                 <Truncate value={listItem.transaction} maxLength={40} />
               </GrowLink>
               <RightAlignedCell>

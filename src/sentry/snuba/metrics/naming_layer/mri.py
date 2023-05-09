@@ -125,6 +125,10 @@ class TransactionMRI(Enum):
     USER_MISERY = "e:transactions/user_misery@ratio"
     TEAM_KEY_TRANSACTION = "e:transactions/team_key_transaction@none"
 
+    # Spans (might be moved to their own namespace soon)
+    SPAN_USER = "s:transactions/span.user@none"
+    SPAN_DURATION = "d:transactions/span.duration@millisecond"
+
 
 @dataclass
 class ParsedMRI:

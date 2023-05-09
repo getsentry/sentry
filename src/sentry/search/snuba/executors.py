@@ -214,7 +214,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         self,
         group_category: int,
         query_partial: IntermediateSearchQueryPartial,
-        organization_id: int,
+        organization: Organization,
         project_ids: Sequence[int],
         environments: Optional[Sequence[str]],
         group_ids: Optional[Sequence[int]],
@@ -237,7 +237,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         # convert search_filters to snuba format
         converted_filters = self._convert_search_filters(
-            organization_id, project_ids, environments, search_filters
+            organization.id, project_ids, environments, search_filters
         )
 
         # categorize the clauses into having or condition clauses
@@ -276,12 +276,12 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        strategy = get_search_strategies()[group_category]
+        strategy = get_search_strategies(organization, actor)[group_category]
         snuba_query_params = strategy(
             pinned_query_partial,
             selected_columns,
             aggregations,
-            organization_id,
+            organization.id,
             project_ids,
             environments,
             group_ids,
@@ -290,7 +290,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             actor,
         )
         if snuba_query_params is not None:
-            snuba_query_params.kwargs["tenant_ids"] = {"organization_id": organization_id}
+            snuba_query_params.kwargs["tenant_ids"] = {"organization_id": organization.id}
         return snuba_query_params
 
     def snuba_search(
@@ -334,7 +334,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             sf
             for sf in search_filters or ()
             # remove any search_filters that are only available in postgres, we special case date
-            if not (sf.key.name in self.postgres_only_fields or sf.key.name == "date")
+            if not (sf.key.name in self.postgres_only_fields.union(["date", "timestamp"]))
         ]
 
         # common pinned parameters that won't change based off datasource
@@ -358,7 +358,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not group_categories:
             group_categories = {
                 gc
-                for gc in get_search_strategies().keys()
+                for gc in get_search_strategies(organization, actor).keys()
                 if gc != GroupCategory.PROFILE.value
                 or features.has("organizations:issue-platform", organization, actor=actor)
             }
@@ -366,36 +366,55 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not features.has("organizations:performance-issues-search", organization):
             group_categories.discard(GroupCategory.PERFORMANCE.value)
 
-        query_params_for_categories = []
+        query_params_for_categories = {}
 
         for gc in group_categories:
             try:
-                query_params_for_categories.append(
-                    self._prepare_params_for_category(
-                        gc,
-                        query_partial,
-                        organization.id,
-                        project_ids,
-                        environments,
-                        group_ids,
-                        filters,
-                        snuba_search_filters,
-                        sort_field,
-                        start,
-                        end,
-                        cursor,
-                        get_sample,
-                        actor,
-                    )
+                query_params_for_categories[gc] = self._prepare_params_for_category(
+                    gc,
+                    query_partial,
+                    organization,
+                    project_ids,
+                    environments,
+                    group_ids,
+                    filters,
+                    snuba_search_filters,
+                    sort_field,
+                    start,
+                    end,
+                    cursor,
+                    get_sample,
+                    actor,
                 )
             except UnsupportedSearchQuery:
                 pass
 
-        query_params_for_categories = [
-            query_params for query_params in query_params_for_categories if query_params is not None
-        ]
+        query_params_for_categories = {
+            gc: query_params
+            for gc, query_params in query_params_for_categories.items()
+            if query_params is not None
+        }
 
-        bulk_query_results = bulk_raw_query(query_params_for_categories, referrer=referrer)
+        try:
+            bulk_query_results = bulk_raw_query(
+                list(query_params_for_categories.values()), referrer=referrer
+            )
+        except Exception as e:
+            metrics.incr(
+                "snuba.search.group_category_bulk",
+                tags={
+                    GroupCategory(gc_val).name.lower(): True
+                    for gc_val, _ in query_params_for_categories.items()
+                },
+            )
+            # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
+            # we'll fallback to querying for errors only
+            if GroupCategory.ERROR.value in query_params_for_categories.keys():
+                bulk_query_results = bulk_raw_query(
+                    [query_params_for_categories[GroupCategory.ERROR.value]], referrer=referrer
+                )
+            else:
+                raise e
 
         rows: list[MergeableRow] = []
         total = 0
@@ -490,7 +509,15 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         now = timezone.now()
         end = None
         paginator_options = {} if paginator_options is None else paginator_options
-        end_params = [_f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f]
+        end_params = [
+            _f
+            for _f in [
+                date_to,
+                get_search_filter(search_filters, "date", "<"),
+                get_search_filter(search_filters, "timestamp", "<"),
+            ]
+            if _f
+        ]
         if end_params:
             end = min(end_params)
 
@@ -507,7 +534,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # apparently `retention_window_start` can be None(?), so we need a
         # fallback.
         retention_date = max(_f for _f in [retention_window_start, now - timedelta(days=90)] if _f)
-        start_params = [date_from, retention_date, get_search_filter(search_filters, "date", ">")]
+        start_params = [
+            date_from,
+            retention_date,
+            get_search_filter(search_filters, "date", ">"),
+            get_search_filter(search_filters, "timestamp", ">"),
+        ]
         start = max(_f for _f in start_params if _f)
         end = max([retention_date, end])
 
@@ -536,7 +568,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             not [
                 sf
                 for sf in (search_filters or ())
-                if sf.key.name not in self.postgres_only_fields.union(["date"])
+                if sf.key.name not in self.postgres_only_fields.union(["date", "timestamp"])
             ]
         ):
             group_queryset = (

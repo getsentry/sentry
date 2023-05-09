@@ -17,6 +17,7 @@ from snuba_sdk import (
     OrderBy,
 )
 
+from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory
@@ -60,6 +61,7 @@ from sentry.search.events.constants import (
     TIMESTAMP_TO_DAY_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
     TOTAL_COUNT_ALIAS,
+    TOTAL_TRANSACTION_DURATION_ALIAS,
     TRACE_PARENT_SPAN_ALIAS,
     TRACE_PARENT_SPAN_CONTEXT,
     TRANSACTION_STATUS_ALIAS,
@@ -106,6 +108,7 @@ class DiscoverDatasetConfig(DatasetConfig):
     def __init__(self, builder: builder.QueryBuilder):
         self.builder = builder
         self.total_count: Optional[int] = None
+        self.total_sum_transaction_duration: Optional[float] = None
 
     @property
     def search_filter_converter(
@@ -152,6 +155,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             MEASUREMENTS_STALL_PERCENTAGE: self._resolve_measurements_stall_percentage,
             HTTP_STATUS_CODE_ALIAS: self._resolve_http_status_code,
             TOTAL_COUNT_ALIAS: self._resolve_total_count,
+            TOTAL_TRANSACTION_DURATION_ALIAS: self._resolve_total_sum_transaction_duration,
             DEVICE_CLASS_ALIAS: self._resolve_device_class,
         }
 
@@ -1275,6 +1279,30 @@ class DiscoverDatasetConfig(DatasetConfig):
         self.total_count = results["data"][0]["count"]
         return Function("toUInt64", [self.total_count], alias)
 
+    def _resolve_total_sum_transaction_duration(self, alias: str) -> SelectType:
+        """This must be cached since it runs another query"""
+        self.builder.requires_other_aggregates = True
+        if self.total_sum_transaction_duration is not None:
+            return Function("toFloat64", [self.total_sum_transaction_duration], alias)
+        # TODO[Shruthi]: Figure out parametrization of the args to sum()
+        total_query = builder.QueryBuilder(
+            dataset=self.builder.dataset,
+            params={},
+            snuba_params=self.builder.params,
+            selected_columns=["sum(transaction.duration)"],
+        )
+        total_query.columns += self.builder.resolve_groupby()
+        total_query.where = self.builder.where
+        total_results = total_query.run_query(
+            Referrer.API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD.value
+        )
+        results = total_query.process_results(total_results)
+        if len(results["data"]) != 1:
+            self.total_sum_transaction_duration = 0
+            return Function("toFloat64", [0], alias)
+        self.total_sum_transaction_duration = results["data"][0]["sum_transaction_duration"]
+        return Function("toFloat64", [self.total_sum_transaction_duration], alias)
+
     def _resolve_device_class(self, _: str) -> SelectType:
         return Function(
             "multiIf",
@@ -1575,10 +1603,10 @@ class DiscoverDatasetConfig(DatasetConfig):
         value = to_list(search_filter.value.value)
         # `unknown` is a special value for when there is no issue associated with the event
         group_short_ids = [v for v in value if v and v != "unknown"]
-        error_group_filter_values = ["" for v in value if not v or v == "unknown"]
+        general_group_filter_values = ["" for v in value if not v or v == "unknown"]
         perf_group_filter_values = ["" for v in value if not v or v == "unknown"]
 
-        error_groups = []
+        general_groups = []
         performance_groups = []
 
         if group_short_ids and self.builder.params.organization is not None:
@@ -1590,32 +1618,35 @@ class DiscoverDatasetConfig(DatasetConfig):
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
+                org = None
+                if groups:
+                    org = groups[0].project.organization
                 for group in groups:
-                    if group.issue_category == GroupCategory.ERROR:
-                        error_groups.append(group.id)
-                    elif group.issue_category == GroupCategory.PERFORMANCE:
+                    if group.issue_category == GroupCategory.PERFORMANCE and not features.has(
+                        "organizations:issue-platform-search-perf-issues", org
+                    ):
                         performance_groups.append(group.id)
-                error_groups = sorted(error_groups)
+                    else:
+                        general_groups.append(group.id)
+                general_groups = sorted(general_groups)
                 performance_groups = sorted(performance_groups)
 
-                error_group_filter_values.extend(error_groups)
+                general_group_filter_values.extend(general_groups)
                 perf_group_filter_values.extend(performance_groups)
 
-        # TODO (udameli): if both groups present, return data for both
-        if error_group_filter_values:
+        if general_group_filter_values:
             return self.builder.convert_search_filter_to_condition(
                 SearchFilter(
                     SearchKey("issue.id"),
                     operator,
                     SearchValue(
-                        error_group_filter_values
+                        general_group_filter_values
                         if search_filter.is_in_filter
-                        else error_group_filter_values[0]
+                        else general_group_filter_values[0]
                     ),
                 )
             )
 
-        # TODO (udameli): handle the has:issue case for transactions
         if performance_groups:
             return self.builder.convert_search_filter_to_condition(
                 SearchFilter(

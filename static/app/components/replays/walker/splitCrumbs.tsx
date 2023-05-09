@@ -1,30 +1,37 @@
 import styled from '@emotion/styled';
-import first from 'lodash/first';
-import last from 'lodash/last';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {BreadcrumbTypeNavigation, Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 
 type MaybeOnClickHandler = null | ((crumb: Crumb) => void);
+
+function getUrl(crumb: undefined | Crumb) {
+  if (crumb?.type === BreadcrumbType.NAVIGATION) {
+    return crumb.data?.to?.split('?')?.[0];
+  }
+  if (crumb?.type === BreadcrumbType.INIT) {
+    return crumb.data?.url;
+  }
+  return undefined;
+}
 
 function splitCrumbs({
   crumbs,
   onClick,
   startTimestampMs,
 }: {
-  crumbs: BreadcrumbTypeNavigation[];
+  crumbs: Crumb[];
   onClick: MaybeOnClickHandler;
   startTimestampMs: number;
 }) {
-  const firstUrl = first(crumbs)?.data?.to?.split('?')?.[0];
+  const firstCrumb = crumbs.slice(0, 1) as Crumb[];
   const summarizedCrumbs = crumbs.slice(1, -1) as Crumb[];
-  const lastUrl = last(crumbs)?.data?.to?.split('?')?.[0];
+  const lastCrumb = crumbs.slice(-1) as Crumb[];
 
   if (crumbs.length === 0) {
     // This one shouldn't overflow, but by including the component css stays
@@ -38,10 +45,11 @@ function splitCrumbs({
 
   if (crumbs.length > 3) {
     return [
-      <SingleLinkSegment
+      <SummarySegment
         key="first"
-        path={firstUrl}
-        onClick={onClick ? () => onClick(first(crumbs) as Crumb) : null}
+        crumbs={firstCrumb}
+        startTimestampMs={startTimestampMs}
+        handleOnClick={onClick}
       />,
       <SummarySegment
         key="summary"
@@ -49,43 +57,23 @@ function splitCrumbs({
         startTimestampMs={startTimestampMs}
         handleOnClick={onClick}
       />,
-      <SingleLinkSegment
+      <SummarySegment
         key="last"
-        path={lastUrl}
-        onClick={onClick ? () => onClick(last(crumbs) as Crumb) : null}
+        crumbs={lastCrumb}
+        startTimestampMs={startTimestampMs}
+        handleOnClick={onClick}
       />,
     ];
   }
 
   return crumbs.map((crumb, i) => (
-    <SingleLinkSegment
+    <SummarySegment
       key={i}
-      path={crumb.data?.to?.split('?')?.[0]}
-      onClick={onClick ? () => onClick(crumb as Crumb) : null}
+      crumbs={[crumb] as Crumb[]}
+      startTimestampMs={startTimestampMs}
+      handleOnClick={onClick}
     />
   ));
-}
-
-function SingleLinkSegment({
-  onClick,
-  path,
-}: {
-  onClick: null | (() => void);
-  path: undefined | string;
-}) {
-  if (!path) {
-    return null;
-  }
-  const content = (
-    <Tooltip title={path}>
-      <TextOverflow ellipsisDirection="left">{path}</TextOverflow>
-    </Tooltip>
-  );
-  if (onClick) {
-    // TODO(replays): Add a href that deeplinks to `crumb.timestamp`
-    return <Link onClick={onClick}>{content}</Link>;
-  }
-  return <Span>{content}</Span>;
 }
 
 function SummarySegment({
@@ -117,10 +105,12 @@ function SummarySegment({
     </ScrollingList>
   );
 
+  const label =
+    crumbs.length === 1 ? getUrl(crumbs[0]) : tn('%s Page', '%s Pages', crumbs.length);
   return (
     <Span>
       <HalfPaddingHovercard body={summaryItems} position="right">
-        <TextOverflow>{tn('%s Page', '%s Pages', crumbs.length)}</TextOverflow>
+        <TextOverflow>{label}</TextOverflow>
       </HalfPaddingHovercard>
     </Span>
   );
@@ -138,13 +128,6 @@ const Span = styled('span')`
   color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 0;
-`;
-
-const Link = styled('a')`
-  color: ${p => p.theme.gray500};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 0;
-  text-decoration: underline;
 `;
 
 const HalfPaddingHovercard = styled(

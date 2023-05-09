@@ -47,8 +47,9 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
-    "organizations:transaction-name-normalize",
+    "projects:span-metrics-extraction",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
+    "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
     "organizations:session-replay-recording-scrubbing",
@@ -152,7 +153,14 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
 
 def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) -> List[str]:
-    return [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
+    try:
+        computed_quotas = [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
+    except BaseException:
+        metrics.incr("relay.config.get_quotas", tags={"success": False}, sample_rate=1.0)
+        raise
+    else:
+        metrics.incr("relay.config.get_quotas", tags={"success": True}, sample_rate=1.0)
+        return computed_quotas
 
 
 def get_project_config(
@@ -259,7 +267,7 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 def _get_project_config(
     project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
 ) -> "ProjectConfig":
-    if project.status != ObjectStatus.VISIBLE:
+    if project.status != ObjectStatus.ACTIVE:
         return ProjectConfig(project, disabled=True)
 
     public_keys = get_public_key_configs(project, full_config, project_keys=project_keys)

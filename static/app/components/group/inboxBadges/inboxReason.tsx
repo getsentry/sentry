@@ -91,7 +91,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
     tooltipDescription?: string | React.ReactNode;
     tooltipText?: string;
   } {
-    const hasEscalatingIssues = organization.features.includes('escalating-issues');
+    const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
     switch (reason) {
       case GroupInboxReason.UNIGNORED:
         return {
@@ -159,13 +159,16 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
 
   const {tooltipText, tooltipDescription, reasonBadgeText, tagType} = getReasonDetails();
 
+  const disabledMarkReviewed = organization.features.includes('remove-mark-reviewed');
   const tooltip = (tooltipText || tooltipDescription) && (
     <TooltipWrapper>
       {tooltipText && <div>{tooltipText}</div>}
       {tooltipDescription && (
         <TooltipDescription>{tooltipDescription}</TooltipDescription>
       )}
-      <TooltipDescription>{t('Mark Reviewed to remove this label')}</TooltipDescription>
+      {disabledMarkReviewed ? null : (
+        <TooltipDescription>{t('Mark Reviewed to remove this label')}</TooltipDescription>
+      )}
     </TooltipWrapper>
   );
 

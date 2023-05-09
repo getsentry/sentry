@@ -47,6 +47,7 @@ export type IssueEventParameters = {
   'issue_details.copy_event_link_clicked': GroupEventParams;
   'issue_details.event_details_clicked': GroupEventParams;
   'issue_details.external_issue_created': ExternalIssueParams;
+  'issue_details.external_issue_loaded': ExternalIssueParams & {success: boolean};
   'issue_details.external_issue_modal_opened': ExternalIssueParams;
   'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.performance.autogrouped_siblings_toggle': {};
@@ -160,6 +161,7 @@ export type IssueEventParameters = {
     num_perf_issues: number;
     page: number;
     query: string;
+    sort: string;
     tab?: string;
   };
   'quick_trace.connected_services': {
@@ -259,6 +261,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
   'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
+  'issue_details.external_issue_loaded': 'Issue Details: External Issue Loaded',
   'issue_details.external_issue_modal_opened':
     'Issue Details: External Issue Modal Opened',
   'issue_details.external_issue_created': 'Issue Details: External Issue Created',

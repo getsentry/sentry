@@ -1,4 +1,3 @@
-from copy import deepcopy
 from datetime import datetime
 from typing import Any, List
 
@@ -8,14 +7,14 @@ from rest_framework.response import Response
 from sentry import eventstore
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import DetailedEventSerializer, serialize
+from sentry.api.serializers import IssueEventSerializer, serialize
 from sentry.eventstore.models import Event
 from sentry.issues.query import apply_performance_conditions
 from sentry.models.project import Project
 
 
 def wrap_event_response(request_user: Any, event: Event, project: Project, environments: List[str]):
-    event_data = serialize(event, request_user, DetailedEventSerializer())
+    event_data = serialize(event, request_user, IssueEventSerializer())
     # Used for paginating through events of a single issue in group details
     # Skip next/prev for issueless events
     next_event_id = None
@@ -39,17 +38,10 @@ def wrap_event_response(request_user: Any, event: Event, project: Project, envir
         if environments:
             conditions.append(["environment", "IN", environments])
 
-        # Ignore any time params and search entire retention period
-        next_event_filter = deepcopy(_filter)
-        next_event_filter.end = datetime.utcnow()
-        next_event = eventstore.get_next_event_id(event, filter=next_event_filter)
+        prev_ids, next_ids = eventstore.get_adjacent_event_ids(event, filter=_filter)
 
-        prev_event_filter = deepcopy(_filter)
-        prev_event_filter.start = datetime.utcfromtimestamp(0)
-        prev_event = eventstore.get_prev_event_id(event, filter=prev_event_filter)
-
-        next_event_id = next_event[1] if next_event else None
-        prev_event_id = prev_event[1] if prev_event else None
+        next_event_id = next_ids[1] if next_ids else None
+        prev_event_id = prev_ids[1] if prev_ids else None
 
     event_data["nextEventID"] = next_event_id
     event_data["previousEventID"] = prev_event_id

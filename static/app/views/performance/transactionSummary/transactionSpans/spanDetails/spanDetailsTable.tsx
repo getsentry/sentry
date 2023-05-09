@@ -90,7 +90,11 @@ export default function SpanTable(props: Props) {
 
   return (
     <Fragment>
-      <VisuallyCompleteWithData id="SpanDetails-SpanDetailsTable" hasData={!!data.length}>
+      <VisuallyCompleteWithData
+        id="SpanDetails-SpanDetailsTable"
+        hasData={!!data.length}
+        isLoading={isLoading}
+      >
         <GridEditable
           isLoading={isLoading}
           data={data}
@@ -225,7 +229,7 @@ type SpanDurationBarProps = {
   transactionDuration: number;
 };
 
-function SpanDurationBar(props: SpanDurationBarProps) {
+export function SpanDurationBar(props: SpanDurationBarProps) {
   const {spanOp, spanDuration, transactionDuration} = props;
   const widthPercentage = spanDuration / transactionDuration;
   const position = widthPercentage < 0.7 ? 'right' : 'inset';

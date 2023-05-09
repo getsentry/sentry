@@ -21,7 +21,7 @@ import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project, SelectValue} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,7 +39,7 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
 
   const {projects} = useProjects();
 
-  const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
+  const [currentProject, setCurrentProject] = useState<Project | undefined>();
   const pageFilters = usePageFilters();
 
   const {supported: supportedProjects, unsupported: unsupportedProjects} = useMemo(
@@ -48,6 +48,11 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
   );
 
   useEffect(() => {
+    // If we already picked a project, don't do anything
+    if (currentProject) {
+      return;
+    }
+
     // we'll only ever select an unsupportedProject if they do not have a supported project in their organization
     if (supportedProjects.length === 0 && unsupportedProjects.length > 0) {
       if (pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS) {
@@ -78,13 +83,19 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
       mapping[project.id] = project;
       return mapping;
     }, {});
+
     for (const projectId of pageFilters.selection.projects) {
       if (supportedProjectsById[String(projectId)]) {
         setCurrentProject(supportedProjectsById[String(projectId)]);
         return;
       }
     }
-  }, [pageFilters.selection.projects, supportedProjects, unsupportedProjects]);
+  }, [
+    pageFilters.selection.projects,
+    currentProject,
+    supportedProjects,
+    unsupportedProjects,
+  ]);
 
   const projectSelectOptions = useMemo(() => {
     const supportedProjectItems: SelectValue<string>[] = supportedProjects.map(
@@ -132,7 +143,7 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
       orientation={orientation}
       collapsed={collapsed}
       hidePanel={() => {
-        trackAdvancedAnalyticsEvent('profiling_views.onboarding_action', {
+        trackAnalytics('profiling_views.onboarding_action', {
           organization,
           action: 'dismissed',
         });
@@ -310,7 +321,7 @@ function OnboardingContent({
         project={currentProject}
         eventType="profile"
         onIssueReceived={() => {
-          trackAdvancedAnalyticsEvent('profiling_views.onboarding_action', {
+          trackAnalytics('profiling_views.onboarding_action', {
             organization,
             action: 'done',
           });

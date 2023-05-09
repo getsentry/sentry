@@ -101,10 +101,10 @@ def enforce_inter_silo_max_calls(max_calls: int) -> Generator[None, None, None]:
 class HybridCloudTestMixin:
     @exempt_from_silo_limits()
     def assert_org_member_mapping(self, org_member: OrganizationMember, expected=None):
+        org_member.refresh_from_db()
         org_member_mapping_query = OrganizationMemberMapping.objects.filter(
             organization_id=org_member.organization_id,
-            email=org_member.email,
-            user_id=org_member.user_id,
+            organizationmember_id=org_member.id,
         )
 
         assert org_member_mapping_query.count() == 1
@@ -125,8 +125,8 @@ class HybridCloudTestMixin:
         )
 
         assert org_member_mapping.role == org_member.role
-        if org_member.inviter:
-            assert org_member_mapping.inviter_id == org_member.inviter.id
+        if org_member.inviter_id:
+            assert org_member_mapping.inviter_id == org_member.inviter_id
         else:
             assert org_member_mapping.inviter_id is None
         assert org_member_mapping.invite_status == org_member.invite_status

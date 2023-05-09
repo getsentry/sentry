@@ -1,6 +1,6 @@
 # Please do not use
 #     from __future__ import annotations
-# in modules such as this one where hybrid cloud service classes and data models are
+# in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from enum import Enum
@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Optional, Union
 
 from sentry.models.actor import get_actor_id_for_user
 from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
@@ -23,8 +24,14 @@ class RpcActor(RpcModel):
     """Can represent any model object with a foreign key to Actor."""
 
     id: int
+    """The id of the user/team this actor represents"""
+
     actor_id: Optional[int]
+    """The id of the Actor record"""
+
     actor_type: ActorType
+    """Whether this actor is a User or Team"""
+
     slug: Optional[str] = None
     is_superuser: bool = False
 
@@ -36,7 +43,9 @@ class RpcActor(RpcModel):
         return hash((self.id, self.actor_id, self.actor_type))
 
     @classmethod
-    def from_object(cls, obj: Union["RpcActor", "User", "Team", "RpcUser"]) -> "RpcActor":
+    def from_object(
+        cls, obj: Union["RpcActor", "User", "Team", "RpcUser", "RpcTeam"]
+    ) -> "RpcActor":
         from sentry.models import Team, User
 
         if isinstance(obj, cls):
@@ -47,6 +56,8 @@ class RpcActor(RpcModel):
             return cls.from_orm_team(obj)
         if isinstance(obj, RpcUser):
             return cls.from_rpc_user(obj)
+        if isinstance(obj, RpcTeam):
+            return cls.from_rpc_team(obj)
         raise TypeError(f"Cannot build RpcActor from {type(obj)}")
 
     @classmethod
@@ -71,4 +82,8 @@ class RpcActor(RpcModel):
 
     @classmethod
     def from_orm_team(cls, team: "Team") -> "RpcActor":
+        return cls(id=team.id, actor_id=team.actor_id, actor_type=ActorType.TEAM, slug=team.slug)
+
+    @classmethod
+    def from_rpc_team(cls, team: RpcTeam) -> "RpcActor":
         return cls(id=team.id, actor_id=team.actor_id, actor_type=ActorType.TEAM, slug=team.slug)

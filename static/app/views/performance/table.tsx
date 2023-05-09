@@ -17,8 +17,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
@@ -77,7 +76,7 @@ class _Table extends Component<Props, State> {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location, organization, projects} = this.props;
 
-      trackAdvancedAnalyticsEvent('performance_views.overview.cellaction', {
+      trackAnalytics('performance_views.overview.cellaction', {
         organization,
         action,
       });
@@ -211,7 +210,7 @@ class _Table extends Component<Props, State> {
 
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
-    if (tableMeta[fieldName] === 'integer' && defined(value) && value > 999) {
+    if (tableMeta[fieldName] === 'integer' && typeof value === 'number' && value > 999) {
       return (
         <Tooltip
           title={value.toLocaleString()}
@@ -251,7 +250,7 @@ class _Table extends Component<Props, State> {
 
   onSortClick(currentSortKind?: string, currentSortField?: string) {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.landingv2.transactions.sort', {
+    trackAnalytics('performance_views.landingv2.transactions.sort', {
       organization,
       field: currentSortField,
       direction: currentSortKind,
@@ -260,7 +259,7 @@ class _Table extends Component<Props, State> {
 
   paginationAnalyticsEvent = (direction: string) => {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.landingv3.table_pagination', {
+    trackAnalytics('performance_views.landingv3.table_pagination', {
       organization,
       direction,
     });
@@ -356,7 +355,7 @@ class _Table extends Component<Props, State> {
 
   handleSummaryClick = () => {
     const {organization, location, projects} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.overview.navigate.summary', {
+    trackAnalytics('performance_views.overview.navigate.summary', {
       organization,
       project_platforms: getSelectedProjectPlatforms(location, projects),
     });
@@ -430,6 +429,7 @@ class _Table extends Component<Props, State> {
                         hasData={
                           !isLoading && !!tableData?.data && tableData.data.length > 0
                         }
+                        isLoading={isLoading}
                       >
                         <GridEditable
                           isLoading={isLoading}

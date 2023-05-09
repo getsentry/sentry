@@ -63,17 +63,39 @@ export enum IssueType {
   PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'performance_consecutive_db_queries',
   PERFORMANCE_CONSECUTIVE_HTTP = 'performance_consecutive_http',
   PERFORMANCE_FILE_IO_MAIN_THREAD = 'performance_file_io_main_thread',
+  PERFORMANCE_DB_MAIN_THREAD = 'performance_db_main_thread',
   PERFORMANCE_N_PLUS_ONE_API_CALLS = 'performance_n_plus_one_api_calls',
   PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'performance_n_plus_one_db_queries',
   PERFORMANCE_SLOW_DB_QUERY = 'performance_slow_db_query',
   PERFORMANCE_RENDER_BLOCKING_ASSET = 'performance_render_blocking_asset_span',
   PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
+  PERFORMANCE_LARGE_HTTP_PAYLOAD = 'performance_large_http_payload',
 
   // Profile
   PROFILE_FILE_IO_MAIN_THREAD = 'profile_file_io_main_thread',
   PROFILE_IMAGE_DECODE_MAIN_THREAD = 'profile_image_decode_main_thread',
   PROFILE_JSON_DECODE_MAIN_THREAD = 'profile_json_decode_main_thread',
 }
+
+export const getIssueTypeFromOccurenceType = (
+  typeId: number | undefined
+): IssueType | null => {
+  const occurrenceTypeToIssueIdMap = {
+    1001: IssueType.PERFORMANCE_SLOW_DB_QUERY,
+    1004: IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
+    1006: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    1007: IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+    1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
+    1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
+    1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+    1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+    1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
+  };
+  if (!typeId) {
+    return null;
+  }
+  return occurrenceTypeToIssueIdMap[typeId] ?? null;
+};
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
@@ -147,6 +169,16 @@ export type TagWithTopValues = {
   uniqueValues: number;
   canDelete?: boolean;
 };
+
+export const enum GroupSubstatus {
+  UNTIL_ESCALATING = 'until_escalating',
+  UNTIL_CONDITION_MET = 'until_condition_met',
+  FOREVER = 'forever',
+  ESCALATING = 'escalating',
+  ONGOING = 'ongoing',
+  REGRESSED = 'regressed',
+  NEW = 'new',
+}
 
 /**
  * Inbox, issue owners and Activity
@@ -320,6 +352,8 @@ export interface GroupActivitySetIgnored extends GroupActivityBase {
     ignoreCount?: number;
     ignoreDuration?: number;
     ignoreUntil?: string;
+    /** Archived until escalating */
+    ignoreUntilEscalating?: boolean;
     ignoreUserCount?: number;
     ignoreUserWindow?: number;
     ignoreWindow?: number;
@@ -457,6 +491,7 @@ export type ResolutionStatusDetails = {
   // Sent in requests. ignoreUntil is used in responses.
   ignoreDuration?: number;
   ignoreUntil?: string;
+  ignoreUntilEscalating?: boolean;
   ignoreUserCount?: number;
   ignoreUserWindow?: number;
   ignoreWindow?: number;
@@ -469,12 +504,12 @@ export type ResolutionStatusDetails = {
   inNextRelease?: boolean;
   inRelease?: string;
   repository?: string;
-  untilEscalating?: boolean;
 };
 
 export type GroupStatusResolution = {
   status: ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
+  substatus?: GroupSubstatus;
 };
 
 export type GroupRelease = {
@@ -521,6 +556,7 @@ export interface BaseGroup extends GroupRelease {
   userReportCount: number;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
+  substatus?: GroupSubstatus;
 }
 
 export interface GroupReprocessing

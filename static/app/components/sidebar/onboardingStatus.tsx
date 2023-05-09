@@ -1,7 +1,8 @@
-import {Fragment} from 'react';
+import {Fragment, useContext} from 'react';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import OnboardingSidebar from 'sentry/components/onboardingWizard/sidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import ProgressRing, {
@@ -13,11 +14,10 @@ import {isDone} from 'sentry/components/sidebar/utils';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import theme from 'sentry/utils/theme';
 import withProjects from 'sentry/utils/withProjects';
-import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 import {CommonSidebarProps, SidebarPanelKey} from './types';
 
@@ -41,10 +41,10 @@ function OnboardingStatus({
   onShowPanel,
 }: Props) {
   const handleShowPanel = () => {
-    trackAdvancedAnalyticsEvent('onboarding.wizard_opened', {organization: org});
+    trackAnalytics('onboarding.wizard_opened', {organization: org});
     onShowPanel();
   };
-  const [onboardingState] = usePersistedOnboardingState();
+  const onboardingContext = useContext(OnboardingContext);
 
   if (!org.features?.includes('onboarding')) {
     return null;
@@ -53,7 +53,7 @@ function OnboardingStatus({
   const tasks = getMergedTasks({
     organization: org,
     projects,
-    onboardingState: onboardingState || undefined,
+    onboardingContext,
   });
 
   const allDisplayedTasks = tasks

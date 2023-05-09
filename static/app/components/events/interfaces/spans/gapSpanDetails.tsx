@@ -1,18 +1,19 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
+
 import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
@@ -98,16 +99,7 @@ export function GapSpanDetails({
               updateFlamegraphView={setCanvasView}
             />
           </FlamegraphContainer>
-          <p>
-            {tct(
-              'You can also [docLink:manually instrument] certain regions of your code to see span details for future transactions.',
-              {
-                docLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
-                ),
-              }
-            )}
-          </p>
+          <ManualInstrumentationInstruction />
         </div>
       </FlamegraphThemeProvider>
     );
@@ -136,58 +128,35 @@ export function GapSpanDetails({
   // platform that has not setup profiling yet
   return (
     <Container>
-      <SetupProfilingInstructions profilingDocsLink={docsLink} />
-      <FlamegraphContainer>
-        <FlamegraphThemeProvider>
-          <FlamegraphPreview
-            flamegraph={flamegraph}
-            relativeStartTimestamp={relativeStartTimestamp}
-            relativeStopTimestamp={relativeStopTimestamp}
-            renderText={false}
-            updateFlamegraphView={setCanvasView}
-          />
-        </FlamegraphThemeProvider>
-      </FlamegraphContainer>
+      <Image src={emptyStateImg} />
+      <InstructionsContainer>
+        <h5>{t('With Profiling, we could paint a better picture')}</h5>
+        <p>
+          {t(
+            'Profiles can give you additional context on which functions are sampled at the same time of these spans.'
+          )}
+        </p>
+        <Button size="sm" priority="primary" href={docsLink} external>
+          {t('Set Up Profiling')}
+        </Button>
+        <ManualInstrumentationInstruction />
+      </InstructionsContainer>
     </Container>
   );
 }
 
-interface SetupProfilingInstructionsProps {
-  profilingDocsLink: string;
-}
-
-function SetupProfilingInstructions({
-  profilingDocsLink,
-}: SetupProfilingInstructionsProps) {
+function ManualInstrumentationInstruction() {
   return (
-    <div>
-      <h4>{t('Requires Manual Instrumentation')}</h4>
-      <p>
-        {tct(
-          `To manually instrument certain regions of your code, view [docLink:our documentation].`,
-          {
-            docLink: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
-            ),
-          }
-        )}
-      </p>
-      <h4>{t('With Profiling, we could paint a better picture')}</h4>
-      <p>
-        {t(
-          'Profiles can give you additional context on which functions are sampled at the same time of these spans.'
-        )}
-      </p>
-      <Button
-        icon={<IconProfiling />}
-        size="sm"
-        priority="primary"
-        href={profilingDocsLink}
-        external
-      >
-        {t('Set Up Profiling')}
-      </Button>
-    </div>
+    <SubText>
+      {tct(
+        `You can also [docLink:manually instrument] certain regions of your code to see span details for future transactions.`,
+        {
+          docLink: (
+            <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
+          ),
+        }
+      )}
+    </SubText>
   );
 }
 
@@ -220,7 +189,7 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
   });
 
   function handleGoToProfile() {
-    trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+    trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
       source: 'performance.missing_instrumentation',
     });
@@ -254,7 +223,7 @@ function ProfilePreviewLegend() {
   const systemFrameColor = colorComponentsToRGBA(theme.COLORS.FRAME_SYSTEM_COLOR);
 
   return (
-    <Container>
+    <LegendContainer>
       <LegendItem>
         <LegendMarker color={applicationFrameColor} />
         {t('Application Function')}
@@ -263,9 +232,49 @@ function ProfilePreviewLegend() {
         <LegendMarker color={systemFrameColor} />
         {t('System Function')}
       </LegendItem>
-    </Container>
+    </LegendContainer>
   );
 }
+
+const Container = styled('div')`
+  display: flex;
+  gap: ${space(2)};
+  justify-content: space-between;
+  flex-direction: column;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    flex-direction: row-reverse;
+  }
+`;
+
+const InstructionsContainer = styled('div')`
+  > p {
+    margin: 0;
+  }
+
+  display: flex;
+  gap: ${space(3)};
+  flex-direction: column;
+  align-items: start;
+`;
+
+const Image = styled('img')`
+  user-select: none;
+  width: 420px;
+  align-self: center;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    width: 300px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    width: 380px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    width: 420px;
+  }
+`;
 
 const FlamegraphContainer = styled('div')`
   height: 300px;
@@ -273,15 +282,10 @@ const FlamegraphContainer = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const Container = styled('div')`
+const LegendContainer = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(1.5)};
-
-  ${FlamegraphContainer} {
-    min-width: 300px;
-    flex: 1 1 auto;
-  }
 `;
 
 const LegendItem = styled('span')`
@@ -307,4 +311,8 @@ const HeaderContainer = styled('div')`
   align-items: center;
   justify-content: space-between;
   gap: ${space(1)};
+`;
+
+const SubText = styled('p')`
+  color: ${p => p.theme.subText};
 `;

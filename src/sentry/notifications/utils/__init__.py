@@ -360,6 +360,11 @@ def get_parent_and_repeating_spans(
     return (parent_span, repeating_spans)
 
 
+def occurrence_perf_to_email_html(context: Any) -> Any:
+    """Generate the email HTML for an occurrence-backed performance issue alert"""
+    return render_to_string("sentry/emails/transactions.html", context)
+
+
 def perf_to_email_html(
     spans: Union[List[Dict[str, Union[str, float]]], None],
     problem: PerformanceProblem = None,
@@ -414,8 +419,17 @@ def get_span_and_problem(
 
 def get_transaction_data(event: Event) -> Any:
     """Get data about a transaction to populate alert emails."""
-    spans, matched_problem = get_span_and_problem(event)
-    return perf_to_email_html(spans, matched_problem, event)
+    if isinstance(event, GroupEvent) and event.occurrence is not None:
+        evidence_data = event.occurrence.evidence_data
+        if not evidence_data:
+            return ""
+
+        context = evidence_data
+        return occurrence_perf_to_email_html(context)
+    else:
+        # get spans and matched_problem
+        spans, matched_problem = get_span_and_problem(event)
+        return perf_to_email_html(spans, matched_problem, event)
 
 
 def get_generic_data(event: GroupEvent) -> Any:
@@ -439,25 +453,29 @@ def generic_email_html(context: Any) -> Any:
 
 def get_performance_issue_alert_subtitle(event: Event) -> str:
     """Generate the issue alert subtitle for performance issues"""
-    spans, matched_problem = get_span_and_problem(event)
     repeating_span_value = ""
-    if spans and matched_problem:
-        _, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
-        repeating_span_value = get_span_evidence_value(repeating_spans, include_op=False)
+    if isinstance(event, GroupEvent) and event.occurrence is not None:
+        repeating_span_value = event.occurrence.evidence_data.get("repeating_spans_compact", "")
+    else:
+        spans, matched_problem = get_span_and_problem(event)
+        if spans and matched_problem:
+            _, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
+            repeating_span_value = get_span_evidence_value(repeating_spans, include_op=False)
+
     return repeating_span_value.replace("`", '"')
 
 
 def get_notification_group_title(
     group: Group, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
 ) -> str:
-    if group.issue_category == GroupCategory.PERFORMANCE:
+    if isinstance(event, GroupEvent) and event.occurrence is not None:
+        issue_title: str = event.occurrence.issue_title
+        return issue_title
+    elif group.issue_category == GroupCategory.PERFORMANCE:
         issue_type = group.issue_type.description
         transaction = get_performance_issue_alert_subtitle(event)
         title = f"{issue_type}: {transaction}"
         return (title[: max_length - 2] + "..") if len(title) > max_length else title
-    elif isinstance(event, GroupEvent) and event.occurrence is not None:
-        issue_title: str = event.occurrence.issue_title
-        return issue_title
     else:
         event_title: str = event.title
         return event_title

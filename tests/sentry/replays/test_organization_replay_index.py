@@ -385,6 +385,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Smallest duration first.
             response = self.client.get(self.url + "?sort=duration")
+            assert response.status_code == 200, response
             response_data = response.json()
             assert response_data["data"][0]["id"] == replay1_id
             assert response_data["data"][1]["id"] == replay2_id
@@ -475,6 +476,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_model="10",
                 tags={"a": "m", "b": "q", "c": "test"},
                 urls=["example.com"],
+                segment_id=0,
             )
         )
         self.store_replays(
@@ -496,6 +498,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_model=None,
                 tags={"a": "n", "b": "o"},
                 error_ids=[],
+                segment_id=1,
             )
         )
 
@@ -550,7 +553,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 # Tag filters.
                 "tags[a]:m",
                 "a:m",
-                "a:[n,o]",
                 "c:*st",
                 "!c:*zz",
                 "urls:example.com",
@@ -638,6 +640,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_brand="b",
                 device_family="b",
                 device_model="b",
+                segment_id=0,
             )
         )
         self.store_replays(
@@ -661,6 +664,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_brand="b",
                 device_family="b",
                 device_model="b",
+                segment_id=1,
             )
         )
 
@@ -689,6 +693,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_brand="a",
                 device_family="a",
                 device_model="a",
+                segment_id=0,
             )
         )
         self.store_replays(
@@ -712,6 +717,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_brand="a",
                 device_family="a",
                 device_model="a",
+                segment_id=1,
             )
         )
 
@@ -791,6 +797,20 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 400
             assert response.data["detail"] == "You cannot view events from multiple projects."
 
+    def test_get_replays_no_multi_project_select_query_referrer(self):
+        self.create_project(teams=[self.team])
+        self.create_project(teams=[self.team])
+
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(user)
+
+        with self.feature(REPLAYS_FEATURES), self.feature({"organizations:global-views": False}):
+            response = self.client.get(self.url + "?queryReferrer=issueReplays")
+            assert response.status_code == 200
+
     def test_get_replays_unknown_field(self):
         """Test replays unknown fields raise a 400 error."""
         project = self.create_project(teams=[self.team])
@@ -855,6 +875,45 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 }
             ]
 
+    # commented out until https://github.com/getsentry/snuba/pull/4137 is merged.
+    # def test_archived_records_out_of_bounds(self):
+    #     replay1_id = uuid.uuid4().hex
+    #     seq1_timestamp = datetime.datetime.now() - datetime.timedelta(days=10)
+    #     seq2_timestamp = datetime.datetime.now() - datetime.timedelta(days=3)
+
+    #     self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay1_id))
+    #     self.store_replays(
+    #         mock_replay(
+    #             seq2_timestamp, self.project.id, replay1_id, is_archived=True, segment_id=None
+    #         )
+    #     )
+
+    #     with self.feature(REPLAYS_FEATURES):
+    #         response = self.client.get(self.url)
+    #         assert response.status_code == 200
+    #         assert response.json()["data"] == [
+    #             {
+    #                 "id": replay1_id,
+    #                 "project_id": str(self.project.id),
+    #                 "trace_ids": [],
+    #                 "error_ids": [],
+    #                 "environment": None,
+    #                 "tags": [],
+    #                 "user": {"id": "Archived Replay", "display_name": "Archived Replay"},
+    #                 "sdk": {"name": None, "version": None},
+    #                 "os": {"name": None, "version": None},
+    #                 "browser": {"name": None, "version": None},
+    #                 "device": {"name": None, "brand": None, "model": None, "family": None},
+    #                 "urls": None,
+    #                 "started_at": None,
+    #                 "count_errors": None,
+    #                 "activity": None,
+    #                 "finished_at": None,
+    #                 "duration": None,
+    #                 "is_archived": True,
+    #             }
+    #         ]
+
     def test_get_replays_filter_clicks(self):
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
@@ -912,6 +971,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.selector:div[alt=Alt]",
                 "click.selector:div[title=MyTitle]",
                 "click.selector:div[data-testid='1']",
+                "click.selector:div[data-test-id='1']",
                 "click.selector:div[role=button]",
                 "click.selector:div#myid.class1.class2",
                 # Single quotes around attribute value.
@@ -1016,6 +1076,29 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert (
                     response.content == b'{"detail":"Only the \'=\' operator is supported."}'
                 ), query
+
+    def test_get_replays_field_order(self):
+        """Test replay response with fields requested in production."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            # Invalid field-names error regardless of ordering.
+            response = self.client.get(self.url + "?field=invalid&field=browser")
+            assert response.status_code == 400
+            response = self.client.get(self.url + "?field=browser&field=invalid")
+            assert response.status_code == 400
+
+            # Correct field-names never error.
+            response = self.client.get(self.url + "?field=count_urls&field=browser")
+            assert response.status_code == 200
+            response = self.client.get(self.url + "?field=browser&field=count_urls")
+            assert response.status_code == 200
 
 
 @region_silo_test

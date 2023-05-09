@@ -78,7 +78,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
 
         # get the IDs of all projects for found project options and grab them from the DB
         project_id_set = {project_option.project_id for project_option in project_options}
-        projects = Project.objects.filter(id__in=project_id_set, status=ObjectStatus.VISIBLE)
+        projects = Project.objects.filter(id__in=project_id_set, status=ObjectStatus.ACTIVE)
 
         # create a key/value map of our projects
         project_map = {project.id: project for project in projects}

@@ -120,12 +120,12 @@ class ProjectEditAuditLogEvent(AuditLogEvent):
 
 
 def render_project_action(audit_log_entry: AuditLogEntry, action: str):
-    # Most logs will just be name of the filter, but legacy browser changes can be bool, str or sets
+    # Most logs will just be name of the filter, but legacy browser changes can be bool, str, list, or sets
     filter_name = audit_log_entry.data["state"]
-    if filter_name in ("0", "1") or isinstance(filter_name, set) or isinstance(filter_name, bool):
+    if filter_name in ("0", "1") or isinstance(filter_name, (bool, list, set)):
         message = f"{action} project filter legacy-browsers"
-        if isinstance(filter_name, set):
-            message += ": {}".format(", ".join(filter_name))
+        if isinstance(filter_name, (list, set)):
+            message += ": {}".format(", ".join(sorted(filter_name)))
         return message
     return f"{action} project filter {filter_name}"
 

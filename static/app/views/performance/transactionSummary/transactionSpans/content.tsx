@@ -15,7 +15,7 @@ import Pagination from 'sentry/components/pagination';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
@@ -39,12 +39,12 @@ import {
 
 const ANALYTICS_VALUES = {
   spanOp: (organization: Organization, value: string | undefined) =>
-    trackAdvancedAnalyticsEvent('performance_views.spans.change_op', {
+    trackAnalytics('performance_views.spans.change_op', {
       organization,
       operation_name: value,
     }),
   sort: (organization: Organization, value: string | undefined) =>
-    trackAdvancedAnalyticsEvent('performance_views.spans.change_sort', {
+    trackAnalytics('performance_views.spans.change_sort', {
       organization,
       sort_column: value,
     }),
@@ -153,6 +153,7 @@ function SpansContent(props: Props) {
                   <VisuallyCompleteWithData
                     id="TransactionSpans-SuspectSpansTable"
                     hasData={!!suspectSpans?.length}
+                    isLoading={isLoading}
                   >
                     <SuspectSpansTable
                       location={location}

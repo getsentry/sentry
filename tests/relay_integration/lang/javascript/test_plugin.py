@@ -21,6 +21,7 @@ from sentry.models import (
 )
 from sentry.models.releasefile import update_artifact_index
 from sentry.testutils import RelayStoreHelper
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
@@ -92,9 +93,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    @pytest.mark.skip(
-        reason="temp disable test due to circular dependency before merging PR: https://github.com/getsentry/relay/pull/2004"
-    )
     def test_adds_contexts_with_device(self, process_with_symbolicator):
         data = {
             "timestamp": self.min_ago,
@@ -121,6 +119,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "family": "Samsung SCH-R530U",
             "type": "device",
             "model": "SCH-R530U",
+            "name": "Galaxy S3",
             "brand": "Samsung",
         }
 
@@ -443,6 +442,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
                                     "colno": 17,
                                     "in_app": False,
                                 },
+                                # NOTE: a mixed stack trace with a native frame:
+                                {
+                                    "instruction_addr": "0xd10349",
+                                },
                             ]
                         },
                     }
@@ -480,6 +483,98 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js"]
         else:
             assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js", ""]
+        assert raw_frame.lineno == 1
+
+        # Since we couldn't expand source for the 2nd frame, both
+        # its raw and original form should be identical
+        assert raw_frame_list[1] == frame_list[1]
+
+        # The second non-js frame should be untouched
+        assert raw_frame_list[2] == frame_list[2]
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_sourcemap_source_expansion_ab_test(self, process_with_symbolicator):
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
+        )
+        release.add_project(self.project)
+
+        for file in ["file.min.js", "file1.js", "file2.js", "file.sourcemap.js"]:
+            with open(get_fixture_path(file), "rb") as f:
+                f1 = File.objects.create(
+                    name=file,
+                    type="release.file",
+                    headers={},
+                )
+                f1.putfile(f)
+
+            ReleaseFile.objects.create(
+                name=f"http://example.com/{f1.name}",
+                release_id=release.id,
+                organization_id=self.project.organization_id,
+                file=f1,
+            )
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                },
+                                # NOTE: Intentionally source is not retrieved from this HTML file
+                                {
+                                    "function": 'function: "HTMLDocument.<anonymous>"',
+                                    "abs_path": "http//example.com/index.html",
+                                    "filename": "index.html",
+                                    "lineno": 283,
+                                    "colno": 17,
+                                    "in_app": False,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        with override_options({"symbolicator.sourcemaps-processing-ab-test": 1.0}):
+            event = self.post_and_retrieve_event(data)
+
+        assert event.data["errors"] == [
+            {"type": "js_no_source", "url": "http//example.com/index.html"}
+        ]
+
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        frame = frame_list[0]
+        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        expected = "\treturn a + b; // fôo"
+        assert frame.context_line == expected
+        assert frame.post_context == ["}", ""]
+
+        raw_frame_list = exception.values[0].raw_stacktrace.frames
+        raw_frame = raw_frame_list[0]
+        assert not raw_frame.pre_context
+        assert (
+            raw_frame.context_line
+            == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function '
+            'divide(a,b){"use strict";try{return multip {snip}'
+        )
+        assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js", ""]
         assert raw_frame.lineno == 1
 
         # Since we couldn't expand source for the 2nd frame, both
@@ -1518,27 +1613,35 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert len(frame_list) == 6
 
-        assert frame_list[0].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        def assert_abs_path(abs_path):
+            # This makes the test assertion forward compatible with percent-encoded URLs
+            # See https://github.com/getsentry/symbolicator/pull/1137
+            assert abs_path in (
+                "webpack:///webpack/bootstrap d9a5a31d9276b73873d3",
+                "webpack:///webpack/bootstrap%20d9a5a31d9276b73873d3",
+            )
+
+        assert_abs_path(frame_list[0].abs_path)
         assert frame_list[0].function == "bar"
         assert frame_list[0].lineno == 8
 
-        assert frame_list[1].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        assert_abs_path(frame_list[1].abs_path)
         assert frame_list[1].function == "foo"
         assert frame_list[1].lineno == 2
 
-        assert frame_list[2].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        assert_abs_path(frame_list[2].abs_path)
         assert frame_list[2].function == "App"
         assert frame_list[2].lineno == 2
 
-        assert frame_list[3].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        assert_abs_path(frame_list[3].abs_path)
         assert frame_list[3].function == "Object.<anonymous>"
         assert frame_list[3].lineno == 1
 
-        assert frame_list[4].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        assert_abs_path(frame_list[4].abs_path)
         assert frame_list[4].function == "__webpack_require__"
         assert frame_list[4].lineno == 19
 
-        assert frame_list[5].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        assert_abs_path(frame_list[5].abs_path)
         assert frame_list[5].function == "<unknown>"
         assert frame_list[5].lineno == 16
 

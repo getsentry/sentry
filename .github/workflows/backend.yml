@@ -108,6 +108,8 @@ jobs:
       - name: Handle artifacts
         if: ${{ always() }}
         uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   backend-migration-tests:
     if: needs.files-changed.outputs.backend == 'true'
@@ -142,6 +144,8 @@ jobs:
       - name: Handle artifacts
         if: ${{ always() }}
         uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   cli:
     if: needs.files-changed.outputs.backend == 'true'
@@ -170,6 +174,8 @@ jobs:
       - name: Handle artifacts
         if: ${{ always() }}
         uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   requirements:
     if: needs.files-changed.outputs.backend_dependencies == 'true'
@@ -350,6 +356,8 @@ jobs:
       - name: Handle artifacts
         if: ${{ always() }}
         uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   snuba:
     if: needs.files-changed.outputs.backend == 'true'
@@ -391,13 +399,15 @@ jobs:
       - name: Handle artifacts
         if: ${{ always() }}
         uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   symbolicator:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: symbolicator test
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         with:
@@ -433,6 +443,8 @@ jobs:
       - name: Handle artifacts
         if: ${{ always() }}
         uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   typing:
     if: needs.files-changed.outputs.backend == 'true'
@@ -462,6 +474,7 @@ jobs:
         backend-test,
         backend-migration-tests,
         cli,
+        files-changed,
         lint,
         requirements,
         migration,

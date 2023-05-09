@@ -12,13 +12,14 @@ import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getEndOfDay,
   getStartOfPeriodAgo,
   isValidTime,
   setDateToTime,
 } from 'sentry/utils/dates';
+import domId from 'sentry/utils/domId';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -89,6 +90,8 @@ class BaseDateRange extends Component<Props, State> {
     hasEndErrors: false,
   };
 
+  private readonly utcInputId = domId('utc-picker-');
+
   handleSelectDateRange = (range: Range) => {
     const {onChange} = this.props;
     const {startDate, endDate} = range;
@@ -118,7 +121,7 @@ class BaseDateRange extends Component<Props, State> {
     }
     const newTime = setDateToTime(start, startTime, {local: true});
 
-    trackAdvancedAnalyticsEvent('dateselector.time_changed', {
+    trackAnalytics('dateselector.time_changed', {
       organization,
       field_changed: 'start',
       time: startTime,
@@ -147,7 +150,7 @@ class BaseDateRange extends Component<Props, State> {
     }
 
     const newTime = setDateToTime(end, endTime, {local: true});
-    trackAdvancedAnalyticsEvent('dateselector.time_changed', {
+    trackAnalytics('dateselector.time_changed', {
       organization,
       field_changed: 'end',
       time: endTime,
@@ -195,15 +198,19 @@ class BaseDateRange extends Component<Props, State> {
         />
         {showTimePicker && (
           <TimeAndUtcPicker>
-            <TimePicker
+            <StyledTimePicker
               start={startTime}
               end={endTime}
               onChangeStart={this.handleChangeStart}
               onChangeEnd={this.handleChangeEnd}
             />
             <UtcPicker>
-              {t('Use UTC')}
-              <Checkbox onChange={onChangeUtc} checked={utc || false} />
+              <Checkbox
+                onChange={onChangeUtc}
+                checked={utc || false}
+                id={this.utcInputId}
+              />
+              <UtcPickerLabel htmlFor={this.utcInputId}>{t('UTC')}</UtcPickerLabel>
             </UtcPicker>
           </TimeAndUtcPicker>
         )}
@@ -221,8 +228,15 @@ const DateRange = styled(withTheme(withSentryRouter(BaseDateRange)))`
 const TimeAndUtcPicker = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(0.25)} ${space(2)};
+  margin: 0 ${space(2)};
+  padding: ${space(0.5)} 0;
   border-top: 1px solid ${p => p.theme.innerBorder};
+`;
+
+const StyledTimePicker = styled(TimePicker)`
+  && {
+    margin-left: 0;
+  }
 `;
 
 const UtcPicker = styled('div')`
@@ -232,7 +246,13 @@ const UtcPicker = styled('div')`
   align-items: center;
   justify-content: flex-end;
   flex: 1;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
+`;
+
+const UtcPickerLabel = styled('label')`
+  margin: 0;
+  font-weight: normal;
+  color: inherit;
 `;
 
 export default DateRange;

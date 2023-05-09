@@ -182,7 +182,7 @@ describe('createShader', () => {
       shaderSource: jest.fn(),
       compileShader: jest.fn(),
       getShaderParameter: jest.fn().mockImplementation(() => 1),
-      COMPILE_STATUS: 1,
+      COMPILE_STATUS: 1 as any,
     };
 
     // @ts-ignore this is a partial mock
@@ -204,7 +204,7 @@ describe('createShader', () => {
       compileShader: jest.fn(),
       getShaderParameter: jest.fn().mockImplementation(() => 0),
       deleteShader: jest.fn(),
-      COMPILE_STATUS: 0,
+      COMPILE_STATUS: 0 as any,
     };
 
     // @ts-ignore this is a partial mock

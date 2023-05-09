@@ -11,6 +11,7 @@ import {space} from 'sentry/styles/space';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import DetailsSidebar from 'sentry/views/monitors/components/detailsSidebar';
 
 import MonitorCheckIns from './components/monitorCheckIns';
 import MonitorHeader from './components/monitorHeader';
@@ -39,7 +40,14 @@ function MonitorDetails({params, location}: Props) {
   const {data: monitor} = useApiQuery<Monitor>(queryKey, {staleTime: 0});
 
   function onUpdate(data: Monitor) {
-    setApiQueryData(queryClient, queryKey, data);
+    const updatedMonitor = {
+      ...data,
+      // TODO(davidenwang): This is a bit of a hack, due to the PUT request
+      // which pauses/unpauses a monitor not returning monitor environments
+      // we should reuse the environments retrieved from the initial request
+      environments: monitor?.environments,
+    };
+    setApiQueryData(queryClient, queryKey, updatedMonitor);
   }
 
   if (!monitor) {
@@ -55,14 +63,9 @@ function MonitorDetails({params, location}: Props) {
   return (
     <SentryDocumentTitle title={`Crons - ${monitor.name}`}>
       <Layout.Page>
-        <MonitorHeader
-          monitor={monitor}
-          monitorEnv={monitorEnv}
-          orgId={organization.slug}
-          onUpdate={onUpdate}
-        />
+        <MonitorHeader monitor={monitor} orgId={organization.slug} onUpdate={onUpdate} />
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main>
             {!monitorEnv?.lastCheckIn ? (
               <MonitorOnboarding orgId={organization.slug} monitor={monitor} />
             ) : (
@@ -91,6 +94,9 @@ function MonitorDetails({params, location}: Props) {
               </Fragment>
             )}
           </Layout.Main>
+          <Layout.Side>
+            <DetailsSidebar monitorEnv={monitorEnv} monitor={monitor} />
+          </Layout.Side>
         </Layout.Body>
       </Layout.Page>
     </SentryDocumentTitle>

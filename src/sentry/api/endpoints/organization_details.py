@@ -120,6 +120,12 @@ ORG_OPTIONS = (
     ("relayPiiConfig", "sentry:relay_pii_config", str, None),
     ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
+    (
+        "aiSuggestedSolution",
+        "sentry:ai_suggested_solution",
+        bool,
+        org_serializers.AI_SUGGESTED_SOLUTION,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -161,6 +167,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
+    aiSuggestedSolution = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
@@ -493,7 +500,7 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
         if "defaultRole" in data:
             org.default_role = data["defaultRole"]
         if cancel_deletion:
-            org.status = OrganizationStatus.VISIBLE
+            org.status = OrganizationStatus.ACTIVE
         return super().save(*args, **kwargs)
 
 
@@ -639,7 +646,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         with transaction.atomic():
             updated = Organization.objects.filter(
-                id=organization.id, status=OrganizationStatus.VISIBLE
+                id=organization.id, status=OrganizationStatus.ACTIVE
             ).update(status=OrganizationStatus.PENDING_DELETION)
             if updated:
                 organization.status = OrganizationStatus.PENDING_DELETION

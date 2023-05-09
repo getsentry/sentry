@@ -6,9 +6,8 @@ declare const __LOADER__IS_LAZY__: any;
 (function sentryLoader(
   _window,
   _document,
-  _script,
-  _onerror,
-  _onunhandledrejection,
+  _errorEvent,
+  _unhandledrejectionEvent,
   _namespace,
   _publicKey,
   _sdkBundleUrl,
@@ -54,6 +53,24 @@ declare const __LOADER__IS_LAZY__: any;
   };
   queue.data = [];
 
+  function onError() {
+    // Use keys as "data type" to save some characters"
+    queue({
+      e: [].slice.call(arguments),
+    });
+  }
+
+  function onUnhandledRejection(e) {
+    queue({
+      p:
+        'reason' in e
+          ? e.reason
+          : 'detail' in e && 'reason' in e.detail
+          ? e.detail.reason
+          : e,
+    });
+  }
+
   function injectSdk(callbacks) {
     if (injected) {
       return;
@@ -67,23 +84,15 @@ declare const __LOADER__IS_LAZY__: any;
     // it was probably(?) a legacy behavior that they left to not modify few years old snippet
     // https://www.html5rocks.com/en/tutorials/speed/script-loading/
     const _currentScriptTag = _document.scripts[0];
-    const _newScriptTag = _document.createElement(_script) as HTMLScriptElement;
+    const _newScriptTag = _document.createElement('script') as HTMLScriptElement;
     _newScriptTag.src = _sdkBundleUrl;
     _newScriptTag.crossOrigin = 'anonymous';
 
     // Once our SDK is loaded
     _newScriptTag.addEventListener('load', function () {
       try {
-        // Restore onerror/onunhandledrejection handlers - only if not mutated in the meanwhile
-        if (_window[_onerror] && _window[_onerror].__SENTRY_LOADER__) {
-          _window[_onerror] = _oldOnerror;
-        }
-        if (
-          _window[_onunhandledrejection] &&
-          _window[_onunhandledrejection].__SENTRY_LOADER__
-        ) {
-          _window[_onunhandledrejection] = _oldOnunhandledrejection;
-        }
+        _window.removeEventListener(_errorEvent, onError);
+        _window.removeEventListener(_unhandledrejectionEvent, onUnhandledRejection);
 
         // Add loader as SDK source
         _window.SENTRY_SDK_SOURCE = 'loader';
@@ -188,8 +197,8 @@ declare const __LOADER__IS_LAZY__: any;
 
       // Because we installed the SDK, at this point we have an access to TraceKit's handler,
       // which can take care of browser differences (eg. missing exception argument in onerror)
-      const tracekitErrorHandler = _window[_onerror];
-      const tracekitUnhandledRejectionHandler = _window[_onunhandledrejection];
+      const tracekitErrorHandler = _window.onerror;
+      const tracekitUnhandledRejectionHandler = _window.onunhandledrejection;
 
       // And now capture all previously caught exceptions
       for (let i = 0; i < data.length; i++) {
@@ -239,37 +248,8 @@ declare const __LOADER__IS_LAZY__: any;
     };
   });
 
-  // Store reference to the old `onerror` handler and override it with our own function
-  // that will just push exceptions to the queue and call through old handler if we found one
-  const _oldOnerror = _window[_onerror];
-  _window[_onerror] = function () {
-    // Use keys as "data type" to save some characters"
-    queue({
-      e: [].slice.call(arguments),
-    });
-
-    if (_oldOnerror) {
-      _oldOnerror.apply(_window, arguments);
-    }
-  };
-  _window[_onerror].__SENTRY_LOADER__ = true;
-
-  // Do the same store/queue/call operations for `onunhandledrejection` event
-  const _oldOnunhandledrejection = _window[_onunhandledrejection];
-  _window[_onunhandledrejection] = function (e) {
-    queue({
-      p:
-        'reason' in e
-          ? e.reason
-          : 'detail' in e && 'reason' in e.detail
-          ? e.detail.reason
-          : e,
-    });
-    if (_oldOnunhandledrejection) {
-      _oldOnunhandledrejection.apply(_window, arguments);
-    }
-  };
-  _window[_onunhandledrejection].__SENTRY_LOADER__ = true;
+  _window.addEventListener(_errorEvent, onError);
+  _window.addEventListener(_unhandledrejectionEvent, onUnhandledRejection);
 
   if (!lazy) {
     setTimeout(function () {
@@ -280,10 +260,9 @@ declare const __LOADER__IS_LAZY__: any;
   window as Window &
     typeof globalThis & {SENTRY_SDK_SOURCE?: string; Sentry?: any; __SENTRY__?: any},
   document,
-  'script',
-  'onerror',
-  'onunhandledrejection',
-  'Sentry',
+  'error' as const,
+  'unhandledrejection' as const,
+  'Sentry' as const,
   __LOADER__PUBLIC_KEY__,
   __LOADER_SDK_URL__,
   __LOADER__CONFIG__,

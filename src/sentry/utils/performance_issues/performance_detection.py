@@ -12,6 +12,7 @@ from sentry.eventstore.models import Event
 from sentry.models import Organization, Project, ProjectOption
 from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
 from sentry.utils import metrics
+from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
 
@@ -21,6 +22,7 @@ from .detectors import (
     ConsecutiveHTTPSpanDetector,
     DBMainThreadDetector,
     FileIOMainThreadDetector,
+    LargeHTTPPayloadDetector,
     MNPlusOneDBSpanDetector,
     NPlusOneAPICallsDetector,
     NPlusOneDBSpanDetector,
@@ -38,6 +40,12 @@ INTEGRATIONS_OF_INTEREST = [
     "sqlalchemy",
     "Mongo",  # Node
     "Postgres",  # Node
+    "Mysql",  # Node
+    "Prisma",  # Node
+    "GraphQL",  # Node
+]
+SDKS_OF_INTEREST = [
+    "sentry.javascript.node",
 ]
 
 
@@ -137,6 +145,15 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         "render_blocking_bytes_min": options.get(
             "performance.issues.render_blocking_assets.size_threshold"
         ),
+        "consecutive_http_spans_max_duration_between_spans": options.get(
+            "performance.issues.consecutive_http.max_duration_between_spans"
+        ),
+        "consecutive_http_spans_count_threshold": options.get(
+            "performance.issues.consecutive_http.consecutive_count_threshold"
+        ),
+        "consecutive_http_spans_span_duration_threshold": options.get(
+            "performance.issues.consecutive_http.span_duration_threshold"
+        ),
     }
 
     default_project_settings = (
@@ -227,10 +244,16 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "detection_enabled": settings["uncompressed_assets_detection_enabled"],
         },
         DetectorType.CONSECUTIVE_HTTP_OP: {
-            "span_duration_threshold": 1000,  # ms
-            "consecutive_count_threshold": 3,
-            "max_duration_between_spans": 10000,  # ms
+            "span_duration_threshold": settings[
+                "consecutive_http_spans_span_duration_threshold"
+            ],  # ms
+            "consecutive_count_threshold": settings["consecutive_http_spans_count_threshold"],
+            "max_duration_between_spans": settings[
+                "consecutive_http_spans_max_duration_between_spans"
+            ],  # ms
+            "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
         },
+        DetectorType.LARGE_HTTP_PAYLOAD: {"payload_size_threshold": 10000000},  # 10mb
     }
 
 
@@ -253,6 +276,7 @@ def _detect_performance_problems(
         NPlusOneAPICallsDetector(detection_settings, data),
         MNPlusOneDBSpanDetector(detection_settings, data),
         UncompressedAssetSpanDetector(detection_settings, data),
+        LargeHTTPPayloadDetector(detection_settings, data),
     ]
 
     for detector in detectors:
@@ -360,9 +384,12 @@ def report_metrics_for_detectors(
     event_integrations = event.get("sdk", {}).get("integrations", []) or []
 
     for integration_name in INTEGRATIONS_OF_INTEREST:
-        detected_tags["integration_" + integration_name.lower()] = (
-            integration_name in event_integrations
-        )
+        if integration_name in event_integrations:
+            detected_tags["integration_" + integration_name.lower()] = True
+
+    for allowed_sdk_name in SDKS_OF_INTEREST:
+        if allowed_sdk_name == sdk_name:
+            detected_tags["sdk_" + allowed_sdk_name.lower()] = True
 
     for detector in detectors:
         detector_key = detector.type.value
@@ -375,6 +402,9 @@ def report_metrics_for_detectors(
 
         if detector.type in [DetectorType.UNCOMPRESSED_ASSETS]:
             detected_tags["browser_name"] = allowed_browser_name
+
+        if detector.type in [DetectorType.CONSECUTIVE_HTTP_OP]:
+            detected_tags["is_frontend"] = is_event_from_browser_javascript_sdk(event)
 
         first_problem = detected_problems[detected_problem_keys[0]]
         if first_problem.fingerprint:

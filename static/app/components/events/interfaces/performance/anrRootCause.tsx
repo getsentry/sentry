@@ -8,9 +8,9 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event, Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -35,7 +35,7 @@ export function AnrRootCause({event, organization}: Props) {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('issue_group_details.anr_root_cause_detected', {
+    trackAnalytics('issue_group_details.anr_root_cause_detected', {
       organization,
       group: event?.groupID,
       culprit: anrCulprit?.culprit,

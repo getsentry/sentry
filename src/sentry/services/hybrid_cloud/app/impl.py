@@ -19,6 +19,10 @@ from sentry.services.hybrid_cloud.app import (
     RpcSentryAppService,
     SentryAppInstallationFilterArgs,
 )
+from sentry.services.hybrid_cloud.app.serial import (
+    serialize_sentry_app,
+    serialize_sentry_app_installation,
+)
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import (
     FilterQueryDatabaseImpl,
@@ -52,6 +56,13 @@ class DatabaseBackedAppService(AppService):
             )
             for c in SentryAppComponent.objects.filter(sentry_app_id=app_id)
         ]
+
+    def get_sentry_app_by_slug(self, *, slug: str) -> Optional[RpcSentryApp]:
+        try:
+            sentry_app = SentryApp.objects.get(slug=slug)
+            return serialize_sentry_app(sentry_app)
+        except SentryApp.DoesNotExist:
+            return None
 
     def get_installed_for_organization(
         self, *, organization_id: int
@@ -149,7 +160,7 @@ class DatabaseBackedAppService(AppService):
             return query
 
         def serialize_rpc(self, object: SentryAppInstallation) -> RpcSentryAppInstallation:
-            return AppService.serialize_sentry_app_installation(object)
+            return serialize_sentry_app_installation(object)
 
     _FQ = _AppServiceFilterQuery()
 
@@ -168,7 +179,7 @@ class DatabaseBackedAppService(AppService):
         except SentryAppInstallation.DoesNotExist:
             return None
 
-        return self.serialize_sentry_app_installation(installation, sentry_app)
+        return serialize_sentry_app_installation(installation, sentry_app)
 
     def trigger_sentry_app_action_creators(
         self, *, fields: List[Mapping[str, Any]], install_uuid: str | None
@@ -185,9 +196,7 @@ class DatabaseBackedAppService(AppService):
 
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> Optional[RpcSentryApp]:
         try:
-            return self.serialize_sentry_app(
-                SentryApp.objects.get(application_id=api_application_id)
-            )
+            return serialize_sentry_app(SentryApp.objects.get(application_id=api_application_id))
         except SentryApp.DoesNotExist:
             return None
 

@@ -6,6 +6,9 @@ from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.mediators.external_issues import IssueLinkCreator
 from sentry.models import Group, Project
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+from sentry.utils.functional import extract_lazy_object
 
 
 @region_silo_endpoint
@@ -27,20 +30,21 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
         except Group.DoesNotExist:
             return Response(status=404)
 
-        action = data["action"]
-        del data["action"]
-
-        uri = data.get("uri")
-        del data["uri"]
+        action = data.pop("action")
+        uri = data.pop("uri")
 
         try:
+            user = extract_lazy_object(request.user)
+            if isinstance(user, User):
+                user = serialize_rpc_user(user)
+
             external_issue = IssueLinkCreator.run(
                 install=installation,
                 group=group,
                 action=action,
                 fields=data,
                 uri=uri,
-                user=request.user,
+                user=user,
             )
         except Exception:
             return Response({"error": "Error communicating with Sentry App service"}, status=400)
