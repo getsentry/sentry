@@ -13,6 +13,7 @@ from typing import (
     Union,
 )
 
+import sentry_sdk
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
@@ -241,6 +242,11 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
         if team_ids:
             filters["team_id__in"] = team_ids
+
+        try:
+            assert user_ids or team_ids, "Must have user_id or team_id when reading settings"
+        except AssertionError as err:
+            sentry_sdk.capture_exception(err)
 
         return self.filter(**filters)
 
@@ -482,7 +488,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         key_field = None
         if isinstance(recipient, RpcActor):
             key_field = "user_id" if recipient.actor_type == ActorType.USER else "team_id"
-        if isinstance(recipient, User):
+        if isinstance(recipient, (RpcUser, User)):
             key_field = "user_id"
         if isinstance(recipient, Team):
             key_field = "team_id"

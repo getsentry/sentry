@@ -1,6 +1,8 @@
 from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
+import sentry_sdk
+
 from sentry.api.serializers import Serializer
 from sentry.models import NotificationSetting, Team, User
 from sentry.notifications.helpers import get_fallback_settings
@@ -40,8 +42,10 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         for recipient in item_list:
             if isinstance(recipient, User):
                 user_map[recipient.id] = recipient
-            if isinstance(recipient, Team):
+            elif isinstance(recipient, Team):
                 team_map[recipient.id] = recipient
+            else:
+                sentry_sdk.capture_message(f"Expected User|Team got {recipient.__class__.__name__}")
 
         notifications_settings = NotificationSetting.objects._filter(
             type=type_option,
