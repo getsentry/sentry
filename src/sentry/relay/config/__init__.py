@@ -267,7 +267,7 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 def _get_project_config(
     project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
 ) -> "ProjectConfig":
-    if project.status != ObjectStatus.ACTIVE:
+    if project.status != ObjectStatus.VISIBLE:
         return ProjectConfig(project, disabled=True)
 
     public_keys = get_public_key_configs(project, full_config, project_keys=project_keys)
@@ -316,6 +316,22 @@ def _get_project_config(
         return ProjectConfig(project, **cfg)
 
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
+
+    if _should_extract_transaction_metrics(project):
+        add_experimental_config(
+            config,
+            "transactionMetrics",
+            get_transaction_metrics_settings,
+            project,
+            config.get("breakdownsV2"),
+        )
+
+        # This config key is technically not specific to _transaction_ metrics,
+        # is however currently both only applied to transaction metrics in
+        # Relay, and only used to tag transaction metrics in Sentry.
+        add_experimental_config(
+            config, "metricConditionalTagging", get_metric_conditional_tagging_rules, project
+        )
 
     if features.has("organizations:metrics-extraction", project.organization):
         config["sessionMetrics"] = {
@@ -516,6 +532,7 @@ TransactionNameStrategy = Literal["strict", "clientBased"]
 
 class TransactionMetricsSettings(TypedDict):
     version: int
+    extractMetrics: List[str]
     extractCustomTags: List[str]
     customMeasurements: CustomMeasurementSettings
     acceptTransactionNames: TransactionNameStrategy
