@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 
 /**
- * The default grid template is `max-content 1fr`, feel free to override it
- * with a prop like: `style={{gridTemplateRows: 'auto 1fr auto'}}`
+ * The default grid template is `max-content 1fr`, feel free to extend the
+ * component with `styled()` and override it.
  */
 const FluidGrid = styled('section')`
   display: grid;
