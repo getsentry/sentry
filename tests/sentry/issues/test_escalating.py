@@ -223,13 +223,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         group.substatus = GroupSubStatus.UNTIL_ESCALATING
         group.save()
 
-    def assert_is_escalating(self, group: Group) -> None:
-        assert group.substatus == GroupSubStatus.ESCALATING
-        assert group.status == GroupStatus.UNRESOLVED
-        assert GroupInbox.objects.filter(group=group).exists()
-
     @freeze_time(TIME_YESTERDAY)
-    # @patch("sentry.analytics.record")
     def test_is_escalating_issue(self) -> None:
         """Test when an archived until escalating issue starts escalating"""
         with self.feature("organizations:escalating-issues"):
