@@ -80,9 +80,9 @@ export function ModuleBreakdownChart({module, topSpans}: Props) {
     }
   });
 
-  seriesBySpan['Other'] = {seriesName: 'p75 — Other Spans', data: []};
+  seriesBySpan.Other = {seriesName: 'p75 — Other Spans', data: []};
   otherSpanDurationData.forEach(({interval, p75}) =>
-    seriesBySpan['Other'].data.push({name: interval, value: p75})
+    seriesBySpan.Other.data.push({name: interval, value: p75})
   );
 
   return (
