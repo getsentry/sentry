@@ -182,7 +182,10 @@ export default function SpansView(props: Props) {
         }}
       />
 
-      <SpanTimeCharts clusters={currentClusters} />
+      <SpanTimeCharts
+        descriptionFilter={descriptionFilter || ''}
+        clusters={currentClusters}
+      />
 
       <SpansTable
         location={props.location}
