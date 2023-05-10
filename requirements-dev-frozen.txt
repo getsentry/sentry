@@ -173,7 +173,7 @@ sentry-sdk==1.22.2
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.2.0
-snuba-s2k==1.0.5
+snuba-sdk==1.0.5
 sortedcontainers==2.4.0
 soupsieve==2.3.2.post1
 sqlparse==0.4.4
