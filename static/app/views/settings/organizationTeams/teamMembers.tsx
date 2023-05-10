@@ -48,6 +48,7 @@ type Props = {
 
 type State = {
   dropdownBusy: boolean;
+  dropdownOpen: boolean;
   error: boolean;
   loading: boolean;
   orgMembers: Member[];
@@ -61,6 +62,7 @@ class TeamMembers extends AsyncView<Props, State> {
       loading: true,
       error: false,
       dropdownBusy: false,
+      dropdownOpen: false,
       teamMembers: [],
       orgMembers: [],
     };
@@ -119,7 +121,7 @@ class TeamMembers extends AsyncView<Props, State> {
     const {organization, params} = this.props;
     const {orgMembers, teamMembers} = this.state;
 
-    this.setState({loading: true});
+    this.setState({loading: true, dropdownOpen: true});
 
     // Reset members list after adding member to team
     this.debouncedFetchMembersRequest('');
@@ -145,7 +147,7 @@ class TeamMembers extends AsyncView<Props, State> {
           addSuccessMessage(t('Successfully added member to team.'));
         },
         error: () => {
-          this.setState({loading: false});
+          this.setState({loading: false, dropdownOpen: false});
           addErrorMessage(t('Unable to add team member.'));
         },
       }
@@ -253,6 +255,8 @@ class TeamMembers extends AsyncView<Props, State> {
 
     return (
       <DropdownAutoComplete
+        isOpen={this.state.dropdownOpen}
+        closeOnSelect={false}
         items={items}
         alignMenu="right"
         onSelect={
@@ -269,12 +273,16 @@ class TeamMembers extends AsyncView<Props, State> {
         emptyMessage={t('No members')}
         onChange={this.handleMemberFilterChange}
         busy={this.state.dropdownBusy}
-        onClose={() => this.debouncedFetchMembersRequest('')}
+        onClose={() => {
+          this.setState({dropdownOpen: false});
+          this.debouncedFetchMembersRequest('');
+        }}
         disabled={isDropdownDisabled}
       >
         {({isOpen}) => (
           <DropdownButton
             isOpen={isOpen}
+            onClick={() => this.setState({dropdownOpen: true})}
             size="xs"
             data-test-id="add-member"
             disabled={isDropdownDisabled}
