@@ -9,10 +9,6 @@ import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import {
-  ModuleButtonType,
-  ModuleLinkButton,
-} from 'sentry/views/starfish/views/webServiceView/moduleLinkButton';
 
 export function WebServiceBreakdownChart({
   isTopDataLoading,
@@ -65,10 +61,8 @@ export function WebServiceBreakdownChart({
     zeroFillSeries(series, moment.duration(1, 'day'), start, end)
   );
 
-  const button = <ModuleLinkButton type={ModuleButtonType.API} />;
-
   return (
-    <ChartPanel title={t('p75 of HTTP spans')} button={button}>
+    <ChartPanel title={t('p75 of HTTP spans')}>
       <Chart
         statsPeriod="24h"
         height={180}

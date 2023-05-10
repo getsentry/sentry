@@ -37,7 +37,7 @@ export function getSegmentLabel(span_operation, action, domain) {
     return t('%s requests to %s', action, domain);
   }
   if (span_operation === 'db') {
-    return t('%s on %s', action, domain);
+    return t('%s queries on %s', action, domain);
   }
   return span_operation || domain || undefined;
 }
