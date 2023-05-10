@@ -150,7 +150,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   return (
     <CarouselAndButtonsWrapper>
       <EventHeading>
-        <EventIdLabel>Event ID:</EventIdLabel>
+        <EventIdLabel>Event ID:</EventIdLabel>{' '}
         <Button
           aria-label={t('Copy')}
           borderless
@@ -166,7 +166,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
               <IconCopy size="xs" />
             </CopyIconContainer>
           </EventId>
-        </Button>
+        </Button>{' '}
         {(event.dateCreated ?? event.dateReceived) && (
           <EventTimeLabel>
             {getDynamicText({
@@ -319,8 +319,6 @@ const CarouselAndButtonsWrapper = styled('div')`
 `;
 
 const EventHeading = styled('div')`
-  display: flex;
-  gap: ${space(0.25)};
   font-size: ${p => p.theme.fontSizeLarge};
 
   @media (max-width: 600px) {
