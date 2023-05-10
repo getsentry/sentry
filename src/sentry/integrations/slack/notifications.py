@@ -39,12 +39,10 @@ def _get_attachments(
     notification: BaseNotification,
     recipient: RpcActor,
     shared_context: Mapping[str, Any],
-    extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
+    extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None,
 ) -> List[SlackAttachment]:
     extra_context = (
-        extra_context_by_actor_id[recipient.actor_id]
-        if extra_context_by_actor_id and recipient.actor_id
-        else {}
+        extra_context_by_actor[recipient] if extra_context_by_actor and recipient else {}
     )
     context = get_context(notification, recipient, shared_context, extra_context)
     cls = get_message_builder(notification.message_builder)
@@ -104,7 +102,7 @@ def send_notification_as_slack(
     notification: BaseNotification,
     recipients: Iterable[RpcActor | Team | User],
     shared_context: Mapping[str, Any],
-    extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
+    extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None,
 ) -> None:
     """Send an "activity" or "alert rule" notification to a Slack user or team."""
     with sentry_sdk.start_span(
@@ -121,7 +119,7 @@ def send_notification_as_slack(
                     notification,
                     recipient,
                     shared_context,
-                    extra_context_by_actor_id,
+                    extra_context_by_actor,
                 )
 
             for channel, integration in integrations_by_channel.items():

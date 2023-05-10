@@ -1,8 +1,14 @@
 import {Moment, unix} from 'moment';
 
-import {EventTransaction} from 'sentry/types';
-import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
+import {EventTransaction, NewQuery} from 'sentry/types';
+import {
+  DiscoverQueryComponentProps,
+  DiscoverQueryPropsWithThresholds,
+  useDiscoverQuery,
+} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DefinedUseQueryResult, useQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -14,6 +20,10 @@ import {
   datetimeToClickhouseFilterTimestamps,
   getDateFilters,
 } from 'sentry/views/starfish/utils/dates';
+import {
+  UseSpansQueryReturnType,
+  useWrappedDiscoverTimeseriesQuery,
+} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export const DEFAULT_WHERE = `
   startsWith(span_operation, 'db') and
@@ -21,8 +31,6 @@ export const DEFAULT_WHERE = `
   module = 'db' and
   action != ''
 `;
-
-const INTERVAL = 12;
 
 const ORDERBY = `
   -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
@@ -41,7 +49,7 @@ const getActionSubquery = (date_filters: string) => {
   `;
 };
 
-const getDomainSubquery = (date_filters: string, action: string) => {
+const getDomainSubquery = (date_filters: string) => {
   return `
   select domain
   from default.spans_experimental_starfish
@@ -49,7 +57,6 @@ const getDomainSubquery = (date_filters: string, action: string) => {
     ${DEFAULT_WHERE}
     ${date_filters} and
     domain != ''
-    ${getActionQuery(action)}
    group by domain
    order by ${ORDERBY}
    limit 5
@@ -72,9 +79,6 @@ const getTransactionsFromTableSubquery = (tableNames: string[], dateFilters: str
   LIMIT 5
 `;
 };
-
-const getActionQuery = (action: string) =>
-  action !== 'ALL' ? `and action = '${action}'` : '';
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60;
 
@@ -105,34 +109,9 @@ const getRetiredColumn = (duration: number, startTime: Moment, endTime: Moment) 
     : '0 as retired';
 };
 
-export const useQueryDbOperations = (): DefinedUseQueryResult<
+export const useQueryDbTables = (): DefinedUseQueryResult<
   {key: string; value: string}[]
 > => {
-  const pageFilter = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilter);
-  const dateFilters = getDateQueryFilter(startTime, endTime);
-  const query = `
-  select
-    action as key,
-    uniq(description) as value
-  from default.spans_experimental_starfish
-  where
-    ${DEFAULT_WHERE}
-    ${dateFilters}
-  group by action
-  order by ${ORDERBY}
-  `;
-  return useQuery({
-    queryKey: ['operation', pageFilter.selection.datetime],
-    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-};
-
-export const useQueryDbTables = (
-  action: string
-): DefinedUseQueryResult<{key: string; value: string}[]> => {
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
@@ -144,12 +123,11 @@ export const useQueryDbTables = (
   where
     ${DEFAULT_WHERE}
     ${dateFilters}
-    ${getActionQuery(action)}
   group by domain
   order by ${ORDERBY}
   `;
   return useQuery({
-    queryKey: ['table', action, pageFilter.selection.datetime],
+    queryKey: ['table', pageFilter.selection.datetime],
     queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -186,40 +164,88 @@ export const useQueryTopDbOperationsChart = (
   });
 };
 
-export const useGetTransactionsForTables = (tableNames: string[], interval: number) => {
+type TopTransactionData = {
+  interval: string;
+  transaction: string;
+  epm?: number;
+  p75?: number;
+};
+
+export const useGetTransactionsForTables = (
+  tableNames: string[],
+  interval: number
+): DefinedUseQueryResult<TopTransactionData[]> => {
   const pageFilter = usePageFilters();
+  const location = useLocation();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
-  const transactionFilter = `transaction IN (${getTransactionsFromTableSubquery(
-    tableNames,
-    dateFilters
-  )})`;
 
-  const filters = [transactionFilter];
+  const transactionNameQuery = getTransactionsFromTableSubquery(tableNames, dateFilters);
 
-  const query = `
-    SELECT
-      transaction,
-      floor(quantile(0.75)(exclusive_time), 5) as p75,
-      count() as count,
-      toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
-    FROM default.spans_experimental_starfish
-    WHERE
-      ${filters.join(' AND ')}
-      ${dateFilters}
-    GROUP BY interval, transaction
-    ORDER BY interval
-  `;
+  const {start, end, period} = pageFilter.selection.datetime;
 
-  const {start, end} = pageFilter.selection.datetime;
-
-  return useQuery({
+  const result1 = useQuery<{transaction: string}[]>({
     enabled: !!tableNames?.length,
-    queryKey: ['topTable', tableNames.join(','), start, end],
-    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    queryKey: ['topTransactionNames', tableNames.join(','), start, end],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${transactionNameQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
+
+  const query: NewQuery = {
+    id: undefined,
+    name: 'Db module - epm/p75 for top transactions',
+    query: `transaction:[${result1.data?.map(d => d.transaction).join(',')}]`,
+    projects: [1],
+    fields: ['transaction', 'epm()', 'p75(transaction.duration)'],
+    version: 1,
+    topEvents: '5',
+    start: start?.toString(),
+    end: end?.toString(),
+    dataset: DiscoverDatasets.METRICS_ENHANCED,
+    interval: `${interval}h`,
+    yAxis: ['epm()', 'p75(transaction.duration)'],
+  };
+
+  const eventView = EventView.fromNewQueryWithLocation(query, location);
+  eventView.statsPeriod = period ?? undefined;
+
+  const result2 = useDiscoverEventsStatsQuery({
+    eventView,
+    referrer: 'api.starfish.database.charts',
+    location,
+    orgSlug: 'sentry',
+    queryExtras: {
+      interval: `${interval}h`, // This interval isn't being propogated from eventView
+      yAxis: ['epm()', 'p75(transaction.duration)'], // workaround - eventView actually doesn't support multiple yAxis
+      excludeOther: '1',
+      topEvents: '5',
+      per_page: undefined,
+    },
+  });
+
+  const data: TopTransactionData[] = [];
+  if (!result2.isLoading && result2.data) {
+    Object.entries(result2.data).forEach(([transactionName, result]: [string, any]) => {
+      result['epm()'].data.forEach(entry => {
+        data.push({
+          transaction: transactionName,
+          interval: unix(entry[0]).format('YYYY-MM-DDTHH:mm:ss'),
+          epm: entry[1][0].count,
+        });
+      });
+      result['p75(transaction.duration)'].data.forEach(entry => {
+        data.push({
+          transaction: transactionName,
+          interval: unix(entry[0]).format('YYYY-MM-DDTHH:mm:ss'),
+          p75: entry[1][0].count,
+        });
+      });
+    });
+  }
+
+  return {...result2, data} as DefinedUseQueryResult<TopTransactionData[]>;
 };
 
 type TopTableQuery = {
@@ -230,7 +256,6 @@ type TopTableQuery = {
 }[];
 
 export const useQueryTopTablesChart = (
-  action: string,
   interval: number
 ): DefinedUseQueryResult<TopTableQuery> => {
   const pageFilter = usePageFilters();
@@ -246,14 +271,13 @@ export const useQueryTopTablesChart = (
   where
     ${DEFAULT_WHERE}
     ${dateFilters} and
-    domain in (${getDomainSubquery(dateFilters, action)})
-    ${getActionQuery(action)}
+    domain in (${getDomainSubquery(dateFilters)})
   group by interval, domain
   order by interval, domain
   `;
 
   const result1 = useQuery<TopTableQuery>({
-    queryKey: ['topTable', action, pageFilter.selection.datetime],
+    queryKey: ['topTable', pageFilter.selection.datetime],
     queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -277,7 +301,7 @@ export const useQueryTopTablesChart = (
 
   const result2 = useQuery<TopTableQuery>({
     enabled: !result1.isLoading && !!result1.data?.length,
-    queryKey: ['topTableOther', action, pageFilter.selection.datetime],
+    queryKey: ['topTableOther', pageFilter.selection.datetime],
     queryFn: () => fetch(`${HOST}/?query=${query2}`).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -407,14 +431,9 @@ export const useQueryMainTable = (options: {
   const newFilter: string | undefined = filterNew ? 'newish = 1' : undefined;
   const oldFilter: string | undefined = filterOld ? 'retired = 1' : undefined;
 
-  const filters = [
-    DEFAULT_WHERE,
-    transactionFilter,
-    tableFilter,
-    actionFilter,
-    newFilter,
-    oldFilter,
-  ].filter(fil => !!fil);
+  const filters = [DEFAULT_WHERE, transactionFilter, tableFilter, actionFilter].filter(
+    fil => !!fil
+  );
   const duration = endTime.unix() - startTime.unix();
   const newColumn = getNewColumn(duration, startTime, endTime);
   const retiredColumn = getRetiredColumn(duration, startTime, endTime);
@@ -450,7 +469,7 @@ export const useQueryMainTable = (options: {
     data_values
   ${havingFilters.length > 0 ? 'having' : ''}
     ${havingFilters.join(' and ')}
-    order by ${orderBy}
+  order by ${orderBy}
   limit ${limit ?? 100}
 `;
 
@@ -472,51 +491,35 @@ export const useQueryMainTable = (options: {
   });
 };
 
+type QueryTransactionByTPMAndP75ReturnType = {
+  count: number;
+  interval: string;
+  p75: number;
+  transaction: string;
+}[];
 export const useQueryTransactionByTPMAndP75 = (
   transactionNames: string[]
-): DefinedUseQueryResult<
-  {count: number; interval: string; p75: number; transaction: string}[]
-> => {
-  const pageFilter = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilter);
-  const dateFilters = getDateQueryFilter(startTime, endTime);
-  const queryFilter = `transaction IN ('${transactionNames.join(`', '`)}')`;
-
-  const query = `
-  select
-    count(DISTINCT transaction_id) as count,
-    floor(quantile(0.75)(exclusive_time), 5) as p75,
-    transaction,
-    toStartOfInterval(start_timestamp, INTERVAL ${INTERVAL} hour) as interval
-  FROM default.spans_experimental_starfish
-  where
-    ${DEFAULT_WHERE}
-    ${dateFilters} and
-    ${queryFilter}
-    and transaction IN (
-      SELECT
-        transaction
-      FROM default.spans_experimental_starfish
-      WHERE ${queryFilter}
-      GROUP BY transaction
-      ORDER BY count() desc
-      LIMIT 5
-    )
-  group by transaction, interval
-  order by transaction, interval
-  `;
-
-  return useQuery({
-    enabled: !!transactionNames?.length,
-    queryKey: [
-      'EpmPerTransaction',
-      pageFilter.selection.datetime,
-      transactionNames.join(','),
-    ],
-    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
+): UseSpansQueryReturnType<QueryTransactionByTPMAndP75ReturnType> => {
+  const {
+    selection: {datetime},
+  } = usePageFilters();
+  return useWrappedDiscoverTimeseriesQuery(
+    EventView.fromSavedQuery({
+      name: '',
+      fields: ['transaction', 'count()', 'p75(transaction.duration)'],
+      yAxis: ['count()', 'p75(transaction.duration)'],
+      orderby: '-count',
+      query: `transaction:["${transactionNames.join('","')}"]`,
+      topEvents: '5',
+      start: datetime.start as string,
+      end: datetime.end as string,
+      range: datetime.period as string,
+      dataset: DiscoverDatasets.METRICS,
+      projects: [1],
+      version: 2,
+    }),
+    []
+  );
 };
 
 export const useQueryGetProfileIds = (
@@ -595,3 +598,34 @@ export const getDateQueryFilter = (startTime: Moment, endTime: Moment) => {
   ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
   `;
 };
+
+const shouldRefetchData = (
+  prevProps: DiscoverQueryPropsWithThresholds,
+  nextProps: DiscoverQueryPropsWithThresholds
+) => {
+  return (
+    prevProps.transactionName !== nextProps.transactionName ||
+    prevProps.transactionThreshold !== nextProps.transactionThreshold ||
+    prevProps.transactionThresholdMetric !== nextProps.transactionThresholdMetric
+  );
+};
+
+// We should find a way to use this in discover
+export function useDiscoverEventsStatsQuery(
+  props: Omit<DiscoverQueryComponentProps, 'children'>
+) {
+  const afterFetch = (data, _) => {
+    const {fields, ...otherMeta} = data.meta ?? {};
+    return {
+      ...data,
+      meta: {...fields, ...otherMeta},
+    };
+  };
+
+  return useGenericDiscoverQuery({
+    route: 'events-stats',
+    shouldRefetchData,
+    afterFetch,
+    ...props,
+  });
+}

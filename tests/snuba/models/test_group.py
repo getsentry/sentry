@@ -63,10 +63,17 @@ class GroupTestSnuba(TestCase, SnubaTestCase):
         event_data_3["start_timestamp"] = iso_format(before_now(seconds=31))
         event_data_3["event_id"] = "f" * 32
 
-        self.transaction_event_1 = self.store_event(data=event_data_1, project_id=self.project.id)
-        self.transaction_event_2 = self.store_event(data=event_data_2, project_id=self.project.id)
-        self.transaction_event_3 = self.store_event(data=event_data_3, project_id=self.project.id)
-        perf_group = self.transaction_event_1.groups[0]
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            self.transaction_event_1 = self.store_event(
+                data=event_data_1, project_id=self.project.id
+            )
+            self.transaction_event_2 = self.store_event(
+                data=event_data_2, project_id=self.project.id
+            )
+            self.transaction_event_3 = self.store_event(
+                data=event_data_3, project_id=self.project.id
+            )
+            perf_group = self.transaction_event_1.groups[0]
 
         assert perf_group.get_latest_event_for_environments().event_id == "d" * 32
         assert perf_group.get_oldest_event_for_environments().event_id == "f" * 32
@@ -101,6 +108,5 @@ class GroupTestSnuba(TestCase, SnubaTestCase):
             )
         perf_group = self.transaction_event_1.groups[0]
 
-        with self.feature("organizations:issue-platform-search-perf-issues"):
-            assert perf_group.get_latest_event_for_environments().event_id == "d" * 32
-            assert perf_group.get_oldest_event_for_environments().event_id == "f" * 32
+        assert perf_group.get_latest_event_for_environments().event_id == "d" * 32
+        assert perf_group.get_oldest_event_for_environments().event_id == "f" * 32
