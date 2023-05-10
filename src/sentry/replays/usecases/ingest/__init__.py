@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Optional, TypedDict
 
 from django.conf import settings
+from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecordingNotChunked
 from sentry_sdk import Hub
 from sentry_sdk.tracing import Span
 
@@ -45,16 +46,6 @@ class RecordingSegmentMessage(TypedDict):
     replay_recording: ReplayRecordingSegment
 
 
-class RecordingMessage(TypedDict):
-    retention_days: int
-    replay_id: str
-    key_id: int | None
-    org_id: int
-    project_id: int
-    received: int
-    payload: bytes
-
-
 class MissingRecordingSegmentHeaders(ValueError):
     pass
 
@@ -66,12 +57,14 @@ class RecordingIngestMessage:
     project_id: int
     replay_id: str
     key_id: int | None
-    received: int
+    received: float
     payload_with_headers: bytes
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording")
-def ingest_recording(message_dict: RecordingMessage, transaction: Span, current_hub: Hub) -> None:
+def ingest_recording(
+    message_dict: ReplayRecordingNotChunked, transaction: Span, current_hub: Hub
+) -> None:
     """Ingest non-chunked recording messages."""
     with current_hub:
         with transaction.start_child(
