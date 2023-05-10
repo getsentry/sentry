@@ -655,19 +655,11 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
-    from sentry.issues.escalating import is_escalating
-    from sentry.models import (
-        Activity,
-        GroupInboxReason,
-        GroupSnooze,
-        GroupStatus,
-        GroupSubStatus,
-        add_group_to_inbox,
-    )
-    from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
-    from sentry.signals import issue_escalating
+    from sentry.issues.escalating import is_escalating, manage_snooze_states
+    from sentry.models import Activity, GroupInboxReason, GroupSnooze, GroupStatus, GroupSubStatus
 
-    group = job["event"].group
+    event = job["event"]
+    group = event.group
 
     # Check is group is escalating
     if (
@@ -676,15 +668,7 @@ def process_snoozes(job: PostProcessJob) -> None:
         and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     ):
         if is_escalating(group):
-            group.substatus = GroupSubStatus.ESCALATING
-            group.status = GroupStatus.UNRESOLVED
-            group.save(update_fields=["status", "substatus"])
-            add_group_to_inbox(group, GroupInboxReason.ESCALATING)
-            record_group_history(group, GroupHistoryStatus.ESCALATING)
-
-            issue_escalating.send_robust(
-                project=group.project, group=group, event=job["event"], sender=is_escalating
-            )
+            manage_snooze_states(group, GroupInboxReason.ESCALATING, event)
 
             job["has_reappeared"] = True
         return
@@ -713,21 +697,13 @@ def process_snoozes(job: PostProcessJob) -> None:
             }
 
             if features.has("organizations:escalating-issues", group.organization):
-                add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
-                record_group_history(group, GroupHistoryStatus.ESCALATING)
-                group.substatus = GroupSubStatus.ESCALATING
-                group.status = GroupStatus.UNRESOLVED
-                group.save(update_fields=["status", "substatus"])
-                issue_escalating.send_robust(
-                    project=group.project, group=group, event=job["event"], sender=is_escalating
-                )
+                manage_snooze_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
+
+            elif features.has("organizations:issue-states", group.organization):
+                manage_snooze_states(group, GroupInboxReason.ONGOING, event, snooze_details)
 
             else:
-                add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
-                record_group_history(group, GroupHistoryStatus.UNIGNORED)
-                group.status = GroupStatus.UNRESOLVED
-                group.substatus = GroupSubStatus.ONGOING
-                group.save(update_fields=["status", "substatus"])
+                manage_snooze_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
 
             Activity.objects.create(
                 project=group.project,

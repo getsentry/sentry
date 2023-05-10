@@ -1,7 +1,6 @@
 """This module has the logic for querying Snuba for the hourly event count for a list of groups.
 This is later used for generating group forecasts for determining when a group may be escalating.
 """
-
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -24,7 +23,16 @@ from snuba_sdk import (
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Group
+from sentry.models import (
+    Group,
+    GroupHistoryStatus,
+    GroupInboxReason,
+    GroupStatus,
+    GroupSubStatus,
+    add_group_to_inbox,
+    record_group_history,
+)
+from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils.cache import cache
 from sentry.utils.snuba import raw_snql_query
@@ -286,3 +294,38 @@ def _issue_category_entity(category: Optional[GroupCategory]) -> EntityKey:
     return (
         EntityKey.Events.value if category == GroupCategory.ERROR else EntityKey.IssuePlatform.value
     )
+
+
+def manage_snooze_states(
+    group,
+    group_inbox_reason,
+    event,
+    snooze_details=None,
+):
+    if group_inbox_reason == GroupInboxReason.ESCALATING:
+        add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
+        record_group_history(group, GroupHistoryStatus.ESCALATING)
+        group.substatus = GroupSubStatus.ESCALATING
+        group.status = GroupStatus.UNRESOLVED
+        issue_escalating.send_robust(
+            project=group.project, group=group, event=event, sender=is_escalating
+        )
+
+    elif group_inbox_reason == GroupInboxReason.ONGOING:
+        add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
+        record_group_history(group, GroupHistoryStatus.ONGOING)
+        group.status = GroupStatus.UNRESOLVED
+        group.substatus = GroupSubStatus.ONGOING
+
+    elif group_inbox_reason == GroupInboxReason.UNIGNORED:
+        add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
+        record_group_history(group, GroupHistoryStatus.UNIGNORED)
+        group.status = GroupStatus.UNRESOLVED
+        group.substatus = GroupSubStatus.ONGOING
+
+    else:
+        return NotImplementedError(
+            f"We don't support a change of state for {group_inbox_reason.name}"
+        )
+
+    group.save(update_fields=["status", "substatus"])
