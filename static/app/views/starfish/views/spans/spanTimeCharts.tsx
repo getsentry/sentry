@@ -52,6 +52,23 @@ export function SpanTimeCharts({descriptionFilter, clusters}: Props) {
 
   const dataByGroup = groupBy(data, 'primary_group');
 
+  const throughputTimeSeries = Object.keys(dataByGroup).map(groupName => {
+    const groupData = dataByGroup[groupName];
+
+    return zeroFillSeries(
+      {
+        seriesName: groupName,
+        data: groupData.map(datum => ({
+          value: datum.throughput,
+          name: datum.interval,
+        })),
+      },
+      moment.duration(1, 'day'),
+      startTime,
+      endTime
+    );
+  });
+
   const totalTimeSeries = Object.keys(dataByGroup).map(groupName => {
     const groupData = dataByGroup[groupName];
 
@@ -113,6 +130,31 @@ export function SpanTimeCharts({descriptionFilter, clusters}: Props) {
       </ChartsContainerItem>
 
       <ChartsContainerItem>
+        <ChartPanel title={t('Throughput')}>
+          <Chart
+            statsPeriod="24h"
+            height={100}
+            data={throughputTimeSeries}
+            start=""
+            end=""
+            loading={isLoading}
+            utc={false}
+            grid={{
+              left: '0',
+              right: '0',
+              top: '8px',
+              bottom: '0',
+            }}
+            definedAxisTicks={4}
+            stacked
+            isLineChart
+            chartColors={themes.charts.getColorPalette(2)}
+            disableXAxis
+          />
+        </ChartPanel>
+      </ChartsContainerItem>
+
+      <ChartsContainerItem>
         <ChartPanel title={t('p50')}>
           <Chart
             statsPeriod="24h"
@@ -151,8 +193,9 @@ export const getSpanTotalTimeChartQuery = (
 
   return `SELECT
     ${groupingColumn} AS primary_group,
+    count() AS throughput,
     sum(exclusive_time) AS total_time,
-    quantile(0.50)(exclusive_time) as p50,
+    quantile(0.50)(exclusive_time) AS p50,
     toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
     FROM spans_experimental_starfish
     WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
