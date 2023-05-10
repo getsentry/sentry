@@ -14,10 +14,10 @@ from sentry.integrations.msteams.card_builder import (
     TextBlock,
 )
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
-from sentry.models import Team, User
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
 from .block import (
@@ -35,7 +35,7 @@ from .block import (
 
 class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
     def __init__(
-        self, notification: BaseNotification, context: Mapping[str, Any], recipient: Team | User
+        self, notification: BaseNotification, context: Mapping[str, Any], recipient: RpcActor
     ):
         self.notification = notification
         self.context = context
@@ -125,7 +125,7 @@ class MSTeamsIssueNotificationsMessageBuilder(MSTeamsNotificationsMessageBuilder
         self,
         notification: GroupActivityNotification,
         context: Mapping[str, Any],
-        recipient: Team | User,
+        recipient: RpcActor,
     ):
         super().__init__(notification, context, recipient)
         self.group = getattr(notification, "group", None)

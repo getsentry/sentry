@@ -10,7 +10,7 @@ from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
 from sentry.integrations.slack.message_builder import SlackAttachment
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
-from sentry.models import Integration, Team, User
+from sentry.models import Integration
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
@@ -100,7 +100,7 @@ def _notify_recipient(
 @register_notification_provider(ExternalProviders.SLACK)
 def send_notification_as_slack(
     notification: BaseNotification,
-    recipients: Iterable[RpcActor | Team | User],
+    recipients: Iterable[RpcActor],
     shared_context: Mapping[str, Any],
     extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None,
 ) -> None:

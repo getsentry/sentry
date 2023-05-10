@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping
 
 from sentry.constants import ObjectStatus
-from sentry.models import ExternalActor, Organization, Team, User
+from sentry.models import ExternalActor, Organization, Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, RpcIdentityProvider, identity_service
@@ -96,7 +96,7 @@ def _get_channel_and_integration_by_team(
 
 def get_integrations_by_channel_by_recipient(
     organization: Organization,
-    recipients: Iterable[RpcActor | Team | User],
+    recipients: Iterable[RpcActor],
     provider: ExternalProviders,
 ) -> Mapping[RpcActor, Mapping[str, RpcIntegration]]:
     output: MutableMapping[RpcActor, Mapping[str, RpcIntegration]] = defaultdict(dict)
