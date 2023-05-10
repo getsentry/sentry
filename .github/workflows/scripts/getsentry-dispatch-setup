@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import urllib.parse
 import urllib.request
 
 LABEL = "Trigger: getsentry tests"
@@ -18,8 +19,9 @@ def _has_write(repo_id: int, username: str, *, token: str) -> bool:
 
 
 def _remove_label(repo_id: int, pr: int, label: str, *, token: str) -> None:
+    quoted_label = urllib.parse.quote(label)
     req = urllib.request.Request(
-        f"https://api.github.com/repositories/{repo_id}/issues/{pr}/labels/{label}",
+        f"https://api.github.com/repositories/{repo_id}/issues/{pr}/labels/{quoted_label}",
         method="DELETE",
         headers={"Authorization": f"token {token}"},
     )
