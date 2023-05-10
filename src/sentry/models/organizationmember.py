@@ -224,6 +224,9 @@ class OrganizationMember(Model):
 
     __repr__ = sane_repr("organization_id", "user_id", "email", "role")
 
+    # Used to reduce redundant queries
+    __org_roles_from_teams = None
+
     def delete(self, *args, **kwds):
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             self.outbox_for_update().save()
@@ -237,6 +240,11 @@ class OrganizationMember(Model):
         if self.token and not self.token_expires_at:
             self.refresh_expires_at()
         super().save(*args, **kwargs)
+        self.__org_roles_from_teams = None
+
+    def refresh_from_db(self, *args, **kwargs):
+        super().refresh_from_db(*args, **kwargs)
+        self.__org_roles_from_teams = None
 
     def set_user(self, user):
         self.user_id = coerce_id_from(user)
@@ -492,8 +500,6 @@ class OrganizationMember(Model):
             role_obj = organization_roles.get(role)
             scopes.update(self.organization.get_scopes(role_obj))
         return frozenset(scopes)
-
-    __org_roles_from_teams = None
 
     def get_org_roles_from_teams(self) -> Set[str]:
         if self.__org_roles_from_teams is None:
