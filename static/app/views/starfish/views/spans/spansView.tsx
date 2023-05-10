@@ -154,7 +154,7 @@ export default function SpansView(props: Props) {
           return (
             <TagDistributionMeter
               key={cluster.name}
-              title={cluster.label}
+              title={cluster.explanation || cluster.label}
               onTagClick={(_name, value) => {
                 setClusterPath([...clusterPath.slice(0, depth + 1), value.value]);
               }}
