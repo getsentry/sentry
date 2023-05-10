@@ -16,13 +16,11 @@ from sentry.integrations.utils.code_mapping import (
     filter_source_code_files,
 )
 from sentry.models import Integration, Repository
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions.base import ApiError
-from sentry.silo.util import trim_leading_slashes
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.utils import jwt
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 
@@ -49,6 +47,14 @@ class GithubRateLimitInfo:
 
 
 class GithubProxyClient(IntegrationProxyClient):
+    def _get_installation_id(self) -> str:
+        """
+        Returns the Github App Installation identifier.
+        This is a method since Github and Github Enterprise integrations store the
+        installation identifier in different places from one another.
+        """
+        return self.integration.external_id
+
     @control_silo_function
     def _refresh_access_token(self) -> str | None:
         integration = Integration.objects.filter(id=self.integration.id).first()
@@ -62,7 +68,7 @@ class GithubProxyClient(IntegrationProxyClient):
                 "integration_id": self.integration.id,
             },
         )
-        data = self.post(f"/app/installations/{self.integration.external_id}/access_tokens")
+        data = self.post(f"/app/installations/{self._get_installation_id()}/access_tokens")
         token = data["token"]
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
         integration.metadata.update({"access_token": token, "expires_at": expires_at})
@@ -117,7 +123,6 @@ class GithubProxyClient(IntegrationProxyClient):
 
     @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
-
         integration = None
         if self.integration:
             integration = self.integration
@@ -142,7 +147,6 @@ class GithubProxyClient(IntegrationProxyClient):
 
         prepared_request.headers["Accept"] = "application/vnd.github+json"
         prepared_request.headers["Authorization"] = f"Bearer {token}"
-        print(prepared_request.__dict__)
 
         return prepared_request
 
@@ -154,9 +158,6 @@ class GitHubClientMixin(GithubProxyClient):  # type: ignore
     integration_name = "github"
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
     page_number_limit = 50  # With a default of 100 per page -> 5,000 items
-
-    def get_jwt(self) -> str:
-        return get_jwt()
 
     def get_last_commits(self, repo: str, end_sha: str) -> Sequence[JSONData]:
         """
@@ -564,17 +565,6 @@ class GitHubClientMixin(GithubProxyClient):  # type: ignore
         https://docs.github.com/en/rest/users/users#get-a-user
         """
         return self.get(f"/users/{gh_username}")
-
-    def create_token(self) -> JSONData:
-        headers = {
-            # TODO(jess): remove this whenever it's out of preview
-            "Accept": "application/vnd.github.machine-man-preview+json",
-        }
-        headers.update(jwt.authorization_header(self.get_jwt()))
-        return self.post(
-            f"/app/installations/{self.integration.external_id}/access_tokens",
-            headers=headers,
-        )
 
     def check_file(self, repo: Repository, path: str, version: str) -> str | None:
         file: str = self.head_cached(

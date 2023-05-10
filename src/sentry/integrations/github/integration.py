@@ -29,13 +29,11 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
-from sentry.utils import jwt
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient, GitHubClientMixin
 from .issues import GitHubIssueBasic
 from .repository import GitHubRepositoryProvider
-from .utils import get_jwt
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -306,15 +304,7 @@ class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
         client = self.get_client()
-        headers = {
-            # TODO(jess): remove this whenever it's out of preview
-            "Accept": "application/vnd.github.machine-man-preview+json",
-        }
-        headers.update(jwt.authorization_header(get_jwt()))
-
-        resp: Mapping[str, Any] = client.get(
-            f"/app/installations/{installation_id}", headers=headers
-        )
+        resp: Mapping[str, Any] = client.get(f"/app/installations/{installation_id}")
         return resp
 
     def build_integration(self, state: Mapping[str, str]) -> Mapping[str, Any]:
