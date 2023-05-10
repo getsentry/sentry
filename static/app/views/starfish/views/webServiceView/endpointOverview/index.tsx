@@ -22,7 +22,16 @@ import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import DatabaseTableView from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
-import {useQueryMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {
+  getDbAggregatesQuery,
+  useQueryMainTable,
+} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {getDbThroughput} from 'sentry/views/starfish/views/webServiceView/queries';
+import {useQuery} from 'sentry/utils/queryClient';
+import {HOST} from 'sentry/views/starfish/utils/constants';
+import {Series} from 'sentry/types/echarts';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import moment from 'moment';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -72,6 +81,16 @@ const DATABASE_SPAN_COLUMN_ORDER = [
     width: 100,
   },
   {
+    key: 'throughput',
+    name: 'Throughput',
+    width: 200,
+  },
+  {
+    key: 'p75_trend',
+    name: 'P75 Trend',
+    width: 200,
+  },
+  {
     key: 'epm',
     name: 'Tpm',
     width: COL_WIDTH_UNDEFINED,
@@ -101,6 +120,57 @@ export default function EndpointOverview() {
     data: tableData,
     isRefetching: isTableRefetching,
   } = useQueryMainTable({});
+
+  const {isLoading, data: throughputData} = useQuery({
+    queryKey: ['dbAggregates'],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getDbAggregatesQuery({
+          datetime: pageFilter.selection.datetime,
+          transaction,
+        })}`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const aggregatesGroupedByQuery = {};
+  throughputData.forEach(({description, interval, count, p75}) => {
+    if (description in aggregatesGroupedByQuery) {
+      aggregatesGroupedByQuery[description].push({name: interval, count, p75});
+    } else {
+      aggregatesGroupedByQuery[description] = [{name: interval, count, p75}];
+    }
+  });
+
+  const combinedDbData = tableData.map(data => {
+    const query = data.description;
+
+    const throughputSeries: Series = {
+      seriesName: 'throughput',
+      data: aggregatesGroupedByQuery[query]?.map(({name, count}) => ({
+        name,
+        value: count,
+      })),
+    };
+
+    const p75Series: Series = {
+      seriesName: 'p75 Trend',
+      data: aggregatesGroupedByQuery[query]?.map(({name, p75}) => ({
+        name,
+        value: p75,
+      })),
+    };
+
+    const zeroFilledThroughput = zeroFillSeries(
+      throughputSeries,
+      moment.duration(12, 'hours')
+    );
+    const zeroFilledP75 = zeroFillSeries(p75Series, moment.duration(12, 'hours'));
+    return {...data, throughput: zeroFilledThroughput, p75_trend: zeroFilledP75};
+  });
+
+  console.dir(combinedDbData);
 
   const query = new MutableSearch([
     'has:http.method',
@@ -243,7 +313,7 @@ export default function EndpointOverview() {
               );
             }}
             isDataLoading={isTableDataLoading || isTableRefetching}
-            data={tableData}
+            data={combinedDbData}
             columns={DATABASE_SPAN_COLUMN_ORDER}
           />
         </Layout.Main>

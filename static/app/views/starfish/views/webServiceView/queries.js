@@ -127,7 +127,7 @@ export const getDatabaseTimeSpent = ({transaction}) => {
   `;
 };
 
-export const getDbThroughput = ({transaction}) => {
+export const getDbThroughput = transaction => {
   return `SELECT
   count() as count,
   toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval

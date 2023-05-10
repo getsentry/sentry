@@ -11,6 +11,8 @@ import {Sort} from 'sentry/views/starfish/modules/databaseModule';
 import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
 
 import {highlightSql} from './panel';
+import Sparkline from 'sentry/views/starfish/components/sparkline';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 
 type Props = {
   isDataLoading: boolean;
@@ -41,7 +43,15 @@ export type DataRow = {
   transactions: number;
 };
 
-type Keys = 'description' | 'domain' | 'epm' | 'p75' | 'transactions' | 'total_time';
+type Keys =
+  | 'description'
+  | 'domain'
+  | 'throughput'
+  | 'p75_trend'
+  | 'epm'
+  | 'p75'
+  | 'transactions'
+  | 'total_time';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 export type MainTableSort = Sort<TableColumnHeader>;
 
@@ -54,6 +64,16 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'domain',
     name: 'Table',
+    width: 200,
+  },
+  {
+    key: 'throughput',
+    name: 'Throughput',
+    width: 200,
+  },
+  {
+    key: 'p75_trend',
+    name: 'P75 Trend',
     width: 200,
   },
   {
@@ -179,10 +199,9 @@ export default function DatabaseTableView({
     const rowStyle: CSSProperties | undefined = isSelectedRow
       ? {fontWeight: 'bold'}
       : undefined;
+    const value = row[key];
 
     if (key === 'description') {
-      const value = row[key];
-
       let headerExtra = '';
       if (row.newish === 1) {
         headerExtra = `Query (First seen ${row.firstSeen})`;
@@ -200,11 +219,34 @@ export default function DatabaseTableView({
         </Hovercard>
       );
     }
+
     if (key === 'p75' || key === 'total_time') {
-      const value = row[key];
       return <span style={rowStyle}>{value.toFixed(2)}ms</span>;
     }
-    return <span style={rowStyle}>{row[key]}</span>;
+
+    if (key === 'throughput') {
+      console.dir(row[key]);
+      return (
+        <Sparkline
+          color={CHART_PALETTE[3][0]}
+          series={value}
+          width={column.width ? column.width - column.width / 5 : undefined}
+        />
+      );
+    }
+
+    if (key === 'p75_trend') {
+      console.dir(row[key]);
+      return (
+        <Sparkline
+          color={CHART_PALETTE[3][3]}
+          series={value}
+          width={column.width ? column.width - column.width / 5 : undefined}
+        />
+      );
+    }
+
+    return <span style={rowStyle}>{value}</span>;
   }
 
   return (
