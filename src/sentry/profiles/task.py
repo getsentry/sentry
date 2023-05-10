@@ -537,7 +537,8 @@ The sorting order is callee to caller (child to parent)
 def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
     index_map: dict[int, List[int]] = defaultdict(list)
     for i, frame in enumerate(frames):
-        index_map[frame["original_index"]].append(i)
+        if "original_index" in frame:
+            index_map[frame["original_index"]].append(i)
     return index_map
 
 
