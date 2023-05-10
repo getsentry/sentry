@@ -1,7 +1,8 @@
-from typing import Mapping, Tuple, cast
+from typing import List, Mapping, Tuple, cast
 
 import sentry_sdk
 
+from sentry.dynamic_sampling.models.utils import DSElement
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.utils import json
 
@@ -28,11 +29,12 @@ def get_transactions_resampling_rates(
 
 
 def set_transactions_resampling_rates(
-    org_id: int, proj_id: int, named_rates: Mapping[str, float], default_rate: float, ttl_ms: int
+    org_id: int, proj_id: int, named_rates: List[DSElement], default_rate: float, ttl_ms: int
 ) -> None:
     redis_client = get_redis_client_for_ds()
     cache_key = _get_cache_key(org_id=org_id, proj_id=proj_id)
-    val = [named_rates, default_rate]
+    named_rates_dict = {rate.id: rate.new_sample_rate for rate in named_rates}
+    val = [named_rates_dict, default_rate]
     val_str = json.dumps(val)
     redis_client.set(cache_key, val_str)
     redis_client.pexpire(cache_key, ttl_ms)

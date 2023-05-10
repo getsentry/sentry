@@ -73,7 +73,7 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
     # if blended rate is None that means no dynamic sampling behavior should happen.
     # Therefore no rules should be set.
     assert generate_rules(fake_project) == []
-    get_blended_sample_rate.assert_called_with(fake_project)
+    get_blended_sample_rate.assert_called_with(organization_id=fake_project.organization.id)
     assert sentry_sdk.capture_exception.call_count == 1
     _validate_rules(fake_project)
 
@@ -93,7 +93,7 @@ def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rule
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(default_project)
+    get_blended_sample_rate.assert_called_with(organization_id=default_project.organization.id)
     _validate_rules(default_project)
 
 
@@ -171,7 +171,7 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(default_project)
+    get_blended_sample_rate.assert_called_with(organization_id=default_project.organization.id)
     _validate_rules(default_project)
 
 
@@ -451,7 +451,7 @@ def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, defa
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(default_project)
+    get_blended_sample_rate.assert_called_with(organization_id=default_project.organization.id)
     _validate_rules(default_project)
 
 
@@ -524,7 +524,7 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(default_project)
+    get_blended_sample_rate.assert_called_with(organization_id=default_project.organization.id)
     _validate_rules(default_project)
 
 
@@ -607,7 +607,6 @@ def test_generate_rules_return_uniform_rules_and_rebalance_factor_rule(
     _validate_rules(default_project)
 
 
-@pytest.mark.skip("The replay bias is temporarily disabled.")
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_boost_replay_id(get_blended_sample_rate, default_project):

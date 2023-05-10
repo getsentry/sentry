@@ -35,6 +35,7 @@ import {space} from 'sentry/styles/space';
 import {
   Group,
   GroupStatusResolution,
+  IssueCategory,
   Organization,
   Project,
   ResolutionStatus,
@@ -83,7 +84,6 @@ export function Actions(props: Props) {
   const bookmarkKey = isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
   const hasRelease = !!project.features?.includes('releases');
-
   const isResolved = status === 'resolved';
   const isAutoResolved =
     group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
@@ -102,6 +102,9 @@ export function Actions(props: Props) {
   const getDiscoverUrl = () => {
     const {title, type, shortId} = group;
 
+    const groupIsOccurrenceBacked =
+      group.issueCategory === IssueCategory.PERFORMANCE && !!event?.occurrence;
+
     const config = getConfigForIssueType(group);
 
     const discoverQuery = {
@@ -113,7 +116,10 @@ export function Actions(props: Props) {
       projects: [Number(project.id)],
       version: 2 as SavedQueryVersions,
       range: '90d',
-      dataset: config.usesIssuePlatform ? DiscoverDatasets.ISSUE_PLATFORM : undefined,
+      dataset:
+        config.usesIssuePlatform || groupIsOccurrenceBacked
+          ? DiscoverDatasets.ISSUE_PLATFORM
+          : undefined,
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
@@ -506,7 +512,10 @@ export function Actions(props: Props) {
           }
           disabled={disabled || isAutoResolved}
           onClick={() =>
-            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+            onUpdate({
+              status: ResolutionStatus.UNRESOLVED,
+              statusDetails: {},
+            })
           }
         >
           {isIgnored

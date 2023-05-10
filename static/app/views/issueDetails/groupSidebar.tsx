@@ -1,9 +1,7 @@
-import {Component, Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import isObject from 'lodash/isObject';
 
-import {Client} from 'sentry/api';
 import type {OnAssignCallback} from 'sentry/components/assigneeSelectorDropdown';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import DateTime from 'sentry/components/dateTime';
@@ -11,11 +9,16 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
+import TagFacets, {
+  BACKEND_TAGS,
+  DEFAULT_TAGS,
+  FRONTEND_TAGS,
+  MOBILE_TAGS,
+  TAGS_FORMATTER,
+} from 'sentry/components/group/tagFacets';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {Tooltip} from 'sentry/components/tooltip';
 import {backend, frontend} from 'sentry/data/platformCategories';
-import {IconQuestion} from 'sentry/icons/iconQuestion';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -33,20 +36,10 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
-import withApi from 'sentry/utils/withApi';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 
-import TagFacets, {
-  BACKEND_TAGS,
-  DEFAULT_TAGS,
-  FRONTEND_TAGS,
-  MOBILE_TAGS,
-  TAGS_FORMATTER,
-} from './tagFacets';
-
-type Props = WithRouterProps & {
-  api: Client;
+type Props = {
   environments: Environment[];
   group: Group;
   organization: Organization;
@@ -54,22 +47,21 @@ type Props = WithRouterProps & {
   event?: Event;
 };
 
-type State = {
-  allEnvironmentsGroupData?: Group;
-  currentRelease?: CurrentRelease;
-  error?: boolean;
-};
+export default function GroupSidebar({
+  event,
+  group,
+  project,
+  organization,
+  environments,
+}: Props) {
+  const [allEnvironmentsGroupData, setAllEnvironmentsGroupData] = useState<
+    Group | undefined
+  >();
+  const [currentRelease, setCurrentRelease] = useState<CurrentRelease | undefined>();
+  const api = useApi();
+  const location = useLocation();
 
-class BaseGroupSidebar extends Component<Props, State> {
-  state: State = {};
-
-  componentDidMount() {
-    this.fetchAllEnvironmentsGroupData();
-    this.fetchCurrentRelease();
-  }
-
-  trackAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
-    const {group, project, organization, location} = this.props;
+  const trackAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
     const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAnalytics('issue_details.action_clicked', {
       organization,
@@ -84,41 +76,34 @@ class BaseGroupSidebar extends Component<Props, State> {
       ...getAnalyticsDataForGroup(group),
     });
   };
-
-  async fetchAllEnvironmentsGroupData() {
-    const {group, api} = this.props;
-
+  const fetchAllEnvironmentsGroupData = useCallback(async () => {
     // Fetch group data for all environments since the one passed in props is filtered for the selected environment
     // The charts rely on having all environment data as well as the data for the selected env
     try {
       const query = {collapse: 'release'};
-      const allEnvironmentsGroupData = await api.requestPromise(`/issues/${group.id}/`, {
+      const _allEnvironmentsGroupData = await api.requestPromise(`/issues/${group.id}/`, {
         query,
       });
-      // eslint-disable-next-line react/no-did-mount-set-state
-      this.setState({allEnvironmentsGroupData});
+      setAllEnvironmentsGroupData(_allEnvironmentsGroupData);
     } catch {
-      // eslint-disable-next-line react/no-did-mount-set-state
-      this.setState({error: true});
+      /* empty */
     }
-  }
+  }, [api, group.id]);
 
-  async fetchCurrentRelease() {
-    const {group, api} = this.props;
-
+  const fetchCurrentRelease = useCallback(async () => {
     try {
-      const {currentRelease} = await api.requestPromise(
+      const {currentRelease: _currentRelease} = await api.requestPromise(
         `/issues/${group.id}/current-release/`
       );
-      this.setState({currentRelease});
+      setCurrentRelease(_currentRelease);
     } catch {
-      this.setState({error: true});
+      /* empty */
     }
-  }
+  }, [api, group.id]);
 
-  renderPluginIssue() {
+  const renderPluginIssue = () => {
     const issues: React.ReactNode[] = [];
-    (this.props.group.pluginIssues || []).forEach(plugin => {
+    (group.pluginIssues || []).forEach(plugin => {
       const issue = plugin.issue;
       // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
       if (issue) {
@@ -143,11 +128,10 @@ class BaseGroupSidebar extends Component<Props, State> {
         </SidebarSection.Content>
       </SidebarSection.Wrap>
     );
-  }
+  };
 
-  renderParticipantData() {
-    const {participants} = this.props.group;
-
+  const renderParticipantData = () => {
+    const {participants} = group;
     if (!participants.length) {
       return null;
     }
@@ -167,10 +151,10 @@ class BaseGroupSidebar extends Component<Props, State> {
         </SidebarSection.Content>
       </SidebarSection.Wrap>
     );
-  }
+  };
 
-  renderSeenByList() {
-    const {seenBy} = this.props.group;
+  const renderSeenByList = () => {
+    const {seenBy} = group;
     const activeUser = ConfigStore.get('user');
     const displayUsers = seenBy.filter(user => activeUser.id !== user.id);
 
@@ -204,75 +188,52 @@ class BaseGroupSidebar extends Component<Props, State> {
         </SidebarSection.Content>
       </SidebarSection.Wrap>
     );
-  }
+  };
 
-  render() {
-    const {event, group, organization, project, environments} = this.props;
-    const {allEnvironmentsGroupData, currentRelease} = this.state;
+  useEffect(() => {
+    fetchAllEnvironmentsGroupData();
+    fetchCurrentRelease();
+  }, [fetchAllEnvironmentsGroupData, fetchCurrentRelease]);
 
-    return (
-      <Container>
-        <AssignedTo
-          group={group}
-          event={event}
-          project={project}
-          onAssign={this.trackAssign}
-        />
-
-        <GroupReleaseStats
-          organization={organization}
-          project={project}
-          environments={environments}
-          allEnvironments={allEnvironmentsGroupData}
-          group={group}
-          currentRelease={currentRelease}
-        />
-
-        {event && (
-          <ErrorBoundary mini>
-            <ExternalIssueList project={project} group={group} event={event} />
-          </ErrorBoundary>
-        )}
-
-        {this.renderPluginIssue()}
-
-        <TagFacets
-          environments={environments}
-          groupId={group.id}
-          tagKeys={
-            isMobilePlatform(project?.platform)
-              ? !organization.features.includes('device-classification')
-                ? MOBILE_TAGS.filter(tag => tag !== 'device.class')
-                : MOBILE_TAGS
-              : frontend.some(val => val === project?.platform)
-              ? FRONTEND_TAGS
-              : backend.some(val => val === project?.platform)
-              ? BACKEND_TAGS
-              : DEFAULT_TAGS
-          }
-          title={
-            <div>
-              {t('All Tags')}
-              <TooltipWrapper>
-                <Tooltip
-                  title={t('The tags associated with all events in this issue')}
-                  disableForVisualTest
-                >
-                  <IconQuestion size="sm" color="gray200" />
-                </Tooltip>
-              </TooltipWrapper>
-            </div>
-          }
-          event={event}
-          tagFormatter={TAGS_FORMATTER}
-          project={project}
-        />
-
-        {this.renderParticipantData()}
-        {this.renderSeenByList()}
-      </Container>
-    );
-  }
+  return (
+    <Container>
+      <AssignedTo group={group} event={event} project={project} onAssign={trackAssign} />
+      <GroupReleaseStats
+        organization={organization}
+        project={project}
+        environments={environments}
+        allEnvironments={allEnvironmentsGroupData}
+        group={group}
+        currentRelease={currentRelease}
+      />
+      {event && (
+        <ErrorBoundary mini>
+          <ExternalIssueList project={project} group={group} event={event} />
+        </ErrorBoundary>
+      )}
+      {renderPluginIssue()}
+      <TagFacets
+        environments={environments}
+        groupId={group.id}
+        tagKeys={
+          isMobilePlatform(project?.platform)
+            ? !organization.features.includes('device-classification')
+              ? MOBILE_TAGS.filter(tag => tag !== 'device.class')
+              : MOBILE_TAGS
+            : frontend.some(val => val === project?.platform)
+            ? FRONTEND_TAGS
+            : backend.some(val => val === project?.platform)
+            ? BACKEND_TAGS
+            : DEFAULT_TAGS
+        }
+        event={event}
+        tagFormatter={TAGS_FORMATTER}
+        project={project}
+      />
+      {renderParticipantData()}
+      {renderSeenByList()}
+    </Container>
+  );
 }
 
 const Container = styled('div')`
@@ -293,12 +254,3 @@ const StyledAvatarList = styled(AvatarList)`
 const StyledSidebarSectionTitle = styled(SidebarSection.Title)`
   gap: ${space(1)};
 `;
-
-const TooltipWrapper = styled('span')`
-  vertical-align: middle;
-  padding-left: ${space(0.5)};
-`;
-
-const GroupSidebar = withApi(withSentryRouter(BaseGroupSidebar));
-
-export default GroupSidebar;

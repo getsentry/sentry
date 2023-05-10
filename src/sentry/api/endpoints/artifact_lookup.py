@@ -22,7 +22,7 @@ logger = logging.getLogger("sentry.api")
 # The marker for "release" bundles
 RELEASE_BUNDLE_TYPE = "release.bundle"
 # The number of bundles ("artifact" or "release") that we query
-MAX_BUNDLES_QUERY = 2
+MAX_BUNDLES_QUERY = 5
 # The number of files returned by the `get_releasefiles` query
 MAX_RELEASEFILES_QUERY = 10
 
@@ -154,7 +154,7 @@ def get_artifact_bundles_containing_debug_id(debug_id: str, project: Project) ->
         )
         .select_related("artifact_bundle__file_id")
         .values_list("artifact_bundle__file_id", flat=True)
-        .order_by("-date_added")[:1]
+        .order_by("-artifact_bundle__date_uploaded")[:1]
     )
 
 
@@ -173,7 +173,7 @@ def get_release_artifacts(
         )
         .select_related("artifact_bundle__file_id")
         .values_list("artifact_bundle__file_id", flat=True)
-        .order_by("-date_added")[:MAX_BUNDLES_QUERY]
+        .order_by("-artifact_bundle__date_uploaded")[:MAX_BUNDLES_QUERY]
     )
 
 
@@ -182,7 +182,6 @@ def try_resolve_release_dist(
 ) -> Tuple[Optional[Release], Optional[Distribution]]:
     release = None
     dist = None
-    # TODO: Is there a way to safely query this and return `None` if not existing?
     try:
         release = Release.objects.get(
             organization_id=project.organization_id,
@@ -193,6 +192,8 @@ def try_resolve_release_dist(
         # We cannot query for dist without a release anyway
         if dist_name:
             dist = Distribution.objects.get(release=release, name=dist_name)
+    except (Release.DoesNotExist, Distribution.DoesNotExist):
+        pass
     except Exception as exc:
         logger.error("Failed to read", exc_info=exc)
 
@@ -212,7 +213,14 @@ def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]):
             file__type=RELEASE_BUNDLE_TYPE,
         )
         .values_list("file_id", flat=True)
-        .order_by("-file__timestamp")[:MAX_BUNDLES_QUERY]
+        # TODO: this `order_by` might be incredibly slow
+        # we want to have a hard limit on the returned bundles here. and we would
+        # want to pick the most recently uploaded ones. that should mostly be
+        # relevant for customers that upload multiple bundles, or are uploading
+        # newer files for existing releases. In that case the symbolication is
+        # already degraded, so meh...
+        # .order_by("-file__timestamp")
+        [:MAX_BUNDLES_QUERY]
     )
 
 

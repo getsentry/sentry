@@ -67,6 +67,10 @@ def get_next_schedule(last_checkin, schedule_type, schedule):
     else:
         raise NotImplementedError("unknown schedule_type")
 
+    # Ensure we clamp the expected time down to the minute, that is the level
+    # of granularity we're able to support
+    next_schedule = next_schedule.replace(second=0, microsecond=0)
+
     return next_schedule
 
 
@@ -253,6 +257,14 @@ class Monitor(Model):
             last_checkin.astimezone(tz), schedule_type, self.config["schedule"]
         )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
+
+    def update_config(self, config_payload, validated_config):
+        monitor_config = self.config
+        # Only update keys that were specified in the payload
+        for key in config_payload.keys():
+            if key in validated_config:
+                monitor_config[key] = validated_config[key]
+        self.save()
 
 
 @receiver(pre_save, sender=Monitor)

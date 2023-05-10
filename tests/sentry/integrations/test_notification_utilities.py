@@ -5,7 +5,8 @@ from typing import Mapping
 from sentry.integrations.notifications import get_integrations_by_channel_by_recipient
 from sentry.models import Integration, User
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import DummyNotification
 from sentry.types.integrations import ExternalProviders
@@ -18,7 +19,7 @@ class TestNotificationUtilities(TestCase):
 
         self.external_user_id_1 = "UXXXXXXX1"
         self.integration = self.create_slack_integration(self.notification.organization)
-        self.api_integration = integration_service._serialize_integration(self.integration)
+        self.api_integration = serialize_integration(self.integration)
 
         self.user_2 = self.create_user()
         self.external_team_id_2 = "TXXXXXXX2"
@@ -28,7 +29,7 @@ class TestNotificationUtilities(TestCase):
             user=self.user_2,
             identity_external_id=self.external_team_id_2,
         )
-        self.api_integration2 = integration_service._serialize_integration(self.integration2)
+        self.api_integration2 = serialize_integration(self.integration2)
 
     def _assert_integrations_are(
         self,
