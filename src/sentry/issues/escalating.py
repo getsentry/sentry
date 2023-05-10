@@ -4,7 +4,7 @@ This is later used for generating group forecasts for determining when a group m
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Sequence, Tuple, TypedDict
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, TypedDict
 
 from snuba_sdk import (
     Column,
@@ -298,7 +298,7 @@ def _issue_category_entity(category: Optional[GroupCategory]) -> EntityKey:
 
 
 def manage_snooze_states(
-    group: Group, group_inbox_reason: GroupInboxReason, event: GroupEvent, snooze_details=None
+    group: Group, group_inbox_reason: GroupInboxReason, event: GroupEvent, snooze_details= Optional[Mapping[str, Any]] = None
 ) -> None:
     """
     Handles the downstream changes to the status/substatus of GroupInbox and Group for each GroupInboxReason
