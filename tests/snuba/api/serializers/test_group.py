@@ -521,21 +521,6 @@ class PerformanceGroupSerializerSnubaTest(
         assert iso_format(result["firstSeen"]) == iso_format(timestamp + timedelta(minutes=1))
         assert result["count"] == str(times + 1)
 
-        with self.feature("organizations:issue-platform-search-perf-issues"):
-            result = serialize(
-                first_group,
-                serializer=GroupSerializerSnuba(
-                    environment_ids=[environment.id],
-                    start=timestamp - timedelta(hours=1),
-                    end=timestamp + timedelta(hours=1),
-                ),
-            )
-
-            assert result["userCount"] == 2
-            assert iso_format(result["lastSeen"]) == iso_format(timestamp + timedelta(minutes=2))
-            assert iso_format(result["firstSeen"]) == iso_format(timestamp + timedelta(minutes=1))
-            assert result["count"] == str(times + 1)
-
 
 @region_silo_test
 class ProfilingGroupSerializerSnubaTest(

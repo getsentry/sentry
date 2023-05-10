@@ -1,12 +1,12 @@
-from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.models import Group
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-class GroupTagDetailsTest(APITestCase, SnubaTestCase):
+class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
     def test_simple(self):
         for i in range(3):
             self.store_event(
@@ -29,41 +29,20 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["totalValues"] == 3
 
     def test_simple_perf(self):
-        transaction_event_data = {
-            "message": "hello",
-            "type": "transaction",
-            "culprit": "app/components/events/eventEntries in map",
-            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-        }
-
-        event = self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
-                "tags": {"foo": "bar", "biz": "baz"},
-                "release": "releaseme",
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-            },
-            project_id=self.project.id,
+        event = self.create_performance_issue(
+            tags=[["foo", "bar"], ["biz", "baz"], ["sentry:release", "releaseme"]],
+            fingerprint="group1",
+            contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         )
-        self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(minutes=2)),
-                "start_timestamp": iso_format(before_now(minutes=2, seconds=5)),
-                "tags": {"foo": "quux"},
-                "release": "releaseme",
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-            },
-            project_id=self.project.id,
+        self.create_performance_issue(
+            tags=[["foo", "guux"], ["sentry:release", "releaseme"]],
+            fingerprint="group1",
+            contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         )
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event.groups[0].id}/tags/foo/"
+        url = f"/api/0/issues/{event.group.id}/tags/foo/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data["key"] == "foo"

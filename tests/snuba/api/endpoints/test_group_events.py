@@ -445,8 +445,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         self.login_as(user=self.user)
 
         url = f"/api/0/issues/{event_1.group.id}/events/"
-        with self.feature("organizations:issue-platform-search-perf-issues"):
-            response = self.do_request(url)
+        response = self.do_request(url)
 
         assert response.status_code == 200, response.content
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(

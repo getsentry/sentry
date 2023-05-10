@@ -1,3 +1,4 @@
+import pytest
 from django.urls import reverse
 
 from sentry.testutils import APITestCase
@@ -58,6 +59,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         assert response.status_code == 200
         assert content == {}
 
+    @pytest.mark.skip("We no longer return perf issue info from the grouping info endpoint")
     def test_transaction_event_with_problem(self):
         event = self.create_performance_issue()
         url = reverse(

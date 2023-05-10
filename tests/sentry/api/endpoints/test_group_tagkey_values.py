@@ -1,11 +1,11 @@
-from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
+class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
     def test_simple(self):
         key, value = "foo", "bar"
 
@@ -30,29 +30,15 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
 
     def test_simple_perf(self):
         key, value = "foo", "bar"
-
-        transaction_event_data = {
-            "message": "hello",
-            "type": "transaction",
-            "culprit": "app/components/events/eventEntries in map",
-            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-        }
-
-        event = self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
-                "tags": {key: value},
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-            },
-            project_id=self.project.id,
+        event = self.create_performance_issue(
+            tags=[[key, value]],
+            fingerprint="group1",
+            contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         )
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event.groups[0].id}/tags/{key}/values/"
+        url = f"/api/0/issues/{event.group.id}/tags/{key}/values/"
 
         response = self.client.get(url)
 

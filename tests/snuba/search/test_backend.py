@@ -16,6 +16,7 @@ from sentry.issues.grouptype import (
     PerformanceRenderBlockingAssetSpanGroupType,
     ProfileFileIOGroupType,
 )
+from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import (
     Environment,
@@ -2136,10 +2137,22 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             "culprit": "app/components/events/eventEntries in map",
             "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         }
-        with self.options({"performance.issues.send_to_issues_platform": True}), self.feature(
+        with mock.patch(
+            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+            side_effect=send_issue_occurrence_to_eventstream,
+        ) as mock_eventstream, mock.patch.object(
+            PerformanceRenderBlockingAssetSpanGroupType,
+            "noise_config",
+            new=NoiseConfig(0, timedelta(minutes=1)),
+        ), self.options(
+            {
+                "performance.issues.send_to_issues_platform": True,
+                "performance.issues.create_issues_through_platform": True,
+            }
+        ), self.feature(
             "organizations:issue-platform"
         ):
-            transaction_event_1 = self.store_event(
+            self.store_event(
                 data={
                     **transaction_event_data,
                     "event_id": "a" * 32,
@@ -2152,9 +2165,9 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 },
                 project_id=self.project.id,
             )
-            self.perf_group_1 = transaction_event_1.groups[0]
+            self.perf_group_1 = mock_eventstream.call_args[0][2].group
 
-            transaction_event_2 = self.store_event(
+            self.store_event(
                 data={
                     **transaction_event_data,
                     "event_id": "a" * 32,
@@ -2167,8 +2180,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 },
                 project_id=self.project.id,
             )
-            self.perf_group_2 = transaction_event_2.groups[0]
-
+            self.perf_group_2 = mock_eventstream.call_args[0][2].group
         error_event_data = {
             "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
             "message": "bar",
@@ -2204,21 +2216,30 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         self.error_group_2 = error_event_2.group
 
     def test_performance_query(self):
-        results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
-        assert list(results) == [self.perf_group_1, self.perf_group_2]
+        with self.feature(
+            [
+                "organizations:issue-platform",
+                self.perf_group_1.issue_type.build_visible_feature_name(),
+            ]
+        ):
+            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
+            assert list(results) == [self.perf_group_1, self.perf_group_2]
 
-        results = self.make_query(
-            search_filter_query="issue.type:[performance_n_plus_one_db_queries, performance_render_blocking_asset_span] my_tag:1"
-        )
-        assert list(results) == [self.perf_group_1, self.perf_group_2]
+            results = self.make_query(
+                search_filter_query="issue.type:[performance_n_plus_one_db_queries, performance_render_blocking_asset_span] my_tag:1"
+            )
+            assert list(results) == [self.perf_group_1, self.perf_group_2]
 
     def test_performance_query_no_duplicates(self):
         # Regression test to catch an issue we had with performance issues showing duplicated in the
         # issue stream. This was  caused by us dual writing perf issues to transactions and to the
         # issue platform. We'd end up reading the same issue twice and duplicate it in the response.
-        with self.feature("organizations:issue-platform"), self.options(
-            {"performance.issues.send_to_issues_platform": True}
-        ):
+        with self.feature(
+            [
+                "organizations:issue-platform",
+                self.perf_group_1.issue_type.build_visible_feature_name(),
+            ]
+        ), self.options({"performance.issues.send_to_issues_platform": True}):
             results = self.make_query(search_filter_query="!issue.category:error my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
@@ -2226,71 +2247,88 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         with Feature({"organizations:performance-issues-search": False}):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
             assert list(results) == []
-        with Feature({"organizations:performance-issues-search": True}):
+        with self.feature(
+            [
+                "organizations:issue-platform",
+                self.perf_group_1.issue_type.build_visible_feature_name(),
+            ]
+        ):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
     def test_error_performance_query(self):
-        results = self.make_query(search_filter_query="my_tag:1")
-        assert list(results) == [
-            self.perf_group_1,
-            self.perf_group_2,
-            self.error_group_2,
-            self.error_group_1,
-        ]
-        results = self.make_query(
-            search_filter_query="issue.category:[performance, error] my_tag:1"
-        )
-        assert list(results) == [
-            self.perf_group_1,
-            self.perf_group_2,
-            self.error_group_2,
-            self.error_group_1,
-        ]
+        with self.feature(
+            [
+                "organizations:issue-platform",
+                self.perf_group_1.issue_type.build_visible_feature_name(),
+            ]
+        ):
+            results = self.make_query(search_filter_query="my_tag:1")
+            assert list(results) == [
+                self.perf_group_1,
+                self.perf_group_2,
+                self.error_group_2,
+                self.error_group_1,
+            ]
+            results = self.make_query(
+                search_filter_query="issue.category:[performance, error] my_tag:1"
+            )
+            assert list(results) == [
+                self.perf_group_1,
+                self.perf_group_2,
+                self.error_group_2,
+                self.error_group_1,
+            ]
 
-        results = self.make_query(
-            search_filter_query="issue.type:[performance_render_blocking_asset_span, error] my_tag:1"
-        )
-        assert list(results) == [
-            self.perf_group_1,
-            self.perf_group_2,
-            self.error_group_2,
-            self.error_group_1,
-        ]
+            results = self.make_query(
+                search_filter_query="issue.type:[performance_render_blocking_asset_span, error] my_tag:1"
+            )
+            assert list(results) == [
+                self.perf_group_1,
+                self.perf_group_2,
+                self.error_group_2,
+                self.error_group_1,
+            ]
 
     def test_cursor_performance_issues(self):
-        results = self.make_query(
-            projects=[self.project],
-            search_filter_query="issue.category:performance my_tag:1",
-            sort_by="date",
-            limit=1,
-            count_hits=True,
-        )
+        with self.feature(
+            [
+                "organizations:issue-platform",
+                self.perf_group_1.issue_type.build_visible_feature_name(),
+            ]
+        ):
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:performance my_tag:1",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
 
-        assert list(results) == [self.perf_group_1]
-        assert results.hits == 2
+            assert list(results) == [self.perf_group_1]
+            assert results.hits == 2
 
-        results = self.make_query(
-            projects=[self.project],
-            search_filter_query="issue.category:performance my_tag:1",
-            sort_by="date",
-            limit=1,
-            cursor=results.next,
-            count_hits=True,
-        )
-        assert list(results) == [self.perf_group_2]
-        assert results.hits == 2
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:performance my_tag:1",
+                sort_by="date",
+                limit=1,
+                cursor=results.next,
+                count_hits=True,
+            )
+            assert list(results) == [self.perf_group_2]
+            assert results.hits == 2
 
-        results = self.make_query(
-            projects=[self.project],
-            search_filter_query="issue.category:performance my_tag:1",
-            sort_by="date",
-            limit=1,
-            cursor=results.next,
-            count_hits=True,
-        )
-        assert list(results) == []
-        assert results.hits == 2
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:performance my_tag:1",
+                sort_by="date",
+                limit=1,
+                cursor=results.next,
+                count_hits=True,
+            )
+            assert list(results) == []
+            assert results.hits == 2
 
     def test_perf_issue_search_message_term_queries_postgres(self):
         from django.db.models import Q
@@ -2299,66 +2337,107 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
 
         transaction_name = "im a little tea pot"
 
-        tx = self.store_event(
-            data={
-                "level": "info",
-                "culprit": "app/components/events/eventEntries in map",
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group12"],
-                "event_id": "e" * 32,
-                "timestamp": iso_format(self.base_datetime),
-                "start_timestamp": iso_format(self.base_datetime),
-                "type": "transaction",
-                "transaction": transaction_name,
-            },
-            project_id=self.project.id,
-        )
-        assert "tea" in tx.search_message
-        created_group = tx.groups[0]
+        with mock.patch(
+            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+            side_effect=send_issue_occurrence_to_eventstream,
+        ) as mock_eventstream, mock.patch.object(
+            PerformanceRenderBlockingAssetSpanGroupType,
+            "noise_config",
+            new=NoiseConfig(0, timedelta(minutes=1)),
+        ), self.options(
+            {
+                "performance.issues.send_to_issues_platform": True,
+                "performance.issues.create_issues_through_platform": True,
+            }
+        ), self.feature(
+            "organizations:issue-platform"
+        ):
+            tx = self.store_event(
+                data={
+                    "level": "info",
+                    "culprit": "app/components/events/eventEntries in map",
+                    "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                    "fingerprint": [
+                        f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group12"
+                    ],
+                    "event_id": "e" * 32,
+                    "timestamp": iso_format(self.base_datetime),
+                    "start_timestamp": iso_format(self.base_datetime),
+                    "type": "transaction",
+                    "transaction": transaction_name,
+                },
+                project_id=self.project.id,
+            )
+            assert "tea" in tx.search_message
+            created_group = mock_eventstream.call_args[0][2].group
 
         find_group = Group.objects.filter(
             Q(type=PerformanceRenderBlockingAssetSpanGroupType.type_id, message__icontains="tea")
         ).first()
 
         assert created_group == find_group
-        result = snuba.raw_query(
-            dataset=snuba.Dataset.Transactions,
-            start=self.base_datetime - timedelta(hours=1),
-            end=self.base_datetime + timedelta(hours=1),
-            selected_columns=[
-                "event_id",
-                "group_ids",
-                "transaction_name",
-            ],
-            groupby=None,
-            filter_keys={"project_id": [self.project.id], "event_id": [tx.event_id]},
-            referrer="_insert_transaction.verify_transaction",
-        )
-        assert result["data"][0]["transaction_name"] == transaction_name
-        assert result["data"][0]["group_ids"] == [created_group.id]
+        with self.feature(
+            [
+                "organizations:issue-platform",
+                created_group.issue_type.build_visible_feature_name(),
+            ]
+        ):
+            result = snuba.raw_query(
+                dataset=snuba.Dataset.IssuePlatform,
+                start=self.base_datetime - timedelta(hours=1),
+                end=self.base_datetime + timedelta(hours=1),
+                selected_columns=[
+                    "event_id",
+                    "group_id",
+                    "transaction_name",
+                ],
+                groupby=None,
+                filter_keys={"project_id": [self.project.id], "event_id": [tx.event_id]},
+                referrer="_insert_transaction.verify_transaction",
+            )
+            assert result["data"][0]["transaction_name"] == transaction_name
+            assert result["data"][0]["group_id"] == created_group.id
 
-        results = self.make_query(search_filter_query="issue.category:performance tea")
-        assert set(results) == {created_group}
+            results = self.make_query(search_filter_query="issue.category:performance tea")
+            assert set(results) == {created_group}
 
-        results2 = self.make_query(search_filter_query="tea")
-        assert set(results2) == {created_group}
+            results2 = self.make_query(search_filter_query="tea")
+            assert set(results2) == {created_group}
 
     def test_search_message_error_and_perf_issues(self):
-        tx = self.store_event(
-            data={
-                "level": "info",
-                "culprit": "app/components/events/eventEntries in map",
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group12"],
-                "event_id": "e" * 32,
-                "timestamp": iso_format(self.base_datetime),
-                "start_timestamp": iso_format(self.base_datetime),
-                "type": "transaction",
-                "transaction": "/api/0/events",
-            },
-            project_id=self.project.id,
-        )
-        perf_issue = tx.groups[0]
+        with mock.patch(
+            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+            side_effect=send_issue_occurrence_to_eventstream,
+        ) as mock_eventstream, mock.patch.object(
+            PerformanceRenderBlockingAssetSpanGroupType,
+            "noise_config",
+            new=NoiseConfig(0, timedelta(minutes=1)),
+        ), self.options(
+            {
+                "performance.issues.send_to_issues_platform": True,
+                "performance.issues.create_issues_through_platform": True,
+            }
+        ), self.feature(
+            "organizations:issue-platform"
+        ):
+            self.store_event(
+                data={
+                    "level": "info",
+                    "culprit": "app/components/events/eventEntries in map",
+                    "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                    "fingerprint": [
+                        f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group12"
+                    ],
+                    "event_id": "e" * 32,
+                    "timestamp": iso_format(self.base_datetime),
+                    "start_timestamp": iso_format(self.base_datetime),
+                    "type": "transaction",
+                    "transaction": "/api/0/events",
+                },
+                project_id=self.project.id,
+            )
+            perf_issue = mock_eventstream.call_args[0][2].group
+
         assert perf_issue
 
         error = self.store_event(
@@ -2378,15 +2457,21 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
 
         assert error_issue != perf_issue
 
-        assert set(self.make_query(search_filter_query="is:unresolved /api/0/events")) == {
-            perf_issue,
-            error_issue,
-        }
+        with self.feature(
+            [
+                "organizations:issue-platform",
+                perf_issue.issue_type.build_visible_feature_name(),
+            ]
+        ):
+            assert set(self.make_query(search_filter_query="is:unresolved /api/0/events")) == {
+                perf_issue,
+                error_issue,
+            }
 
-        assert set(self.make_query(search_filter_query="/api/0/events")) == {
-            error_issue,
-            perf_issue,
-        }
+            assert set(self.make_query(search_filter_query="/api/0/events")) == {
+                error_issue,
+                perf_issue,
+            }
 
     def test_compound_message_negation(self):
         self.store_event(
@@ -2529,7 +2614,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         group_type = PerformanceNPlusOneGroupType
         self.project.update_option("sentry:performance_issue_create_issue_through_platform", True)
 
-        with self.feature("organizations:issue-platform-search-perf-issues"), self.options(
+        with self.options(
             {"performance.issues.create_issues_through_platform": True}
         ), mock.patch.object(
             PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
