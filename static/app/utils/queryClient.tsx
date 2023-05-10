@@ -28,7 +28,7 @@ interface UseApiQueryOptions<TApiResponse, TError = RequestError>
     reactQuery.UseQueryOptions<
       ApiResult<TApiResponse>,
       TError,
-      TApiResponse,
+      ApiResult<TApiResponse>,
       ApiQueryKey
     >,
     // This is an explicit option in our function
@@ -115,7 +115,7 @@ function useApiQuery<TResponseData, TError = RequestError>(
     data: data?.[0],
     getResponseHeader: data?.[2]?.getResponseHeader,
     ...rest,
-  };
+  } as UseApiQueryResult<TResponseData, TError>;
 }
 
 /**
