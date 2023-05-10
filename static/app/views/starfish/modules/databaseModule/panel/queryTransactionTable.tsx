@@ -5,8 +5,11 @@ import * as qs from 'query-string';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconArrow} from 'sentry/icons';
+import {Series} from 'sentry/types/echarts';
 import {useLocation} from 'sentry/utils/useLocation';
+import {MultiSparkline} from 'sentry/views/starfish/components/sparkline';
 import {Sort} from 'sentry/views/starfish/modules/databaseModule';
 import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {TransactionListDataRow} from 'sentry/views/starfish/modules/databaseModule/panel';
@@ -18,10 +21,12 @@ type Props = {
   onClickSort: (sort: PanelSort) => void;
   row: DataRow;
   sort: PanelSort;
+  spmData: Series[];
   tableData: TransactionListDataRow[];
+  tpmData: Series[];
 };
 
-type Keys = 'transaction' | 'p75' | 'count' | 'frequency' | 'uniqueEvents';
+type Keys = 'transaction' | 'spm' | 'count' | 'frequency' | 'uniqueEvents';
 
 type TableColumnHeader = GridColumnHeader<Keys>;
 
@@ -32,12 +37,13 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 400,
   },
   {
-    key: 'p75',
-    name: 'p75',
+    key: 'spm',
+    name: 'TPM v SPM',
+    width: 200,
   },
   {
-    key: 'count',
-    name: 'Count',
+    key: 'p75',
+    name: 'P75',
   },
   {
     key: 'frequency',
@@ -50,7 +56,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
 ];
 
 function QueryTransactionTable(props: Props) {
-  const {isDataLoading, tableData, sort, onClickSort, row} = props;
+  const {isDataLoading, tableData, sort, onClickSort, row, spmData, tpmData} = props;
   const location = useLocation();
   const theme = useTheme();
   const minMax = calculateOutlierMinMax(tableData);
@@ -96,6 +102,19 @@ function QueryTransactionTable(props: Props) {
       ((value as number) > minMax[key].max || (value as number) < minMax[key].min)
     ) {
       style.color = theme.red400;
+    }
+    const SpmSeries =
+      spmData.length && spmData.find(item => item.seriesName === dataRow.transaction);
+    const TpmSeries =
+      tpmData.length && tpmData.find(item => item.seriesName === dataRow.transaction);
+    if (key === 'spm' && SpmSeries && TpmSeries) {
+      return (
+        <MultiSparkline
+          color={CHART_PALETTE[3]}
+          series={[SpmSeries, TpmSeries]}
+          width={column.width ? column.width - column.width / 5 : undefined}
+        />
+      );
     }
     if (key === 'transaction') {
       return (

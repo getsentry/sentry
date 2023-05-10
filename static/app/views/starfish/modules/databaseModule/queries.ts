@@ -349,6 +349,55 @@ export const useQueryPanelTable = (
   });
 };
 
+export const useQueryPanelSparklines = (
+  row: DataRow,
+  sortKey: string | undefined,
+  sortDirection: string | undefined,
+  interval: number
+): DefinedUseQueryResult<{interval: string; spm: number; transaction: string}[]> => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+  const orderBy = getOrderByFromKey(sortKey, sortDirection) ?? ORDERBY;
+  const query = `
+    SELECT
+      transaction,
+      toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval,
+      divide(count(), ${(endTime.unix() - startTime.unix()) / 60}) AS spm
+    FROM spans_experimental_starfish
+    WHERE
+      transaction in (
+        SELECT
+          transaction
+        FROM spans_experimental_starfish
+        WHERE
+          ${DEFAULT_WHERE}
+          ${dateFilters} AND
+          group_id = '${row.group_id}'
+        GROUP BY transaction
+        ORDER BY ${orderBy}
+        LIMIT 10
+      ) and
+      ${DEFAULT_WHERE}
+      ${dateFilters} AND
+      group_id = '${row.group_id}'
+    GROUP BY transaction, interval
+    ORDER BY transaction, interval, ${orderBy}
+  `;
+  return useQuery({
+    queryKey: [
+      'dbQueryDetailsSparklines',
+      row.group_id,
+      pageFilter.selection.datetime,
+      sortKey,
+      sortDirection,
+    ],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: true,
+    initialData: [],
+  });
+};
+
 export const useQueryPanelGraph = (row: DataRow, interval: number) => {
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);

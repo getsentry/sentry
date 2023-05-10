@@ -22,6 +22,7 @@ import SimilarQueryView from 'sentry/views/starfish/modules/databaseModule/panel
 import {
   useQueryPanelEventCount,
   useQueryPanelGraph,
+  useQueryPanelSparklines,
   useQueryPanelTable,
   useQueryTransactionByTPMAndP75,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
@@ -105,6 +106,13 @@ function QueryDetailBody({
     sort.direction
   );
 
+  const {isLoading: isSparklinesLoading, data: sparklineData} = useQueryPanelSparklines(
+    row,
+    sort.sortHeader?.key,
+    sort.direction,
+    INTERVAL
+  );
+
   const {isLoading: isP75GraphLoading, data: transactionGraphData} =
     useQueryTransactionByTPMAndP75(tableData.map(d => d.transaction).splice(0, 5));
 
@@ -116,7 +124,8 @@ function QueryDetailBody({
     isTableLoading ||
     isEventCountLoading ||
     isRowLoading ||
-    isP75GraphLoading;
+    isP75GraphLoading ||
+    isSparklinesLoading;
 
   const eventCountMap = keyBy(eventCountData, 'transaction');
 
@@ -136,12 +145,22 @@ function QueryDetailBody({
     endTime
   );
 
+  const spmTransactionSeries = queryToSeries(
+    sparklineData,
+    'transaction',
+    'spm',
+    startTime,
+    endTime,
+    INTERVAL
+  );
+
   const tpmTransactionSeries = queryToSeries(
     transactionGraphData,
     'transaction',
     'count',
     startTime,
-    endTime
+    endTime,
+    INTERVAL
   );
 
   const p75TransactionSeries = queryToSeries(
@@ -149,7 +168,8 @@ function QueryDetailBody({
     'transaction',
     'p75',
     startTime,
-    endTime
+    endTime,
+    INTERVAL
   );
 
   return (
@@ -278,6 +298,8 @@ function QueryDetailBody({
         row={row}
         sort={sort}
         tableData={mergedTableData}
+        spmData={spmTransactionSeries}
+        tpmData={tpmTransactionSeries}
       />
       <FlexRowContainer>
         <FlexRowItem>

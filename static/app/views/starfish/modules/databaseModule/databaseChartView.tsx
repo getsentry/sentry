@@ -100,7 +100,8 @@ export default function DatabaseChartView({table, onChange}: Props) {
     'transaction',
     'epm',
     startTime,
-    endTime
+    endTime,
+    INTERVAL
   );
 
   const p75TransactionSeries = queryToSeries(
@@ -108,7 +109,8 @@ export default function DatabaseChartView({table, onChange}: Props) {
     'transaction',
     'p75',
     startTime,
-    endTime
+    endTime,
+    INTERVAL
   );
 
   const topDomains = Object.values(seriesByDomain).map(series =>
