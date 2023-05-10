@@ -8,6 +8,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -42,7 +43,7 @@ describe('ProjectPageFilter', function () {
         environments: [],
         datetime: {start: null, end: null, period: '14d', utc: null},
       },
-      new Set()
+      new Set(['projects'])
     );
 
     OrganizationStore.onUpdate(organization, {replace: true});
@@ -198,7 +199,7 @@ describe('ProjectPageFilter', function () {
     expect(screen.getByRole('button', {name: 'My Projects'})).toBeInTheDocument();
 
     // Edit store value
-    act(() => PageFiltersStore.updateProjects([2], []));
+    act(() => updateProjects([2], router));
 
     // <ProjectPageFilter /> is updated
 
@@ -206,16 +207,38 @@ describe('ProjectPageFilter', function () {
   });
 
   it('displays a desynced state message', async function () {
-    render(<ProjectPageFilter />, {
-      context: routerContext,
-      organization,
+    const {
+      organization: desyncOrganization,
+      router: desyncRouter,
+      routerContext: desyncRouterContext,
+    } = initializeOrg({
+      organization: {features: ['global-views', 'open-membership']},
+      project: undefined,
+      projects: [
+        {id: 1, slug: 'project-1', isMember: true},
+        {id: 2, slug: 'project-2', isMember: true},
+        {id: 3, slug: 'project-3', isMember: false},
+      ],
+      router: {
+        location: {
+          pathname: '/organizations/org-slug/issues/',
+          // the project parameter needs to be non-null for desync detection to work
+          query: {project: '1'},
+        },
+        params: {},
+      },
     });
 
     // Manually mark the project filter as desynced
-    act(() => PageFiltersStore.updateDesyncedFilters(new Set(['projects'])));
+    act(() => updateProjects([2], desyncRouter, {save: false}));
+
+    render(<ProjectPageFilter />, {
+      context: desyncRouterContext,
+      organization: desyncOrganization,
+    });
 
     // Open menu
-    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'project-2'}));
 
     // Desync message is inside the menu
     expect(screen.getByText('Filters Updated')).toBeInTheDocument();

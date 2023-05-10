@@ -1,6 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -33,7 +34,7 @@ describe('EnvironmentPageFilter', function () {
         environments: [],
         datetime: {start: null, end: null, period: '14d', utc: null},
       },
-      new Set()
+      new Set(['environments'])
     );
 
     OrganizationStore.onUpdate(organization, {replace: true});
@@ -128,20 +129,44 @@ describe('EnvironmentPageFilter', function () {
     expect(screen.getByRole('button', {name: 'All Envs'})).toBeInTheDocument();
 
     // Edit store value
-    act(() => PageFiltersStore.updateEnvironments(['prod']));
+    act(() => updateEnvironments(['prod'], router));
 
     // <EnvironmentPageFilter /> is updated
     expect(screen.getByRole('button', {name: 'prod'})).toBeInTheDocument();
   });
 
   it('displays a desynced state message', async function () {
-    render(<EnvironmentPageFilter />, {context: routerContext, organization});
+    const {
+      organization: desyncOrganization,
+      router: desyncRouter,
+      routerContext: desyncRouterContext,
+    } = initializeOrg({
+      organization: {features: ['global-views', 'open-membership']},
+      project: undefined,
+      projects: [
+        {id: 1, slug: 'project-1', environments: ['prod', 'staging']},
+        {id: 2, slug: 'project-2', environments: ['prod', 'stage']},
+      ],
+      router: {
+        location: {
+          pathname: '/organizations/org-slug/issues/',
+          // the environment parameter needs to be non-null for desync detection to work
+          query: {environment: 'prod'},
+        },
+        params: {},
+      },
+    });
 
     // Manually mark the environment filter as desynced
-    act(() => PageFiltersStore.updateDesyncedFilters(new Set(['environments'])));
+    act(() => updateEnvironments(['staging'], desyncRouter, {save: false}));
+
+    render(<EnvironmentPageFilter />, {
+      context: desyncRouterContext,
+      organization: desyncOrganization,
+    });
 
     // Open menu
-    await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
+    await userEvent.click(screen.getByRole('button', {name: 'staging'}));
 
     // Desync message is inside the menu
     expect(screen.getByText('Filters Updated')).toBeInTheDocument();
