@@ -123,6 +123,10 @@ describe('groupDetails', () => {
       url: `/organizations/${organization.slug}/environments/`,
       body: TestStubs.Environments(),
     });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/tags/`,
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -253,8 +257,8 @@ describe('groupDetails', () => {
     const sampleGroup = TestStubs.Group({issueCategory: IssueCategory.ERROR});
     sampleGroup.tags.push({key: 'sample_event'});
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
-      body: {...sampleGroup},
+      url: `/issues/${group.id}/tags/`,
+      body: [{key: 'sample_event'}],
     });
 
     createWrapper();
