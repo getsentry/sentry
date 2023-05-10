@@ -307,12 +307,8 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     total_num_transactions = project_transactions.get("total_num_transactions")
     total_num_classes = project_transactions.get("total_num_classes")
     transactions = [
-        DSElement(id=elm[0], count=elm[1]) for elm in project_transactions["transaction_counts"]
+        DSElement(id=id, count=count) for id, count in project_transactions["transaction_counts"]
     ]
-    try:
-        project = Project.objects.get_from_cache(id=project_id)
-    except ObjectDoesNotExist:
-        return  # project has probably been deleted no need to continue
 
     sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
 
