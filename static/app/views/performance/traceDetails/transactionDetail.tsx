@@ -222,17 +222,15 @@ class TransactionDetail extends Component<Props> {
               }
               extra={this.renderGoToTransactionButton()}
             >
-              <Fragment>
-                {transaction.event_id}
-                <CopyToClipboardButton
-                  borderless
-                  size="zero"
-                  iconSize="xs"
-                  text={`${window.location.href.replace(window.location.hash, '')}#txn-${
-                    transaction.event_id
-                  }`}
-                />
-              </Fragment>
+              {transaction.event_id}
+              <CopyToClipboardButton
+                borderless
+                size="zero"
+                iconSize="xs"
+                text={`${window.location.href.replace(window.location.hash, '')}#txn-${
+                  transaction.event_id
+                }`}
+              />
             </Row>
             <Row title="Transaction" extra={this.renderGoToSummaryButton()}>
               {transaction.transaction}

@@ -425,18 +425,15 @@ function SpanDetail(props: Props) {
                 }
                 extra={renderTraversalButton()}
               >
-                <Fragment>
-                  {span.span_id}
-                  <CopyToClipboardButton
-                    borderless
-                    size="zero"
-                    iconSize="xs"
-                    text={`${window.location.href.replace(
-                      window.location.hash,
-                      ''
-                    )}#span-${span.span_id}`}
-                  />
-                </Fragment>
+                {span.span_id}
+                <CopyToClipboardButton
+                  borderless
+                  size="zero"
+                  iconSize="xs"
+                  text={`${window.location.href.replace(window.location.hash, '')}#span-${
+                    span.span_id
+                  }`}
+                />
               </Row>
               <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
               {renderSpanChild()}
@@ -620,7 +617,7 @@ export function Row({
   children,
   extra = null,
 }: {
-  children: JSX.Element | string | null;
+  children: React.ReactNode;
   title: JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
