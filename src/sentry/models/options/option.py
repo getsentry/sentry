@@ -39,7 +39,7 @@ class Option(BaseOption):
 
 @control_silo_only_model
 class ControlOption(BaseOption):
-    __include_in_export__ = False
+    __include_in_export__ = True
 
     class Meta:
         app_label = "sentry"
