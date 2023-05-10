@@ -8,7 +8,6 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   PageErrorAlert,
@@ -23,8 +22,8 @@ import {
   getDbAggregatesQuery,
   useQueryMainTable,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
+import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combineTableDataWithSparklineData';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 import DatabaseChartView from './databaseChartView';
 import DatabaseTableView, {DataRow, MainTableSort} from './databaseTableView';
@@ -80,6 +79,12 @@ function DatabaseModule() {
     initialData: [],
   });
 
+  const combinedDbData = combineTableDataWithSparklineData(
+    tableData,
+    dbAggregateData,
+    moment.duration(12, 'hours')
+  );
+
   const aggregatesGroupedByQuery = {};
   dbAggregateData.forEach(({description, interval, count, p75}) => {
     if (description in aggregatesGroupedByQuery) {
@@ -87,33 +92,6 @@ function DatabaseModule() {
     } else {
       aggregatesGroupedByQuery[description] = [{name: interval, count, p75}];
     }
-  });
-
-  const combinedDbData = tableData.map(data => {
-    const query = data.description;
-
-    const throughputSeries: Series = {
-      seriesName: 'throughput',
-      data: aggregatesGroupedByQuery[query]?.map(({name, count}) => ({
-        name,
-        value: count,
-      })),
-    };
-
-    const p75Series: Series = {
-      seriesName: 'p75 Trend',
-      data: aggregatesGroupedByQuery[query]?.map(({name, p75}) => ({
-        name,
-        value: p75,
-      })),
-    };
-
-    const zeroFilledThroughput = zeroFillSeries(
-      throughputSeries,
-      moment.duration(12, 'hours')
-    );
-    const zeroFilledP75 = zeroFillSeries(p75Series, moment.duration(12, 'hours'));
-    return {...data, throughput: zeroFilledThroughput, p75_trend: zeroFilledP75};
   });
 
   useEffect(() => {
@@ -220,7 +198,7 @@ function DatabaseModule() {
             </SearchFilterContainer>
             <DatabaseTableView
               location={location}
-              data={combinedDbData}
+              data={combinedDbData as DataRow[]}
               isDataLoading={isTableDataLoading || isTableRefetching}
               onSelect={setSelectedRow}
               onSortChange={setSort}

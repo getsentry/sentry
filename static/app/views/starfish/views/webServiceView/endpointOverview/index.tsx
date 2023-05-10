@@ -13,7 +13,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -24,13 +23,15 @@ import withApi from 'sentry/utils/withApi';
 import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
-import DatabaseTableView from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
+import DatabaseTableView, {
+  DataRow,
+} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {
   getDbAggregatesQuery,
   useQueryMainTable,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
+import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combineTableDataWithSparklineData';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -142,32 +143,11 @@ export default function EndpointOverview() {
     }
   });
 
-  const combinedDbData = tableData.map(data => {
-    const query = data.description;
-
-    const throughputSeries: Series = {
-      seriesName: 'throughput',
-      data: aggregatesGroupedByQuery[query]?.map(({name, count}) => ({
-        name,
-        value: count,
-      })),
-    };
-
-    const p75Series: Series = {
-      seriesName: 'p75 Trend',
-      data: aggregatesGroupedByQuery[query]?.map(({name, p75}) => ({
-        name,
-        value: p75,
-      })),
-    };
-
-    const zeroFilledThroughput = zeroFillSeries(
-      throughputSeries,
-      moment.duration(12, 'hours')
-    );
-    const zeroFilledP75 = zeroFillSeries(p75Series, moment.duration(12, 'hours'));
-    return {...data, throughput: zeroFilledThroughput, p75_trend: zeroFilledP75};
-  });
+  const combinedDbData = combineTableDataWithSparklineData(
+    tableData,
+    dbAggregateData,
+    moment.duration(12, 'hours')
+  );
 
   const query = new MutableSearch([
     'has:http.method',
@@ -310,7 +290,7 @@ export default function EndpointOverview() {
               );
             }}
             isDataLoading={isTableDataLoading || isTableRefetching}
-            data={combinedDbData}
+            data={combinedDbData as DataRow[]}
             columns={DATABASE_SPAN_COLUMN_ORDER}
           />
         </Layout.Main>
