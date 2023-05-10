@@ -149,6 +149,22 @@ function OverviewContentWrapper(props: ChildProps) {
     error: totalCountQueryError,
   } = totalCountQueryData;
 
+  const isTableEmpty = !isLoading && !error && tableData.data.length === 0;
+
+  useEffect(() => {
+    if (mepContext.isMetricsData && organization.isDynamicallySampled) {
+      trackAnalytics('dynamic_sampling_transaction_summary.baseline', {
+        organization,
+      });
+
+      if (isTableEmpty) {
+        trackAnalytics('dynamic_sampling_transaction_summary.no_events', {
+          organization,
+        });
+      }
+    }
+  }, [mepContext.isMetricsData, organization, isTableEmpty]);
+
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
   const onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
