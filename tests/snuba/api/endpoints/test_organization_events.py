@@ -21,6 +21,7 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.search.events import constants
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -34,7 +35,9 @@ MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
 @region_silo_test
-class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
+class OrganizationEventsEndpointTest(
+    APITestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceIssueTestCase
+):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
@@ -602,45 +605,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             {"project.name": self.project.slug, "id": "a" * 32, "count()": 1}
         ]
 
-    def test_performance_issue_ids_filter(self):
-        data = load_data(
-            platform="transaction",
-            timestamp=self.ten_mins_ago,
-            start_timestamp=self.eleven_mins_ago,
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        event = self.store_event(data=data, project_id=self.project.id)
+    def test_performance_issue_id_filter(self):
+        event = self.create_performance_issue()
 
         query = {
             "field": ["count()"],
             "statsPeriod": "2h",
-            "query": f"project:{self.project.slug} performance.issue_ids:{event.groups[0].id}",
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 1
-
-    def test_performance_issue_issue_platform_issue_ids_filter(self):
-        # Just a duplicate of `test_generic_issue_ids_filter` to verify that perf issues read from
-        # the issue platform correctly here. Remove once we kill the related flags.
-        data = load_data(
-            platform="transaction",
-            timestamp=self.ten_mins_ago,
-            start_timestamp=self.eleven_mins_ago,
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            event = self.store_event(data=data, project_id=self.project.id)
-
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "2h",
-            "query": f"project:{self.project.slug} issue:{event.groups[0].qualified_short_id}",
+            "query": f"issue.id:{event.group.id}",
             "dataset": "issuePlatform",
         }
-        with self.feature(
-            ["organizations:issue-platform-search-perf-issues", "organizations:profiling"]
-        ):
+        with self.options({"performance.issues.create_issues_through_platform": True}):
             response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
@@ -745,42 +719,30 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.status_code == 400, response.content
 
     def test_performance_short_group_id(self):
-        project = self.create_project(name="foo bar")
-        data = load_data(
-            "transaction",
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        event = self.store_event(data=data, project_id=project.id)
-
+        event = self.create_performance_issue()
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": f"project:{project.slug} issue:{event.groups[0].qualified_short_id}",
+            "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
+            "dataset": "issuePlatform",
         }
-        response = self.do_request(query)
+        with self.options({"performance.issues.create_issues_through_platform": True}):
+            response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
     def test_multiple_performance_short_group_ids_filter(self):
-        project = self.create_project(name="foo bar")
-        data1 = load_data(
-            "transaction",
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        event1 = self.store_event(data=data1, project_id=project.id)
-
-        data2 = load_data(
-            "transaction",
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group2"],
-        )
-        event2 = self.store_event(data=data2, project_id=project.id)
+        event1 = self.create_performance_issue()
+        event2 = self.create_performance_issue()
 
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": f"project:{project.slug} issue:[{event1.groups[0].qualified_short_id},{event2.groups[0].qualified_short_id}]",
+            "query": f"project:{event1.group.project.slug} issue:[{event1.group.qualified_short_id},{event2.group.qualified_short_id}]",
+            "dataset": "issuePlatform",
         }
-        response = self.do_request(query)
+        with self.options({"performance.issues.create_issues_through_platform": True}):
+            response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 2
 
