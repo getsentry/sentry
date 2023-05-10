@@ -104,5 +104,5 @@ def serialize_group(group: Group) -> RpcGroup:
         id=group.id,
         organization_id=group.organization.id,
         project_id=group.project.id,
-        team_ids=[team.id for team in group.project.teams],
+        team_ids=[team.id for team in group.project.teams.all()],
     )
