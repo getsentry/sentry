@@ -2,6 +2,7 @@ from datetime import timedelta
 from typing import Dict, List, Optional, Sequence
 
 import sentry_sdk
+from snuba_sdk import Column
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.search.events.builder import (
@@ -75,6 +76,8 @@ def timeseries_query(
     functions_acl: Optional[List[str]] = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
+    groupby: Optional[Column] = None,
+    raw_result: Optional[bool] = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -96,6 +99,7 @@ def timeseries_query(
                 functions_acl=functions_acl,
                 allow_metric_aggregates=allow_metric_aggregates,
                 use_metrics_layer=use_metrics_layer,
+                groupby=groupby,
             )
             metrics_referrer = referrer + ".metrics-enhanced"
             result = metrics_query.run_query(metrics_referrer)
@@ -114,6 +118,10 @@ def timeseries_query(
             )
             sentry_sdk.set_tag("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
+
+            if raw_result:
+                return result
+
             return SnubaTSResult(
                 {
                     "data": result["data"],

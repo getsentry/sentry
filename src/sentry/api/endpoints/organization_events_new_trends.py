@@ -1,7 +1,10 @@
+import logging
+
 from django.conf import settings
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from snuba_sdk import Column
 from urllib3 import Retry
 
 from sentry import features
@@ -9,9 +12,14 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.net.http import connection_from_url
 from sentry.snuba import metrics_performance
+from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
+from sentry.utils.snuba import SnubaTSResult
+
+logger = logging.getLogger(__name__)
+
 
 IMPROVED = "improved"
 REGRESSION = "regression"
@@ -67,6 +75,25 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         selected_columns.append("count()")
         request.yAxis = selected_columns
 
+        def get_top_events(selected_columns, user_query, params, orderby, limit, referrer):
+            return query(
+                selected_columns,
+                query=user_query,
+                params=params,
+                orderby=orderby,
+                limit=limit,
+                referrer=referrer,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+            )
+
+        def generate_top_transaction_query(events):
+            top_transaction_names = [event.get("transaction") for event in events["data"]]
+            top_transaction_as_str = ", ".join(
+                f'"{transaction}"' for transaction in top_transaction_names
+            )
+            return f" transaction:[{top_transaction_as_str}]"
+
         def get_event_stats_metrics(
             query_columns,
             user_query,
@@ -75,43 +102,66 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             zerofill_results,
             comparison_delta,
         ):
-            # get top events
-            # TODO handle empty request
-            top_events = query(
+            # Get top events
+            top_events = get_top_events(
                 selected_columns,
-                query=user_query,
+                user_query=user_query,
                 params=params,
                 orderby=["-count()"],
                 limit=100,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_NEW.value,
-                auto_aggregations=True,
-                use_aggregate_conditions=True,
-                auto_fields=True,
-                allow_metric_aggregates=True,
             )
 
-            top_transactions = [event.get("transaction") for event in top_events["data"]]
-            query_with_transactions = " transaction:["
-            for i, t in enumerate(top_transactions):
-                query_with_transactions += f", {t}" if i > 0 else t
-                if i == len(top_transactions) - 1:
-                    query_with_transactions += "]"
-            new_query = user_query + query_with_transactions
+            if top_events.get("data", None) is None:
+                return None
 
-            # get their timeseries
-            response = metrics_performance.timeseries_query(
-                selected_columns=selected_columns,
-                query=new_query,
-                params=params,
+            new_query = user_query + generate_top_transaction_query(top_events)
+
+            result = metrics_performance.timeseries_query(
+                selected_columns,
+                new_query,
+                params,
                 rollup=rollup,
                 zerofill_results=zerofill_results,
-                comparison_delta=None,
-                allow_metric_aggregates=True,
-                has_metrics=True,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_NEW.value,
+                groupby=Column("transaction"),
+                raw_result=True,
             )
 
-            return response
+            translated_groupby = ["transaction"]
+
+            results = {}
+            for index, item in enumerate(top_events["data"]):
+                result_key = create_result_key(item, translated_groupby, {})
+                results[result_key] = {"order": index, "data": []}
+            for row in result["data"]:
+                result_key = create_result_key(row, translated_groupby, {})
+                if result_key in results:
+                    results[result_key]["data"].append(row)
+                else:
+                    # TODO come up with a better name
+                    logger.warning(
+                        "trends.top-events.timeseries.key-mismatch",
+                        extra={"result_key": result_key, "top_event_keys": list(results.keys())},
+                    )
+            for key, item in results.items():
+                results[key] = SnubaTSResult(
+                    {
+                        "data": zerofill(
+                            item["data"], params["start"], params["end"], rollup, "time"
+                        )
+                        if zerofill_results
+                        else item["data"],
+                        "isMetricsData": True,
+                        "order": item["order"],
+                        "meta": result["meta"],
+                    },
+                    params["start"],
+                    params["end"],
+                    rollup,
+                )
+
+            return results
 
         try:
             stats_data = self.get_event_stats_data(
