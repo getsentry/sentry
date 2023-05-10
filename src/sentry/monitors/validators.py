@@ -50,7 +50,7 @@ class MonitorAlertRuleTargetValidator(serializers.Serializer):
 class MonitorAlertRuleValidator(serializers.Serializer):
     targets = MonitorAlertRuleTargetValidator(
         many=True,
-        help_text="Array of dictionaries with target_identifier and target_type keys",
+        help_text="Array of dictionaries with information of the user or team to be notified",
     )
 
 
