@@ -444,7 +444,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     target_id,
                     **{id_key: actor.id},
                 )
-        analytics.record(  # add user
+        analytics.record(
             "notifications.settings_updated",
             target_type="user" if actor.actor_type == ActorType.USER else "team",
             actor_id=target_id,

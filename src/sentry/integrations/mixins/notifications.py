@@ -26,10 +26,3 @@ class NotifyBasicMixin:
             channel_id=external_team.external_id,
             message=SUCCESS_UNLINKED_TEAM_MESSAGE.format(team=team.slug),
         )
-
-    # def remove_notification_settings(self, actor_id: int, provider: ExternalProviders) -> None:
-    #     """
-    #     Delete notification settings based on an actor_id
-    #     There is no foreign key relationship so we have to manually cascade.
-    #     """
-    #     NotificationSetting.objects._filter(target_ids=[actor_id], provider=provider).delete()
