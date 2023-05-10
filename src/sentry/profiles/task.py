@@ -14,6 +14,7 @@ from symbolic import ProguardMapper  # type: ignore
 from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
+from sentry.lang.javascript.processing import generate_scraping_config
 from sentry.lang.native.symbolicator import RetrySymbolication, Symbolicator, SymbolicatorTaskKind
 from sentry.models import EventError, Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
@@ -671,15 +672,11 @@ def process_js_stacktraces(
     apply_source_context: bool = False,
 ) -> Any:
     project = symbolicator.project
-    allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
-    allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
-    allow_scraping = allow_scraping_org_level and allow_scraping_project_level
-
     return symbolicator.process_js(
         stacktraces=stacktraces,
         modules=modules,
         release=profile.get("release"),
         dist=profile.get("dist"),
-        allow_scraping=allow_scraping,
+        scraping_config=generate_scraping_config(project),
         apply_source_context=apply_source_context,
     )

@@ -4,6 +4,7 @@ These settings act as the default (base) settings for the Sentry-provided web-se
 import os
 import os.path
 import platform
+import random
 import re
 import socket
 import sys
@@ -12,10 +13,16 @@ from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, Union, overload
 from urllib.parse import urlparse
 
+from celery.schedules import crontab
+from django.urls import reverse_lazy
+from kombu import Queue
+
 import sentry
 from sentry.types.region import Region
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
+
+from .locale import CATALOGS
 
 
 def gettext_noop(s):
@@ -277,7 +284,6 @@ LANGUAGES = (
     ("zh-tw", gettext_noop("Traditional Chinese")),
 )
 
-from .locale import CATALOGS
 
 LANGUAGES = tuple((code, name) for code, name in LANGUAGES if code in CATALOGS)
 
@@ -505,7 +511,6 @@ CSRF_COOKIE_NAME = "sc"
 
 # Auth configuration
 
-from django.urls import reverse_lazy
 
 LOGIN_REDIRECT_URL = reverse_lazy("sentry-login-redirect")
 LOGIN_URL = reverse_lazy("sentry-login")
@@ -596,8 +601,6 @@ AUTH_PROVIDER_LABELS = {
     "visualstudio": "Visual Studio",
 }
 
-import random
-
 
 def SOCIAL_AUTH_DEFAULT_USERNAME():
     return random.choice(["Darth Vader", "Obi-Wan Kenobi", "R2-D2", "C-3PO", "Yoda"])
@@ -607,7 +610,6 @@ SOCIAL_AUTH_PROTECTED_USER_FIELDS = ["email"]
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
 # Queue configuration
-from kombu import Queue
 
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS = {}
@@ -811,8 +813,6 @@ for queue in CELERY_QUEUES:
     queue.durable = False
 
 
-from celery.schedules import crontab
-
 # XXX: Make sure to register the monitor_slug for each job in `SENTRY_CELERYBEAT_MONITORS`!
 CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
 CELERYBEAT_SCHEDULE = {
@@ -916,7 +916,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "reattempt-deletions": {
         "task": "sentry.tasks.deletion.reattempt_deletions",
-        "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
+        # 03:00 PDT, 07:00 EDT, 10:00 UTC
+        "schedule": crontab(hour=10, minute=0),
         "options": {"expires": 60 * 25},
     },
     "schedule-weekly-organization-reports-new": {
@@ -1818,7 +1819,8 @@ SENTRY_METRICS_BACKEND = "sentry.metrics.dummy.DummyMetricsBackend"
 SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
-SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+# Order this by most frequent prefixes.
+SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []
 SENTRY_METRICS_DISALLOW_BAD_TAGS = IS_DEV
 
 # Metrics product
@@ -2445,6 +2447,15 @@ SENTRY_DEVSERVICES = {
             "only_if": settings.SENTRY_USE_CDC_DEV,
             "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
             "volumes": {settings.CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
+        }
+    ),
+    "vroom": lambda settings, options: (
+        {
+            "image": "gcr.io/sentryio/vroom:latest",
+            "pull": True,
+            "ports": {"8085/tcp": 8085},
+            "command": ["run", "--config", "/etc/symbolicator/config.yml"],
+            "only_if": bool(os.environ.get("SENTRY_USE_PROFILING", settings.SENTRY_USE_PROFILING)),
         }
     ),
 }
