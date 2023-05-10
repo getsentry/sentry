@@ -9,7 +9,6 @@ const FiltersGrid = styled('div')`
   grid-template-columns:
     repeat(${p => Children.toArray(p.children).length - 1}, max-content)
     1fr;
-  margin-bottom: ${space(1)};
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-top: ${space(1)};
   }

@@ -17,6 +17,7 @@ import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
   projectId: string;
@@ -83,28 +84,30 @@ function IssueList({projectId, replayId}: Props) {
   });
 
   return (
-    <ReplayCountContext.Provider value={counts}>
-      <StyledPanelTable
-        isEmpty={state.issues.length === 0}
-        emptyMessage={t('No Issues are related')}
-        isLoading={state.fetching}
-        headers={
-          isScreenLarge ? columns : columns.filter(column => column !== t('Graph'))
-        }
-      >
-        {state.issues
-          // prioritize the replay issues first
-          .sort(a => (a.project.id === projectId ? -1 : 1))
-          .map(issue => (
-            <TableRow
-              key={issue.id}
-              isScreenLarge={isScreenLarge}
-              issue={issue}
-              organization={organization}
-            />
-          )) || null}
-      </StyledPanelTable>
-    </ReplayCountContext.Provider>
+    <FluidHeight>
+      <ReplayCountContext.Provider value={counts}>
+        <StyledPanelTable
+          isEmpty={state.issues.length === 0}
+          emptyMessage={t('No Issues are related')}
+          isLoading={state.fetching}
+          headers={
+            isScreenLarge ? columns : columns.filter(column => column !== t('Graph'))
+          }
+        >
+          {state.issues
+            // prioritize the replay issues first
+            .sort(a => (a.project.id === projectId ? -1 : 1))
+            .map(issue => (
+              <TableRow
+                key={issue.id}
+                isScreenLarge={isScreenLarge}
+                issue={issue}
+                organization={organization}
+              />
+            )) || null}
+        </StyledPanelTable>
+      </ReplayCountContext.Provider>
+    </FluidHeight>
   );
 }
 

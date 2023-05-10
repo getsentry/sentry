@@ -11,7 +11,7 @@ import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 const notTags = [
   'browser.name',
@@ -61,7 +61,7 @@ function TagPanel() {
 
   return (
     <Panel>
-      <FluidPanel>
+      <OverflowFluidHeight>
         {tags.length ? (
           <KeyValueTable noMargin>
             {tags.map(([key, values]) => (
@@ -76,7 +76,7 @@ function TagPanel() {
         ) : (
           <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
         )}
-      </FluidPanel>
+      </OverflowFluidHeight>
     </Panel>
   );
 }
@@ -86,6 +86,10 @@ const Panel = styled(BasePanel)`
   height: 100%;
   overflow: hidden;
   margin-bottom: 0;
+`;
+
+const OverflowFluidHeight = styled(FluidHeight)`
+  overflow: auto;
 `;
 
 export default TagPanel;

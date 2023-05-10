@@ -13,7 +13,7 @@ import type {Crumb} from 'sentry/types/breadcrumbs';
 import ConsoleFilters from 'sentry/views/replays/detail/console/consoleFilters';
 import ConsoleLogRow from 'sentry/views/replays/detail/console/consoleLogRow';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import FluidGrid from 'sentry/views/replays/detail/layout/fluidGrid';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
@@ -81,7 +81,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
   };
 
   return (
-    <FluidHeight>
+    <FluidGrid>
       <ConsoleFilters breadcrumbs={breadcrumbs} {...filterProps} />
       <TabItemContainer>
         {breadcrumbs ? (
@@ -111,7 +111,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           <Placeholder height="100%" />
         )}
       </TabItemContainer>
-    </FluidHeight>
+    </FluidGrid>
   );
 }
 
