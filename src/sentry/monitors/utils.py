@@ -29,7 +29,7 @@ def get_alert_rule(project: Project, user: User, monitor: Monitor, alert_rule: d
     :param project: Project object
     :param user: User object that made the request
     :param monitor: Monitor object being created
-    :param alert_rule: dict of information, must contain alert targets
+    :param alert_rule: Dictionary of configurations for an associated Rule
     :return: dict
     """
     alert_rule_data = {

@@ -42,6 +42,18 @@ class ObjectField(serializers.Field):
         return data
 
 
+class MonitorAlertRuleTargetValidator(serializers.Serializer):
+    target_identifier = serializers.IntegerField(help_text="ID of target object")
+    target_type = serializers.CharField(help_text="One of [Member, Team]")
+
+
+class MonitorAlertRuleValidator(serializers.Serializer):
+    targets = MonitorAlertRuleTargetValidator(
+        many=True,
+        help_text="Array of dictionaries with target_identifier and target_type keys",
+    )
+
+
 class ConfigValidator(serializers.Serializer):
     schedule_type = serializers.ChoiceField(
         choices=list(zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys())),
@@ -149,7 +161,7 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
-class MonitorValidator(serializers.Serializer):
+class MonitorValidator(CamelSnakeSerializer):
     project = ProjectField(scope="project:read")
     name = serializers.CharField()
     slug = serializers.RegexField(
@@ -166,6 +178,7 @@ class MonitorValidator(serializers.Serializer):
     )
     type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
     config = ConfigValidator()
+    alert_rule = MonitorAlertRuleValidator(required=False)
 
     def validate_status(self, value):
         return MONITOR_STATUSES.get(value, value)
@@ -259,12 +272,3 @@ class MonitorCheckInValidator(serializers.Serializer):
             del attrs["monitor_config"]
 
         return attrs
-
-
-class MonitorAlertRuleTargetValidator(serializers.Serializer):
-    target_identifier = serializers.IntegerField()
-    target_type = serializers.CharField()
-
-
-class MonitorAlertRuleValidator(CamelSnakeSerializer):
-    targets = MonitorAlertRuleTargetValidator(many=True)
