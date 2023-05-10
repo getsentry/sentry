@@ -96,7 +96,7 @@ function getGroupQuery({
   const query: Record<string, string | string[]> = {
     ...(environments ? {environment: environments} : {}),
     expand: ['inbox', 'owners'],
-    collapse: 'release',
+    collapse: ['release', 'tags'],
   };
 
   return query;
