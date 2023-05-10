@@ -20,6 +20,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
+import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import DatabaseTableView from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {useQueryMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
@@ -214,6 +215,8 @@ export default function EndpointOverview() {
             title={t('Where is time spent in this endpoint?')}
             transaction={transaction as string}
           />
+          <SubHeader>{t('Correlations')}</SubHeader>
+          <FacetInsights eventView={eventView} />
           <SubHeader>{t('HTTP Spans')}</SubHeader>
           <EndpointTable
             location={location}
