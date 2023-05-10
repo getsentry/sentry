@@ -37,7 +37,7 @@ export type SpanDataRow = {
 export type SpanTrendDataRow = {
   group_id: string;
   interval: string;
-  percentile: string;
+  percentile_value: string;
   span_operation: string;
 };
 
