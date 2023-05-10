@@ -8,78 +8,122 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 import {useQuery} from 'sentry/utils/queryClient';
-import {DatabaseDurationChart} from 'sentry/views/starfish/views/webServiceView/databaseDurationChart';
-import {HttpBreakdownChart} from 'sentry/views/starfish/views/webServiceView/httpBreakdownChart';
 import {
-  getDatabaseTimeSpent,
-  getDbThroughput,
-  getHttpThroughput,
-  getOtherDomains,
-  getTopHttpDomains,
+  getOtherDomainsActionsAndOpTimeseries,
+  getTopDomainsActionsAndOp,
+  getTopDomainsActionsAndOpTimeseries,
+  spanThroughput,
+  totalCumulativeTime,
 } from 'sentry/views/starfish/views/webServiceView/queries';
+import {WebServiceBreakdownChart} from 'sentry/views/starfish/views/webServiceView/webServiceBreakdownChart';
 
-const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
+const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8', '#F8F6FC'];
 const TOOLTIP_DELAY = 800;
 const HOST = 'http://localhost:8080';
 
 type ModuleSegment = {
-  module: string;
+  action: string;
+  domain: string;
+  span_operation: string;
   sum: number;
 };
 type Props = {
-  segments: ModuleSegment[];
   title: string;
   transaction?: string;
 };
 
-function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Props) {
+export function getSegmentLabel(span_operation, action, domain) {
+  if (span_operation === 'http.client') {
+    return t('%s requests to %s', action, domain);
+  }
+  if (span_operation === 'db') {
+    return t('%s on %s', action, domain);
+  }
+  return span_operation || domain || undefined;
+}
+
+function FacetBreakdownBar({title, transaction: maybeTransaction}: Props) {
   const [hoveredValue, setHoveredValue] = useState<ModuleSegment | null>(null);
-  const [currentSegment, setCurrentSegment] = useState<
-    ModuleSegment['module'] | undefined
-  >(segments[0]?.module);
-  const totalValues = segments.reduce((acc, segment) => acc + segment.sum, 0);
 
   const transaction = maybeTransaction ?? '';
 
-  const {isLoading: isHttpDurationDataLoading, data: httpDurationData} = useQuery({
-    queryKey: [`topDomains${transaction}`],
+  const {data: segments} = useQuery({
+    queryKey: ['webServiceSpanGrouping', transaction],
     queryFn: () =>
-      fetch(`${HOST}/?query=${getTopHttpDomains({transaction})}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
-  const {isLoading: isOtherHttpDurationDataLoading, data: otherHttpDurationData} =
-    useQuery({
-      queryKey: [`otherDomains${transaction}`],
-      queryFn: () =>
-        fetch(`${HOST}/?query=${getOtherDomains({transaction})}`).then(res => res.json()),
-      retry: false,
-      initialData: [],
-    });
-
-  const {isLoading: isDbDurationLoading, data: dbDurationData} = useQuery({
-    queryKey: [`databaseDuration${transaction}`],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getDatabaseTimeSpent({transaction})}`).then(res =>
+      fetch(`${HOST}/?query=${getTopDomainsActionsAndOp({transaction})}`).then(res =>
         res.json()
       ),
     retry: false,
     initialData: [],
   });
 
-  const {data: dbThroughputData} = useQuery({
-    queryKey: [`dbThroughputData${transaction}`],
+  const {data: cumulativeTime} = useQuery({
+    queryKey: ['totalCumulativeTime', transaction],
     queryFn: () =>
-      fetch(`${HOST}/?query=${getDbThroughput({transaction})}`).then(res => res.json()),
+      fetch(`${HOST}/?query=${totalCumulativeTime({transaction})}`).then(res =>
+        res.json()
+      ),
     retry: false,
     initialData: [],
   });
 
-  const {data: httpThroughputData} = useQuery({
-    queryKey: [`httpThroughputData${transaction}`],
+  const totalValues = cumulativeTime.reduce((acc, segment) => acc + segment.sum, 0);
+  const totalSegments = segments.reduce((acc, segment) => acc + segment.sum, 0);
+  const otherValue = totalValues - totalSegments;
+  const otherSegment = {
+    span_operation: 'other',
+    sum: otherValue,
+    action: '',
+    domain: '',
+  } as ModuleSegment;
+
+  let topConditions =
+    segments.length > 0
+      ? ` (span_operation = '${segments[0].span_operation}' ${
+          segments[0].action ? `AND action = '${segments[0].action}'` : ''
+        } ${segments[0].domain ? `AND domain = '${segments[0].domain}'` : ''})`
+      : '';
+
+  for (let index = 1; index < segments.length; index++) {
+    const element = segments[index];
+    topConditions = topConditions.concat(
+      ' OR ',
+      `(span_operation = '${element.span_operation}' ${
+        element.action ? `AND action = '${element.action}'` : ''
+      } ${element.domain ? `AND domain = '${element.domain}'` : ''})`
+    );
+  }
+
+  const {isLoading: isTopDataLoading, data: topData} = useQuery({
+    queryKey: ['topSpanGroupTimeseries', transaction, topConditions],
     queryFn: () =>
-      fetch(`${HOST}/?query=${getHttpThroughput({transaction})}`).then(res => res.json()),
+      fetch(
+        `${HOST}/?query=${getTopDomainsActionsAndOpTimeseries({
+          transaction,
+          topConditions,
+        })}`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const {isLoading: isOtherDataLoading, data: otherData} = useQuery({
+    queryKey: ['otherSpanGroupTimeseries', transaction, topConditions],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getOtherDomainsActionsAndOpTimeseries({
+          transaction,
+          topConditions,
+        })}`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const {data: throughputData} = useQuery({
+    queryKey: ['httpThroughputData', transaction],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${spanThroughput({transaction})}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
@@ -108,22 +152,25 @@ function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Pro
           const pctLabel = Math.floor(pct);
           const segmentProps = {
             index,
-            onClick: () => {
-              setCurrentSegment(value.module);
-            },
+            onClick: () => {},
           };
+          const segmentLabel = getSegmentLabel(
+            value.span_operation,
+            value.action,
+            value.domain
+          );
           return (
             <div
-              key={`segment-${value.module}`}
+              key={`segment-${segmentLabel}`}
               style={{width: pct + '%'}}
               onMouseOver={() => {
                 setHoveredValue(value);
               }}
               onMouseLeave={() => setHoveredValue(null)}
             >
-              <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={value.module}>
+              <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segmentLabel}>
                 <Segment
-                  aria-label={`${value.module} ${t('segment')}`}
+                  aria-label={`${segmentLabel} ${t('segment')}`}
                   color={COLORS[index]}
                   {...segmentProps}
                 >
@@ -134,6 +181,27 @@ function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Pro
             </div>
           );
         })}
+        {otherValue > 0 && (
+          <div
+            key="segment-other"
+            style={{width: percent(otherValue, totalValues) + '%'}}
+            onMouseOver={() => {
+              setHoveredValue(otherSegment);
+            }}
+            onMouseLeave={() => setHoveredValue(null)}
+          >
+            <Tooltip skipWrapper delay={TOOLTIP_DELAY} title="other">
+              <Segment
+                aria-label="other segment"
+                color={COLORS[5]}
+                {...{
+                  index: 5,
+                  onClick: () => {},
+                }}
+              />
+            </Tooltip>
+          </div>
+        )}
       </SegmentBar>
     );
   }
@@ -144,21 +212,24 @@ function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Pro
         <LegendContainer>
           {segments.map((segment, index) => {
             const pctLabel = Math.floor(percent(segment.sum, totalValues));
-            const unfocus = !!hoveredValue && hoveredValue.module !== segment.module;
-            const focus = hoveredValue?.module === segment.module;
+            const unfocus = !!hoveredValue && hoveredValue !== segment;
+            const focus = hoveredValue === segment;
+            const label = getSegmentLabel(
+              segment.span_operation,
+              segment.action,
+              segment.domain
+            );
 
             return (
-              <li key={`segment-${segment.module}-${index}`}>
+              <li key={`segment-${label}-${index}`}>
                 <LegendRow
                   onMouseOver={() => setHoveredValue(segment)}
                   onMouseLeave={() => setHoveredValue(null)}
-                  onClick={() => setCurrentSegment(segment.module)}
+                  onClick={() => {}}
                 >
                   <LegendDot color={COLORS[index]} focus={focus} />
                   <LegendText unfocus={unfocus}>
-                    {segment.module ?? (
-                      <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>
-                    )}
+                    {label ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
                   </LegendText>
                   {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
                 </LegendRow>
@@ -170,29 +241,29 @@ function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Pro
     );
   }
 
-  function renderChart(mod: string | undefined) {
-    switch (mod) {
-      case 'http':
-        return (
-          <HttpBreakdownChart
-            isHttpDurationDataLoading={isHttpDurationDataLoading}
-            isOtherHttpDurationDataLoading={isOtherHttpDurationDataLoading}
-            httpDurationData={httpDurationData}
-            otherHttpDurationData={otherHttpDurationData}
-            httpThroughputData={httpThroughputData}
-          />
-        );
-      case 'db':
-      default:
-        return (
-          <DatabaseDurationChart
-            isDbDurationLoading={isDbDurationLoading}
-            dbDurationData={dbDurationData}
-            dbThroughputData={dbThroughputData}
-          />
-        );
-    }
-  }
+  // function renderChart(mod: string | undefined) {
+  //   switch (mod) {
+  //     case 'http':
+  //       return (
+  //         <HttpBreakdownChart
+  //           isHttpDurationDataLoading={isHttpDurationDataLoading}
+  //           isOtherHttpDurationDataLoading={isOtherHttpDurationDataLoading}
+  //           httpDurationData={httpDurationData}
+  //           otherHttpDurationData={otherHttpDurationData}
+  //           httpThroughputData={httpThroughputData}
+  //         />
+  //       );
+  //     case 'db':
+  //     default:
+  //       return (
+  //         <DatabaseDurationChart
+  //           isDbDurationLoading={isDbDurationLoading}
+  //           dbDurationData={dbDurationData}
+  //           dbThroughputData={dbThroughputData}
+  //         />
+  //       );
+  //   }
+  // }
 
   return (
     <Fragment>
@@ -207,7 +278,13 @@ function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Pro
           {renderLegend()}
         </details>
       </TagSummary>
-      {renderChart(currentSegment)}
+      <WebServiceBreakdownChart
+        isTopDataLoading={isTopDataLoading}
+        topData={topData}
+        isOtherDataLoading={isOtherDataLoading}
+        otherData={otherData}
+        throughputData={throughputData}
+      />
     </Fragment>
   );
 }
