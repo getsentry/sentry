@@ -143,6 +143,5 @@ class HybridCloudTestMixin:
 
         assert not OrganizationMemberMapping.objects.filter(
             organization_id=org_member.organization_id,
-            email=org_member.email,
-            user_id=org_member.user_id,
+            organizationmember_id=org_member.id,
         ).exists()

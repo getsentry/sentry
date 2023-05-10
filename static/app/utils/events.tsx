@@ -119,11 +119,7 @@ export function getTitle(
   grouping = false
 ) {
   const {metadata, type, culprit, title} = event;
-
-  const customTitle =
-    features.includes('custom-event-title') && metadata?.title
-      ? metadata.title
-      : undefined;
+  const customTitle = metadata?.title;
 
   switch (type) {
     case EventOrGroupType.ERROR: {
