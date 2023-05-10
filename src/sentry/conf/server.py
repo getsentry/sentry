@@ -1256,8 +1256,6 @@ SENTRY_FEATURES = {
     "organizations:grouping-title-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
-    # Lets organizations set a custom title through fingerprinting
-    "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature
