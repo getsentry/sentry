@@ -62,7 +62,7 @@ export function WebServiceBreakdownChart({
   );
 
   return (
-    <ChartPanel title={t('p75 of HTTP spans')}>
+    <ChartPanel title={t('p75 of span exclusive time')}>
       <Chart
         statsPeriod="24h"
         height={180}
