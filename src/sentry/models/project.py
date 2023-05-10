@@ -254,7 +254,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
         ).distinct()
 
     def get_members_as_rpc_users(self) -> Iterable[RpcUser]:
-        member_ids = self.member_set.values_list("user__id", flat=True)
+        member_ids = self.member_set.values_list("user_id", flat=True)
         return user_service.get_many(filter=dict(user_ids=list(member_ids)))
 
     def has_access(self, user, access=None):
