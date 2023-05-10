@@ -35,6 +35,10 @@ type Props = InitializeUrlStateProps & {
    */
   desyncedAlertMessage?: string;
   /**
+   * Whether to hide the desynced filter alert.
+   */
+  hideDesyncAlert?: boolean;
+  /**
    * Whether to hide the revert button in the desynced filter alert.
    */
   hideDesyncRevertButton?: boolean;
@@ -58,6 +62,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     specificProjectSlugs,
     skipInitializeUrlParams,
     desyncedAlertMessage,
+    hideDesyncAlert,
     hideDesyncRevertButton,
   } = props;
   const router = useRouter();
@@ -178,11 +183,13 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
 
   return (
     <Fragment>
-      <DesyncedFilterAlert
-        router={router}
-        message={desyncedAlertMessage}
-        hideRevertButton={hideDesyncRevertButton}
-      />
+      {!hideDesyncAlert && (
+        <DesyncedFilterAlert
+          router={router}
+          message={desyncedAlertMessage}
+          hideRevertButton={hideDesyncRevertButton}
+        />
+      )}
       {children}
     </Fragment>
   );

@@ -24,10 +24,6 @@ function ProjectPageFilterMenuFooter({
   showNonMemberProjects,
 }: ProjectPageFilterMenuFooterProps) {
   const organization = useOrganization();
-  const hasProjectWrite = organization.access.includes('project:write');
-  if (!hasProjectWrite) {
-    return null;
-  }
 
   return (
     <Fragment>
