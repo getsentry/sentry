@@ -184,10 +184,18 @@
   color: '584774'
   description: ''
 
+# Waiting for Labels
+- name: 'Waiting for: Support'
+  color: '8D5494'
+- name: 'Waiting for: Product Owner'
+  color: '8D5494'
+- name: 'Waiting for: Community'
+  color: '8D5494'
+
 # Product Areas - notion.so/sentry/473791bae5bf43399d46093050b77bf0
 - name: 'Product Area: Unknown'
   color: '8D5494'
-- name: 'Product Area: Sign in'
+- name: 'Product Area: Sign In'
   color: '8D5494'
 - name: 'Product Area: Issues'
   color: '8D5494'
@@ -239,7 +247,7 @@
   color: '8D5494'
 - name: 'Product Area: Help'
   color: '8D5494'
-- name: 'Product Area: What’s new'
+- name: "Product Area: What's New"
   color: '8D5494'
 - name: 'Product Area: Footer'
   color: '8D5494'

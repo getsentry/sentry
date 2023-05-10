@@ -269,7 +269,7 @@ class User(BaseModel, AbstractBaseUser):
     def get_full_name(self):
         return self.name
 
-    def get_salutation_name(self):
+    def get_salutation_name(self) -> str:
         name = self.name or self.username.split("@", 1)[0].split(".", 1)[0]
         first_name = name.split(" ", 1)[0]
         return first_name.capitalize()
@@ -360,7 +360,7 @@ class User(BaseModel, AbstractBaseUser):
             # only applies if both users are members of obj.org
             # if roles are different, grants combined user the higher of the two
             to_member = OrganizationMember.objects.get(
-                organization=obj.organization_id, user=to_user
+                organization=obj.organization_id, user_id=to_user.id
             )
             if roles.get(obj.role).priority > roles.get(to_member.role).priority:
                 to_member.update(role=obj.role)

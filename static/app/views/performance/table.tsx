@@ -429,6 +429,7 @@ class _Table extends Component<Props, State> {
                         hasData={
                           !isLoading && !!tableData?.data && tableData.data.length > 0
                         }
+                        isLoading={isLoading}
                       >
                         <GridEditable
                           isLoading={isLoading}

@@ -1,18 +1,20 @@
 # Please do not use
 #     from __future__ import annotations
-# in modules such as this one where hybrid cloud service classes and data models are
+# in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import Optional, cast
+from typing import Optional
 
 from django.db import transaction
 
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     OrganizationMemberMappingService,
     RpcOrganizationMemberMapping,
     RpcOrganizationMemberMappingUpdate,
+)
+from sentry.services.hybrid_cloud.organizationmember_mapping.serial import (
+    serialize_org_member_mapping,
 )
 
 
@@ -59,20 +61,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                     inviter_id=inviter_id,
                     invite_status=invite_status,
                 )
-        return self._serialize_rpc(org_member_mapping)
-
-    def create_with_organization_member(
-        self, *, org_member: OrganizationMember
-    ) -> RpcOrganizationMemberMapping:
-        return self.create_mapping(
-            organizationmember_id=org_member.id,
-            organization_id=org_member.organization_id,
-            role=org_member.role,
-            user_id=org_member.user_id,
-            email=org_member.email,
-            inviter_id=org_member.inviter_id,
-            invite_status=org_member.invite_status,
-        )
+        return serialize_org_member_mapping(org_member_mapping)
 
     def update_with_organization_member(
         self,
@@ -87,7 +76,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                 organizationmember_id=organizationmember_id,
             )
             org_member_map.update(**rpc_update_org_member.dict())
-            return self._serialize_rpc(org_member_map)
+            return serialize_org_member_mapping(org_member_map)
         except OrganizationMemberMapping.DoesNotExist:
             return self.create_mapping(
                 organizationmember_id=organizationmember_id,
@@ -108,11 +97,3 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
 
     def close(self) -> None:
         pass
-
-    def _serialize_rpc(
-        self, org_member_mapping: OrganizationMemberMapping
-    ) -> RpcOrganizationMemberMapping:
-        return cast(
-            RpcOrganizationMemberMapping,
-            RpcOrganizationMemberMapping.serialize_by_field_name(org_member_mapping),
-        )

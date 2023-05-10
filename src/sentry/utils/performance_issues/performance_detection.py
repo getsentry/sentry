@@ -145,9 +145,6 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         "render_blocking_bytes_min": options.get(
             "performance.issues.render_blocking_assets.size_threshold"
         ),
-        "consecutive_http_spans_lcp_ratio_threshold": options.get(
-            "performance.issues.consecutive_http.lcp_ratio_threshold"
-        ),
         "consecutive_http_spans_max_duration_between_spans": options.get(
             "performance.issues.consecutive_http.max_duration_between_spans"
         ),
@@ -156,6 +153,9 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         ),
         "consecutive_http_spans_span_duration_threshold": options.get(
             "performance.issues.consecutive_http.span_duration_threshold"
+        ),
+        "large_http_payload_size_threshold": options.get(
+            "performance.issues.large_http_payload.size_threshold"
         ),
     }
 
@@ -255,9 +255,10 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
                 "consecutive_http_spans_max_duration_between_spans"
             ],  # ms
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
-            "lcp_ratio_threshold": settings["consecutive_http_spans_lcp_ratio_threshold"],
         },
-        DetectorType.LARGE_HTTP_PAYLOAD: {"payload_size_threshold": 10000000},  # 10mb
+        DetectorType.LARGE_HTTP_PAYLOAD: {
+            "payload_size_threshold": settings["large_http_payload_size_threshold"]
+        },
     }
 
 

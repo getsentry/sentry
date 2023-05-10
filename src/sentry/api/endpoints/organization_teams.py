@@ -172,7 +172,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                     {"detail": "You do not have permission to join a new team as a Team Admin"},
                 )
         try:
-            # Wrap team creation and member addition in same transaction
             with transaction.atomic():
                 team = Team.objects.create(
                     name=result.get("name") or result["slug"],
@@ -180,21 +179,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                     idp_provisioned=result.get("idp_provisioned", False),
                     organization=organization,
                 )
-                team_created.send_robust(
-                    organization=organization,
-                    user=request.user,
-                    team=team,
-                    sender=self.__class__,
-                )
-                if self.should_add_creator_to_team(request):
-                    member = OrganizationMember.objects.get(
-                        user=request.user, organization=organization
-                    )
-                    OrganizationMemberTeam.objects.create(
-                        team=team,
-                        organizationmember=member,
-                        role="admin" if set_team_admin else None,
-                    )
         except (IntegrityError, MaxSnowflakeRetryError):
             raise ConflictError(
                 {
@@ -202,21 +186,44 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                     "detail": CONFLICTING_SLUG_ERROR,
                 }
             )
-        except OrganizationMember.DoesNotExist:
-            # team is automatically rolledback if exception raised in atomic block
-            if set_team_admin:
-                raise PermissionDenied(
-                    detail="You must be a member of the organization to join a new team as a Team Admin"
-                )
         else:
-            self.create_audit_entry(
-                request=request,
+            team_created.send_robust(
                 organization=organization,
-                target_object=team.id,
-                event=audit_log.get_event_id("TEAM_ADD"),
-                data=team.get_audit_log_data(),
+                user=request.user,
+                team=team,
+                sender=self.__class__,
             )
-            return Response(
-                serialize(team, request.user, self.team_serializer_for_post()),
-                status=201,
-            )
+
+        if self.should_add_creator_to_team(request):
+            cleanup_needed = True
+            try:
+                with transaction.atomic():
+                    member = OrganizationMember.objects.get(
+                        user_id=request.user.id, organization=organization
+                    )
+                    OrganizationMemberTeam.objects.create(
+                        team=team,
+                        organizationmember=member,
+                        role="admin" if set_team_admin else None,
+                    )
+                cleanup_needed = False
+            except OrganizationMember.DoesNotExist:
+                if set_team_admin:
+                    raise PermissionDenied(
+                        detail="You must be a member of the organization to join a new team as a Team Admin"
+                    )
+            finally:
+                if set_team_admin and cleanup_needed:
+                    team.delete()
+
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=team.id,
+            event=audit_log.get_event_id("TEAM_ADD"),
+            data=team.get_audit_log_data(),
+        )
+        return Response(
+            serialize(team, request.user, self.team_serializer_for_post()),
+            status=201,
+        )

@@ -1,7 +1,7 @@
 from functools import cached_property
 from unittest.mock import patch
 
-from django.db import IntegrityError
+import pytest
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_teams import OrganizationTeamsEndpoint
@@ -10,7 +10,6 @@ from sentry.testutils import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import get_provider_string
-from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 
 @region_silo_test(stable=True)
@@ -91,7 +90,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert len(response.data[0]["externalTeams"]) == 1
         assert response.data[0]["externalTeams"][0] == {
             "id": str(self.external_team.id),
-            "integrationId": str(self.external_team.integration.id),
+            "integrationId": str(self.external_team.integration_id),
             "provider": get_provider_string(self.external_team.provider),
             "externalName": self.external_team.external_name,
             "teamId": str(self.team.id),
@@ -247,6 +246,36 @@ class OrganizationTeamsCreateTest(APITestCase):
             self.organization.slug, name="x" * 65, slug="xxxxxxx", status_code=400
         )
 
+    def test_org_member_does_not_exist_passes(self):
+        prior_team_count = Team.objects.count()
+
+        # Multiple calls are made to OrganizationMember.objects.get, so in order to only raise
+        # OrganizationMember.DoesNotExist for the correct call, we set a reference to the actual
+        # function then call the reference unless the organization matches the test case
+        get_reference = OrganizationMember.objects.get
+
+        def get_callthrough(*args, **kwargs):
+            if self.organization in kwargs.values():
+                raise OrganizationMember.DoesNotExist
+            return get_reference(*args, **kwargs)
+
+        with patch.object(OrganizationMember.objects, "get", side_effect=get_callthrough):
+            resp = self.get_success_response(
+                self.organization.slug, name="hello world", slug="foobar", status_code=201
+            )
+        team = Team.objects.get(id=resp.data["id"])
+        assert team.name == "hello world"
+        assert team.slug == "foobar"
+        assert not team.idp_provisioned
+        assert team.organization == self.organization
+
+        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+
+        assert not OrganizationMemberTeam.objects.filter(
+            organizationmember=member, team=team, is_active=True
+        ).exists()
+        assert Team.objects.count() == prior_team_count + 1
+
     @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
     def test_valid_team_admin(self):
         prior_team_count = Team.objects.count()
@@ -339,33 +368,16 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert Team.objects.count() == prior_team_count
 
     @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
-    @patch.object(OrganizationMemberTeam.objects, "create", side_effect=IntegrityError)
-    def test_team_admin_org_member_team_create_fails(self, mock_create):
+    @patch.object(OrganizationMemberTeam.objects, "create", side_effect=Exception("test"))
+    def test_team_admin_org_member_team_create_generically_fails(self, mock_create):
         prior_team_count = Team.objects.count()
-
-        self.get_error_response(
-            self.organization.slug,
-            name="hello world",
-            slug="foobar",
-            set_team_admin=True,
-            status_code=409,
-        )
+        with pytest.raises(Exception):
+            self.get_error_response(
+                self.organization.slug,
+                name="hello world",
+                slug="foobar",
+                set_team_admin=True,
+                status_code=400,
+            )
         mock_create.assert_called_once()
-        # check that the created team was rolled back
-        assert Team.objects.count() == prior_team_count
-
-    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
-    @patch.object(OrganizationMemberTeam.objects, "create", side_effect=MaxSnowflakeRetryError)
-    def test_team_admin_org_member_team_create_fails_snowflake_error(self, mock_create):
-        prior_team_count = Team.objects.count()
-
-        self.get_error_response(
-            self.organization.slug,
-            name="hello world",
-            slug="foobar",
-            set_team_admin=True,
-            status_code=409,
-        )
-        mock_create.assert_called_once()
-        # check that the created team was rolled back
         assert Team.objects.count() == prior_team_count

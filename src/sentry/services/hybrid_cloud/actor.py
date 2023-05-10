@@ -1,6 +1,6 @@
 # Please do not use
 #     from __future__ import annotations
-# in modules such as this one where hybrid cloud service classes and data models are
+# in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from enum import Enum
@@ -24,8 +24,14 @@ class RpcActor(RpcModel):
     """Can represent any model object with a foreign key to Actor."""
 
     id: int
+    """The id of the user/team this actor represents"""
+
     actor_id: Optional[int]
+    """The id of the Actor record"""
+
     actor_type: ActorType
+    """Whether this actor is a User or Team"""
+
     slug: Optional[str] = None
     is_superuser: bool = False
 

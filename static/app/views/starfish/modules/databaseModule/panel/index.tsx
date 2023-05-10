@@ -14,6 +14,7 @@ import {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import ProfileView from 'sentry/views/starfish/modules/databaseModule/panel/profileView';
 import QueryTransactionTable, {
   PanelSort,
 } from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
@@ -24,6 +25,7 @@ import {
   useQueryPanelTable,
   useQueryTransactionByTPMAndP75,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
+import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
@@ -279,6 +281,15 @@ function QueryDetailBody({
       />
       <FlexRowContainer>
         <FlexRowItem>
+          <SubHeader>{t('Example Profile')}</SubHeader>
+          <ProfileView
+            spanHash={row.group_id}
+            transactionNames={tableData.map(d => d.transaction)}
+          />
+        </FlexRowItem>
+      </FlexRowContainer>
+      <FlexRowContainer>
+        <FlexRowItem>
           <SubHeader>{t('Similar Queries')}</SubHeader>
           <SimilarQueryView mainTableRow={row} />
         </FlexRowItem>
@@ -313,7 +324,7 @@ function SimplePagination(props: SimplePaginationProps) {
   );
 }
 
-const highlightSql = (description: string, queryDetail: DataRow) => {
+export const highlightSql = (description: string, queryDetail: DataRow) => {
   let acc = '';
   return description.split('').map((token, i) => {
     acc += token;
@@ -358,30 +369,6 @@ const throughputQueryToChartData = (
     zeroFillSeries(countSeries, moment.duration(INTERVAL, 'hours'), startTime, endTime),
     zeroFillSeries(p75Series, moment.duration(INTERVAL, 'hours'), startTime, endTime),
   ];
-};
-
-const queryToSeries = (
-  data: (Record<string, any> & {interval: string})[],
-  groupByProperty: string,
-  seriesValueProperty: string,
-  startTime: moment.Moment,
-  endTime: moment.Moment
-): Series[] => {
-  const seriesMap: Record<string, Series> = {};
-
-  data.forEach(row => {
-    const dataEntry = {value: row[seriesValueProperty], name: row.interval};
-    if (!seriesMap[row[groupByProperty]]) {
-      seriesMap[row[groupByProperty]] = {
-        seriesName: row[groupByProperty],
-        data: [],
-      };
-    }
-    seriesMap[row[groupByProperty]].data.push(dataEntry);
-  });
-  return Object.values(seriesMap).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
-  );
 };
 
 const SubHeader = styled('h3')`

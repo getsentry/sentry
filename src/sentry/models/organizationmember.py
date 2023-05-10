@@ -26,6 +26,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.exceptions import UnableToAcceptMemberInvitationException
@@ -201,12 +202,11 @@ class OrganizationMember(Model):
     teams = models.ManyToManyField(
         "sentry.Team", blank=True, through="sentry.OrganizationMemberTeam"
     )
-    inviter = FlexibleForeignKey(
+    inviter_id = HybridCloudForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
-        related_name="sentry_inviter_set",
-        on_delete=models.SET_NULL,
+        on_delete="SET_NULL",
     )
     invite_status = models.PositiveSmallIntegerField(
         choices=InviteStatus.as_choices(),
@@ -227,7 +227,7 @@ class OrganizationMember(Model):
     def delete(self, *args, **kwds):
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             self.outbox_for_update().save()
-            super().delete(*args, **kwds)
+            return super().delete(*args, **kwds)
 
     @transaction.atomic
     def save(self, *args, **kwargs):
@@ -356,14 +356,19 @@ class OrganizationMember(Model):
             logger = get_logger(name="sentry.mail")
             logger.exception(e)
 
-    def send_sso_link_email(self, actor, provider):
+    def send_sso_link_email(self, user_id: int, provider):
         from sentry.utils.email import MessageBuilder
 
         link_args = {"organization_slug": self.organization.slug}
 
+        email = ""
+        user = user_service.get_user(user_id=user_id)
+        if user:
+            email = user.email
+
         context = {
             "organization": self.organization,
-            "actor": actor,
+            "email": email,
             "provider": provider,
             "url": absolute_uri(reverse("sentry-auth-organization", kwargs=link_args)),
         }
@@ -377,7 +382,7 @@ class OrganizationMember(Model):
         )
         msg.send_async([self.get_email()])
 
-    def send_sso_unlink_email(self, actor, provider):
+    def send_sso_unlink_email(self, disabling_user: RpcUser, provider):
         from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
         from sentry.utils.email import MessageBuilder
 
@@ -392,14 +397,17 @@ class OrganizationMember(Model):
             return
 
         user = user_service.get_user(user_id=self.user_id)
-        has_password = user.has_usable_password() if user else False
+        if not user:
+            return
+
+        has_password = user.has_usable_password()
 
         context = {
             "email": email,
             "recover_url": absolute_uri(recover_uri),
             "has_password": has_password,
             "organization": self.organization,
-            "actor": actor,
+            "disabled_by_email": disabling_user.email,
             "provider": provider,
         }
 
@@ -594,15 +602,7 @@ class OrganizationMember(Model):
         Must check if member member has member:admin first before checking
         """
         highest_role_priority = self.get_all_org_roles_sorted()[0].priority
-
-        if not features.has("organizations:team-roles", self.organization):
-            return [r for r in organization_roles.get_all() if r.priority <= highest_role_priority]
-
-        return [
-            r
-            for r in organization_roles.get_all()
-            if r.priority <= highest_role_priority and not r.is_retired
-        ]
+        return [r for r in organization_roles.get_all() if r.priority <= highest_role_priority]
 
     def is_only_owner(self) -> bool:
         if organization_roles.get_top_dog().id not in self.get_all_org_roles():

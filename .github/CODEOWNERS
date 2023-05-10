@@ -1,6 +1,6 @@
 # General ownership rules
 #
-# The folloowing rules are not specific to any particular area of the product
+# The following rules are not specific to any particular area of the product
 # and are more general
 
 
@@ -64,6 +64,13 @@ Makefile                                                 @getsentry/owners-sentr
 
 mypy.ini                                                 @getsentry/python-typing
 /fixtures/stubs                                          @getsentry/python-typing
+
+# GitHub Routing Automations - notion.so/473791bae5bf43399d46093050b77bf0
+/.github/labels.yml                                      @getsentry/open-source
+/.github/workflows/react-to-product-owners-yml-changes.yml @getsentry/open-source
+/bin/react-to-product-owners-yml-changes.py              @getsentry/open-source
+/bin/react-to-product-owners-yml-changes.sh              @getsentry/open-source
+/static/app/components/sidebar/index.tsx                 @getsentry/open-source
 
 ## Build & Releases
 /.github/workflows/release.yml                           @getsentry/release-approvers
@@ -219,7 +226,10 @@ yarn.lock                                                @getsentry/owners-js-de
 ## Endof Discover/Dashboards
 
 ## Starfish
-/static/app/views/starfish/                                          @getsentry/team-starfish
+/src/sentry/api/endpoints/organization_events_facets_stats_performance.py           @getsentry/team-starfish
+/tests/snuba/api/endpoints/test_organization_events_facets_stats_performance.py     @getsentry/team-starfish
+
+/static/app/views/starfish/                                                         @getsentry/team-starfish
 ## Endof Starfish
 
 

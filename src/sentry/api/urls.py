@@ -2,6 +2,9 @@ from django.conf.urls import include, url
 
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
+from sentry.api.endpoints.organization_events_facets_stats_performance import (
+    OrganizationEventsFacetsStatsPerformanceEndpoint,
+)
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
@@ -117,7 +120,6 @@ from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
-from .endpoints.client_state import ClientStateEndpoint, ClientStateListEndpoint
 from .endpoints.codeowners import (
     ExternalTeamDetailsEndpoint,
     ExternalTeamEndpoint,
@@ -375,7 +377,6 @@ from .endpoints.organization_transaction_anomaly_detection import (
     OrganizationTransactionAnomalyDetectionEndpoint,
 )
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
-from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
@@ -1162,6 +1163,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-events-facets",
     ),
     url(
+        r"^(?P<organization_slug>[^\/]+)/events-facets-stats/$",
+        OrganizationEventsFacetsStatsPerformanceEndpoint.as_view(),
+        name="sentry-api-0-organization-events-facets-stats-performance",
+    ),
+    url(
         r"^(?P<organization_slug>[^\/]+)/events-facets-performance/$",
         OrganizationEventsFacetsPerformanceEndpoint.as_view(),
         name="sentry-api-0-organization-events-facets-performance",
@@ -1422,11 +1428,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/sessions/$",
         OrganizationSessionsEndpoint.as_view(),
         name="sentry-api-0-organization-sessions",
-    ),
-    url(
-        r"^(?P<organization_slug>[^\/]+)/users/issues/$",
-        OrganizationUserIssuesSearchEndpoint.as_view(),
-        name="sentry-api-0-organization-issue-search",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$",
@@ -1747,16 +1748,6 @@ ORGANIZATION_URLS = [
                 ),
             ],
         ),
-    ),
-    url(
-        r"^(?P<organization_slug>[^/]+)/client-state/$",
-        ClientStateListEndpoint.as_view(),
-        name="sentry-api-0-organization-client-state-list",
-    ),
-    url(
-        r"^(?P<organization_slug>[^/]+)/client-state/(?P<category>[^\/]+)/$",
-        ClientStateEndpoint.as_view(),
-        name="sentry-api-0-organization-client-state",
     ),
 ]
 

@@ -399,11 +399,11 @@ class SnubaTagStorage(TagStorage):
         project_id,
         environment_id,
         key,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         tenant_ids=None,
         **kwargs,
     ):
-        assert status is TagKeyStatus.VISIBLE
+        assert status is TagKeyStatus.ACTIVE
         return self.__get_tag_key_and_top_values(
             project_id, None, environment_id, key, tenant_ids=tenant_ids, **kwargs
         )
@@ -412,12 +412,12 @@ class SnubaTagStorage(TagStorage):
         self,
         project_id,
         environment_id,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         include_values_seen=False,
         denylist=None,
         tenant_ids=None,
     ):
-        assert status is TagKeyStatus.VISIBLE
+        assert status is TagKeyStatus.ACTIVE
         return self.__get_tag_keys(
             project_id,
             None,
@@ -432,7 +432,7 @@ class SnubaTagStorage(TagStorage):
         environments,
         start,
         end,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         use_cache=False,
         include_transactions=False,
         tenant_ids=None,
@@ -851,26 +851,6 @@ class SnubaTagStorage(TagStorage):
             return rpe.first_seen
 
         return None
-
-    def get_group_ids_for_users(self, project_ids, event_users, limit=100, tenant_ids=None):
-        filters = {"project_id": project_ids}
-        conditions = [
-            ["tags[sentry:user]", "IN", [_f for _f in [eu.tag_value for eu in event_users] if _f]]
-        ]
-        aggregations = [["max", SEEN_COLUMN, "last_seen"]]
-
-        result = snuba.query(
-            dataset=Dataset.Events,
-            groupby=["group_id"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            limit=limit,
-            orderby="-last_seen",
-            referrer="tagstore.get_group_ids_for_users",
-            tenant_ids=tenant_ids,
-        )
-        return set(result.keys())
 
     def get_group_tag_values_for_users(self, event_users, limit=100, tenant_ids=None):
         """While not specific to a group_id, this is currently only used in issues, so the Events dataset is used"""

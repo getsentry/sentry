@@ -20,20 +20,11 @@ from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPI
 from sentry.testutils.helpers.options import override_options
 
 BACKENDS = [
-    # TODO: add cloud spanner here
     RawSimpleIndexer,
     pytest.param(PGStringIndexerV2, marks=pytest.mark.django_db),
 ]
 
-
-@pytest.fixture(params=BACKENDS)
-def indexer_cls(request):
-    return request.param
-
-
-@pytest.fixture
-def indexer(indexer_cls):
-    return indexer_cls()
+USE_CASE_KEYS = [UseCaseKey.PERFORMANCE, UseCaseKey.RELEASE_HEALTH]
 
 
 @pytest.fixture
@@ -48,7 +39,26 @@ def indexer_cache():
     indexer_cache.cache.clear()
 
 
-use_case_id = UseCaseKey("release-health")
+@pytest.fixture(params=BACKENDS)
+def indexer_cls(request):
+    return request.param
+
+
+@pytest.fixture(params=USE_CASE_KEYS)
+def use_case_id(request):
+    return request.param
+
+
+@pytest.fixture
+def writes_limiter_option_name(use_case_id):
+    if use_case_id is UseCaseKey.RELEASE_HEALTH:
+        return "sentry-metrics.writes-limiter.limits.releasehealth"
+    return "sentry-metrics.writes-limiter.limits.performance"
+
+
+@pytest.fixture
+def indexer(indexer_cls):
+    return indexer_cls()
 
 
 def assert_fetch_type_for_tag_string_set(
@@ -57,7 +67,7 @@ def assert_fetch_type_for_tag_string_set(
     assert all([meta[string].fetch_type == fetch_type for string in str_set])
 
 
-def test_static_and_non_static_strings(indexer):
+def test_static_and_non_static_strings(indexer, use_case_id):
     static_indexer = StaticStringIndexer(indexer)
     org_strings = {
         2: {"release", "1.0.0"},
@@ -85,7 +95,7 @@ def test_static_and_non_static_strings(indexer):
     assert_fetch_type_for_tag_string_set(meta[3], FetchType.FIRST_SEEN, {"2.0.0"})
 
 
-def test_indexer(indexer, indexer_cache):
+def test_indexer(indexer, indexer_cache, use_case_id):
     org1_id = 1
     org2_id = 2
     strings = {"hello", "hey", "hi"}
@@ -100,8 +110,10 @@ def test_indexer(indexer, indexer_cache):
 
     assert list(
         indexer_cache.get_many(
-            [f"{org1_id}:{string}" for string in strings],
-            cache_namespace=REVERSE_METRIC_PATH_MAPPING[use_case_id].value,
+            [
+                f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org1_id}:{string}"
+                for string in strings
+            ],
         ).values()
     ) == [None, None, None]
 
@@ -124,17 +136,17 @@ def test_indexer(indexer, indexer_cache):
         assert value in org1_string_ids
 
     for cache_value in indexer_cache.get_many(
-        [f"{org1_id}:{string}" for string in strings],
-        cache_namespace=REVERSE_METRIC_PATH_MAPPING[use_case_id].value,
+        [
+            f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org1_id}:{string}"
+            for string in strings
+        ],
     ).values():
         assert cache_value in org1_string_ids
 
     # verify org2 results and cache values
     assert results[org2_id]["sup"] == org2_string_id
     assert (
-        indexer_cache.get(
-            f"{org2_id}:sup", cache_namespace=REVERSE_METRIC_PATH_MAPPING[use_case_id].value
-        )
+        indexer_cache.get(f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org2_id}:sup")
         == org2_string_id
     )
 
@@ -142,7 +154,7 @@ def test_indexer(indexer, indexer_cache):
     assert not results.get(999)
 
 
-def test_resolve_and_reverse_resolve(indexer, indexer_cache):
+def test_resolve_and_reverse_resolve(indexer, indexer_cache, use_case_id):
     """
     Test `resolve` and `reverse_resolve` methods
     """
@@ -169,7 +181,7 @@ def test_resolve_and_reverse_resolve(indexer, indexer_cache):
     assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=1234) is None
 
 
-def test_already_created_plus_written_results(indexer, indexer_cache) -> None:
+def test_already_created_plus_written_results(indexer, indexer_cache, use_case_id) -> None:
     """
     Test that we correctly combine db read results with db write results
     for the same organization.
@@ -212,14 +224,17 @@ def test_already_created_plus_written_results(indexer, indexer_cache) -> None:
     assert_fetch_type_for_tag_string_set(fetch_meta[org_id], FetchType.FIRST_SEEN, {"v1.2.3"})
 
 
-def test_already_cached_plus_read_results(indexer, indexer_cache) -> None:
+def test_already_cached_plus_read_results(indexer, indexer_cache, use_case_id) -> None:
     """
     Test that we correctly combine cached results with read results
     for the same organization.
     """
     org_id = 8
-    cached = {f"{org_id}:beep": 10, f"{org_id}:boop": 11}
-    indexer_cache.set_many(cached, REVERSE_METRIC_PATH_MAPPING[use_case_id].value)
+    cached = {
+        f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org_id}:beep": 10,
+        f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org_id}:boop": 11,
+    }
+    indexer_cache.set_many(cached)
 
     raw_indexer = indexer
     indexer = CachingIndexer(indexer_cache, indexer)
@@ -249,7 +264,7 @@ def test_already_cached_plus_read_results(indexer, indexer_cache) -> None:
     assert_fetch_type_for_tag_string_set(fetch_meta[org_id], FetchType.DB_READ, {"bam"})
 
 
-def test_rate_limited(indexer):
+def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
     """
     Assert that rate limits per-org and globally are applied at all.
 
@@ -264,7 +279,7 @@ def test_rate_limited(indexer):
 
     with override_options(
         {
-            "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [
+            f"{writes_limiter_option_name}.per-org": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 1}
             ],
         }
@@ -298,7 +313,7 @@ def test_rate_limited(indexer):
     # attempt to index even more strings, and assert that we can't get any indexed
     with override_options(
         {
-            "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [
+            f"{writes_limiter_option_name}.per-org": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 1}
             ],
         }
@@ -318,7 +333,7 @@ def test_rate_limited(indexer):
     # assert that if we reconfigure limits, the quota resets
     with override_options(
         {
-            "sentry-metrics.writes-limiter.limits.releasehealth.global": [
+            f"{writes_limiter_option_name}.global": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 2}
             ],
         }
