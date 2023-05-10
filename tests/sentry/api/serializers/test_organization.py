@@ -53,7 +53,6 @@ class OrganizationSerializerTest(TestCase):
             "advanced-search",
             "change-alerts",
             "crash-rate-alerts",
-            "custom-event-title",
             "custom-symbol-sources",
             "data-forwarding",
             "dashboards-basic",

@@ -2229,9 +2229,7 @@ def _calculate_event_grouping(
         apply_server_fingerprinting(
             event.data.data,
             get_fingerprinting_config_for_project(project),
-            allow_custom_title=features.has(
-                "organizations:custom-event-title", project.organization, actor=None
-            ),
+            allow_custom_title=True,
         )
 
     with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
