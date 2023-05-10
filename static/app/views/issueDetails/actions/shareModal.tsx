@@ -2,19 +2,21 @@ import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import {Button} from 'sentry/components/button';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Switch from 'sentry/components/switchButton';
-import {IconCopy, IconRefresh} from 'sentry/icons';
+import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 interface ShareIssueModalProps extends ModalRenderProps {
   groupId: string;
@@ -93,16 +95,10 @@ function ShareIssueModal({
 
   const shareUrl = group?.shareId ? getShareUrl() : null;
 
-  const handleCopy = () => {
-    navigator.clipboard
-      .writeText(shareUrl!)
-      .then(() => {
-        addSuccessMessage(t('Copied to clipboard'));
-      })
-      .catch(() => {
-        addErrorMessage(t('Error copying to clipboard'));
-      });
-  };
+  const {onClick: handleCopy} = useCopyToClipboard({
+    text: shareUrl!,
+    onCopy: closeModal,
+  });
 
   return (
     <Fragment>
@@ -137,14 +133,13 @@ function ShareIssueModal({
               </TextContainer>
 
               <ClipboardButton
+                text={shareUrl}
                 title={t('Copy to clipboard')}
                 borderless
                 size="sm"
                 onClick={() => {
                   urlRef.current?.selectText();
-                  handleCopy();
                 }}
-                icon={<IconCopy />}
                 aria-label={t('Copy to clipboard')}
               />
 
@@ -162,22 +157,11 @@ function ShareIssueModal({
       </Body>
       <Footer>
         {!loading && isShared && shareUrl ? (
-          <Button
-            priority="primary"
-            onClick={() => {
-              handleCopy();
-              closeModal();
-            }}
-          >
+          <Button priority="primary" onClick={handleCopy}>
             {t('Copy Link')}
           </Button>
         ) : (
-          <Button
-            priority="primary"
-            onClick={() => {
-              closeModal();
-            }}
-          >
+          <Button priority="primary" onClick={closeModal}>
             {t('Close')}
           </Button>
         )}
@@ -221,8 +205,9 @@ const LoadingContainer = styled('div')`
 `;
 
 const UrlContainer = styled('div')`
-  display: flex;
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: 1fr max-content max-content;
+  align-items: center;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${space(0.5)};
 `;
@@ -241,11 +226,12 @@ const TextContainer = styled('div')`
   min-width: 0;
 `;
 
-const ClipboardButton = styled(Button)`
+const ClipboardButton = styled(CopyToClipboardButton)`
   border-radius: 0;
   border-right: 1px solid ${p => p.theme.border};
   height: 100%;
   flex-shrink: 0;
+  margin: 0;
 
   &:hover {
     border-right: 1px solid ${p => p.theme.border};
@@ -253,6 +239,7 @@ const ClipboardButton = styled(Button)`
 `;
 
 const ReshareButton = styled(Button)`
+  border-radius: 0;
   height: 100%;
   flex-shrink: 0;
 `;
