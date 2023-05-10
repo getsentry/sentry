@@ -416,8 +416,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 actor = RpcActor.from_object(team)
         assert actor
 
-        team_ids = set()
-        user_ids = set()
+        team_ids: Iterable[int] = set()
+        user_ids: Iterable[int] = set()
         (team_ids if actor.actor_type == ActorType.TEAM else user_ids).add(actor.id)
 
         target_id = actor.actor_id
@@ -507,8 +507,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
         # TODO(hybridcloud) This will need to filter on user_id or team_id
         # Explicitly typing to satisfy mypy.
-        team_ids = set()
-        user_ids = set()
+        team_ids: Iterable[int] = set()
+        user_ids: Iterable[int] = set()
         if isinstance(recipient, RpcActor):
             (team_ids if recipient.actor_type == ActorType.TEAM else user_ids).add(recipient.id)
         elif isinstance(recipient, Team):
