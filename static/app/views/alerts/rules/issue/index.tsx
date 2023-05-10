@@ -189,6 +189,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   componentWillUnmount() {
     GroupStore.reset();
     window.clearTimeout(this.pollingTimeout);
+    this.checkIncompatibleRuleDebounced.cancel();
+    this.fetchPreviewDebounced.cancel();
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
@@ -201,7 +203,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         incompatibleFilters: null,
       });
       this.fetchPreviewDebounced();
-      this.checkIncompatibleRule();
+      this.checkIncompatibleRuleDebounced();
     }
     if (prevState.project.id === this.state.project.id) {
       return;
@@ -436,7 +438,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }, 1000);
 
   // As more incompatible combinations are added, we will need a more generic way to check for incompatibility.
-  checkIncompatibleRule = debounce(() => {
+  checkIncompatibleRuleDebounced = debounce(() => {
     if (this.props.organization.features.includes('issue-alert-incompatible-rules')) {
       const {conditionIndices, filterIndices} = findIncompatibleRules(this.state.rule);
       if (
