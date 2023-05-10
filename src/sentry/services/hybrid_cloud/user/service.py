@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, List, Optional, cast
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import (
+    RpcGroup,
     RpcUser,
     UserFilterArgs,
     UserSerializeType,
@@ -17,7 +18,6 @@ from sentry.services.hybrid_cloud.user import (
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
-    from sentry.models import Group
     from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
@@ -86,7 +86,7 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_from_group(self, *, group: "Group") -> List[RpcUser]:
+    def get_from_group(self, *, group: RpcGroup) -> List[RpcUser]:
         """Get all users in all teams in a given Group's project."""
         pass
 

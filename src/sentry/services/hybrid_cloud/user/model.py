@@ -35,6 +35,13 @@ class RpcAuthenticator(RpcModel):
     config: Any = None
 
 
+class RpcGroup(RpcModel):
+    id: int = 0
+    organization_id: int = 0
+    project_id: int = 0
+    team_ids: List[int] = Field(default_factory=list)
+
+
 class RpcUser(RpcModel):
     id: int = -1
     pk: int = -1
