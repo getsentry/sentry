@@ -6,32 +6,6 @@ import {t} from 'sentry/locale';
 import {Environment, Group, GroupActivity} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
-/**
- * Fetches group data and mark as seen
- *
- * @param orgId organization slug
- * @param groupId groupId
- * @param eventId eventId or "latest" or "oldest"
- * @param envNames
- * @param projectId project slug required for eventId that is not latest or oldest
- */
-export async function fetchGroupEvent(
-  api: Client,
-  groupId: string,
-  eventId: string,
-  envNames: string[]
-): Promise<Event> {
-  const url = `/issues/${groupId}/events/${eventId}/`;
-
-  const query: {environment?: string[]} = {};
-  if (envNames.length !== 0) {
-    query.environment = envNames;
-  }
-
-  const data = await api.requestPromise(url, {query});
-  return data;
-}
-
 export function markEventSeen(
   api: Client,
   orgId: string,
