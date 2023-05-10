@@ -295,7 +295,7 @@ export const useQueryPanelTable = (
   });
 };
 
-export const useGetExampleTransaction = (
+export const useQueryExampleTransaction = (
   row: DataRow
 ): DefinedUseQueryResult<{first: string; latest: string}[]> => {
   const pageFilter = usePageFilters();
@@ -316,18 +316,6 @@ export const useGetExampleTransaction = (
   return useQuery({
     queryKey: ['getExampleTransaction', row.group_id],
     queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
-    retry: true,
-    initialData: [],
-  });
-};
-
-export const useExampleTransactionDetails = (event_id: string) => {
-  return useQuery({
-    queryKey: ['getExampleTransactionDetails', event_id],
-    queryFn: () =>
-      fetch(`/api/0/projects/sentry/sentry/events/${event_id.replaceAll('-', '')}/`).then(
-        res => res.json()
-      ),
     retry: true,
     initialData: [],
   });

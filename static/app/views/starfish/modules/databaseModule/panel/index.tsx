@@ -24,8 +24,8 @@ import QueryTransactionTable, {
 } from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
 import SimilarQueryView from 'sentry/views/starfish/modules/databaseModule/panel/similarQueryView';
 import {
-  useExampleTransactionDetails,
-  useGetExampleTransaction,
+  useQueryExampleTransaction,
+  useQueryGetEvent,
   useQueryPanelEventCount,
   useQueryPanelGraph,
   useQueryPanelTable,
@@ -119,12 +119,14 @@ function QueryDetailBody({
     useQueryPanelEventCount(row);
 
   const {isLoading: isExampleLoading, data: exampleTransaction} =
-    useGetExampleTransaction(row);
+    useQueryExampleTransaction(row);
 
-  const {isLoading: isFirstExampleLoading, data: firstSeenExample} =
-    useExampleTransactionDetails(exampleTransaction?.[0]?.first);
-  const {isLoading: isLastExampleLoading, data: lastSeenExample} =
-    useExampleTransactionDetails(exampleTransaction?.[0]?.latest);
+  const {isLoading: isFirstExampleLoading, data: firstSeenExample} = useQueryGetEvent(
+    exampleTransaction?.[0]?.first
+  );
+  const {isLoading: isLastExampleLoading, data: lastSeenExample} = useQueryGetEvent(
+    exampleTransaction?.[0]?.latest
+  );
 
   const isDataLoading =
     isLoading ||
