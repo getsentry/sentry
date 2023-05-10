@@ -325,7 +325,7 @@ def manage_snooze_states(
         group.substatus = GroupSubStatus.ONGOING
 
     else:
-        return NotImplementedError(
+        raise NotImplementedError(
             f"We don't support a change of state for {group_inbox_reason.name}"
         )
 
