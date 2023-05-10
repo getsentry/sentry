@@ -42,7 +42,7 @@ const checkStatusToIndicatorStatus: Record<
   [CheckInStatus.TIMEOUT]: 'error',
 };
 
-const statusToText = {
+const statusToText: Record<CheckInStatus, string> = {
   [CheckInStatus.OK]: t('Okay'),
   [CheckInStatus.ERROR]: t('Failed'),
   [CheckInStatus.IN_PROGRESS]: t('In Progress'),
