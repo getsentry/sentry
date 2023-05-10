@@ -7,6 +7,7 @@ export type Cluster = {
   grouping_column?: string;
   grouping_condition?: (value: any) => () => string;
   isDynamic?: boolean;
+  value?: string;
 };
 
 export const CLUSTERS: Record<string, Cluster> = {
@@ -48,7 +49,7 @@ export const CLUSTERS: Record<string, Cluster> = {
     description_label: 'URL',
     domain_label: 'Host',
     condition: () => "module == 'http'",
-    grouping_column: 'span_operation',
+    grouping_column: "concat('http.client.',  lower(action))",
   },
   'top.other': {
     name: 'top.other',
@@ -56,13 +57,6 @@ export const CLUSTERS: Record<string, Cluster> = {
     condition: () => "module NOT IN ['http', 'db']",
     grouping_column: "splitByChar('.', span_operation)[1]",
     grouping_condition: value => () => `splitByChar('.', span_operation)[1] = '${value}'`,
-  },
-  'http.client': {
-    name: 'http.client',
-    label: 'Client',
-    condition: () => "span_operation == 'http.client'",
-    grouping_column:
-      "action IN ['GET', 'POST'] ? concat('http.client.', lower(action)) : 'http.client.other'",
   },
   'http.client.get': {
     name: 'http.client.get',
@@ -80,10 +74,5 @@ export const CLUSTERS: Record<string, Cluster> = {
     name: 'http.client.other',
     label: 'Other',
     condition: () => "action NOT IN ['GET', 'POST']",
-  },
-  'http.server': {
-    name: 'http.server',
-    label: 'Server',
-    condition: () => "span_operation == 'http.server'",
   },
 };

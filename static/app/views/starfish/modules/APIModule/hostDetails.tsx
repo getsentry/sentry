@@ -1,6 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
+import CircleIndicator from 'sentry/components/circleIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -46,6 +48,15 @@ export function HostDetails({host}: Props) {
 
   const externalApi = hostMarketingName && EXTERNAL_APIS[hostMarketingName];
 
+  const {isLoading: isStatusLoading, data: statusData} = useQuery({
+    queryKey: ['domain-status', host],
+    queryFn: () =>
+      fetch(`${externalApi?.statusPage}?format=json`).then(res => res.json()),
+    retry: false,
+    initialData: {},
+    enabled: !!externalApi,
+  });
+
   return (
     <DetailsContainer>
       <FlexContainer>
@@ -57,6 +68,7 @@ export function HostDetails({host}: Props) {
             style={{marginRight: space(1)}}
           />
         )}
+
         {hostMarketingName ? (
           <span>
             <Host>{hostMarketingName}</Host>
@@ -65,6 +77,13 @@ export function HostDetails({host}: Props) {
         ) : (
           <Host>{host}</Host>
         )}
+
+        {!isStatusLoading && statusData.status ? (
+          <StatusText>
+            <CircleIndicator size={8} enabled={statusData.status.indicator === 'none'} />{' '}
+            {statusData.status.description}
+          </StatusText>
+        ) : null}
 
         <LinkContainer>
           {externalApi?.statusPage && (
@@ -131,6 +150,10 @@ const FlexContainer = styled('div')`
 
 const Host = styled('span')`
   font-weight: bold;
+`;
+
+const StatusText = styled('span')`
+  margin-left: ${space(2)};
 `;
 
 const StyledIconOpen = styled(IconOpen)`
