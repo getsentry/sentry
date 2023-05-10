@@ -73,6 +73,7 @@ from sentry.services.hybrid_cloud.user import user_service
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -236,14 +237,14 @@ class GroupSerializerBase(Serializer, ABC):
 
         release_resolutions, commit_resolutions = self._resolve_resolutions(item_list, user)
 
-        actor_ids = {r[-1] for r in release_resolutions.values()}
-        actor_ids.update(r.actor_id for r in ignore_items.values())
-        if actor_ids:
+        user_ids = {r[-1] for r in release_resolutions.values()}
+        user_ids.update(r.actor_id for r in ignore_items.values())
+        if user_ids:
             serialized_users = user_service.serialize_many(
-                filter={"user_ids": actor_ids, "is_active": True},
+                filter={"user_ids": user_ids, "is_active": True},
                 as_user=user,
             )
-            actors = {id: u for id, u in zip(actor_ids, serialized_users)}
+            actors = {id: u for id, u in zip(user_ids, serialized_users)}
         else:
             actors = {}
 
@@ -339,6 +340,7 @@ class GroupSerializerBase(Serializer, ABC):
             "level": LOG_LEVELS.get(obj.level, "unknown"),
             "status": status_label,
             "statusDetails": status_details,
+            "substatus": SUBSTATUS_TO_STR[obj.substatus] if obj.substatus else None,
             "isPublic": share_id is not None,
             "platform": obj.platform,
             "project": {

@@ -1,4 +1,4 @@
-import {ComponentProps, MouseEvent, useMemo, useState} from 'react';
+import {ComponentProps, MouseEvent, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
@@ -7,10 +7,7 @@ import {
   ObjectInspector as OrigObjectInspector,
 } from '@sentry-internal/react-inspector';
 
-import {Button} from 'sentry/components/button';
-import Clipboard from 'sentry/components/clipboard';
-import {IconCopy} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
@@ -45,15 +42,6 @@ function ObjectInspector({data, onCopy, showCopyButton, theme, ...props}: Props)
     [isDark, theme, emotionTheme.red400, emotionTheme.text]
   );
 
-  const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
-
-  const tooltipTitle =
-    tooltipState === 'copy'
-      ? t('Copy')
-      : tooltipState === 'copied'
-      ? t('Copied')
-      : t('Unable to copy');
-
   const inspector = (
     <OrigObjectInspector
       data={data}
@@ -65,30 +53,13 @@ function ObjectInspector({data, onCopy, showCopyButton, theme, ...props}: Props)
   if (showCopyButton) {
     return (
       <Wrapper>
-        <Clipboard
-          hideUnsupported
-          onSuccess={() => {
-            setTooltipState('copied');
-            onCopy?.(data);
-          }}
-          onError={() => {
-            setTooltipState('error');
-          }}
-          value={JSON.stringify(data, null, '\t')}
-        >
-          <CopyButton
-            aria-label={t('Copy')}
-            type="button"
-            size="xs"
-            translucentBorder
-            borderless
-            title={tooltipTitle}
-            tooltipProps={{delay: 0, isHoverable: false, position: 'left'}}
-            onMouseLeave={() => setTooltipState('copy')}
-          >
-            <IconCopy size="xs" />
-          </CopyButton>
-        </Clipboard>
+        <StyledCopyButton
+          borderless
+          iconSize="xs"
+          onCopy={onCopy}
+          size="xs"
+          text={JSON.stringify(data, null, '\t')}
+        />
         {inspector}
       </Wrapper>
     );
@@ -99,14 +70,18 @@ function ObjectInspector({data, onCopy, showCopyButton, theme, ...props}: Props)
 
 const Wrapper = styled('div')`
   position: relative;
+
+  /*
+  We need some minimum vertical height so the copy button has room.
+  But don't try to use min-height because then whitespace would be inconsistent.
+  */
+  padding-bottom: ${space(1.5)};
 `;
 
-const CopyButton = styled(Button)`
+const StyledCopyButton = styled(CopyToClipboardButton)`
   position: absolute;
   top: 0;
   right: ${space(0.5)};
-
-  color: ${p => p.theme.subText};
 `;
 
 export type OnExpandCallback = (

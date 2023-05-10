@@ -388,9 +388,7 @@ class SqlFormatEventSerializer(EventSerializer):
                 None,
             )
 
-            if not breadcrumbs or not features.has(
-                "organizations:sql-format", event.project.organization, actor=user
-            ):
+            if not breadcrumbs:
                 return event_data
 
             for breadcrumb_item in breadcrumbs["data"]["values"]:
@@ -411,9 +409,7 @@ class SqlFormatEventSerializer(EventSerializer):
                 None,
             )
 
-            if not spans or not features.has(
-                "organizations:sql-format", event.project.organization, actor=user
-            ):
+            if not spans:
                 return event_data
 
             for span in spans["data"]:
@@ -427,8 +423,12 @@ class SqlFormatEventSerializer(EventSerializer):
 
     def serialize(self, obj, attrs, user):
         result = super().serialize(obj, attrs, user)
-        result = self._format_breadcrumb_messages(result, obj, user)
-        result = self._format_db_spans(result, obj, user)
+
+        if features.has("organizations:sql-format", obj.project.organization, actor=user):
+            with sentry_sdk.start_span(op="serialize", description="Format SQL"):
+                result = self._format_breadcrumb_messages(result, obj, user)
+                result = self._format_db_spans(result, obj, user)
+
         return result
 
 

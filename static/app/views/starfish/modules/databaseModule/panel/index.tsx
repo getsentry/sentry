@@ -14,6 +14,7 @@ import {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import ProfileView from 'sentry/views/starfish/modules/databaseModule/panel/profileView';
 import QueryTransactionTable, {
   PanelSort,
 } from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
@@ -280,6 +281,15 @@ function QueryDetailBody({
       />
       <FlexRowContainer>
         <FlexRowItem>
+          <SubHeader>{t('Example Profile')}</SubHeader>
+          <ProfileView
+            spanHash={row.group_id}
+            transactionNames={tableData.map(d => d.transaction)}
+          />
+        </FlexRowItem>
+      </FlexRowContainer>
+      <FlexRowContainer>
+        <FlexRowItem>
           <SubHeader>{t('Similar Queries')}</SubHeader>
           <SimilarQueryView mainTableRow={row} />
         </FlexRowItem>
@@ -314,7 +324,7 @@ function SimplePagination(props: SimplePaginationProps) {
   );
 }
 
-const highlightSql = (description: string, queryDetail: DataRow) => {
+export const highlightSql = (description: string, queryDetail: DataRow) => {
   let acc = '';
   return description.split('').map((token, i) => {
     acc += token;

@@ -20,6 +20,7 @@ from sentry.models import ActorTuple, Group, GroupStatus, Project, ReleaseProjec
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.types.integrations import ExternalProviders
@@ -279,7 +280,16 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
             else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
         )
         obj = self.event if self.event is not None else self.group
-        if not self.issue_details or (self.recipient and isinstance(self.recipient, Team)):
+        if not self.issue_details or (
+            self.recipient
+            and (
+                isinstance(
+                    self.recipient,
+                    Team,
+                )
+                or self.recipient.actor_type == ActorType.TEAM
+            )
+        ):
             payload_actions, text, color = build_actions(
                 self.group, project, text, color, self.actions, self.identity
             )

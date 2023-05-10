@@ -10,8 +10,8 @@ from sentry.types.integrations import ExternalProviders
 
 
 class BackfillNotificationSettingTest(TestMigrations):
-    migrate_from = "0436_break_fks_on_external_actor_and_issue"
-    migrate_to = "0437_backfill_notificationsetting"
+    migrate_from = "0438_break_inviter_fk_organizationmember"
+    migrate_to = "0439_backfill_notificationsetting"
 
     def setup_initial_state(self):
         actor, _ = Actor.objects.get_or_create(user_id=self.user.id, type=ACTOR_TYPES["user"])
