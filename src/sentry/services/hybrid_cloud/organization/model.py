@@ -105,7 +105,7 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
 
     def get_audit_log_metadata(self, user_email: str) -> Mapping[str, Any]:
         team_ids = [mt.team_id for mt in self.member_teams]
-        team_slugs = [mt.slugs for mt in self.member_teams]
+        team_slugs = [mt.slug for mt in self.member_teams]
 
         return {
             "email": user_email,
