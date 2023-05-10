@@ -3,7 +3,6 @@ from datetime import timedelta
 from typing import Dict, Optional, Sequence, Tuple
 
 import sentry_sdk
-from django.core.exceptions import ObjectDoesNotExist
 
 from sentry import features, options, quotas
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
@@ -124,20 +123,8 @@ def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
 
     redis_client = get_redis_client_for_ds()
     factor_key = generate_cache_key_rebalance_factor(org_volume.org_id)
-    # we need a project from the current org... unfortunately get_blended_sample_rate
-    # takes a project (not an org)
-    # TODO RaduW is there a better way to get an org Project than filtering ?
-    org_projects = Project.objects.filter(organization__id=org_volume.org_id)
 
-    desired_sample_rate = None
-    for project in org_projects:
-        desired_sample_rate = quotas.get_blended_sample_rate(project)
-        break
-    else:
-        redis_client.delete(factor_key)  # cleanup just to be sure
-        # org with no project this shouldn't happen
-        return "no project found"
-
+    desired_sample_rate = quotas.get_blended_sample_rate(organization_id=org_volume.org_id)
     if desired_sample_rate is None:
         return f"project with desired_sample_rate==None for {org_volume.org_id}"
 
@@ -320,12 +307,8 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     transactions = project_transactions["transaction_counts"]
     total_num_transactions = project_transactions.get("total_num_transactions")
     total_num_classes = project_transactions.get("total_num_classes")
-    try:
-        project = Project.objects.get_from_cache(id=project_id)
-    except ObjectDoesNotExist:
-        return  # project has probably been deleted no need to continue
 
-    sample_rate = quotas.get_blended_sample_rate(project)
+    sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
 
     if sample_rate is None or sample_rate == 1.0:
         # no sampling => no rebalancing
