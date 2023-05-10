@@ -8,7 +8,7 @@ from unittest.mock import ANY, patch
 import msgpack
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
-from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecordingNotChunked
+from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
 from sentry import options
 from sentry.models import File
@@ -53,7 +53,7 @@ class RecordingTestCaseMixin:
         message: bytes = b'[{"hello":"world"}]',
         segment_id: int = 0,
         compressed: bool = False,
-    ) -> List[ReplayRecordingNotChunked]:
+    ) -> List[ReplayRecording]:
         message = zlib.compress(message) if compressed else message
         return [
             {

@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Optional, TypedDict
 
 from django.conf import settings
-from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecordingNotChunked
+from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import Hub
 from sentry_sdk.tracing import Span
 
@@ -62,9 +62,7 @@ class RecordingIngestMessage:
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording")
-def ingest_recording(
-    message_dict: ReplayRecordingNotChunked, transaction: Span, current_hub: Hub
-) -> None:
+def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_hub: Hub) -> None:
     """Ingest non-chunked recording messages."""
     with current_hub:
         with transaction.start_child(
