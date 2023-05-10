@@ -4,7 +4,8 @@ from typing import Any
 
 from django import forms
 
-from sentry.models import Project, User
+from sentry.models import Project
+from sentry.services.hybrid_cloud.user import user_service
 
 
 class MemberTeamForm(forms.Form):
@@ -62,11 +63,14 @@ class MemberTeamForm(forms.Form):
             self.add_error("targetIdentifier", msg)
             return
 
-        if (
-            targetType == self.memberValue
-            and not User.objects.get_from_projects(self.project.organization.id, [self.project])
-            .filter(id=int(targetIdentifier))
-            .exists()
+        if targetType == self.memberValue and not user_service.get_many(
+            filter={
+                "is_active": True,
+                "is_active_memberteam": True,
+                "organization_id": self.project.organization.id,
+                "project_ids": [self.project.id],
+                "user_ids": [int(targetIdentifier)],
+            }
         ):
             msg = forms.ValidationError("This user is not part of the project.")
             self.add_error("targetIdentifier", msg)

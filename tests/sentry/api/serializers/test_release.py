@@ -74,7 +74,13 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["version"] == release.version
         # should be sum of all projects
         assert result["newGroups"] == 2
-        tagvalue1 = tagstore.get_tag_value(project.id, None, "sentry:release", release_version)
+        tagvalue1 = tagstore.get_tag_value(
+            project.id,
+            None,
+            "sentry:release",
+            release_version,
+            tenant_ids={"organization_id": 1, "referrer": "r"},
+        )
         assert result["lastEvent"] == tagvalue1.last_seen
         assert result["commitCount"] == 1
         assert result["authors"] == [{"name": "stebe", "email": "stebe@sentry.io"}]

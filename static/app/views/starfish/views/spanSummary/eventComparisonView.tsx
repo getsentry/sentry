@@ -5,6 +5,7 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useQuery} from 'sentry/utils/queryClient';
+import SpanTree from 'sentry/views/starfish/views/spanSummary/compare/spanTree';
 
 type Props = {
   clearLeft: () => void;
@@ -37,6 +38,7 @@ export function EventComparisonView({left, right, clearLeft, clearRight}: Props)
     <ComparisonContainer>
       <EventContainer>
         <EventHeader>
+          <span>{left}</span>
           <Button
             aria-label={t('Close left event preview.')}
             priority="link"
@@ -50,6 +52,7 @@ export function EventComparisonView({left, right, clearLeft, clearRight}: Props)
       </EventContainer>
       <EventContainer>
         <EventHeader>
+          <span>{right}</span>
           <Button
             aria-label={t('Close right event preview.')}
             priority="link"
@@ -61,6 +64,11 @@ export function EventComparisonView({left, right, clearLeft, clearRight}: Props)
           <pre>{JSON.stringify(rightData, null, 4)}</pre>
         </EventContentContainer>
       </EventContainer>
+      {leftData?.entries && rightData?.entries && (
+        <SpanTreeContainer>
+          <SpanTree baselineEvent={leftData} regressionEvent={rightData} />
+        </SpanTreeContainer>
+      )}
     </ComparisonContainer>
   );
 }
@@ -70,20 +78,36 @@ const ComparisonContainer = styled('div')`
   flex-direction: row;
   margin-bottom: ${space(2)};
   gap: ${space(2)};
+  flex-wrap: wrap;
 `;
 
 const EventContainer = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 500px;
 `;
 
 const EventContentContainer = styled('div')`
   overflow: auto;
-  max-height: 500px;
+  max-height: 300px;
   border: 1px solid ${p => p.theme.border};
 `;
 
 const EventHeader = styled('div')`
-  text-align: right;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  color: ${p => p.theme.gray500};
+  & > button {
+    color: ${p => p.theme.gray500};
+  }
+`;
+
+const SpanTreeContainer = styled('div')`
+  overflow: scroll;
+  flex: 1;
+  min-width: 1000px;
+  max-height: 500px;
+  border: 1px solid ${p => p.theme.border};
 `;

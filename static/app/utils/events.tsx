@@ -119,11 +119,7 @@ export function getTitle(
   grouping = false
 ) {
   const {metadata, type, culprit, title} = event;
-
-  const customTitle =
-    features.includes('custom-event-title') && metadata?.title
-      ? metadata.title
-      : undefined;
+  const customTitle = metadata?.title;
 
   switch (type) {
     case EventOrGroupType.ERROR: {
@@ -298,7 +294,7 @@ function getAssignmentIntegration(group: Group) {
   return integrationAssignments?.data.integration || '';
 }
 
-export function getAnalyticsDataForEvent(event?: Event): BaseEventAnalyticsParams {
+export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyticsParams {
   return {
     event_id: event?.eventID || '-1',
     num_commits: event?.release?.commitCount || 0,
@@ -365,7 +361,7 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
     has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
     has_owner: group?.owners ? group?.owners.length > 0 : false,
     integration_assignment_source: group ? getAssignmentIntegration(group) : '',
-    num_participants: group?.participants.length ?? 0,
+    num_participants: group?.participants?.length ?? 0,
     num_viewers: group?.seenBy.filter(user => user.id !== activeUser?.id).length ?? 0,
     group_num_user_feedback: group?.userReportCount ?? 0,
   };

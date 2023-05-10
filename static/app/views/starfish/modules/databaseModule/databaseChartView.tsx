@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import moment from 'moment';
 
@@ -12,21 +12,23 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {
-  getOperations,
-  getTables,
-  getTopOperationsChart,
-  getTopTablesChart,
+  useGetTransactionsForTables,
+  useQueryDbTables,
+  useQueryTopDbOperationsChart,
+  useQueryTopTablesChart,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
+import {
+  datetimeToClickhouseFilterTimestamps,
+  getDateFilters,
+} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 const INTERVAL = 12;
-const HOST = 'http://localhost:8080';
 
 type Props = {
-  action: string;
   location: Location;
-  onChange: (action: string, value: string) => void;
+  onChange: (value: string) => void;
   table: string;
 };
 
@@ -49,46 +51,19 @@ function parseOptions(options, label) {
   ];
 }
 
-export default function APIModuleView({action, table, onChange}: Props) {
+export default function DatabaseChartView({table, onChange}: Props) {
   const pageFilter = usePageFilters();
+  const theme = useTheme();
   const {startTime, endTime} = getDateFilters(pageFilter);
-  const DATE_FILTERS = `
-    greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
-    less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
-  `;
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
+    pageFilter.selection.datetime
+  );
 
-  const {data: operationData} = useQuery({
-    queryKey: ['operation', pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getOperations(DATE_FILTERS)}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-  const {data: tableData} = useQuery({
-    queryKey: ['table', action, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getTables(DATE_FILTERS, action)}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-  const {isLoading: isTopGraphLoading, data: topGraphData} = useQuery({
-    queryKey: ['topGraph', pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getTopOperationsChart(DATE_FILTERS, INTERVAL)}`).then(res =>
-        res.json()
-      ),
-    retry: false,
-    initialData: [],
-  });
-  const {isLoading: tableGraphLoading, data: tableGraphData} = useQuery({
-    queryKey: ['topTable', action, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getTopTablesChart(DATE_FILTERS, action, INTERVAL)}`).then(
-        res => res.json()
-      ),
-    retry: false,
-    initialData: [],
-  });
+  const {data: tableData} = useQueryDbTables();
+  const {isLoading: isTopGraphLoading, data: topGraphData} =
+    useQueryTopDbOperationsChart(INTERVAL);
+  const {isLoading: tableGraphLoading, data: tableGraphData} =
+    useQueryTopTablesChart(INTERVAL);
 
   const seriesByDomain: {[action: string]: Series} = {};
   const tpmByDomain: {[action: string]: Series} = {};
@@ -116,11 +91,41 @@ export default function APIModuleView({action, table, onChange}: Props) {
     });
   }
 
+  const tableNames = [...new Set(tableGraphData.map(d => d.domain))];
+  const {isLoading: isTopTransactionDataLoading, data: topTransactionsData} =
+    useGetTransactionsForTables(tableNames, INTERVAL);
+
+  const tpmTransactionSeries = queryToSeries(
+    topTransactionsData,
+    'transaction',
+    'count',
+    startTime,
+    endTime
+  );
+
+  const p75TransactionSeries = queryToSeries(
+    topTransactionsData,
+    'transaction',
+    'p75',
+    startTime,
+    endTime
+  );
+
   const topDomains = Object.values(seriesByDomain).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+    zeroFillSeries(
+      series,
+      moment.duration(INTERVAL, 'hours'),
+      moment(start_timestamp),
+      moment(end_timestamp)
+    )
   );
   const tpmDomains = Object.values(tpmByDomain).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+    zeroFillSeries(
+      series,
+      moment.duration(INTERVAL, 'hours'),
+      moment(start_timestamp),
+      moment(end_timestamp)
+    )
   );
 
   const tpmByQuery: {[query: string]: Series} = {};
@@ -150,25 +155,20 @@ export default function APIModuleView({action, table, onChange}: Props) {
     });
   }
 
-  const tpmData = Object.values(tpmByQuery).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
-  );
-  const topData = Object.values(seriesByQuery).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
-  );
+  const chartColors = [...theme.charts.getColorPalette(6).slice(2, 7), theme.gray300];
 
   return (
     <Fragment>
       <ChartsContainer>
         <ChartsContainerItem>
-          <ChartPanel title={t('Slowest Operations P75')}>
+          <ChartPanel title={t('Top Transactions P75')}>
             <Chart
               statsPeriod="24h"
               height={180}
-              data={topData}
+              data={p75TransactionSeries}
               start=""
               end=""
-              loading={isTopGraphLoading}
+              loading={isTopTransactionDataLoading}
               utc={false}
               grid={{
                 left: '0',
@@ -183,14 +183,14 @@ export default function APIModuleView({action, table, onChange}: Props) {
           </ChartPanel>
         </ChartsContainerItem>
         <ChartsContainerItem>
-          <ChartPanel title={t('Operation Throughput')}>
+          <ChartPanel title={t('Top Transactions Throughput')}>
             <Chart
               statsPeriod="24h"
               height={180}
-              data={tpmData}
+              data={tpmTransactionSeries}
               start=""
               end=""
-              loading={isTopGraphLoading}
+              loading={isTopTransactionDataLoading}
               utc={false}
               grid={{
                 left: '0',
@@ -205,15 +205,6 @@ export default function APIModuleView({action, table, onChange}: Props) {
           </ChartPanel>
         </ChartsContainerItem>
       </ChartsContainer>
-      <Selectors>
-        Operation:
-        <CompactSelect
-          value={action}
-          options={parseOptions(operationData, 'query')}
-          menuTitle="Operation"
-          onChange={opt => onChange('action', opt.value)}
-        />
-      </Selectors>
       {tableData.length === 1 && tableData[0].key === '' ? (
         <Fragment />
       ) : (
@@ -227,6 +218,7 @@ export default function APIModuleView({action, table, onChange}: Props) {
                   data={topDomains}
                   start=""
                   end=""
+                  chartColors={chartColors}
                   loading={tableGraphLoading}
                   utc={false}
                   grid={{
@@ -249,6 +241,7 @@ export default function APIModuleView({action, table, onChange}: Props) {
                   data={tpmDomains}
                   start=""
                   end=""
+                  chartColors={chartColors}
                   loading={isTopGraphLoading}
                   utc={false}
                   grid={{
@@ -265,12 +258,12 @@ export default function APIModuleView({action, table, onChange}: Props) {
             </ChartsContainerItem>
           </ChartsContainer>
           <Selectors>
-            Table:
             <CompactSelect
               value={table}
+              triggerProps={{prefix: t('Table')}}
               options={parseOptions(tableData, 'p75')}
               menuTitle="Table"
-              onChange={opt => onChange('table', opt.value)}
+              onChange={opt => onChange(opt.value)}
             />
           </Selectors>
         </Fragment>

@@ -24,7 +24,14 @@ interface State {
   query: string;
 }
 
-const excludedTags = ['environment', 'issue', 'issue.id', 'performance.issue_ids'];
+const excludedTags = [
+  'environment',
+  'issue',
+  'issue.id',
+  'performance.issue_ids',
+  'transaction.op',
+  'transaction.status',
+];
 
 class GroupEvents extends Component<Props, State> {
   constructor(props: Props) {

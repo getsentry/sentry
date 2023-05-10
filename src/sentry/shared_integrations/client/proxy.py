@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from typing import Any, Mapping
 
 from django.conf import settings
 from requests import PreparedRequest
@@ -36,14 +37,11 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
 
     def __init__(
         self,
-        integration_id: int | None = None,
         org_integration_id: int | None = None,
-        **kwargs,
+        verify_ssl: bool = True,
+        logging_context: Mapping[str, Any] | None = None,
     ) -> None:
-        super().__init__(**kwargs)
-
-        self.integration_id = integration_id
-        # TODO(Leander): Fix org_integration_id not always being set
+        super().__init__(verify_ssl=verify_ssl, logging_context=logging_context)
         self.org_integration_id = org_integration_id
 
         is_region_silo = SiloMode.get_current_mode() == SiloMode.REGION

@@ -107,6 +107,7 @@ function SpanDetail(props: Props) {
     trackAnalytics('performance_views.event_details.open_span_details', {
       organization,
       operation: span.op ?? 'undefined',
+      origin: span.origin ?? 'undefined',
       project_platform: event.platform ?? 'undefined',
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -515,20 +516,18 @@ function SpanDetail(props: Props) {
                 <Row title={key} key={key}>
                   <Fragment>
                     <FileSize bytes={value} />
-                    {value >= 1024 && (
-                      <span>{` (${JSON.stringify(value, null, 4) || ''} B)`}</span>
-                    )}
+                    {value >= 1024 && <span>{` (${maybeStringify(value)} B)`}</span>}
                   </Fragment>
                 </Row>
               ))}
               {map(nonSizeKeys, (value, key) => (
                 <Row title={key} key={key}>
-                  {JSON.stringify(value, null, 4) || ''}
+                  {maybeStringify(value)}
                 </Row>
               ))}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
-                  {JSON.stringify(span[key], null, 4) || ''}
+                  {maybeStringify(span[key])}
                 </Row>
               ))}
             </tbody>
@@ -549,6 +548,13 @@ function SpanDetail(props: Props) {
       {renderSpanDetails()}
     </SpanDetailContainer>
   );
+}
+
+function maybeStringify(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  return JSON.stringify(value, null, 4);
 }
 
 const StyledDiscoverButton = styled(DiscoverButton)`

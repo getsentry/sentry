@@ -41,7 +41,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMember,
     organization_service,
 )
-from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
+from sentry.services.hybrid_cloud.organization.serial import serialize_organization
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, json, metrics
@@ -737,7 +737,7 @@ class AuthHelper(Pipeline):
     def auth_handler(self, identity: Mapping[str, Any]) -> AuthIdentityHandler:
         # This is a temporary step to keep test_helper integrated
         # TODO: Move this conversion further upstream
-        rpc_org = DatabaseBackedOrganizationService.serialize_organization(self.organization)
+        rpc_org = serialize_organization(self.organization)
 
         return AuthIdentityHandler(
             self.provider_model, self.provider, rpc_org, self.request, identity
