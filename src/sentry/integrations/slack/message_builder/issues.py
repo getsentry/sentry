@@ -22,8 +22,6 @@ from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
-from sentry.services.hybrid_cloud.user import user_service
-from sentry.services.hybrid_cloud.user.serial import serialize_group
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
@@ -98,7 +96,7 @@ def build_tag_fields(
 
 
 def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
-    all_members = user_service.get_from_group(group=serialize_group(group))
+    all_members = group.project.get_members_as_rpc_users()
     members = list({m.id: m for m in all_members}.values())
     teams = group.project.teams.all()
 

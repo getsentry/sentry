@@ -3,16 +3,9 @@ from __future__ import annotations
 from typing import Any, FrozenSet, Iterable, List
 
 from sentry.db.models import BaseQuerySet
-from sentry.models import Group
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user import (
-    RpcAuthenticator,
-    RpcAvatar,
-    RpcGroup,
-    RpcUser,
-    RpcUserEmail,
-)
+from sentry.services.hybrid_cloud.user import RpcAuthenticator, RpcAvatar, RpcUser, RpcUserEmail
 
 
 def serialize_rpc_user(user: User) -> RpcUser:
@@ -96,13 +89,4 @@ def _flatten(iter: Iterable[Any]) -> List[Any]:
         ((_flatten(iter[0]) + _flatten(iter[1:])) if len(iter) > 0 else [])
         if type(iter) is list or isinstance(iter, BaseQuerySet)
         else [iter]
-    )
-
-
-def serialize_group(group: Group) -> RpcGroup:
-    return RpcGroup(
-        id=group.id,
-        organization_id=group.organization.id,
-        project_id=group.project.id,
-        team_ids=[team.id for team in group.project.teams.all()],
     )
