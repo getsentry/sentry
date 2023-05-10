@@ -7,11 +7,11 @@ from django.db.models import QuerySet
 from sentry.api.serializers import SentryAppAlertRuleActionSerializer, Serializer, serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators import alert_rule_actions
-from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
 from sentry.models import SentryApp, SentryAppComponent, SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation import prepare_sentry_app_components
 from sentry.services.hybrid_cloud.app import (
     AppService,
+    RpcAlertRuleActionResult,
     RpcSentryApp,
     RpcSentryAppComponent,
     RpcSentryAppEventData,
@@ -183,16 +183,13 @@ class DatabaseBackedAppService(AppService):
 
     def trigger_sentry_app_action_creators(
         self, *, fields: List[Mapping[str, Any]], install_uuid: str | None
-    ) -> AlertRuleActionResult:
+    ) -> RpcAlertRuleActionResult:
         try:
             install = SentryAppInstallation.objects.get(uuid=install_uuid)
         except SentryAppInstallation.DoesNotExist:
-            return dict(success=False, message="Installation does not exist")
-        result = alert_rule_actions.AlertRuleActionCreator.run(
-            install=install,
-            fields=fields,
-        )
-        return result
+            return RpcAlertRuleActionResult(success=False, message="Installation does not exist")
+        result = alert_rule_actions.AlertRuleActionCreator.run(install=install, fields=fields)
+        return RpcAlertRuleActionResult(success=result["success"], message=result["message"])
 
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> Optional[RpcSentryApp]:
         try:
