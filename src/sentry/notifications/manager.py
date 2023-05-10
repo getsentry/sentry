@@ -1,7 +1,17 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Iterable, List, Mapping, MutableSet, Optional, Sequence, Union
+from typing import (
+    TYPE_CHECKING,
+    Iterable,
+    List,
+    Mapping,
+    MutableSet,
+    Optional,
+    Sequence,
+    Set,
+    Union,
+)
 
 import sentry_sdk
 from django.db import transaction
@@ -416,8 +426,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 actor = RpcActor.from_object(team)
         assert actor
 
-        team_ids: Iterable[int] = set()
-        user_ids: Iterable[int] = set()
+        team_ids: Set[int] = set()
+        user_ids: Set[int] = set()
         (team_ids if actor.actor_type == ActorType.TEAM else user_ids).add(actor.id)
 
         target_id = actor.actor_id
@@ -507,8 +517,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
         # TODO(hybridcloud) This will need to filter on user_id or team_id
         # Explicitly typing to satisfy mypy.
-        team_ids: Iterable[int] = set()
-        user_ids: Iterable[int] = set()
+        team_ids: Set[int] = set()
+        user_ids: Set[int] = set()
         if isinstance(recipient, RpcActor):
             (team_ids if recipient.actor_type == ActorType.TEAM else user_ids).add(recipient.id)
         elif isinstance(recipient, Team):
