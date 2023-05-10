@@ -71,7 +71,7 @@ class SlackRequestParser(BaseRequestParser):
             successful_responses = [
                 result for result in response_map.values() if result.response is not None
             ]
-            if len(successful_responses < 1):
+            if len(successful_responses) == 0:
                 error_map = {region: result.error for region, result in response_map.items()}
                 logger.error(
                     "all_regions_error",
@@ -121,7 +121,7 @@ class SlackRequestParser(BaseRequestParser):
         successful_responses = [
             result for result in response_map.values() if result.response is not None
         ]
-        if len(successful_responses < 1):
+        if len(successful_responses) == 0:
             error_map = {region: result.error for region, result in response_map.items()}
             logger.error(
                 "all_regions_error",

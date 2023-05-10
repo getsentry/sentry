@@ -11,10 +11,11 @@ import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconCalendar, IconDelete, IconLocation} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {IconCalendar, IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
@@ -63,6 +64,14 @@ export function ReplayCell({
     },
   };
 
+  const trackNavigationEvent = () =>
+    trackAnalytics('replay.list-navigate-to-details', {
+      project_id: project?.id,
+      platform: project?.platform,
+      organization,
+      referrer,
+    });
+
   if (replay.is_archived) {
     return (
       <Item isArchived={replay.is_archived}>
@@ -80,30 +89,15 @@ export function ReplayCell({
     );
   }
 
-  const subText = replay.urls ? (
+  const subText = (
     <Cols>
       <StringWalker urls={replay.urls} />
       <Row gap={1}>
         <Row gap={0.5}>
           {project ? <Avatar size={12} project={project} /> : null}
-          <Link to={replayDetails}>{getShortEventId(replay.id)}</Link>
-        </Row>
-        <Row gap={0.5}>
-          <IconCalendar color="gray300" size="xs" />
-          <TimeSince date={replay.started_at} />
-        </Row>
-      </Row>
-    </Cols>
-  ) : (
-    <Cols>
-      <Row gap={1}>
-        <Row gap={0.5} minWidth={80}>
-          {project ? <Avatar size={12} project={project} /> : null}
-          <Link to={replayDetails}>{getShortEventId(replay.id)}</Link>
-        </Row>
-        <Row gap={0.5} minWidth={80}>
-          <IconLocation color="green400" size="sm" />
-          {tn('%s Page', '%s Pages', replay.count_urls)}
+          <Link to={replayDetails} onClick={trackNavigationEvent}>
+            {getShortEventId(replay.id)}
+          </Link>
         </Row>
         <Row gap={0.5}>
           <IconCalendar color="gray300" size="xs" />
@@ -119,10 +113,10 @@ export function ReplayCell({
         avatarSize={24}
         displayName={
           replay.is_archived ? (
-            replay.user?.display_name || t('Unknown User')
+            replay.user.display_name || t('Unknown User')
           ) : (
-            <MainLink to={replayDetails}>
-              {replay.user?.display_name || t('Unknown User')}
+            <MainLink to={replayDetails} onClick={trackNavigationEvent}>
+              {replay.user.display_name || t('Unknown User')}
             </MainLink>
           )
         }

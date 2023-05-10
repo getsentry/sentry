@@ -2062,17 +2062,29 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 raise UnparseableSourcemap({"url": "<base64>", "reason": str(e)})
         else:
             # look in the database and, if not found, optionally try to scrape the web
-            with sentry_sdk.start_span(
-                op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_url.fetch_by_url"
-            ) as span:
-                span.set_data("url", url)
-                if use_url_new:
+            if use_url_new:
+                with sentry_sdk.start_span(
+                    op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_url.fetch_by_url_new"
+                ) as span:
+                    span.set_data("url", url)
+
                     result = self.fetcher.fetch_by_url_new(url)
                     # In case we are fetching with url new we want to early return None in case we didn't find a match.
+                    # This is because we want to fallback to the old system "fetch_by_url" before throwing the
+                    # definitive error "UnparseableSourcemap".
                     if result is None:
                         return None
-                else:
+            else:
+                with sentry_sdk.start_span(
+                    op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_url.fetch_by_url"
+                ) as span:
+                    span.set_data("url", url)
+
                     result = self.fetcher.fetch_by_url(url)
+                    # In case we are fetching with url and we have a None result, then we can throw an error since we
+                    # are not able to parce the sourcemap.
+                    if result is None:
+                        raise UnparseableSourcemap({"url": http.expose_url(url)})
 
             body = result.body
 
@@ -2140,9 +2152,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             metrics.incr("sourcemaps.ab-test.performed")
 
             # TODO: we currently have known differences:
-            # - small `abs_path`/`filename` differences because of different url joining
-            # - python resolves a `module` in the processor, whereas symbolicator does that
-            #   indirectly in the Plugin preprocessor
+            # - python prefixes sourcemaps fetched by debug-id with `debug-id://`
+            # - some insignificant differences in source context application
+            #   related to different column offsets
+            # - python adds a `data.sourcemap` even if none was fetched successfully
             # - symbolicator does not add trailing empty lines to `post_context`
             interesting_keys = {
                 "abs_path",
@@ -2152,6 +2165,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 "function",
                 "context_line",
                 "module",
+                "in_app",
             }
 
             def filtered_frame(frame: dict) -> dict:
@@ -2192,11 +2206,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
                 for symbolicator_frame, python_frame in zip(
                     symbolicator_stacktrace,
-                    (
-                        frame
-                        for frame in python_stacktrace["frames"]
-                        if frame and frame.get("abs_path")
-                    ),
+                    python_stacktrace["frames"],
                 ):
                     symbolicator_frame = filtered_frame(symbolicator_frame)
                     python_frame = filtered_frame(python_frame)
@@ -2210,7 +2220,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 with sentry_sdk.push_scope() as scope:
                     scope.set_extra("different_frames", different_frames)
                     scope.set_extra("event_id", self.data.get("event_id"))
-                    scope.set_tag("project_id", self.project.id)
                     sentry_sdk.capture_message(
                         "JS symbolication differences between symbolicator and python."
                     )

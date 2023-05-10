@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
-from sentry.dynamic_sampling.models.utils import DSElement, adjust_sample_rates
+from sentry.dynamic_sampling.models.utils import DSElement, adjust_sample_rates_full
 
 
 @dataclass
@@ -19,8 +19,7 @@ class AdjustedModel:
                 self.projects[0].new_sample_rate = sample_rate
             return self.projects
 
-        # Step 1: sort projects by count per root project
-        sorted_projects = list(sorted(self.projects, key=lambda x: (x.count, x.id)))
-
-        # Step 2:
-        return adjust_sample_rates(sorted_projects, sample_rate)
+        ret_val, _used_budget = adjust_sample_rates_full(
+            self.projects, sample_rate, intensity=1, min_budget=None
+        )
+        return ret_val

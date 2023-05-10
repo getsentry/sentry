@@ -537,12 +537,12 @@ async function fetchProjects(
   };
 }
 
-export function getAnalyicsDataForProject(project: Project) {
+export function getAnalyicsDataForProject(project?: Project | null) {
   return {
-    project_has_replay: project.hasReplays,
-    project_has_minified_stack_trace: project.hasMinifiedStackTrace,
-    project_age: getDaysSinceDate(project.dateCreated),
-    project_id: parseInt(project.id, 10),
-    project_platform: project.platform,
+    project_has_replay: project?.hasReplays ?? false,
+    project_has_minified_stack_trace: project?.hasMinifiedStackTrace ?? false,
+    project_age: project ? getDaysSinceDate(project.dateCreated) : -1,
+    project_id: project ? parseInt(project.id, 10) : -1,
+    project_platform: project?.platform ?? '',
   };
 }

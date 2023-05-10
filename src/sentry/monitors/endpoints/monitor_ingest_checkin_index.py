@@ -23,6 +23,8 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
+    MonitorEnvironmentLimitsExceeded,
+    MonitorLimitsExceeded,
     MonitorStatus,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
@@ -147,21 +149,24 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
             # Create a new monitor during checkin. Uses update_or_create to
             # protect against races.
-            if create_monitor:
-                monitor, created = Monitor.objects.update_or_create(
-                    organization_id=project.organization_id,
-                    slug=monitor_data["slug"],
-                    defaults={
-                        "project_id": project.id,
-                        "name": monitor_data["name"],
-                        "status": monitor_data["status"],
-                        "type": monitor_data["type"],
-                        "config": monitor_data["config"],
-                    },
-                )
+            try:
+                if create_monitor:
+                    monitor, created = Monitor.objects.update_or_create(
+                        organization_id=project.organization_id,
+                        slug=monitor_data["slug"],
+                        defaults={
+                            "project_id": project.id,
+                            "name": monitor_data["name"],
+                            "status": monitor_data["status"],
+                            "type": monitor_data["type"],
+                            "config": monitor_data["config"],
+                        },
+                    )
 
-                if created:
-                    signal_first_monitor_created(project, request.user, True)
+                    if created:
+                        signal_first_monitor_created(project, request.user, True)
+            except MonitorLimitsExceeded as e:
+                return self.respond({type(e).__name__: str(e)}, status=403)
 
             # Monitor does not exist and we have not created one
             if not monitor:
@@ -169,11 +174,16 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
             # Update monitor configuration during checkin if config is changed
             if update_monitor and monitor_data["config"] != monitor.config:
-                monitor.update(config=monitor_data["config"])
+                monitor.update_config(
+                    request.data.get("monitor_config", {}), monitor_data["config"]
+                )
 
-            monitor_environment = MonitorEnvironment.objects.ensure_environment(
-                project, monitor, result.get("environment")
-            )
+            try:
+                monitor_environment = MonitorEnvironment.objects.ensure_environment(
+                    project, monitor, result.get("environment")
+                )
+            except MonitorEnvironmentLimitsExceeded as e:
+                return self.respond({type(e).__name__: str(e)}, status=403)
 
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,

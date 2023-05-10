@@ -1,5 +1,6 @@
+from sentry.constants import ObjectStatus
 from sentry.models import ScheduledDeletion
-from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, ScheduleType
+from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -97,12 +98,12 @@ class UpdateMonitorTest(MonitorTestCase):
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.DISABLED
+        assert monitor.status == ObjectStatus.DISABLED
 
     def test_can_enable(self):
         monitor = self._create_monitor()
 
-        monitor.update(status=MonitorStatus.DISABLED)
+        monitor.update(status=ObjectStatus.DISABLED)
 
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
@@ -110,20 +111,7 @@ class UpdateMonitorTest(MonitorTestCase):
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.ACTIVE
-
-    def test_cannot_enable_if_enabled(self):
-        monitor = self._create_monitor()
-
-        monitor.update(status=MonitorStatus.OK)
-
-        resp = self.get_success_response(
-            self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
-        )
-        assert resp.data["slug"] == monitor.slug
-
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.OK
+        assert monitor.status == ObjectStatus.ACTIVE
 
     def test_timezone(self):
         monitor = self._create_monitor()
@@ -142,6 +130,14 @@ class UpdateMonitorTest(MonitorTestCase):
     def test_checkin_margin(self):
         monitor = self._create_monitor()
 
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"config": {"checkin_margin": -1}},
+        )
+
         resp = self.get_success_response(
             self.organization.slug,
             monitor.slug,
@@ -155,6 +151,14 @@ class UpdateMonitorTest(MonitorTestCase):
 
     def test_max_runtime(self):
         monitor = self._create_monitor()
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"config": {"max_runtime": -1}},
+        )
 
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"config": {"max_runtime": 30}}
@@ -299,6 +303,14 @@ class UpdateMonitorTest(MonitorTestCase):
             monitor.slug,
             method="PUT",
             status_code=400,
+            **{"config": {"schedule_type": "interval", "schedule": [-1, "day"]}},
+        )
+
+        self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
             **{"config": {"schedule_type": "interval", "schedule": "bar"}},
         )
 
@@ -346,7 +358,7 @@ class DeleteMonitorTest(MonitorTestCase):
         )
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.PENDING_DELETION
+        assert monitor.status == ObjectStatus.PENDING_DELETION
         # ScheduledDeletion only available in control silo
         assert ScheduledDeletion.objects.filter(object_id=monitor.id, model_name="Monitor").exists()
 
@@ -367,10 +379,10 @@ class DeleteMonitorTest(MonitorTestCase):
         )
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.ACTIVE
+        assert monitor.status == ObjectStatus.ACTIVE
 
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
-        assert monitor_environment.status == MonitorStatus.PENDING_DELETION
+        assert monitor_environment.status == ObjectStatus.PENDING_DELETION
         # ScheduledDeletion only available in control silo
         assert ScheduledDeletion.objects.filter(
             object_id=monitor_environment.id, model_name="MonitorEnvironment"

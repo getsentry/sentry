@@ -196,8 +196,8 @@ class Endpoint(APIView):
 
         :param request:          The incoming request.
         :param exc:              The exception raised during handling.
-        :param handler_context:  (Optional) Extra data which will be attached to the event sent
-                                 to Sentry, under the "Request Handler Data" heading.
+        :param handler_context:  (Optional) Extra data which will be attached to the event sent to
+                                 Sentry, under the "Request Handler Data" heading.
         :param scope:            (Optional) A `Scope` object containing extra data which will be
                                  attached to the event sent to Sentry.
 
@@ -222,6 +222,7 @@ class Endpoint(APIView):
             response_body = {"detail": "Internal Error", "errorId": event_id}
             response = Response(response_body, status=500)
             response.exception = True
+
         return response
 
     def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):

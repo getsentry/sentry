@@ -1,41 +1,10 @@
 import orderBy from 'lodash/orderBy';
 
-import {bulkUpdate} from 'sentry/actionCreators/group';
+import {bulkUpdate, useFetchIssueTags} from 'sentry/actionCreators/group';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {Group, GroupActivity} from 'sentry/types';
+import {Environment, Group, GroupActivity} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-
-/**
- * Fetches group data and mark as seen
- *
- * @param orgId organization slug
- * @param groupId groupId
- * @param eventId eventId or "latest" or "oldest"
- * @param envNames
- * @param projectId project slug required for eventId that is not latest or oldest
- */
-export async function fetchGroupEvent(
-  api: Client,
-  orgId: string,
-  groupId: string,
-  eventId: string,
-  envNames: string[],
-  projectId?: string
-): Promise<Event> {
-  const url =
-    eventId === 'latest' || eventId === 'oldest'
-      ? `/issues/${groupId}/events/${eventId}/`
-      : `/projects/${orgId}/${projectId}/events/${eventId}/?group_id=${groupId}`;
-
-  const query: {environment?: string[]} = {};
-  if (envNames.length !== 0) {
-    query.environment = envNames;
-  }
-
-  const data = await api.requestPromise(url, {query});
-  return data;
-}
 
 export function markEventSeen(
   api: Client,
@@ -164,3 +133,18 @@ export function getGroupReprocessingStatus(
       return ReprocessingStatus.NO_STATUS;
   }
 }
+
+export const useFetchIssueTagsForDetailsPage = ({
+  groupId,
+  environments,
+}: {
+  environments: Environment[];
+  groupId: string;
+}) => {
+  return useFetchIssueTags({
+    groupId,
+    environment: environments.map(({name}) => name),
+    readable: true,
+    limit: 4,
+  });
+};

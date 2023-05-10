@@ -50,7 +50,7 @@ def check_auth_identity(auth_identity_id, **kwargs):
 
     try:
         om = OrganizationMember.objects.get(
-            user=auth_identity.user, organization=auth_provider.organization_id
+            user_id=auth_identity.user.id, organization=auth_provider.organization_id
         )
     except OrganizationMember.DoesNotExist:
         logger.warning(

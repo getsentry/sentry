@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.conf import settings
 from django.db import models
 
@@ -59,8 +60,8 @@ class NotificationSetting(Model):
         null=False,
     )
     scope_identifier = BoundedBigIntegerField(null=False)
-    target = FlexibleForeignKey(
-        "sentry.Actor", db_index=True, unique=False, null=False, on_delete=models.CASCADE
+    target_id = HybridCloudForeignKey(
+        "sentry.Actor", db_index=True, unique=False, null=False, on_delete="CASCADE"
     )
     team_id = HybridCloudForeignKey("sentry.Team", null=True, db_index=True, on_delete="CASCADE")
     user = FlexibleForeignKey(
@@ -112,7 +113,7 @@ class NotificationSetting(Model):
             (
                 "scope_type",
                 "scope_identifier",
-                "target",
+                "target_id",
                 "provider",
                 "type",
             ),
@@ -126,6 +127,15 @@ class NotificationSetting(Model):
         "type_str",
         "value_str",
     )
+
+    def save(self, *args, **kwargs):
+        try:
+            assert not (
+                self.user_id is None and self.team_id is None
+            ), "Notification setting missing user & team"
+        except AssertionError as err:
+            sentry_sdk.capture_exception(err)
+        super().save(*args, **kwargs)
 
 
 # REQUIRED for migrations to run

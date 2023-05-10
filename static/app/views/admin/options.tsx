@@ -372,6 +372,52 @@ const performanceOptionDefinitions: Field[] = [
     ),
   },
   {
+    key: 'performance.issues.consecutive_http.max_duration_between_spans',
+    label: t('Time Between Spans'),
+    help: t(
+      'Maximum time, in ms, between consecutive HTTP spans to be considered part of the same problem.'
+    ),
+    defaultValue: () => '1000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
+    key: 'performance.issues.consecutive_http.consecutive_count_threshold',
+    label: t('Consecutive Count Threshold'),
+    help: t('The minimum number of offending spans that must occur consecutively.'),
+    defaultValue: () => '3',
+    component: NumberField,
+    min: 1,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
+    key: 'performance.issues.consecutive_http.span_duration_threshold',
+    label: t('Span Duration Threshold'),
+    help: t(
+      'The duration, in ms, that a span must exceed for it to be considered an offending span.'
+    ),
+    defaultValue: () => '1000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
+    key: 'performance.issues.large_http_payload.size_threshold',
+    label: t('Payload Size Threshold'),
+    help: t(
+      'The threshold at which the payload size of an HTTP span is considered to be too large, in bytes.'
+    ),
+    defaultValue: () => '1000000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
     key: 'profile.issues.blocked_main_thread-ingest.la-rollout',
     label: t('Limited Availability Detection Rate'),
     help: t(

@@ -246,7 +246,7 @@ class BaseTestCase(Fixtures):
         # must happen after request.user/request.session is populated
         request.superuser = Superuser(request)
         if is_superuser:
-            # XXX: this is gross, but its a one off and apis change only once in a great while
+            # XXX: this is gross, but it's a one-off and apis change only once in a great while
             request.superuser.set_logged_in(user)
         request.is_superuser = lambda: request.superuser.is_active
         request.successful_authenticator = None
@@ -508,7 +508,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     """
     Extend APITestCase to inherit access to `client`, an object with methods
     that simulate API calls to Sentry, and the helper `get_response`, which
-    combines and simplify a lot of tedious parts of making API calls in tests.
+    combines and simplifies a lot of tedious parts of making API calls in tests.
     When creating API tests, use a new class per endpoint-method pair. The class
     must set the string `endpoint`.
     """
@@ -1018,7 +1018,7 @@ class SnubaTestCase(BaseTestCase):
         last_events_seen = 0
 
         while attempt < attempts:
-            events = eventstore.get_events(snuba_filter)
+            events = eventstore.get_events(snuba_filter, referrer="test.wait_for_event_count")
             last_events_seen = len(events)
             if len(events) >= total:
                 break

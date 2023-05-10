@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import Link from 'sentry/components/links/link';
@@ -10,6 +11,7 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import {DataScrubbing} from '../components/dataScrubbing';
 
@@ -32,10 +34,13 @@ export default function ProjectSecurityAndPrivacy({organization, project}: Props
   const apiMethod = 'PUT';
   const title = t('Security & Privacy');
 
+  const hasAccess = hasEveryAccess(['project:write'], {organization, project});
+
   return (
     <Fragment>
       <SentryDocumentTitle title={title} projectSlug={projectSlug} />
       <SettingsPageHeader title={title} />
+      <PermissionAlert project={project} />
 
       <Form
         saveOnBlur
@@ -49,7 +54,7 @@ export default function ProjectSecurityAndPrivacy({organization, project}: Props
         <JsonForm
           additionalFieldProps={{organization}}
           features={features}
-          disabled={!organization.access.includes('project:write')}
+          disabled={!hasAccess}
           forms={projectSecurityAndPrivacyGroups}
         />
       </Form>
@@ -70,7 +75,7 @@ export default function ProjectSecurityAndPrivacy({organization, project}: Props
         }
         endpoint={endpoint}
         relayPiiConfig={relayPiiConfig}
-        disabled={!organization.access.includes('project:write')}
+        disabled={!hasAccess}
         organization={organization}
         project={project}
         onSubmitSuccess={data => handleUpdateProject({...project, ...data})}

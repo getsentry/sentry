@@ -7,9 +7,15 @@ import msgpack
 import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
+from django.conf import settings
+from django.test.utils import override_settings
 from django.utils import timezone
 
-from sentry.monitors.consumers.check_in import StoreMonitorCheckInStrategyFactory, _process_message
+from sentry.constants import ObjectStatus
+from sentry.monitors.consumers.monitor_consumer import (
+    StoreMonitorCheckInStrategyFactory,
+    _process_message,
+)
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -50,7 +56,11 @@ class MonitorConsumerTest(TestCase):
             project_id=self.project.id,
             next_checkin=timezone.now() + timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "checkin_margin": 5,
+            },
             **kwargs,
         )
 
@@ -135,7 +145,7 @@ class MonitorConsumerTest(TestCase):
 
     @pytest.mark.django_db
     def test_disabled(self):
-        monitor = self._create_monitor(status=MonitorStatus.DISABLED)
+        monitor = self._create_monitor(status=ObjectStatus.DISABLED)
         message = self.get_message(monitor.slug, status="error")
         _process_message(message)
 
@@ -211,6 +221,8 @@ class MonitorConsumerTest(TestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["schedule"] == "13 * * * *"
+        # The monitor config is merged, so checkin_margin is not overwritten
+        assert monitor.config["checkin_margin"] == 5
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
@@ -223,7 +235,7 @@ class MonitorConsumerTest(TestCase):
     def test_rate_limit(self):
         monitor = self._create_monitor(slug="my-monitor")
 
-        with mock.patch("sentry.monitors.consumers.check_in.CHECKIN_QUOTA_LIMIT", 1):
+        with mock.patch("sentry.monitors.consumers.monitor_consumer.CHECKIN_QUOTA_LIMIT", 1):
             # Try to ingest two the second will be rate limited
             _process_message(self.get_message("my-monitor"))
             _process_message(self.get_message("my-monitor"))
@@ -236,3 +248,53 @@ class MonitorConsumerTest(TestCase):
 
             checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
             assert len(checkins) == 2
+
+    @pytest.mark.django_db
+    def test_monitor_upsert(self):
+        message = self.get_message(
+            "my-monitor",
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+            environment="my-environment",
+        )
+        _process_message(message)
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor = Monitor.objects.get(slug="my-monitor")
+        assert monitor is not None
+
+        monitor_environment = MonitorEnvironment.objects.get(
+            monitor=monitor, environment__name="my-environment"
+        )
+        assert monitor_environment is not None
+
+    @override_settings(MAX_MONITORS_PER_ORG=2)
+    @pytest.mark.django_db
+    def test_monitor_limits(self):
+        for i in range(settings.MAX_MONITORS_PER_ORG + 2):
+            message = self.get_message(
+                f"my-monitor-{i}",
+                monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+            )
+            _process_message(message)
+
+        monitors = Monitor.objects.filter(organization_id=self.organization.id)
+        assert len(monitors) == settings.MAX_MONITORS_PER_ORG
+
+    @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
+    @pytest.mark.django_db
+    def test_monitor_environment_limits(self):
+        for i in range(settings.MAX_ENVIRONMENTS_PER_MONITOR + 2):
+            message = self.get_message(
+                "my-monitor",
+                monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+                environment=f"my-environment-{i}",
+            )
+            _process_message(message)
+
+        monitor = Monitor.objects.get(slug="my-monitor")
+        assert monitor is not None
+
+        monitor_environments = MonitorEnvironment.objects.filter(monitor=monitor)
+        assert len(monitor_environments) == settings.MAX_ENVIRONMENTS_PER_MONITOR

@@ -23,7 +23,7 @@ class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
         """
         projects = Project.objects.filter(
             organization=organization,
-            status=ObjectStatus.VISIBLE,
+            status=ObjectStatus.ACTIVE,
         )
         project_code_owners = ProjectCodeOwners.objects.filter(project__in=projects)
         provider = request.GET.get("provider")

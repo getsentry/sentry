@@ -5,6 +5,7 @@ from sentry.options import (
     FLAG_ALLOW_EMPTY,
     FLAG_IMMUTABLE,
     FLAG_MODIFIABLE_BOOL,
+    FLAG_MODIFIABLE_RATE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
@@ -464,8 +465,8 @@ register("store.background-grouping-before", default=False)
 # Store release files bundled as zip files
 register("processing.save-release-archives", default=False)  # unused
 
-# Minimum number of files in an archive. Small archives are extracted and its contents
-# are stored as separate release files.
+# Minimum number of files in an archive. Archives with fewer files are extracted and have their
+# contents stored as separate release files.
 register("processing.release-archive-min-files", default=10)
 
 # Try to read release artifacts from zip archives
@@ -671,6 +672,10 @@ register("performance.issues.render_blocking_assets.fcp_minimum_threshold", defa
 register("performance.issues.render_blocking_assets.fcp_maximum_threshold", default=10000.0)
 register("performance.issues.render_blocking_assets.fcp_ratio_threshold", default=0.33)
 register("performance.issues.render_blocking_assets.size_threshold", default=1000000)
+register("performance.issues.consecutive_http.max_duration_between_spans", default=1000)
+register("performance.issues.consecutive_http.consecutive_count_threshold", default=3)
+register("performance.issues.consecutive_http.span_duration_threshold", default=1000)
+register("performance.issues.large_http_payload.size_threshold", default=1000000)  # 1MB
 
 # System-wide option for sending occurrences to the issues platform
 register("performance.issues.send_to_issues_platform", default=False, flags=FLAG_MODIFIABLE_BOOL)
@@ -689,6 +694,8 @@ register("dynamic-sampling:enabled-biases", default=True)
 # project config computation. This is temporary option to monitor the performance of this feature.
 register("dynamic-sampling:boost-latest-release", default=False)
 register("dynamic-sampling.prioritise_projects.sample_rate", default=0.0)
+# Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
+register("dynamic-sampling:sliding_window.size", default=24)
 # controls how many orgs will be queried by the prioritise by transaction task
 # 0-> no orgs , 0.5 -> half of the orgs, 1.0 -> all orgs
 register("dynamic-sampling.prioritise_transactions.load_rate", default=0.0)
@@ -696,6 +703,15 @@ register("dynamic-sampling.prioritise_transactions.load_rate", default=0.0)
 register("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions", 30)
 # the number of large transactions to retrieve from Snuba for transaction re-balancing
 register("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions", 0)
+# controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
+# not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
+# there will still be some rebalancing between the explicit and implicit transactions ( so setting rebalancing
+# to 0.0 is not the same as no rebalancing. To effectively disable rebalancing set the number of explicit
+# transactions to be rebalance (both small and large) to 0
+register("dynamic-sampling.prioritise_transactions.rebalance_intensity", 0.8)
 register("hybrid_cloud.outbox_rate", default=0.0)
 # controls whether we allow people to upload artifact bundles instead of release bundles
 register("sourcemaps.enable-artifact-bundles", default=0.0)
+
+# TODO raduw (remove it when done) testing modifiable rate flag
+register("dynamic-sampling.test.modifiable", 0.8, flags=FLAG_MODIFIABLE_RATE)

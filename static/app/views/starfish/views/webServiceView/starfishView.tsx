@@ -17,7 +17,6 @@ const EventsRequest = withApi(_EventsRequest);
 import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
-import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
@@ -26,12 +25,9 @@ import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/failureDetailPanel';
-import {MODULE_BREAKDOWN} from 'sentry/views/starfish/views/webServiceView/queries';
 import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 import EndpointList from './endpointList';
-
-const HOST = 'http://localhost:8080';
 
 type BasePerformanceViewProps = {
   eventView: EventView;
@@ -45,14 +41,6 @@ export function StarfishView(props: BasePerformanceViewProps) {
   const {organization, eventView, onSelect} = props;
   const theme = useTheme();
   const [selectedSpike, setSelectedSpike] = useState<FailureSpike>(null);
-
-  // Queries
-  const {data: moduleBreakdown} = useQuery({
-    queryKey: ['moduleBreakdown'],
-    queryFn: () => fetch(`${HOST}/?query=${MODULE_BREAKDOWN}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
 
   function renderFailureRateChart() {
     const query = new MutableSearch(['event.type:transaction']);
@@ -179,7 +167,6 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 top: '8px',
                 bottom: '0',
               }}
-              disableMultiAxis
               definedAxisTicks={4}
               stacked
               isLineChart
@@ -197,10 +184,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <StyledRow minSize={200}>
         <ChartsContainer>
           <ChartsContainerItem>
-            <FacetBreakdownBar
-              segments={moduleBreakdown}
-              title={t('Where is time spent in my web service?')}
-            />
+            <FacetBreakdownBar title={t('Where is time spent in my web service?')} />
           </ChartsContainerItem>
           <ChartsContainerItem2>
             <ChartPanel title={t('Error Rate')}>{renderFailureRateChart()}</ChartPanel>

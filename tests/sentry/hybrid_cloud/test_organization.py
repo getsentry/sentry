@@ -20,7 +20,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcTeamMember,
     organization_service,
 )
-from sentry.services.hybrid_cloud.organization.impl import unescape_flag_name
+from sentry.services.hybrid_cloud.organization.serial import unescape_flag_name
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import use_real_service
 from sentry.testutils.silo import all_silo_test
@@ -133,7 +133,7 @@ def assert_organization_member_equals(
             OrganizationMemberTeam.objects.filter(
                 organizationmember_id=orm_organization_member.id,
                 is_active=True,
-                team__status=TeamStatus.VISIBLE,
+                team__status=TeamStatus.ACTIVE,
             )
         ),
         organization_member.member_teams,

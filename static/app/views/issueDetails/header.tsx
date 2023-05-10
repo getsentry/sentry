@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
@@ -27,9 +27,9 @@ import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, IssueType, Organization, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -71,12 +71,22 @@ function GroupHeaderTabs({
   const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
   const hasSimilarView = projectFeatures.has('similarity-view');
   const hasEventAttachments = organizationFeatures.has('event-attachments');
-  const hasSessionReplay = organizationFeatures.has('session-replay');
-  const hasMultiProjectSupport = organizationFeatures.has('global-views');
-  const hasReplaySupport =
-    hasSessionReplay && (hasMultiProjectSupport || projectSupportsReplay(project));
+  const hasReplaySupport = organizationFeatures.has('session-replay');
 
   const issueTypeConfig = getConfigForIssueType(group);
+
+  useEffect(() => {
+    if (!hasReplaySupport || typeof replaysCount === 'undefined') {
+      return;
+    }
+
+    trackAnalytics('replay.render-issues-detail-count', {
+      platform: project.platform!,
+      project_id: project.id,
+      count: replaysCount,
+      organization,
+    });
+  }, [hasReplaySupport, replaysCount, project, organization]);
 
   return (
     <StyledTabList hideBorder>
