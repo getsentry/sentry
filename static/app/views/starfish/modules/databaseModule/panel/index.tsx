@@ -158,16 +158,16 @@ function QueryDetailBody({
 
   const tpmTransactionSeries = queryToSeries(
     transactionGraphData,
-    'transaction',
-    'count',
+    'group',
+    'count()',
     startTime,
     endTime
   );
 
   const p75TransactionSeries = queryToSeries(
     transactionGraphData,
-    'transaction',
-    'p75',
+    'group',
+    'p75(transaction.duration)',
     startTime,
     endTime
   );

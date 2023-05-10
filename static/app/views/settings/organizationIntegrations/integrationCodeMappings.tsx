@@ -125,12 +125,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
       this.setState({pathConfigs});
       addSuccessMessage(t('Deletion successful'));
     } catch (err) {
-      addErrorMessage(
-        tct('[status]: [text]', {
-          status: err.statusText,
-          text: err.responseText,
-        })
-      );
+      addErrorMessage(`${err.statusText}: ${err.responseText}`);
     }
   };
 
