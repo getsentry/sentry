@@ -15,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization_member as organization_member_serializers
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.validators import AllowedEmailField
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import ExternalActor, InviteStatus, OrganizationMember, Team, TeamStatus
 from sentry.models.authenticator import available_authenticators
 from sentry.roles import organization_roles, team_roles
@@ -262,7 +263,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
         region_outbox = None
-        with transaction.atomic():
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
             # remove any invitation requests for this email before inviting
             existing_invite = OrganizationMember.objects.filter(
                 Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)

@@ -4,6 +4,7 @@ from django.core import mail
 
 from sentry import roles
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import Authenticator, InviteStatus, OrganizationMember, OrganizationMemberTeam
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
@@ -156,7 +157,10 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert response.data[0]["email"] == self.user2.email
 
     def test_query_null_user(self):
-        OrganizationMember.objects.create(email="billy@localhost", organization=self.organization)
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.create(
+                email="billy@localhost", organization=self.organization
+            )
         response = self.get_success_response(self.organization.slug, qs_params={"query": "bill"})
 
         assert len(response.data) == 1
@@ -366,9 +370,10 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 
     def test_existing_user_for_invite(self):
         user = self.create_user("foobar@example.com")
-        member = OrganizationMember.objects.create(
-            organization=self.organization, user=user, role="member"
-        )
+        with in_test_psql_role_override("postgres"):
+            member = OrganizationMember.objects.create(
+                organization=self.organization, user=user, role="member"
+            )
 
         data = {"email": user.email, "role": "member", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=True):
@@ -381,7 +386,8 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
     def test_can_invite_with_invites_to_other_orgs(self):
         email = "test@gmail.com"
         org = self.create_organization(slug="diff-org")
-        OrganizationMember.objects.create(email=email, organization=org)
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.create(email=email, organization=org)
 
         data = {"email": email, "role": "member", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
@@ -479,12 +485,12 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
 
     def test_can_invite_member_with_pending_invite_request(self):
         email = "test@gmail.com"
-
-        invite_request = OrganizationMember.objects.create(
-            email=email,
-            organization=self.organization,
-            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
-        )
+        with in_test_psql_role_override("postgres"):
+            invite_request = OrganizationMember.objects.create(
+                email=email,
+                organization=self.organization,
+                invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            )
 
         data = {"email": email, "role": "member", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
