@@ -266,6 +266,10 @@ class ReleaseSeries extends Component<Props, State> {
       tooltip: tooltip || {
         trigger: 'item',
         formatter: ({data}: any) => {
+          // Should only happen when navigating pages
+          if (!data) {
+            return '';
+          }
           // XXX using this.props here as this function does not get re-run
           // unless projects are changed. Using a closure variable would result
           // in stale values.
