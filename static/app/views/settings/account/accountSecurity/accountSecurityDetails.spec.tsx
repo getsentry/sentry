@@ -393,7 +393,7 @@ describe('AccountSecurityDetails', function () {
 
       expect(screen.getByTestId('frame')).toBeInTheDocument();
 
-      expect(screen.getByRole('button', {name: 'copy'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Copy'})).toBeInTheDocument();
     });
   });
 });

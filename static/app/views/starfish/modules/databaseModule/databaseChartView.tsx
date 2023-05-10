@@ -13,7 +13,6 @@ import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {
   useGetTransactionsForTables,
-  useQueryDbOperations,
   useQueryDbTables,
   useQueryTopDbOperationsChart,
   useQueryTopTablesChart,
@@ -28,9 +27,8 @@ import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 const INTERVAL = 12;
 
 type Props = {
-  action: string;
   location: Location;
-  onChange: (action: string, value: string) => void;
+  onChange: (value: string) => void;
   table: string;
 };
 
@@ -53,7 +51,7 @@ function parseOptions(options, label) {
   ];
 }
 
-export default function DatabaseChartView({action, table, onChange}: Props) {
+export default function DatabaseChartView({table, onChange}: Props) {
   const pageFilter = usePageFilters();
   const theme = useTheme();
   const {startTime, endTime} = getDateFilters(pageFilter);
@@ -61,14 +59,11 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
     pageFilter.selection.datetime
   );
 
-  const {data: operationData} = useQueryDbOperations();
-  const {data: tableData} = useQueryDbTables(action);
+  const {data: tableData} = useQueryDbTables();
   const {isLoading: isTopGraphLoading, data: topGraphData} =
     useQueryTopDbOperationsChart(INTERVAL);
-  const {isLoading: tableGraphLoading, data: tableGraphData} = useQueryTopTablesChart(
-    action,
-    INTERVAL
-  );
+  const {isLoading: tableGraphLoading, data: tableGraphData} =
+    useQueryTopTablesChart(INTERVAL);
 
   const seriesByDomain: {[action: string]: Series} = {};
   const tpmByDomain: {[action: string]: Series} = {};
@@ -103,7 +98,7 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
   const tpmTransactionSeries = queryToSeries(
     topTransactionsData,
     'transaction',
-    'count',
+    'epm',
     startTime,
     endTime
   );
@@ -210,15 +205,6 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
           </ChartPanel>
         </ChartsContainerItem>
       </ChartsContainer>
-      <Selectors>
-        <CompactSelect
-          value={action}
-          triggerProps={{prefix: t('Operation')}}
-          options={parseOptions(operationData, 'query')}
-          menuTitle="Operation"
-          onChange={opt => onChange('action', opt.value)}
-        />
-      </Selectors>
       {tableData.length === 1 && tableData[0].key === '' ? (
         <Fragment />
       ) : (
@@ -277,7 +263,7 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
               triggerProps={{prefix: t('Table')}}
               options={parseOptions(tableData, 'p75')}
               menuTitle="Table"
-              onChange={opt => onChange('table', opt.value)}
+              onChange={opt => onChange(opt.value)}
             />
           </Selectors>
         </Fragment>

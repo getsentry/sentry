@@ -301,7 +301,11 @@ class TestPrioritiseTransactionsTask(BaseMetricsLayerTestCase, TestCase, SnubaTe
         """
         get_blended_sample_rate.return_value = 0.25
 
-        with self.options({"dynamic-sampling.prioritise_transactions.load_rate": 1.0}):
+        with self.options(
+            {
+                "dynamic-sampling.prioritise_transactions.load_rate": 1.0,
+            }
+        ):
             with self.tasks():
                 prioritise_transactions()
 
@@ -334,6 +338,7 @@ class TestPrioritiseTransactionsTask(BaseMetricsLayerTestCase, TestCase, SnubaTe
                 "dynamic-sampling.prioritise_transactions.load_rate": 1.0,
                 "dynamic-sampling.prioritise_transactions.num_explicit_large_transactions": 1,
                 "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions": 1,
+                "dynamic-sampling.prioritise_transactions.rebalance_intensity": 0.7,
             }
         ):
             with self.tasks():
