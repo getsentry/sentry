@@ -10,7 +10,7 @@ export type DynamicSamplingEventParameters = {
     project_id: string;
   };
   'dynamic_sampling_transaction_summary.baseline': {};
-  'dynamic_sampling_transaction_summary.no_events': {};
+  'dynamic_sampling_transaction_summary.no_samples': {};
 };
 
 type DynamicSamplingAnalyticsKey = keyof DynamicSamplingEventParameters;
