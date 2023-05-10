@@ -577,16 +577,7 @@ TSDB_MODEL_TO_SUFFIXES = {
         "alert_event_frequency",
         "alert_event_frequency_percent",
     },
-    TSDBModel.group_performance: {
-        "frequency_snoozes",
-        "alert_event_frequency",
-        "alert_event_frequency_percent",
-    },
     TSDBModel.users_affected_by_group: {"user_count_snoozes", "alert_event_uniq_user_frequency"},
-    TSDBModel.users_affected_by_perf_group: {
-        "user_count_snoozes",
-        "alert_event_uniq_user_frequency",
-    },
 }
 
 

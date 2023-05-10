@@ -21,9 +21,6 @@ class TSDBModel(Enum):
     group = 4
     release = 7
 
-    # number of transactions seen specific to a group
-    group_performance = 10
-
     # number of occurrences seen specific to a generic group
     group_generic = 20
 
@@ -47,8 +44,6 @@ class TSDBModel(Enum):
     users_affected_by_group = 300
     # distinct count of users that have been affected by an event in a project
     users_affected_by_project = 301
-    # distinct count of users that have been affected by an event in a performance group
-    users_affected_by_perf_group = 302
     # distinct count of users that have been affected by an event in a generic group
     users_affected_by_generic_group = 303
 
