@@ -16,8 +16,8 @@ import {
   getDateFilters,
 } from 'sentry/views/starfish/utils/dates';
 import {
-  useSpansQuery,
   UseSpansQueryReturnType,
+  useWrappedDiscoverTimeseriesQuery,
 } from 'sentry/views/starfish/utils/useSpansQuery';
 
 export const DEFAULT_WHERE = `
@@ -487,8 +487,8 @@ export const useQueryTransactionByTPMAndP75 = (
   const {
     selection: {datetime},
   } = usePageFilters();
-  return useSpansQuery<QueryTransactionByTPMAndP75ReturnType>({
-    eventView: EventView.fromSavedQuery({
+  return useWrappedDiscoverTimeseriesQuery(
+    EventView.fromSavedQuery({
       name: '',
       fields: ['transaction', 'count()', 'p75(transaction.duration)'],
       yAxis: ['count()', 'p75(transaction.duration)'],
@@ -502,9 +502,8 @@ export const useQueryTransactionByTPMAndP75 = (
       projects: [1],
       version: 2,
     }),
-    initialData: [],
-    forceUseDiscover: true,
-  });
+    []
+  );
 };
 
 export const useQueryGetProfileIds = (

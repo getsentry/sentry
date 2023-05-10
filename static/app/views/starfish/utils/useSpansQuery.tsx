@@ -63,7 +63,7 @@ function isDiscoverTimeseriesFunction(
   return queryFunction === useWrappedDiscoverTimeseriesQuery;
 }
 
-function useWrappedQuery(queryString: string, initialData?: any) {
+export function useWrappedQuery(queryString: string, initialData?: any) {
   const {isLoading, data} = useQuery({
     queryKey: [queryString],
     queryFn: () => fetch(`${HOST}/?query=${queryString}`).then(res => res.json()),
@@ -73,7 +73,10 @@ function useWrappedQuery(queryString: string, initialData?: any) {
   return {isLoading, data};
 }
 
-function useWrappedDiscoverTimeseriesQuery(eventView: EventView, initialData?: any) {
+export function useWrappedDiscoverTimeseriesQuery(
+  eventView: EventView,
+  initialData?: any
+) {
   const location = useLocation();
   const organization = useOrganization();
   const {isLoading, data} = useGenericDiscoverQuery<
@@ -104,7 +107,7 @@ function useWrappedDiscoverTimeseriesQuery(eventView: EventView, initialData?: a
   };
 }
 
-function useWrappedDiscoverQuery(eventView: EventView, initialData?: any) {
+export function useWrappedDiscoverQuery(eventView: EventView, initialData?: any) {
   const location = useLocation();
   const organization = useOrganization();
   const {isLoading, data} = useDiscoverQuery({
