@@ -9,9 +9,12 @@ import sumBy from 'lodash/sumBy';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {SpanTotalTimeChart} from 'sentry/views/starfish/views/spans/spanTotalTimeChart';
 
 import {CLUSTERS} from './clusters';
 import {getSpanListQuery, getSpansTrendsQuery, getTimeSpentQuery} from './queries';
@@ -181,6 +184,14 @@ export default function SpansView(props: Props) {
         }}
       />
 
+      <ChartsContainer>
+        <ChartsContainerItem>
+          <ChartPanel title={t('Total Time')}>
+            <SpanTotalTimeChart clusters={currentClusters} />
+          </ChartPanel>
+        </ChartsContainerItem>
+      </ChartsContainer>
+
       <SpansTable
         location={props.location}
         clusters={currentClusters}
@@ -199,4 +210,15 @@ const FilterOptionsContainer = styled('div')`
   flex-direction: row;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
+`;
+
+const ChartsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: ${space(2)};
+`;
+
+const ChartsContainerItem = styled('div')`
+  flex: 1;
 `;
