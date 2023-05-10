@@ -20,19 +20,19 @@ class _DefaultEnumHelpers:
     def get_default_team_status_value() -> int:
         from sentry.models import TeamStatus
 
-        return TeamStatus.ACTIVE.value
+        return TeamStatus.ACTIVE.value  # type: ignore[no-any-return]
 
     @staticmethod
     def get_default_invite_status_value() -> int:
         from sentry.models import InviteStatus
 
-        return InviteStatus.APPROVED.value
+        return InviteStatus.APPROVED.value  # type: ignore[no-any-return]
 
     @staticmethod
     def get_default_organization_status_value() -> int:
         from sentry.models import OrganizationStatus
 
-        return OrganizationStatus.ACTIVE.value
+        return OrganizationStatus.ACTIVE.value  # type: ignore[no-any-return]
 
 
 class RpcTeam(RpcModel):
@@ -152,9 +152,7 @@ class RpcOrganization(RpcOrganizationSummary):
     projects: List[RpcProject] = Field(default_factory=list)
 
     flags: RpcOrganizationFlags = Field(default_factory=lambda: RpcOrganizationFlags())
-    status: int = Field(
-        default_factory=lambda: _DefaultEnumHelpers.get_default_organization_status_value
-    )
+    status: int = Field(default_factory=_DefaultEnumHelpers.get_default_organization_status_value)
 
     default_role: str = ""
 
