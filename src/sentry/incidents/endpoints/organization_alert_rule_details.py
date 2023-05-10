@@ -112,7 +112,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
             if alert_rule.owner and alert_rule.owner.type == ACTOR_TYPES["team"]:
                 team = alert_rule.owner.resolve()
                 if not OrganizationMemberTeam.objects.filter(
-                    organizationmember__user=request.user, team=team, is_active=True
+                    organizationmember__user_id=request.user.id, team=team, is_active=True
                 ).exists():
                     return False
         return True
