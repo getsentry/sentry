@@ -422,6 +422,7 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
     insta_snapshot(
         {
             "breakdownsV2": cfg["config"]["breakdownsV2"],
+            "transactionMetrics": cfg["config"].get("transactionMetrics"),
             "metricConditionalTagging": cfg["config"].get("metricConditionalTagging"),
         }
     )
@@ -482,7 +483,13 @@ def test_project_config_satisfaction_thresholds(
             threshold=600,
             metric=TransactionMetric.LCP.value,
         )
-    cfg = get_project_config(default_project, full_config=True)
+    with Feature(
+        {
+            "organizations:transaction-metrics-extraction": True,
+        }
+    ):
+        cfg = get_project_config(default_project, full_config=True)
+
     cfg = cfg.to_dict()
     _validate_project_config(cfg["config"])
     insta_snapshot(cfg["config"]["metricConditionalTagging"])
@@ -512,7 +519,12 @@ def test_has_metric_extraction(default_project, feature_flag, killswitch):
             else []
         }
     )
-    with options:
+    feature = Feature(
+        {
+            "organizations:transaction-metrics-extraction": feature_flag,
+        }
+    )
+    with feature, options:
         config = get_project_config(default_project)
         config = config.to_dict()["config"]
         _validate_project_config(config)
