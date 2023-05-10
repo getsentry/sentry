@@ -186,12 +186,18 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     }
                 )
 
-            tags = tagstore.get_group_tag_keys(
-                group,
-                environment_ids,
-                limit=100,
-                tenant_ids={"organization_id": group.project.organization_id},
-            )
+            if "tags" not in collapse:
+                tags = tagstore.get_group_tag_keys(
+                    group,
+                    environment_ids,
+                    limit=100,
+                    tenant_ids={"organization_id": group.project.organization_id},
+                )
+                data.update(
+                    {
+                        "tags": sorted(serialize(tags, request.user), key=lambda x: x["name"]),
+                    }
+                )
 
             user_reports = (
                 UserReport.objects.filter(group_id=group.id)
@@ -243,7 +249,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     "pluginIssues": self._get_available_issue_plugins(request, group),
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
-                    "tags": sorted(serialize(tags, request.user), key=lambda x: x["name"]),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
                 }
             )
