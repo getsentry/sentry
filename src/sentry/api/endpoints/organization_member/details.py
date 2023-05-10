@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.auth.superuser import is_active_superuser
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuthProvider,
     InviteStatus,
@@ -182,7 +183,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 if result.get("regenerate"):
                     if request.access.has_scope("member:admin"):
                         region_outbox = None
-                        with transaction.atomic():
+                        with transaction.atomic(), in_test_psql_role_override("postgres"):
                             member.regenerate_token()
                             member.save()
                             region_outbox = member.save_outbox_for_update()
@@ -285,7 +286,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         ]
 
         region_outbox = None
-        with transaction.atomic():
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
             # If the member has any existing team roles that are less than or equal
             # to their new minimum role, overwrite the redundant team roles with
             # null. We do this because such a team role would be effectively
