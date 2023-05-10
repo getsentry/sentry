@@ -3,16 +3,17 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import Any, List, Mapping, Optional
+from typing import TYPE_CHECKING, Any, List, Mapping, Optional
 
 from pydantic import Field
 
 from sentry.constants import ObjectStatus
-from sentry.models.organization import OrganizationStatus
-from sentry.models.organizationmember import InviteStatus
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
+
+if TYPE_CHECKING:
+    from sentry.models.organization import OrganizationStatus
 
 
 def team_status_visible() -> int:
@@ -80,13 +81,19 @@ class RpcOrganizationMemberSummary(RpcModel):
     flags: RpcOrganizationMemberFlags = Field(default_factory=lambda: RpcOrganizationMemberFlags())
 
 
+def invite_status_approved() -> int:
+    from sentry.models.organizationmember import InviteStatus
+
+    return int(InviteStatus.APPROVED)
+
+
 class RpcOrganizationMember(RpcOrganizationMemberSummary):
     member_teams: List[RpcTeamMember] = Field(default_factory=list)
     role: str = ""
     has_global_access: bool = False
     project_ids: List[int] = Field(default_factory=list)
     scopes: List[str] = Field(default_factory=list)
-    invite_status: int = InviteStatus.APPROVED.value
+    invite_status: int = Field(default_factory=invite_status_approved)
 
     def get_audit_log_metadata(self, user_email: str) -> Mapping[str, Any]:
         team_ids = [mt.team_id for mt in self.member_teams]
@@ -131,14 +138,21 @@ class RpcOrganizationSummary(RpcModel):
         return hash((self.id, self.slug))
 
 
+def organization_status_active() -> "OrganizationStatus":
+    from sentry.models.organization import OrganizationStatus
+
+    return OrganizationStatus.ACTIVE
+
+
 class RpcOrganization(RpcOrganizationSummary):
+
     # Represents the full set of teams and projects associated with the org.  Note that these are not filtered by
     # visibility, but you can apply a manual filter on the status attribute.
     teams: List[RpcTeam] = Field(default_factory=list)
     projects: List[RpcProject] = Field(default_factory=list)
 
     flags: RpcOrganizationFlags = Field(default_factory=lambda: RpcOrganizationFlags())
-    status: OrganizationStatus = OrganizationStatus.ACTIVE
+    status: "OrganizationStatus" = Field(default_factory=organization_status_active)
 
     default_role: str = ""
 
