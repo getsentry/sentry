@@ -8,7 +8,6 @@ from typing import Any, Optional
 
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
-from django.utils.functional import cached_property
 
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
 CACHE_UPDATE_ERR = "Unable to update option cache for %s"
@@ -58,7 +57,7 @@ class OptionsStore:
         self.ttl = ttl
         self.flush_local_cache()
 
-    @cached_property
+    @property
     def model(self):
         return self.model_cls()
 
