@@ -5,8 +5,8 @@ from typing import Dict, Optional, Sequence, Tuple
 import sentry_sdk
 
 from sentry import features, options, quotas
+from sentry.dynamic_sampling.models import utils
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
-from sentry.dynamic_sampling.models.transaction_adjustment_model import adjust_sample_rate
 from sentry.dynamic_sampling.models.utils import DSElement
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
 from sentry.dynamic_sampling.prioritise_transactions import (
@@ -126,7 +126,7 @@ def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
 
     desired_sample_rate = quotas.get_blended_sample_rate(organization_id=org_volume.org_id)
     if desired_sample_rate is None:
-        return f"project with desired_sample_rate==None for {org_volume.org_id}"
+        return f"Organisation with desired_sample_rate==None org_id={org_volume.org_id}"
 
     if org_volume.total == 0 or org_volume.indexed == 0:
         # not enough info to make adjustments ( we don't consider this an error)
@@ -304,9 +304,11 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
 
     org_id = project_transactions["org_id"]
     project_id = project_transactions["project_id"]
-    transactions = project_transactions["transaction_counts"]
     total_num_transactions = project_transactions.get("total_num_transactions")
     total_num_classes = project_transactions.get("total_num_classes")
+    transactions = [
+        DSElement(id=id, count=count) for id, count in project_transactions["transaction_counts"]
+    ]
 
     sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
 
@@ -314,11 +316,13 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
         # no sampling => no rebalancing
         return
 
-    named_rates, implicit_rate = adjust_sample_rate(
+    intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)
+    named_rates, implicit_rate = utils.adjust_sample_rates(
         classes=transactions,
         rate=sample_rate,
         total_num_classes=total_num_classes,
         total=total_num_transactions,
+        intensity=intensity,
     )
 
     set_transactions_resampling_rates(
