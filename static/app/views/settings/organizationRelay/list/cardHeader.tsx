@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Clipboard from 'sentry/components/clipboard';
 import ConfirmDelete from 'sentry/components/confirmDelete';
 import DateTime from 'sentry/components/dateTime';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -10,6 +9,7 @@ import {IconCopy, IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Relay} from 'sentry/types';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 type Props = Relay & {
   disabled: boolean;
@@ -26,6 +26,8 @@ function CardHeader({
   onEdit,
   onDelete,
 }: Props) {
+  const {onClick} = useCopyToClipboard({text: publicKey});
+
   const deleteButton = (
     <Button
       size="sm"
@@ -45,11 +47,9 @@ function CardHeader({
         {tct('Created on [date]', {date: <DateTime date={created} />})}
       </DateCreated>
       <StyledButtonBar gap={1}>
-        <Clipboard value={publicKey}>
-          <Button size="sm" icon={<IconCopy />}>
-            {t('Copy Key')}
-          </Button>
-        </Clipboard>
+        <Button size="sm" icon={<IconCopy />} onClick={onClick}>
+          {t('Copy Key')}
+        </Button>
         <Button
           size="sm"
           onClick={onEdit(publicKey)}
