@@ -121,6 +121,8 @@ class ConfigValidator(serializers.Serializer):
                 raise ValidationError({"schedule": "Invalid schedule for for 'interval' type"})
             if not isinstance(schedule[0], int):
                 raise ValidationError({"schedule": "Invalid schedule for schedule unit count"})
+            if schedule[0] <= 0:
+                raise ValidationError({"schedule": "Interval must be greater than zero"})
             if schedule[1] not in INTERVAL_NAMES:
                 raise ValidationError({"schedule": "Invalid schedule for schedule unit name"})
         elif schedule_type == ScheduleType.CRONTAB:

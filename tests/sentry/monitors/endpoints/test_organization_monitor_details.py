@@ -287,6 +287,14 @@ class UpdateMonitorTest(MonitorTestCase):
             monitor.slug,
             method="PUT",
             status_code=400,
+            **{"config": {"schedule_type": "interval", "schedule": [-1, "day"]}},
+        )
+
+        self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
             **{"config": {"schedule_type": "interval", "schedule": "bar"}},
         )
 
