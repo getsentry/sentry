@@ -31,7 +31,6 @@ import {
 } from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import {getDbThroughput} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -121,7 +120,7 @@ export default function EndpointOverview() {
     isRefetching: isTableRefetching,
   } = useQueryMainTable({});
 
-  const {isLoading, data: throughputData} = useQuery({
+  const {data: dbAggregateData} = useQuery({
     queryKey: ['dbAggregates'],
     queryFn: () =>
       fetch(
@@ -135,7 +134,7 @@ export default function EndpointOverview() {
   });
 
   const aggregatesGroupedByQuery = {};
-  throughputData.forEach(({description, interval, count, p75}) => {
+  dbAggregateData.forEach(({description, interval, count, p75}) => {
     if (description in aggregatesGroupedByQuery) {
       aggregatesGroupedByQuery[description].push({name: interval, count, p75});
     } else {
@@ -169,8 +168,6 @@ export default function EndpointOverview() {
     const zeroFilledP75 = zeroFillSeries(p75Series, moment.duration(12, 'hours'));
     return {...data, throughput: zeroFilledThroughput, p75_trend: zeroFilledP75};
   });
-
-  console.dir(combinedDbData);
 
   const query = new MutableSearch([
     'has:http.method',

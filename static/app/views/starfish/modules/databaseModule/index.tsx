@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -7,15 +8,23 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useQueryMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  getDbAggregatesQuery,
+  useQueryMainTable,
+} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {HOST} from 'sentry/views/starfish/utils/constants';
+import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 import DatabaseChartView from './databaseChartView';
 import DatabaseTableView, {DataRow, MainTableSort} from './databaseTableView';
@@ -54,6 +63,57 @@ function DatabaseModule() {
     filterOld,
     sortKey: sort.sortHeader?.key,
     sortDirection: sort.direction,
+  });
+
+  const pageFilters = usePageFilters();
+
+  const {data: dbAggregateData} = useQuery({
+    queryKey: ['dbAggregates', transaction, filterNew, filterOld],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getDbAggregatesQuery({
+          datetime: pageFilters.selection.datetime,
+          transaction,
+        })}`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const aggregatesGroupedByQuery = {};
+  dbAggregateData.forEach(({description, interval, count, p75}) => {
+    if (description in aggregatesGroupedByQuery) {
+      aggregatesGroupedByQuery[description].push({name: interval, count, p75});
+    } else {
+      aggregatesGroupedByQuery[description] = [{name: interval, count, p75}];
+    }
+  });
+
+  const combinedDbData = tableData.map(data => {
+    const query = data.description;
+
+    const throughputSeries: Series = {
+      seriesName: 'throughput',
+      data: aggregatesGroupedByQuery[query]?.map(({name, count}) => ({
+        name,
+        value: count,
+      })),
+    };
+
+    const p75Series: Series = {
+      seriesName: 'p75 Trend',
+      data: aggregatesGroupedByQuery[query]?.map(({name, p75}) => ({
+        name,
+        value: p75,
+      })),
+    };
+
+    const zeroFilledThroughput = zeroFillSeries(
+      throughputSeries,
+      moment.duration(12, 'hours')
+    );
+    const zeroFilledP75 = zeroFillSeries(p75Series, moment.duration(12, 'hours'));
+    return {...data, throughput: zeroFilledThroughput, p75_trend: zeroFilledP75};
   });
 
   useEffect(() => {
@@ -160,7 +220,7 @@ function DatabaseModule() {
             </SearchFilterContainer>
             <DatabaseTableView
               location={location}
-              data={tableData}
+              data={combinedDbData}
               isDataLoading={isTableDataLoading || isTableRefetching}
               onSelect={setSelectedRow}
               onSortChange={setSort}

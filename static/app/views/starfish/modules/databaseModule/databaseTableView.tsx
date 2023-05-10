@@ -225,7 +225,6 @@ export default function DatabaseTableView({
     }
 
     if (key === 'throughput') {
-      console.dir(row[key]);
       return (
         <Sparkline
           color={CHART_PALETTE[3][0]}
@@ -236,7 +235,6 @@ export default function DatabaseTableView({
     }
 
     if (key === 'p75_trend') {
-      console.dir(row[key]);
       return (
         <Sparkline
           color={CHART_PALETTE[3][3]}
