@@ -42,12 +42,13 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
   const triggeredActivity: ActivityType = criticalActivity
     ? criticalActivity!
     : warningActivity!;
-  const currentTrigger = triggeredActivity.value
-    ? Number(triggeredActivity.value) === IncidentStatus.CRITICAL
+  const isCritical = Number(triggeredActivity.value) === IncidentStatus.CRITICAL;
+  const currentActivityStatus = triggeredActivity.value
+    ? isCritical
       ? 'error'
       : 'warning'
     : undefined;
-  const triggerStatus = currentTrigger === 'error' ? t('Critical') : t('Warning');
+  const triggerStatus = isCritical ? t('Critical') : t('Warning');
 
   // Find duration by looking at the difference between the preiovus and current activity timestamp
   const nextActivity = activities.find(
@@ -57,18 +58,17 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
     nextActivity ? moment(nextActivity.dateCreated) : moment()
   ).diff(moment(triggeredActivity.dateCreated), 'milliseconds');
 
-  // Get the threshold for the current trigger
-  const currentTriggerLabel = currentTrigger === 'error' ? 'critical' : 'warning';
-  const triggerThreshold = incident.alertRule.triggers.find(
-    trigger => trigger.label === currentTriggerLabel
+  const triggerLabel = isCritical ? 'critical' : 'warning';
+  const curentTrigger = incident.alertRule.triggers.find(
+    trigger => trigger.label === triggerLabel
   );
 
   return (
     <Fragment>
       <Cell>
-        {currentTrigger && (
+        {currentActivityStatus && (
           <StatusIndicator
-            status={currentTrigger}
+            status={currentActivityStatus}
             tooltipTitle={t('Status: %s', triggerStatus)}
           />
         )}
@@ -86,7 +86,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
         {incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
           ? t('above')
           : t('below')}{' '}
-        {triggerThreshold?.alertThreshold}
+        {curentTrigger?.alertThreshold}
       </Cell>
       <Cell>
         {activityDuration &&
