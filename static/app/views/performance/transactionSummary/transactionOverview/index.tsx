@@ -153,12 +153,12 @@ function OverviewContentWrapper(props: ChildProps) {
 
   useEffect(() => {
     if (mepContext.isMetricsData && organization.isDynamicallySampled) {
-      trackAnalytics('dynamic_sampling_transaction_summary.baseline', {
-        organization,
-      });
-
       if (isTableEmpty) {
-        trackAnalytics('dynamic_sampling_transaction_summary.no_events', {
+        trackAnalytics('dynamic_sampling_transaction_summary.no_samples', {
+          organization,
+        });
+      } else {
+        trackAnalytics('dynamic_sampling_transaction_summary.baseline', {
           organization,
         });
       }

@@ -20,6 +20,6 @@ export const dynamicSamplingEventMap: Record<DynamicSamplingAnalyticsKey, string
   'dynamic_sampling_settings.priority_enabled': 'Enabled dynamic sampling priority',
   'dynamic_sampling_transaction_summary.baseline':
     'Dynamic Sampling: Transaction Overview Baseline',
-  'dynamic_sampling_transaction_summary.no_events':
+  'dynamic_sampling_transaction_summary.no_samples':
     'Dynamic Sampling: Transaction without events',
 };
