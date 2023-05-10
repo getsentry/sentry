@@ -54,7 +54,7 @@ function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
 const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS);
 const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_CLICK_FIELDS);
 
-function getSupportedTags(supportedTags: TagCollection, organization: Organization) {
+function getSupportedTags(supportedTags: TagCollection) {
   return {
     ...Object.fromEntries(
       Object.keys(supportedTags).map(key => [
@@ -65,9 +65,7 @@ function getSupportedTags(supportedTags: TagCollection, organization: Organizati
         },
       ])
     ),
-    ...(organization && organization.features.includes('session-replay-dom-search')
-      ? REPLAY_CLICK_FIELDS_AS_TAGS
-      : {}),
+    ...REPLAY_CLICK_FIELDS_AS_TAGS,
     ...REPLAY_FIELDS_AS_TAGS,
   };
 }
@@ -115,7 +113,7 @@ function ReplaySearchBar(props: Props) {
     <SmartSearchBar
       {...props}
       onGetTagValues={getTagValues}
-      supportedTags={getSupportedTags(tags, organization)}
+      supportedTags={getSupportedTags(tags)}
       placeholder={t(
         'Search for users, duration, clicked elements, count_errors, and more'
       )}
