@@ -19,6 +19,7 @@ function SuggestedAvatarStack({
   tooltip,
   tooltipOptions,
   reverse = true,
+  suggested = true,
   ...props
 }: Props) {
   const [firstSuggestion, ...suggestedOwners] = owners;
@@ -34,7 +35,7 @@ function SuggestedAvatarStack({
           key={i}
           index={i}
           reverse={reverse}
-          suggested
+          suggested={suggested}
         />
       ))}
       <Avatar
@@ -44,7 +45,7 @@ function SuggestedAvatarStack({
         {...props}
         index={numAvatars - 1}
         reverse={reverse}
-        suggested
+        suggested={suggested}
       />
     </AvatarStack>
   );
