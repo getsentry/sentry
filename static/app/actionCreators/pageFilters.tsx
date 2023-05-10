@@ -50,6 +50,10 @@ type Options = {
    * Persist changes to the page filter selection into local storage
    */
   save?: boolean;
+  /**
+   * Skip checking desync state after updating the page filter value.
+   */
+  skipDesyncUpdate?: boolean;
 };
 
 /**
@@ -294,7 +298,7 @@ export function updateProjects(
   if (options?.environments) {
     persistPageFilters('environments', options);
   }
-  updateDesyncedUrlState(router);
+  !options?.skipDesyncUpdate && updateDesyncedUrlState(router);
 }
 
 /**
@@ -313,7 +317,7 @@ export function updateEnvironments(
   PageFiltersStore.updateEnvironments(environment);
   updateParams({environment}, router, options);
   persistPageFilters('environments', options);
-  updateDesyncedUrlState(router);
+  !options?.skipDesyncUpdate && updateDesyncedUrlState(router);
 }
 
 /**
@@ -333,7 +337,7 @@ export function updateDateTime(
   PageFiltersStore.updateDateTime({...selection.datetime, ...datetime});
   updateParams(datetime, router, options);
   persistPageFilters('datetime', options);
-  updateDesyncedUrlState(router);
+  !options?.skipDesyncUpdate && updateDesyncedUrlState(router);
 }
 
 /**
