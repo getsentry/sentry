@@ -88,7 +88,7 @@ export default function GroupSidebar({
     } catch {
       /* empty */
     }
-  }, [api, group]);
+  }, [api, group.id]);
 
   const fetchCurrentRelease = useCallback(async () => {
     try {
@@ -99,7 +99,7 @@ export default function GroupSidebar({
     } catch {
       /* empty */
     }
-  }, [api, group]);
+  }, [api, group.id]);
 
   const renderPluginIssue = () => {
     const issues: React.ReactNode[] = [];
