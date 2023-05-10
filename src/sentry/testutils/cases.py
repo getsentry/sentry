@@ -519,7 +519,9 @@ class PerformanceIssueTestCase(BaseTestCase):
             ]
         ):
             event = perf_event_manager.save(self.project.id)
-            return event.for_group(mock_eventstream.call_args[0][2].group)
+            group_event = event.for_group(mock_eventstream.call_args[0][2].group)
+            group_event.occurrence = mock_eventstream.call_args[0][1]
+            return group_event
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
