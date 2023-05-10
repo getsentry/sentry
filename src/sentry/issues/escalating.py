@@ -20,6 +20,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry.eventstore.models import GroupEvent
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
@@ -297,10 +298,7 @@ def _issue_category_entity(category: Optional[GroupCategory]) -> EntityKey:
 
 
 def manage_snooze_states(
-    group,
-    group_inbox_reason,
-    event,
-    snooze_details=None,
+    group: Group, group_inbox_reason: GroupInboxReason, event: GroupEvent, snooze_details=None
 ):
     if group_inbox_reason == GroupInboxReason.ESCALATING:
         add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
