@@ -165,11 +165,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
         flags: RpcOrganizationMemberFlags | None = None,
         role: str | None = None,
         inviter_id: int | None = None,
-        invite_status: int | None = InviteStatus.APPROVED.value,
+        invite_status: int | None = None,
     ) -> RpcOrganizationMember:
         assert (user_id is None and email) or (
             user_id and email is None
         ), "Must set either user_id or email"
+        if invite_status is None:
+            invite_status = InviteStatus.APPROVED.value
         region_outbox = None
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             org_member: OrganizationMember = OrganizationMember.objects.create(
