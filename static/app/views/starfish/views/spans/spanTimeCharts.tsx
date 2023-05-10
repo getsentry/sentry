@@ -1,10 +1,14 @@
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {
   datetimeToClickhouseFilterTimestamps,
   PERIOD_REGEX,
@@ -19,7 +23,7 @@ type Props = {
   descriptionFilter: string;
 };
 
-export function SpanTotalTimeChart({descriptionFilter, clusters}: Props) {
+export function SpanTimeCharts({descriptionFilter, clusters}: Props) {
   const themes = useTheme();
 
   const pageFilter = usePageFilters();
@@ -48,14 +52,31 @@ export function SpanTotalTimeChart({descriptionFilter, clusters}: Props) {
 
   const dataByGroup = groupBy(data, 'primary_group');
 
-  const series = Object.keys(dataByGroup).map(groupName => {
+  const totalTimeSeries = Object.keys(dataByGroup).map(groupName => {
     const groupData = dataByGroup[groupName];
 
     return zeroFillSeries(
       {
         seriesName: groupName,
         data: groupData.map(datum => ({
-          value: datum.exclusive_time,
+          value: datum.total_time,
+          name: datum.interval,
+        })),
+      },
+      moment.duration(1, 'day'),
+      startTime,
+      endTime
+    );
+  });
+
+  const p50Series = Object.keys(dataByGroup).map(groupName => {
+    const groupData = dataByGroup[groupName];
+
+    return zeroFillSeries(
+      {
+        seriesName: groupName,
+        data: groupData.map(datum => ({
+          value: datum.p50,
           name: datum.interval,
         })),
       },
@@ -66,25 +87,56 @@ export function SpanTotalTimeChart({descriptionFilter, clusters}: Props) {
   });
 
   return (
-    <Chart
-      statsPeriod="24h"
-      height={100}
-      data={series}
-      start=""
-      end=""
-      loading={isLoading}
-      utc={false}
-      grid={{
-        left: '0',
-        right: '0',
-        top: '8px',
-        bottom: '0',
-      }}
-      definedAxisTicks={4}
-      stacked
-      chartColors={themes.charts.getColorPalette(2)}
-      disableXAxis
-    />
+    <ChartsContainer>
+      <ChartsContainerItem>
+        <ChartPanel title={t('Total Time')}>
+          <Chart
+            statsPeriod="24h"
+            height={100}
+            data={totalTimeSeries}
+            start=""
+            end=""
+            loading={isLoading}
+            utc={false}
+            grid={{
+              left: '0',
+              right: '0',
+              top: '8px',
+              bottom: '0',
+            }}
+            definedAxisTicks={4}
+            stacked
+            chartColors={themes.charts.getColorPalette(2)}
+            disableXAxis
+          />
+        </ChartPanel>
+      </ChartsContainerItem>
+
+      <ChartsContainerItem>
+        <ChartPanel title={t('p50')}>
+          <Chart
+            statsPeriod="24h"
+            height={100}
+            data={p50Series}
+            start=""
+            end=""
+            loading={isLoading}
+            utc={false}
+            grid={{
+              left: '0',
+              right: '0',
+              top: '8px',
+              bottom: '0',
+            }}
+            definedAxisTicks={4}
+            stacked
+            isLineChart
+            chartColors={themes.charts.getColorPalette(2)}
+            disableXAxis
+          />
+        </ChartPanel>
+      </ChartsContainerItem>
+    </ChartsContainer>
   );
 }
 
@@ -99,7 +151,8 @@ export const getSpanTotalTimeChartQuery = (
 
   return `SELECT
     ${groupingColumn} AS primary_group,
-    sum(exclusive_time) AS exclusive_time,
+    sum(exclusive_time) AS total_time,
+    quantile(0.50)(exclusive_time) as p50,
     toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
     FROM spans_experimental_starfish
     WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
@@ -111,3 +164,14 @@ export const getSpanTotalTimeChartQuery = (
     ORDER BY interval ASC
   `;
 };
+
+const ChartsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: ${space(2)};
+`;
+
+const ChartsContainerItem = styled('div')`
+  flex: 1;
+`;
