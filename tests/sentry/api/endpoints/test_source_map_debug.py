@@ -86,6 +86,21 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Query parameter 'frame_idx' is out of bounds"
 
+    def test_no_exception(self):
+        event_data = self.base_data.copy()
+        del event_data["exception"]
+        event = self.store_event(data=event_data, project_id=self.project.id)
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        assert resp.data["detail"] == "Event does not contain an exception"
+
     def test_exception_out_of_bounds(self):
         event = self.store_event(
             data=self.base_data,
