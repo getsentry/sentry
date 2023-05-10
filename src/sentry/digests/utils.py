@@ -81,18 +81,18 @@ def get_events_by_participant(
 def get_personalized_digests(
     digest: Digest,
     participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[RpcActor]]],
-) -> Mapping[int, Digest]:
+) -> Mapping[RpcActor, Digest]:
     events_by_participant = get_events_by_participant(participants_by_provider_by_event)
 
-    actor_id_to_digest = {}
+    actor_to_digest = {}
 
     for participant, events in events_by_participant.items():
-        if participant.actor_id is not None:
+        if participant is not None:
             custom_digest = build_custom_digest(digest, events, participant)
             if custom_digest:
-                actor_id_to_digest[participant.actor_id] = custom_digest
+                actor_to_digest[participant] = custom_digest
 
-    return actor_id_to_digest
+    return actor_to_digest
 
 
 def get_event_from_groups_in_digest(digest: Digest) -> Iterable[Event]:

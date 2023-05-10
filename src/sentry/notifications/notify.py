@@ -15,7 +15,7 @@ Notifiable = Callable[
         BaseNotification,
         Iterable[Union[RpcActor, Team, User, RpcUser]],
         Mapping[str, Any],
-        Optional[Mapping[int, Mapping[str, Any]]],
+        Optional[Mapping[RpcActor, Mapping[str, Any]]],
     ],
     None,
 ]
@@ -49,7 +49,7 @@ def notify(
     notification: Any,
     recipients: Iterable[RpcActor | Team | RpcUser],
     shared_context: Mapping[str, Any],
-    extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None = None,
+    extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None = None,
 ) -> None:
     """Send notifications to these users or team."""
 
@@ -81,4 +81,4 @@ def notify(
             new_recipients += list(Team.objects.filter(id__in=team_ids))
         recipients = new_recipients
     """ ###################### End Hack ###################### """
-    registry[provider](notification, recipients, shared_context, extra_context_by_actor_id)
+    registry[provider](notification, recipients, shared_context, extra_context_by_actor)
