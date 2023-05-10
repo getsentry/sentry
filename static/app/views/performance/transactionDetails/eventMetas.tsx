@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
-import Clipboard from 'sentry/components/clipboard';
 import DateTime from 'sentry/components/dateTime';
 import ContextIcon from 'sentry/components/events/contextSummary/contextIcon';
 import {generateIconName} from 'sentry/components/events/contextSummary/utils';
@@ -26,6 +25,7 @@ import {
 import {isTransaction} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 import theme from 'sentry/utils/theme';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 
 import QuickTraceMeta from './quickTraceMeta';
@@ -308,22 +308,35 @@ const QuickTraceContainer = styled('div')`
 `;
 
 function EventID({event}: {event: Event}) {
+  const {onClick} = useCopyToClipboard({text: event.eventID});
+
   return (
-    <Clipboard value={event.eventID}>
-      <EventIDContainer>
+    <EventIDContainer onClick={onClick}>
+      <Tooltip title={event.eventID} position="top">
         <EventIDWrapper>{getShortEventId(event.eventID)}</EventIDWrapper>
-        <Tooltip title={event.eventID} position="top">
-          <IconCopy color="subText" />
-        </Tooltip>
-      </EventIDContainer>
-    </Clipboard>
+        <IconCopy />
+      </Tooltip>
+    </EventIDContainer>
   );
 }
 
-const EventIDContainer = styled('div')`
+const EventIDContainer = styled('button')`
   display: flex;
   align-items: center;
-  cursor: pointer;
+
+  background: transparent;
+  border: none;
+  padding: 0;
+
+  &:hover {
+    color: ${p => p.theme.activeText};
+  }
+  svg {
+    color: ${p => p.theme.subText};
+  }
+  &:hover svg {
+    color: ${p => p.theme.textColor};
+  }
 `;
 
 const EventIDWrapper = styled('span')`

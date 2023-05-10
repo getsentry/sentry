@@ -94,6 +94,27 @@ TEST_ISSUE_OCCURRENCE = IssueOccurrence(
     "info",
     "/api/123/",
 )
+TEST_PERF_ISSUE_OCCURRENCE = IssueOccurrence(
+    uuid.uuid4().hex,
+    1,
+    uuid.uuid4().hex,
+    ["some-fingerprint"],
+    "N+1 Query",
+    "it was bad",
+    "1234",
+    {"Test": 123},
+    [
+        IssueEvidence(
+            "db",
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+            True,
+        ),
+    ],
+    PerformanceNPlusOneGroupType,
+    ensure_aware(datetime.now()),
+    "info",
+    "/api/123/",
+)
 
 SAMPLE_TO_OCCURRENCE_MAP = {
     "transaction-n-plus-one-api-call": IssueOccurrence(

@@ -2,6 +2,7 @@ import {ReactNode} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -142,14 +143,20 @@ function IssueListHeader({
 
                 return (
                   <TabList.Item key={tabQuery} to={to} textValue={queryName}>
-                    <IssueListHeaderTabContent
-                      tooltipTitle={tooltipTitle}
-                      tooltipHoverable={tooltipHoverable}
-                      name={queryName}
-                      count={queryCounts[tabQuery]?.count}
-                      hasMore={queryCounts[tabQuery]?.hasMore}
-                      query={tabQuery}
-                    />
+                    <GuideAnchor
+                      disabled={tabQuery !== Query.ARCHIVED}
+                      target="issue_stream_archive_tab"
+                      position="bottom"
+                    >
+                      <IssueListHeaderTabContent
+                        tooltipTitle={tooltipTitle}
+                        tooltipHoverable={tooltipHoverable}
+                        name={queryName}
+                        count={queryCounts[tabQuery]?.count}
+                        hasMore={queryCounts[tabQuery]?.hasMore}
+                        query={tabQuery}
+                      />
+                    </GuideAnchor>
                   </TabList.Item>
                 );
               }

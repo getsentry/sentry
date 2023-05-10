@@ -38,7 +38,10 @@ export function CopyToClipboardButton({
       title={label}
       tooltipProps={{delay: 0}}
       translucentBorder
-      onClick={onClick}
+      onClick={e => {
+        onClick();
+        props.onClick?.(e);
+      }}
       {...props}
     >
       <IconCopy size={iconSize} />
