@@ -27,7 +27,7 @@ from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOI
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.types.group import SUBSTATUS_ALIASES, SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -230,6 +230,15 @@ class ConvertSubStatusValueTest(TestCase):
             assert result[1].value.raw_value == [GROUP_SUBSTATUS_TO_STATUS_MAP.get(substatus_val)]
 
             filters = [SearchFilter(SearchKey("substatus"), "=", SearchValue([substatus_val]))]
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value == [substatus_val]
+            assert result[1].value.raw_value == [GROUP_SUBSTATUS_TO_STATUS_MAP.get(substatus_val)]
+
+    def test_alises(self):
+        for substatus_alias_string, substatus_val in SUBSTATUS_ALIASES.items():
+            filters = [
+                SearchFilter(SearchKey("substatus"), "=", SearchValue([substatus_alias_string]))
+            ]
             result = convert_query_values(filters, [self.project], self.user, None)
             assert result[0].value.raw_value == [substatus_val]
             assert result[1].value.raw_value == [GROUP_SUBSTATUS_TO_STATUS_MAP.get(substatus_val)]

@@ -35,7 +35,7 @@ from sentry.models import (
 )
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.base import ANY
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
+from sentry.types.group import SUBSTATUS_ALIASES, SUBSTATUS_UPDATE_CHOICES
 from sentry.utils.auth import find_users
 
 
@@ -66,6 +66,8 @@ def parse_status_value(status: Union[str, int]) -> int:
 
 
 def parse_substatus_value(substatus: Union[str, int]) -> int:
+    if substatus in SUBSTATUS_ALIASES:
+        return int(SUBSTATUS_ALIASES[substatus])
     if substatus in SUBSTATUS_UPDATE_CHOICES:
         return int(SUBSTATUS_UPDATE_CHOICES[substatus])
     if substatus in SUBSTATUS_UPDATE_CHOICES.values():

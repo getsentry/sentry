@@ -31,7 +31,7 @@ from sentry.search.utils import (
     parse_substatus_value,
     parse_user_value,
 )
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.types.group import SUBSTATUS_ALIASES, SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 
 is_filter_translation = {
     "assigned": ("unassigned", False),
@@ -39,12 +39,20 @@ is_filter_translation = {
     "for_review": ("for_review", True),
     "linked": ("linked", True),
     "unlinked": ("linked", False),
+    **{
+        status_key: ("status", status_value)
+        for status_key, status_value in STATUS_QUERY_CHOICES.items()
+    },
+    **{
+        substatus_key: ("substatus", substatus_value)
+        for substatus_key, substatus_value in SUBSTATUS_UPDATE_CHOICES.items()
+    },
+    **{
+        substatus_alias_key: ("substatus", substatus_value)
+        for substatus_alias_key, substatus_value in SUBSTATUS_ALIASES.items()
+    },
 }
-for status_key, status_value in STATUS_QUERY_CHOICES.items():
-    is_filter_translation[status_key] = ("status", status_value)
 
-for substatus_key, substatus_value in SUBSTATUS_UPDATE_CHOICES.items():
-    is_filter_translation[substatus_key] = ("substatus", substatus_value)
 
 issue_search_config = SearchConfig.create_from(
     default_config,

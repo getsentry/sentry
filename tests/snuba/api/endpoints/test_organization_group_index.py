@@ -1,5 +1,6 @@
 import functools
 from datetime import timedelta
+from typing import Sequence
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
@@ -2029,6 +2030,50 @@ class GroupListTest(APITestCase, SnubaTestCase):
             == [int(r["id"]) for r in response10.data]
             == []
         )
+
+    def test_query_substatus_aliases(self):
+        event1 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event1.group.update(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        event2.group.update(status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING)
+        event3 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-3"]},
+            project_id=self.project.id,
+        )
+        event3.group.update(
+            status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_CONDITION_MET
+        )
+        self.login_as(user=self.user)
+
+        get_query_response = functools.partial(
+            self.get_response, sort_by="date", limit=10, expand="inbox", collapse="stats"
+        )
+
+        def _response_data_id(resp) -> Sequence[int]:
+            return [int(r["id"]) for r in resp.data]
+
+        with Feature("organizations:issue-states"):
+            assert (
+                _response_data_id(get_query_response(query="is:archived_forever"))
+                == _response_data_id(get_query_response(query="is:forever"))
+                == [event1.group.id]
+            )
+            assert (
+                _response_data_id(get_query_response(query="is:archived_until_escalating"))
+                == _response_data_id(get_query_response(query="is:until_escalating"))
+                == [event2.group.id]
+            )
+            assert (
+                _response_data_id(get_query_response(query="is:archived_until_condition_met"))
+                == _response_data_id(get_query_response(query="is:until_condition_met"))
+                == [event3.group.id]
+            )
 
 
 @region_silo_test
