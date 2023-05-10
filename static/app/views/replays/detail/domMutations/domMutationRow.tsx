@@ -1,7 +1,6 @@
 import {CSSProperties, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import beautify from 'js-beautify';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import ObjectInspector from 'sentry/components/objectInspector';
@@ -96,6 +95,7 @@ function DomMutationRow({
         <CodeContainer>
           <ObjectInspector
             data={html}
+            expandLevel={1}
             expandPaths={expandPaths}
             onExpand={handleExpand}
           />
