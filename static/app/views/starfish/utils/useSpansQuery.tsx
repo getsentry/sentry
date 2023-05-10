@@ -17,7 +17,7 @@ const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 // Setting return type since I'd rather not know if its discover query or not
 export type UseSpansQueryReturnType<T> = {data: T; isLoading: boolean};
 
-export function useSpansQuery<T>({
+export function useSpansQuery<T = any[]>({
   eventView,
   queryString,
   initialData,
