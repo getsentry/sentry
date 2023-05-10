@@ -57,7 +57,7 @@ class RecordingIngestMessage:
     project_id: int
     replay_id: str
     key_id: int | None
-    received: float
+    received: int
     payload_with_headers: bytes
 
 
