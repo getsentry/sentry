@@ -300,6 +300,9 @@ def _issue_category_entity(category: Optional[GroupCategory]) -> EntityKey:
 def manage_snooze_states(
     group: Group, group_inbox_reason: GroupInboxReason, event: GroupEvent, snooze_details=None
 ) -> None:
+    """
+    Handles the downstream changes to the status/substatus of GroupInbox and Group for each GroupInboxReason
+    """
     if group_inbox_reason == GroupInboxReason.ESCALATING:
         add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
         record_group_history(group, GroupHistoryStatus.ESCALATING)
