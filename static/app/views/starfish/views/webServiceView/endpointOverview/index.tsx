@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import moment from 'moment';
 import * as qs from 'query-string';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -12,7 +13,9 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
+import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -26,12 +29,9 @@ import {
   getDbAggregatesQuery,
   useQueryMainTable,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
-import {getDbThroughput} from 'sentry/views/starfish/views/webServiceView/queries';
-import {useQuery} from 'sentry/utils/queryClient';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {Series} from 'sentry/types/echarts';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import moment from 'moment';
+import {getDbThroughput} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
 

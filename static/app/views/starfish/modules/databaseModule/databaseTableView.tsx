@@ -6,13 +6,13 @@ import Badge from 'sentry/components/badge';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
+import Sparkline from 'sentry/views/starfish/components/sparkline';
 import {Sort} from 'sentry/views/starfish/modules/databaseModule';
 import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
 
 import {highlightSql} from './panel';
-import Sparkline from 'sentry/views/starfish/components/sparkline';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 
 type Props = {
   isDataLoading: boolean;
