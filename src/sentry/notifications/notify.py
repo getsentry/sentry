@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Union
+from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional
 
 from sentry.models import Team, User
 from sentry.notifications.notifications.base import BaseNotification
@@ -13,7 +13,7 @@ from sentry.types.integrations import ExternalProviders
 Notifiable = Callable[
     [
         BaseNotification,
-        Iterable[Union[RpcActor, Team, User, RpcUser]],
+        Iterable[RpcActor],
         Mapping[str, Any],
         Optional[Mapping[RpcActor, Mapping[str, Any]]],
     ],
