@@ -30,7 +30,7 @@ from sentry.ownership.grammar import dump_schema
 from sentry.plugins.base import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -80,8 +80,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
+    @mock.patch(
+        "sentry.eventstore.models.GroupEvent.occurrence",
+        return_value=TEST_PERF_ISSUE_OCCURRENCE,
+        new_callable=mock.PropertyMock,
+    )
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_performance_issue_alert_user(self, mock_func):
+    def test_performance_issue_alert_user(self, mock_func, occurrence):
         """Test that performance issue alerts are sent to a Slack user."""
 
         event = self.create_performance_issue()
