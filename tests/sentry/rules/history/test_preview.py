@@ -19,6 +19,7 @@ from sentry.rules.history.preview import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
@@ -35,7 +36,7 @@ def get_hours(time: timedelta) -> int:
 
 @freeze_time()
 @region_silo_test
-class ProjectRulePreviewTest(TestCase, SnubaTestCase):
+class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
         self.transaction_data = load_data(
@@ -391,18 +392,9 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
 
     def test_transactions(self):
         prev_hour = timezone.now() - timedelta(hours=1)
-        event = self.transaction_data.copy()
-        event.update(
-            {
-                "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
-                "timestamp": iso_format(prev_hour),
-                "tags": {"foo": "bar"},
-                "transaction": "this is where a transaction's 'message' is stored",
-            }
-        )
-        transaction = self.store_event(project_id=self.project.id, data=event)
+        transaction = self.create_performance_issue(tags=[["foo", "bar"]])
 
-        perf_issue = transaction.groups[0]
+        perf_issue = transaction.group
         perf_issue.update(first_seen=prev_hour)
         Activity.objects.create(
             project=self.project,
@@ -432,7 +424,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
                 "id": "sentry.rules.filters.event_attribute.EventAttributeFilter",
                 "attribute": "message",
                 "match": "eq",
-                "value": "this is where a transaction's 'message' is stored",
+                "value": "N+1 Query",
             }
         ]
         result = preview(self.project, conditions, filters, "all", "all", 0)
@@ -463,17 +455,9 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         issue = error.group
         issue.update(first_seen=prev_hour)
 
-        event = self.transaction_data.copy()
-        event.update(
-            {
-                "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
-                "timestamp": iso_format(prev_hour),
-                "tags": {"foo": "bar"},
-            }
-        )
-        transaction = self.store_event(project_id=self.project.id, data=event)
+        transaction = self.create_performance_issue(tags=[["foo", "bar"]])
 
-        perf_issue = transaction.groups[0]
+        perf_issue = transaction.group
         perf_issue.update(first_seen=timezone.now() - timedelta(weeks=3))
         Activity.objects.create(
             project=self.project,
@@ -520,7 +504,9 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
 
 @freeze_time()
 @region_silo_test
-class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
+class FrequencyConditionTest(
+    TestCase, SnubaTestCase, OccurrenceTestMixin, PerformanceIssueTestCase
+):
     def setUp(self):
         super().setUp()
         self.transaction_data = load_data(
@@ -621,7 +607,8 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 "tags": {"foo": "bar"},
             }
         )
-        transaction = self.store_event(project_id=self.project.id, data=event)
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            transaction = self.store_event(project_id=self.project.id, data=event)
         group = transaction.groups[0]
 
         Activity.objects.create(
