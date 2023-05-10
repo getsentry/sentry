@@ -1,8 +1,12 @@
 import {Moment, unix} from 'moment';
 
+import {EventTransaction} from 'sentry/types';
+import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DefinedUseQueryResult, useQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {TransactionListDataRow} from 'sentry/views/starfish/modules/databaseModule/panel';
@@ -500,6 +504,61 @@ export const useQueryTransactionByTPMAndP75 = (
     }),
     initialData: [],
     forceUseDiscover: true,
+  });
+};
+
+export const useQueryGetProfileIds = (
+  transactionNames: string[],
+  spanHash: string
+): DefinedUseQueryResult<{transaction_id: string}[]> => {
+  const location = useLocation();
+  const {slug: orgSlug} = useOrganization();
+  const eventView = EventView.fromNewQueryWithLocation(
+    {
+      fields: ['transaction'],
+      name: 'Db module - profile',
+      query: `transaction:[${transactionNames.join(',')}] has:profile.id`,
+      projects: [1],
+      version: 1,
+    },
+    location
+  );
+  const discoverResult = useDiscoverQuery({eventView, location, orgSlug});
+
+  const transactionIds = discoverResult?.data?.data?.map(d => d.id);
+
+  const query = `
+    SELECT
+      transaction_id
+    FROM
+      default.spans_experimental_starfish
+    WHERE
+      group_id = '${spanHash}' AND
+      transaction_id IN ('${transactionIds?.join(`','`)}')
+  `;
+
+  return useQuery({
+    enabled: !!transactionIds?.length,
+    queryKey: ['transactionsWithProfiles', transactionIds?.join(',')],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+};
+
+export const useQueryGetEvent = (
+  transactionEventId?: string
+): DefinedUseQueryResult<EventTransaction> => {
+  const path = `/api/0/projects/sentry/sentry/events/${transactionEventId?.replaceAll(
+    '-',
+    ''
+  )}/`;
+  return useQuery({
+    enabled: !!transactionEventId,
+    queryKey: ['event', transactionEventId],
+    queryFn: () => fetch(path).then(res => res.json()),
+    retry: false,
+    initialData: {},
   });
 };
 

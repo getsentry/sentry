@@ -154,6 +154,9 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         "consecutive_http_spans_span_duration_threshold": options.get(
             "performance.issues.consecutive_http.span_duration_threshold"
         ),
+        "large_http_payload_size_threshold": options.get(
+            "performance.issues.large_http_payload.size_threshold"
+        ),
     }
 
     default_project_settings = (
@@ -253,7 +256,9 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             ],  # ms
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
         },
-        DetectorType.LARGE_HTTP_PAYLOAD: {"payload_size_threshold": 10000000},  # 10mb
+        DetectorType.LARGE_HTTP_PAYLOAD: {
+            "payload_size_threshold": settings["large_http_payload_size_threshold"]
+        },
     }
 
 

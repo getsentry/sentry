@@ -52,7 +52,6 @@ class TagStorage(Service):
             "get_first_release",
             "get_last_release",
             "get_release_tags",
-            "get_group_ids_for_users",
             "get_group_tag_values_for_users",
             "get_group_tag_keys_and_top_values",
             "get_tag_value_paginator",
@@ -314,12 +313,6 @@ class TagStorage(Service):
     def get_release_tags(self, organization_id, project_ids, environment_id, versions):
         """
         >>> get_release_tags([1, 2], 3, ["1", "2"])
-        """
-        raise NotImplementedError
-
-    def get_group_ids_for_users(self, project_ids, event_users, limit=100, tenant_ids=None):
-        """
-        >>> get_group_ids_for_users([1,2], [EventUser(1), EventUser(2)])
         """
         raise NotImplementedError
 

@@ -36,7 +36,7 @@ class RuleSnoozeSerializer(Serializer):  # type: ignore
 def can_edit_alert_rule(rule, organization, user_id, user):
     # make sure user has 'alert:write' scope
     try:
-        org_member = OrganizationMember.objects.get(organization=organization, user=user)
+        org_member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
         if "alerts:write" not in org_member.get_scopes():
             return False
     except OrganizationMember.DoesNotExist:
