@@ -475,7 +475,8 @@ def alert(request):
             "notification_settings_link": absolute_uri(
                 "/settings/account/notifications/alerts/?referrer=alert_email"
             ),
-            "culprit": random.choice(["sentry.tasks.post_process.post_process_group", None]),
+            "culprit": random.choice(["sentry.tasks.culprit.culprit", None]),
+            "subtitle": random.choice(["subtitles are cool", None]),
             "issue_type": group.issue_type.description,
             "has_issue_states": has_issue_states,
         },
