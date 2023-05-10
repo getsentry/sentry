@@ -166,25 +166,11 @@ class SnubaTSDB(BaseTSDB):
     non_outcomes_snql_query_settings = {
         TSDBModel.project: SnubaModelQuerySettings(snuba.Dataset.Events, "project_id", None, []),
         TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "group_id", None, []),
-        TSDBModel.group_performance: SnubaModelQuerySettings(
-            snuba.Dataset.Transactions,
-            "group_id",
-            None,
-            [],
-            [Function("arrayJoin", [Column("group_ids")], "group_id")],
-        ),
         TSDBModel.release: SnubaModelQuerySettings(
             snuba.Dataset.Events, "tags[sentry:release]", None, []
         ),
         TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
             snuba.Dataset.Events, "group_id", "tags[sentry:user]", []
-        ),
-        TSDBModel.users_affected_by_perf_group: SnubaModelQuerySettings(
-            snuba.Dataset.Transactions,
-            "group_id",
-            "tags[sentry:user]",
-            [],
-            [Function("arrayJoin", [Column("group_ids")], "group_id")],
         ),
         TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
             snuba.Dataset.Events, "project_id", "tags[sentry:user]", []
