@@ -77,7 +77,7 @@ function DatabaseModule() {
       document.removeEventListener('keydown', handleKeyDown);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [tableData]);
 
   const toggleFilterNew = () => {
     setFilterNew(!filterNew);
