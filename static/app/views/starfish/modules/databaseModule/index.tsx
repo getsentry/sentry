@@ -30,7 +30,6 @@ function DatabaseModule() {
   const location = useLocation();
   const organization = useOrganization();
   const eventView = EventView.fromLocation(location);
-  const [action, setAction] = useState<string>('ALL');
   const [table, setTable] = useState<string>('ALL');
   const [filterNew, setFilterNew] = useState<boolean>(false);
   const [filterOld, setFilterOld] = useState<boolean>(false);
@@ -51,7 +50,8 @@ function DatabaseModule() {
   } = useQueryMainTable({
     transaction,
     table,
-    action,
+    filterNew,
+    filterOld,
     sortKey: sort.sortHeader?.key,
     sortDirection: sort.direction,
   });
@@ -135,19 +135,7 @@ function DatabaseModule() {
             <FilterOptionsContainer>
               <DatePageFilter alignDropdown="left" />
             </FilterOptionsContainer>
-            <DatabaseChartView
-              location={location}
-              action={action}
-              table={table}
-              onChange={(key, val) => {
-                if (key === 'action') {
-                  setAction(val);
-                  setTable('ALL');
-                } else {
-                  setTable(val);
-                }
-              }}
-            />
+            <DatabaseChartView location={location} table={table} onChange={setTable} />
             <SearchFilterContainer>
               <LabelledSwitch
                 label="Filter New Queries"
