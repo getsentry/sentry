@@ -1,3 +1,4 @@
+from sentry.dynamic_sampling.models.utils import DSElement
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     get_transactions_resampling_rates,
     set_transactions_resampling_rates,
@@ -15,10 +16,14 @@ def test_resampling_rates_in_cache():
     other_proj_id = 20
 
     expected_global_rate = 0.3
-    expected_trans_rates = {"t1": 0.6, "t2": 0.7}
+    expected_trans_rates = [
+        DSElement(id="t1", count=1, new_sample_rate=0.6),
+        DSElement(id="t2", count=1, new_sample_rate=0.7),
+    ]
+    expected_trans_rates_dict = {elm.id: elm.new_sample_rate for elm in expected_trans_rates}
 
     other_rate = 0.1
-    other_rates = {"t11": 0.1}
+    other_rates = [DSElement(id="t11", new_sample_rate=0.1, count=1)]
 
     # store our desired transaction rate
     set_transactions_resampling_rates(
@@ -49,7 +54,7 @@ def test_resampling_rates_in_cache():
         org_id=org_id, proj_id=proj_id, default_rate=1.0
     )
 
-    assert actual_trans_rates == expected_trans_rates
+    assert actual_trans_rates == expected_trans_rates_dict
     assert actual_global_rate == expected_global_rate
 
 
@@ -63,7 +68,7 @@ def test_resampling_rates_missing():
     other_proj_id = 20
 
     other_rate = 0.1
-    other_rates = {"t11": 0.1}
+    other_rates = [DSElement(id="t11", count=1, new_sample_rate=0.1)]
 
     # store some garbage to check we don't accidentally return other keys
     set_transactions_resampling_rates(

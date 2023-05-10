@@ -33,41 +33,43 @@ class RareTransactionsRulesBias(Bias):
             # have it applied undo its effect here so we end up with factor = (transaction_r/implicit_r) * implicit_r
             transaction_rate /= implicit_rate
             # add a rule for each rebalanced transaction
+            if transaction_rate != 1.0:
+                ret_val.append(
+                    {
+                        "samplingValue": {
+                            "type": "factor",
+                            "value": transaction_rate,
+                        },
+                        "type": "trace",
+                        "condition": {
+                            "op": "or",
+                            "inner": [
+                                {
+                                    "op": "eq",
+                                    "name": "trace.transaction",
+                                    "value": [name],
+                                    "options": {"ignoreCase": True},
+                                }
+                            ],
+                        },
+                        "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS] + idx,
+                    }
+                )
+                idx += 1
+        if implicit_rate != 1.0:
             ret_val.append(
                 {
                     "samplingValue": {
                         "type": "factor",
-                        "value": transaction_rate,
+                        "value": implicit_rate,
                     },
                     "type": "trace",
                     "condition": {
-                        "op": "or",
-                        "inner": [
-                            {
-                                "op": "eq",
-                                "name": "trace.transaction",
-                                "value": [name],
-                                "options": {"ignoreCase": True},
-                            }
-                        ],
+                        "op": "and",
+                        "inner": [],
                     },
                     "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS] + idx,
                 }
             )
-            idx += 1
-        ret_val.append(
-            {
-                "samplingValue": {
-                    "type": "factor",
-                    "value": implicit_rate,
-                },
-                "type": "trace",
-                "condition": {
-                    "op": "and",
-                    "inner": [],
-                },
-                "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS] + idx,
-            }
-        )
 
         return ret_val
