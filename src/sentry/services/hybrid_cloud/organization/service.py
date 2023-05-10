@@ -6,7 +6,6 @@
 from abc import abstractmethod
 from typing import Iterable, List, Optional, cast
 
-from sentry.models.organizationmember import InviteStatus
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
@@ -138,7 +137,7 @@ class OrganizationService(RpcService):
         flags: Optional[RpcOrganizationMemberFlags] = None,
         role: Optional[str] = None,
         inviter_id: Optional[int] = None,
-        invite_status: Optional[int] = InviteStatus.APPROVED.value,
+        invite_status: Optional[int] = None,
     ) -> RpcOrganizationMember:
         pass
 
