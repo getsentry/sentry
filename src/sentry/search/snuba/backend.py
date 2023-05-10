@@ -508,6 +508,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     ) -> Mapping[str, Condition]:
         queryset_conditions: Dict[str, Condition] = {
             "status": QCallbackCondition(lambda statuses: Q(status__in=statuses)),
+            "substatus": QCallbackCondition(lambda substatuses: Q(substatus__in=substatuses)),
             "bookmarked_by": QCallbackCondition(
                 lambda users: Q(
                     bookmark_set__project__in=projects,
