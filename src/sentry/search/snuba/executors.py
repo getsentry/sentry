@@ -143,6 +143,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[Mapping[str, Any]] = None,
     ) -> CursorResult[Group]:
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
@@ -1016,6 +1017,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[Mapping[str, Any]] = None,
     ) -> CursorResult[Group]:
 
         if not validate_cdc_search_filters(search_filters):
