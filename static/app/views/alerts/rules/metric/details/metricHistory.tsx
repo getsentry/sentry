@@ -43,12 +43,6 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
     ? criticalActivity!
     : warningActivity!;
   const isCritical = Number(triggeredActivity.value) === IncidentStatus.CRITICAL;
-  const currentActivityStatus = triggeredActivity.value
-    ? isCritical
-      ? 'error'
-      : 'warning'
-    : undefined;
-  const triggerStatus = isCritical ? t('Critical') : t('Warning');
 
   // Find duration by looking at the difference between the preiovus and current activity timestamp
   const nextActivity = activities.find(
@@ -66,10 +60,10 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
   return (
     <Fragment>
       <Cell>
-        {currentActivityStatus && (
+        {triggeredActivity.value && (
           <StatusIndicator
-            status={currentActivityStatus}
-            tooltipTitle={t('Status: %s', triggerStatus)}
+            status={isCritical ? 'error' : 'warning'}
+            tooltipTitle={t('Status: %s', isCritical ? t('Critical') : t('Warning'))}
           />
         )}
         <Link
