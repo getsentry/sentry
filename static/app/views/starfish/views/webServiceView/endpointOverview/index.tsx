@@ -13,7 +13,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,8 +23,6 @@ import Chart from 'sentry/views/starfish/components/chart';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import DatabaseTableView from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {useQueryMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
-import {HOST} from 'sentry/views/starfish/utils/constants';
-import {getModuleBreakdown} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -104,20 +101,6 @@ export default function EndpointOverview() {
     data: tableData,
     isRefetching: isTableRefetching,
   } = useQueryMainTable({});
-
-  const {data: moduleBreakdown} = useQuery({
-    queryKey: [`moduleBreakdown${transaction}`],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getModuleBreakdown({transaction})}`).then(res =>
-        res.json()
-      ),
-    retry: false,
-    initialData: [],
-  });
-
-  if (!transaction) {
-    return null;
-  }
 
   const query = new MutableSearch([
     'has:http.method',
@@ -228,7 +211,6 @@ export default function EndpointOverview() {
             }}
           </EventsRequest>
           <FacetBreakdownBar
-            segments={moduleBreakdown}
             title={t('Where is time spent in this endpoint?')}
             transaction={transaction as string}
           />
