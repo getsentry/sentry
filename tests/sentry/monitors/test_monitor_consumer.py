@@ -12,7 +12,10 @@ from django.test.utils import override_settings
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.monitors.consumers.check_in import StoreMonitorCheckInStrategyFactory, _process_message
+from sentry.monitors.consumers.monitor_consumer import (
+    StoreMonitorCheckInStrategyFactory,
+    _process_message,
+)
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -53,7 +56,11 @@ class MonitorConsumerTest(TestCase):
             project_id=self.project.id,
             next_checkin=timezone.now() + timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "checkin_margin": 5,
+            },
             **kwargs,
         )
 
@@ -214,6 +221,8 @@ class MonitorConsumerTest(TestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["schedule"] == "13 * * * *"
+        # The monitor config is merged, so checkin_margin is not overwritten
+        assert monitor.config["checkin_margin"] == 5
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
@@ -226,7 +235,7 @@ class MonitorConsumerTest(TestCase):
     def test_rate_limit(self):
         monitor = self._create_monitor(slug="my-monitor")
 
-        with mock.patch("sentry.monitors.consumers.check_in.CHECKIN_QUOTA_LIMIT", 1):
+        with mock.patch("sentry.monitors.consumers.monitor_consumer.CHECKIN_QUOTA_LIMIT", 1):
             # Try to ingest two the second will be rate limited
             _process_message(self.get_message("my-monitor"))
             _process_message(self.get_message("my-monitor"))

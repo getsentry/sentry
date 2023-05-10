@@ -63,7 +63,7 @@ class IntegrationExtensionConfigurationView(BaseView):
             if self.has_one_required_feature(organization, request.user):
                 # check that the user has the org:integrations permission
                 org_member = OrganizationMember.objects.get(
-                    organization=organization, user=request.user
+                    organization=organization, user_id=request.user.id
                 )
                 if "org:integrations" in org_member.get_scopes():
                     try:

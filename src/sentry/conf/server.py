@@ -419,6 +419,7 @@ CSP_DEFAULT_SRC = [
 CSP_SCRIPT_SRC = [
     "'self'",
     "'unsafe-inline'",
+    "'report-sample'",
 ]
 CSP_FONT_SRC = [
     "'self'",
@@ -1159,8 +1160,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
-    # Enables the new artifact bundle uploads
-    "organizations:artifact-bundles": False,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     "organizations:alert-allow-indexed": False,
     # Enables tagging javascript errors from the browser console.
@@ -1489,6 +1488,8 @@ SENTRY_FEATURES = {
     "organizations:team-insights": True,
     # Enable u2f verification on superuser form
     "organizations:u2f-superuser-form": False,
+    # Enable project creation for all
+    "organizations:team-project-creation-all": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
     # Enable team member role provisioning through scim
