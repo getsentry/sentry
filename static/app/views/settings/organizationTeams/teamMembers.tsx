@@ -18,7 +18,6 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {IconUser} from 'sentry/icons';
@@ -50,7 +49,6 @@ type State = {
   dropdownBusy: boolean;
   dropdownOpen: boolean;
   error: boolean;
-  loading: boolean;
   orgMembers: Member[];
   teamMembers: TeamMember[];
 } & AsyncView['state'];
@@ -59,7 +57,6 @@ class TeamMembers extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      loading: true,
       error: false,
       dropdownBusy: false,
       dropdownOpen: false,
@@ -121,7 +118,7 @@ class TeamMembers extends AsyncView<Props, State> {
     const {organization, params} = this.props;
     const {orgMembers, teamMembers} = this.state;
 
-    this.setState({loading: true, dropdownOpen: true});
+    this.setState({dropdownOpen: true});
 
     // Reset members list after adding member to team
     this.debouncedFetchMembersRequest('');
@@ -140,14 +137,13 @@ class TeamMembers extends AsyncView<Props, State> {
             return;
           }
           this.setState({
-            loading: false,
             error: false,
             teamMembers: teamMembers.concat([orgMember as TeamMember]),
           });
           addSuccessMessage(t('Successfully added member to team.'));
         },
         error: () => {
-          this.setState({loading: false, dropdownOpen: false});
+          this.setState({dropdownOpen: false});
           addErrorMessage(t('Unable to add team member.'));
         },
       }
@@ -313,10 +309,6 @@ class TeamMembers extends AsyncView<Props, State> {
   }
 
   render() {
-    if (this.state.loading) {
-      return <LoadingIndicator />;
-    }
-
     if (this.state.error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
