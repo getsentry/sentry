@@ -5,6 +5,7 @@ from sentry.options import (
     FLAG_ALLOW_EMPTY,
     FLAG_IMMUTABLE,
     FLAG_MODIFIABLE_BOOL,
+    FLAG_MODIFIABLE_RATE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
@@ -632,7 +633,8 @@ register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", defa
 # Performance issue option for *all* performance issues detection
 register("performance.issues.all.problem-detection", default=0.0)
 
-# Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
+# Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set
+# project options.
 register("performance.issues.compressed_assets.problem-creation", default=0.0)
 register("performance.issues.compressed_assets.la-rollout", default=0.0)
 register("performance.issues.compressed_assets.ea-rollout", default=0.0)
@@ -711,3 +713,6 @@ register("dynamic-sampling.prioritise_transactions.rebalance_intensity", 0.8)
 register("hybrid_cloud.outbox_rate", default=0.0)
 # controls whether we allow people to upload artifact bundles instead of release bundles
 register("sourcemaps.enable-artifact-bundles", default=0.0)
+
+# TODO raduw (remove it when done) testing modifiable rate flag
+register("dynamic-sampling.test.modifiable", 0.8, flags=FLAG_MODIFIABLE_RATE)
