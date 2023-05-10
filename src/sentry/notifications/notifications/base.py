@@ -116,6 +116,8 @@ class BaseNotification(abc.ABC):
         params = {
             "organization_id": self.organization.id,
             "actor_id": recipient.actor_id,
+            "id": recipient.id,
+            "actor_type": recipient.actor_type,
             "group_id": group.id if group else None,
         }
         if recipient.actor_type == ActorType.USER:

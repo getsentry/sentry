@@ -1275,6 +1275,9 @@ class BaseMetricsTestCase(SnubaTestCase):
             "value": value,
             "retention_days": 90,
             "use_case_id": use_case_id,
+            # making up a sentry_received_timestamp, but it should be sometime
+            # after the timestamp of the event
+            "sentry_received_timestamp": timestamp + 10,
         }
 
         msg["mapping_meta"] = {}
