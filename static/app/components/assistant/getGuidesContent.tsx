@@ -272,6 +272,20 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'explain_archive_tab_issue_stream',
+      requiredTargets: ['issue_stream_archive_tab'],
+      steps: [
+        {
+          title: t('Nothing to see here'),
+          target: 'issue_stream_archive_tab',
+          description: t(
+            "Archived issues will live here. We'll mark them as Escalating if we detect a large number of events."
+          ),
+          dismissText: t('Goodbye Forever'),
+        },
+      ],
+    },
   ];
 }
 
