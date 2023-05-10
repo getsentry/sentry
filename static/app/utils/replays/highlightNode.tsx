@@ -9,6 +9,7 @@ interface AddHighlightParams {
   replayer: Replayer;
   annotation?: string;
   color?: string;
+  spotlight?: boolean;
 }
 
 interface RemoveHighlightParams {
@@ -57,6 +58,7 @@ export function highlightNode({
   nodeId,
   annotation = '',
   color,
+  spotlight,
 }: AddHighlightParams) {
   // @ts-expect-error mouseTail is private
   const {mouseTail, wrapper} = replayer;
@@ -83,7 +85,7 @@ export function highlightNode({
   // removeHighlight() method.
   const canvas = mouseTail.cloneNode();
 
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d') as undefined | CanvasRenderingContext2D;
 
   if (!ctx) {
     return null;
@@ -91,10 +93,15 @@ export function highlightNode({
 
   // TODO(replays): Does not account for scrolling (should we attempt to keep highlight visible, or does it disappear)
 
-  // Draw a rectangle to highlight element
   ctx.fillStyle = highlightColor;
-  ctx.fillRect(left, top, width, height);
-
+  if (spotlight) {
+    // Create a screen over the whole area, so only the highlighted part is normal
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(left, top, width, height);
+  } else {
+    // Draw a rectangle to highlight element
+    ctx.fillRect(left, top, width, height);
+  }
   // Draw a dashed border around highlight
   ctx.beginPath();
   ctx.setLineDash([5, 5]);
@@ -109,15 +116,30 @@ export function highlightNode({
   ctx.textAlign = 'right';
   ctx.textBaseline = 'bottom';
 
-  const textWidth = ctx.measureText(annotation).width;
+  const {width: textWidth} = ctx.measureText(annotation);
+  const textHeight = 30;
 
-  // Draw rect around text
-  ctx.fillStyle = 'rgba(30, 30, 30, 0.75)';
-  ctx.fillRect(left + width - textWidth, top + height - 30, textWidth, 30);
+  if (height <= textHeight + 10) {
+    // Draw the text outside the box
 
-  // Draw text
-  ctx.fillStyle = 'white';
-  ctx.fillText(annotation, left + width, top + height);
+    // Draw rect around text
+    ctx.fillStyle = 'rgba(30, 30, 30, 0.75)';
+    ctx.fillRect(left, top + height, textWidth, textHeight);
+
+    // Draw text
+    ctx.fillStyle = 'white';
+    ctx.fillText(annotation, left + textWidth, top + height + textHeight);
+  } else {
+    // Draw the text inside the clicked element
+
+    // Draw rect around text
+    ctx.fillStyle = 'rgba(30, 30, 30, 0.75)';
+    ctx.fillRect(left + width - textWidth, top + height - 30, textWidth, 30);
+
+    // Draw text
+    ctx.fillStyle = 'white';
+    ctx.fillText(annotation, left + width, top + height);
+  }
 
   highlightsByNodeId.set(nodeId, {
     canvas,

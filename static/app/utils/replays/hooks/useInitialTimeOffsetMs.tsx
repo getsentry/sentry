@@ -48,16 +48,29 @@ type Opts = {
   replayStartTimestampMs?: number;
 };
 
-function fromOffset({offsetSec}) {
+type Result =
+  | undefined
+  | {
+      offsetMs: number;
+      highlight?: {
+        nodeId: number;
+        annotation?: string;
+        spotlight?: boolean;
+      };
+    };
+
+const ZERO_OFFSET = {offsetMs: 0};
+
+function fromOffset({offsetSec}): Result {
   if (offsetSec === undefined) {
     // Not using this strategy
     return undefined;
   }
 
-  return Number(offsetSec) * 1000;
+  return {offsetMs: Number(offsetSec) * 1000};
 }
 
-function fromEventTimestamp({eventTimestamp, replayStartTimestampMs}) {
+function fromEventTimestamp({eventTimestamp, replayStartTimestampMs}): Result {
   if (eventTimestamp === undefined) {
     // Not using this strategy
     return undefined;
@@ -66,11 +79,11 @@ function fromEventTimestamp({eventTimestamp, replayStartTimestampMs}) {
   if (replayStartTimestampMs !== undefined) {
     const eventTimestampMs = new Date(eventTimestamp).getTime();
     if (eventTimestampMs >= replayStartTimestampMs) {
-      return eventTimestampMs - replayStartTimestampMs;
+      return {offsetMs: eventTimestampMs - replayStartTimestampMs};
     }
   }
   // The strategy failed, default to something safe
-  return 0;
+  return ZERO_OFFSET;
 }
 
 async function fromListPageQuery({
@@ -80,7 +93,7 @@ async function fromListPageQuery({
   replayId,
   projectSlug,
   replayStartTimestampMs,
-}) {
+}): Promise<Result> {
   if (listPageQuery === undefined) {
     // Not using this strategy
     return undefined;
@@ -96,7 +109,7 @@ async function fromListPageQuery({
 
   if (replayStartTimestampMs === undefined) {
     // Using the strategy, but we must wait for replayStartTimestampMs to appear
-    return 0;
+    return ZERO_OFFSET;
   }
 
   if (!projectSlug) {
@@ -111,14 +124,23 @@ async function fromListPageQuery({
     query: listPageQuery,
   });
   if (!results.clicks.length) {
-    return 0;
+    return ZERO_OFFSET;
   }
   try {
-    const firstTimestamp = first(results.clicks)!.timestamp;
+    const firstResult = first(results.clicks)!;
+    const firstTimestamp = firstResult!.timestamp;
+    const nodeId = firstResult!.node_id;
     const firstTimestmpMs = new Date(firstTimestamp).getTime();
-    return firstTimestmpMs - replayStartTimestampMs;
+    return {
+      highlight: {
+        annotation: listPageQuery,
+        nodeId,
+        spotlight: true,
+      },
+      offsetMs: firstTimestmpMs - replayStartTimestampMs,
+    };
   } catch {
-    return 0;
+    return ZERO_OFFSET;
   }
 }
 
@@ -127,12 +149,12 @@ function useInitialTimeOffsetMs({
   replayId,
   projectSlug,
   replayStartTimestampMs,
-}: Opts) {
+}: Opts): Result {
   const api = useApi();
   const {
     query: {event_t: eventTimestamp, query: listPageQuery, t: offsetSec},
   } = useLocation<TimeOffsetLocationQueryParams>();
-  const [timestamp, setTimestamp] = useState<undefined | number>(undefined);
+  const [timestamp, setTimestamp] = useState<Result>(undefined);
 
   // The different strategies for getting a time offset into the replay (what
   // time to start the replay at)
@@ -170,7 +192,7 @@ function useInitialTimeOffsetMs({
       .then(definedOrDefault(offsetTimeMs))
       .then(definedOrDefault(eventTimeMs))
       .then(definedOrDefault(queryTimeMs))
-      .then(definedOrDefault(0))
+      .then(definedOrDefault(ZERO_OFFSET))
       .then(setTimestamp);
   }, [offsetTimeMs, eventTimeMs, queryTimeMs, projectSlug]);
 

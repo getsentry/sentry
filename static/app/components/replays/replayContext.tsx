@@ -11,6 +11,7 @@ import {
   highlightNode,
   removeHighlightedNode,
 } from 'sentry/utils/replays/highlightNode';
+import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useRAF from 'sentry/utils/replays/hooks/useRAF';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -27,9 +28,11 @@ type ReplayConfig = {
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
 
+// See also: Highlight in static/app/views/replays/types.tsx
 type HighlightParams = {
   nodeId: number;
   annotation?: string;
+  spotlight?: boolean;
 };
 
 // Important: Don't allow context Consumers to access `Replayer` directly.
@@ -192,7 +195,7 @@ type Props = {
   /**
    * Time, in seconds, when the video should start
    */
-  initialTimeOffsetMs?: number;
+  initialTimeOffsetMs?: ReturnType<typeof useInitialOffsetMs>;
 
   /**
    * Override return fields for testing
@@ -212,7 +215,7 @@ function updateSavedReplayConfig(config: ReplayConfig) {
 
 export function Provider({
   children,
-  initialTimeOffsetMs = 0,
+  initialTimeOffsetMs,
   isFetching,
   replay,
   value = {},
@@ -254,13 +257,13 @@ export function Provider({
     setFFSpeed(0);
   };
 
-  const highlight = useCallback(({nodeId, annotation}: HighlightParams) => {
+  const highlight = useCallback(({nodeId, annotation, spotlight}: HighlightParams) => {
     const replayer = replayerRef.current;
     if (!replayer) {
       return;
     }
 
-    highlightNode({replayer, nodeId, annotation});
+    highlightNode({replayer, nodeId, annotation, spotlight});
   }, []);
 
   const clearAllHighlightsCallback = useCallback(() => {
@@ -495,14 +498,14 @@ export function Provider({
 
   // Only on pageload: set the initial playback timestamp
   useEffect(() => {
-    if (initialTimeOffsetMs && events && replayerRef.current) {
-      setCurrentTime(initialTimeOffsetMs);
+    if (initialTimeOffsetMs?.offsetMs && events && replayerRef.current) {
+      setCurrentTime(initialTimeOffsetMs.offsetMs);
     }
 
     return () => {
       unMountedRef.current = true;
     };
-  }, [events, replayerRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [events, initialTimeOffsetMs, setCurrentTime]);
 
   const currentPlayerTime = useCurrentTime(getCurrentTime);
 
@@ -512,6 +515,31 @@ export function Provider({
     buffer.target !== buffer.previous
       ? [true, buffer.target]
       : [false, currentPlayerTime];
+
+  // Only on pageload: highlight the node that relates to the initialTimeOffset
+  useEffect(() => {
+    if (
+      !isBuffering &&
+      initialTimeOffsetMs?.highlight &&
+      events &&
+      events?.length >= 2 &&
+      replayerRef.current
+    ) {
+      const highlightArgs = initialTimeOffsetMs.highlight;
+      highlight(highlightArgs);
+      setTimeout(() => {
+        clearAllHighlightsCallback();
+        highlight(highlightArgs);
+      });
+    }
+  }, [
+    clearAllHighlightsCallback,
+    events,
+    dimensions,
+    highlight,
+    initialTimeOffsetMs,
+    isBuffering,
+  ]);
 
   useEffect(() => {
     if (!isBuffering && buffer.target !== -1) {
