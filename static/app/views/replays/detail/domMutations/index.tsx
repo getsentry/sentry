@@ -14,7 +14,7 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 import DomFilters from 'sentry/views/replays/detail/domMutations/domFilters';
 import DomMutationRow from 'sentry/views/replays/detail/domMutations/domMutationRow';
 import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import FluidGrid from 'sentry/views/replays/detail/layout/fluidGrid';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
@@ -71,7 +71,7 @@ function DomMutations({replay, startTimestampMs}: Props) {
   };
 
   return (
-    <FluidHeight>
+    <FluidGrid>
       <DomFilters actions={actions} {...filterProps} />
       <TabItemContainer>
         {isLoading || !actions ? (
@@ -101,7 +101,7 @@ function DomMutations({replay, startTimestampMs}: Props) {
           </AutoSizer>
         )}
       </TabItemContainer>
-    </FluidHeight>
+    </FluidGrid>
   );
 }
 

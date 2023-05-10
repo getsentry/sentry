@@ -33,7 +33,7 @@ function ReplayTimeline({}: Props) {
   const networkSpans = replay.getNetworkSpans();
 
   return (
-    <Panel ref={elem} {...mouseTrackingProps}>
+    <StyledPanel ref={elem} {...mouseTrackingProps}>
       <Resizeable>
         {({width}) => (
           <Stacked>
@@ -58,9 +58,13 @@ function ReplayTimeline({}: Props) {
           </Stacked>
         )}
       </Resizeable>
-    </Panel>
+    </StyledPanel>
   );
 }
+
+const StyledPanel = styled(Panel)`
+  margin: 0;
+`;
 
 const UnderTimestamp = styled('div')<{paddingTop: string}>`
   /* Weird size to put equal space above/below a <small> node that MajorGridlines emits */
