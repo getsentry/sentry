@@ -154,7 +154,7 @@ def get_artifact_bundles_containing_debug_id(debug_id: str, project: Project) ->
         )
         .select_related("artifact_bundle__file_id")
         .values_list("artifact_bundle__file_id", flat=True)
-        .order_by("-date_added")[:1]
+        .order_by("-artifact_bundle__date_uploaded")[:1]
     )
 
 
@@ -173,7 +173,7 @@ def get_release_artifacts(
         )
         .select_related("artifact_bundle__file_id")
         .values_list("artifact_bundle__file_id", flat=True)
-        .order_by("-date_added")[:MAX_BUNDLES_QUERY]
+        .order_by("-artifact_bundle__date_uploaded")[:MAX_BUNDLES_QUERY]
     )
 
 
@@ -213,7 +213,14 @@ def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]):
             file__type=RELEASE_BUNDLE_TYPE,
         )
         .values_list("file_id", flat=True)
-        .order_by("-file__timestamp")[:MAX_BUNDLES_QUERY]
+        # TODO: this `order_by` might be incredibly slow
+        # we want to have a hard limit on the returned bundles here. and we would
+        # want to pick the most recently uploaded ones. that should mostly be
+        # relevant for customers that upload multiple bundles, or are uploading
+        # newer files for existing releases. In that case the symbolication is
+        # already degraded, so meh...
+        # .order_by("-file__timestamp")
+        [:MAX_BUNDLES_QUERY]
     )
 
 
