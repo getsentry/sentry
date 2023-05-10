@@ -439,7 +439,7 @@ class ActivityMailDebugView(View):
         )
 
 
-has_escalating_issues = False
+has_issue_states = False
 
 
 @login_required
@@ -477,7 +477,7 @@ def alert(request):
             ),
             "culprit": random.choice(["sentry.tasks.post_process.post_process_group", None]),
             "issue_type": group.issue_type.description,
-            "has_escalating_issues": has_escalating_issues,
+            "has_issue_states": has_issue_states,
         },
     ).render(request)
 

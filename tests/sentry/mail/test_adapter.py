@@ -1210,7 +1210,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 [],
             )
 
-    @with_feature("organizations:escalating-issues")
+    @with_feature("organizations:issue-states")
     def test_has_inbox_reason(self):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
