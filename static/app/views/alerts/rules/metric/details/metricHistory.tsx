@@ -32,16 +32,16 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
   const activities = (incident.activities ?? []).filter(
     activity => activity.type === IncidentActivityType.STATUS_CHANGE
   );
-  const criticalActivity = activities.filter(
+  const criticalActivity = activities.find(
     activity => activity.value === `${IncidentStatus.CRITICAL}`
   );
-  const warningActivity = activities.filter(
+  const warningActivity = activities.find(
     activity => activity.value === `${IncidentStatus.WARNING}`
   );
 
-  const triggeredActivity: ActivityType | undefined = criticalActivity.length
-    ? criticalActivity[0]
-    : warningActivity[0];
+  const triggeredActivity: ActivityType = criticalActivity
+    ? criticalActivity!
+    : warningActivity!;
   const currentTrigger = triggeredActivity.value
     ? Number(triggeredActivity.value) === IncidentStatus.CRITICAL
       ? 'error'
@@ -49,20 +49,19 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
     : undefined;
   const triggerStatus = currentTrigger === 'error' ? t('Critical') : t('Warning');
 
+  // Find duration by looking at the difference between the preiovus and current activity timestamp
   const nextActivity = activities.find(
     ({previousValue}) => previousValue === triggeredActivity.value
   );
-
   const activityDuration = (
     nextActivity ? moment(nextActivity.dateCreated) : moment()
   ).diff(moment(triggeredActivity.dateCreated), 'milliseconds');
 
-  const warningThreshold = incident.alertRule.triggers
-    .filter(trigger => trigger.label === 'warning')
-    .map(trig => trig.alertThreshold);
-  const criticalThreshold = incident.alertRule.triggers
-    .filter(trigger => trigger.label === 'critical')
-    .map(trig => trig.alertThreshold);
+  // Get the threshold for the current trigger
+  const currentTriggerLabel = currentTrigger === 'error' ? 'critical' : 'warning';
+  const triggerThreshold = incident.alertRule.triggers.find(
+    trigger => trigger.label === currentTriggerLabel
+  );
 
   return (
     <Fragment>
@@ -87,7 +86,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
         {incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
           ? t('above')
           : t('below')}{' '}
-        {currentTrigger === 'error' ? criticalThreshold : warningThreshold}
+        {triggerThreshold?.alertThreshold}
       </Cell>
       <Cell>
         {activityDuration &&
