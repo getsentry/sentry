@@ -33,13 +33,13 @@ export type EventsTableData = {
 
 export type TableDataWithTitle = TableData & {title: string};
 
-type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
+export type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
   transactionName?: string;
   transactionThreshold?: number;
   transactionThresholdMetric?: TransactionThresholdMetric;
 };
 
-type DiscoverQueryComponentProps = DiscoverQueryPropsWithThresholds & {
+export type DiscoverQueryComponentProps = DiscoverQueryPropsWithThresholds & {
   children: (props: GenericChildrenProps<TableData>) => React.ReactNode;
 };
 

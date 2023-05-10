@@ -22,7 +22,9 @@ export const queryToSeries = (
         data: [],
       };
     }
-    seriesMap[row[groupByProperty]].data.push(dataEntry);
+    if (dataEntry.value) {
+      seriesMap[row[groupByProperty]].data.push(dataEntry);
+    }
   });
   return Object.values(seriesMap).map(series =>
     zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
