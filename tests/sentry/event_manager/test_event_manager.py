@@ -2322,8 +2322,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation(self):
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
@@ -2405,7 +2403,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_update(self):
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
@@ -2445,8 +2442,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_error_issue_no_associate_perf_event(self):
         """Test that you can't associate a performance event with an error issue"""
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
@@ -2471,8 +2466,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_no_associate_error_event(self):
         """Test that you can't associate an error event with a performance issue"""
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
@@ -2495,10 +2488,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_creation_ignored(self):
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
@@ -2513,10 +2503,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_creation_over_ignored_threshold(self):
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
@@ -2550,7 +2537,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             "performance.issues.all.problem-detection": 1.0,
         }
     )
-    @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_slow_db_issue_is_created(self):
         def attempt_to_generate_slow_db_issue() -> Event:
             last_event = None

@@ -9,7 +9,6 @@ import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from hashlib import md5
 from io import BytesIO
 from typing import (
     TYPE_CHECKING,
@@ -79,10 +78,10 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
-from sentry.issues.grouptype import GroupCategory, reduce_noise
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import produce_occurrence_to_kafka
-from sentry.issues.utils import can_create_group, write_occurrence_to_platform
+from sentry.issues.utils import write_occurrence_to_platform
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.locks import locks
@@ -118,7 +117,6 @@ from sentry.models.integrations.repository_project_path_config import Repository
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.quotas.base import index_data_category
-from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
@@ -142,7 +140,6 @@ from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import (
-    EventPerformanceProblem,
     PerformanceProblem,
     detect_performance_problems,
 )
@@ -157,11 +154,6 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
 
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
-
-issue_rate_limiter = RedisSlidingWindowRateLimiter(
-    **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
-)
-PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
 
 
 @dataclass
@@ -1442,14 +1434,6 @@ def materialize_metadata(
     }
 
 
-def inject_performance_problem_metadata(
-    metadata: dict[str, Any], problem: PerformanceProblem
-) -> dict[str, Any]:
-    metadata["value"] = problem.desc
-    metadata["title"] = problem.title
-    return metadata
-
-
 def get_culprit(data: Mapping[str, Any]) -> str:
     """Helper to calculate the default culprit"""
     return str(
@@ -2317,171 +2301,6 @@ def _save_grouphash_and_group(
     return group, created
 
 
-def _message_from_metadata(meta: Mapping[str, str]) -> str:
-    title = meta.get("title", "")
-    location = meta.get("location", "")
-    separator = ": " if title and location else ""
-    return f"{title}{separator}{location}"
-
-
-@metrics.wraps("save_event.save_aggregate_performance")
-def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: ProjectsMapping) -> None:
-    MAX_GROUPS = (
-        10  # safety check in case we are passed too many. constant will live somewhere else tbd
-    )
-    for job in jobs:
-        job["groups"] = []
-        hashes = []
-        event = job["event"]
-        project = event.project
-
-        # Granular, per-project option
-        per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 1.0)
-        if per_project_rate > random.random():
-            kwargs = _create_kwargs(job)
-            kwargs["culprit"] = job["culprit"]
-            kwargs["data"] = materialize_metadata(
-                event.data,
-                get_event_type(event.data),
-                dict(job["event_metadata"]),
-            )
-            kwargs["data"]["last_received"] = job["received_timestamp"]
-
-            all_performance_problems = job["performance_problems"]
-
-            # Filter out performance problems that will be later sent to the issues platform
-            performance_problems = [
-                problem
-                for problem in all_performance_problems
-                if not can_create_group(problem, project)
-            ]
-            for problem in performance_problems:
-                problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
-
-            performance_problems_by_hash = {p.fingerprint: p for p in performance_problems}
-            all_group_hashes = [problem.fingerprint for problem in performance_problems]
-            group_hashes = all_group_hashes[:MAX_GROUPS]
-
-            existing_grouphashes = GroupHash.objects.filter(
-                project=project, hash__in=group_hashes
-            ).select_related("group")
-
-            new_grouphashes = set(group_hashes) - {hash.hash for hash in existing_grouphashes}
-
-            if new_grouphashes:
-                # limits group creation to grouphashes seen multiple times over a specified time window
-                if settings.SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE:
-                    new_grouphashes = reduce_noise(
-                        new_grouphashes, performance_problems_by_hash, project
-                    )
-
-                new_grouphashes_count = len(new_grouphashes)
-
-                with metrics.timer("performance.performance_issue.check_write_limits"):
-                    granted_quota = issue_rate_limiter.check_and_use_quotas(
-                        [
-                            RequestedQuota(
-                                f"performance-issues:{project.id}",
-                                new_grouphashes_count,
-                                [PERFORMANCE_ISSUE_QUOTA],
-                            )
-                        ]
-                    )[0]
-
-                # Log how many groups didn't get created because of rate limiting
-                _dropped_group_hash_count = new_grouphashes_count - granted_quota.granted
-                metrics.incr("performance.performance_issue.dropped", _dropped_group_hash_count)
-
-                for new_grouphash in list(new_grouphashes)[: granted_quota.granted]:
-                    # GROUP DOES NOT EXIST
-                    with sentry_sdk.start_span(
-                        op="event_manager.create_performance_group_transaction"
-                    ) as span, metrics.timer(
-                        "event_manager.create_performance_group_transaction",
-                        tags={"platform": event.platform or "unknown"},
-                        sample_rate=1.0,
-                    ) as metric_tags, transaction.atomic():
-                        problem = performance_problems_by_hash[new_grouphash]
-
-                        span.set_tag("create_group_transaction.outcome", "no_group")
-                        span.set_tag("group_type", problem.type.slug)
-                        metric_tags["create_group_transaction.outcome"] = "no_group"
-                        metric_tags["group_type"] = problem.type.slug.upper()
-
-                        group_kwargs = kwargs.copy()
-                        group_kwargs["type"] = problem.type.type_id
-
-                        group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
-                            group_kwargs["data"]["metadata"], problem
-                        )
-
-                        if group_kwargs["data"]["metadata"]:
-                            group_kwargs["message"] = _message_from_metadata(
-                                group_kwargs["data"]["metadata"]
-                            )
-
-                        group, is_new = _save_grouphash_and_group(
-                            project, event, new_grouphash, **group_kwargs
-                        )
-
-                        is_regression = False
-
-                        span.set_tag("create_group_transaction.outcome", "new_group")
-                        metric_tags["create_group_transaction.outcome"] = "new_group"
-
-                        metrics.incr(
-                            "group.created",
-                            skip_internal=True,
-                            tags={"platform": job["platform"] or "unknown"},
-                        )
-
-                        job["groups"].append(
-                            GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
-                        )
-                        hashes.append(new_grouphash)
-
-            if existing_grouphashes:
-
-                # GROUP EXISTS
-                for existing_grouphash in existing_grouphashes:
-                    group = existing_grouphash.group
-                    if group.issue_category != GroupCategory.PERFORMANCE:
-                        logger.info(
-                            "event_manager.category_mismatch",
-                            extra={
-                                "issue_category": group.issue_category,
-                                "event_type": "performance",
-                            },
-                        )
-                        continue
-
-                    is_new = False
-
-                    problem = performance_problems_by_hash[existing_grouphash.hash]
-                    group_kwargs = kwargs.copy()
-                    group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
-                        group_kwargs["data"]["metadata"], problem
-                    )
-                    if group_kwargs["data"]["metadata"].get("title"):
-                        group_kwargs["message"] = _message_from_metadata(
-                            group_kwargs["data"]["metadata"]
-                        )
-
-                    is_regression = _process_existing_aggregate(
-                        group=group, event=job["event"], data=group_kwargs, release=job["release"]
-                    )
-
-                    job["groups"].append(
-                        GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
-                    )
-                    hashes.append(existing_grouphash.hash)
-
-            job["event"].groups = [group_info.group for group_info in job["groups"]]
-            job["event"].data["hashes"] = hashes
-            for problem_hash in hashes:
-                EventPerformanceProblem(event, performance_problems_by_hash[problem_hash]).save()
-
-
 @metrics.wraps("save_event.send_occurrence_to_platform")
 def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
@@ -2536,19 +2355,15 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _derive_plugin_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
     _calculate_span_grouping(jobs, projects)
-    _detect_performance_problems(jobs, projects)
     _materialize_metadata_many(jobs)
-    _save_aggregate_performance(jobs, projects)  # type: ignore
     _get_or_create_environment_many(jobs, projects)
-    _get_or_create_group_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
-    _increment_release_associated_counts_many(jobs, projects)
-    _get_or_create_group_release_many(jobs, projects)
     _tsdb_record_all_metrics(jobs)
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
+    _detect_performance_problems(jobs, projects)
     _send_occurrence_to_platform(jobs, projects)
     return jobs
 

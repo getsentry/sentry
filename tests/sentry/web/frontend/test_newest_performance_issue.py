@@ -49,8 +49,6 @@ class NewestIssueViewTest(TestCase):
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_simple(self):
-        self.project1.update_option("sentry:performance_issue_creation_rate", 1.0)
-        self.project2.update_option("sentry:performance_issue_creation_rate", 1.0)
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
@@ -90,8 +88,6 @@ class NewestIssueViewTest(TestCase):
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     @with_feature("organizations:customer-domains")
     def test_simple_customer_domains(self):
-        self.project1.update_option("sentry:performance_issue_creation_rate", 1.0)
-        self.project2.update_option("sentry:performance_issue_creation_rate", 1.0)
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,

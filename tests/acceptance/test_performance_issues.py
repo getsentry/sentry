@@ -81,10 +81,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
             "noise_config",
             new=NoiseConfig(0, timedelta(minutes=1)),
         ), self.options(
-            {
-                "performance.issues.send_to_issues_platform": True,
-                "performance.issues.create_issues_through_platform": True,
-            }
+            {"performance.issues.send_to_issues_platform": True}
         ), self.feature(
             "organizations:issue-platform"
         ):
@@ -124,10 +121,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
             "noise_config",
             new=NoiseConfig(0, timedelta(minutes=1)),
         ), self.options(
-            {
-                "performance.issues.send_to_issues_platform": True,
-                "performance.issues.create_issues_through_platform": True,
-            }
+            {"performance.issues.send_to_issues_platform": True}
         ), self.feature(
             "organizations:issue-platform"
         ):
