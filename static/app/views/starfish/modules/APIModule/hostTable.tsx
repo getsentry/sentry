@@ -1,7 +1,6 @@
 import {ReactNode} from 'react';
 import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import groupBy from 'lodash/groupBy';
 import orderBy from 'lodash/orderBy';
@@ -16,10 +15,15 @@ import {Series} from 'sentry/types/echarts';
 import {getDuration} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
-import {HOST} from 'sentry/views/starfish/utils/constants';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-import {getEndpointDomainsQuery, getHostListQuery} from './queries';
+import {
+  getEndpointDomainsEventView,
+  getEndpointDomainsQuery,
+  getHostListEventView,
+  getHostListQuery,
+} from './queries';
 
 type Props = {
   location: Location;
@@ -72,24 +76,28 @@ const COLUMN_ORDER = [
 export default function HostTable({location, setDomainFilter}: Props) {
   const pageFilter = usePageFilters();
   const theme = useTheme();
-  const query = getHostListQuery({
+  const queryString = getHostListQuery({
     datetime: pageFilter.selection.datetime,
   });
-  const aggregateQuery = getEndpointDomainsQuery({
+  const eventView = getHostListEventView({
+    datetime: pageFilter.selection.datetime,
+  });
+  const aggregateQueryString = getEndpointDomainsQuery({
+    datetime: pageFilter.selection.datetime,
+  });
+  const aggregateEventView = getEndpointDomainsEventView({
     datetime: pageFilter.selection.datetime,
   });
 
-  const {isLoading: areHostsLoading, data: hostsData} = useQuery({
-    queryKey: ['query', pageFilter.selection.datetime],
-    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
-    retry: false,
+  const {isLoading: areHostsLoading, data: hostsData} = useSpansQuery({
+    eventView,
+    queryString,
     initialData: [],
   });
 
-  const {isLoading: areHostAggregatesLoading, data: aggregateHostsData} = useQuery({
-    queryKey: ['aggregateQuery', pageFilter.selection.datetime],
-    queryFn: () => fetch(`${HOST}/?query=${aggregateQuery}`).then(res => res.json()),
-    retry: false,
+  const {isLoading: areHostAggregatesLoading, data: aggregateHostsData} = useSpansQuery({
+    eventView: aggregateEventView,
+    queryString: aggregateQueryString,
     initialData: [],
   });
 
@@ -133,8 +141,13 @@ export default function HostTable({location, setDomainFilter}: Props) {
         endDate
       );
 
-      const {p50, p99, p95, max, total_exclusive_time} =
-        aggregateHostsData?.find(aggregate => aggregate.domain === host) ?? {};
+      const {
+        'p50(span.self_time)': p50,
+        'p99(span.self_time)': p99,
+        'p95(span.self_time)': p95,
+        'p100(span.self_time)': max,
+        'sum(span.self_time)': total_exclusive_time,
+      } = aggregateHostsData?.find(aggregate => aggregate.domain === host) ?? {};
 
       totalTotalExclusiveTime += total_exclusive_time;
       totalP50 += p50;
