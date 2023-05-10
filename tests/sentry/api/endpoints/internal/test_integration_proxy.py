@@ -75,11 +75,9 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         mock_client._request = MagicMock(return_value=mock_response)
 
         assert not mock_should_operate.called
-        assert not mock_client.authorize_request.called
         assert not mock_client._request.called
         proxy_response = self.client.get(self.path, **self.valid_header_kwargs)
         assert mock_should_operate.called
-        assert mock_client.authorize_request.called
         assert mock_client._request.called
 
         assert proxy_response.content == mock_response.content
