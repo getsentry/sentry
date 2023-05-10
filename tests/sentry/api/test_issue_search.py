@@ -239,6 +239,18 @@ class ConvertSubStatusValueTest(TestCase):
         with pytest.raises(InvalidSearchQuery, match="invalid substatus value"):
             convert_query_values(filters, [self.project], self.user, None)
 
+    def test_mixed_substatus(self):
+        filters = [
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["until_escalating"])),
+        ]
+        result = convert_query_values(filters, [self.project], self.user, None)
+        assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
+            ("substatus", "IN", [GroupSubStatus.ONGOING]),
+            ("substatus", "IN", [GroupSubStatus.UNTIL_ESCALATING]),
+            ("status", "IN", [GroupStatus.UNRESOLVED]),
+        ]
+
     def test_mixed_with_status(self):
         filters = [
             SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
@@ -246,12 +258,47 @@ class ConvertSubStatusValueTest(TestCase):
             SearchFilter(SearchKey("substatus"), "=", SearchValue(["until_escalating"])),
         ]
         result = convert_query_values(filters, [self.project], self.user, None)
-        assert [sf.value.raw_value for sf in result] == [
-            [GroupSubStatus.ONGOING],
-            [GroupStatus.UNRESOLVED],
-            [GroupSubStatus.UNTIL_ESCALATING],
-            [GroupStatus.UNRESOLVED],
-            [GroupStatus.IGNORED],
+        assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
+            ("substatus", "IN", [GroupSubStatus.ONGOING]),
+            ("status", "IN", [GroupStatus.UNRESOLVED]),
+            ("substatus", "IN", [GroupSubStatus.UNTIL_ESCALATING]),
+        ]
+
+    def test_mixed_incl_excl_substatus(self):
+        filters = [
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
+            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["until_escalating"])),
+        ]
+        result = convert_query_values(filters, [self.project], self.user, None)
+        assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
+            ("substatus", "IN", [GroupSubStatus.ONGOING]),
+            ("substatus", "NOT IN", [GroupSubStatus.UNTIL_ESCALATING]),
+            ("status", "IN", [GroupStatus.UNRESOLVED]),
+        ]
+
+    def test_mixed_incl_excl_substatus_with_status(self):
+        filters = [
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
+            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["until_escalating"])),
+            SearchFilter(SearchKey("status"), "=", SearchValue(["ignored"])),
+        ]
+        result = convert_query_values(filters, [self.project], self.user, None)
+        assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
+            ("substatus", "IN", [GroupSubStatus.ONGOING]),
+            ("substatus", "NOT IN", [GroupSubStatus.UNTIL_ESCALATING]),
+            ("status", "IN", [GroupStatus.IGNORED]),
+        ]
+
+    def test_mixed_excl_excl_substatus(self):
+        filters = [
+            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["ongoing"])),
+            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["until_escalating"])),
+        ]
+        result = convert_query_values(filters, [self.project], self.user, None)
+        assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
+            ("substatus", "NOT IN", [GroupSubStatus.ONGOING]),
+            ("substatus", "NOT IN", [GroupSubStatus.UNTIL_ESCALATING]),
+            ("status", "NOT IN", [GroupStatus.UNRESOLVED]),
         ]
 
 
