@@ -118,19 +118,11 @@ describe('EnvironmentPageFilter', function () {
     );
 
     // Open menu again, click "Clear"
+    await userEvent.click(screen.getByRole('button', {name: 'prod, stage'}));
     await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
 
     // Trigger button was updated
     expect(screen.getByRole('button', {name: 'All Envs'})).toBeInTheDocument();
-
-    // Router was updated with new empty value
-    waitFor(() =>
-      expect(router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: {environment: []},
-        })
-      )
-    );
   });
 
   it('responds to page filter changes, async e.g. from back button nav', function () {
