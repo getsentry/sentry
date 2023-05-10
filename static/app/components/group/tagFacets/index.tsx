@@ -94,7 +94,7 @@ export default function TagFacets({
 
   const {isLoading, isError, data, refetch} = useFetchIssueTagsForDetailsPage({
     groupId,
-    environments,
+    environment: environments.map(({name}) => name),
   });
 
   const tagsData = useMemo(() => {

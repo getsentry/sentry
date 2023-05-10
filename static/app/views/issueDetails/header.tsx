@@ -30,6 +30,7 @@ import {Event, Group, IssueType, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -87,6 +88,10 @@ function GroupHeaderTabs({
       organization,
     });
   }, [hasReplaySupport, replaysCount, project, organization]);
+
+  useRouteAnalyticsParams({
+    group_has_replay: (replaysCount ?? 0) > 0,
+  });
 
   return (
     <StyledTabList hideBorder>
