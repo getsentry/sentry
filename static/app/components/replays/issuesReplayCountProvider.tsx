@@ -1,9 +1,8 @@
-import {Fragment, ReactNode, useMemo} from 'react';
+import {Fragment, ReactNode} from 'react';
 
 import ReplayCountContext from 'sentry/components/replays/replayCountContext';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
-import GroupStore from 'sentry/stores/groupStore';
-import type {Group, Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -41,14 +40,8 @@ function Provider({
   groupIds,
   organization,
 }: Props & {organization: Organization}) {
-  const groups = useMemo(() => {
-    return groupIds.map(id => GroupStore.get(id) as Group).filter(Boolean);
-  }, [groupIds]);
-
-  const replayGroupIds = useMemo(() => groups.map(group => group.id), [groups]);
-
   const counts = useReplaysCount({
-    groupIds: replayGroupIds,
+    groupIds,
     organization,
   });
 
