@@ -5,6 +5,7 @@ import sentry_sdk
 
 from sentry.ingest.transaction_clusterer.datasource.redis import get_redis_client
 from sentry.models import Project
+from sentry.utils import metrics
 
 from .base import ReplacementRule
 
@@ -79,6 +80,10 @@ class ProjectOptionRuleStore:
         """Writes the rules to project options, sorted by depth."""
         # we make sure the database stores lists such that they are json round trippable
         converted_rules = [list(tup) for tup in self._sort(rules)]
+
+        # Track the number of rules per project.
+        metrics.timing("txcluster.rules_per_project", len(converted_rules))
+
         project.update_option(self._option_name, converted_rules)
 
 
@@ -148,11 +153,13 @@ def _now() -> int:
     return int(datetime.now(timezone.utc).timestamp())
 
 
-def _get_rules(project: Project) -> RuleSet:
+def get_rules(project: Project) -> RuleSet:
+    """Get rules from project options."""
     return ProjectOptionRuleStore().read(project)
 
 
 def get_redis_rules(project: Project) -> RuleSet:
+    """Get rules from Redis."""
     return RedisRuleStore().read(project)
 
 
