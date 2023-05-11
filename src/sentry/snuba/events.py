@@ -186,6 +186,7 @@ class Columns(Enum):
         event_name="transaction",
         transaction_name="transaction_name",
         discover_name="transaction",
+        issue_platform_name="transaction_name",
         alias="transaction",
     )
     USER = Column(
@@ -604,6 +605,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="duration",
         discover_name="duration",
+        issue_platform_name="transaction_duration",
         alias="transaction.duration",
     )
     TRANSACTION_STATUS = Column(
@@ -675,7 +677,7 @@ class Columns(Enum):
         event_name="contexts[trace.trace_id]",
         transaction_name="trace_id",
         discover_name="contexts[trace.trace_id]",
-        issue_platform_name="contexts[trace.trace_id]",
+        issue_platform_name="trace_id",
         alias="trace",
     )
     SPAN_ID = Column(
