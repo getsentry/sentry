@@ -192,7 +192,7 @@ export const getSpanTotalTimeChartQuery = (
   const validConditions = conditions.filter(Boolean);
 
   return `SELECT
-    ${groupingColumn} AS primary_group,
+    ${groupingColumn ? `${groupingColumn} AS primary_group,` : ''}
     count() AS throughput,
     sum(exclusive_time) AS total_time,
     quantile(0.50)(exclusive_time) AS p50,
@@ -203,7 +203,7 @@ export const getSpanTotalTimeChartQuery = (
     ${validConditions.length > 0 ? 'AND' : ''}
     ${validConditions.join(' AND ')}
     ${descriptionFilter ? `AND match(lower(description), '${descriptionFilter}')` : ''}
-    GROUP BY primary_group, interval
+    GROUP BY ${groupingColumn ? 'primary_group, ' : ''} interval
     ORDER BY interval ASC
   `;
 };
