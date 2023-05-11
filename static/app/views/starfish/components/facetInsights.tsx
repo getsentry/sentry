@@ -156,13 +156,13 @@ export function FacetInsights({eventView}: Props) {
 
 function categorizeCorrelation(correlation: number): string {
   if (correlation >= 0.8) {
-    return 'very high correlation';
+    return 'very highly correlated';
   }
   if (correlation >= 0.6) {
-    return 'high correlation';
+    return 'highly correlated';
   }
   if (correlation >= 0.4) {
-    return 'medium correlation';
+    return 'correlated';
   }
   return 'no/low correlation';
 }
