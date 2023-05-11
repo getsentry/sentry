@@ -2,7 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 import moment from 'moment';
 
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import EventView, {encodeSort} from 'sentry/utils/discover/eventView';
 import {
   DiscoverQueryProps,
   useGenericDiscoverQuery,
@@ -15,21 +15,23 @@ import {useStarfishOptions} from 'sentry/views/starfish/utils/useStarfishOptions
 const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
 // Setting return type since I'd rather not know if its discover query or not
-type ReturnType = {data: any; isLoading: boolean};
+export type UseSpansQueryReturnType<T> = {data: T; isLoading: boolean};
 
-export function useSpansQuery({
+export function useSpansQuery<T = any[]>({
   eventView,
   queryString,
   initialData,
+  forceUseDiscover,
 }: {
   eventView?: EventView;
+  forceUseDiscover?: boolean;
   initialData?: any;
   queryString?: string;
-}): ReturnType {
+}): UseSpansQueryReturnType<T> {
   const {options} = useStarfishOptions();
   const {useDiscover} = options;
   const queryFunction = getQueryFunction({
-    useDiscover,
+    useDiscover: forceUseDiscover ?? useDiscover,
     isTimeseriesQuery: (eventView?.yAxis?.length ?? 0) > 0,
   });
   if (isDiscoverFunction(queryFunction) || isDiscoverTimeseriesFunction(queryFunction)) {
@@ -61,7 +63,7 @@ function isDiscoverTimeseriesFunction(
   return queryFunction === useWrappedDiscoverTimeseriesQuery;
 }
 
-function useWrappedQuery(queryString: string, initialData?: any) {
+export function useWrappedQuery(queryString: string, initialData?: any) {
   const {isLoading, data} = useQuery({
     queryKey: [queryString],
     queryFn: () => fetch(`${HOST}/?query=${queryString}`).then(res => res.json()),
@@ -71,7 +73,10 @@ function useWrappedQuery(queryString: string, initialData?: any) {
   return {isLoading, data};
 }
 
-function useWrappedDiscoverTimeseriesQuery(eventView: EventView, initialData?: any) {
+export function useWrappedDiscoverTimeseriesQuery(
+  eventView: EventView,
+  initialData?: any
+) {
   const location = useLocation();
   const organization = useOrganization();
   const {isLoading, data} = useGenericDiscoverQuery<
@@ -86,9 +91,11 @@ function useWrappedDiscoverTimeseriesQuery(eventView: EventView, initialData?: a
     orgSlug: organization.slug,
     getRequestPayload: () => ({
       ...eventView.getEventsAPIPayload(location),
-      yAxis: Array.from(
-        new Set([eventView.yAxis, ...eventView.fields.map(f => f.field)])
-      ),
+      yAxis: eventView.yAxis,
+      topEvents: eventView.topEvents,
+      excludeOther: 1,
+      partial: 1,
+      orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
     }),
   });
   return {
@@ -100,7 +107,7 @@ function useWrappedDiscoverTimeseriesQuery(eventView: EventView, initialData?: a
   };
 }
 
-function useWrappedDiscoverQuery(eventView: EventView, initialData?: any) {
+export function useWrappedDiscoverQuery(eventView: EventView, initialData?: any) {
   const location = useLocation();
   const organization = useOrganization();
   const {isLoading, data} = useDiscoverQuery({
@@ -127,25 +134,84 @@ function getQueryFunction({
   return useWrappedQuery;
 }
 
+type Interval = {[key: string]: any; interval: string; group?: string};
+
 function processDiscoverTimeseriesResult(result, eventView: EventView) {
-  const intervals = {};
-  if (result.data) {
-    result.data.forEach(([timestamp, [{count: value}]]) => {
-      intervals[timestamp] = {
-        ...(intervals[timestamp] ?? {}),
-        [eventView.yAxis ?? eventView.fields[0].field]: value,
-      };
-    });
-  } else {
-    Object.keys(result).forEach(key => {
-      result[key].data.forEach(([timestamp, [{count: value}]]) => {
-        intervals[timestamp] = {...(intervals[timestamp] ?? {}), [key]: value};
-      });
-    });
+  if (!eventView.yAxis) {
+    return [];
   }
-  const processed = Object.keys(intervals).map(key => ({
-    interval: moment(parseInt(key, 10) * 1000).format(DATE_FORMAT),
-    ...intervals[key],
+  let intervals = [] as Interval[];
+  const singleYAxis =
+    eventView.yAxis &&
+    (typeof eventView.yAxis === 'string' || eventView.yAxis.length === 1);
+  const firstYAxis =
+    typeof eventView.yAxis === 'string' ? eventView.yAxis : eventView.yAxis[0];
+
+  if (result.data) {
+    return processSingleDiscoverTimeseriesResult(
+      result,
+      singleYAxis ? firstYAxis : 'count'
+    );
+  }
+  Object.keys(result).forEach(key => {
+    if (result[key].data) {
+      intervals = mergeIntervals(
+        intervals,
+        processSingleDiscoverTimeseriesResult(result[key], singleYAxis ? firstYAxis : key)
+      );
+    } else {
+      Object.keys(result[key]).forEach(innerKey => {
+        if (innerKey !== 'order') {
+          intervals = mergeIntervals(
+            intervals,
+            processSingleDiscoverTimeseriesResult(result[key][innerKey], innerKey, key)
+          );
+        }
+      });
+    }
+  });
+
+  const processed = intervals.map(interval => ({
+    ...interval,
+    interval: moment(parseInt(interval.interval, 10) * 1000).format(DATE_FORMAT),
   }));
   return processed;
+}
+
+function processSingleDiscoverTimeseriesResult(result, key: string, group?: string) {
+  const intervals = [] as Interval[];
+  result.data.forEach(([timestamp, [{count: value}]]) => {
+    const existingInterval = intervals.find(
+      interval =>
+        interval.interval === timestamp && (group ? interval.group === group : true)
+    );
+    if (existingInterval) {
+      existingInterval[key] = value;
+      return;
+    }
+    intervals.push({
+      interval: timestamp,
+      [key]: value,
+      group,
+    });
+  });
+  return intervals;
+}
+
+function mergeIntervals(first: Interval[], second: Interval[]) {
+  const target: Interval[] = JSON.parse(JSON.stringify(first));
+  second.forEach(({interval: timestamp, group, ...rest}) => {
+    const existingInterval = target.find(
+      interval =>
+        interval.interval === timestamp && (group ? interval.group === group : true)
+    );
+    if (existingInterval) {
+      Object.keys(rest).forEach(key => {
+        existingInterval[key] = rest[key];
+      });
+      return;
+    }
+    target.push({interval: timestamp, group, ...rest});
+  });
+  return target;
 }

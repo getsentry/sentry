@@ -7,10 +7,12 @@ import _orderBy from 'lodash/orderBy';
 import sumBy from 'lodash/sumBy';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
+import SearchBar from 'sentry/components/searchBar';
 import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
 import {CLUSTERS} from './clusters';
 import {getSpanListQuery, getSpansTrendsQuery, getTimeSpentQuery} from './queries';
@@ -30,6 +32,9 @@ type State = {
 export default function SpansView(props: Props) {
   const pageFilter = usePageFilters();
   const [state, setState] = useState<State>({orderBy: 'total_exclusive_time'});
+
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [didConfirmSearch, setDidConfirmSearch] = useState<boolean>(false);
   const {orderBy} = state;
 
   const [clusterPath, setClusterPath] = useState<string[]>(['top']);
@@ -40,20 +45,24 @@ export default function SpansView(props: Props) {
         name: clusterName,
       }
   );
+
+  const descriptionFilter = didConfirmSearch && searchTerm ? `${searchTerm}` : undefined;
+
   const currentCluster = currentClusters.at(-1);
-  if (currentCluster.isDynamic) {
-    currentCluster.condition = currentClusters
-      .at(-2)
-      .grouping_condition(currentCluster.name);
+  if (currentCluster?.isDynamic) {
+    const previousCluster = currentClusters.at(-2);
+    currentCluster.condition =
+      previousCluster?.grouping_condition?.(currentCluster.name) || (() => '');
   }
 
   const clusterBreakdowns = useQueries({
     queries: currentClusters.map(cluster => {
       return {
-        queryKey: ['clusterBreakdown', cluster.name],
+        queryKey: ['clusterBreakdown', descriptionFilter, cluster.name],
         queryFn: () =>
           fetch(
             `${HOST}/?query=${getTimeSpentQuery(
+              descriptionFilter,
               cluster.grouping_column || '',
               currentClusters.map(c => c.condition(c.name))
             )}`
@@ -66,10 +75,11 @@ export default function SpansView(props: Props) {
   });
 
   const {isLoading: areSpansLoading, data: spansData} = useQuery<SpanDataRow[]>({
-    queryKey: ['spans', currentCluster.name, orderBy],
+    queryKey: ['spans', currentCluster?.name || 'none', descriptionFilter, orderBy],
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getSpanListQuery(
+          descriptionFilter,
           pageFilter.selection.datetime,
           currentClusters.map(c => c.condition(c.name)),
           orderBy,
@@ -85,10 +95,14 @@ export default function SpansView(props: Props) {
   const {isLoading: areSpansTrendsLoading, data: spansTrendsData} = useQuery<
     SpanTrendDataRow[]
   >({
-    queryKey: ['spansTrends', currentCluster.name],
+    queryKey: ['spansTrends', currentCluster?.name || 'none', descriptionFilter],
     queryFn: () =>
       fetch(
-        `${HOST}/?query=${getSpansTrendsQuery(pageFilter.selection.datetime, groupIDs)}`
+        `${HOST}/?query=${getSpansTrendsQuery(
+          descriptionFilter,
+          pageFilter.selection.datetime,
+          groupIDs
+        )}`
       ).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -141,7 +155,7 @@ export default function SpansView(props: Props) {
           return (
             <TagDistributionMeter
               key={cluster.name}
-              title={cluster.label}
+              title={cluster.explanation || cluster.label}
               onTagClick={(_name, value) => {
                 setClusterPath([...clusterPath.slice(0, depth + 1), value.value]);
               }}
@@ -156,8 +170,26 @@ export default function SpansView(props: Props) {
         <button onClick={() => setClusterPath(['top'])}>Reset</button>
       </div>
 
+      <SearchBar
+        onChange={value => {
+          setSearchTerm(value);
+          setDidConfirmSearch(false);
+        }}
+        placeholder="Search Spans"
+        query={searchTerm}
+        onSearch={() => {
+          setDidConfirmSearch(true);
+        }}
+      />
+
+      <SpanTimeCharts
+        descriptionFilter={descriptionFilter || ''}
+        clusters={currentClusters}
+      />
+
       <SpansTable
         location={props.location}
+        clusters={currentClusters}
         isLoading={areSpansLoading || areSpansTrendsLoading}
         spansData={spansData}
         orderBy={orderBy}
