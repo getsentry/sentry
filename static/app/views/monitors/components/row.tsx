@@ -99,7 +99,7 @@ function MonitorRow({monitor, monitorEnv, organization, onDelete}: MonitorRowPro
       </MonitorName>
       <MonitorColumn>
         <TextOverflow>
-          {monitorStatus === MonitorStatus.DISABLED
+          {monitorStatus === 'disabled'
             ? t('Paused')
             : monitorStatus === MonitorStatus.ACTIVE || !lastCheckin
             ? t('Waiting for first check-in')
