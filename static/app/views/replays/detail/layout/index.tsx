@@ -6,8 +6,8 @@ import ReplayView from 'sentry/components/replays/replayView';
 import {space} from 'sentry/styles/space';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
+import FluidGrid from 'sentry/views/replays/detail/layout/fluidGrid';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import FocusArea from 'sentry/views/replays/detail/layout/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/layout/focusTabs';
 import MeasureSize from 'sentry/views/replays/detail/layout/measureSize';
@@ -56,17 +56,19 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
 
   const focusArea = (
     <ErrorBoundary mini>
-      <FluidPanel title={<SmallMarginFocusTabs />}>
+      <FluidGrid>
+        <FocusTabs />
         <FocusArea />
-      </FluidPanel>
+      </FluidGrid>
     </ErrorBoundary>
   );
 
   const sidebarArea = (
     <ErrorBoundary mini>
-      <FluidPanel title={<SmallMarginSideTabs />}>
+      <FluidGrid>
+        <SideTabs />
         <SidebarArea />
-      </FluidPanel>
+      </FluidGrid>
     </ErrorBoundary>
   );
 
@@ -167,16 +169,10 @@ const BodyContent = styled('main')`
   width: 100%;
   height: 100%;
   display: grid;
+  gap: ${space(2)};
   grid-template-rows: auto 1fr;
   overflow: hidden;
   padding: ${space(2)};
-`;
-
-const SmallMarginFocusTabs = styled(FocusTabs)`
-  margin-bottom: ${space(1)};
-`;
-const SmallMarginSideTabs = styled(SideTabs)`
-  margin-bottom: ${space(1)};
 `;
 
 const VideoSection = styled(FluidHeight)`

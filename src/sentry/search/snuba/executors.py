@@ -276,7 +276,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        strategy = get_search_strategies(organization, actor)[group_category]
+        strategy = get_search_strategies()[group_category]
         snuba_query_params = strategy(
             pinned_query_partial,
             selected_columns,
@@ -358,7 +358,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not group_categories:
             group_categories = {
                 gc
-                for gc in get_search_strategies(organization, actor).keys()
+                for gc in get_search_strategies().keys()
                 if gc != GroupCategory.PROFILE.value
                 or features.has("organizations:issue-platform", organization, actor=actor)
             }

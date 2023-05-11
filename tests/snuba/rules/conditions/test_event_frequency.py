@@ -72,29 +72,24 @@ class ErrorEventMixin:
         return event.for_group(event.group)
 
 
-class PerfEventMixin(PerfIssueTransactionTestMixin):
-    def add_event(self, data, project_id, timestamp):
-        fingerprint = data["fingerprint"][0]
-        fingerprint = (
-            fingerprint
-            if "-" in fingerprint
-            else f"{PerformanceNPlusOneGroupType.type_id}-{data['fingerprint'][0]}"
-        )
-        # Store a performance event
-        event = self.store_transaction(
-            environment=data.get("environment"),
-            project_id=project_id,
-            user_id=data.get("user", uuid4().hex),
-            fingerprint=[fingerprint],
-            timestamp=timestamp.replace(tzinfo=pytz.utc),
-        )
-        return event.for_group(event.groups[0])
-
-
-class PerfIssuePlatformEventMixin(PerfEventMixin):
+class PerfIssuePlatformEventMixin(PerfIssueTransactionTestMixin):
     def add_event(self, data, project_id, timestamp):
         with self.options({"performance.issues.send_to_issues_platform": True}):
-            return super().add_event(data, project_id, timestamp)
+            fingerprint = data["fingerprint"][0]
+            fingerprint = (
+                fingerprint
+                if "-" in fingerprint
+                else f"{PerformanceNPlusOneGroupType.type_id}-{data['fingerprint'][0]}"
+            )
+            # Store a performance event
+            event = self.store_transaction(
+                environment=data.get("environment"),
+                project_id=project_id,
+                user_id=data.get("user", uuid4().hex),
+                fingerprint=[fingerprint],
+                timestamp=timestamp.replace(tzinfo=pytz.utc),
+            )
+            return event.for_group(event.groups[0])
 
     def assertPasses(self, rule, event=None, **kwargs):
         self.project.update_option("sentry:performance_issue_create_issue_through_platform", True)
@@ -436,21 +431,11 @@ class ErrorIssueFrequencyConditionTestCase(
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
-class PerfIssueFrequencyConditionTestCase(
-    EventFrequencyConditionTestCase, RuleTestCase, PerfEventMixin
-):
-    pass
-
-
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
 class PerfIssuePlatformIssueFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventFrequencyConditionTestCase,
     RuleTestCase,
 ):
-    # TODO: Remove this once we've finished migrating perf issues to issue platform and removed
-    # related options
     pass
 
 
@@ -464,21 +449,11 @@ class ErrorIssueUniqueUserFrequencyConditionTestCase(
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
-class PerfIssueUniqueUserFrequencyConditionTestCase(
-    EventUniqueUserFrequencyConditionTestCase, RuleTestCase, PerfEventMixin
-):
-    pass
-
-
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
 class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventUniqueUserFrequencyConditionTestCase,
     RuleTestCase,
 ):
-    # TODO: Remove this once we've finished migrating perf issues to issue platform and removed
-    # related options
     pass
 
 
@@ -492,19 +467,9 @@ class ErrorIssueEventFrequencyPercentConditionTestCase(
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
-class PerfIssueEventFrequencyPercentConditionTestCase(
-    EventFrequencyPercentConditionTestCase, RuleTestCase, PerfEventMixin
-):
-    pass
-
-
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
 class PerfIssuePlatformIssueEventFrequencyPercentConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventFrequencyPercentConditionTestCase,
     RuleTestCase,
 ):
-    # TODO: Remove this once we've finished migrating perf issues to issue platform and removed
-    # related options
     pass
