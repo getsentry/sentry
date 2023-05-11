@@ -37,12 +37,12 @@ export function SpanTimeCharts({descriptionFilter, clusters}: Props) {
   const lastCluster = clusters.at(-1);
 
   const {isLoading, data} = useSpansQuery({
-    queryString: getSpanTotalTimeChartQuery(
+    queryString: `${getSpanTotalTimeChartQuery(
       pageFilter.selection.datetime,
       descriptionFilter,
       lastCluster?.grouping_column || '',
       clusters.map(c => c.condition(c.name))
-    ),
+    )}&referrer=span-time-charts`,
     initialData: [],
   });
 
