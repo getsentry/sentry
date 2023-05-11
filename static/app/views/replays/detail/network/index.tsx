@@ -11,7 +11,6 @@ import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
-import FluidGrid from 'sentry/views/replays/detail/layout/fluidGrid';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkDetails from 'sentry/views/replays/detail/network/details';
 import {ReqRespBodiesAlert} from 'sentry/views/replays/detail/network/details/onboarding';
@@ -173,7 +172,7 @@ function NetworkList({
   };
 
   return (
-    <FluidGrid>
+    <FluidHeight>
       <NetworkFilters networkSpans={networkSpans} {...filterProps} />
       <Feature
         features={['session-replay-network-details']}
@@ -251,7 +250,7 @@ function NetworkList({
           </Feature>
         </SplitPanel>
       </NetworkTable>
-    </FluidGrid>
+    </FluidHeight>
   );
 }
 
