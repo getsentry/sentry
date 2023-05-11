@@ -107,7 +107,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self) -> GitHubClientMixin:
-        return GitHubAppsClient(integration=self.model)
+        return GitHubAppsClient(integration=self.model, org_integration_id=self.org_integration.id)
 
     def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:
         trees: Dict[str, RepoTree] = {}
@@ -276,7 +276,12 @@ class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
     setup_dialog_config = {"width": 1030, "height": 1000}
 
     def get_client(self) -> GitHubClientMixin:
-        return GitHubAppsClient(integration=self.integration_cls)
+        org_integration_id = None
+        if self.integration_cls.org_integration is not None:
+            org_integration_id = self.integration_cls.org_integration.id
+        return GitHubAppsClient(
+            integration=self.integration_cls, org_integration_id=org_integration_id
+        )
 
     def post_install(
         self,

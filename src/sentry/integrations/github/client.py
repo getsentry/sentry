@@ -645,6 +645,16 @@ class GitHubClientMixin(GithubProxyClient):  # type: ignore
 
 
 class GitHubAppsClient(GitHubClientMixin):
-    def __init__(self, integration: Integration, **kwargs) -> None:
+    def __init__(
+        self,
+        integration: Integration,
+        org_integration_id: int | None = None,
+        verify_ssl: bool = True,
+        logging_context: Mapping[str, Any] | None = None,
+    ) -> None:
         self.integration = integration
-        super().__init__(integration_id=integration.id, **kwargs)
+        super().__init__(
+            org_integration_id=org_integration_id,
+            verify_ssl=verify_ssl,
+            logging_context=logging_context,
+        )
