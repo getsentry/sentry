@@ -229,8 +229,8 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         assert GroupInbox.objects.filter(group=group).exists()
 
     @freeze_time(TIME_YESTERDAY)
-    @patch("sentry.analytics.record")
-    def test_is_escalating_issue(self, record_mock: MagicMock) -> None:
+    @patch("sentry.signals.issue_escalating.send_robust")
+    def test_is_escalating_issue(self, mock_send_robust: MagicMock) -> None:
         """Test when an archived until escalating issue starts escalating"""
         with self.feature("organizations:escalating-issues"):
             # The group had 6 events in the last hour
@@ -243,16 +243,15 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             self.save_mock_escalating_group_forecast(
                 group=archived_group, forecast_values=forecast_values, date_added=datetime.now()
             )
-            assert is_escalating(archived_group)
+            assert is_escalating(archived_group, event)
             group_escalating = Group.objects.get(id=archived_group.id)
-
-            record_mock.assert_called_with(
-                "issue.escalating",
-                organization_id=group_escalating.project.organization.id,
-                project_id=group_escalating.project.id,
-                group_id=group_escalating.id,
-            )
             self.assert_is_escalating(group_escalating)
+            mock_send_robust.assert_called_once_with(
+                project=group_escalating.project,
+                group=group_escalating,
+                event=event,
+                sender=is_escalating,
+            )
 
             # Test cache
             assert (
@@ -278,7 +277,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
                 forecast_values=forecast_values,
                 date_added=datetime.now() - timedelta(days=1),
             )
-            group_is_escalating = is_escalating(group)
+            group_is_escalating = is_escalating(group, event)
             assert not group_is_escalating
             assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
             assert group.status == GroupStatus.IGNORED

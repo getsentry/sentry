@@ -58,7 +58,7 @@ type TagColumn = GridColumnOrder<ColumnKeys> & {
   field: string;
   canSort?: boolean;
 };
-const COLUMN_ORDER: TagColumn[] = [
+export const TAG_EXPLORER_COLUMN_ORDER: TagColumn[] = [
   {
     key: 'key',
     field: 'key',
@@ -142,7 +142,7 @@ const getColumnsWithReplacedDuration = (
   projects: Project[],
   eventView: EventView
 ) => {
-  const columns = COLUMN_ORDER.map(c => ({...c}));
+  const columns = TAG_EXPLORER_COLUMN_ORDER.map(c => ({...c}));
   const durationColumn = columns.find(c => c.key === 'aggregate');
 
   if (!durationColumn) {
@@ -403,7 +403,7 @@ export class TagExplorer extends Component<Props> {
     const cursor = decodeScalar(location.query?.[TAGS_CURSOR_NAME]);
 
     const tagEventView = eventView.clone();
-    tagEventView.fields = COLUMN_ORDER;
+    tagEventView.fields = TAG_EXPLORER_COLUMN_ORDER;
 
     const tagSorts = fromSorts(tagSort);
 
