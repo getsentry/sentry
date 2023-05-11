@@ -1,10 +1,11 @@
-import {CSSProperties} from 'react';
+import {CSSProperties, Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import Truncate from 'sentry/components/truncate';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconArrow} from 'sentry/icons';
 import {Series} from 'sentry/types/echarts';
@@ -48,14 +49,6 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     name: 'Span p50 vs Txn p50',
     width: 200,
   },
-  {
-    key: 'frequency',
-    name: 'Frequency',
-  },
-  {
-    key: 'uniqueEvents',
-    name: 'Total Events',
-  },
 ];
 
 function QueryTransactionTable(props: Props) {
@@ -86,7 +79,7 @@ function QueryTransactionTable(props: Props) {
 
   const renderHeadCell = (col: TableColumnHeader): React.ReactNode => {
     const {key, name} = col;
-    const sortableKeys: Keys[] = ['p50', 'count'];
+    const sortableKeys: Keys[] = ['p50', 'spm'];
     if (sortableKeys.includes(key)) {
       const isBeingSorted = col.key === sort.sortHeader?.key;
       const direction = isBeingSorted ? sort.direction : undefined;
@@ -108,7 +101,7 @@ function QueryTransactionTable(props: Props) {
     const {key} = column;
     const value = dataRow[key];
     const style: CSSProperties = {};
-    let rendereredValue = value;
+    style['min-height'] = '40px';
 
     if (
       minMax[key] &&
@@ -129,37 +122,41 @@ function QueryTransactionTable(props: Props) {
     if (key === 'spm' && SpmSeries && TpmSeries) {
       return (
         <MultiSparkline
-          color={CHART_PALETTE[2]}
+          color={[CHART_PALETTE[4][1], CHART_PALETTE[4][3]]}
           series={[TpmSeries, SpmSeries]}
           width={column.width ? column.width - column.width / 5 : undefined}
+          height={40}
         />
       );
     }
     if (key === 'transaction') {
       return (
-        <Link
-          to={`/starfish/span/${encodeURIComponent(row.group_id)}?${qs.stringify({
-            transaction: dataRow.transaction,
-          })}`}
-        >
-          {dataRow[column.key]}
-        </Link>
+        <Fragment>
+          <Link
+            to={`/starfish/span/${encodeURIComponent(row.group_id)}?${qs.stringify({
+              transaction: dataRow.transaction,
+            })}`}
+          >
+            <Truncate value={dataRow[column.key]} maxLength={50} />
+          </Link>
+          <span>
+            Span appears {dataRow.frequency?.toFixed(2)}x per txn ({dataRow.uniqueEvents}{' '}
+            total txns)
+          </span>
+        </Fragment>
       );
     }
     if (key === 'p50' && SP50Series && TP50Series) {
       return (
         <MultiSparkline
-          color={CHART_PALETTE[2]}
+          color={[CHART_PALETTE[4][0], CHART_PALETTE[4][2]]}
           series={[TP50Series, SP50Series]}
           width={column.width ? column.width - column.width / 5 : undefined}
         />
       );
     }
-    if (key === 'frequency') {
-      rendereredValue = dataRow[key]?.toFixed(2);
-    }
 
-    return <span style={style}>{rendereredValue}</span>;
+    return <span style={style}>{dataRow[key]}</span>;
   };
   return (
     <GridEditable

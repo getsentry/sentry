@@ -59,12 +59,13 @@ export default function Sparkline({series, width, color}: SparklineProps) {
 }
 
 type MultiSparklineProps = {
+  color: string[];
   series: Series[];
-  color?: string[];
+  height?: number;
   width?: number;
 };
 
-export function MultiSparkline({series, width, color}: MultiSparklineProps) {
+export function MultiSparkline({series, width, height, color}: MultiSparklineProps) {
   echarts.use([LineChart, SVGRenderer]);
 
   function getValueSeries(targetSeries, i) {
@@ -85,7 +86,7 @@ export function MultiSparkline({series, width, color}: MultiSparklineProps) {
         series: series.map((item, index) => getValueSeries(item, index)),
         xAxis: {
           show: false,
-          data: getValueSeries(series[0]).data.map(datum => datum.name),
+          data: getValueSeries(series[0], 0).data.map(datum => datum.name),
           type: 'category',
         },
         yAxis: [
@@ -107,7 +108,7 @@ export function MultiSparkline({series, width, color}: MultiSparklineProps) {
       }}
       notMerge
       style={{
-        height: 25,
+        height: height ?? 25,
         width: width ?? 200,
       }}
       lazyUpdate
