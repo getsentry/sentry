@@ -11,6 +11,7 @@ import SearchBar from 'sentry/components/searchBar';
 import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {HostDetails} from 'sentry/views/starfish/modules/APIModule/hostDetails';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
@@ -42,7 +43,9 @@ export default function SpansView(props: Props) {
     clusterName =>
       CLUSTERS[clusterName] || {
         isDynamic: true,
-        name: clusterName,
+        name: clusterName.split(':')[1],
+        value: clusterName.split(':')[1],
+        parentClusterName: clusterName.split(':')[0],
       }
   );
 
@@ -54,6 +57,8 @@ export default function SpansView(props: Props) {
     currentCluster.condition =
       previousCluster?.grouping_condition?.(currentCluster.name) || (() => '');
   }
+
+  const lastStaticCluster = currentClusters.findLast(cluster => !cluster.isDynamic);
 
   const clusterBreakdowns = useQueries({
     queries: currentClusters.map(cluster => {
@@ -156,8 +161,15 @@ export default function SpansView(props: Props) {
             <TagDistributionMeter
               key={cluster.name}
               title={cluster.explanation || cluster.label}
-              onTagClick={(_name, value) => {
-                setClusterPath([...clusterPath.slice(0, depth + 1), value.value]);
+              onTagClick={(_name, tag) => {
+                const incomingCluster = CLUSTERS[tag.value];
+                const bottomCluster = currentClusters.at(-1);
+
+                const incomingClusterName = incomingCluster
+                  ? tag.value
+                  : `${bottomCluster?.name || ''}:${tag.value}`;
+
+                setClusterPath([...clusterPath.slice(0, depth + 1), incomingClusterName]);
               }}
               segments={segments}
               totalValues={sumBy(segments, 'count')}
@@ -181,6 +193,10 @@ export default function SpansView(props: Props) {
           setDidConfirmSearch(true);
         }}
       />
+
+      {lastStaticCluster?.name === 'http.client.get' && currentCluster?.value && (
+        <HostDetails host={currentCluster.value} />
+      )}
 
       <SpanTimeCharts
         descriptionFilter={descriptionFilter || ''}
