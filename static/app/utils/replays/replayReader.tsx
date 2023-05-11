@@ -15,6 +15,7 @@ import {
 } from 'sentry/utils/replays/replayDataUtils';
 import type {
   RecordingEvent,
+  RecordingOptions,
   ReplayError,
   ReplayRecord,
   ReplaySpan,
@@ -151,11 +152,14 @@ export default class ReplayReader {
 
   getMemorySpans = memoize(() => this.sortedSpans.filter(isMemorySpan));
 
-  isNetworkDetailsSetup = memoize(() =>
-    this.getNetworkSpans().some(
-      span =>
-        Object.keys(span.data.request?.headers || {}).length ||
-        Object.keys(span.data.response?.headers || {}).length
-    )
-  );
+  sdkConfig = memoize(() => {
+    const found = this.rrwebEvents.find(
+      event => event.type === 5 && event.data.tag === 'options'
+    ) as undefined | RecordingOptions;
+    return found?.data?.payload;
+  });
+
+  isNetworkDetailsSetup = memoize(() => {
+    return this.sdkConfig()?.networkDetailHasUrls;
+  });
 }
