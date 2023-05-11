@@ -164,7 +164,7 @@ export default function EndpointOverview() {
                       <SubHeader>{t('Throughput')}</SubHeader>
                       <Chart
                         statsPeriod={(statsPeriod as string) ?? '24h'}
-                        height={140}
+                        height={150}
                         data={results?.[0] ? [results?.[0]] : []}
                         start=""
                         end=""
@@ -187,7 +187,7 @@ export default function EndpointOverview() {
                       <SubHeader>{t('p50(duration)')}</SubHeader>
                       <Chart
                         statsPeriod={(statsPeriod as string) ?? '24h'}
-                        height={140}
+                        height={150}
                         data={results?.[1] ? [results?.[1]] : []}
                         start=""
                         end=""
