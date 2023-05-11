@@ -1,4 +1,7 @@
+import * as qs from 'query-string';
+
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
@@ -11,7 +14,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TAG_EXPLORER_COLUMN_ORDER} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
-import {TextAlignLeft} from 'sentry/views/starfish/modules/APIModule/endpointTable';
+import {
+  OverflowEllipsisTextContainer,
+  TextAlignLeft,
+} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 
 type Props = {
   eventView: EventView;
@@ -74,6 +80,35 @@ export function FacetInsights({eventView}: Props) {
     },
   ]);
 
+  function renderBodyCell(column: GridColumnHeader, row: DataRow): React.ReactNode {
+    if (column.key === 'throughput' || column.key === 'p50') {
+      return (
+        <Sparkline
+          color={column.key === 'throughput' ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1]}
+          series={row[column.key]}
+          width={column.width ? column.width - column.width / 5 : undefined}
+        />
+      );
+    }
+
+    if (column.key === 'tagValue') {
+      return (
+        <OverflowEllipsisTextContainer>
+          <Link
+            to={`/discover/homepage/?${qs.stringify({
+              ...eventView.generateQueryStringObject(),
+              field: ['title', 'transaction.duration', 'timestamp'],
+            })}`}
+          >
+            {row[column.key]}
+          </Link>
+        </OverflowEllipsisTextContainer>
+      );
+    }
+
+    return <TextAlignLeft>{row[column.key]}</TextAlignLeft>;
+  }
+
   const {isLoading, data} = useGenericDiscoverQuery<any, DiscoverQueryProps>({
     route: 'events-facets-stats',
     eventView,
@@ -119,19 +154,6 @@ export function FacetInsights({eventView}: Props) {
   );
 }
 
-function renderBodyCell(column: GridColumnHeader, row: DataRow): React.ReactNode {
-  if (column.key === 'throughput' || column.key === 'p50') {
-    return (
-      <Sparkline
-        color={column.key === 'throughput' ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1]}
-        series={row[column.key]}
-        width={column.width ? column.width - column.width / 5 : undefined}
-      />
-    );
-  }
-
-  return <TextAlignLeft>{row[column.key]}</TextAlignLeft>;
-}
 function categorizeCorrelation(correlation: number): string {
   if (correlation >= 0.8) {
     return 'very high correlation';
