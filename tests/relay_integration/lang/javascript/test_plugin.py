@@ -199,11 +199,13 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame.pre_context == ["h", "e", "l"]
         assert frame.context_line == "l"
         assert frame.post_context == ["o", " ", "w", "o", "r"]
+        assert frame.data["resolved_with"] == "release-old"
 
         frame = frame_list[1]
         assert not frame.pre_context
         assert frame.context_line == "h"
         assert frame.post_context == ["e", "l", "l", "o", " "]
+        assert frame.data["resolved_with"] == "release-old"
 
         # no source map means no raw_stacktrace
         assert exception.values[0].raw_stacktrace is None
@@ -252,6 +254,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame.context_line == 'console.log("hello, World!")'
         assert not frame.post_context
         assert frame.data["sourcemap"] == "http://example.com/test.min.js"
+        assert frame.data["resolved_with"] == "release-old"
 
     @patch("sentry.lang.javascript.processor.Fetcher.fetch_by_url")
     @patch("sentry.lang.javascript.processor.discover_sourcemap")
@@ -470,6 +473,8 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert frame.post_context == ["}"]
         else:
             assert frame.post_context == ["}", ""]
+        if not process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
 
         raw_frame_list = exception.values[0].raw_stacktrace.frames
         raw_frame = raw_frame_list[0]
@@ -661,6 +666,8 @@ class TestJavascriptIntegration(RelayStoreHelper):
         expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
         assert frame.post_context == ["}", ""]
+        if not process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
 
         raw_frame_list = exception.values[0].raw_stacktrace.frames
         raw_frame = raw_frame_list[0]
