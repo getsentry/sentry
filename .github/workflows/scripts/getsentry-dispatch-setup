@@ -57,6 +57,10 @@ def main() -> int:
         print(f"- has [{LABEL}] label: {LABEL in args.label_names}")
         return 0
     else:
+        print("permissions failed!")
+        print(f"- has write permission: {write_permission}")
+        print(f"- has [{LABEL}] label: {LABEL in args.label_names}")
+        print(f"- args.label_names: {args.label_names}")
         print(
             f"please have a collaborator add the [{LABEL}] label once they "
             f"have reviewed the code to trigger downstream tests."
