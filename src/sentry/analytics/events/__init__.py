@@ -27,6 +27,7 @@ from .issue_alert_fired import *  # noqa: F401,F403
 from .issue_archived import *  # noqa: F401,F403
 from .issue_assigned import *  # noqa: F401,F403
 from .issue_deleted import *  # noqa: F401,F403
+from .issue_escalating import *  # noqa: F401,F403
 from .issue_ignored import *  # noqa: F401,F403
 from .issue_mark_reviewed import *  # noqa: F401,F403
 from .issue_resolved import *  # noqa: F401,F403

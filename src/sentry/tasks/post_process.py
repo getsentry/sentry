@@ -674,7 +674,7 @@ def process_snoozes(job: PostProcessJob) -> None:
         and group.status == GroupStatus.IGNORED
         and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     ):
-        job["has_reappeared"] = is_escalating(group)
+        job["has_reappeared"] = is_escalating(group, job["event"])
         return
 
     with metrics.timer("post_process.process_snoozes.duration"):
