@@ -197,7 +197,7 @@ export default class DetailsBody extends Component<Props> {
             />
             <DetailWrapper>
               <ActivityWrapper>
-                <MetricHistory organization={organization} incidents={incidents} />
+                <MetricHistory incidents={incidents} />
                 {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(
                   dataset
                 ) && (
