@@ -65,6 +65,10 @@ export type ReplayEventParameters = {
     platform: string;
     project_id: string;
   };
+  'replay.render-issues-group-list': {
+    platform: string | undefined;
+    project_id: string | undefined;
+  };
   'replay.render-player': {
     aspect_ratio: 'portrait' | 'landscape';
     /*
@@ -103,6 +107,7 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.list-view-setup-sidebar': 'Views Set Up Replays Sidebar',
   'replay.play-pause': 'Played/Paused Replay',
   'replay.render-issues-detail-count': 'Render Issues Detail Replay Count',
+  'replay.render-issues-group-list': 'Render Issues Detail Replay List',
   'replay.render-player': 'Rendered ReplayPlayer',
   'replay.search': 'Searched Replay',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',

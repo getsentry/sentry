@@ -1,9 +1,10 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {Group, Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -35,6 +36,16 @@ function GroupReplays({group}: Props) {
     location,
     organization,
   });
+
+  useEffect(() => {
+    trackAnalytics('replay.render-issues-group-list', {
+      project_id: group.project.id,
+      platform: group.project.platform,
+      organization,
+    });
+    // we only want to fire this event once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!eventView) {
     return (

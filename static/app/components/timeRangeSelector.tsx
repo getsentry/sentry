@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -115,6 +115,8 @@ export function TimeRangeSelector({
   defaultPeriod = DEFAULT_STATS_PERIOD,
   maxPickableDays = 90,
   disallowArbitraryRelativeRanges = false,
+  menuWidth,
+  menuBody,
   ...selectProps
 }: TimeRangeSelectorProps) {
   const router = useRouter();
@@ -270,59 +272,66 @@ export function TimeRangeSelector({
               start && end ? getAbsoluteSummary(start, end, utc) : relativeSummary;
 
             return (
-              <DropdownButton {...triggerProps} icon={<IconCalendar />}>
+              <DropdownButton icon={<IconCalendar />} {...triggerProps}>
                 <TriggerLabel>{selectProps.triggerLabel ?? defaultLabel}</TriggerLabel>
               </DropdownButton>
             );
           }}
-          menuWidth={showAbsoluteSelector ? undefined : '16em'}
+          menuWidth={showAbsoluteSelector ? undefined : menuWidth ?? '16rem'}
           menuBody={
-            showAbsoluteSelector && (
-              <AbsoluteDateRangeWrap>
-                <StyledDateRangeHook
-                  start={internalValue.start ?? null}
-                  end={internalValue.end ?? null}
-                  utc={internalValue.utc}
-                  organization={organization}
-                  showTimePicker
-                  onChange={val => {
-                    val.hasDateRangeErrors && setHasDateRangeErrors(true);
-                    setInternalValue(cur => ({
-                      ...cur,
-                      relative: null,
-                      start: val.start,
-                      end: val.end,
-                    }));
-                    setHasChanges(true);
-                  }}
-                  onChangeUtc={() => {
-                    setHasChanges(true);
-                    setInternalValue(current => {
-                      const newUtc = !current.utc;
-                      const newStart =
-                        start ?? getDateWithTimezoneInUtc(current.start, current.utc);
-                      const newEnd =
-                        end ?? getDateWithTimezoneInUtc(current.end, current.utc);
+            (showAbsoluteSelector || menuBody) && (
+              <Fragment>
+                {!showAbsoluteSelector && menuBody}
+                {showAbsoluteSelector && (
+                  <AbsoluteDateRangeWrap>
+                    <StyledDateRangeHook
+                      start={internalValue.start ?? null}
+                      end={internalValue.end ?? null}
+                      utc={internalValue.utc}
+                      organization={organization}
+                      showTimePicker
+                      onChange={val => {
+                        val.hasDateRangeErrors && setHasDateRangeErrors(true);
+                        setInternalValue(cur => ({
+                          ...cur,
+                          relative: null,
+                          start: val.start,
+                          end: val.end,
+                        }));
+                        setHasChanges(true);
+                      }}
+                      onChangeUtc={() => {
+                        setHasChanges(true);
+                        setInternalValue(current => {
+                          const newUtc = !current.utc;
+                          const newStart =
+                            start ?? getDateWithTimezoneInUtc(current.start, current.utc);
+                          const newEnd =
+                            end ?? getDateWithTimezoneInUtc(current.end, current.utc);
 
-                      trackAnalytics('dateselector.utc_changed', {
-                        utc: newUtc,
-                        path: getRouteStringFromRoutes(router.routes),
-                        organization,
-                      });
+                          trackAnalytics('dateselector.utc_changed', {
+                            utc: newUtc,
+                            path: getRouteStringFromRoutes(router.routes),
+                            organization,
+                          });
 
-                      return {
-                        relative: null,
-                        start: newUtc
-                          ? getLocalToSystem(newStart)
-                          : getUtcToSystem(newStart),
-                        end: newUtc ? getLocalToSystem(newEnd) : getUtcToSystem(newEnd),
-                        utc: newUtc,
-                      };
-                    });
-                  }}
-                  maxPickableDays={maxPickableDays}
-                />
-              </AbsoluteDateRangeWrap>
+                          return {
+                            relative: null,
+                            start: newUtc
+                              ? getLocalToSystem(newStart)
+                              : getUtcToSystem(newStart),
+                            end: newUtc
+                              ? getLocalToSystem(newEnd)
+                              : getUtcToSystem(newEnd),
+                            utc: newUtc,
+                          };
+                        });
+                      }}
+                      maxPickableDays={maxPickableDays}
+                    />
+                  </AbsoluteDateRangeWrap>
+                )}
+              </Fragment>
             )
           }
           menuFooter={
