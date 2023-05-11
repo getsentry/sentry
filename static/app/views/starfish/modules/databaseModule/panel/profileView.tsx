@@ -66,6 +66,7 @@ export function ProfileView(props: Props) {
         </ProfilesProvider>
       );
     }
+    handleNoProfileFound();
   }
 
   return <Fragment>'No profile found'</Fragment>;
