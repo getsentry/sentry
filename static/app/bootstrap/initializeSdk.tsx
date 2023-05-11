@@ -130,6 +130,52 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
        */
       "TypeError: can't access dead object",
     ],
+    beforeSend(event, _hint) {
+      if (event.exception?.values) {
+        const exceptions = event.exception?.values;
+
+        if (
+          // This works even if `exceptions` is undefined, because any numerical
+          // comparison with undefined returns `false`
+          exceptions?.length > 1 &&
+          // If the `combineLinkedErrors` flag is set on an event, it means the
+          // error chain is really just a single error, with stacktrace segments
+          // manually captured before each call to an async function. (For an
+          // example of how this is used, see the `DummyError`s created in
+          // `static/app/api.tsx`, which are chained to each other and then to the
+          // error created in `static/app/utils/handleXhrErrorResponse.tsx`'s
+          // default export.)
+          event.sdkProcessingMetadata?.combineLinkedErrors
+        ) {
+          // This is easier than iterating backwards over the array, and is
+          // necessary because the "main" error (the one actually passed to
+          // `captureException`) is always the last one, with its `cause` chain
+          // proceeding in order back to the beginning of the array.
+          exceptions.reverse();
+
+          const mainError = exceptions[0];
+
+          for (const linkedError of exceptions.slice(1)) {
+            if (!mainError.stacktrace?.frames || !linkedError.stacktrace?.frames) {
+              continue;
+            }
+
+            // Add the linked error's frames to the front of the array since
+            // frames run from least recent to most recent, and the linked error
+            // necessarily happened before the main one
+            mainError.stacktrace.frames.unshift(...linkedError.stacktrace.frames);
+          }
+
+          // Now that we have all the frames, only keep the main error. This
+          // does mean we lose the error type and message from the linked
+          // errors, but they were just ways to capture stacktrace segments, so
+          // that's fine.
+          event.exception.values = [mainError];
+        }
+      }
+
+      return event;
+    },
   });
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations
