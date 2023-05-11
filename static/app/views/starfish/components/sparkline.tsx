@@ -73,7 +73,7 @@ export function MultiSparkline({series, width, color}: MultiSparklineProps) {
       type: 'line',
       showSymbol: false,
       smooth: true,
-      lineStyle: {color: color[i], type: ['solid', 'dotted'][i]},
+      lineStyle: {color: color[i], type: ['solid', 'dotted'][i], width: [0.5, 2][i]},
       yAxisIndex: i,
     };
   }

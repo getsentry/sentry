@@ -33,6 +33,7 @@ import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {DataRow, MainTableSort} from '../databaseTableView';
 
 const INTERVAL = 12;
+const SPARKLINE_INTERVAL = 24;
 
 type DbQueryDetailProps = {
   isDataLoading: boolean;
@@ -41,6 +42,7 @@ type DbQueryDetailProps = {
   row: DataRow;
   nextRow?: DataRow;
   prevRow?: DataRow;
+  transaction?: string;
 };
 
 export type TransactionListDataRow = {
@@ -60,6 +62,7 @@ export default function QueryDetail({
   onClose,
   onRowChange,
   mainTableSort,
+  transaction,
 }: Partial<DbQueryDetailProps> & {
   isDataLoading: boolean;
   mainTableSort: MainTableSort;
@@ -76,6 +79,7 @@ export default function QueryDetail({
           row={row}
           nextRow={nextRow}
           prevRow={prevRow}
+          transaction={transaction}
         />
       )}
     </Detail>
@@ -87,6 +91,7 @@ function QueryDetailBody({
   nextRow,
   prevRow,
   onRowChange,
+  transaction,
   isDataLoading: isRowLoading,
 }: DbQueryDetailProps) {
   const theme = useTheme();
@@ -103,18 +108,23 @@ function QueryDetailBody({
   const {isLoading: isTableLoading, data: tableData} = useQueryPanelTable(
     row,
     sort.sortHeader?.key,
-    sort.direction
+    sort.direction,
+    transaction
   );
 
   const {isLoading: isSparklinesLoading, data: sparklineData} = useQueryPanelSparklines(
     row,
     sort.sortHeader?.key,
     sort.direction,
-    INTERVAL
+    SPARKLINE_INTERVAL,
+    transaction
   );
 
   const {isLoading: isP75GraphLoading, data: transactionGraphData} =
-    useQueryTransactionByTPMAndP75(tableData.map(d => d.transaction).splice(0, 5));
+    useQueryTransactionByTPMAndP75(
+      tableData.map(d => d.transaction).splice(0, 5),
+      SPARKLINE_INTERVAL
+    );
 
   const {isLoading: isEventCountLoading, data: eventCountData} =
     useQueryPanelEventCount(row);
@@ -151,25 +161,34 @@ function QueryDetailBody({
     'spm',
     startTime,
     endTime,
-    INTERVAL
+    SPARKLINE_INTERVAL
+  );
+
+  const spanp50TransactionSeries = queryToSeries(
+    sparklineData,
+    'transaction',
+    'p50',
+    startTime,
+    endTime,
+    SPARKLINE_INTERVAL
   );
 
   const tpmTransactionSeries = queryToSeries(
     transactionGraphData,
     'group',
-    'count()',
+    'epm()',
     startTime,
     endTime,
-    INTERVAL
+    SPARKLINE_INTERVAL
   );
 
-  const p75TransactionSeries = queryToSeries(
+  const p50TransactionSeries = queryToSeries(
     transactionGraphData,
     'group',
-    'p75(transaction.duration)',
+    'p50(transaction.duration)',
     startTime,
     endTime,
-    INTERVAL
+    SPARKLINE_INTERVAL
   );
 
   return (
@@ -248,50 +267,6 @@ function QueryDetailBody({
           />
         </FlexRowItem>
       </FlexRowContainer>
-      <FlexRowContainer>
-        <FlexRowItem>
-          <SubHeader>{t('Top 5 Transactions by Throughput')}</SubHeader>
-          <Chart
-            statsPeriod="24h"
-            height={140}
-            data={tpmTransactionSeries}
-            start=""
-            end=""
-            loading={isDataLoading}
-            grid={{
-              left: '0',
-              right: '0',
-              top: '16px',
-              bottom: '8px',
-            }}
-            utc={false}
-            disableXAxis
-            isLineChart
-            hideYAxisSplitLine
-          />
-        </FlexRowItem>
-        <FlexRowItem>
-          <SubHeader>{t('Top 5 Transactions by P75')}</SubHeader>
-          <Chart
-            statsPeriod="24h"
-            height={140}
-            data={p75TransactionSeries}
-            start=""
-            end=""
-            loading={isP75GraphLoading}
-            grid={{
-              left: '0',
-              right: '0',
-              top: '16px',
-              bottom: '8px',
-            }}
-            utc={false}
-            disableXAxis
-            isLineChart
-            hideYAxisSplitLine
-          />
-        </FlexRowItem>
-      </FlexRowContainer>
       <QueryTransactionTable
         isDataLoading={isDataLoading}
         onClickSort={s => setSort(s)}
@@ -300,6 +275,8 @@ function QueryDetailBody({
         tableData={mergedTableData}
         spmData={spmTransactionSeries}
         tpmData={tpmTransactionSeries}
+        spanP50Data={spanp50TransactionSeries}
+        txnP50Data={p50TransactionSeries}
       />
       <FlexRowContainer>
         <FlexRowItem>

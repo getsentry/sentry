@@ -21,12 +21,14 @@ type Props = {
   onClickSort: (sort: PanelSort) => void;
   row: DataRow;
   sort: PanelSort;
+  spanP50Data: Series[];
   spmData: Series[];
   tableData: TransactionListDataRow[];
   tpmData: Series[];
+  txnP50Data: Series[];
 };
 
-type Keys = 'transaction' | 'spm' | 'count' | 'frequency' | 'uniqueEvents';
+type Keys = 'transaction' | 'spm' | 'p50' | 'frequency' | 'uniqueEvents';
 
 type TableColumnHeader = GridColumnHeader<Keys>;
 
@@ -42,8 +44,9 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 200,
   },
   {
-    key: 'p75',
-    name: 'P75',
+    key: 'p50',
+    name: 'Span p50 vs Txn p50',
+    width: 200,
   },
   {
     key: 'frequency',
@@ -56,7 +59,17 @@ const COLUMN_ORDER: TableColumnHeader[] = [
 ];
 
 function QueryTransactionTable(props: Props) {
-  const {isDataLoading, tableData, sort, onClickSort, row, spmData, tpmData} = props;
+  const {
+    isDataLoading,
+    tableData,
+    sort,
+    onClickSort,
+    row,
+    spmData,
+    tpmData,
+    spanP50Data,
+    txnP50Data,
+  } = props;
   const location = useLocation();
   const theme = useTheme();
   const minMax = calculateOutlierMinMax(tableData);
@@ -73,7 +86,7 @@ function QueryTransactionTable(props: Props) {
 
   const renderHeadCell = (col: TableColumnHeader): React.ReactNode => {
     const {key, name} = col;
-    const sortableKeys: Keys[] = ['p75', 'count'];
+    const sortableKeys: Keys[] = ['p50', 'count'];
     if (sortableKeys.includes(key)) {
       const isBeingSorted = col.key === sort.sortHeader?.key;
       const direction = isBeingSorted ? sort.direction : undefined;
@@ -107,11 +120,17 @@ function QueryTransactionTable(props: Props) {
       spmData.length && spmData.find(item => item.seriesName === dataRow.transaction);
     const TpmSeries =
       tpmData.length && tpmData.find(item => item.seriesName === dataRow.transaction);
+    const SP50Series =
+      spanP50Data.length &&
+      spanP50Data.find(item => item.seriesName === dataRow.transaction);
+    const TP50Series =
+      txnP50Data.length &&
+      txnP50Data.find(item => item.seriesName === dataRow.transaction);
     if (key === 'spm' && SpmSeries && TpmSeries) {
       return (
         <MultiSparkline
-          color={CHART_PALETTE[3]}
-          series={[SpmSeries, TpmSeries]}
+          color={CHART_PALETTE[2]}
+          series={[TpmSeries, SpmSeries]}
           width={column.width ? column.width - column.width / 5 : undefined}
         />
       );
@@ -127,8 +146,14 @@ function QueryTransactionTable(props: Props) {
         </Link>
       );
     }
-    if (key === 'p75') {
-      rendereredValue = `${dataRow[key]?.toFixed(2)}ms`;
+    if (key === 'p50' && SP50Series && TP50Series) {
+      return (
+        <MultiSparkline
+          color={CHART_PALETTE[2]}
+          series={[TP50Series, SP50Series]}
+          width={column.width ? column.width - column.width / 5 : undefined}
+        />
+      );
     }
     if (key === 'frequency') {
       rendereredValue = dataRow[key]?.toFixed(2);
