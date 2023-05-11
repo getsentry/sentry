@@ -22,7 +22,7 @@ from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp

@@ -20,7 +20,8 @@ from sentry.notifications.helpers import (
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.models import Group, Team, User
