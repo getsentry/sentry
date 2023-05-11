@@ -1,16 +1,54 @@
+import abc
 from typing import Any, Mapping, Sequence, Tuple
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+from sentry.testutils import TestCase
+from sentry.testutils.cases import BaseTestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
-from sentry.utils.sdk_crashes.sdk_crash_detection import SDKCrashDetection, SDKCrashReporter
+from sentry.utils.sdk_crashes.sdk_crash_detection import (
+    SDKCrashDetection,
+    SDKCrashReporter,
+    sdk_crash_detection,
+)
 from tests.sentry.utils.sdk_crashes.test_fixture import (
     IN_APP_FRAME,
     get_crash_event,
     get_crash_event_with_frames,
     get_sentry_frame,
 )
+
+
+class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def create_event(self, data, project_id, assert_no_errors=True):
+        pass
+
+
+class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
+    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+    def test_detect_sdk_crash_unhandled_is_detected(self, mock_sdk_crash_reporter):
+
+        event_data = get_crash_event()
+        event = self.create_event(
+            data=event_data,
+            project_id=self.project.id,
+        )
+
+        sdk_crash_detection.detect_sdk_crash(event=event)
+
+        mock_sdk_crash_reporter.report.assert_called_once()
+
+
+@region_silo_test
+class SDKCrashDetectionTest(
+    TestCase,
+    CococaSDKTestMixin,
+):
+    def create_event(self, data, project_id, assert_no_errors=True):
+        return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
 
 
 @pytest.mark.parametrize(
@@ -171,20 +209,20 @@ def test_report_cocoa_sdk_crash_filename(filename, should_be_reported):
         "only_inapp_after_sentry_frame_not_detected",
     ],
 )
-def test_report_cocoa_sdk_crash_frames(frames, should_be_reported):
+def test_report_cocoa_sdk_crash_frames(self, frames, should_be_reported):
     event = get_crash_event_with_frames(frames)
 
     _run_report_test_with_event(event, should_be_reported)
 
 
-def test_sdk_crash_detected_event_is_not_reported():
+def test_sdk_crash_detected_event_is_not_reported(self):
     event = get_crash_event()
     event["contexts"]["sdk_crash_detection"] = {"detected": True}
 
     _run_report_test_with_event(event, should_be_reported=False)
 
 
-def test_cocoa_sdk_crash_detection_without_context():
+def test_cocoa_sdk_crash_detection_without_context(self):
     event = get_crash_event(function="-[SentryHub getScope]")
     event["contexts"] = {}
 
@@ -223,5 +261,5 @@ def assert_sdk_crash_reported(
     assert reported_event["contexts"]["sdk_crash_detection"]["detected"] is True
 
 
-def assert_no_sdk_crash_reported(crash_reporter: SDKCrashReporter):
+def assert_no_sdk_crash_reported(self, crash_reporter: SDKCrashReporter):
     crash_reporter.report.assert_not_called()

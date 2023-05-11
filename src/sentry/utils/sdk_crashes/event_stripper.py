@@ -27,7 +27,7 @@ class EventStripper:
     }
 
     def strip_event_data(self, event: Event) -> Event:
-        new_event = dict(filter(self._filter_event, event.items()))
+        new_event = dict(filter(self._filter_event, event.data.items()))
         new_event["contexts"] = dict(filter(self._filter_contexts, new_event["contexts"].items()))
 
         stripped_frames = []
