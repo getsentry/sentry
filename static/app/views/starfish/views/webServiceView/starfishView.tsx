@@ -87,7 +87,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
               />
               <FailureRateChart
                 statsPeriod={eventView.statsPeriod}
-                height={120}
+                height={145}
                 data={transformedData}
                 start={eventView.start as string}
                 end={eventView.end as string}
@@ -155,7 +155,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           return (
             <Chart
               statsPeriod="24h"
-              height={120}
+              height={145}
               data={transformedData}
               start=""
               end=""

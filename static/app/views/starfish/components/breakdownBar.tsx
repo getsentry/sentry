@@ -241,30 +241,6 @@ function FacetBreakdownBar({title, transaction: maybeTransaction}: Props) {
     );
   }
 
-  // function renderChart(mod: string | undefined) {
-  //   switch (mod) {
-  //     case 'http':
-  //       return (
-  //         <HttpBreakdownChart
-  //           isHttpDurationDataLoading={isHttpDurationDataLoading}
-  //           isOtherHttpDurationDataLoading={isOtherHttpDurationDataLoading}
-  //           httpDurationData={httpDurationData}
-  //           otherHttpDurationData={otherHttpDurationData}
-  //           httpThroughputData={httpThroughputData}
-  //         />
-  //       );
-  //     case 'db':
-  //     default:
-  //       return (
-  //         <DatabaseDurationChart
-  //           isDbDurationLoading={isDbDurationLoading}
-  //           dbDurationData={dbDurationData}
-  //           dbThroughputData={dbThroughputData}
-  //         />
-  //       );
-  //   }
-  // }
-
   return (
     <Fragment>
       <TagSummary>
