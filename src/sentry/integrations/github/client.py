@@ -49,9 +49,9 @@ class GithubRateLimitInfo:
 class GithubProxyClient(IntegrationProxyClient):
     def _get_installation_id(self) -> str:
         """
-        Returns the Github App Installation identifier.
-        This is a method since Github and Github Enterprise integrations store the
-        installation identifier in different places from one another.
+        Returns the Github App installation identifier.
+        This is necessary since Github and Github Enterprise integrations store the
+        identifier in different places on their database records.
         """
         return self.integration.external_id
 

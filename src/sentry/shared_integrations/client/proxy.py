@@ -33,7 +33,7 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
     """
 
     _should_proxy_to_control = False
-    _use_proxy_url_for_tests = True
+    _use_proxy_url_for_tests = False
 
     def __init__(
         self,
