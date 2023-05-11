@@ -804,6 +804,7 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
         job["received_timestamp"] = job["event"].data.get("received") or float(
             job["event"].datetime.strftime("%s")
         )
+        job["groups"] = []
 
 
 def _is_commit_sha(version: str) -> bool:
