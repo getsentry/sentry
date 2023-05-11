@@ -263,7 +263,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
                 forecast_values=forecast_values,
                 date_added=datetime.now() - timedelta(days=1),
             )
-            group_is_escalating = is_escalating(group, event)
+            group_is_escalating = is_escalating(group)
             assert not group_is_escalating
             assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
             assert group.status == GroupStatus.IGNORED
