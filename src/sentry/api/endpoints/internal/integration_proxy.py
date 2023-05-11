@@ -13,6 +13,7 @@ from sentry.silo.util import (
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     clean_outbound_headers,
+    trim_leading_slashes,
     verify_subnet_signature,
 )
 from sentry.utils import metrics
@@ -70,7 +71,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         log_extra = {"path": self.proxy_path}
 
         # Get the organization integration
-        org_integration_id = request.headers.get(PROXY_OI_HEADER, None)
+        org_integration_id = request.headers.get(PROXY_OI_HEADER)
         if org_integration_id is None:
             logger.error("missing_org_integration", extra=log_extra)
             return False
@@ -132,7 +133,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         """
         Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)
         """
-        self.proxy_path = request.path[len(PROXY_BASE_PATH) :]
+        self.proxy_path = trim_leading_slashes(request.path[len(PROXY_BASE_PATH) :])
         if not self._should_operate(request):
             raise Http404
 
@@ -145,12 +146,13 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             headers=headers,
             data=request.body,
         ).prepare()
-        authorized_request = self.client.authorize_request(prepared_request)
+        # Third-party authentication headers will be added in client.authorize_request which runs
+        # in IntegrationProxyClient.finalize_request.
         raw_response: Response = self.client._request(
             request.method,
             self.proxy_path,
             allow_text=True,
-            prepared_request=authorized_request,
+            prepared_request=prepared_request,
             raw_response=True,
         )
         response = HttpResponse(

@@ -5,7 +5,6 @@
 
 import base64
 import contextlib
-from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Optional, Tuple, Type, Union
 
@@ -93,8 +92,7 @@ class RpcAuthState(RpcModel):
     permissions: List[str]
 
 
-@dataclass
-class AuthenticationRequest:
+class AuthenticationRequest(RpcModel):
     # HTTP_X_SENTRY_RELAY_ID
     sentry_relay_id: Optional[str] = None
     # HTTP_X_SENTRY_RELAY_SIGNATURE
@@ -130,11 +128,10 @@ def authentication_request_from(request: Request) -> AuthenticationRequest:
     )
 
 
-@dataclass(eq=True)
-class AuthenticatedToken:
-    allowed_origins: List[str] = field(default_factory=list)
-    audit_log_data: Dict[str, Any] = field(default_factory=dict)
-    scopes: List[str] = field(default_factory=list)
+class AuthenticatedToken(RpcModel):
+    allowed_origins: List[str] = Field(default_factory=list)
+    audit_log_data: Dict[str, Any] = Field(default_factory=dict)
+    scopes: List[str] = Field(default_factory=list)
     entity_id: Optional[int] = None
     kind: str = "system"
     user_id: Optional[int] = None  # only relevant for ApiToken
@@ -193,8 +190,7 @@ class AuthenticatedToken:
         return scope in self.get_scopes()
 
 
-@dataclass
-class AuthenticationContext:
+class AuthenticationContext(RpcModel):
     """
     The default of all values should be a valid, non authenticated context.
     """
@@ -251,7 +247,6 @@ class AuthenticationContext:
                 delattr(request, "auth")
 
 
-@dataclass
 class MiddlewareAuthenticationResponse(AuthenticationContext):
     expired: bool = False
     user_from_signed_request: bool = False

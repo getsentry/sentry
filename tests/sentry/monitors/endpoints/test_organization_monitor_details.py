@@ -131,6 +131,14 @@ class UpdateMonitorTest(MonitorTestCase):
     def test_checkin_margin(self):
         monitor = self._create_monitor()
 
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"config": {"checkin_margin": -1}},
+        )
+
         resp = self.get_success_response(
             self.organization.slug,
             monitor.slug,
@@ -144,6 +152,14 @@ class UpdateMonitorTest(MonitorTestCase):
 
     def test_max_runtime(self):
         monitor = self._create_monitor()
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"config": {"max_runtime": -1}},
+        )
 
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"config": {"max_runtime": 30}}
@@ -281,6 +297,14 @@ class UpdateMonitorTest(MonitorTestCase):
             method="PUT",
             status_code=400,
             **{"config": {"schedule_type": "interval", "schedule": ["foo", "month"]}},
+        )
+
+        self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"config": {"schedule_type": "interval", "schedule": [-1, "day"]}},
         )
 
         self.get_error_response(

@@ -257,7 +257,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
 
         warnings.warn("Project.has_access is deprecated.", DeprecationWarning)
 
-        queryset = self.member_set.filter(user=user)
+        queryset = self.member_set.filter(user_id=user.id)
 
         if access is not None:
             queryset = queryset.filter(type__lte=access)
