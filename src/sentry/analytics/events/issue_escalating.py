@@ -8,6 +8,7 @@ class IssueEscalatingEvent(analytics.Event):
         analytics.Attribute("organization_id", type=int),
         analytics.Attribute("project_id", type=int),
         analytics.Attribute("group_id"),
+        analytics.Attribute("event_id"),
     )
 
 

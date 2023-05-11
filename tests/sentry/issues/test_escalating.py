@@ -246,7 +246,12 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert is_escalating(archived_group, event)
             group_escalating = Group.objects.get(id=archived_group.id)
             self.assert_is_escalating(group_escalating)
-            mock_send_robust.assert_called_once()
+            mock_send_robust.assert_called_once_with(
+                project=group_escalating.project,
+                group=group_escalating,
+                event=event,
+                sender=is_escalating,
+            )
 
             # Test cache
             assert (
