@@ -148,11 +148,13 @@ def _now() -> int:
     return int(datetime.now(timezone.utc).timestamp())
 
 
-def _get_rules(project: Project) -> RuleSet:
+def get_rules(project: Project) -> RuleSet:
+    """Get rules from project option"""
     return ProjectOptionRuleStore().read(project)
 
 
 def get_redis_rules(project: Project) -> RuleSet:
+    """Get rules from redis"""
     return RedisRuleStore().read(project)
 
 
