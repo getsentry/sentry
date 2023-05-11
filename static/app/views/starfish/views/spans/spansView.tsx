@@ -12,6 +12,7 @@ import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
 import {CLUSTERS} from './clusters';
 import {getSpanListQuery, getSpansTrendsQuery, getTimeSpentQuery} from './queries';
@@ -154,7 +155,7 @@ export default function SpansView(props: Props) {
           return (
             <TagDistributionMeter
               key={cluster.name}
-              title={cluster.label}
+              title={cluster.explanation || cluster.label}
               onTagClick={(_name, value) => {
                 setClusterPath([...clusterPath.slice(0, depth + 1), value.value]);
               }}
@@ -179,6 +180,11 @@ export default function SpansView(props: Props) {
         onSearch={() => {
           setDidConfirmSearch(true);
         }}
+      />
+
+      <SpanTimeCharts
+        descriptionFilter={descriptionFilter || ''}
+        clusters={currentClusters}
       />
 
       <SpansTable

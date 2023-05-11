@@ -4,6 +4,7 @@ export type Cluster = {
   name: string;
   description_label?: string;
   domain_label?: string;
+  explanation?: string;
   grouping_column?: string;
   grouping_condition?: (value: any) => () => string;
   isDynamic?: boolean;
@@ -13,12 +14,14 @@ export const CLUSTERS: Record<string, Cluster> = {
   top: {
     name: 'top',
     label: 'All',
+    explanation: 'Time Spent',
     condition: () => '',
     grouping_column: "module IN ['db', 'http'] ? concat('top.',  module) : 'top.other'",
   },
   'top.db': {
     name: 'top.db',
-    label: 'DB',
+    label: 'Database',
+    explanation: 'Database Operations',
     description_label: 'Query',
     domain_label: 'Table',
     condition: () => "module == 'db'",
@@ -45,6 +48,7 @@ export const CLUSTERS: Record<string, Cluster> = {
   'top.http': {
     name: 'top.http',
     label: 'HTTP',
+    explanation: 'HTTP Server vs. Client',
     description_label: 'URL',
     domain_label: 'Host',
     condition: () => "module == 'http'",
@@ -60,6 +64,7 @@ export const CLUSTERS: Record<string, Cluster> = {
   'http.client': {
     name: 'http.client',
     label: 'Client',
+    explanation: 'HTTP Methods',
     condition: () => "span_operation == 'http.client'",
     grouping_column:
       "action IN ['GET', 'POST'] ? concat('http.client.', lower(action)) : 'http.client.other'",
@@ -67,6 +72,7 @@ export const CLUSTERS: Record<string, Cluster> = {
   'http.client.get': {
     name: 'http.client.get',
     label: 'GET',
+    explanation: 'Domains',
     condition: () => "action == 'GET'",
     grouping_column: 'domain',
     grouping_condition: value => () => `domain = '${value}'`,
