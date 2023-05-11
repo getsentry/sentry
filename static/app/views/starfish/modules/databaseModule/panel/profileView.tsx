@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 
 import {SpanProfileDetails} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
@@ -19,17 +19,23 @@ type Props = {
 export function ProfileView(props: Props) {
   const {spanHash, transactionNames} = props;
   const organization = useOrganization();
+  const [transactionIdx, setTransactionIdx] = useState<number>(0);
 
-  const result = useQueryGetProfileIds(transactionNames, spanHash);
-  const eventResult = useQueryGetEvent(result.data[0]?.transaction_id);
+  const result = useQueryGetProfileIds(transactionNames);
+  const transactionIds = result?.data?.data?.map(d => d.id) ?? [];
+  const eventResult = useQueryGetEvent(transactionIds[transactionIdx]);
 
-  const isLoading = result.isLoading || eventResult.isLoading;
+  const isLoading = result.isLoading || eventResult.isLoading || eventResult.isRefetching;
 
   if (isLoading) {
     return <LoadingIndicator />;
   }
 
-  if (eventResult.data.id) {
+  const handleNoProfileFound = () => {
+    setTransactionIdx(transactionIdx + 1);
+  };
+
+  if (eventResult.data.id && transactionIdx < transactionIds.length) {
     const event = eventResult.data;
     const spans = event.entries[0].data as RawSpanType[];
 
@@ -49,7 +55,11 @@ export function ProfileView(props: Props) {
                 input={profiles?.type === 'resolved' ? profiles.data : null}
                 traceID={profileId || ''}
               >
-                <SpanProfileDetails event={event} span={currentSpan} />
+                <SpanProfileDetails
+                  onNoProfileFound={handleNoProfileFound}
+                  event={event}
+                  span={currentSpan}
+                />
               </ProfileGroupProvider>
             )}
           </ProfileContext.Consumer>
