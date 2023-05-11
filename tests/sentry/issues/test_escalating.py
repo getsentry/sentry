@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from uuid import uuid4
 
 from freezegun import freeze_time
@@ -223,14 +223,8 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         group.substatus = GroupSubStatus.UNTIL_ESCALATING
         group.save()
 
-    def assert_is_escalating(self, group: Group) -> None:
-        assert group.substatus == GroupSubStatus.ESCALATING
-        assert group.status == GroupStatus.UNRESOLVED
-        assert GroupInbox.objects.filter(group=group).exists()
-
     @freeze_time(TIME_YESTERDAY)
-    @patch("sentry.signals.issue_escalating.send_robust")
-    def test_is_escalating_issue(self, mock_send_robust: MagicMock) -> None:
+    def test_is_escalating_issue(self) -> None:
         """Test when an archived until escalating issue starts escalating"""
         with self.feature("organizations:escalating-issues"):
             # The group had 6 events in the last hour
@@ -243,19 +237,11 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             self.save_mock_escalating_group_forecast(
                 group=archived_group, forecast_values=forecast_values, date_added=datetime.now()
             )
-            assert is_escalating(archived_group, event)
-            group_escalating = Group.objects.get(id=archived_group.id)
-            self.assert_is_escalating(group_escalating)
-            mock_send_robust.assert_called_once_with(
-                project=group_escalating.project,
-                group=group_escalating,
-                event=event,
-                sender=is_escalating,
-            )
+            assert is_escalating(archived_group)
 
             # Test cache
             assert (
-                cache.get(f"hourly-group-count:{group_escalating.project.id}:{group_escalating.id}")
+                cache.get(f"hourly-group-count:{archived_group.project.id}:{archived_group.id}")
                 == 6
             )
 
@@ -277,7 +263,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
                 forecast_values=forecast_values,
                 date_added=datetime.now() - timedelta(days=1),
             )
-            group_is_escalating = is_escalating(group, event)
+            group_is_escalating = is_escalating(group)
             assert not group_is_escalating
             assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
             assert group.status == GroupStatus.IGNORED
