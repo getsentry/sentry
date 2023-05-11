@@ -395,6 +395,7 @@ function SummaryContent({
           })}
           forceLoading={isLoading}
           referrer="performance.transactions_summary"
+          mepContext={mepDataContext}
         />
         <SuspectSpans
           location={location}

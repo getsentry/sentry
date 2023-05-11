@@ -15,7 +15,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
-import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
+import {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -114,6 +114,7 @@ type Props = {
    * The callback for when Open in Discover is clicked.
    */
   handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
+  mepContext?: MetricsEnhancedPerformanceDataContext;
   referrer?: string;
   showTransactions?: TransactionFilterOptions;
   /**
@@ -127,6 +128,7 @@ type TableRenderProps = Omit<React.ComponentProps<typeof Pagination>, 'size'> &
   React.ComponentProps<typeof TransactionsTable> & {
     header: React.ReactNode;
     paginationCursorSize: React.ComponentProps<typeof Pagination>['size'];
+    mepContext?: MetricsEnhancedPerformanceDataContext;
     target?: string;
   };
 
@@ -147,14 +149,14 @@ function TableRender({
   useAggregateAlias,
   target,
   paginationCursorSize,
+  mepContext,
 }: TableRenderProps) {
-  const mepContext = useMEPDataContext();
   const tableHasResults =
     tableData && tableData.data && tableData.meta && tableData.data.length > 0;
   const query = decodeScalar(location.query.query, '');
 
   useEffect(() => {
-    if (isLoading || !mepContext.isMetricsData || !organization.isDynamicallySampled) {
+    if (isLoading || !mepContext?.isMetricsData || !organization.isDynamicallySampled) {
       return;
     }
 
@@ -170,7 +172,7 @@ function TableRender({
       organization,
       query,
     });
-  }, [isLoading, tableHasResults, organization, mepContext.isMetricsData, query]);
+  }, [isLoading, tableHasResults, organization, mepContext, query]);
 
   const content = (
     <TransactionsTable
@@ -318,6 +320,7 @@ class _TransactionsList extends Component<Props> {
       generateLink,
       forceLoading,
       referrer,
+      mepContext,
     } = this.props;
 
     const eventView = this.getEventView();
@@ -340,6 +343,7 @@ class _TransactionsList extends Component<Props> {
       target: 'transactions_table',
       paginationCursorSize: 'xs',
       onCursor: this.handleCursor,
+      mepContext,
     };
 
     if (forceLoading) {
@@ -370,8 +374,15 @@ class _TransactionsList extends Component<Props> {
   }
 
   renderTrendsTable(): React.ReactNode {
-    const {trendView, location, selected, organization, cursorName, generateLink} =
-      this.props;
+    const {
+      trendView,
+      location,
+      selected,
+      organization,
+      cursorName,
+      generateLink,
+      mepContext,
+    } = this.props;
 
     const sortedEventView: TrendView = trendView!.clone();
     sortedEventView.sorts = [selected.sort];
@@ -409,6 +420,7 @@ class _TransactionsList extends Component<Props> {
               {field: 'trend_difference()'},
             ])}
             generateLink={generateLink}
+            mepContext={mepContext}
             useAggregateAlias
           />
         )}
