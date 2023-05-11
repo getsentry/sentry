@@ -7,7 +7,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -250,16 +250,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             or batch_features.get("organizations:dashboards-mep", False)
         )
 
-        use_profiles = batch_features.get("organizations:profiling", False)
-
-        use_occurrences = options.get("performance.issues.create_issues_through_platform", False)
-
-        use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
-
-        starfish_view = batch_features.get("organizations:starfish-view", False)
-
-        use_custom_dataset = use_metrics or use_profiles or use_occurrences or starfish_view
-        dataset = self.get_dataset(request) if use_custom_dataset else discover
+        dataset = self.get_dataset(request)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
@@ -288,7 +279,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 transform_alias_to_input_format=True,
                 # Whether the flag is enabled or not, regardless of the referrer
                 has_metrics=use_metrics,
-                use_metrics_layer=use_metrics_layer,
+                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
             )
 
         with self.handle_query_errors():
