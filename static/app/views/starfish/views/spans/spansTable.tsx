@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
 
@@ -12,11 +13,14 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
+import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
+import {FormattedCode} from 'sentry/views/starfish/modules/databaseModule/panel';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 type Props = {
   isLoading: boolean;
   location: Location;
+  onSelect: (row: SpanDataRow) => void;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
   spansData: SpanDataRow[];
@@ -24,9 +28,14 @@ type Props = {
 };
 
 export type SpanDataRow = {
+  count: number;
   description: string;
+  domain: string;
   group_id: string;
+  p50: number;
+  p95: number;
   span_operation: string;
+  total_exclusive_time: number;
 };
 
 export type SpanTrendDataRow = {
@@ -43,6 +52,7 @@ export default function SpansTable({
   onSetOrderBy,
   spansTrendsData,
   isLoading,
+  onSelect,
 }: Props) {
   const spansTrendsGrouped = {};
 
@@ -87,7 +97,7 @@ export default function SpansTable({
       }
       grid={{
         renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell,
+        renderBodyCell: (column, row) => renderBodyCell(column, row, onSelect),
       }}
       location={location}
     />
@@ -117,7 +127,13 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
   return renderHeadCell;
 }
 
-function renderBodyCell(column: GridColumnHeader, row: SpanDataRow): React.ReactNode {
+const SPAN_OPS_WITH_DETAIL = ['http.client', 'db'];
+
+function renderBodyCell(
+  column: GridColumnHeader,
+  row: SpanDataRow,
+  onSelect?: (row: SpanDataRow) => void
+): React.ReactNode {
   if (column.key === 'p95_trend' && row[column.key]) {
     return (
       <Sparkline
@@ -129,9 +145,23 @@ function renderBodyCell(column: GridColumnHeader, row: SpanDataRow): React.React
   }
 
   if (column.key === 'description') {
+    const formattedRow = mapRowKeys(row, row.span_operation);
     return (
-      <Link to={`/starfish/span/${encodeURIComponent(row.group_id)}`}>
-        {row.description}
+      <Link
+        onClick={() => onSelect?.(formattedRow)}
+        to={
+          SPAN_OPS_WITH_DETAIL.includes(row.span_operation)
+            ? ''
+            : `/starfish/span/${encodeURIComponent(row.group_id)}`
+        }
+      >
+        {row.span_operation === 'db' ? (
+          <StyledFormattedCode>
+            {(row as unknown as DataRow).formatted_desc}
+          </StyledFormattedCode>
+        ) : (
+          row.description
+        )}
       </Link>
     );
   }
@@ -142,6 +172,29 @@ function renderBodyCell(column: GridColumnHeader, row: SpanDataRow): React.React
 
   return row[column.key];
 }
+
+// We use different named column keys for the same columns in db and api module
+// So we need to map them to the appropriate keys for the module details drawer
+// Not ideal, but this is a temporary fix until we match the column keys.
+// Also the type for this is not very consistent. We should fix that too.
+const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
+  switch (spanOperation) {
+    case 'http.client':
+      return {
+        ...row,
+        'p50(span.self_time)': row.p50,
+        'p95(span.self_time)': row.p95,
+      };
+    case 'db':
+      return {
+        ...row,
+        total_time: row.total_exclusive_time,
+      };
+
+    default:
+      return row;
+  }
+};
 
 const COLUMN_ORDER = [
   {
@@ -175,3 +228,8 @@ const COLUMN_ORDER = [
     width: 250,
   },
 ];
+
+const StyledFormattedCode = styled(FormattedCode)`
+  background: none;
+  text-overflow: ellipsis;
+`;

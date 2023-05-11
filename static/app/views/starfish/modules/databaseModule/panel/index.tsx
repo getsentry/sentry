@@ -394,7 +394,7 @@ const FlexRowItem = styled('div')`
   flex: 1;
 `;
 
-const FormattedCode = styled('div')`
+export const FormattedCode = styled('div')`
   padding: ${space(1)};
   margin-bottom: ${space(3)};
   background: ${p => p.theme.backgroundSecondary};
