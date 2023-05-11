@@ -7,13 +7,12 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Clipboard from 'sentry/components/clipboard';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Integration, Organization, Project} from 'sentry/types';
@@ -226,11 +225,12 @@ function StacktraceLinkModal({
                       return (
                         <div key={i} style={{display: 'flex', alignItems: 'center'}}>
                           <SuggestionOverflow>{suggestion}</SuggestionOverflow>
-                          <Clipboard value={suggestion}>
-                            <Button type="button" borderless size="xs">
-                              <IconCopy size="xs" />
-                            </Button>
-                          </Clipboard>
+                          <CopyToClipboardButton
+                            borderless
+                            text={suggestion}
+                            size="xs"
+                            iconSize="xs"
+                          />
                         </div>
                       );
                     })}
