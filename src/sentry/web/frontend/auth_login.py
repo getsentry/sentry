@@ -30,7 +30,6 @@ from sentry.utils.auth import (
     is_valid_redirect,
     login,
 )
-from sentry.utils.client_state import get_client_state_redirect_uri
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
@@ -268,11 +267,6 @@ class AuthLoginView(BaseView):
 
                 # On login, redirect to onboarding
                 if self.active_organization:
-                    onboarding_redirect = get_client_state_redirect_uri(
-                        self.active_organization.organization.slug, None
-                    )
-                    if onboarding_redirect:
-                        request.session["_next"] = onboarding_redirect
                     if features.has(
                         "organizations:customer-domains",
                         self.active_organization.organization,

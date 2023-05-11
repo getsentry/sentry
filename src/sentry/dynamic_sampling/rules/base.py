@@ -21,7 +21,7 @@ logger = logging.getLogger("sentry.dynamic_sampling")
 
 
 def get_guarded_blended_sample_rate(organization: Organization, project: Project) -> float:
-    sample_rate = quotas.get_blended_sample_rate(project)
+    sample_rate = quotas.get_blended_sample_rate(organization_id=organization.id)
 
     if sample_rate is None:
         raise Exception("get_blended_sample_rate returns none")

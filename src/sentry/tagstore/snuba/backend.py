@@ -11,10 +11,8 @@ from pytz import UTC
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
-from sentry import features
 from sentry.api.utils import default_start_end_dates
 from sentry.issues.grouptype import GroupCategory
-from sentry.issues.query import apply_performance_conditions
 from sentry.models import (
     Group,
     Project,
@@ -693,15 +691,9 @@ class SnubaTagStorage(TagStorage):
     def apply_group_filters_conditions(self, group: Group, conditions, filters):
         dataset = Dataset.Events
         if group:
-            if group.issue_category == GroupCategory.PERFORMANCE and not features.has(
-                "organizations:issue-platform-search-perf-issues", group.organization
-            ):
-                dataset = Dataset.Transactions
-                apply_performance_conditions(conditions, group)
-            else:
-                filters["group_id"] = [group.id]
-                if not group.issue_category == GroupCategory.ERROR:
-                    dataset = Dataset.IssuePlatform
+            filters["group_id"] = [group.id]
+            if group.issue_category != GroupCategory.ERROR:
+                dataset = Dataset.IssuePlatform
         return dataset, conditions, filters
 
     def get_group_tag_value_count(self, group, environment_id, key, tenant_ids=None):
@@ -851,26 +843,6 @@ class SnubaTagStorage(TagStorage):
             return rpe.first_seen
 
         return None
-
-    def get_group_ids_for_users(self, project_ids, event_users, limit=100, tenant_ids=None):
-        filters = {"project_id": project_ids}
-        conditions = [
-            ["tags[sentry:user]", "IN", [_f for _f in [eu.tag_value for eu in event_users] if _f]]
-        ]
-        aggregations = [["max", SEEN_COLUMN, "last_seen"]]
-
-        result = snuba.query(
-            dataset=Dataset.Events,
-            groupby=["group_id"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            limit=limit,
-            orderby="-last_seen",
-            referrer="tagstore.get_group_ids_for_users",
-            tenant_ids=tenant_ids,
-        )
-        return set(result.keys())
 
     def get_group_tag_values_for_users(self, event_users, limit=100, tenant_ids=None):
         """While not specific to a group_id, this is currently only used in issues, so the Events dataset is used"""

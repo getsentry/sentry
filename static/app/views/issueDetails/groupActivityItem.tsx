@@ -183,7 +183,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
           .sort(
             (a, b) => moment(a.dateReleased).valueOf() - moment(b.dateReleased).valueOf()
           );
-        if (deployedReleases.length === 1) {
+        if (deployedReleases.length === 1 && activity.data.commit) {
           return tct(
             '[author] marked this issue as resolved in [version] [break]This commit was released in [release]',
             {
@@ -206,7 +206,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
             }
           );
         }
-        if (deployedReleases.length > 1) {
+        if (deployedReleases.length > 1 && activity.data.commit) {
           return tct(
             '[author] marked this issue as resolved in [version] [break]This commit was released in [release] and [otherCount] others',
             {
@@ -230,27 +230,32 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
             }
           );
         }
-        return tct('[author] marked this issue as resolved in [version]', {
-          author,
-          version: (
-            <CommitLink
-              inline
-              commitId={activity.data.commit.id}
-              repository={activity.data.commit.repository}
-            />
-          ),
-        });
+        if (activity.data.commit) {
+          return tct('[author] marked this issue as resolved in [commit]', {
+            author,
+            commit: (
+              <CommitLink
+                inline
+                commitId={activity.data.commit.id}
+                repository={activity.data.commit.repository}
+              />
+            ),
+          });
+        }
+        return tct('[author] marked this issue as resolved in a commit', {author});
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;
-        return tct('[author] has created a PR for this issue: [version]', {
+        return tct('[author] has created a PR for this issue: [pullRequest]', {
           author,
-          version: (
+          pullRequest: pullRequest ? (
             <PullRequestLink
               inline
               pullRequest={pullRequest}
               repository={pullRequest.repository}
             />
+          ) : (
+            t('PR not available')
           ),
         });
       }

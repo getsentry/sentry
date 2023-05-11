@@ -72,7 +72,7 @@ function AssigneeAvatar({
   if (suggestedActors.length > 0) {
     return (
       <SuggestedAvatarStack
-        size={28}
+        size={26}
         owners={suggestedActors}
         tooltipOptions={{isHoverable: true}}
         tooltip={

@@ -32,5 +32,5 @@ def trigger_sentry_app_action_creators_for_incidents(alert_rule_data: Mapping[st
             fields=action.get("sentry_app_config"),
             install_uuid=action.get("sentry_app_installation_uuid"),
         )
-        if not result["success"]:
-            raise serializers.ValidationError({"sentry_app": result["message"]})
+        if not result.success:
+            raise serializers.ValidationError({"sentry_app": result.message})

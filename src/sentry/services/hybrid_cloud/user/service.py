@@ -6,6 +6,7 @@
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, List, Optional, cast
 
+from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import (
@@ -18,7 +19,6 @@ from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.models import Group
-    from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
 class UserService(RpcService):
@@ -38,7 +38,7 @@ class UserService(RpcService):
         *,
         filter: UserFilterArgs,
         as_user: Optional[RpcUser] = None,
-        auth_context: Optional["AuthenticationContext"] = None,
+        auth_context: Optional[AuthenticationContext] = None,
         serializer: Optional[UserSerializeType] = None,
     ) -> List[OpaqueSerializedResponse]:
         pass
@@ -99,6 +99,11 @@ class UserService(RpcService):
     @abstractmethod
     def update_user(self, *, user_id: int, attrs: UserUpdateArgs) -> Any:
         # Returns a serialized user
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def flush_nonce(self, *, user_id: int) -> None:
         pass
 
     @rpc_method
