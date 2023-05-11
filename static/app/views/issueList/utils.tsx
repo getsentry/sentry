@@ -100,7 +100,6 @@ export function getTabs(organization: Organization) {
         analyticsName: 'archived',
         count: true,
         enabled: hasEscalatingIssuesUi,
-        tooltipTitle: t(`Archived issues don’t trigger alerts.`),
       },
     ],
     [
