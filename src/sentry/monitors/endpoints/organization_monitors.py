@@ -18,6 +18,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
 from sentry.mediators import project_rules
 from sentry.models import Environment, Organization, RuleActivity, RuleActivityType, RuleSource
@@ -93,7 +94,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
 
         queryset = Monitor.objects.filter(
             organization_id=organization.id, project_id__in=filter_params["project_id"]
-        ).exclude(status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS])
+        ).exclude(status__in=[ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS])
         query = request.GET.get("query")
 
         environments = None
