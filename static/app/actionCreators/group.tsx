@@ -4,7 +4,7 @@ import isNil from 'lodash/isNil';
 import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
 import {Actor, Group, Member, Note, User} from 'sentry/types';
-import {buildTeamId, buildUserId} from 'sentry/utils';
+import {buildTeamId, buildUserId, defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
 
@@ -389,9 +389,9 @@ export type GroupTagsResponse = GroupTagResponseItem[];
 
 type FetchIssueTagsParameters = {
   environment: string[];
-  groupId: string;
   limit: number;
   readable: boolean;
+  groupId?: string;
 };
 
 export const makeFetchIssueTagsQueryKey = ({
@@ -406,10 +406,11 @@ export const makeFetchIssueTagsQueryKey = ({
 
 export const useFetchIssueTags = (
   parameters: FetchIssueTagsParameters,
-  options: Partial<UseApiQueryOptions<GroupTagsResponse>> = {}
+  {enabled = true, ...options}: Partial<UseApiQueryOptions<GroupTagsResponse>> = {}
 ) => {
   return useApiQuery<GroupTagsResponse>(makeFetchIssueTagsQueryKey(parameters), {
     staleTime: 30000,
+    enabled: defined(parameters.groupId) && enabled,
     ...options,
   });
 };
