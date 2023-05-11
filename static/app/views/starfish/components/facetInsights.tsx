@@ -10,6 +10,7 @@ import {
   DiscoverQueryProps,
   useGenericDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TAG_EXPLORER_COLUMN_ORDER} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
@@ -92,12 +93,27 @@ export function FacetInsights({eventView}: Props) {
     }
 
     if (column.key === 'tagValue') {
+      const query = new MutableSearch(eventView.query);
+      let queryFilter = '';
+      query.tokens.forEach(value => {
+        if (value.key) {
+          queryFilter = queryFilter.concat(' ', `${value.key}:${value.value}`);
+        }
+      });
+      queryFilter = queryFilter.concat(' ', `${row.tagKey}:${row.tagValue}`);
       return (
         <OverflowEllipsisTextContainer>
           <Link
             to={`/discover/homepage/?${qs.stringify({
               ...eventView.generateQueryStringObject(),
-              field: ['title', 'transaction.duration', 'timestamp'],
+              query: queryFilter,
+              field: [
+                'title',
+                'p50(transaction.duration)',
+                'p75(transaction.duration)',
+                'p95(transaction.duration)',
+              ],
+              yAxis: 'count()',
             })}`}
           >
             {row[column.key]}
