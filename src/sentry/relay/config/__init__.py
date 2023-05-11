@@ -49,7 +49,6 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
-    "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
     "organizations:session-replay-recording-scrubbing",
