@@ -23,7 +23,6 @@ from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 from sentry.models import Organization, Project
 from sentry.models.options.project_option import ProjectOption
 from sentry.relay.config import get_project_config
-from sentry.testutils.helpers import Feature
 
 
 def test_multi_fanout():
