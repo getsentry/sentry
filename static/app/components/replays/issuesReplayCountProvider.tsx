@@ -41,11 +41,8 @@ function Provider({
   groupIds,
   organization,
 }: Props & {organization: Organization}) {
-  const [groups, projectIds] = useMemo(() => {
-    const pIds = new Set<number>();
-    const gIds = groupIds.map(id => GroupStore.get(id) as Group).filter(Boolean);
-
-    return [gIds, Array.from(pIds)];
+  const groups = useMemo(() => {
+    return groupIds.map(id => GroupStore.get(id) as Group).filter(Boolean);
   }, [groupIds]);
 
   const replayGroupIds = useMemo(() => groups.map(group => group.id), [groups]);
@@ -53,7 +50,6 @@ function Provider({
   const counts = useReplaysCount({
     groupIds: replayGroupIds,
     organization,
-    projectIds,
   });
 
   return (
