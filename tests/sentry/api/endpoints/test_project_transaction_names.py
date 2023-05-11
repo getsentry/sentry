@@ -56,7 +56,9 @@ class ProjectTransactionNamesClusterTest(APITestCase):
         assert data == {
             "rules": ["/a/*/**"],
             "meta": {
-                "unique_transaction_names": ["/a/b/c/", "/a/foo", "/a/whathever/c/d/", "/not_a/"]
+                "rules_projectoption": {},
+                "rules_redis": {},
+                "unique_transaction_names": ["/a/b/c/", "/a/foo", "/a/whathever/c/d/", "/not_a/"],
             },
         }
 

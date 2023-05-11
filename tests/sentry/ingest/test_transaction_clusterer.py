@@ -14,7 +14,7 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
 from sentry.ingest.transaction_clusterer.rules import (
     ProjectOptionRuleStore,
     RuleSet,
-    _get_rules,
+    get_rules,
     get_sorted_rules,
     update_rules,
 )
@@ -169,17 +169,17 @@ def test_max_rule_threshold_merge_composite_store(default_project):
 def test_save_rules(default_project):
     project = default_project
 
-    project_rules = _get_rules(project)
+    project_rules = get_rules(project)
     assert project_rules == {}
 
     with freeze_time("2012-01-14 12:00:01"):
         update_rules(project, [ReplacementRule("foo"), ReplacementRule("bar")])
-    project_rules = _get_rules(project)
+    project_rules = get_rules(project)
     assert project_rules == {"foo": 1326542401, "bar": 1326542401}
 
     with freeze_time("2012-01-14 12:00:02"):
         update_rules(project, [ReplacementRule("bar"), ReplacementRule("zap")])
-    project_rules = _get_rules(project)
+    project_rules = get_rules(project)
     assert {"bar": 1326542402, "foo": 1326542401, "zap": 1326542402}
 
 
@@ -209,8 +209,8 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     cluster_projects_delay.reset_mock()
 
     # Not stored enough transactions yet
-    assert _get_rules(project1) == {}
-    assert _get_rules(project2) == {}
+    assert get_rules(project1) == {}
+    assert get_rules(project2) == {}
 
     # Clear transactions if batch minimum is not met
     assert list(get_transaction_names(project1)) == []
@@ -233,7 +233,7 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     # One project per batch now:
     assert cluster_projects_delay.call_count == 2, cluster_projects_delay.call_args
 
-    pr_rules = _get_rules(project1)
+    pr_rules = get_rules(project1)
     assert pr_rules.keys() == {
         "/org/*/**",
         "/user/*/**",
@@ -248,14 +248,14 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
 @pytest.mark.django_db
 def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default_organization):
     project = Project(id=456, name="test_project", organization_id=default_organization.id)
-    assert _get_rules(project) == {}
+    assert get_rules(project) == {}
 
     _store_transaction_name(project, "/transaction/number/1")
     cluster_projects([project])
     # Clusterer didn't create rules. Still, it updates the stores.
     assert mock_update_rules.call_count == 1
     assert mock_update_rules.call_args == mock.call(project, [])
-    assert _get_rules(project) == {}  # Transaction names are deleted if there aren't enough
+    assert get_rules(project) == {}  # Transaction names are deleted if there aren't enough
 
     _store_transaction_name(project, "/transaction/number/1")
     _store_transaction_name(project, "/transaction/number/2")
@@ -333,7 +333,7 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
         with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 1):
             spawn_clusterers()
 
-        assert _get_rules(project1) == {"/user/*/**": 1}
+        assert get_rules(project1) == {"/user/*/**": 1}
 
         with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 2):
             record_transaction_name(
@@ -353,12 +353,12 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
             )
 
         # _get_rules fetches from project options, which arent updated yet.
-        assert _get_rules(project1) == {"/user/*/**": 1}
+        assert get_rules(project1) == {"/user/*/**": 1}
         # Update rules to update the project option storage.
         with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 3):
             update_rules(project1, [])
         # After project options are updated, the last_seen should also be updated.
-        assert _get_rules(project1) == {"/user/*/**": 2}
+        assert get_rules(project1) == {"/user/*/**": 2}
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 3)
@@ -409,7 +409,7 @@ def test_dont_store_inexisting_rules(_, default_organization):
             rogue_transaction,
         )
 
-        assert _get_rules(project1) == {"/user/*/**": 1}
+        assert get_rules(project1) == {"/user/*/**": 1}
 
 
 @pytest.mark.django_db
