@@ -172,7 +172,7 @@ function DetailsInsideContext({
   return (
     <Page
       orgSlug={orgSlug}
-      crumbs={replay?.getRawCrumbs()}
+      crumbs={replay?.getNavCrumbs()}
       replayRecord={replayRecord}
       projectSlug={projectSlug}
       replayErrors={replayErrors}

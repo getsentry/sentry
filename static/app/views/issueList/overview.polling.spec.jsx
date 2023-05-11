@@ -1,12 +1,15 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import StreamGroup from 'sentry/components/stream/group';
 import TagStore from 'sentry/stores/tagStore';
 import IssueList from 'sentry/views/issueList/overview';
 
 jest.mock('sentry/views/issueList/filters', () => jest.fn(() => null));
-jest.mock('sentry/components/stream/group', () => jest.fn(() => null));
+jest.mock('sentry/components/stream/group', () =>
+  jest.fn(({id}) => <div data-test-id={id} />)
+);
 
 jest.mock('js-cookie', () => ({
   get: jest.fn(),
@@ -43,6 +46,7 @@ describe('IssueList -> Polling', function () {
   });
 
   const group = TestStubs.Group({project});
+  const group2 = TestStubs.Group({project, id: 2});
 
   const defaultProps = {
     location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
@@ -130,6 +134,7 @@ describe('IssueList -> Polling', function () {
       body: [group],
       headers: {
         Link: DEFAULT_LINKS_HEADER,
+        'X-Hits': 1,
       },
     });
     MockApiClient.addMockResponse({
@@ -141,6 +146,7 @@ describe('IssueList -> Polling', function () {
       body: [],
       headers: {
         Link: DEFAULT_LINKS_HEADER,
+        'X-Hits': 1,
       },
     });
 
@@ -182,6 +188,34 @@ describe('IssueList -> Polling', function () {
 
     jest.advanceTimersByTime(12001);
     expect(pollRequest).toHaveBeenCalledTimes(2);
+  });
+
+  it('displays new group and pagination caption correctly', async function () {
+    pollRequest = MockApiClient.addMockResponse({
+      url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
+      body: [group2],
+      headers: {
+        Link: DEFAULT_LINKS_HEADER,
+        'X-Hits': 2,
+      },
+    });
+
+    await renderComponent();
+    expect(screen.getByText(textWithMarkupMatcher('1-1 of 1'))).toBeInTheDocument();
+
+    // Enable realtime updates
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Enable real-time updates'}),
+      {delay: null}
+    );
+
+    jest.advanceTimersByTime(3001);
+    expect(pollRequest).toHaveBeenCalledTimes(1);
+
+    // We mock out the stream group component and only render the ID as a testid
+    await screen.findByTestId('2');
+
+    expect(screen.getByText(textWithMarkupMatcher('1-2 of 2'))).toBeInTheDocument();
   });
 
   it('stops polling for new issues when endpoint returns a 401', async function () {

@@ -65,6 +65,7 @@ class ConfigValidator(serializers.Serializer):
         allow_null=True,
         default=None,
         help_text="How long (in minutes) after the expected checkin time will we wait until we consider the checkin to have been missed.",
+        min_value=0,
     )
 
     max_runtime = EmptyIntegerField(
@@ -72,6 +73,7 @@ class ConfigValidator(serializers.Serializer):
         allow_null=True,
         default=None,
         help_text="How long (in minutes) is the checkin allowed to run for in CheckInStatus.IN_PROGRESS before it is considered failed.",
+        min_value=1,
     )
 
     timezone = serializers.ChoiceField(
@@ -121,6 +123,8 @@ class ConfigValidator(serializers.Serializer):
                 raise ValidationError({"schedule": "Invalid schedule for for 'interval' type"})
             if not isinstance(schedule[0], int):
                 raise ValidationError({"schedule": "Invalid schedule for schedule unit count"})
+            if schedule[0] <= 0:
+                raise ValidationError({"schedule": "Interval must be greater than zero"})
             if schedule[1] not in INTERVAL_NAMES:
                 raise ValidationError({"schedule": "Invalid schedule for schedule unit name"})
         elif schedule_type == ScheduleType.CRONTAB:

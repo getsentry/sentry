@@ -25,29 +25,25 @@ class JiraSentryUIBaseView(View):
         sources = [s for s in sources if s and ";" not in s]  # Filter out None and invalid sources
 
         if "csp.middleware.CSPMiddleware" in settings.MIDDLEWARE:
-            settings.CSP_FRAME_ANCESTORS = [
+            csp_frame_ancestors = [
                 "'self'",
             ] + sources
-            settings.CSP_STYLE_SRC = [
-                # same as default (server.py)
-                "'self'",
-                "'unsafe-inline'",
-            ]
+            csp_style_src = list(settings.CSP_STYLE_SRC)
 
             if settings.STATIC_FRONTEND_APP_URL.startswith("https://"):
                 origin = "/".join(settings.STATIC_FRONTEND_APP_URL.split("/")[0:3])
-                settings.CSP_STYLE_SRC.append(origin)
-
-            header = "Content-Security-Policy"
-            if getattr(settings, "CSP_REPORT_ONLY", False):
-                header += "-Report-Only"
+                csp_style_src.append(origin)
 
             middleware = CSPMiddleware()
             middleware.process_request(self.request)  # adds nonce
 
             response = render_to_response(self.html_file, context, self.request)
+            response._csp_replace = {
+                "frame-ancestors": csp_frame_ancestors,
+                "style-src": csp_style_src,
+            }
 
-            response[header] = middleware.build_policy(request=self.request, response=response)
+            middleware.process_response(self.request, response)
         else:
             response = render_to_response(self.html_file, context, self.request)
             sources_string = " ".join(sources)
