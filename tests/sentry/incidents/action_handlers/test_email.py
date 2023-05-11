@@ -1,6 +1,7 @@
 from functools import cached_property
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.conf import settings
 from django.core import mail
@@ -23,6 +24,8 @@ from sentry.incidents.models import (
 )
 from sentry.models import NotificationSetting, UserEmail, UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils import TestCase
@@ -30,6 +33,8 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.types.integrations import ExternalProviders
 
 from . import FireTest
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 @freeze_time()
@@ -385,6 +390,9 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
     )
     @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
     def test_metric_chart_mep(self, mock_generate_chart, mock_fetch_metric_alert_events_timeseries):
+        indexer.record(
+            use_case_id=UseCaseKey.PERFORMANCE, org_id=self.organization.id, string="level"
+        )
         trigger_status = TriggerStatus.ACTIVE
         alert_rule = self.create_alert_rule(
             query_type=SnubaQuery.Type.PERFORMANCE, dataset=Dataset.PerformanceMetrics
