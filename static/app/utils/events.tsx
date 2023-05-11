@@ -20,6 +20,7 @@ import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 
 function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {
   return !maybe.hasOwnProperty('type');
@@ -311,7 +312,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     sdk_name: event?.sdk?.name,
     sdk_version: event?.sdk?.version,
     release_user_agent: event?.release?.userAgent,
-    error_has_replay: Boolean(event?.tags?.find(({key}) => key === 'replayId')),
+    error_has_replay: Boolean(getReplayIdFromEvent(event)),
     error_has_user_feedback: defined(event?.userReport),
     has_otel: event?.contexts?.otel !== undefined,
   };
