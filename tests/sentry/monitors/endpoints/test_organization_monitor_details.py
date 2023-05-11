@@ -32,6 +32,19 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
             self.organization.slug, monitor.slug, environment="jungle", status_code=404
         )
 
+    def test_filtering_monitor_environment(self):
+        monitor = self._create_monitor()
+        self._create_monitor_environment(monitor, name="production")
+        self._create_monitor_environment(monitor, name="jungle")
+
+        response = self.get_success_response(self.organization.slug, monitor.slug)
+        assert len(response.data["environments"]) == 2
+
+        response = self.get_success_response(
+            self.organization.slug, monitor.slug, environment="production"
+        )
+        assert len(response.data["environments"]) == 1
+
 
 @region_silo_test(stable=True)
 class UpdateMonitorTest(MonitorTestCase):

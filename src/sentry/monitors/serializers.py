@@ -55,7 +55,7 @@ class MonitorSerializer(Serializer):
             )
         )
         if self.environments:
-            monitor_environments.filter(environment__in=self.environments)
+            monitor_environments = monitor_environments.filter(environment__in=self.environments)
 
         for monitor_environment in monitor_environments:
             # individually serialize as related objects are prefetched
