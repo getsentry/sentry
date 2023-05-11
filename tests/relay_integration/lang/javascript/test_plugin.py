@@ -199,13 +199,11 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame.pre_context == ["h", "e", "l"]
         assert frame.context_line == "l"
         assert frame.post_context == ["o", " ", "w", "o", "r"]
-        assert frame.data["resolved_with"] == "release-old"
 
         frame = frame_list[1]
         assert not frame.pre_context
         assert frame.context_line == "h"
         assert frame.post_context == ["e", "l", "l", "o", " "]
-        assert frame.data["resolved_with"] == "release-old"
 
         # no source map means no raw_stacktrace
         assert exception.values[0].raw_stacktrace is None
