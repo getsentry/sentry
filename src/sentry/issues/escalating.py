@@ -298,7 +298,10 @@ def _issue_category_entity(category: Optional[GroupCategory]) -> EntityKey:
 
 
 def manage_snooze_states(
-    group: Group, group_inbox_reason: GroupInboxReason, event: GroupEvent, snooze_details= Optional[Mapping[str, Any]] = None
+    group: Group,
+    group_inbox_reason: GroupInboxReason,
+    event: GroupEvent,
+    snooze_details: Optional[Mapping[str, Any]] = None,
 ) -> None:
     """
     Handles the downstream changes to the status/substatus of GroupInbox and Group for each GroupInboxReason
