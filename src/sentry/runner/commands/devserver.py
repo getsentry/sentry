@@ -57,14 +57,6 @@ _DEFAULT_DAEMONS = {
     ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
     "occurrences": ["sentry", "run", "occurrences-ingest-consumer", "--no-strict-offset-reset"],
-    "region_to_control": [
-        "sentry",
-        "run",
-        "region-to-control-consumer",
-        "--region-name",
-        "_local",
-        "--no-strict-offset-reset",
-    ],
     "server": ["sentry", "run", "web"],
     "subscription-consumer": [
         "sentry",
