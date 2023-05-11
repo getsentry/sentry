@@ -149,12 +149,12 @@ def _now() -> int:
 
 
 def get_rules(project: Project) -> RuleSet:
-    """Get rules from project option"""
+    """Get rules from project options."""
     return ProjectOptionRuleStore().read(project)
 
 
 def get_redis_rules(project: Project) -> RuleSet:
-    """Get rules from redis"""
+    """Get rules from Redis."""
     return RedisRuleStore().read(project)
 
 
