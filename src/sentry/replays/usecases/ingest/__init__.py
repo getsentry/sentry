@@ -4,7 +4,7 @@ import dataclasses
 import logging
 import zlib
 from datetime import datetime, timezone
-from typing import Optional, TypedDict
+from typing import Optional, TypedDict, cast
 
 from django.conf import settings
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
@@ -76,7 +76,7 @@ def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_h
                 project_id=message_dict["project_id"],
                 received=message_dict["received"],
                 retention_days=message_dict["retention_days"],
-                payload_with_headers=message_dict["payload"],
+                payload_with_headers=cast(bytes, message_dict["payload"]),
             )
             _ingest_recording(message, transaction)
 
