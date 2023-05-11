@@ -1357,6 +1357,19 @@ class FetcherSource(Enum):
     URL_NEW = 2
     DEBUG_ID = 3
 
+    def to_string(self):
+        """
+        Converts the fetcher source to its string representation.
+        """
+        if self == FetcherSource.NONE:
+            return "none"
+        elif self == FetcherSource.URL:
+            return "release-old"
+        elif self == FetcherSource.URL_NEW:
+            return "release"
+        elif self == FetcherSource.DEBUG_ID:
+            return "debug-id"
+
 
 class JavaScriptStacktraceProcessor(StacktraceProcessor):
     """
@@ -1585,7 +1598,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             processable_frame.data["token"] = token
 
             # Store original data in annotation
-            new_frame["data"] = dict(frame.get("data") or {}, sourcemap=sourcemap_label)
+            new_frame["data"] = dict(
+                frame.get("data") or {},
+                sourcemap=sourcemap_label,
+                # We want to attach to the event payload which method we used to resolve the
+                # SmCache.
+                resolved_with=resolved_smc_with.to_string(),
+            )
 
             sourcemap_applied = True
 

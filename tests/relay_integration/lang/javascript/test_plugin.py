@@ -2049,6 +2049,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
+        assert frame["data"]["resolved_with"] == "debug-id"
         if process_with_symbolicator:
             assert frame.post_context == ["}"]
         else:
@@ -2064,10 +2065,12 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "\ttry {",
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
+        assert frame["data"]["resolved_with"] == "debug-id"
 
         frame = frame_list[2]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
+        assert frame["data"]["resolved_with"] == "debug-id"
         if process_with_symbolicator:
             assert frame.post_context == ["}"]
         else:
