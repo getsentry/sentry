@@ -25,6 +25,7 @@ import {
 import {useApiQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
+import {TextAlignRight} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {
   getSpanFacetBreakdownQuery,
   getSpanInTransactionQuery,
@@ -203,6 +204,14 @@ export default function SpanSummary({location, params}: Props) {
   });
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+    if (column.key === 'p50_comparison') {
+      return (
+        <TextAlignRight>
+          <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
+        </TextAlignRight>
+      );
+    }
+
     return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
   }
 
@@ -237,15 +246,14 @@ export default function SpanSummary({location, params}: Props) {
       const {p50} = data[0];
       const diff = row.spanDuration - p50;
 
-      if (diff > 0) {
-        return `+${diff.toFixed(2)}ms above`;
+      if (diff === p50) {
+        return 'At baseline';
       }
 
-      if (diff < 0) {
-        return `${diff.toFixed(2)}ms below`;
-      }
+      const labelString =
+        diff > 0 ? `+${diff.toFixed(2)}ms above` : `${diff.toFixed(2)}ms below`;
 
-      return 'At baseline';
+      return <ComparisonLabel value={diff}>{labelString}</ComparisonLabel>;
     }
 
     if (column.key === 'timestamp') {
@@ -469,6 +477,11 @@ const FilterOptionsSubContainer = styled('div')`
 const ToggleLabel = styled('span')<{active?: boolean}>`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => (p.active ? p.theme.purple300 : p.theme.gray300)};
+`;
+
+const ComparisonLabel = styled('div')<{value: number}>`
+  text-align: right;
+  color: ${p => (p.value < 0 ? p.theme.green400 : p.theme.red400)};
 `;
 
 function SpanGroupKeyValueList({
