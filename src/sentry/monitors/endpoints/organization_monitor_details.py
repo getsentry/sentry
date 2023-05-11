@@ -147,8 +147,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     )
                     .exclude(
                         monitor__status__in=[
-                            MonitorStatus.PENDING_DELETION,
-                            MonitorStatus.DELETION_IN_PROGRESS,
+                            ObjectStatus.PENDING_DELETION,
+                            ObjectStatus.DELETION_IN_PROGRESS,
                         ]
                     )
                     .exclude(

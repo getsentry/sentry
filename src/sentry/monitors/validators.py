@@ -9,13 +9,14 @@ from rest_framework import serializers
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorStatus, MonitorType, ScheduleType
+from sentry.constants import ObjectStatus
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorType, ScheduleType
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
 MONITOR_STATUSES = {
-    "active": MonitorStatus.ACTIVE,
-    "disabled": MonitorStatus.DISABLED,
+    "active": ObjectStatus.ACTIVE,
+    "disabled": ObjectStatus.DISABLED,
 }
 
 SCHEDULE_TYPES = {
