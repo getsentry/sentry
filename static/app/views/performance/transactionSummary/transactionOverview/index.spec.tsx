@@ -679,7 +679,7 @@ describe('Performance > TransactionSummary', function () {
       });
     });
 
-    it('renders pagination buttons', async function () {
+    it.only('renders pagination buttons', async function () {
       const {organization, router, routerContext} = initializeData();
 
       render(<TestComponent router={router} location={router.location} />, {

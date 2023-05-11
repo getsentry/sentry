@@ -339,6 +339,7 @@ class _TransactionsList extends Component<Props> {
       header: this.renderHeader(),
       target: 'transactions_table',
       paginationCursorSize: 'xs',
+      onCursor: this.handleCursor,
     };
 
     if (forceLoading) {
