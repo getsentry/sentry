@@ -52,6 +52,6 @@ class ControlOption(BaseOption):
         app_label = "sentry"
         db_table = "sentry_controloption"
 
-    value = JSONField()
+    value = JSONField(no_creator_hook=True)
 
     __repr__ = sane_repr("key", "value")
