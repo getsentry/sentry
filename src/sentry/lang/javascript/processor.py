@@ -2156,7 +2156,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # - some insignificant differences in source context application
             #   related to different column offsets
             # - python adds a `data.sourcemap` even if none was fetched successfully
-            # - symbolicator does not add trailing empty lines to `post_context`
             interesting_keys = {
                 "abs_path",
                 "filename",
@@ -2166,6 +2165,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 "context_line",
                 "module",
                 "in_app",
+            }
+            known_diffs = {
+                "context_line",
+                "data.sourcemap",
             }
 
             def filtered_frame(frame: dict) -> dict:
@@ -2192,6 +2195,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
                 return new_frame
 
+            def without_known_diffs(frame: dict) -> dict:
+                {key: value for key, value in frame.items() if key not in known_diffs}
+
             different_frames = []
             for symbolicator_stacktrace, stacktrace_info in zip(
                 symbolicator_stacktraces,
@@ -2212,6 +2218,25 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     python_frame = filtered_frame(python_frame)
 
                     if symbolicator_frame != python_frame:
+                        # skip some insignificant differences
+                        if without_known_diffs(symbolicator_frame) == without_known_diffs(
+                            python_frame
+                        ):
+                            # python emits a `debug-id://` prefix whereas symbolicator does not
+                            # OR: python adds a `data.sourcemap` even though it could not be resolved
+                            if (
+                                python_frame.get("data.sourcemap", "").startswith("debug-id://")
+                                or symbolicator_frame.get("data.sourcemap") is None
+                            ):
+                                continue
+
+                            # with minified files and high column numbers, we might have a difference in
+                            # source context slicing, probably due to encodings
+                            if python_frame.get("colno", 0) > 10_000 and python_frame.get(
+                                "context_line"
+                            ) != symbolicator_frame.get("context_line"):
+                                continue
+
                         different_frames.append(
                             {"symbolicator": symbolicator_frame, "python": python_frame}
                         )
