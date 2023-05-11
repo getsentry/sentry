@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -107,15 +107,9 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
-  const projectIds = useMemo(
-    () => (project?.id ? [Number(project.id)] : []),
-    [project?.id]
-  );
-
   const replaysCount = useReplaysCount({
     transactionNames: transactionName,
     organization,
-    projectIds,
   })[transactionName];
 
   return (

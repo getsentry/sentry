@@ -34,6 +34,7 @@ function useReplayFromIssue({
             returnIds: true,
             query: `issue.id:[${group.id}]`,
             statsPeriod: '14d',
+            project: -1,
           },
         }
       );
