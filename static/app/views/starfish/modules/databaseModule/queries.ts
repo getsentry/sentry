@@ -536,7 +536,7 @@ export const useQueryGetProfileIds = (transactionNames: string[]) => {
     },
     location
   );
-  return useDiscoverQuery({eventView, location, orgSlug});
+  return useDiscoverQuery({eventView, location, orgSlug, queryExtras: {per_page: '10'}});
 };
 
 export const useQueryGetEvent = (
