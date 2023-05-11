@@ -9,6 +9,7 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -18,7 +19,8 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.query import in_iexact
-from sentry.models import Environment, Organization
+from sentry.mediators import project_rules
+from sentry.models import Environment, Organization, RuleActivity, RuleActivityType, RuleSource
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
@@ -27,7 +29,7 @@ from sentry.monitors.models import (
     MonitorType,
 )
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
-from sentry.monitors.utils import signal_first_monitor_created
+from sentry.monitors.utils import get_alert_rule, signal_first_monitor_created
 from sentry.monitors.validators import MonitorValidator
 from sentry.search.utils import tokenize_query
 
@@ -218,5 +220,42 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
 
         project = result["project"]
         signal_first_monitor_created(project, request.user, False)
+
+        validated_alert_rule = result.get("alert_rule")
+        if validated_alert_rule:
+            alert_rule_data = get_alert_rule(project, request.user, monitor, validated_alert_rule)
+            serializer = RuleSerializer(
+                context={"project": project, "organization": project.organization},
+                data=alert_rule_data,
+            )
+
+            if serializer.is_valid():
+                data = serializer.validated_data
+                # combine filters and conditions into one conditions criteria for the rule object
+                conditions = data.get("conditions", [])
+                if "filters" in data:
+                    conditions.extend(data["filters"])
+
+                kwargs = {
+                    "name": data["name"],
+                    "environment": data.get("environment"),
+                    "project": project,
+                    "action_match": data["actionMatch"],
+                    "filter_match": data.get("filterMatch"),
+                    "conditions": conditions,
+                    "actions": data.get("actions", []),
+                    "frequency": data.get("frequency"),
+                    "user_id": request.user.id,
+                }
+
+                rule = project_rules.Creator.run(request=request, **kwargs)
+                rule.update(source=RuleSource.CRON_MONITOR)
+                RuleActivity.objects.create(
+                    rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
+                )
+
+                config = monitor.config
+                config["alert_rule_id"] = rule.id
+                monitor.update(config=config)
 
         return self.respond(serialize(monitor, request.user), status=201)
