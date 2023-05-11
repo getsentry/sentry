@@ -9,8 +9,12 @@ export type DynamicSamplingEventParameters = {
     id: DynamicSamplingBiasType;
     project_id: string;
   };
-  'dynamic_sampling_transaction_summary.baseline': {};
-  'dynamic_sampling_transaction_summary.no_samples': {};
+  'dynamic_sampling_transaction_summary.baseline': {
+    query: string;
+  };
+  'dynamic_sampling_transaction_summary.no_samples': {
+    query: string;
+  };
 };
 
 type DynamicSamplingAnalyticsKey = keyof DynamicSamplingEventParameters;
