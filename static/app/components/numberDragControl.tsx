@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 type NumberDragControlProps = {
   onChange: (delta: number, event: React.MouseEvent<HTMLDivElement>) => void;
@@ -44,7 +44,7 @@ class NumberDragControl extends Component<Props, State> {
 
           // XXX(epurkhiser): We can remove this later, just curious if people
           // are actually using the drag control
-          trackAdvancedAnalyticsEvent('number_drag_control.clicked', {
+          trackAnalytics('number_drag_control.clicked', {
             organization: null,
           });
 

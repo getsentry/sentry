@@ -59,7 +59,7 @@ function GroupReplays({group}: Props) {
   );
 }
 
-const GroupReplaysTable = ({
+function GroupReplaysTable({
   eventView,
   organization,
   visibleColumns,
@@ -68,13 +68,14 @@ const GroupReplaysTable = ({
   organization: Organization;
   pageLinks: string | null;
   visibleColumns: ReplayColumns[];
-}) => {
+}) {
   const location = useMemo(() => ({query: {}} as Location<ReplayListLocationQuery>), []);
 
   const {replays, isFetching, fetchError} = useReplayList({
     eventView,
     location,
     organization,
+    queryReferrer: 'issueReplays',
   });
 
   return (
@@ -88,7 +89,7 @@ const GroupReplaysTable = ({
       />
     </StyledLayoutPage>
   );
-};
+}
 
 const StyledLayoutPage = styled(Layout.Page)`
   box-shadow: 0px 0px 1px ${p => p.theme.gray200};

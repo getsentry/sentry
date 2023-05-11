@@ -63,7 +63,7 @@ export type PanelTableProps = {
  *       with `headers`. Then we can get rid of that gross `> *` selector
  * - [ ] Allow customization of wrappers (Header and body cells if added)
  */
-const PanelTable = ({
+function PanelTable({
   headers,
   children,
   isLoading,
@@ -75,7 +75,7 @@ const PanelTable = ({
   loader,
   stickyHeaders = false,
   ...props
-}: PanelTableProps) => {
+}: PanelTableProps) {
   const shouldShowLoading = isLoading === true;
   const shouldShowEmptyMessage = !shouldShowLoading && isEmpty;
   const shouldShowContent = !shouldShowLoading && !shouldShowEmptyMessage;
@@ -108,7 +108,7 @@ const PanelTable = ({
       {shouldShowContent && getContent(children)}
     </Wrapper>
   );
-};
+}
 
 function getContent(children: PanelTableProps['children']) {
   if (typeof children === 'function') {

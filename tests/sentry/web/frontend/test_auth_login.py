@@ -13,16 +13,17 @@ from django.utils.http import urlquote
 from sentry import newsletter, options
 from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.models import OrganizationMember, User
+from sentry.models.organization import Organization
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
-from sentry.utils.client_state import get_client_state_key, get_redis_client
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
 # @control_silo_test(stable=True)
-class AuthLoginTest(TestCase):
+class AuthLoginTest(TestCase, HybridCloudTestMixin):
     @cached_property
     def path(self):
         return reverse("sentry-login")
@@ -196,7 +197,10 @@ class AuthLoginTest(TestCase):
         user = User.objects.get(username="test-a-really-long-email-address@example.com")
 
         # User is part of the default org
-        assert OrganizationMember.objects.filter(user=user).exists()
+        default_org = Organization.get_default()
+        org_member = OrganizationMember.objects.get(organization_id=default_org.id, user=user)
+        assert org_member.role == default_org.default_role
+        self.assert_org_member_mapping(org_member=org_member)
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
@@ -351,20 +355,6 @@ class AuthLoginTest(TestCase):
         with self.feature("organizations:create"):
             resp = self.client.get(self.path)
             self.assertRedirects(resp, "/organizations/new/")
-
-    def test_redirect_onboarding(self):
-        org = self.create_organization(owner=self.user)
-        key = get_client_state_key(org.slug, "onboarding", None)
-        get_redis_client().set(key, json.dumps({"state": "started", "url": "select-platform/"}))
-
-        self.client.get(self.path)
-
-        resp = self.client.post(
-            self.path, {"username": self.user.username, "password": "admin", "op": "login"}
-        )
-
-        assert resp.status_code == 302
-        assert resp.get("Location", "").endswith(f"/onboarding/{org.slug}/select-platform/")
 
 
 @pytest.mark.skipif(

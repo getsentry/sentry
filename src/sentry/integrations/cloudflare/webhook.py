@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry import options
 from sentry.api.authentication import TokenAuthentication
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.models import Organization, Project, ProjectKey, Team
 
 logger = logging.getLogger("sentry.integrations.cloudflare")
@@ -39,7 +39,7 @@ class CloudflareTokenAuthentication(TokenAuthentication):
         return self.authenticate_credentials(request, token)
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class CloudflareWebhookEndpoint(Endpoint):
     authentication_classes = (CloudflareTokenAuthentication,)
     permission_classes = ()

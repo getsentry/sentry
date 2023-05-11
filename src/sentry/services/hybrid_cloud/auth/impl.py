@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import base64
-from typing import List, Mapping, Tuple, cast
+from typing import List, Mapping, Tuple
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, Q
@@ -30,11 +30,11 @@ from sentry.services.hybrid_cloud.auth import (
     RpcAuthenticatorType,
     RpcAuthIdentity,
     RpcAuthProvider,
-    RpcAuthProviderFlags,
     RpcAuthState,
     RpcMemberSsoState,
     RpcOrganizationAuthConfig,
 )
+from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationMember,
@@ -42,9 +42,9 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMemberSummary,
     organization_service,
 )
-from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
+from sentry.services.hybrid_cloud.organization.serial import serialize_member
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
 from sentry.utils.types import Any
@@ -131,20 +131,6 @@ def query_sso_state(
 
 
 class DatabaseBackedAuthService(AuthService):
-    def _serialize_auth_provider_flags(self, ap: AuthProvider) -> RpcAuthProviderFlags:
-        return cast(
-            RpcAuthProviderFlags,
-            RpcAuthProviderFlags.serialize_by_field_name(ap.flags, value_transform=bool),
-        )
-
-    def _serialize_auth_provider(self, ap: AuthProvider) -> RpcAuthProvider:
-        return RpcAuthProvider(
-            id=ap.id,
-            organization_id=ap.organization_id,
-            provider=ap.provider,
-            flags=self._serialize_auth_provider_flags(ap),
-        )
-
     def get_org_auth_config(
         self, *, organization_ids: List[int]
     ) -> List[RpcOrganizationAuthConfig]:
@@ -161,7 +147,7 @@ class DatabaseBackedAuthService(AuthService):
         return [
             RpcOrganizationAuthConfig(
                 organization_id=oid,
-                auth_provider=self._serialize_auth_provider(aps[oid]) if oid in aps else None,
+                auth_provider=serialize_auth_provider(aps[oid]) if oid in aps else None,
                 has_api_key=qs.get(oid, 0) > 0,
             )
             for oid in organization_ids
@@ -284,7 +270,7 @@ class DatabaseBackedAuthService(AuthService):
         if invite_helper:
             if invite_helper.invite_approved:
                 om = invite_helper.accept_invite(user)
-                return serial_user, DatabaseBackedOrganizationService.serialize_member(om)
+                return serial_user, serialize_member(om)
 
             # It's possible the user has an _invite request_ that hasn't been approved yet,
             # and is able to join the organization without an invite through the SSO flow.
@@ -302,17 +288,9 @@ class DatabaseBackedAuthService(AuthService):
             organization_id=organization.id,
             default_org_role=organization.default_role,
             role=organization.default_role,
-            user=serial_user,
+            user_id=user.id,
             flags=flags,
         )
-
-        # TODO: Combine into one query
-        provider_model = AuthProvider.objects.get(id=auth_provider.id)
-        default_team_ids = provider_model.default_teams.values_list("id", flat=True)
-
-        for team_id in default_team_ids:
-            organization_service.add_team_member(team_id=team_id, organization_member=om)
-
         return serial_user, om
 
 

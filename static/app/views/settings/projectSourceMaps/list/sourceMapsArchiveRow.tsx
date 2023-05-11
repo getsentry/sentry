@@ -23,7 +23,7 @@ type Props = {
   projectId: string;
 };
 
-const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
+function SourceMapsArchiveRow({archive, orgId, projectId, onDelete}: Props) {
   const {name, date, fileCount} = archive;
   const archiveLink = `/settings/${orgId}/projects/${projectId}/source-maps/${encodeURIComponent(
     name
@@ -74,7 +74,7 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
       </ActionsColumn>
     </Fragment>
   );
-};
+}
 
 const Column = styled('div')`
   display: flex;

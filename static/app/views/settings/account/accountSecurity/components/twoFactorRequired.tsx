@@ -6,8 +6,8 @@ import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
 
-const TwoFactorRequired = () =>
-  !getPendingInvite() ? null : (
+function TwoFactorRequired() {
+  return !getPendingInvite() ? null : (
     <StyledAlert data-test-id="require-2fa" type="error" showIcon>
       {tct(
         'You have been invited to an organization that requires [link:two-factor authentication]. Setup two-factor authentication below to join your organization.',
@@ -17,6 +17,7 @@ const TwoFactorRequired = () =>
       )}
     </StyledAlert>
   );
+}
 
 const StyledAlert = styled(Alert)`
   margin: ${space(3)} 0;

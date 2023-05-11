@@ -1,4 +1,4 @@
-import {forwardRef, ForwardRefRenderFunction, useRef} from 'react';
+import {forwardRef, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useLocale} from '@react-aria/i18n';
@@ -24,7 +24,7 @@ export interface NumberInputProps
   max?: number;
   min?: number;
 }
-const BaseNumberInput: ForwardRefRenderFunction<HTMLInputElement, NumberInputProps> = (
+function BaseNumberInput(
   {
     disabled,
     readOnly,
@@ -36,9 +36,9 @@ const BaseNumberInput: ForwardRefRenderFunction<HTMLInputElement, NumberInputPro
     nativeSize,
     className,
     ...props
-  },
-  forwardedRef
-) => {
+  }: NumberInputProps,
+  forwardedRef: React.Ref<HTMLInputElement>
+) {
   const ref = useRef<HTMLInputElement>(null);
 
   const ariaProps = {
@@ -89,7 +89,7 @@ const BaseNumberInput: ForwardRefRenderFunction<HTMLInputElement, NumberInputPro
       </InputGroup.TrailingItems>
     </InputGroup>
   );
-};
+}
 
 const NumberInput = forwardRef(BaseNumberInput);
 

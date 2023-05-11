@@ -67,7 +67,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk import Granularity, Limit, Offset
-from snuba_sdk.conditions import BooleanCondition, Condition
+from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry import auth, eventstore
 from sentry.auth.authenticators import TotpInterface
@@ -82,7 +82,8 @@ from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
 from sentry.event_manager import EventManager
 from sentry.eventstream.snuba import SnubaEventStream
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
+from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
 from sentry.models import ApiToken
 from sentry.models import AuthProvider as AuthProviderModel
@@ -228,7 +229,9 @@ class BaseTestCase(Fixtures):
         self.client.cookies[name] = value
         self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
-    def make_request(self, user=None, auth=None, method=None, is_superuser=False, path="/"):
+    def make_request(
+        self, user=None, auth=None, method=None, is_superuser=False, path="/"
+    ) -> HttpRequest:
         request = HttpRequest()
         if method:
             request.method = method
@@ -244,7 +247,7 @@ class BaseTestCase(Fixtures):
         # must happen after request.user/request.session is populated
         request.superuser = Superuser(request)
         if is_superuser:
-            # XXX: this is gross, but its a one off and apis change only once in a great while
+            # XXX: this is gross, but it's a one-off and apis change only once in a great while
             request.superuser.set_logged_in(user)
         request.is_superuser = lambda: request.superuser.is_active
         request.successful_authenticator = None
@@ -480,18 +483,35 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 
 class PerformanceIssueTestCase(BaseTestCase):
-    def create_performance_issue(self):
+    def create_performance_issue(
+        self, tags=None, contexts=None, fingerprint="group1", transaction=None
+    ):
         event_data = load_data(
             "transaction-n-plus-one",
             timestamp=before_now(minutes=10),
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"],
         )
+        if tags is not None:
+            event_data["tags"] = tags
+        if contexts is not None:
+            event_data["contexts"] = contexts
+        if transaction:
+            event_data["transaction"] = transaction
+
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
-        with override_options(
+
+        with mock.patch(
+            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+            side_effect=send_issue_occurrence_to_eventstream,
+        ) as mock_eventstream, mock.patch.object(
+            PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
+        ), override_options(
             {
                 "performance.issues.all.problem-detection": 1.0,
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
+                "performance.issues.send_to_issues_platform": True,
+                "performance.issues.create_issues_through_platform": True,
             }
         ), self.feature(
             [
@@ -499,14 +519,16 @@ class PerformanceIssueTestCase(BaseTestCase):
             ]
         ):
             event = perf_event_manager.save(self.project.id)
-        return event.for_group(event.groups[0])
+            group_event = event.for_group(mock_eventstream.call_args[0][2].group)
+            group_event.occurrence = mock_eventstream.call_args[0][1]
+            return group_event
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
     """
     Extend APITestCase to inherit access to `client`, an object with methods
     that simulate API calls to Sentry, and the helper `get_response`, which
-    combines and simplify a lot of tedious parts of making API calls in tests.
+    combines and simplifies a lot of tedious parts of making API calls in tests.
     When creating API tests, use a new class per endpoint-method pair. The class
     must set the string `endpoint`.
     """
@@ -1016,7 +1038,7 @@ class SnubaTestCase(BaseTestCase):
         last_events_seen = 0
 
         while attempt < attempts:
-            events = eventstore.get_events(snuba_filter)
+            events = eventstore.get_events(snuba_filter, referrer="test.wait_for_event_count")
             last_events_seen = len(events)
             if len(events) >= total:
                 break
@@ -1273,6 +1295,9 @@ class BaseMetricsTestCase(SnubaTestCase):
             "value": value,
             "retention_days": 90,
             "use_case_id": use_case_id,
+            # making up a sentry_received_timestamp, but it should be sometime
+            # after the timestamp of the event
+            "sentry_received_timestamp": timestamp + 10,
         }
 
         msg["mapping_meta"] = {}
@@ -1467,6 +1492,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         select: Sequence[MetricField],
         project_ids: Sequence[int] = None,
         where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None,
+        having: Optional[ConditionGroup] = None,
         groupby: Optional[Sequence[MetricGroupByField]] = None,
         orderby: Optional[Sequence[MetricOrderByField]] = None,
         limit: Optional[Limit] = None,
@@ -1489,6 +1515,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             end=end,
             granularity=Granularity(granularity=granularity_in_seconds),
             where=where,
+            having=having,
             groupby=groupby,
             orderby=orderby,
             limit=limit,
@@ -2313,13 +2340,14 @@ class MonitorTestCase(APITestCase):
             **kwargs,
         )
 
-    def _create_monitor_environment(self, monitor, name="production"):
+    def _create_monitor_environment(self, monitor, name="production", **kwargs):
         environment = Environment.get_or_create(project=self.project, name=name)
 
         monitorenvironment_defaults = {
             "status": monitor.status,
             "next_checkin": monitor.next_checkin,
             "last_checkin": monitor.last_checkin,
+            **kwargs,
         }
 
         return MonitorEnvironment.objects.create(

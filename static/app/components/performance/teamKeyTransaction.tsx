@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project, Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
@@ -80,7 +80,7 @@ class TeamKeyTransaction extends Component<Props, State> {
   toggleSelection = (enabled: boolean, selection: TeamSelection) => () => {
     const {handleToggleKeyTransaction, organization} = this.props;
     const {action} = selection;
-    trackAdvancedAnalyticsEvent('performance_views.team_key_transaction.set', {
+    trackAnalytics('performance_views.team_key_transaction.set', {
       organization,
       action,
     });

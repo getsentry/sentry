@@ -73,6 +73,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         self, load_version_from_file, get_selected_browser_sdk_version
     ):
         settings.JS_SDK_LOADER_DEFAULT_SDK_URL = "https://browser.sentry-cdn.com/%s/bundle%s.min.js"
+        self.projectkey.data = {}
+        self.projectkey.save()
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
@@ -88,6 +90,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         self, load_version_from_file, get_selected_browser_sdk_version
     ):
         settings.JS_SDK_LOADER_DEFAULT_SDK_URL = "https://browser.sentry-cdn.com/%s/bundle%s.min.js"
+        self.projectkey.data = {}
+        self.projectkey.save()
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
@@ -101,10 +105,25 @@ class JavaScriptSdkLoaderTest(TestCase):
         self, load_version_from_file, get_selected_browser_sdk_version
     ):
         settings.JS_SDK_LOADER_DEFAULT_SDK_URL = "https://browser.sentry-cdn.com/%s/bundle%s.min.js"
+        self.projectkey.data = {}
+        self.projectkey.save()
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
         assert b"/8.3.15/bundle.es5.min.js" in resp.content
+
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["7.37.0"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="latest"
+    )
+    def test_returns_es6_with_defaults(
+        self, load_version_from_file, get_selected_browser_sdk_version
+    ):
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = "https://browser.sentry-cdn.com/%s/bundle%s.min.js"
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
+        assert b"/7.37.0/bundle.tracing.replay.min.js" in resp.content
 
     @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["7.37.0"])
     @mock.patch(

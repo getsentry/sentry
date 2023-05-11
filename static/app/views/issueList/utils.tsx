@@ -7,6 +7,7 @@ export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
+  ARCHIVED = 'is:archived',
   REPROCESSING = 'is:reprocessing',
 }
 
@@ -61,17 +62,28 @@ export function getTabs(organization: Organization) {
           Issues are automatically marked reviewed in 7 days.`),
       },
     ],
-    [
-      Query.IGNORED,
-      {
-        name: t('Ignored'),
-        analyticsName: 'ignored',
-        count: true,
-        enabled: true,
-        tooltipTitle: t(`Ignored issues don’t trigger alerts. When their ignore
+    organization.features.includes('escalating-issues-ui')
+      ? [
+          Query.ARCHIVED,
+          {
+            name: t('Archived'),
+            analyticsName: 'archived',
+            count: true,
+            enabled: true,
+            tooltipTitle: t(`Archived issues don’t trigger alerts.`),
+          },
+        ]
+      : [
+          Query.IGNORED,
+          {
+            name: t('Ignored'),
+            analyticsName: 'ignored',
+            count: true,
+            enabled: true,
+            tooltipTitle: t(`Ignored issues don’t trigger alerts. When their ignore
         conditions are met they become Unresolved and are flagged for review.`),
-      },
-    ],
+          },
+        ],
     [
       Query.REPROCESSING,
       {

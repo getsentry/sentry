@@ -9,7 +9,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
 
-const WrappedComponent = ({data, withStaticFilters = true}) => {
+function WrappedComponent({data, withStaticFilters = true}) {
   const eventView = generatePerformanceEventView(
     data.router.location,
     data.projects,
@@ -45,7 +45,7 @@ const WrappedComponent = ({data, withStaticFilters = true}) => {
       </OrganizationContext.Provider>
     </QueryClientProvider>
   );
-};
+}
 
 const features = [
   'performance-transaction-name-only-search',

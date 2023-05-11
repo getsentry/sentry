@@ -1,9 +1,11 @@
+import * as Sentry from '@sentry/react';
+import memoize from 'lodash/memoize';
 import {duration} from 'moment';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {
   breadcrumbFactory,
-  getBreadcrumbsByCategory,
   isMemorySpan,
   isNetworkSpan,
   mapRRWebAttachments,
@@ -12,7 +14,6 @@ import {
   spansFactory,
 } from 'sentry/utils/replays/replayDataUtils';
 import type {
-  MemorySpanType,
   RecordingEvent,
   ReplayError,
   ReplayRecord,
@@ -45,7 +46,21 @@ export default class ReplayReader {
       return null;
     }
 
-    return new ReplayReader({attachments, replayRecord, errors});
+    try {
+      return new ReplayReader({attachments, replayRecord, errors});
+    } catch (err) {
+      Sentry.captureException(err);
+
+      // If something happens then we don't really know if it's the attachments
+      // array or errors array to blame (it's probably attachments though).
+      // Either way we can use the replayRecord to show some metadata, and then
+      // put an error message below it.
+      return new ReplayReader({
+        attachments: [],
+        errors: [],
+        replayRecord,
+      });
+    }
   }
 
   private constructor({
@@ -69,24 +84,22 @@ export default class ReplayReader {
       replayRecord.finished_at.getTime() - replayRecord.started_at.getTime()
     );
 
-    const sortedSpans = spansFactory(spans);
-    this.networkSpans = sortedSpans.filter(isNetworkSpan);
-    this.memorySpans = sortedSpans.filter(isMemorySpan);
-
-    this.breadcrumbs = breadcrumbFactory(replayRecord, errors, breadcrumbs, sortedSpans);
-    this.consoleCrumbs = getBreadcrumbsByCategory(this.breadcrumbs, ['console', 'issue']);
-
+    this.sortedSpans = spansFactory(spans);
+    this.breadcrumbs = breadcrumbFactory(
+      replayRecord,
+      errors,
+      breadcrumbs,
+      this.sortedSpans
+    );
     this.rrwebEvents = rrwebEventListFactory(replayRecord, rrwebEvents);
 
     this.replayRecord = replayRecord;
   }
 
+  private sortedSpans: ReplaySpan[];
   private replayRecord: ReplayRecord;
   private rrwebEvents: RecordingEvent[];
   private breadcrumbs: Crumb[];
-  private consoleCrumbs: ReturnType<typeof getBreadcrumbsByCategory>;
-  private networkSpans: ReplaySpan[];
-  private memorySpans: MemorySpanType[];
 
   /**
    * @returns Duration of Replay (milliseonds)
@@ -103,19 +116,46 @@ export default class ReplayReader {
     return this.rrwebEvents;
   };
 
-  getRawCrumbs = () => {
-    return this.breadcrumbs;
-  };
+  getCrumbsWithRRWebNodes = memoize(() =>
+    this.breadcrumbs.filter(
+      crumb => crumb.data && typeof crumb.data === 'object' && 'nodeId' in crumb.data
+    )
+  );
 
-  getConsoleCrumbs = () => {
-    return this.consoleCrumbs;
-  };
+  getUserActionCrumbs = memoize(() => {
+    const USER_ACTIONS = [
+      BreadcrumbType.ERROR,
+      BreadcrumbType.INIT,
+      BreadcrumbType.NAVIGATION,
+      BreadcrumbType.UI,
+      BreadcrumbType.USER,
+    ];
+    return this.breadcrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
+  });
 
-  getNetworkSpans = () => {
-    return this.networkSpans;
-  };
+  getConsoleCrumbs = memoize(() =>
+    this.breadcrumbs.filter(crumb => ['console', 'issue'].includes(crumb.category || ''))
+  );
 
-  getMemorySpans = () => {
-    return this.memorySpans;
-  };
+  getNonConsoleCrumbs = memoize(() =>
+    this.breadcrumbs.filter(crumb => crumb.category !== 'console')
+  );
+
+  getNavCrumbs = memoize(() =>
+    this.breadcrumbs.filter(crumb =>
+      [BreadcrumbType.INIT, BreadcrumbType.NAVIGATION].includes(crumb.type)
+    )
+  );
+
+  getNetworkSpans = memoize(() => this.sortedSpans.filter(isNetworkSpan));
+
+  getMemorySpans = memoize(() => this.sortedSpans.filter(isMemorySpan));
+
+  isNetworkDetailsSetup = memoize(() =>
+    this.getNetworkSpans().some(
+      span =>
+        Object.keys(span.data.request?.headers || {}).length ||
+        Object.keys(span.data.response?.headers || {}).length
+    )
+  );
 }

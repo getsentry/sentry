@@ -27,14 +27,11 @@ import {
   StacktraceLinkResult,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
-import {
-  getIntegrationIcon,
-  trackIntegrationAnalytics,
-} from 'sentry/utils/integrationUtil';
+import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
-import {useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -77,7 +74,8 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
 
     // Update cached query data
     // Will set prompt to dismissed
-    queryClient.setQueryData<PromptResponse>(
+    setApiQueryData<PromptResponse>(
+      queryClient,
       makePromptsCheckQueryKey({
         feature: 'stacktrace_link',
         organizationId: organization.id,
@@ -92,7 +90,7 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
       }
     );
 
-    trackIntegrationAnalytics(StacktraceLinkEvents.DISMISS_CTA, {
+    trackAnalytics('integrations.stacktrace_link_cta_dismissed', {
       view: 'stacktrace_issue_details',
       organization,
       ...getAnalyticsDataForEvent(event),
@@ -161,7 +159,7 @@ function CodecovLink({
   }
 
   const onOpenCodecovLink = () => {
-    trackIntegrationAnalytics(StacktraceLinkEvents.CODECOV_LINK_CLICKED, {
+    trackAnalytics('integrations.stacktrace_codecov_link_clicked', {
       view: 'stacktrace_issue_details',
       organization,
       group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
@@ -240,8 +238,8 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const onOpenLink = () => {
     const provider = match!.config?.provider;
     if (provider) {
-      trackIntegrationAnalytics(
-        StacktraceLinkEvents.OPEN_LINK,
+      trackAnalytics(
+        'integrations.stacktrace_link_clicked',
         {
           view: 'stacktrace_issue_details',
           provider: provider.key,
@@ -322,11 +320,13 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
               : undefined
           }
           onClick={() => {
-            trackIntegrationAnalytics(
-              StacktraceLinkEvents.START_SETUP,
+            trackAnalytics(
+              'integrations.stacktrace_start_setup',
               {
                 view: 'stacktrace_issue_details',
                 platform: event.platform,
+                provider: sourceCodeProviders[0]?.provider.key,
+                setup_type: 'automatic',
                 organization,
                 ...getAnalyticsDataForEvent(event),
               },

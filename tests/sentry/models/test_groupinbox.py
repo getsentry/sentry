@@ -9,8 +9,10 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 
 @region_silo_test(stable=True)
@@ -22,10 +24,12 @@ class GroupInboxTestCase(TestCase):
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
         assert not inbox_in.called
+
         add_group_to_inbox(self.group, GroupInboxReason.REGRESSION)
         assert GroupInbox.objects.filter(
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
+        assert self.group.substatus == GroupSubStatus.REGRESSED
         assert inbox_in.called
 
     @patch("sentry.signals.inbox_out.send_robust")
@@ -44,6 +48,23 @@ class GroupInboxTestCase(TestCase):
         assert len(activities) == 1
         assert activities[0].type == ActivityType.MARK_REVIEWED.value
         assert inbox_out.called
+
+    @with_feature("organizations:remove-mark-reviewed")
+    @patch("sentry.signals.inbox_out.send_robust")
+    def test_remove_from_inbox_disabled(self, inbox_out):
+        add_group_to_inbox(self.group, GroupInboxReason.NEW)
+        Activity.objects.all().delete()
+        remove_group_from_inbox(
+            self.group,
+            user=self.user,
+            action=GroupInboxRemoveAction.MARK_REVIEWED,
+        )
+
+        assert GroupInbox.objects.filter(
+            group=self.group, reason=GroupInboxReason.NEW.value
+        ).exists()
+        assert Activity.objects.all().count() == 0
+        assert not inbox_out.called
 
     def test_invalid_reason_details(self):
         reason_details = {"meow": 123}

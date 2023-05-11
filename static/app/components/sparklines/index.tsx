@@ -1,4 +1,4 @@
-import {Sparklines} from 'react-sparklines';
+import {Sparklines as BaseSparklines} from 'react-sparklines';
 import * as PropTypes from 'prop-types';
 
 /**
@@ -9,7 +9,7 @@ import * as PropTypes from 'prop-types';
  * have `children defined.
  * - typescript also won't let us access `Sparklines.propTypes`
  */
-export default class SparklinesWithCustomPropTypes extends Sparklines {
+export class Sparklines extends BaseSparklines {
   static propTypes = {
     children: PropTypes.node,
     data: PropTypes.array,

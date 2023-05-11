@@ -51,6 +51,7 @@ export type SuspectFunction = {
   p95: number;
   p99: number;
   package: string;
+  sum: number;
   worst: string;
 };
 

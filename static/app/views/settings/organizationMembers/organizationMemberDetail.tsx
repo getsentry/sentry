@@ -33,7 +33,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TeamSelect from 'sentry/views/settings/components/teamSelect';
+import TeamSelectForMember from 'sentry/views/settings/components/teamSelect/teamSelectForMember';
 
 import OrganizationRoleSelect from './inviteMember/orgRoleSelect';
 
@@ -53,9 +53,10 @@ type Props = {
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
+  groupOrgRoles: Member['orgRolesFromTeams']; // Form state
   member: Member | null;
-  orgRole: Member['orgRole'];
-  teamRoles: Member['teamRoles'];
+  orgRole: Member['orgRole']; // Form state
+  teamRoles: Member['teamRoles']; // Form state
 } & AsyncView['state'];
 
 const DisabledMemberTooltip = HookOrDefault({
@@ -72,6 +73,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
+      groupOrgRoles: [],
       member: null,
       orgRole: '',
       teamRoles: [],
@@ -87,8 +89,12 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
   onRequestSuccess({data, stateKey}: {data: Member; stateKey: string}) {
     if (stateKey === 'member') {
-      const {orgRole, teamRoles} = data;
-      this.setState({orgRole, teamRoles});
+      const {orgRole, teamRoles, orgRolesFromTeams} = data;
+      this.setState({
+        orgRole,
+        teamRoles,
+        groupOrgRoles: orgRolesFromTeams,
+      });
     }
   }
 
@@ -105,7 +111,12 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
         memberId: params.memberId,
         data: {orgRole, teamRoles} as any,
       });
-      this.setState({member: updatedMember, busy: false});
+      this.setState({
+        member: updatedMember,
+        orgRole: updatedMember.orgRole,
+        teamRoles: updatedMember.teamRoles,
+        busy: false,
+      });
       addSuccessMessage(t('Saved'));
     } catch (resp) {
       const errorMessage =
@@ -239,7 +250,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
       return false;
     }
 
-    if (orgRole !== member.orgRole || !isEqual(teamRoles, member?.teamRoles)) {
+    if (orgRole !== member.orgRole || !isEqual(teamRoles, member.teamRoles)) {
       return true;
     }
 
@@ -273,8 +284,6 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
     const {access, features, orgRoleList} = organization;
     const canEdit = access.includes('org:write') && !this.memberDeactivated;
-    // org:admin is a unique scope that only org owners have
-    const isOrgOwner = access.includes('org:admin');
     const hasTeamRoles = features.includes('team-roles');
 
     const {email, expired, pending, invite_link: inviteLink} = member;
@@ -401,18 +410,19 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
         <Teams slugs={member.teams}>
           {({initiallyLoaded}) => (
-            <TeamSelect
-              enforceIdpProvisioned
-              disabled={!canEdit}
-              isOrgOwner={isOrgOwner}
-              organization={organization}
-              selectedOrgRole={orgRole}
-              selectedTeamRoles={teamRoles}
-              onChangeTeamRole={this.onChangeTeamRole}
-              onAddTeam={this.onAddTeam}
-              onRemoveTeam={this.onRemoveTeam}
-              loadingTeams={!initiallyLoaded}
-            />
+            <Fragment>
+              <TeamSelectForMember
+                disabled={!canEdit}
+                organization={organization}
+                member={member}
+                selectedOrgRole={orgRole}
+                selectedTeamRoles={teamRoles}
+                onChangeTeamRole={this.onChangeTeamRole}
+                onAddTeam={this.onAddTeam}
+                onRemoveTeam={this.onRemoveTeam}
+                loadingTeams={!initiallyLoaded}
+              />
+            </Fragment>
           )}
         </Teams>
 

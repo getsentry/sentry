@@ -101,6 +101,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 creator_name = user_service.get_user(snooze.owner_id).get_display_name()
                 created_by = creator_name
             serialized_rule["snoozeCreatedBy"] = created_by
+            serialized_rule["snoozeForEveryone"] = snooze.user_id is None
         else:
             serialized_rule["snooze"] = False
 

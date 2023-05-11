@@ -1,5 +1,3 @@
-import {lastOfArray} from 'sentry/utils';
-
 import {CallTreeNode} from '../callTreeNode';
 import {Frame} from '../frame';
 
@@ -97,7 +95,8 @@ export class Profile {
 
   forEach(
     openFrame: (node: CallTreeNode, value: number) => void,
-    closeFrame: (node: CallTreeNode, value: number) => void
+    closeFrame: (node: CallTreeNode, value: number) => void,
+    filterFn?: (node: CallTreeNode) => boolean
   ): void {
     const prevStack: CallTreeNode[] = [];
     let value = 0;
@@ -111,21 +110,27 @@ export class Profile {
         top = top.parent;
       }
 
-      while (prevStack.length > 0 && lastOfArray(prevStack) !== top) {
+      while (prevStack.length > 0 && prevStack[prevStack.length - 1] !== top) {
         const node = prevStack.pop()!;
         closeFrame(node, value);
       }
 
       const toOpen: CallTreeNode[] = [];
-
       let node: CallTreeNode | null = stackTop;
 
       while (node && !node.isRoot && node !== top) {
+        if (filterFn && !filterFn(node)) {
+          node = node.parent;
+          continue;
+        }
         toOpen.push(node);
         node = node.parent;
       }
 
       for (let i = toOpen.length - 1; i >= 0; i--) {
+        if (filterFn && !filterFn(toOpen[i])) {
+          continue;
+        }
         openFrame(toOpen[i], value);
         prevStack.push(toOpen[i]);
       }

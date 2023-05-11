@@ -8,6 +8,8 @@ from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.models.user import User
+
 from ..silo import SiloMode
 from . import ViewFunc, get_path
 
@@ -47,6 +49,8 @@ class UserActiveMiddleware(MiddlewareMixin):
         request.user.last_active = now
         # this also seems redundent with UserIP, can we somehow remove it?
         if SiloMode.get_current_mode() != SiloMode.REGION:
-            request.user.update(last_active=now)
+            user = User.objects.filter(id=request.user.id).first()
+            if user:
+                user.update(last_active=now)
 
         return None

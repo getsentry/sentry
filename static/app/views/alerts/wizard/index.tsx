@@ -15,7 +15,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import withProjects from 'sentry/utils/withProjects';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -62,7 +62,7 @@ class AlertWizard extends Component<Props, State> {
 
   trackView(alertType: AlertType = DEFAULT_ALERT_OPTION) {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('alert_wizard.option_viewed', {
+    trackAnalytics('alert_wizard.option_viewed', {
       organization,
       alert_type: alertType,
     });
@@ -131,7 +131,7 @@ class AlertWizard extends Component<Props, State> {
         {({hasFeature}) => (
           <WizardButtonContainer
             onClick={() =>
-              trackAdvancedAnalyticsEvent('alert_wizard.option_selected', {
+              trackAnalytics('alert_wizard.option_selected', {
                 organization,
                 alert_type: alertOption,
               })

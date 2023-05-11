@@ -9,7 +9,7 @@ type Props = {
   timestamp: string | undefined;
 };
 
-const PlayerRelativeTime = ({relativeTimeMs, timestamp}: Props) => {
+function PlayerRelativeTime({relativeTimeMs, timestamp}: Props) {
   if (!timestamp || !relativeTimeMs) {
     return <div />;
   }
@@ -26,7 +26,7 @@ const PlayerRelativeTime = ({relativeTimeMs, timestamp}: Props) => {
       <Value>{showPlayerTime(timestamp, relativeTimeMs)}</Value>
     </Tooltip>
   );
-};
+}
 
 const Value = styled('p')`
   color: ${p => p.theme.subText};

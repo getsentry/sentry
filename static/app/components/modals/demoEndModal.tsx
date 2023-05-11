@@ -11,7 +11,7 @@ import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -80,7 +80,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
       )
     );
 
-    trackAdvancedAnalyticsEvent('growth.end_modal_restart_tours', {
+    trackAnalytics('growth.end_modal_restart_tours', {
       organization: null,
     });
 
@@ -94,7 +94,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
   const handleMoreTours = () => {
     closeModal?.();
     SidebarPanelStore.togglePanel(SidebarPanelKey.OnboardingWizard);
-    trackAdvancedAnalyticsEvent('growth.end_modal_more_tours', {
+    trackAnalytics('growth.end_modal_more_tours', {
       organization: null,
     });
   };
@@ -104,7 +104,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
       <CloseButton
         size="zero"
         onClick={() => {
-          trackAdvancedAnalyticsEvent('growth.end_modal_close', {
+          trackAnalytics('growth.end_modal_close', {
             organization: null,
           });
           if (closeModal) {
@@ -123,7 +123,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
           external
           href={url}
           onClick={() => {
-            trackAdvancedAnalyticsEvent('growth.end_modal_signup', {
+            trackAnalytics('growth.end_modal_signup', {
               organization: null,
             });
           }}

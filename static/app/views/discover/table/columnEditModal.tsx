@@ -10,7 +10,7 @@ import {DISCOVER2_DOCS_URL} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {Column} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
@@ -45,12 +45,8 @@ function ColumnEditModal(props: Props) {
 
   // Only run once for each organization.id.
   useEffect(() => {
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.column_editor.open',
-      eventName: 'Discoverv2: Open column editor',
-      organization_id: parseInt(organization.id, 10),
-    });
-  }, [organization.id]);
+    trackAnalytics('discover_v2.column_editor.open', {organization});
+  }, [organization]);
 
   const tags = useTags();
   const tagKeys = Object.keys(tags);

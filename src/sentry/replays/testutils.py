@@ -111,6 +111,7 @@ def mock_expected_response(
         },
         "tags": kwargs.pop("tags", {}),
         "activity": kwargs.pop("activity", 0),
+        "is_archived": kwargs.pop("is_archived", False),
     }
 
 

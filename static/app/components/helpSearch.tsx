@@ -46,15 +46,17 @@ type Props = Omit<
 >;
 
 // TODO(ts): Type based on Search props once that has types
-const HelpSearch = (props: Props) => (
-  <Search
-    {...props}
-    sources={[HelpSource]}
-    minSearch={3}
-    closeOnSelect={false}
-    renderItem={renderResult}
-  />
-);
+function HelpSearch(props: Props) {
+  return (
+    <Search
+      {...props}
+      sources={[HelpSource]}
+      minSearch={3}
+      closeOnSelect={false}
+      renderItem={renderResult}
+    />
+  );
+}
 
 const SectionHeading = styled('div')`
   display: grid;

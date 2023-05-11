@@ -11,7 +11,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {TagExplorer} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
 
-const WrapperComponent = props => {
+function WrapperComponent(props) {
   return (
     <OrganizationContext.Provider value={props.organization}>
       <MEPSettingProvider _isMEPEnabled={false}>
@@ -19,7 +19,7 @@ const WrapperComponent = props => {
       </MEPSettingProvider>
     </OrganizationContext.Provider>
   );
-};
+}
 
 function initialize(projects, query, additionalFeatures = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];

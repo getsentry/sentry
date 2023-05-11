@@ -16,9 +16,12 @@ import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
-const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
+export const PLATFORM_CATEGORIES = [
+  ...categoryList,
+  {id: 'all', name: t('All')},
+] as const;
 
 const PlatformList = styled('div')`
   display: grid;
@@ -27,10 +30,14 @@ const PlatformList = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
+export type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
+
+type Platform = PlatformIntegration & {
+  category: Category;
+};
 
 interface PlatformPickerProps {
-  setPlatform: (key: PlatformKey | null) => void;
+  setPlatform: (props: Platform | null) => void;
   defaultCategory?: Category;
   listClassName?: string;
   listProps?: React.HTMLAttributes<HTMLDivElement>;
@@ -95,7 +102,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   logSearch = debounce(() => {
     if (this.state.filter) {
-      trackAdvancedAnalyticsEvent('growth.platformpicker_search', {
+      trackAnalytics('growth.platformpicker_search', {
         search: this.state.filter.toLowerCase(),
         num_results: this.platformList.length,
         source: this.props.source,
@@ -117,7 +124,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
               <ListLink
                 key={id}
                 onClick={(e: React.MouseEvent) => {
-                  trackAdvancedAnalyticsEvent('growth.platformpicker_category', {
+                  trackAnalytics('growth.platformpicker_category', {
                     category: id,
                     source: this.props.source,
                     organization: this.props.organization ?? null,
@@ -152,12 +159,12 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
                   e.stopPropagation();
                 }}
                 onClick={() => {
-                  trackAdvancedAnalyticsEvent('growth.select_platform', {
+                  trackAnalytics('growth.select_platform', {
                     platform_id: platform.id,
                     source: this.props.source,
                     organization: this.props.organization ?? null,
                   });
-                  setPlatform(platform.id as PlatformKey);
+                  setPlatform({...platform, category});
                 }}
               />
             );

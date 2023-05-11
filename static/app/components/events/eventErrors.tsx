@@ -18,7 +18,7 @@ import {DebugFile} from 'sentry/types/debugFiles';
 import {Image} from 'sentry/types/debugImage';
 import {EntryType, Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
@@ -156,13 +156,10 @@ const useFetchProguardMappingFiles = ({
                 <ExternalLink
                   href="https://docs.sentry.io/platforms/android/proguard/#gradle"
                   onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'issue_error_banner.proguard_misconfigured.clicked',
-                      {
-                        organization,
-                        group: event?.groupID,
-                      }
-                    );
+                    trackAnalytics('issue_error_banner.proguard_misconfigured.clicked', {
+                      organization,
+                      group: event?.groupID,
+                    });
                   }}
                 >
                   Sentry Gradle Plugin
@@ -198,7 +195,7 @@ const useRecordAnalyticsEvent = ({event, project}: {event: Event; project: Proje
     const platform = project.platform;
 
     // uniquify the array types
-    trackAdvancedAnalyticsEvent('issue_error_banner.viewed', {
+    trackAnalytics('issue_error_banner.viewed', {
       organization,
       group: event?.groupID,
       error_type: uniq(errorTypes),
@@ -208,7 +205,7 @@ const useRecordAnalyticsEvent = ({event, project}: {event: Event; project: Proje
   }, [event, organization, project.platform]);
 };
 
-export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
+export function EventErrors({event, project, isShare}: EventErrorsProps) {
   const organization = useOrganization();
   useRecordAnalyticsEvent({event, project});
   const {proguardErrorsLoading, proguardErrors} = useFetchProguardMappingFiles({
@@ -220,23 +217,17 @@ export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
   useEffect(() => {
     if (proguardErrors?.length) {
       if (proguardErrors[0]?.type === 'proguard_potentially_misconfigured_plugin') {
-        trackAdvancedAnalyticsEvent(
-          'issue_error_banner.proguard_misconfigured.displayed',
-          {
-            organization,
-            group: event?.groupID,
-            platform: project.platform,
-          }
-        );
+        trackAnalytics('issue_error_banner.proguard_misconfigured.displayed', {
+          organization,
+          group: event?.groupID,
+          platform: project.platform,
+        });
       } else if (proguardErrors[0]?.type === 'proguard_missing_mapping') {
-        trackAdvancedAnalyticsEvent(
-          'issue_error_banner.proguard_missing_mapping.displayed',
-          {
-            organization,
-            group: event?.groupID,
-            platform: project.platform,
-          }
-        );
+        trackAnalytics('issue_error_banner.proguard_missing_mapping.displayed', {
+          organization,
+          group: event?.groupID,
+          platform: project.platform,
+        });
       }
     }
     // Just for analytics, only track this once per visit
@@ -287,7 +278,7 @@ export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
       </StyledAlert>
     </StyledDataSection>
   );
-};
+}
 
 const HiddenDiv = styled('div')`
   display: none;

@@ -1,19 +1,24 @@
-import {ComponentProps, useMemo} from 'react';
+import {ComponentProps, MouseEvent, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import {
   chromeDark,
   chromeLight,
   ObjectInspector as OrigObjectInspector,
 } from '@sentry-internal/react-inspector';
 
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
 
 type Props = Omit<ComponentProps<typeof OrigObjectInspector>, 'theme'> & {
+  onCopy?: (copiedCode: string) => void;
+  showCopyButton?: boolean;
   theme?: Record<string, any>;
 };
 
-function ObjectInspector({data, theme, ...props}: Props) {
+function ObjectInspector({data, onCopy, showCopyButton, theme, ...props}: Props) {
   const config = useLegacyStore(ConfigStore);
   const emotionTheme = useTheme();
   const isDark = config.theme === 'dark';
@@ -37,7 +42,7 @@ function ObjectInspector({data, theme, ...props}: Props) {
     [isDark, theme, emotionTheme.red400, emotionTheme.text]
   );
 
-  return (
+  const inspector = (
     <OrigObjectInspector
       data={data}
       // @ts-expect-error
@@ -45,6 +50,44 @@ function ObjectInspector({data, theme, ...props}: Props) {
       {...props}
     />
   );
+  if (showCopyButton) {
+    return (
+      <Wrapper>
+        <StyledCopyButton
+          borderless
+          iconSize="xs"
+          onCopy={onCopy}
+          size="xs"
+          text={JSON.stringify(data, null, '\t')}
+        />
+        {inspector}
+      </Wrapper>
+    );
+  }
+
+  return inspector;
 }
+
+const Wrapper = styled('div')`
+  position: relative;
+
+  /*
+  We need some minimum vertical height so the copy button has room.
+  But don't try to use min-height because then whitespace would be inconsistent.
+  */
+  padding-bottom: ${space(1.5)};
+`;
+
+const StyledCopyButton = styled(CopyToClipboardButton)`
+  position: absolute;
+  top: 0;
+  right: ${space(0.5)};
+`;
+
+export type OnExpandCallback = (
+  path: string,
+  expandedState: Record<string, boolean>,
+  event: MouseEvent<HTMLDivElement>
+) => void;
 
 export default ObjectInspector;

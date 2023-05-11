@@ -6,6 +6,7 @@ import {
   List,
   ListRowProps,
 } from 'react-virtualized';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
@@ -14,6 +15,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 import {Breadcrumb} from './breadcrumb';
@@ -23,7 +25,7 @@ const PANEL_INITIAL_HEIGHT = 400;
 
 const cache = new CellMeasurerCache({
   fixedWidth: true,
-  minHeight: 42,
+  defaultHeight: 38,
 });
 
 type Props = Pick<
@@ -79,7 +81,7 @@ function Breadcrumbs({
   function renderRow({index, key, parent, style}: ListRowProps) {
     const {breadcrumb, meta} = breadcrumbs[index];
     const isLastItem = index === breadcrumbs.length - 1;
-    const {height} = style;
+
     return (
       <CellMeasurer
         cache={cache}
@@ -89,22 +91,27 @@ function Breadcrumbs({
         rowIndex={index}
       >
         {({measure}) => (
-          <Breadcrumb
-            data-test-id={isLastItem ? 'last-crumb' : 'crumb'}
-            style={style}
-            onLoad={measure}
-            organization={organization}
-            searchTerm={searchTerm}
-            breadcrumb={breadcrumb}
-            meta={meta}
-            event={event}
-            relativeTime={relativeTime}
-            displayRelativeTime={displayRelativeTime}
-            height={height ? String(height) : undefined}
-            scrollbarSize={
-              (contentRef?.current?.offsetHeight ?? 0) < containerSize ? scrollbarSize : 0
-            }
-          />
+          <BreadcrumbRow style={style} error={breadcrumb.type === BreadcrumbType.ERROR}>
+            <Breadcrumb
+              index={index}
+              cache={cache}
+              isLastItem={isLastItem}
+              style={style}
+              onResize={measure}
+              organization={organization}
+              searchTerm={searchTerm}
+              breadcrumb={breadcrumb}
+              meta={meta}
+              event={event}
+              relativeTime={relativeTime}
+              displayRelativeTime={displayRelativeTime}
+              scrollbarSize={
+                (contentRef?.current?.offsetHeight ?? 0) < containerSize
+                  ? scrollbarSize
+                  : 0
+              }
+            />
+          </BreadcrumbRow>
         )}
       </CellMeasurer>
     );
@@ -273,4 +280,24 @@ const StyledList = styled(List as any)<React.ComponentProps<typeof List>>`
   height: auto !important;
   max-height: ${p => p.height}px;
   outline: none;
+`;
+
+const BreadcrumbRow = styled('div')<{error: boolean}>`
+  :not(:last-child) {
+    border-bottom: 1px solid ${p => (p.error ? p.theme.red300 : p.theme.innerBorder)};
+  }
+
+  ${p =>
+    p.error &&
+    css`
+      :after {
+        content: '';
+        position: absolute;
+        top: -1px;
+        left: 0;
+        height: 1px;
+        width: 100%;
+        background: ${p.theme.red300};
+      }
+    `}
 `;

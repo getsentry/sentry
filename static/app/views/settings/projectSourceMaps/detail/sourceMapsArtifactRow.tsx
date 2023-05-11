@@ -24,13 +24,13 @@ type Props = {
   orgSlug: string;
 };
 
-const SourceMapsArtifactRow = ({
+function SourceMapsArtifactRow({
   artifact,
   onDelete,
   downloadUrl,
   downloadRole,
   orgSlug,
-}: Props) => {
+}: Props) {
   const {name, size, dateCreated, id, dist} = artifact;
 
   const handleDeleteClick = () => {
@@ -111,7 +111,7 @@ const SourceMapsArtifactRow = ({
       </ActionsColumn>
     </Fragment>
   );
-};
+}
 
 const NameColumn = styled('div')`
   display: flex;

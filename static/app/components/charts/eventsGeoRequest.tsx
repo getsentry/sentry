@@ -6,6 +6,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import toArray from 'sentry/utils/toArray';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -26,6 +27,7 @@ export interface EventsGeoRequestProps {
   query: string;
   start: DateString;
   yAxis: string | string[];
+  dataset?: DiscoverDatasets;
   orderby?: string;
   period?: string | null;
   referrer?: string;
@@ -44,6 +46,7 @@ const EventsGeoRequest = ({
   environments,
   referrer,
   children,
+  dataset,
 }: EventsGeoRequestProps) => {
   const eventView = useMemo(
     () =>
@@ -59,8 +62,9 @@ const EventsGeoRequest = ({
         start: start ? getUtcDateString(start) : undefined,
         end: end ? getUtcDateString(end) : undefined,
         environment: environments,
+        dataset,
       }),
-    [yAxis, query, orderby, projects, period, start, end, environments]
+    [yAxis, query, orderby, projects, period, start, end, environments, dataset]
   );
   const [results, setResults] = useState(undefined as ChildrenRenderProps['tableData']);
   const [reloading, setReloading] = useState(false);

@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 
@@ -41,5 +41,47 @@ describe('ProjectInstallPlatform', function () {
     );
 
     expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
+  });
+
+  it('should redirect to if no matching platform', async function () {
+    const routeParams = {
+      projectId: TestStubs.Project().slug,
+      platform: 'other',
+    };
+
+    const {organization, router, route, project, routerContext} = initializeOrg({
+      ...initializeOrg(),
+      router: {
+        location: {
+          query: {},
+        },
+        params: routeParams,
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/projects/',
+      body: [project],
+    });
+
+    render(
+      <ProjectInstallPlatform
+        router={router}
+        route={route}
+        location={router.location}
+        routeParams={routeParams}
+        routes={router.routes}
+        params={routeParams}
+      />,
+      {
+        organization,
+        context: routerContext,
+      }
+    );
+
+    await waitFor(() => {
+      expect(router.push).toHaveBeenCalledTimes(1);
+    });
   });
 });

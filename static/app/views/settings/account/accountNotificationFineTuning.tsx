@@ -47,7 +47,7 @@ type ANBPProps = {
   projects: Project[];
 };
 
-const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
+function AccountNotificationsByProject({projects, field}: ANBPProps) {
   const projectsByOrg = groupByOrganization(projects);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -84,14 +84,14 @@ const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
       ))}
     </Fragment>
   );
-};
+}
 
 type ANBOProps = {
   field: FineTuneField;
   organizations: Organization[];
 };
 
-const AccountNotificationsByOrganization = ({organizations, field}: ANBOProps) => {
+function AccountNotificationsByOrganization({organizations, field}: ANBOProps) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const {title, description, ...fieldConfig} = field;
 
@@ -118,7 +118,7 @@ const AccountNotificationsByOrganization = ({organizations, field}: ANBOProps) =
       ))}
     </Fragment>
   );
-};
+}
 
 const AccountNotificationsByOrganizationContainer = withOrganizations(
   AccountNotificationsByOrganization

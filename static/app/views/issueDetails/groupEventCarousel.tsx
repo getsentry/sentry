@@ -4,7 +4,6 @@ import moment from 'moment-timezone';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button, ButtonProps} from 'sentry/components/button';
-import Clipboard from 'sentry/components/clipboard';
 import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -21,7 +20,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, Organization} from 'sentry/types';
 import {defined, formatBytesBase2} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
 import {
   getAnalyticsDataForEvent,
@@ -29,6 +28,7 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -74,14 +74,14 @@ const makeBaseEventsPath = ({
   organization: Organization;
 }) => `/organizations/${organization.slug}/issues/${group.id}/events/`;
 
-const EventNavigationButton = ({
+function EventNavigationButton({
   disabled,
   eventId,
   group,
   icon,
   title,
   referrer,
-}: EventNavigationButtonProps) => {
+}: EventNavigationButtonProps) {
   const organization = useOrganization();
   const location = useLocation();
   const baseEventsPath = makeBaseEventsPath({organization, group});
@@ -104,13 +104,9 @@ const EventNavigationButton = ({
       </div>
     </Tooltip>
   );
-};
+}
 
-export const GroupEventCarousel = ({
-  event,
-  group,
-  projectSlug,
-}: GroupEventCarouselProps) => {
+export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
@@ -128,10 +124,12 @@ export const GroupEventCarousel = ({
   const hasPreviousEvent = defined(event.previousEventID);
   const hasNextEvent = defined(event.nextEventID);
 
+  const {onClick: onClickCopy} = useCopyToClipboard({text: event.id});
+
   const downloadJson = () => {
     const jsonUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
     window.open(jsonUrl);
-    trackAdvancedAnalyticsEvent('issue_details.event_json_clicked', {
+    trackAnalytics('issue_details.event_json_clicked', {
       organization,
       group_id: parseInt(`${event.groupID}`, 10),
     });
@@ -142,7 +140,7 @@ export const GroupEventCarousel = ({
       window.location.origin +
         normalizeUrl(`${makeBaseEventsPath({organization, group})}${event.id}/`)
     );
-    trackAdvancedAnalyticsEvent('issue_details.copy_event_link_clicked', {
+    trackAnalytics('issue_details.copy_event_link_clicked', {
       organization,
       ...getAnalyticsDataForGroup(group),
       ...getAnalyticsDataForEvent(event),
@@ -153,22 +151,33 @@ export const GroupEventCarousel = ({
     <CarouselAndButtonsWrapper>
       <EventHeading>
         <EventIdLabel>Event ID:</EventIdLabel>{' '}
-        <Tooltip overlayStyle={{maxWidth: 'max-content'}} title={event.id}>
-          <Clipboard value={event.id}>
-            <EventId>
-              {getShortEventId(event.id)}
-              <CopyIconContainer>
-                <IconCopy size="xs" />
-              </CopyIconContainer>
-            </EventId>
-          </Clipboard>
-        </Tooltip>{' '}
+        <Button
+          aria-label={t('Copy')}
+          borderless
+          onClick={onClickCopy}
+          size="zero"
+          title={event.id}
+          tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
+          translucentBorder
+        >
+          <EventId>
+            {getShortEventId(event.id)}
+            <CopyIconContainer>
+              <IconCopy size="xs" />
+            </CopyIconContainer>
+          </EventId>
+        </Button>{' '}
         {(event.dateCreated ?? event.dateReceived) && (
           <EventTimeLabel>
             {getDynamicText({
               fixed: 'Jan 1, 12:00 AM',
               value: (
-                <Tooltip showUnderline title={<EventCreatedTooltip event={event} />}>
+                <Tooltip
+                  isHoverable
+                  showUnderline
+                  title={<EventCreatedTooltip event={event} />}
+                  overlayStyle={{maxWidth: 300}}
+                >
                   <DateTime date={event.dateCreated ?? event.dateReceived} />
                 </Tooltip>
               ),
@@ -223,7 +232,7 @@ export const GroupEventCarousel = ({
                 orgSlug: organization.slug,
               }),
               onAction: () => {
-                trackAdvancedAnalyticsEvent('issue_details.event_details_clicked', {
+                trackAnalytics('issue_details.event_details_clicked', {
                   organization,
                   ...getAnalyticsDataForGroup(group),
                   ...getAnalyticsDataForEvent(event),
@@ -239,7 +248,7 @@ export const GroupEventCarousel = ({
                 if (breadcrumbsHeader) {
                   breadcrumbsHeader.scrollIntoView({behavior: 'smooth'});
                 }
-                trackAdvancedAnalyticsEvent('issue_details.header_view_replay_clicked', {
+                trackAnalytics('issue_details.header_view_replay_clicked', {
                   organization,
                   ...getAnalyticsDataForGroup(group),
                   ...getAnalyticsDataForEvent(event),
@@ -299,7 +308,7 @@ export const GroupEventCarousel = ({
       </ActionsWrapper>
     </CarouselAndButtonsWrapper>
   );
-};
+}
 
 const CarouselAndButtonsWrapper = styled('div')`
   display: flex;
@@ -367,8 +376,8 @@ const StyledIconWarning = styled(IconWarning)`
 
 const EventId = styled('span')`
   position: relative;
-  cursor: pointer;
-
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeLarge};
   &:hover {
     > span {
       display: flex;

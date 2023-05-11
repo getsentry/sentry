@@ -6,7 +6,7 @@ import re
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union, cast
 from urllib.parse import parse_qs, urlparse
 
 from sentry import options
@@ -16,6 +16,7 @@ from sentry.issues.grouptype import (
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
+    PerformanceLargeHTTPPayloadGroupType,
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
@@ -36,6 +37,7 @@ class DetectorType(Enum):
     N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
     CONSECUTIVE_DB_OP = "consecutive_db"
     CONSECUTIVE_HTTP_OP = "consecutive_http"
+    LARGE_HTTP_PAYLOAD = "large_http_payload"
     FILE_IO_MAIN_THREAD = "file_io_main_thread"
     M_N_PLUS_ONE_DB = "m_n_plus_one_db"
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
@@ -54,6 +56,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.UNCOMPRESSED_ASSETS: PerformanceUncompressedAssetsGroupType,
     DetectorType.CONSECUTIVE_HTTP_OP: PerformanceConsecutiveHTTPQueriesGroupType,
     DetectorType.DB_MAIN_THREAD: PerformanceDBMainThreadGroupType,
+    DetectorType.LARGE_HTTP_PAYLOAD: PerformanceLargeHTTPPayloadGroupType,
 }
 
 
@@ -63,6 +66,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
     DetectorType.CONSECUTIVE_DB_OP: "performance.issues.consecutive_db.problem-creation",
     DetectorType.CONSECUTIVE_HTTP_OP: "performance.issues.consecutive_http.flag_disabled",
+    DetectorType.LARGE_HTTP_PAYLOAD: "performance.issues.large_http_payload.flag_disabled",
     DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
     DetectorType.FILE_IO_MAIN_THREAD: "performance.issues.file_io_main_thread.problem-creation",
     DetectorType.UNCOMPRESSED_ASSETS: "performance.issues.compressed_assets.problem-creation",
@@ -364,3 +368,23 @@ def fingerprint_http_spans(spans: list[Span]) -> str:
 
     hashed_url_paths = hashlib.sha1(("-".join(url_paths)).encode("utf8")).hexdigest()
     return hashed_url_paths
+
+
+def get_span_evidence_value(
+    span: Union[Dict[str, Union[str, float]], None] = None, include_op: bool = True
+) -> str:
+    """Get the 'span evidence' data for a given span. This is displayed in issue alert emails."""
+    value = "no value"
+    if not span:
+        return value
+    if not span.get("op") and span.get("description"):
+        value = cast(str, span["description"])
+    if span.get("op") and not span.get("description"):
+        value = cast(str, span["op"])
+    if span.get("op") and span.get("description"):
+        op = cast(str, span["op"])
+        desc = cast(str, span["description"])
+        value = f"{op} - {desc}"
+        if not include_op:
+            value = desc
+    return value

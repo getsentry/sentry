@@ -91,7 +91,6 @@
 
     "esModuleInterop": true,
     "experimentalDecorators": true,
-    "noImplicitUseStrict": true,
     "resolveJsonModule": true,
 
     "baseUrl": "../",

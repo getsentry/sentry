@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {percent} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {appendExcludeTagValuesCondition} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -49,7 +49,7 @@ const _debounceTrackHover = debounce(
     value: string;
     platform?: string;
   }) => {
-    trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.hovered', {
+    trackAnalytics('issue_group_details.tags.bar.hovered', {
       tag,
       value,
       platform,
@@ -126,7 +126,7 @@ function TagFacetsDistributionMeter({
           const segmentProps = {
             index,
             onClick: () => {
-              trackAdvancedAnalyticsEvent('issue_group_details.tags.bar.clicked', {
+              trackAnalytics('issue_group_details.tags.bar.clicked', {
                 tag: title,
                 value: value.value,
                 platform: project?.platform,

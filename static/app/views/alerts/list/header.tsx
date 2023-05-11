@@ -18,7 +18,7 @@ type Props = {
   router: InjectedRouter;
 };
 
-const AlertHeader = ({router, activeTab}: Props) => {
+function AlertHeader({router, activeTab}: Props) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   /**
@@ -87,6 +87,6 @@ const AlertHeader = ({router, activeTab}: Props) => {
       </Layout.HeaderNavTabs>
     </Layout.Header>
   );
-};
+}
 
 export default AlertHeader;

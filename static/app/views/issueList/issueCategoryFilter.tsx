@@ -6,7 +6,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {IssueCategory} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -96,7 +96,7 @@ function IssueCategoryFilter({
       setIsPerformanceSeen(true);
     }
 
-    trackAdvancedAnalyticsEvent('issues_stream.issue_category_dropdown_changed', {
+    trackAnalytics('issues_stream.issue_category_dropdown_changed', {
       organization,
       category: option.value,
     });

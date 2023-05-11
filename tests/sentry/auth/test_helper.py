@@ -17,10 +17,9 @@ from sentry.models import (
     AuthProvider,
     InviteStatus,
     OrganizationMember,
-    OrganizationMemberTeam,
     UserEmail,
 )
-from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
+from sentry.services.hybrid_cloud.organization.serial import serialize_organization
 from sentry.testutils import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
@@ -60,9 +59,7 @@ class AuthIdentityHandlerTest(TestCase):
 
     def _handler_with(self, identity):
         with exempt_from_silo_limits():
-            rpc_organization = DatabaseBackedOrganizationService.serialize_organization(
-                self.organization
-            )
+            rpc_organization = serialize_organization(self.organization)
         return AuthIdentityHandler(
             self.auth_provider,
             DummyProvider(self.provider),
@@ -211,9 +208,7 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             assert getattr(persisted_om.flags, "sso:linked")
             assert getattr(persisted_om.flags, "member-limit:restricted")
             assert not getattr(persisted_om.flags, "sso:invalid")
-            expected_rpc_org = DatabaseBackedOrganizationService.serialize_organization(
-                self.organization
-            )
+            expected_rpc_org = serialize_organization(self.organization)
             features_has.assert_any_call("organizations:invite-members", expected_rpc_org)
             self.assert_org_member_mapping(org_member=persisted_om)
 
@@ -234,18 +229,11 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             )
         )
 
-        org_member = OrganizationMember.objects.filter(
+        org_member = OrganizationMember.objects.get(
             organization=self.organization,
             user=self.user,
         )
-        assert org_member.exists()
-        org_member = org_member.get()
-        self.assert_org_member_mapping_not_exists(org_member=org_member)
-
-        for team in self.auth_provider.default_teams.all():
-            assert OrganizationMemberTeam.objects.create(
-                team=team, organizationmember__user=self.user
-            ).exists()
+        self.assert_org_member_mapping(org_member=org_member)
 
         assert AuditLogEntry.objects.filter(
             organization_id=self.organization.id,
@@ -343,7 +331,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert request is self.request
         assert status == 200
 
-        expected_org = DatabaseBackedOrganizationService.serialize_organization(self.organization)
+        expected_org = serialize_organization(self.organization)
 
         assert context["organization"] == expected_org
         assert context["identity"] == self.identity

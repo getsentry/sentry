@@ -11,7 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type ProfileEvidenceProps = {event: Event; projectSlug: string};
 
-export const ProfileEventEvidence = ({event, projectSlug}: ProfileEvidenceProps) => {
+export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps) {
   const organization = useOrganization();
   const evidenceData = event.occurrence?.evidenceData ?? {};
   const evidenceDisplay = event.occurrence?.evidenceDisplay ?? [];
@@ -81,4 +81,4 @@ export const ProfileEventEvidence = ({event, projectSlug}: ProfileEvidenceProps)
       <KeyValueList data={keyValueListData} shouldSort={false} />
     </EventDataSection>
   );
-};
+}

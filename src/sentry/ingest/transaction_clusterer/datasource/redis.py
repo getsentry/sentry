@@ -5,7 +5,6 @@ from typing import Any, Iterator, Mapping
 import sentry_sdk
 from django.conf import settings
 
-from sentry import features
 from sentry.ingest.transaction_clusterer.datasource import (
     HTTP_404_TAG,
     TRANSACTION_SOURCE_SANITIZED,
@@ -85,11 +84,7 @@ def clear_transaction_names(project: Project) -> None:
 def record_transaction_name(project: Project, event_data: Mapping[str, Any], **kwargs: Any) -> None:
     transaction_name = event_data.get("transaction")
 
-    if (
-        transaction_name
-        and features.has("organizations:transaction-name-clusterer", project.organization)
-        and _should_store_transaction_name(event_data)
-    ):
+    if transaction_name and _should_store_transaction_name(event_data):
         safe_execute(_store_transaction_name, project, transaction_name, _with_transaction=False)
         safe_execute(_bump_rule_lifetime, project, event_data, _with_transaction=False)
 

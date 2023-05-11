@@ -20,7 +20,7 @@ type Props = {
   onPublish?: () => void;
 };
 
-const ActionButtons = ({
+function ActionButtons({
   org,
   app,
   showPublish,
@@ -29,7 +29,7 @@ const ActionButtons = ({
   onDelete,
   disablePublishReason,
   disableDeleteReason,
-}: Props) => {
+}: Props) {
   const appDashboardButton = (
     <StyledButton
       size="xs"
@@ -86,7 +86,7 @@ const ActionButtons = ({
       {deleteButton}
     </ButtonHolder>
   );
-};
+}
 
 const ButtonHolder = styled('div')`
   flex-direction: row;

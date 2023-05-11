@@ -106,10 +106,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         description = GitHubIssueBasic().get_group_description(event.group, event)
         assert "db - SELECT `books_author`.`id`, `books_author" in description
         title = GitHubIssueBasic().get_group_title(event.group, event)
-        assert (
-            title
-            == 'N+1 Query: SELECT "books_author"."id", "books_author"."name" FROM "books_author" WHERE "books_author"."id" = %s LIMIT 21'
-        )
+        assert title == "N+1 Query"
 
     def test_generic_issues_content(self):
         """Test that a GitHub issue created from a generic issue has the expected title and description"""

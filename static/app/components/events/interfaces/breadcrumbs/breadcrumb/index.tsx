@@ -1,6 +1,7 @@
-import {memo} from 'react';
-import {css} from '@emotion/react';
+import {memo, useCallback, useRef} from 'react';
+import {CellMeasurerCache} from 'react-virtualized';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -15,42 +16,60 @@ import Type from './type';
 
 type Props = {
   breadcrumb: Crumb;
-  ['data-test-id']: string;
+  cache: CellMeasurerCache;
   displayRelativeTime: boolean;
   event: Event;
-  onLoad: () => void;
+  index: number;
+  isLastItem: boolean;
+  onResize: () => void;
   organization: Organization;
   relativeTime: string;
   scrollbarSize: number;
   searchTerm: string;
   style: React.CSSProperties;
-  height?: string;
   meta?: Record<any, any>;
 };
 
 export const Breadcrumb = memo(function Breadcrumb({
+  index,
   organization,
   event,
   breadcrumb,
   relativeTime,
   displayRelativeTime,
   searchTerm,
-  onLoad,
+  onResize,
   scrollbarSize,
-  style,
   meta,
-  ['data-test-id']: dataTestId,
+  isLastItem,
+  cache,
 }: Props) {
+  const sizingRef = useRef<HTMLDivElement | null>(null);
   const {type, description, color, level, category, timestamp} = breadcrumb;
   const error = breadcrumb.type === BreadcrumbType.ERROR;
 
+  const resizeObserverOnResize = useCallback(() => {
+    const height = sizingRef.current?.offsetHeight ?? 0;
+
+    // Values in cache are sometimes slightly off
+    // This fuzzy check prevents overly aggressive height recalcs
+    if (Math.abs(cache.getHeight(index, 0) - height) > 1) {
+      onResize();
+    }
+  }, [cache, index, onResize]);
+
+  useResizeObserver({
+    ref: sizingRef,
+    onResize: resizeObserverOnResize,
+  });
+
   return (
     <Wrapper
-      style={style}
+      ref={sizingRef}
       error={error}
-      onLoad={onLoad}
-      data-test-id={dataTestId}
+      data-test-id={isLastItem ? 'last-crumb' : 'crumb'}
       scrollbarSize={scrollbarSize}
+      isLastItem={isLastItem}
     >
       <Type type={type} color={color} description={description} error={error} />
       <Category category={category} searchTerm={searchTerm} />
@@ -74,7 +93,11 @@ export const Breadcrumb = memo(function Breadcrumb({
   );
 });
 
-const Wrapper = styled('div')<{error: boolean; scrollbarSize: number}>`
+const Wrapper = styled('div')<{
+  error: boolean;
+  isLastItem: boolean;
+  scrollbarSize: number;
+}>`
   display: grid;
   grid-template-columns: 64px 140px 1fr 106px 100px ${p => p.scrollbarSize}px;
 
@@ -123,21 +146,4 @@ const Wrapper = styled('div')<{error: boolean; scrollbarSize: number}>`
 
   word-break: break-all;
   white-space: pre-wrap;
-  :not(:last-child) {
-    border-bottom: 1px solid ${p => (p.error ? p.theme.red300 : p.theme.innerBorder)};
-  }
-
-  ${p =>
-    p.error &&
-    css`
-      :after {
-        content: '';
-        position: absolute;
-        top: -1px;
-        left: 0;
-        height: 1px;
-        width: 100%;
-        background: ${p.theme.red300};
-      }
-    `}
 `;

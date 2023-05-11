@@ -42,13 +42,11 @@ export function FlamegraphUIFramesTooltip({
     const framesInConfigSpace = hoveredNode.map(frame => {
       return {
         type: frame.type,
-        rect: new Rect(frame.start, frame.end, frame.end - frame.start, 1).transformRect(
-          uiFramesView.configSpaceTransform
-        ),
+        rect: new Rect(frame.start, frame.end, frame.end - frame.start, 1),
       };
     });
     return framesInConfigSpace.sort((a, b) => a.type.localeCompare(b.type));
-  }, [uiFramesView, hoveredNode]);
+  }, [hoveredNode]);
 
   return (
     <BoundTooltip

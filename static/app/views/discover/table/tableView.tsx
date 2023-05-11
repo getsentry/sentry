@@ -17,9 +17,7 @@ import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {defined} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
@@ -370,7 +368,7 @@ function TableView(props: TableViewProps) {
               data-test-id="view-profile"
               to={target}
               onClick={() =>
-                trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+                trackAnalytics('profiling_views.go_to_flamegraph', {
                   organization,
                   source: 'discover.table',
                 })
@@ -391,7 +389,11 @@ function TableView(props: TableViewProps) {
 
     const fieldName = columnKey;
     const value = dataRow[fieldName];
-    if (tableData.meta[fieldName] === 'integer' && defined(value) && value > 999) {
+    if (
+      tableData.meta[fieldName] === 'integer' &&
+      typeof value === 'number' &&
+      value > 999
+    ) {
       return (
         <Tooltip
           title={value.toLocaleString()}
@@ -459,11 +461,8 @@ function TableView(props: TableViewProps) {
       const query = new MutableSearch(eventView.query);
 
       let nextView = eventView.clone();
-
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.results.cellaction',
-        eventName: 'Discoverv2: Cell Action Clicked',
-        organization_id: parseInt(organization.id, 10),
+      trackAnalytics('discover_v2.results.cellaction', {
+        organization,
         action,
       });
 
@@ -508,11 +507,8 @@ function TableView(props: TableViewProps) {
         }
         case Actions.DRILLDOWN: {
           // count_unique(column) drilldown
-
-          trackAnalyticsEvent({
-            eventKey: 'discover_v2.results.drilldown',
-            eventName: 'Discoverv2: Click aggregate drilldown',
-            organization_id: parseInt(organization.id, 10),
+          trackAnalytics('discover_v2.results.drilldown', {
+            organization,
           });
 
           // Drilldown into each distinct value and get a count() for each value.
@@ -555,10 +551,8 @@ function TableView(props: TableViewProps) {
     const {organization, eventView, location, isHomepage} = props;
 
     // metrics
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.update_columns',
-      eventName: 'Discoverv2: Update columns',
-      organization_id: parseInt(organization.id, 10),
+    trackAnalytics('discover_v2.update_columns', {
+      organization,
     });
 
     const nextView = eventView.withColumns(columns);

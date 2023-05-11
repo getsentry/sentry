@@ -45,6 +45,7 @@ type Props = {
   hasContextSource?: boolean;
   hasContextVars?: boolean;
   isExpanded?: boolean;
+  isFirst?: boolean;
   organization?: Organization;
   registersMeta?: Record<any, any>;
 };
@@ -64,7 +65,7 @@ export function getLineCoverage(
   return [lineCoverage, hasCoverage];
 }
 
-const Context = ({
+function Context({
   hasContextVars = false,
   hasContextSource = false,
   hasContextRegisters = false,
@@ -80,7 +81,7 @@ const Context = ({
   className,
   frameMeta,
   registersMeta,
-}: Props) => {
+}: Props) {
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
@@ -148,6 +149,7 @@ const Context = ({
       start={startLineNo}
       startLineNo={startLineNo}
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
+      data-test-id="frame-context"
     >
       {defined(frame.errors) && (
         <li className={expandable ? 'expandable error' : 'error'} key="errors">
@@ -209,7 +211,7 @@ const Context = ({
       {hasAssembly && <Assembly {...parseAssembly(frame.package)} />}
     </Wrapper>
   );
-};
+}
 
 export default withOrganization(Context);
 

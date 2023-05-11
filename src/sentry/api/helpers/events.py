@@ -54,9 +54,7 @@ def get_query_builder_for_group(
     query: str, snuba_params: Mapping[str, Any], group: Group, limit: int, offset: int
 ) -> QueryBuilder:
     dataset = Dataset.IssuePlatform
-    if group.issue_category == GroupCategory.PERFORMANCE:
-        dataset = Dataset.Transactions
-    elif group.issue_category == GroupCategory.ERROR:
+    if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     return QueryBuilder(
         dataset=dataset,

@@ -71,7 +71,7 @@ class SlackLinkTeamTest(AcceptanceTestCase):
         assert ExternalActor.objects.filter(
             actor_id=self.team.actor_id,
             organization=self.org,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name="general",
             external_id="CXXXXXXX9",

@@ -32,7 +32,7 @@ function ProjectFilters(props: Props) {
     <Fragment>
       <SentryDocumentTitle title={t('Inbound Filters')} projectSlug={projectId} />
       <SettingsPageHeader title={t('Inbound Data Filters')} />
-      <PermissionAlert />
+      <PermissionAlert project={project} />
 
       <TextBlock>
         {t(
@@ -60,8 +60,8 @@ function ProjectFilters(props: Props) {
 
         {filterType === 'discarded-groups' ? (
           <GroupTombstones
-            orgId={organization.slug}
-            projectId={project.slug}
+            organization={organization}
+            project={project}
             location={location}
           />
         ) : (

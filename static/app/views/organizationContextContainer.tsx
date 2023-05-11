@@ -35,6 +35,7 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
   organizationsLoading: boolean;
   routes: PlainRoute[];
   useLastOrganization: boolean;
+  children?: React.ReactNode;
 };
 
 type State = {

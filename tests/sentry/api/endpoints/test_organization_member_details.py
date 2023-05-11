@@ -426,12 +426,37 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
             flags=OrganizationMember.flags["idp:role-restricted"],
         )
 
-        self.get_error_response(self.organization.slug, member_om.id, role="admin", status_code=403)
+        self.get_error_response(
+            self.organization.slug, member_om.id, role="manager", status_code=403
+        )
 
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "member"
 
-    def test_can_update_with_retired_role_without_flag(self):
+    def test_can_update_from_retired_role_without_flag(self):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="admin", teams=[]
+        )
+
+        self.get_success_response(self.organization.slug, member_om.id, role="member")
+
+        member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
+        assert member_om.role == "member"
+
+    @with_feature("organizations:team-roles")
+    def test_can_update_from_retired_role_with_flag(self):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="admin", teams=[]
+        )
+
+        self.get_success_response(self.organization.slug, member_om.id, role="member")
+
+        member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
+        assert member_om.role == "member"
+
+    def test_can_update_to_retired_role_without_flag(self):
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
@@ -443,7 +468,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         assert member_om.role == "admin"
 
     @with_feature("organizations:team-roles")
-    def test_cannot_update_with_retired_role_with_flag(self):
+    def test_cannot_update_to_retired_role_with_flag(self):
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]

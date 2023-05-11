@@ -21,15 +21,14 @@ function FocusArea({}: Props) {
     case TabKey.network:
       return (
         <NetworkList
+          isNetworkDetailsSetup={Boolean(replay?.isNetworkDetailsSetup())}
           networkSpans={replay?.getNetworkSpans()}
+          projectId={replay?.getReplay()?.project_id}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );
     case TabKey.trace:
-      if (!replay) {
-        return <Placeholder height="150px" />;
-      }
-      return <Trace organization={organization} replayRecord={replay.getReplay()} />;
+      return <Trace organization={organization} replayRecord={replay?.getReplay()} />;
     case TabKey.issues:
       if (!replay) {
         return <Placeholder height="150px" />;

@@ -215,7 +215,7 @@ class UserNotificationSettingsGetTestV2(UserNotificationSettingsTestBase):
 
 
 @control_silo_test
-class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
+class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
     method = "put"
 
     def test_simple(self):

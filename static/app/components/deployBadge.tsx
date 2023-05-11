@@ -12,7 +12,7 @@ type Props = {
   version?: string;
 };
 
-const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) => {
+function DeployBadge({deploy, orgSlug, projectId, version, className}: Props) {
   const shouldLinkToIssues = !!orgSlug && !!version;
 
   const badge = (
@@ -44,6 +44,6 @@ const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) =>
       {badge}
     </Link>
   );
-};
+}
 
 export default DeployBadge;

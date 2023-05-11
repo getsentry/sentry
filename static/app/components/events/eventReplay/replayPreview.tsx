@@ -28,7 +28,7 @@ type Props = {
 
 function ReplayPreview({orgSlug, replaySlug, event}: Props) {
   const routes = useRoutes();
-  const {fetching, replay, fetchError} = useReplayData({
+  const {fetching, replay, fetchError, replayId} = useReplayData({
     orgSlug,
     replaySlug,
   });
@@ -40,9 +40,9 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
 
   const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
 
-  const initialTimeOffset = useMemo(() => {
+  const initialTimeOffsetMs = useMemo(() => {
     if (eventTimestamp && startTimestampMs) {
-      return relativeTimeInMs(eventTimestamp, startTimestampMs) / 1000;
+      return relativeTimeInMs(eventTimestamp, startTimestampMs);
     }
 
     return 0;
@@ -87,11 +87,11 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
   }
 
   const fullReplayUrl = {
-    pathname: `/organizations/${orgSlug}/replays/${replaySlug}/`,
+    pathname: `/organizations/${orgSlug}/replays/${replayId}/`,
     query: {
       referrer: getRouteStringFromRoutes(routes),
       t_main: 'console',
-      t: initialTimeOffset,
+      t: initialTimeOffsetMs / 1000,
     },
   };
 
@@ -99,7 +99,7 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
     <ReplayContextProvider
       isFetching={fetching}
       replay={replay}
-      initialTimeOffset={initialTimeOffset}
+      initialTimeOffsetMs={initialTimeOffsetMs}
     >
       <PlayerContainer data-test-id="player-container">
         <StaticPanel>

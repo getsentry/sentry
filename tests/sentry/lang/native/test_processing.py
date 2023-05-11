@@ -11,7 +11,7 @@ import pytest
 from sentry.lang.native.processing import (
     _merge_image,
     get_frames_for_symbolication,
-    process_payload,
+    process_native_stacktraces,
 )
 from sentry.models.eventerror import EventError
 from sentry.utils.safe import get_path
@@ -152,7 +152,7 @@ def test_cocoa_function_name(mock_symbolicator, default_project):
         "modules": [],
     }
 
-    process_payload(data)
+    process_native_stacktraces(mock_symbolicator, data)
 
     function_name = get_path(data, "exception", "values", 0, "stacktrace", "frames", 0, "function")
     assert function_name == "thunk for closure"
@@ -352,7 +352,7 @@ def test_il2cpp_symbolication(mock_symbolicator, default_project):
         ],
     }
 
-    process_payload(data)
+    process_native_stacktraces(mock_symbolicator, data)
 
     frame = get_path(data, "exception", "values", 0, "stacktrace", "frames", 3)
 

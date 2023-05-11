@@ -320,7 +320,7 @@ export const OpsLine = styled('div')`
   }
 `;
 
-export const OpsDot = styled('div')`
+const OpsDot = styled('div')`
   content: '';
   display: block;
   width: 8px;
@@ -335,11 +335,11 @@ const OpsContent = styled('div')`
   align-items: center;
 `;
 
-export const OpsNameContainer = styled(OpsContent)`
+const OpsNameContainer = styled(OpsContent)`
   overflow: hidden;
 `;
 
-export const OpsName = styled('div')`
+const OpsName = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

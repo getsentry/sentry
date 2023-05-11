@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import List, Optional, Sequence
+from typing import List, Mapping, Optional, Sequence
 
+from django.db import transaction
 from django.db.models import Q
 
 from sentry.models import NotificationSetting, User
@@ -13,6 +14,7 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import NotificationsService, RpcNotificationSetting
+from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
@@ -48,6 +50,24 @@ class DatabaseBackedNotificationsService(NotificationsService):
             organization=organization_id,
         )
 
+    def bulk_update_settings(
+        self,
+        *,
+        notification_type_to_value_map: Mapping[
+            NotificationSettingTypes, NotificationSettingOptionValues
+        ],
+        external_provider: ExternalProviders,
+        actor: RpcActor,
+    ) -> None:
+        with transaction.atomic():
+            for notification_type, setting_option in notification_type_to_value_map.items():
+                self.update_settings(
+                    external_provider=external_provider,
+                    actor=actor,
+                    notification_type=notification_type,
+                    setting_option=setting_option,
+                )
+
     def get_settings_for_users(
         self,
         *,
@@ -55,13 +75,14 @@ class DatabaseBackedNotificationsService(NotificationsService):
         users: List[RpcUser],
         value: NotificationSettingOptionValues,
     ) -> List[RpcNotificationSetting]:
+        # TODO(actorid) Adapt this to use Actor lookups.
         settings = NotificationSetting.objects.filter(
-            target__in=[u.actor_id for u in users],
+            target_id__in=[u.actor_id for u in users],
             type__in=types,
             value=value.value,
             scope_type=NotificationScopeType.USER.value,
         )
-        return [self.serialize_notification_setting(u) for u in settings]
+        return [serialize_notification_setting(u) for u in settings]
 
     def get_settings_for_recipient_by_parent(
         self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[RpcActor]
@@ -85,22 +106,22 @@ class DatabaseBackedNotificationsService(NotificationsService):
                 scope_identifier__in=team_ids,
             ),
             type=type.value,
-            target__in=actor_ids,
+            target_id__in=actor_ids,
         )
 
-        return [self.serialize_notification_setting(s) for s in notification_settings]
+        return [serialize_notification_setting(s) for s in notification_settings]
 
     def get_settings_for_user_by_projects(
         self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
     ) -> List[RpcNotificationSetting]:
         try:
-            user = User.objects.get(id=user_id)
+            User.objects.get(id=user_id)
         except User.DoesNotExist:
             return []
 
         scope_type = get_scope_type(type)
         return [
-            self.serialize_notification_setting(s)
+            serialize_notification_setting(s)
             for s in NotificationSetting.objects.filter(
                 Q(
                     scope_type=scope_type.value,
@@ -111,7 +132,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
                     scope_identifier=user_id,
                 ),
                 type=type.value,
-                target_id=user.actor_id,
+                user_id=user_id,
             )
         ]
 

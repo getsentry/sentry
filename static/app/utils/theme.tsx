@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 import color from 'color';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Outcome} from 'sentry/types';
 
 /**
@@ -484,9 +484,9 @@ const generateBadgeTheme = (colors: BaseColors) => ({
     color: colors.white,
   },
   experimental: {
-    background: `linear-gradient(90deg, ${colors.blue300}, ${colors.green300})`,
-    indicatorColor: colors.green300,
-    color: colors.white,
+    background: colors.gray100,
+    indicatorColor: colors.gray100,
+    color: colors.gray500,
   },
   review: {
     background: colors.purple300,

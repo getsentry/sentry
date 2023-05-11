@@ -13,14 +13,14 @@ export interface UserBadgeProps {
   user?: AvatarUser;
 }
 
-const UserBadge = ({
+function UserBadge({
   avatarSize = 24,
   hideEmail = false,
   displayName,
   displayEmail,
   user,
   className,
-}: UserBadgeProps) => {
+}: UserBadgeProps) {
   const title =
     displayName ||
     (user &&
@@ -43,7 +43,7 @@ const UserBadge = ({
       </StyledNameAndEmail>
     </StyledUserBadge>
   );
-};
+}
 
 const StyledUserBadge = styled('div')`
   display: flex;

@@ -53,7 +53,6 @@ class OrganizationSerializerTest(TestCase):
             "advanced-search",
             "change-alerts",
             "crash-rate-alerts",
-            "custom-event-title",
             "custom-symbol-sources",
             "data-forwarding",
             "dashboards-basic",
@@ -74,6 +73,7 @@ class OrganizationSerializerTest(TestCase):
             "invite-members-rate-limits",
             "minute-resolution-sessions",
             "open-membership",
+            "project-stats",
             "relay",
             "shared-issues",
             "session-replay-ui",
@@ -82,6 +82,8 @@ class OrganizationSerializerTest(TestCase):
             "symbol-sources",
             "team-insights",
             "performance-issues-search",
+            "transaction-name-normalize",
+            "transaction-name-mark-scrubbed-as-sanitized",
         }
 
     @mock.patch("sentry.features.batch_has")

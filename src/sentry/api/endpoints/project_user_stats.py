@@ -29,6 +29,10 @@ class ProjectUserStatsEndpoint(EnvironmentMixin, ProjectEndpoint):
             now,
             rollup=3600 * 24,
             environment_id=environment_id,
+            tenant_ids={
+                "organization_id": project.organization_id,
+                "referrer": "api.project_user_stats",
+            },
         )[project.id]
 
         return Response(results)

@@ -33,7 +33,7 @@ inputs:
     default: '3.8.16'
   pg-version:
     description: 'PostgreSQL version to use'
-    default: '9.6'
+    default: '14'
     required: false
 
 outputs:

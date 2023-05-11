@@ -17,7 +17,7 @@ type Props = {
   project: Project;
 };
 
-const GroupEventAttachmentsFilter = (props: Props) => {
+function GroupEventAttachmentsFilter(props: Props) {
   const {project} = props;
   const {query, pathname} = useLocation();
   const router = useRouter();
@@ -79,7 +79,7 @@ const GroupEventAttachmentsFilter = (props: Props) => {
       </SegmentedControl>
     </FilterWrapper>
   );
-};
+}
 
 const FilterWrapper = styled('div')`
   display: flex;

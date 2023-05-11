@@ -9,18 +9,26 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Actor, Member, Team} from 'sentry/types';
+import type {Actor, Member, Team} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {TextAction, TextCondition} from './textRule';
 
 type Props = {
-  memberList: Member[];
+  projectSlug: string;
   rule: IssueAlertRule;
   teams: Team[];
 };
 
-function Conditions({rule, teams, memberList}: Props) {
+function Conditions({rule, teams, projectSlug}: Props) {
+  const organization = useOrganization();
+  const {data: memberList} = useApiQuery<Member[]>(
+    [`/organizations/${organization.slug}/users/`, {query: {projectSlug}}],
+    {staleTime: 60000}
+  );
+
   return (
     <PanelBody>
       <Step>
@@ -80,7 +88,11 @@ function Conditions({rule, teams, memberList}: Props) {
               rule.actions.map((action, idx) => {
                 return (
                   <ConditionsBadge key={idx}>
-                    <TextAction action={action} memberList={memberList} teams={teams} />
+                    <TextAction
+                      action={action}
+                      memberList={memberList ?? []}
+                      teams={teams}
+                    />
                   </ConditionsBadge>
                 );
               })
@@ -94,7 +106,7 @@ function Conditions({rule, teams, memberList}: Props) {
   );
 }
 
-function Sidebar({rule, teams, memberList}: Props) {
+function Sidebar({rule, teams, projectSlug}: Props) {
   const ownerId = rule.owner?.split(':')[1];
   const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
 
@@ -114,7 +126,7 @@ function Sidebar({rule, teams, memberList}: Props) {
       </StatusContainer>
       <SidebarGroup>
         <Heading noMargin>{t('Alert Conditions')}</Heading>
-        <Conditions rule={rule} teams={teams} memberList={memberList} />
+        <Conditions rule={rule} teams={teams} projectSlug={projectSlug} />
       </SidebarGroup>
       <SidebarGroup>
         <Heading>{t('Alert Rule Details')}</Heading>

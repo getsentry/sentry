@@ -388,11 +388,11 @@ const getItemTitle = (key: string, kind: FieldKind) => {
  * The parent will become interactive if there exists a key "device".
  */
 export const getTagItemsFromKeys = (
-  tagKeys: string[],
+  tagKeys: Readonly<Readonly<string>[]>,
   supportedTags: TagCollection,
   fieldDefinitionGetter: typeof getFieldDefinition = getFieldDefinition
 ) => {
-  return [...tagKeys].reduce<SearchItem[]>((groups, key) => {
+  return tagKeys.reduce<SearchItem[]>((groups: SearchItem[], key: string) => {
     const keyWithColon = `${key}:`;
     const sections = key.split('.');
 
@@ -448,8 +448,8 @@ export const getTagItemsFromKeys = (
         ];
       }
     }
-
-    return [...groups, item];
+    groups.push(item);
+    return groups;
   }, []);
 };
 

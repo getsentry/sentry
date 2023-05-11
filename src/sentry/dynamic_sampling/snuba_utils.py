@@ -1,7 +1,7 @@
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Iterator, List, Tuple
+from typing import Generator, List, Tuple
 
 from snuba_sdk import (
     Column,
@@ -32,7 +32,7 @@ MAX_TRANSACTIONS_PER_PROJECT = 20
 
 def get_orgs_with_project_counts_without_modulo(
     max_orgs: int, max_projects: int
-) -> Iterator[List[int]]:
+) -> Generator[List[int], None, None]:
     """
     Fetch organisations in batches.
     A batch will return at max max_orgs elements
@@ -99,3 +99,60 @@ def get_orgs_with_project_counts_without_modulo(
             break
     if len(last_result) > 0:
         yield [org_id for org_id, _ in last_result]
+
+
+def get_active_orgs(max_orgs: int, time_interval: timedelta) -> Generator[List[int], None, None]:
+    """
+    Fetch organisations in batches.
+    A batch will return at max max_orgs elements
+    """
+    start_time = time.time()
+    metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
+    offset = 0
+
+    while (time.time() - start_time) < MAX_SECONDS:
+        query = (
+            Query(
+                match=Entity(EntityKey.GenericOrgMetricsCounters.value),
+                select=[
+                    Function("uniq", [Column("project_id")], "num_projects"),
+                    Column("org_id"),
+                ],
+                groupby=[
+                    Column("org_id"),
+                ],
+                where=[
+                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - time_interval),
+                    Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                    Condition(Column("metric_id"), Op.EQ, metric_id),
+                ],
+                granularity=Granularity(60),
+                orderby=[
+                    OrderBy(Column("org_id"), Direction.ASC),
+                ],
+            )
+            .set_limit(max_orgs + 1)
+            .set_offset(offset)
+        )
+        request = Request(
+            dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
+        )
+        data = raw_snql_query(
+            request,
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_GET_ACTIVE_ORGS.value,
+        )["data"]
+        count = len(data)
+        more_results = count > max_orgs
+        offset += max_orgs
+        if more_results:
+            data = data[:-1]
+
+        ret_val = []
+
+        for row in data:
+            ret_val.append(row["org_id"])
+
+        yield ret_val
+
+        if not more_results:
+            return

@@ -32,9 +32,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
 
   const profileId = event.contexts?.profile?.profile_id ?? null;
 
-  const hasProfilingPreviewsFeature =
-    organization.features.includes('profiling') &&
-    organization.features.includes('profiling-previews');
+  const hasProfilingFeature = organization.features.includes('profiling');
 
   return (
     <EventDataSection
@@ -45,7 +43,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
       )}
     >
       <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
-      {hasProfilingPreviewsFeature ? (
+      {hasProfilingFeature ? (
         <ProfilesProvider
           orgSlug={organization.slug}
           projectSlug={projectSlug}

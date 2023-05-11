@@ -1,6 +1,7 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProfileEventContext} from 'sentry/components/events/contexts/profile';
+import ProjectsStore from 'sentry/stores/projectsStore';
 
 const organization = TestStubs.Organization({
   features: ['profiling'],
@@ -13,8 +14,13 @@ const profileContext = {
 };
 
 const event = TestStubs.Event();
+const project = TestStubs.Project();
 
 describe('profile event context', function () {
+  beforeEach(function () {
+    act(() => ProjectsStore.loadInitialData([project]));
+  });
+
   it('renders empty context', function () {
     render(<ProfileEventContext data={{}} event={event} />, {organization});
   });
@@ -30,13 +36,13 @@ describe('profile event context', function () {
     render(
       <ProfileEventContext
         data={profileContext}
-        event={{...event, projectSlug: 'test-project'}}
+        event={{...event, projectID: project.id}}
       />,
       {organization}
     );
 
     expect(screen.getByText('Profile ID')).toBeInTheDocument();
     expect(screen.getByText(profileId)).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Go to Profile'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View Profile'})).toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ import capitalize from 'lodash/capitalize';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import NotificationActionItem from 'sentry/components/notificationActions/notificationActionItem';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
@@ -31,19 +32,21 @@ type NotificationActionManagerProps = {
    * Updates the notification alert count for this project
    */
   updateAlertCount: (projectId: number, alertCount: number) => void;
+  disabled?: boolean;
   /**
    * Optional list of roles to display as recipients of Sentry notifications
    */
   recipientRoles?: string[];
 };
 
-const NotificationActionManager = ({
+function NotificationActionManager({
   actions,
   availableActions,
   recipientRoles,
   project,
   updateAlertCount = () => {},
-}: NotificationActionManagerProps) => {
+  disabled = false,
+}: NotificationActionManagerProps) {
   const [notificationActions, setNotificationActions] =
     useState<Partial<NotificationAction>[]>(actions);
 
@@ -146,6 +149,7 @@ const NotificationActionManager = ({
           project={project}
           onDelete={removeNotificationAction}
           onUpdate={updateNotificationAction}
+          disabled={disabled}
         />
       ));
     });
@@ -185,19 +189,27 @@ const NotificationActionManager = ({
   };
 
   const addAlertButton = (
-    <DropdownMenu
-      items={getMenuItems()}
-      trigger={triggerProps => (
-        <DropdownButton
-          {...triggerProps}
-          aria-label={t('Add Action')}
-          size="xs"
-          icon={<IconAdd isCircled color="gray300" />}
-        >
-          {t('Add Action')}
-        </DropdownButton>
-      )}
-    />
+    <Tooltip
+      disabled={!disabled}
+      title={t('You do not have permission to add notification actions')}
+    >
+      <DropdownMenu
+        items={getMenuItems()}
+        trigger={triggerProps => (
+          <DropdownButton
+            {...triggerProps}
+            aria-label={t('Add Action')}
+            size="xs"
+            icon={<IconAdd isCircled color="gray300" />}
+            disabled={disabled}
+          >
+            {t('Add Action')}
+          </DropdownButton>
+        )}
+        isDisabled={disabled}
+        data-test-id="add-action-button"
+      />
+    </Tooltip>
   );
 
   return (
@@ -206,6 +218,6 @@ const NotificationActionManager = ({
       {addAlertButton}
     </Fragment>
   );
-};
+}
 
 export default NotificationActionManager;

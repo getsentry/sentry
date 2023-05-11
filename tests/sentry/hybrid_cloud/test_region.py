@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.region import (
@@ -5,7 +7,9 @@ from sentry.services.hybrid_cloud.region import (
     ByOrganizationIdAttribute,
     ByOrganizationObject,
     ByOrganizationSlug,
+    UnimplementedRegionResolution,
 )
+from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
@@ -18,7 +22,7 @@ class RegionResolutionTest(TestCase):
             Region("europe", 2, "eu.sentry.io", RegionCategory.MULTI_TENANT),
         ]
         self.target_region = self.regions[0]
-        self.organization = self.create_organization()
+        self.organization = self.create_organization(no_mapping=True)
         OrganizationMapping.objects.create(
             organization_id=self.organization.id,
             slug=self.organization.slug,
@@ -57,3 +61,10 @@ class RegionResolutionTest(TestCase):
             arguments = {"organization_member": org_member}
             actual_region = region_resolution.resolve(arguments)
             assert actual_region == self.target_region
+
+    def test_unimplemented_region_resolution(self):
+        with override_regions(self.regions):
+            region_resolution = UnimplementedRegionResolution()
+            with pytest.raises(RpcServiceUnimplementedException):
+                arguments = {"team_id": 1234}
+                region_resolution.resolve(arguments)

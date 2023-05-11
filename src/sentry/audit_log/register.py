@@ -75,6 +75,14 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
+        event_id=33,
+        name="PROJECT_REMOVE_WITH_ORIGIN",
+        api_name="project.remove-with-origin",
+        template="removed project {slug} in {origin}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=35,
         name="PROJECT_REQUEST_TRANSFER",
         api_name="project.request-transfer",
@@ -186,6 +194,11 @@ default_manager.add(
         event_id=82, name="RULE_REMOVE", api_name="rule.remove", template='removed rule "{label}"'
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=83, name="RULE_SNOOZE", api_name="rule.mute", template='muted rule "{label}"'
+    )
+)
 default_manager.add(events.ServiceHookAddAuditLogEvent())
 default_manager.add(events.ServiceHookEditAuditLogEvent())
 default_manager.add(events.ServiceHookRemoveAuditLogEvent())
@@ -295,6 +308,14 @@ default_manager.add(
         name="ALERT_RULE_REMOVE",
         api_name="alertrule.remove",
         template='removed metric alert rule "{label}"',
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=168,
+        name="ALERT_RULE_SNOOZE",
+        api_name="alertrule.mute",
+        template='muted metric alert rule "{label}"',
     )
 )
 default_manager.add(

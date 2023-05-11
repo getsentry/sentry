@@ -60,16 +60,13 @@ describe('Project Ownership', () => {
     });
 
     it('renders allows users to edit ownership rules', () => {
-      org = TestStubs.Organization({
-        access: ['project:read'],
-      });
       render(
         <ProjectOwnership
           params={{projectId: project.slug}}
           organization={org}
           project={project}
         />,
-        {context: TestStubs.routerContext([{organization: org}])}
+        {organization: TestStubs.Organization({access: ['project:read']})}
       );
 
       expect(screen.queryByRole('button', {name: 'Edit'})).toBeEnabled();

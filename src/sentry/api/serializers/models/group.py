@@ -73,6 +73,7 @@ from sentry.services.hybrid_cloud.user import user_service
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -236,14 +237,14 @@ class GroupSerializerBase(Serializer, ABC):
 
         release_resolutions, commit_resolutions = self._resolve_resolutions(item_list, user)
 
-        actor_ids = {r[-1] for r in release_resolutions.values()}
-        actor_ids.update(r.actor_id for r in ignore_items.values())
-        if actor_ids:
+        user_ids = {r[-1] for r in release_resolutions.values()}
+        user_ids.update(r.actor_id for r in ignore_items.values())
+        if user_ids:
             serialized_users = user_service.serialize_many(
-                filter={"user_ids": actor_ids, "is_active": True},
+                filter={"user_ids": user_ids, "is_active": True},
                 as_user=user,
             )
-            actors = {id: u for id, u in zip(actor_ids, serialized_users)}
+            actors = {id: u for id, u in zip(user_ids, serialized_users)}
         else:
             actors = {}
 
@@ -339,6 +340,7 @@ class GroupSerializerBase(Serializer, ABC):
             "level": LOG_LEVELS.get(obj.level, "unknown"),
             "status": status_label,
             "statusDetails": status_details,
+            "substatus": SUBSTATUS_TO_STR[obj.substatus] if obj.substatus else None,
             "isPublic": share_id is not None,
             "platform": obj.platform,
             "project": {
@@ -475,25 +477,21 @@ class GroupSerializerBase(Serializer, ABC):
         if self._collapse("stats"):
             return None
 
+        if not item_list:
+            return
+
         # partition the item_list by type
         error_issues = [group for group in item_list if GroupCategory.ERROR == group.issue_category]
-        perf_issues = [
-            group for group in item_list if GroupCategory.PERFORMANCE == group.issue_category
-        ]
         generic_issues = [
-            group
-            for group in item_list
-            if group.issue_category
-            and group.issue_category not in (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
+            group for group in item_list if group.issue_category != GroupCategory.ERROR
         ]
 
         # bulk query for the seen_stats by type
         error_stats = (self._seen_stats_error(error_issues, user) if error_issues else {}) or {}
-        perf_stats = (self._seen_stats_performance(perf_issues, user) if perf_issues else {}) or {}
         generic_stats = (
             self._seen_stats_generic(generic_issues, user) if generic_issues else {}
         ) or {}
-        agg_stats = {**error_stats, **perf_stats, **generic_stats}
+        agg_stats = {**error_stats, **generic_stats}
         # combine results back
         return {group: agg_stats.get(group, {}) for group in item_list}
 
@@ -870,6 +868,7 @@ class SharedGroupSerializer(GroupSerializer):
 SKIP_SNUBA_FIELDS = frozenset(
     (
         "status",
+        "substatus",
         "bookmarked_by",
         "assigned_to",
         "for_review",
@@ -890,7 +889,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
         *SKIP_SNUBA_FIELDS,
         "last_seen",
         "times_seen",
-        "date",  # We merge this with start/end, so don't want to include it as its own
+        "date",
+        "timestamp",  # We merge this with start/end, so don't want to include it as its own
         # condition
         # We don't need to filter by release stage again here since we're
         # filtering to specific groups. Saves us making a second query to
@@ -918,12 +918,28 @@ class GroupSerializerSnuba(GroupSerializerBase):
         # should try and encapsulate this logic, but if you're changing this, change it
         # there as well.
         self.start = None
-        start_params = [_f for _f in [start, get_search_filter(search_filters, "date", ">")] if _f]
+        start_params = [
+            _f
+            for _f in [
+                start,
+                get_search_filter(search_filters, "date", ">"),
+                get_search_filter(search_filters, "timestamp", ">"),
+            ]
+            if _f
+        ]
         if start_params:
             self.start = max(_f for _f in start_params if _f)
 
         self.end = None
-        end_params = [_f for _f in [end, get_search_filter(search_filters, "date", "<")] if _f]
+        end_params = [
+            _f
+            for _f in [
+                end,
+                get_search_filter(search_filters, "date", "<"),
+                get_search_filter(search_filters, "timestamp", "<"),
+            ]
+            if _f
+        ]
         if end_params:
             self.end = min(end_params)
 

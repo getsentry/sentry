@@ -98,7 +98,6 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "ap",
         "api",
         "app",
-        "as1",
         "at",
         "au1",
         "auth",
@@ -114,12 +113,13 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "contact",
         "corp",
         "customers",
+        "de",
         "debug",
         "demo",
+        "devinfra",
         "docs",
         "enterprise",
-        "eu1",
-        "eu2",
+        "eu",
         "events",
         "expenses",
         "ext",
@@ -130,6 +130,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "for",
         "from",
         "get-cli",
+        "github-deployment-gate",
         "guide",
         "help",
         "ingest",
@@ -137,6 +138,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "integrations",
         "invoice",
         "invoices",
+        "ja",
         "jobs",
         "legal",
         "login",
@@ -181,8 +183,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "thanks",
         "themonitor",
         "trust",
-        "us1",
-        "us2",
+        "us",
         "vs",
         "welcome",
     )
@@ -628,6 +629,7 @@ SCRAPE_JAVASCRIPT_DEFAULT = True
 TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 APDEX_THRESHOLD_DEFAULT = 300
+AI_SUGGESTED_SOLUTION = True
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True

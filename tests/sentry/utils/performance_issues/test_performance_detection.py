@@ -88,6 +88,7 @@ class PerformanceDetectionTest(TestCase):
         super().setUp()
         patch_project_option_get = patch("sentry.models.ProjectOption.objects.get_value")
         self.project_option_mock = patch_project_option_get.start()
+        self.project_option_mock.return_value = {}
         self.addCleanup(patch_project_option_get.stop)
 
         patch_project = patch("sentry.models.Project.objects.get_from_cache")
@@ -391,12 +392,8 @@ class PerformanceDetectionTest(TestCase):
                 instance="True",
                 tags={
                     "sdk_name": "sentry.javascript.react",
-                    "integration_django": False,
-                    "integration_flask": False,
-                    "integration_sqlalchemy": False,
-                    "integration_mongo": False,
-                    "integration_postgres": False,
                     "consecutive_db": False,
+                    "large_http_payload": False,
                     "consecutive_http": False,
                     "slow_db_query": False,
                     "render_blocking_assets": False,

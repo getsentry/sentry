@@ -7,7 +7,7 @@ import {Field} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {Organization, OrganizationSummary} from 'sentry/types';
 import {OrganizationIntegration} from 'sentry/types/integrations';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   ALL_PROVIDER_NAMES,
@@ -98,14 +98,14 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
-    trackAdvancedAnalyticsEvent('notification_settings.tuning_page_viewed', {
+    trackAnalytics('notification_settings.tuning_page_viewed', {
       organization: null,
       notification_type: this.props.notificationType,
     });
   }
 
   trackTuningUpdated(tuningFieldType: string) {
-    trackAdvancedAnalyticsEvent('notification_settings.updated_tuning_setting', {
+    trackAnalytics('notification_settings.updated_tuning_setting', {
       organization: null,
       notification_type: this.props.notificationType,
       tuning_field_type: tuningFieldType,

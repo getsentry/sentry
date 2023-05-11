@@ -76,6 +76,8 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             raise NotFound(detail="Event not found")
 
         try:
+            if "exception" not in event.interfaces:
+                raise ParseError(detail="Event does not contain an exception")
             exception = event.interfaces["exception"].values[exception_idx]
         except IndexError:
             raise ParseError(detail="Query parameter 'exception_idx' is out of bounds")

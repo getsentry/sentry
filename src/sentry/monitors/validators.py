@@ -65,6 +65,7 @@ class ConfigValidator(serializers.Serializer):
         allow_null=True,
         default=None,
         help_text="How long (in minutes) after the expected checkin time will we wait until we consider the checkin to have been missed.",
+        min_value=0,
     )
 
     max_runtime = EmptyIntegerField(
@@ -72,6 +73,7 @@ class ConfigValidator(serializers.Serializer):
         allow_null=True,
         default=None,
         help_text="How long (in minutes) is the checkin allowed to run for in CheckInStatus.IN_PROGRESS before it is considered failed.",
+        min_value=1,
     )
 
     timezone = serializers.ChoiceField(
@@ -121,6 +123,8 @@ class ConfigValidator(serializers.Serializer):
                 raise ValidationError({"schedule": "Invalid schedule for for 'interval' type"})
             if not isinstance(schedule[0], int):
                 raise ValidationError({"schedule": "Invalid schedule for schedule unit count"})
+            if schedule[0] <= 0:
+                raise ValidationError({"schedule": "Interval must be greater than zero"})
             if schedule[1] not in INTERVAL_NAMES:
                 raise ValidationError({"schedule": "Invalid schedule for schedule unit name"})
         elif schedule_type == ScheduleType.CRONTAB:
@@ -139,6 +143,9 @@ class ConfigValidator(serializers.Serializer):
             # crontab schedule must be valid
             if not croniter.is_valid(schedule):
                 raise ValidationError({"schedule": "Schedule was not parseable"})
+            # Do not support 6 or 7 field crontabs
+            if len(schedule.split()) > 5:
+                raise ValidationError({"schedule": "Only 5 field crontab syntax is supported"})
 
         attrs["schedule"] = schedule
         attrs["schedule_type"] = schedule_type
@@ -220,6 +227,17 @@ class MonitorCheckInValidator(serializers.Serializer):
         monitor_config = self.initial_data.get("monitor_config")
         if monitor_config:
             project = self.context["project"]
+            instance = {}
+            monitor = self.context.get("monitor", None)
+            if monitor:
+                instance = {
+                    "name": monitor.name,
+                    "slug": monitor.slug,
+                    "status": monitor.status,
+                    "type": monitor.type,
+                    "config": monitor.config,
+                    "project": project,
+                }
 
             # Use context to complete the full monitor validator object
             monitor_validator = MonitorValidator(
@@ -230,6 +248,7 @@ class MonitorCheckInValidator(serializers.Serializer):
                     "project": project.slug,
                     "config": monitor_config,
                 },
+                instance=instance,
                 context={
                     "organization": project.organization,
                     "access": self.context["request"].access,

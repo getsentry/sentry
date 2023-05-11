@@ -1,12 +1,10 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Clipboard from 'sentry/components/clipboard';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCopy} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
@@ -50,7 +48,7 @@ type Props = {
   withPackage?: boolean;
 };
 
-const Version = ({
+function Version({
   version,
   organization,
   anchor = true,
@@ -60,7 +58,7 @@ const Version = ({
   projectId,
   truncate,
   className,
-}: Props) => {
+}: Props) {
   const location = useLocation();
   const versionToDisplay = formatVersion(version, withPackage);
 
@@ -112,12 +110,7 @@ const Version = ({
       }}
     >
       <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
-
-      <Clipboard value={version}>
-        <TooltipClipboardIconWrapper>
-          <IconCopy size="xs" />
-        </TooltipClipboardIconWrapper>
-      </Clipboard>
+      <CopyToClipboardButton borderless text={version} size="zero" iconSize="xs" />
     </TooltipContent>
   );
 
@@ -146,7 +139,7 @@ const Version = ({
       {renderVersion()}
     </Tooltip>
   );
-};
+}
 
 // TODO(matej): try to wrap version with this when truncate prop is true (in separate PR)
 // const VersionWrapper = styled('div')`
@@ -174,16 +167,6 @@ const TooltipContent = styled('span')`
 
 const TooltipVersionWrapper = styled('span')`
   ${p => p.theme.overflowEllipsis}
-`;
-
-const TooltipClipboardIconWrapper = styled('span')`
-  margin-left: ${space(0.5)};
-  position: relative;
-  bottom: -${space(0.25)};
-
-  &:hover {
-    cursor: pointer;
-  }
 `;
 
 export default withOrganization(Version);

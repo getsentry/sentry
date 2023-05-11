@@ -10,7 +10,7 @@ type Output = {
 
 type Props = {
   data: UnityContext;
-  type: keyof typeof unityKnownDataValues;
+  type: (typeof unityKnownDataValues)[number];
 };
 
 export function getUnityKnownDataDetails({data, type}: Props): Output | undefined {

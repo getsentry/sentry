@@ -5,15 +5,12 @@ import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/u
 import {t} from 'sentry/locale';
 import type {
   BreadcrumbTypeDefault,
+  BreadcrumbTypeInit,
   BreadcrumbTypeNavigation,
   Crumb,
   RawCrumb,
 } from 'sentry/types/breadcrumbs';
-import {
-  BreadcrumbLevelType,
-  BreadcrumbType,
-  isBreadcrumbTypeDefault,
-} from 'sentry/types/breadcrumbs';
+import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {
   MemorySpanType,
   RecordingEvent,
@@ -63,12 +60,6 @@ export const isMemorySpan = (span: ReplaySpan): span is MemorySpanType => {
 
 export const isNetworkSpan = (span: ReplaySpan) => {
   return span.op.startsWith('navigation.') || span.op.startsWith('resource.');
-};
-
-export const getBreadcrumbsByCategory = (breadcrumbs: Crumb[], categories: string[]) => {
-  return breadcrumbs
-    .filter(isBreadcrumbTypeDefault)
-    .filter(breadcrumb => categories.includes(breadcrumb.category || ''));
 };
 
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
@@ -129,7 +120,7 @@ export function rrwebEventListFactory(
     data: {
       tag: 'replay-end',
     },
-  });
+  } as RecordingEvent);
 
   events.sort((a, b) => a.timestamp - b.timestamp);
 
@@ -147,7 +138,7 @@ export function breadcrumbFactory(
 ): Crumb[] {
   const UNWANTED_CRUMB_CATEGORIES = ['ui.focus', 'ui.blur'];
 
-  const initialUrl = replayRecord.tags.url?.join(', ');
+  const initialUrl = replayRecord.urls?.[0] ?? replayRecord.tags.url?.join(', ');
   const initBreadcrumb = {
     type: BreadcrumbType.INIT,
     timestamp: replayRecord.started_at.toISOString(),
@@ -158,7 +149,7 @@ export function breadcrumbFactory(
       label: t('Start recording'),
       url: initialUrl,
     },
-  } as BreadcrumbTypeDefault;
+  } as BreadcrumbTypeInit;
 
   const errorCrumbs: RawCrumb[] = errors.map(error => ({
     type: BreadcrumbType.ERROR,
@@ -246,7 +237,7 @@ export function breadcrumbFactory(
     });
 
   const result = transformCrumbs([
-    ...(!hasPageLoad ? [initBreadcrumb] : []),
+    ...(spans.length && !hasPageLoad ? [initBreadcrumb] : []),
     ...rawCrumbsWithTimestamp,
     ...errorCrumbs,
     ...spanCrumbs,
@@ -266,7 +257,7 @@ export function spansFactory(spans: ReplaySpan[]) {
 }
 
 /**
- * Calculate min/max of an array simultaniously.
+ * Calculate min/max of an array simultaneously.
  * This prevents two things:
  * - Avoid extra allocations and iterations, just loop through once.
  * - Avoid `Maximum call stack size exceeded` when the array is too large

@@ -163,10 +163,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         if not isinstance(data, Mapping):
             return False
 
-        try:
-            url = data["request"]["url"]
-        except KeyError:
-            return False
+        url = get_path(data, "request", "url")
         return url and bool(glob_match(url, self.pattern, ignorecase=True))
 
     def test_frames(

@@ -8,22 +8,31 @@ import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPage
 import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import ShareButton from 'sentry/components/replays/shareButton';
-import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
+import {CrumbWalker, StringWalker} from 'sentry/components/replays/walker/urlWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import ReplayMetaData from 'sentry/views/replays/detail/replayMetaData';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   children: ReactNode;
   orgSlug: string;
+  projectSlug: string | null;
+  replayErrors: ReplayError[];
+  replayRecord: undefined | ReplayRecord;
   crumbs?: Crumb[];
-  replayRecord?: ReplayRecord;
 };
 
-function Page({children, crumbs, orgSlug, replayRecord}: Props) {
+function Page({
+  children,
+  crumbs,
+  orgSlug,
+  replayRecord,
+  projectSlug,
+  replayErrors,
+}: Props) {
   const title = replayRecord
     ? `${replayRecord.id} - Session Replay - ${orgSlug}`
     : `Session Replay - ${orgSlug}`;
@@ -35,10 +44,12 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
       <ButtonActionsWrapper>
         <ShareButton />
         <FeedbackButton />
-        <DeleteButton />
+        {replayRecord?.id && projectSlug && (
+          <DeleteButton replayId={replayRecord.id} projectSlug={projectSlug} />
+        )}
       </ButtonActionsWrapper>
 
-      {replayRecord && crumbs ? (
+      {replayRecord ? (
         <UserBadge
           avatarSize={32}
           displayName={
@@ -56,7 +67,11 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
           // this is the subheading for the avatar, so displayEmail in this case is a misnomer
           displayEmail={
             <Cols>
-              <CrumbWalker replayRecord={replayRecord} crumbs={crumbs} />
+              {crumbs?.length ? (
+                <CrumbWalker replayRecord={replayRecord} crumbs={crumbs} />
+              ) : (
+                <StringWalker urls={replayRecord.urls} />
+              )}
             </Cols>
           }
         />
@@ -64,7 +79,7 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
         <HeaderPlaceholder width="100%" height="58px" />
       )}
 
-      <ReplayMetaData replayRecord={replayRecord} />
+      <ReplayMetaData replayRecord={replayRecord} replayErrors={replayErrors} />
     </Header>
   );
 

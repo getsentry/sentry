@@ -12,7 +12,7 @@ import {
   Project,
   ReleaseProject,
 } from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
@@ -89,8 +89,10 @@ export enum PROJECT_PERFORMANCE_TYPE {
 
 // The native SDK is equally used on clients and end-devices as on
 // backend, the default view should be "All Transactions".
-const FRONTEND_PLATFORMS: string[] = [...frontend].filter(
-  platform => platform !== 'javascript-nextjs' // Next has both frontend and backend transactions.
+const FRONTEND_PLATFORMS: string[] = frontend.filter(
+  platform =>
+    // Next, Remix and Sveltekit habe both, frontend and backend transactions.
+    !['javascript-nextjs', 'javascript-remix', 'javascript-sveltekit'].includes(platform)
 );
 const BACKEND_PLATFORMS: string[] = backend.filter(platform => platform !== 'native');
 const MOBILE_PLATFORMS: string[] = [...mobile];
@@ -193,7 +195,7 @@ export function handleTrendsClick({
   organization: Organization;
   projectPlatforms: string;
 }) {
-  trackAdvancedAnalyticsEvent('performance_views.change_view', {
+  trackAnalytics('performance_views.change_view', {
     organization,
     view_name: 'TRENDS',
     project_platforms: projectPlatforms,

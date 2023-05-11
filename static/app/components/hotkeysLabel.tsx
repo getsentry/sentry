@@ -57,7 +57,7 @@ type Props = {
   forcePlatform?: 'macos' | 'generic';
 };
 
-const HotkeysLabel = ({value, forcePlatform}: Props) => {
+function HotkeysLabel({value, forcePlatform}: Props) {
   // Split by commas and then split by +, but allow escaped /+
   const hotkeySets = toArray(value).map(o => o.trim().split('+'));
 
@@ -79,7 +79,7 @@ const HotkeysLabel = ({value, forcePlatform}: Props) => {
   }
 
   return <HotkeysContainer>{finalKeySet.map(key => key.label)}</HotkeysContainer>;
-};
+}
 
 export default HotkeysLabel;
 

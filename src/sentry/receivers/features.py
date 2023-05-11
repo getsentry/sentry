@@ -23,6 +23,7 @@ from sentry.signals import (
     integration_added,
     integration_issue_created,
     integration_issue_linked,
+    issue_archived,
     issue_assigned,
     issue_deleted,
     issue_ignored,
@@ -469,6 +470,25 @@ def record_issue_ignored(project, user, group_list, activity_data, **kwargs):
             ignore_window=activity_data.get("ignoreWindow"),
             ignore_user_count=activity_data.get("ignoreUserCount"),
             ignore_user_window=activity_data.get("ignoreUserWindow"),
+        )
+
+
+@issue_archived.connect(weak=False)
+def record_issue_archived(project, user, group_list, activity_data, **kwargs):
+    if user and user.is_authenticated:
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+
+    for group in group_list:
+        analytics.record(
+            "issue.archived",
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=project.organization_id,
+            group_id=group.id,
+            until_escalating=activity_data.get("until_escalating"),
         )
 
 

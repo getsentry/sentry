@@ -12,7 +12,7 @@ import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -274,14 +274,14 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
   };
 
   const handleDocsClick = (type: SourceMapProcessingIssueType) => {
-    trackAdvancedAnalyticsEvent('source_map_debug.docs_link_clicked', {
+    trackAnalytics('source_map_debug.docs_link_clicked', {
       ...analyticsParams,
       type,
     });
   };
 
   const handleExpandClick = (type: SourceMapProcessingIssueType) => {
-    trackAdvancedAnalyticsEvent('source_map_debug.expand_clicked', {
+    trackAnalytics('source_map_debug.expand_clicked', {
       ...analyticsParams,
       type,
     });

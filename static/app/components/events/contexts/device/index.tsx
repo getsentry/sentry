@@ -25,7 +25,7 @@ export function DeviceEventContext({data, event}: Props) {
   return (
     <Fragment>
       <ContextBlock
-        data={getKnownData<DeviceContext, keyof typeof deviceKnownDataValues>({
+        data={getKnownData<DeviceContext, (typeof deviceKnownDataValues)[number]>({
           data: inferredData,
           meta,
           knownDataTypes: deviceKnownDataValues,

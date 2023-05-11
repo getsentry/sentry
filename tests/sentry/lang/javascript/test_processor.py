@@ -961,6 +961,30 @@ class FetchByUrlTest(FetchTest):
         assert exc.value.data["type"] == EventError.JS_MISSING_SOURCE
         assert exc.value.data["url"] == url
 
+    @responses.activate
+    @patch(
+        "sentry.lang.javascript.processor.Fetcher._fetch_release_artifact",
+    )
+    def test_failed_url_does_not_result_in_additional_calls(self, fetch_release_artifact):
+        responses.add(
+            responses.GET,
+            "http://example.com",
+            content_type="application/json; charset=utf-8",
+            status=404,
+        )
+
+        fetcher = Fetcher(self.organization)
+
+        with pytest.raises(http.CannotFetch):
+            fetcher.fetch_by_url("http://example.com")
+            fetch_release_artifact.assert_called_once()
+
+        fetch_release_artifact.reset_mock()
+
+        result = fetcher.fetch_by_url("http://example.com")
+        assert result is None
+        fetch_release_artifact.assert_not_called()
+
 
 class FetchByUrlNewTest(FetchTest):
     def test_one_archive_with_release_dist_pair(self):
@@ -1432,6 +1456,80 @@ class FetchByUrlNewTest(FetchTest):
         result = fetcher.fetch_by_url_new("http://example.com/index.js")
         assert result is None
         assert len(fetcher.open_archives) == 0
+
+    @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
+    @patch("sentry.lang.javascript.processor.cache.get", side_effect=cache.get)
+    def test_caching(self, cache_get, cache_set):
+        dist = self.release.add_dist("android")
+
+        file_1 = self.get_compressed_zip_file(
+            "bundle_1.zip",
+            {
+                "index.js.map": {
+                    "url": "~/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "content-type": "application/json",
+                    },
+                },
+                "index.js": {
+                    "url": "~/index.js",
+                    "type": "minified_source",
+                    "content": b"bar",
+                    "headers": {
+                        "content-type": "application/json",
+                        "sourcemap": "index.js.map",
+                    },
+                },
+            },
+        )
+        artifact_bundle_1 = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file_1, artifact_count=2
+        )
+
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name=self.release.version,
+            dist_name=dist.name,
+            artifact_bundle=artifact_bundle_1,
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle_1,
+        )
+
+        # Fetching source with present url.
+        fetcher = Fetcher(
+            organization=self.organization, project=self.project, release=self.release, dist=dist
+        )
+
+        # Fetching first time with no cached file.
+        result = fetcher.fetch_by_url_new("http://example.com/index.js")
+        assert result.url == "http://example.com/index.js"
+        assert result.body == b"bar"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {"content-type": "application/json", "sourcemap": "index.js.map"}
+        assert result.encoding == "utf-8"
+        assert len(self.relevant_calls(cache_get, "artifactbundlefile")) == 1
+        assert len(self.relevant_calls(cache_set, "artifactbundlefile")) == 1
+        cache_get.reset_mock()
+        cache_set.reset_mock()
+
+        # Fetching second time with cached file.
+        result = fetcher.fetch_by_url_new("http://example.com/index.js")
+        assert result.url == "http://example.com/index.js"
+        assert result.body == b"bar"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {"content-type": "application/json", "sourcemap": "index.js.map"}
+        assert result.encoding == "utf-8"
+        assert len(self.relevant_calls(cache_get, "artifactbundlefile")) == 1
+        assert len(self.relevant_calls(cache_set, "artifactbundlefile")) == 0
+        cache_get.reset_mock()
+        cache_set.reset_mock()
+
+        fetcher.close()
 
     @patch(
         "sentry.lang.javascript.processor.ArtifactBundle.objects.filter",

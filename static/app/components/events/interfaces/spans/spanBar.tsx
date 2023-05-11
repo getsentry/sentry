@@ -47,7 +47,7 @@ import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {
   QuickTraceContext,
@@ -131,7 +131,7 @@ export type SpanBarProps = {
   resetCellMeasureCache: () => void;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
-  span: Readonly<ProcessedSpanType>;
+  span: ProcessedSpanType;
   spanNumber: number;
   storeSpanBar: (spanBar: SpanBar) => void;
   toggleEmbeddedChildren:
@@ -896,7 +896,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
                 const eventKey = showEmbeddedChildren
                   ? 'span_view.embedded_child.hide'
                   : 'span_view.embedded_child.show';
-                trackAdvancedAnalyticsEvent(eventKey, {organization});
+                trackAnalytics(eventKey, {organization});
 
                 const eventSlugs = transactions.map(transaction =>
                   generateEventSlug({
@@ -918,7 +918,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
   renderMissingInstrumentationProfileBadge(): React.ReactNode {
     const {organization, span} = this.props;
 
-    if (!organization.features.includes('profiling-previews')) {
+    if (!organization.features.includes('profiling')) {
       return null;
     }
 

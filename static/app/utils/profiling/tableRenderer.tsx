@@ -18,7 +18,7 @@ export function renderTableHead<K>({
   sortableColumns,
   onClick,
 }: TableHeadProps<K>) {
-  return (column: GridColumnOrder<K>, _columnIndex: number) => {
+  return function (column: GridColumnOrder<K>, _columnIndex: number) {
     return (
       <SortLink
         onClick={e => onClick?.(column, e)}

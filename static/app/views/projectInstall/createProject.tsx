@@ -18,7 +18,7 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {Organization, Team} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getPlatformName from 'sentry/utils/getPlatformName';
 import withRouteAnalytics, {
   WithRouteAnalyticsProps,
@@ -223,7 +223,7 @@ class CreateProject extends Component<Props, State> {
         );
         ruleId = ruleData.id;
       }
-      trackAdvancedAnalyticsEvent('project_creation_page.created', {
+      trackAnalytics('project_creation_page.created', {
         organization,
         issue_alert: defaultRules
           ? 'Default'
@@ -304,7 +304,9 @@ class CreateProject extends Component<Props, State> {
           <PlatformPicker
             platform={platform}
             defaultCategory={this.defaultCategory}
-            setPlatform={this.setPlatform}
+            setPlatform={selectedPlatform =>
+              this.setPlatform(selectedPlatform?.id ?? null)
+            }
             organization={this.props.organization}
             showOther
           />

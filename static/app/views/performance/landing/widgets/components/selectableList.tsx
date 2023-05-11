@@ -71,7 +71,7 @@ export const GrowLink = styled(Link)`
   display: inherit;
 `;
 
-export const WidgetEmptyStateWarning = () => {
+export function WidgetEmptyStateWarning() {
   return (
     <StyledEmptyStateWarning>
       <PrimaryMessage>{t('No results found')}</PrimaryMessage>
@@ -82,7 +82,7 @@ export const WidgetEmptyStateWarning = () => {
       </SecondaryMessage>
     </StyledEmptyStateWarning>
   );
-};
+}
 
 export function ListClose(props: {
   onClick: () => void;

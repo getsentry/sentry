@@ -112,7 +112,6 @@ export default function MonitorQuickStartGuide({monitor, orgId}: Props) {
         options={exampleOptions}
         value={selectedGuide}
         onChange={({value}) => setSelectedGuide(value)}
-        triggerProps={{prefix: 'Integrate Using'}}
       />
       <Guide slug={monitor.slug} orgSlug={orgId} dsnKey={projectKeys?.[0].dsn.public} />
     </Container>

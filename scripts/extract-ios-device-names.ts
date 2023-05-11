@@ -1,10 +1,11 @@
+/* eslint-disable import/no-nodejs-modules */
 /* eslint-env node */
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
 
 import prettier from 'prettier';
 
-//joining path of directory
+// joining path of directory
 const tmpOutputPath = path.join(
   __dirname,
   '../static/app/constants/ios-device-list.tmp.tsx'
@@ -17,9 +18,11 @@ async function getDefinitionFiles(): Promise<string[]> {
 
   const maybeJSONFiles = await fs.readdirSync(directoryPath);
 
-  //listing all files using forEach
+  // listing all files using forEach
   maybeJSONFiles.forEach(file => {
-    if (!file.endsWith('.json') || file === 'package.json') return;
+    if (!file.endsWith('.json') || file === 'package.json') {
+      return;
+    }
 
     files.push(path.join(path.resolve(directoryPath), file));
   });
@@ -32,7 +35,7 @@ type Identifier = string;
 
 type Mapping = Record<Identifier, Generation>;
 
-async function collectDefinitions(files: string[]): Promise<Mapping> {
+function collectDefinitions(files: string[]): Mapping {
   const definitions: Mapping = {};
 
   const queue = [...files];
@@ -52,6 +55,10 @@ async function collectDefinitions(files: string[]): Promise<Mapping> {
     }
 
     for (let i = 0; i < content.length; i++) {
+      if (!content[i].Identifier) {
+        continue;
+      }
+
       definitions[content[i].Identifier] = content[i].Generation;
     }
   }
@@ -86,7 +93,7 @@ const formatOutput = async (unformatted: string) => {
 
 export async function extractIOSDeviceNames() {
   const files = await getDefinitionFiles();
-  const definitions = await collectDefinitions(files);
+  const definitions = collectDefinitions(files);
   const formatted = await formatOutput(
     template(JSON.stringify(definitions, undefined, 2))
   );

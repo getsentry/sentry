@@ -52,7 +52,3 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         project = Project.objects.get(organization=self.org)
         assert project.name == "node"
         assert project.platform == "node"
-
-        # The homepage should redirect to onboarding
-        self.browser.get("/")
-        self.browser.wait_until('[data-test-id="onboarding-step-setup-docs"]')

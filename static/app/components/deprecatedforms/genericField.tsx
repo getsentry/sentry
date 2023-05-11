@@ -58,13 +58,13 @@ type Props = {
   formErrors?: object;
 };
 
-const GenericField = ({
+function GenericField({
   config,
   formData = {},
   formErrors = {},
   formState,
   onChange,
-}: Props) => {
+}: Props) {
   const required = defined(config.required) ? config.required : true;
   const fieldProps = {
     ...config,
@@ -121,6 +121,6 @@ const GenericField = ({
     default:
       return null;
   }
-};
+}
 
 export default GenericField;

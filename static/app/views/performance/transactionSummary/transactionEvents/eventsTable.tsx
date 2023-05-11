@@ -17,8 +17,7 @@ import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvid
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {IssueAttachment, Organization} from 'sentry/types';
-import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
@@ -73,6 +72,7 @@ type Props = {
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
   excludedTags?: string[];
+  isEventLoading?: boolean;
   issueId?: string;
   projectSlug?: string;
   referrer?: string;
@@ -100,7 +100,7 @@ class EventsTable extends Component<Props, State> {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location, organization, excludedTags} = this.props;
 
-      trackAdvancedAnalyticsEvent('performance_views.transactionEvents.cellaction', {
+      trackAnalytics('performance_views.transactionEvents.cellaction', {
         organization,
         action,
       });
@@ -220,7 +220,7 @@ class EventsTable extends Component<Props, State> {
 
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
-    if (tableMeta[fieldName] === 'integer' && defined(value) && value > 999) {
+    if (tableMeta[fieldName] === 'integer' && typeof value === 'number' && value > 999) {
       return (
         <Tooltip
           title={value.toLocaleString()}
@@ -260,7 +260,7 @@ class EventsTable extends Component<Props, State> {
 
   onSortClick(currentSortKind?: string, currentSortField?: string) {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.transactionEvents.sort', {
+    trackAnalytics('performance_views.transactionEvents.sort', {
       organization,
       field: currentSortField,
       direction: currentSortKind,
@@ -341,7 +341,8 @@ class EventsTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, organization, location, setError, referrer} = this.props;
+    const {eventView, organization, location, setError, referrer, isEventLoading} =
+      this.props;
 
     const totalEventsView = eventView.clone();
     totalEventsView.sorts = [];
@@ -485,7 +486,8 @@ class EventsTable extends Component<Props, State> {
                           isLoading={
                             isTotalEventsLoading ||
                             isDiscoverQueryLoading ||
-                            shouldFetchAttachments
+                            shouldFetchAttachments ||
+                            isEventLoading
                           }
                           data={tableData?.data ?? []}
                           columnOrder={columnOrder}

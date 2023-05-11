@@ -17,7 +17,7 @@ from rest_framework.request import Request
 
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.integrations.utils.cleanup import clear_tags_and_context
+from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models import (
     Commit,
     CommitAuthor,

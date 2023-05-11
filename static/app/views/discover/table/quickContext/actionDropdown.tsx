@@ -8,7 +8,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import toArray from 'sentry/utils/toArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -44,7 +44,7 @@ function ActionDropDown(props: Props) {
     props;
 
   const addAsColumn = () => {
-    trackAdvancedAnalyticsEvent('discover_v2.quick_context_add_column', {
+    trackAnalytics('discover_v2.quick_context_add_column', {
       organization,
       column: queryKey,
     });
@@ -61,7 +61,7 @@ function ActionDropDown(props: Props) {
   };
 
   function handleQueryUpdate(actionType: QueryUpdateActions) {
-    trackAdvancedAnalyticsEvent('discover_v2.quick_context_update_query', {
+    trackAnalytics('discover_v2.quick_context_update_query', {
       organization,
       queryKey,
     });

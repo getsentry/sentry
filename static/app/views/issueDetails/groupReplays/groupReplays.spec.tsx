@@ -107,7 +107,6 @@ describe('GroupReplays', () => {
               returnIds: true,
               query: `issue.id:[${mockGroup.id}]`,
               statsPeriod: '14d',
-              project: '2',
             },
           })
         );
@@ -124,6 +123,7 @@ describe('GroupReplays', () => {
                 'duration',
                 'finished_at',
                 'id',
+                'is_archived',
                 'os',
                 'project_id',
                 'started_at',
@@ -131,7 +131,8 @@ describe('GroupReplays', () => {
                 'user',
               ],
               per_page: 50,
-              project: ['2'],
+              project: [],
+              queryReferrer: 'issueReplays',
               query: `id:[${REPLAY_ID_1},${REPLAY_ID_2}]`,
               sort: '-started_at',
               statsPeriod: '14d',

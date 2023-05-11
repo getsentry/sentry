@@ -117,6 +117,8 @@ jobs:
         run: make test-tools
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   # We don't yet test the bootstrap step
   # https://github.com/getsentry/bootstrap-sentry/blob/7af557be84920dd587e48613dbc308c937bc0e08/bootstrap.sh#L618-L619

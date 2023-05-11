@@ -13,7 +13,6 @@ from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderB
 
 from sentry.api.utils import default_start_end_dates
 from sentry.issues.grouptype import GroupCategory
-from sentry.issues.query import apply_performance_conditions
 from sentry.models import (
     Group,
     Project,
@@ -68,8 +67,10 @@ SEEN_COLUMN = "timestamp"
 # all values for a given tag/column
 BLACKLISTED_COLUMNS = frozenset(["project_id"])
 
+BOOLEAN_KEYS = frozenset(["error.handled", "error.unhandled", "error.main_thread", "stack.in_app"])
+
 FUZZY_NUMERIC_KEYS = frozenset(
-    ["stack.colno", "stack.in_app", "stack.lineno", "stack.stack_level", "transaction.duration"]
+    ["stack.colno", "stack.lineno", "stack.stack_level", "transaction.duration"]
 )
 FUZZY_NUMERIC_DISTANCE = 50
 
@@ -79,6 +80,10 @@ FUZZY_NUMERIC_DISTANCE = 50
 DEFAULT_TYPE_CONDITION = ["type", "!=", "transaction"]
 
 tag_value_data_transformers = {"first_seen": parse_datetime, "last_seen": parse_datetime}
+
+
+def is_boolean_key(key):
+    return key in BOOLEAN_KEYS
 
 
 def is_fuzzy_numeric_key(key):
@@ -392,11 +397,11 @@ class SnubaTagStorage(TagStorage):
         project_id,
         environment_id,
         key,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         tenant_ids=None,
         **kwargs,
     ):
-        assert status is TagKeyStatus.VISIBLE
+        assert status is TagKeyStatus.ACTIVE
         return self.__get_tag_key_and_top_values(
             project_id, None, environment_id, key, tenant_ids=tenant_ids, **kwargs
         )
@@ -405,12 +410,12 @@ class SnubaTagStorage(TagStorage):
         self,
         project_id,
         environment_id,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         include_values_seen=False,
         denylist=None,
         tenant_ids=None,
     ):
-        assert status is TagKeyStatus.VISIBLE
+        assert status is TagKeyStatus.ACTIVE
         return self.__get_tag_keys(
             project_id,
             None,
@@ -425,7 +430,7 @@ class SnubaTagStorage(TagStorage):
         environments,
         start,
         end,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         use_cache=False,
         include_transactions=False,
         tenant_ids=None,
@@ -686,13 +691,9 @@ class SnubaTagStorage(TagStorage):
     def apply_group_filters_conditions(self, group: Group, conditions, filters):
         dataset = Dataset.Events
         if group:
-            if group.issue_category == GroupCategory.PERFORMANCE:
-                dataset = Dataset.Transactions
-                apply_performance_conditions(conditions, group)
-            else:
-                filters["group_id"] = [group.id]
-                if not group.issue_category == GroupCategory.ERROR:
-                    dataset = Dataset.IssuePlatform
+            filters["group_id"] = [group.id]
+            if group.issue_category != GroupCategory.ERROR:
+                dataset = Dataset.IssuePlatform
         return dataset, conditions, filters
 
     def get_group_tag_value_count(self, group, environment_id, key, tenant_ids=None):
@@ -842,26 +843,6 @@ class SnubaTagStorage(TagStorage):
             return rpe.first_seen
 
         return None
-
-    def get_group_ids_for_users(self, project_ids, event_users, limit=100, tenant_ids=None):
-        filters = {"project_id": project_ids}
-        conditions = [
-            ["tags[sentry:user]", "IN", [_f for _f in [eu.tag_value for eu in event_users] if _f]]
-        ]
-        aggregations = [["max", SEEN_COLUMN, "last_seen"]]
-
-        result = snuba.query(
-            dataset=Dataset.Events,
-            groupby=["group_id"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            limit=limit,
-            orderby="-last_seen",
-            referrer="tagstore.get_group_ids_for_users",
-            tenant_ids=tenant_ids,
-        )
-        return set(result.keys())
 
     def get_group_tag_values_for_users(self, event_users, limit=100, tenant_ids=None):
         """While not specific to a group_id, this is currently only used in issues, so the Events dataset is used"""
@@ -1299,7 +1280,7 @@ class SnubaTagStorage(TagStorage):
 
         # These columns have fixed values and we don't need to emit queries to find out the
         # potential options.
-        if key in {"error.handled", "error.unhandled"}:
+        if is_boolean_key(key):
             return SequencePaginator(
                 [
                     (

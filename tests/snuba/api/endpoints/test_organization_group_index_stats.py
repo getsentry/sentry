@@ -123,3 +123,33 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         assert response.status_code == 200
         assert len(response.data) == 2
+
+    def test_query_timestamp(self):
+        self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-a"]},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=2)), "fingerprint": ["group-b"]},
+            project_id=self.project.id,
+        )
+        event4 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=3)), "fingerprint": ["group-c"]},
+            project_id=self.project.id,
+        )
+
+        group_a = event2.group
+        group_c = event4.group
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            query=f"timestamp:>{iso_format(before_now(seconds=3))} timestamp:<{iso_format(before_now(seconds=1))}",
+            groups=[group_a.id, group_c.id],
+        )
+
+        assert response.status_code == 200
+        assert len(response.data) == 2

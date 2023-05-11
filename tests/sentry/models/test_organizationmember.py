@@ -17,14 +17,16 @@ from sentry.models import (
 )
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
 @region_silo_test(stable=True)
-class OrganizationMemberTest(TestCase):
+class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
     def test_legacy_token_generation(self):
         member = OrganizationMember(id=1, organization_id=1, email="foo@example.com")
         with self.settings(SECRET_KEY="a"):
@@ -81,7 +83,8 @@ class OrganizationMemberTest(TestCase):
         provider = manager.get("dummy")
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            member.send_sso_unlink_email(user, provider)
+            rpc_user = user_service.get_user(user_id=user.id)
+            member.send_sso_unlink_email(rpc_user, provider)
 
         context = builder.call_args[1]["context"]
 
@@ -151,6 +154,7 @@ class OrganizationMemberTest(TestCase):
         org = self.create_organization()
         user = self.create_user()
         member = self.create_member(user_id=user.id, organization_id=org.id)
+        self.assert_org_member_mapping(org_member=member)
         with exempt_from_silo_limits():
             ap = AuthProvider.objects.create(
                 organization_id=org.id, provider="sentry_auth_provider", config={}
@@ -172,6 +176,7 @@ class OrganizationMemberTest(TestCase):
 
         with exempt_from_silo_limits():
             assert not qs.exists()
+            self.assert_org_member_mapping_not_exists(org_member=member)
 
     def test_delete_expired_SCIM_enabled(self):
         organization = self.create_organization()

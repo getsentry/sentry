@@ -24,6 +24,7 @@ export enum MonitorStatus {
   DISABLED = 'disabled',
   ACTIVE = 'active',
   MISSED_CHECKIN = 'missed_checkin',
+  TIMEOUT = 'timeout',
 }
 
 export enum CheckInStatus {
@@ -31,6 +32,7 @@ export enum CheckInStatus {
   ERROR = 'error',
   IN_PROGRESS = 'in_progress',
   MISSED = 'missed',
+  TIMEOUT = 'timeout',
 }
 
 interface BaseConfig {
@@ -91,5 +93,14 @@ export interface MonitorStat {
   error: number;
   missed: number;
   ok: number;
+  timeout: number;
   ts: number;
+}
+
+export interface CheckIn {
+  dateCreated: string;
+  duration: number;
+  id: string;
+  status: CheckInStatus;
+  attachmentId?: number;
 }

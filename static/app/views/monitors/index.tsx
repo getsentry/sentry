@@ -4,7 +4,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import useOrganization from 'sentry/utils/useOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-const MonitorsContainer: React.FC = ({children}) => {
+function MonitorsContainer({children}: {children?: React.ReactNode}) {
   const organization = useOrganization();
 
   return (
@@ -14,6 +14,6 @@ const MonitorsContainer: React.FC = ({children}) => {
       </NoProjectMessage>
     </Feature>
   );
-};
+}
 
 export default withPageFilters(MonitorsContainer);

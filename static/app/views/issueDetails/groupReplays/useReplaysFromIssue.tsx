@@ -34,7 +34,6 @@ function useReplayFromIssue({
             returnIds: true,
             query: `issue.id:[${group.id}]`,
             statsPeriod: '14d',
-            project: group.project.id,
           },
         }
       );
@@ -43,7 +42,7 @@ function useReplayFromIssue({
       Sentry.captureException(error);
       setFetchError(error);
     }
-  }, [api, organization.slug, group.id, group.project.id]);
+  }, [api, organization.slug, group.id]);
 
   const eventView = useMemo(() => {
     if (!replayIds) {
@@ -54,12 +53,12 @@ function useReplayFromIssue({
       name: '',
       version: 2,
       fields: REPLAY_LIST_FIELDS,
-      projects: [Number(group.project.id)],
       query: `id:[${String(replayIds)}]`,
       range: '14d',
+      projects: [],
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     });
-  }, [location.query.sort, group.project.id, replayIds]);
+  }, [location.query.sort, replayIds]);
 
   useCleanQueryParamsOnRouteLeave({fieldsToClean: ['cursor']});
   useEffect(() => {

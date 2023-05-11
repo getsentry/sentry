@@ -61,6 +61,7 @@ class SnubaTest(TestCase, SnubaTestCase):
             groupby=["project_id"],
             filter_keys={"project_id": [self.project.id]},
             referrer="testing.test",
+            tenant_ids={"referrer": "testing.test", "organization_id": 1},
         ) == {self.project.id: 1}
 
     def test_fail(self) -> None:
@@ -88,6 +89,7 @@ class SnubaTest(TestCase, SnubaTestCase):
                 groupby=["project_id"],
                 filter_keys={"project_id": [self.project.id]},
                 referrer="testing.test",
+                tenant_ids={"referrer": "testing.test", "organization_id": 1},
             )
 
         assert _get_event_count() == {self.project.id: 2}
@@ -129,12 +131,14 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
                     end=timezone.now(),
                     selected_columns=["event_id", "group_id", "timestamp"],
                     filter_keys={"project_id": [self.project.id], "group_id": [event_1.group.id]},
+                    tenant_ids={"referrer": "testing.test", "organization_id": 1},
                 ),
                 snuba.SnubaQueryParams(
                     start=timezone.now() - timedelta(days=1),
                     end=timezone.now(),
                     selected_columns=["event_id", "group_id", "timestamp"],
                     filter_keys={"project_id": [self.project.id], "group_id": [event_2.group.id]},
+                    tenant_ids={"referrer": "testing.test", "organization_id": 1},
                 ),
             ],
         )
@@ -160,12 +164,14 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
                 end=timezone.now(),
                 selected_columns=["event_id", "group_id", "timestamp"],
                 filter_keys={"project_id": [self.project.id], "group_id": [event_1.group.id]},
+                tenant_ids={"referrer": "testing.test", "organization_id": 1},
             ),
             snuba.SnubaQueryParams(
                 start=timezone.now() - timedelta(days=1),
                 end=timezone.now(),
                 selected_columns=["event_id", "group_id", "timestamp"],
                 filter_keys={"project_id": [self.project.id], "group_id": [event_2.group.id]},
+                tenant_ids={"referrer": "testing.test", "organization_id": 1},
             ),
         ]
 

@@ -36,7 +36,7 @@ import {
   isMeasurement,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
 import {
@@ -355,7 +355,7 @@ export function flattenErrors(
 export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
   return isMEPEnabled
     ? {
-        dataset: 'metricsEnhanced',
+        dataset: DiscoverDatasets.METRICS_ENHANCED,
       }
     : {};
 }

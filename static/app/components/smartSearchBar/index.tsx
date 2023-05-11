@@ -38,7 +38,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import {space} from 'sentry/styles/space';
 import {Organization, SavedSearchType, Tag, TagCollection, User} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {FieldDefinition, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
@@ -182,7 +182,10 @@ type Props = WithRouterProps &
      */
     actionBarItems?: ActionBarItem[];
     className?: string;
-
+    /**
+     * A function that provides the current search item and can return a custom invalid tag error message for the drop-down.
+     */
+    customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
     /**
      * Custom Performance Metrics for query string unit parsing
      */
@@ -228,6 +231,11 @@ type Props = WithRouterProps &
      * trigger re-renders.
      */
     members?: User[];
+    /**
+     * Extend search group items with additional props
+     * Useful for providing descriptions to field parents with many children
+     */
+    mergeSearchGroupWith?: Record<string, SearchItem>;
     /**
      * Called when the search input is blurred.
      * Note that the input may be blurred when the user selects an autocomplete
@@ -472,7 +480,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const {organization, savedSearchType, searchSource} = this.props;
 
     if (!this.hasValidSearch) {
-      trackAdvancedAnalyticsEvent('search.search_with_invalid', {
+      trackAnalytics('search.search_with_invalid', {
         organization,
         query,
         search_type: savedSearchType === 0 ? 'issues' : 'events',
@@ -482,7 +490,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     }
 
     const {onSearch, onSavedRecentSearch, api} = this.props;
-    trackAdvancedAnalyticsEvent('search.searched', {
+    trackAnalytics('search.searched', {
       organization,
       query,
       search_type: savedSearchType === 0 ? 'issues' : 'events',
@@ -628,7 +636,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   logShortcutEvent = (shortcutType: ShortcutType, shortcutMethod: 'click' | 'hotkey') => {
     const {searchSource, savedSearchType, organization} = this.props;
     const {query} = this.state;
-    trackAdvancedAnalyticsEvent('search.shortcut_used', {
+    trackAnalytics('search.shortcut_used', {
       organization,
       search_type: savedSearchType === 0 ? 'issues' : 'events',
       search_source: searchSource,
@@ -1340,7 +1348,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const tag = supportedTags[tagName];
 
     if (!tag) {
-      trackAdvancedAnalyticsEvent('search.invalid_field', {
+      trackAnalytics('search.invalid_field', {
         organization,
         search_type: savedSearchType === 0 ? 'issues' : 'events',
         search_source: searchSource,
@@ -1621,7 +1629,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     let replaceToken = replaceText;
     if (cursorToken.type === Token.Filter) {
       if (item.type === ItemType.TAG_OPERATOR) {
-        trackAdvancedAnalyticsEvent('search.operator_autocompleted', {
+        trackAnalytics('search.operator_autocompleted', {
           organization: this.props.organization,
           query: removeSpace(query),
           search_operator: replaceText,
@@ -1699,7 +1707,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
   onAutoComplete = (replaceText: string, item: SearchItem) => {
     if (item.type === ItemType.RECENT_SEARCH) {
-      trackAdvancedAnalyticsEvent('search.searched', {
+      trackAnalytics('search.searched', {
         organization: this.props.organization,
         query: replaceText,
         search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
@@ -1905,6 +1913,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             maxMenuHeight={maxMenuHeight}
             customPerformanceMetrics={customPerformanceMetrics}
             supportedTags={supportedTags}
+            customInvalidTagMessage={this.props.customInvalidTagMessage}
+            mergeItemsWith={this.props.mergeSearchGroupWith}
           />
         )}
       </Container>

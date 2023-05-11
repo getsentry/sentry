@@ -42,7 +42,7 @@ export type SpanDescendantGroupBarProps = {
   getCurrentLeftPos: () => number;
   onWheel: (deltaX: number) => void;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
-  span: Readonly<ProcessedSpanType>;
+  span: ProcessedSpanType;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
   toggleSpanGroup: () => void;

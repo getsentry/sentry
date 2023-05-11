@@ -8,6 +8,11 @@ export type SettingsEventParameters = {
     tuning_field_type: string;
   };
   'organization_settings.codecov_access_updated': {has_access: boolean};
+  'sidebar.item_clicked': {
+    dest: string;
+    project_id?: string;
+    sidebar_item_id?: string;
+  };
 };
 
 export type SettingsEventKey = keyof SettingsEventParameters;
@@ -19,4 +24,5 @@ export const settingsEventMap: Record<SettingsEventKey, string | null> = {
     'Notification Settings: Updated Tuning Setting',
   'organization_settings.codecov_access_updated':
     'Organization Settings: Codecov Access Updated',
+  'sidebar.item_clicked': 'Sidebar: Item Clicked',
 };

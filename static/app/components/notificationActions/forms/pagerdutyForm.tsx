@@ -10,7 +10,7 @@ import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 //   NotificationActionFormContainer,
 // } from 'sentry/components/notificationActions/notificationActionItem';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   AvailableNotificationAction,
   NotificationAction,
@@ -30,13 +30,13 @@ type PagerdutyFormProps = {
   pagerdutyIntegrations: Record<number, AvailableNotificationAction[]>;
 };
 
-const PagerdutyForm = ({
+function PagerdutyForm({
   action,
   onCancel,
   onChange,
   onSave,
   pagerdutyIntegrations,
-}: PagerdutyFormProps) => {
+}: PagerdutyFormProps) {
   const [selectedAccount, setSelectedAccount] = useState(
     action.integrationId
       ? pagerdutyIntegrations[action.integrationId][0].action.integrationName
@@ -125,7 +125,7 @@ const PagerdutyForm = ({
       </ButtonBar>
     </NotificationActionFormContainer>
   );
-};
+}
 
 const NotificationActionCell = styled('div')`
   display: flex;

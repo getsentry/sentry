@@ -450,7 +450,7 @@ export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
 
   // When title or transaction are << unparameterized >>, link out to discover showing unparameterized transactions
   if (['title', 'transaction'].includes(field)) {
-    return (data, baggage) => {
+    return function (data, baggage) {
       if (data[field] === UNPARAMETERIZED_TRANSACTION) {
         return (
           <Container>

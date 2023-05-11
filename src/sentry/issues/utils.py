@@ -1,11 +1,15 @@
-from typing import Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Union
 
 from sentry import options
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
-from sentry.models import Project
 from sentry.models.group import Group
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+
+if TYPE_CHECKING:
+    from sentry.models import Project
 
 
 def can_create_group(
@@ -17,14 +21,18 @@ def can_create_group(
         group_type = entity.issue_type
     else:
         group_type = entity.type
+    return issue_category_can_create_group(GroupCategory(group_type.category), project)
+
+
+def issue_category_can_create_group(category: GroupCategory, project: Project) -> bool:
     return bool(
-        group_type.category != GroupCategory.PERFORMANCE.value
+        category != GroupCategory.PERFORMANCE
         or (
-            group_type.category == GroupCategory.PERFORMANCE.value
+            category == GroupCategory.PERFORMANCE
             # system-wide option
             and options.get("performance.issues.create_issues_through_platform", False)
             # more-granular per-project option
-            and project.get_option("sentry:performance_issue_create_issue_through_platform", False)
+            and project.get_option("sentry:performance_issue_create_issue_through_platform", True)
         )
     )
 

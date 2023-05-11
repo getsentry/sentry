@@ -2,7 +2,7 @@ import {ComponentProps, Fragment, ReactNode, useEffect} from 'react';
 import {Location} from 'history';
 
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -41,12 +41,12 @@ const [_Provider, _useContext, _Context] =
  * This provider determines whether the metrics data is storing performance information correctly before we
  * make dozens of requests on pages such as performance landing and dashboards.
  */
-export const MetricsCardinalityProvider = (props: {
+export function MetricsCardinalityProvider(props: {
   children: ReactNode;
   location: Location;
   organization: Organization;
   sendOutcomeAnalytics?: boolean;
-}) => {
+}) {
   const isUsingMetrics = canUseMetricsData(props.organization);
 
   if (!isUsingMetrics) {
@@ -112,21 +112,21 @@ export const MetricsCardinalityProvider = (props: {
       </MetricsCompatibilityQuery>
     </Fragment>
   );
-};
+}
 
-const Provider = (
+function Provider(
   props: ComponentProps<typeof _Provider> & {
     organization: Organization;
     sendOutcomeAnalytics?: boolean;
   }
-) => {
+) {
   const fallbackFromNull = props.value.outcome?.shouldWarnIncompatibleSDK ?? false;
   const fallbackFromUnparam =
     props.value.outcome?.shouldNotifyUnnamedTransactions ?? false;
   const isOnMetrics = !props.value.outcome?.forceTransactionsOnly;
   useEffect(() => {
     if (!props.value.isLoading && props.sendOutcomeAnalytics) {
-      trackAdvancedAnalyticsEvent('performance_views.mep.metrics_outcome', {
+      trackAnalytics('performance_views.mep.metrics_outcome', {
         organization: props.organization,
         is_on_metrics: isOnMetrics,
         fallback_from_null: fallbackFromNull,
@@ -142,7 +142,7 @@ const Provider = (
     props.sendOutcomeAnalytics,
   ]);
   return <_Provider {...props}>{props.children}</_Provider>;
-};
+}
 
 export const MetricsCardinalityConsumer = _Context.Consumer;
 

@@ -1,4 +1,4 @@
-import {memo, MouseEvent, useCallback, useMemo, useRef} from 'react';
+import {memo, useMemo, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -18,6 +18,8 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
+import useVirtualizedInspector from '../useVirtualizedInspector';
+
 type Props = {
   breadcrumbs: undefined | Crumb[];
   startTimestampMs: number;
@@ -32,14 +34,16 @@ const cellMeasurer = {
 
 function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
-  const expandPaths = useRef(new Map<number, Set<string>>());
-  const items = useMemo(
-    () =>
-      (breadcrumbs || []).filter(crumb => !['console'].includes(crumb.category || '')),
-    [breadcrumbs]
-  );
 
   const listRef = useRef<ReactVirtualizedList>(null);
+  // Keep a reference of object paths that are expanded (via <ObjectInspector>)
+  // by log row, so they they can be restored as the Console pane is scrolling.
+  // Due to virtualization, components can be unmounted as the user scrolls, so
+  // state needs to be remembered.
+  //
+  // Note that this is intentionally not in state because we do not want to
+  // re-render when items are expanded/collapsed, though it may work in state as well.
+  const expandPathsRef = useRef(new Map<number, Set<string>>());
 
   const itemLookup = useMemo(
     () =>
@@ -74,35 +78,17 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
     [itemLookup, breadcrumbs, currentHoverTime, startTimestampMs]
   );
 
-  const deps = useMemo(() => [items], [items]);
+  const deps = useMemo(() => [breadcrumbs], [breadcrumbs]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
     deps,
   });
-
-  const handleDimensionChange = useCallback(
-    (
-      index: number,
-      path: string,
-      expandedState: Record<string, boolean>,
-      event: MouseEvent<HTMLDivElement>
-    ) => {
-      const rowState = expandPaths.current.get(index) || new Set();
-      if (expandedState[path]) {
-        rowState.add(path);
-      } else {
-        // Collapsed, i.e. its default state, so no need to store state
-        rowState.delete(path);
-      }
-      expandPaths.current.set(index, rowState);
-      cache.clear(index, 0);
-      listRef.current?.recomputeGridSize({rowIndex: index});
-      listRef.current?.forceUpdateGrid();
-      event.stopPropagation();
-    },
-    [cache, expandPaths, listRef]
-  );
+  const {handleDimensionChange} = useVirtualizedInspector({
+    cache,
+    listRef,
+    expandPathsRef,
+  });
 
   useScrollToCurrentItem({
     breadcrumbs,
@@ -111,7 +97,7 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
   });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
-    const item = items[index];
+    const item = (breadcrumbs || [])[index];
 
     return (
       <CellMeasurer
@@ -128,7 +114,7 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
           breadcrumb={item}
           startTimestampMs={startTimestampMs}
           style={style}
-          expandPaths={Array.from(expandPaths.current.get(index) || [])}
+          expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
           onDimensionChange={handleDimensionChange}
         />
       </CellMeasurer>
@@ -151,7 +137,7 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
                 )}
                 overscanRowCount={5}
                 ref={listRef}
-                rowCount={items.length}
+                rowCount={breadcrumbs.length}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
                 width={width}

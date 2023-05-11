@@ -1,24 +1,35 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {loadDocs} from 'sentry/actionCreators/projects';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {Footer} from 'sentry/components/onboarding/footer';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {
   performance as performancePlatforms,
+  Platform,
   PlatformKey,
 } from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 // in this case, the default is rendered inside the hook
 const SetUpSdkDoc = HookOrDefault({
@@ -27,8 +38,77 @@ const SetUpSdkDoc = HookOrDefault({
 
 type Props = RouteComponentProps<{platform: string; projectId: string}, {}>;
 
+export function SetUpGeneralSdkDoc({
+  organization,
+  projectSlug,
+  platform,
+}: {
+  organization: Organization;
+  platform: Platform;
+  projectSlug: Project['slug'];
+}) {
+  const api = useApi();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [html, setHtml] = useState('');
+
+  const fetchDocs = useCallback(async () => {
+    setLoading(true);
+
+    try {
+      const {html: reponse} = await loadDocs({
+        api,
+        orgSlug: organization.slug,
+        projectSlug,
+        platform: platform.key as PlatformKey,
+      });
+      setHtml(reponse);
+      window.scrollTo(0, 0);
+    } catch (err) {
+      setError(err);
+    }
+
+    setLoading(false);
+  }, [api, organization.slug, projectSlug, platform.key]);
+
+  useEffect(() => {
+    fetchDocs();
+  }, [fetchDocs]);
+
+  return (
+    <div>
+      <Alert type="info" showIcon>
+        {tct(
+          `
+           This is a quick getting started guide. For in-depth instructions
+           on integrating Sentry with [platform], view
+           [docLink:our complete documentation].`,
+          {
+            platform: platform.name,
+            docLink: <ExternalLink href={platform.link ?? undefined} />,
+          }
+        )}
+      </Alert>
+      {loading ? (
+        <LoadingIndicator />
+      ) : error ? (
+        <LoadingError onRetry={fetchDocs} />
+      ) : (
+        <Fragment>
+          <SentryDocumentTitle
+            title={`${t('Configure')} ${platform.name}`}
+            projectSlug={projectSlug}
+          />
+          <DocumentationWrapper dangerouslySetInnerHTML={{__html: html}} />
+        </Fragment>
+      )}
+    </div>
+  );
+}
+
 export function ProjectInstallPlatform({location, params, route, router}: Props) {
   const organization = useOrganization();
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const {projects, initiallyLoaded} = useProjects({
     slugs: [params.projectId],
@@ -36,15 +116,43 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   });
 
   const loadingProjects = !initiallyLoaded;
-  const project = projects.filter(proj => proj.slug === params.projectId)[0];
+  const project = !loadingProjects
+    ? projects.find(proj => proj.slug === params.projectId)
+    : undefined;
 
   const heartbeatFooter = !!organization?.features.includes(
     'onboarding-heartbeat-footer'
   );
 
-  const platform = platforms.find(p => p.id === params.platform);
+  const currentPlatform = params.platform ?? 'other';
+  const platformIntegration = platforms.find(p => p.id === currentPlatform);
+  const platform: Platform = {
+    key: currentPlatform as PlatformKey,
+    id: platformIntegration?.id,
+    name: platformIntegration?.name,
+    link: platformIntegration?.link,
+  };
 
-  if (!platform) {
+  const redirectToNeutralDocs = useCallback(() => {
+    if (!project?.slug) {
+      return;
+    }
+
+    router.push(
+      normalizeUrl(
+        `/organizations/${organization.slug}/projects/${project.slug}/getting-started/`
+      )
+    );
+  }, [organization.slug, project?.slug, router]);
+
+  useEffect(() => {
+    // redirect if platform is not known.
+    if (!platform.key || platform.key === 'other') {
+      redirectToNeutralDocs();
+    }
+  }, [platform.key, redirectToNeutralDocs]);
+
+  if (!platform.id) {
     return <NotFound />;
   }
 
@@ -53,6 +161,10 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   const gettingStartedLink = `/organizations/${organization.slug}/projects/${params.projectId}/getting-started/`;
   const showPerformancePrompt = performancePlatforms.includes(platform.id as PlatformKey);
   const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
+
+  if (!project) {
+    return null;
+  }
 
   return (
     <Fragment>
@@ -71,14 +183,21 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
           </Button>
         </ButtonBar>
       </StyledPageHeader>
-
       <div>
-        <SetUpSdkDoc
-          organization={organization}
-          project={{...project, platform: params.platform as PlatformKey}}
-          location={location}
-          router={router}
-        />
+        {isSelfHosted ? (
+          <SetUpGeneralSdkDoc
+            organization={organization}
+            projectSlug={project.slug}
+            platform={platform}
+          />
+        ) : (
+          <SetUpSdkDoc
+            organization={organization}
+            project={project}
+            location={location}
+            platform={platform}
+          />
+        )}
 
         {isGettingStarted && showPerformancePrompt && (
           <Feature

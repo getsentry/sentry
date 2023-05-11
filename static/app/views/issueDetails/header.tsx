@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
@@ -27,9 +27,10 @@ import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, IssueType, Organization, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -60,14 +61,10 @@ function GroupHeaderTabs({
   project,
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
-  const projectIds = useMemo(
-    () => (project.id ? [Number(project.id)] : []),
-    [project.id]
-  );
+
   const replaysCount = useReplaysCount({
     groupIds: group.id,
     organization,
-    projectIds,
   })[group.id];
   const projectFeatures = new Set(project ? project.features : []);
   const organizationFeatures = new Set(organization ? organization.features : []);
@@ -75,10 +72,26 @@ function GroupHeaderTabs({
   const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
   const hasSimilarView = projectFeatures.has('similarity-view');
   const hasEventAttachments = organizationFeatures.has('event-attachments');
-  const hasSessionReplay =
-    organizationFeatures.has('session-replay') && projectSupportsReplay(project);
+  const hasReplaySupport = organizationFeatures.has('session-replay');
 
   const issueTypeConfig = getConfigForIssueType(group);
+
+  useEffect(() => {
+    if (!hasReplaySupport || typeof replaysCount === 'undefined') {
+      return;
+    }
+
+    trackAnalytics('replay.render-issues-detail-count', {
+      platform: project.platform!,
+      project_id: project.id,
+      count: replaysCount,
+      organization,
+    });
+  }, [hasReplaySupport, replaysCount, project, organization]);
+
+  useRouteAnalyticsParams({
+    group_has_replay: (replaysCount ?? 0) > 0,
+  });
 
   return (
     <StyledTabList hideBorder>
@@ -159,12 +172,12 @@ function GroupHeaderTabs({
       <TabList.Item
         key={Tab.REPLAYS}
         textValue={t('Replays')}
-        hidden={!hasSessionReplay || !issueTypeConfig.replays.enabled}
+        hidden={!hasReplaySupport || !issueTypeConfig.replays.enabled}
         to={`${baseUrl}replays/${location.search}`}
       >
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
-        <ReplaysFeatureBadge noTooltip />
+        <ReplaysFeatureBadge tooltipProps={{disabled: true}} />
       </TabList.Item>
     </StyledTabList>
   );

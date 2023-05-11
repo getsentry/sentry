@@ -11,7 +11,7 @@ interface Props {
   events?: RRWebEvents;
 }
 
-const BaseRRWebReplayerComponent = ({events, className}: Props) => {
+function BaseRRWebReplayerComponent({events, className}: Props) {
   const playerEl = useRef<HTMLDivElement>(null);
 
   const initPlayer = () => {
@@ -33,7 +33,7 @@ const BaseRRWebReplayerComponent = ({events, className}: Props) => {
   useEffect(() => void initPlayer(), [events]);
 
   return <div ref={playerEl} className={className} />;
-};
+}
 
 const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   .replayer-mouse {
