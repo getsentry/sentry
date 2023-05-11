@@ -19,6 +19,7 @@ export type PanelSort = Sort<TableColumnHeader>;
 
 type Props = {
   isDataLoading: boolean;
+  markLine: Series[];
   onClickSort: (sort: PanelSort) => void;
   row: DataRow;
   sort: PanelSort;
@@ -62,6 +63,7 @@ function QueryTransactionTable(props: Props) {
     tpmData,
     spanP50Data,
     txnP50Data,
+    markLine,
   } = props;
   const location = useLocation();
   const theme = useTheme();
@@ -122,8 +124,9 @@ function QueryTransactionTable(props: Props) {
     if (key === 'spm' && SpmSeries && TpmSeries) {
       return (
         <MultiSparkline
-          color={[CHART_PALETTE[4][1], CHART_PALETTE[4][3]]}
-          series={[TpmSeries, SpmSeries]}
+          color={[CHART_PALETTE[4][0], CHART_PALETTE[4][3]]}
+          series={[SpmSeries, TpmSeries]}
+          markLine={markLine}
           width={column.width ? column.width - column.width / 5 : undefined}
           height={40}
         />
@@ -150,7 +153,8 @@ function QueryTransactionTable(props: Props) {
       return (
         <MultiSparkline
           color={[CHART_PALETTE[4][0], CHART_PALETTE[4][2]]}
-          series={[TP50Series, SP50Series]}
+          series={[SP50Series, TP50Series]}
+          markLine={markLine}
           width={column.width ? column.width - column.width / 5 : undefined}
         />
       );

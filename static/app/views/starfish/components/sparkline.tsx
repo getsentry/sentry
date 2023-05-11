@@ -60,12 +60,19 @@ export default function Sparkline({series, width, color}: SparklineProps) {
 
 type MultiSparklineProps = {
   color: string[];
+  markLine: Series[];
   series: Series[];
   height?: number;
   width?: number;
 };
 
-export function MultiSparkline({series, width, height, color}: MultiSparklineProps) {
+export function MultiSparkline({
+  series,
+  markLine,
+  width,
+  height,
+  color,
+}: MultiSparklineProps) {
   echarts.use([LineChart, SVGRenderer]);
 
   function getValueSeries(targetSeries, i) {
@@ -74,7 +81,7 @@ export function MultiSparkline({series, width, height, color}: MultiSparklinePro
       type: 'line',
       showSymbol: false,
       smooth: true,
-      lineStyle: {color: color[i], type: ['solid', 'dotted'][i], width: [0.5, 2][i]},
+      lineStyle: {color: color[i], width: [1, 2][i]},
       yAxisIndex: i,
     };
   }
@@ -83,7 +90,7 @@ export function MultiSparkline({series, width, height, color}: MultiSparklinePro
     <ReactEChartsCore
       echarts={echarts}
       option={{
-        series: series.map((item, index) => getValueSeries(item, index)),
+        series: [...series.map((item, index) => getValueSeries(item, index)), markLine],
         xAxis: {
           show: false,
           data: getValueSeries(series[0], 0).data.map(datum => datum.name),

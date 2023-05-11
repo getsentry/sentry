@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 import moment from 'moment';
@@ -7,10 +7,11 @@ import moment from 'moment';
 import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import MarkLine from 'sentry/components/charts/components/markLine';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Series} from 'sentry/types/echarts';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
@@ -97,6 +98,8 @@ function QueryDetailBody({
   const theme = useTheme();
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
+  const isNew = row.newish === 1;
+  const isOld = row.retired === 1;
 
   const [sort, setSort] = useState<PanelSort>({
     direction: undefined,
@@ -140,8 +143,8 @@ function QueryDetailBody({
   const eventCountMap = keyBy(eventCountData, 'transaction');
 
   const mergedTableData: TransactionListDataRow[] = tableData.map(data => {
-    const {transaction} = data;
-    const eventData = eventCountMap[transaction];
+    const tableTransaction = data.transaction;
+    const eventData = eventCountMap[tableTransaction];
     if (eventData?.uniqueEvents) {
       const frequency = data.count / eventData.uniqueEvents;
       return {...data, frequency, ...eventData} as TransactionListDataRow;
@@ -190,6 +193,15 @@ function QueryDetailBody({
     endTime,
     SPARKLINE_INTERVAL
   );
+  const markLine =
+    spmTransactionSeries?.[0]?.data && (isNew || isOld)
+      ? generateMarkLine(
+          isNew ? 'First Seen' : 'Last Seen',
+          isNew ? row.firstSeen : row.lastSeen,
+          spmTransactionSeries[0].data,
+          theme
+        )
+      : [];
 
   return (
     <div>
@@ -277,6 +289,7 @@ function QueryDetailBody({
         tpmData={tpmTransactionSeries}
         spanP50Data={spanp50TransactionSeries}
         txnP50Data={p50TransactionSeries}
+        markLine={markLine}
       />
       <FlexRowContainer>
         <FlexRowItem>
@@ -352,6 +365,41 @@ export const highlightSql = (description: string, queryDetail: DataRow) => {
     return null;
   });
 };
+
+function generateMarkLine(
+  title: string,
+  position: string,
+  data: SeriesDataUnit[],
+  theme: Theme
+) {
+  const index = data.findIndex(item => {
+    return (
+      Math.abs(moment.duration(moment(item.name).diff(moment(position))).asSeconds()) <
+      86400
+    );
+  });
+  return {
+    seriesName: title,
+    type: 'line',
+    color: theme.blue300,
+    data: [],
+    xAxisIndex: 0,
+    yAxisIndex: 0,
+    markLine: MarkLine({
+      silent: true,
+      animation: false,
+      lineStyle: {color: theme.blue300, type: 'dotted'},
+      data: [
+        {
+          xAxis: index,
+        },
+      ],
+      label: {
+        show: false,
+      },
+    }),
+  };
+}
 
 const throughputQueryToChartData = (
   data: any,
