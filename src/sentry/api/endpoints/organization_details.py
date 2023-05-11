@@ -437,9 +437,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                     config = provider.build_config(provider_config)
                     config["sentry-source"] = "api-organization-details"
                 except KeyError as err:
-                    raise KeyError(
-                        f"Invalid key '{err.args[0]}' in providerConfig for authprovider {provider_key}"
-                    )
+                    raise KeyError(f"Invalid key {str(err)} in providerConfig")
                 auth_provider.update(config=config)
 
         org_tracked_field = {

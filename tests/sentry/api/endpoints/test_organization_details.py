@@ -365,8 +365,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         interface.enroll(self.user)
         assert self.user.has_2fa()
 
-        with self.feature("organizations:api-auth-provider"):
-            self.get_success_response(self.organization.slug, **data)
+        self.get_success_response(self.organization.slug, **data)
 
         org = Organization.objects.get(id=self.organization.id)
         assert initial != org.get_audit_log_data()
@@ -848,8 +847,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         }
 
     def test_invalid_auth_provider_missing_feature_flag(self):
-        original_queryset = AuthProvider.objects.all()
-
         self.get_error_response(
             self.organization.slug,
             method="put",
@@ -857,11 +854,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             providerConfig={"domain": "foo.com"},
             status_code=400,
         )
-        assert set(AuthProvider.objects.all()) == set(original_queryset)
+        assert AuthProvider.objects.count() == 0
 
     @with_feature("organizations:api-auth-provider")
     def test_invalid_auth_provider_configuration(self):
-        original_queryset = AuthProvider.objects.all()
 
         self.get_error_response(
             self.organization.slug, method="put", providerKey="google", status_code=400
@@ -887,10 +883,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             providerConfig={"invalid_domain": "foo.com"},
             status_code=400,
         )
-        assert response.data == {
-            "providerConfig": ["Invalid key 'domain' in providerConfig for authprovider google"]
-        }
-        assert set(AuthProvider.objects.all()) == set(original_queryset)
+        assert response.data == {"providerConfig": ["Invalid key 'domain' in providerConfig"]}
+        assert AuthProvider.objects.count() == 0
 
 
 @region_silo_test
