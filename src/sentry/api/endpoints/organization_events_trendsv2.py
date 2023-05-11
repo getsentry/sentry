@@ -94,14 +94,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             )
             return f" transaction:[{top_transaction_as_str}]"
 
-        def get_event_stats_metrics(
-            query_columns,
-            user_query,
-            params,
-            rollup,
-            zerofill_results,
-            comparison_delta,
-        ):
+        def get_event_stats_metrics(_, user_query, params, rollup, zerofill_results, __):
             # Get top events
             top_events = get_top_events(
                 selected_columns,
@@ -109,7 +102,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 params=params,
                 orderby=["-count()"],
                 limit=100,
-                referrer=Referrer.API_TRENDS_GET_EVENT_STATS_NEW.value,
+                referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS.value,
             )
 
             if top_events.get("data", None) is None:
@@ -123,9 +116,9 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 params,
                 rollup=rollup,
                 zerofill_results=zerofill_results,
-                referrer=Referrer.API_TRENDS_GET_EVENT_STATS_NEW.value,
+                referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES.value,
                 groupby=Column("transaction"),
-                raw_result=True,
+                apply_formatting=False,
             )
 
             translated_groupby = ["transaction"]
@@ -139,7 +132,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 if result_key in results:
                     results[result_key]["data"].append(row)
                 else:
-                    # TODO come up with a better name
+                    # TODO filter out entries that don't have transaction or trend_function
                     logger.warning(
                         "trends.top-events.timeseries.key-mismatch",
                         extra={"result_key": result_key, "top_event_keys": list(results.keys())},

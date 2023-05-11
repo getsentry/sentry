@@ -77,7 +77,7 @@ def timeseries_query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     groupby: Optional[Column] = None,
-    raw_result: Optional[bool] = False,
+    apply_formatting: Optional[bool] = True,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -119,7 +119,8 @@ def timeseries_query(
             sentry_sdk.set_tag("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
 
-            if raw_result:
+            # Sometimes additional formatting needs to be done downstream
+            if not apply_formatting:
                 return result
 
             return SnubaTSResult(
