@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
+import CircleIndicator from 'sentry/components/circleIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -11,8 +12,11 @@ import {
   EXTERNAL_APIS,
 } from 'sentry/views/starfish/modules/APIModule/constants';
 import {MeterBar} from 'sentry/views/starfish/modules/APIModule/hostTable';
-import {getHostStatusBreakdownQuery} from 'sentry/views/starfish/modules/APIModule/queries';
-import {HOST} from 'sentry/views/starfish/utils/constants';
+import {
+  getHostStatusBreakdownEventView,
+  getHostStatusBreakdownQuery,
+} from 'sentry/views/starfish/modules/APIModule/queries';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 type Props = {
   host: string;
@@ -21,15 +25,18 @@ type Props = {
 export function HostDetails({host}: Props) {
   const theme = useTheme();
   const pageFilter = usePageFilters();
-  const statusBreakdownQuery = getHostStatusBreakdownQuery({
-    domain: host,
-    datetime: pageFilter.selection.datetime,
+  const {isLoading: isStatusBreakdownLoading, data: statusBreakdown} = useSpansQuery({
+    queryString: getHostStatusBreakdownQuery({
+      domain: host,
+      datetime: pageFilter.selection.datetime,
+    }),
+    eventView: getHostStatusBreakdownEventView({
+      domain: host,
+      datetime: pageFilter.selection.datetime,
+    }),
+    initialData: [],
   });
-  const {isLoading: isStatusBreakdownLoading, data: statusBreakdown} = useQuery({
-    queryKey: ['statusBreakdown', statusBreakdownQuery],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${statusBreakdownQuery}`).then(res => res.json()),
-  });
+
   const hostMarketingName = Object.keys(EXTERNAL_APIS).find(key => host.includes(key));
 
   const failures = statusBreakdown?.filter((item: any) => item.status > 299);
@@ -40,6 +47,15 @@ export function HostDetails({host}: Props) {
   );
 
   const externalApi = hostMarketingName && EXTERNAL_APIS[hostMarketingName];
+
+  const {isLoading: isStatusLoading, data: statusData} = useQuery({
+    queryKey: ['domain-status', host],
+    queryFn: () =>
+      fetch(`${externalApi?.statusPage}?format=json`).then(res => res.json()),
+    retry: false,
+    initialData: {},
+    enabled: !!externalApi,
+  });
 
   return (
     <DetailsContainer>
@@ -52,6 +68,7 @@ export function HostDetails({host}: Props) {
             style={{marginRight: space(1)}}
           />
         )}
+
         {hostMarketingName ? (
           <span>
             <Host>{hostMarketingName}</Host>
@@ -60,6 +77,13 @@ export function HostDetails({host}: Props) {
         ) : (
           <Host>{host}</Host>
         )}
+
+        {!isStatusLoading && statusData.status ? (
+          <StatusText>
+            <CircleIndicator size={8} enabled={statusData.status.indicator === 'none'} />{' '}
+            {statusData.status.description}
+          </StatusText>
+        ) : null}
 
         <LinkContainer>
           {externalApi?.statusPage && (
@@ -126,6 +150,10 @@ const FlexContainer = styled('div')`
 
 const Host = styled('span')`
   font-weight: bold;
+`;
+
+const StatusText = styled('span')`
+  margin-left: ${space(2)};
 `;
 
 const StyledIconOpen = styled(IconOpen)`

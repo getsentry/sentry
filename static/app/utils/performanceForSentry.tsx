@@ -199,6 +199,11 @@ export function VisuallyCompleteWithData({
           if (!browserPerformanceTimeOrigin) {
             return;
           }
+          const startMark = performance.getEntriesByName(`${id}-vcds-start`)[0];
+          const endMark = performance.getEntriesByName(`${id}-vcds-end`)[0];
+          if (!startMark || !endMark) {
+            return;
+          }
           performance.mark(`${id}-vcsd-end`);
           performance.measure(
             `VCD [${id}] #${num.current}`,
