@@ -7,11 +7,12 @@ import * as Sentry from '@sentry/react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
 import {Client, ResponseMeta} from 'sentry/api';
+import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization, Project, Team} from 'sentry/types';
+import {Member, Organization, Project, Team} from 'sentry/types';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
@@ -43,13 +44,14 @@ async function fetchOrg(
   return org;
 }
 
-async function fetchProjectsAndTeams(
+async function fetchProjectsTeamsMembers(
   slug: string,
   isInitialFetch?: boolean
 ): Promise<
   [
     [Project[], string | undefined, XMLHttpRequest | ResponseMeta | undefined],
-    [Team[], string | undefined, XMLHttpRequest | ResponseMeta | undefined]
+    [Team[], string | undefined, XMLHttpRequest | ResponseMeta | undefined],
+    [Member[], string | undefined, XMLHttpRequest | ResponseMeta | undefined]
   ]
 > {
   // Create a new client so the request is not cancelled
@@ -83,8 +85,20 @@ async function fetchProjectsAndTeams(
     isInitialFetch
   );
 
+  const membersPromise = getPreloadedDataPromise(
+    'members',
+    slug,
+    // This data should get preloaded in static/sentry/index.ejs
+    // If this url changes make sure to update the preload
+    () =>
+      uncancelableApi.requestPromise(`/organizations/${slug}/members/`, {
+        includeAllArgs: true,
+      }),
+    isInitialFetch
+  );
+
   try {
-    return await Promise.all([projectsPromise, teamsPromise]);
+    return await Promise.all([projectsPromise, teamsPromise, membersPromise]);
   } catch (err) {
     // It's possible these requests fail with a 403 if the user has a role with
     // insufficient access to projects and teams, but *can* access org details
@@ -97,6 +111,7 @@ async function fetchProjectsAndTeams(
   }
 
   return [
+    [[], undefined, undefined],
     [[], undefined, undefined],
     [[], undefined, undefined],
   ];
@@ -152,15 +167,13 @@ export function fetchOrganizationDetails(
     }
   };
 
-  const loadTeamsAndProjects = async () => {
-    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(
-      slug,
-      isInitialFetch
-    );
+  const loadTeamProjectsMembers = async () => {
+    const [[projects], [teams, , teamsResp], [members, , membersResp]] =
+      await fetchProjectsTeamsMembers(slug, isInitialFetch);
 
     ProjectsStore.loadInitialData(projects);
 
-    const teamPageLinks = resp?.getResponseHeader('Link');
+    const teamPageLinks = teamsResp?.getResponseHeader('Link');
     if (teamPageLinks) {
       const paginationObject = parseLinkHeader(teamPageLinks);
       const hasMore = paginationObject?.next?.results ?? false;
@@ -169,7 +182,18 @@ export function fetchOrganizationDetails(
     } else {
       TeamStore.loadInitialData(teams);
     }
+
+    const users = members.map(member => member.user);
+    const membersPageLinks = membersResp?.getResponseHeader('Link');
+    if (membersPageLinks) {
+      const paginationObject = parseLinkHeader(membersPageLinks);
+      const hasMore = paginationObject?.next?.results ?? false;
+      const cursor = paginationObject.next?.cursor;
+      MemberListStore.loadInitialData(users, hasMore, cursor);
+    } else {
+      MemberListStore.loadInitialData(users);
+    }
   };
 
-  return Promise.all([loadOrganization(), loadTeamsAndProjects()]);
+  return Promise.all([loadOrganization(), loadTeamProjectsMembers()]);
 }
