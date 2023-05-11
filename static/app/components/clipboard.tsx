@@ -43,6 +43,10 @@ function isSupported() {
   return !!document.queryCommandSupported?.('copy');
 }
 
+/**
+ * @deprecated
+ * Replaced by `useCopyToClipboard()` and `<CopyToClipboardButton>`.
+ */
 function Clipboard({
   hideMessages = false,
   successMessage = t('Copied to clipboard'),
