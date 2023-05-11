@@ -317,6 +317,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         team = self.create_team(organization=self.organization, org_role="owner")
         OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
 
+        member.refresh_from_db()
         assert member.get_scopes() == owner_member_scopes
 
     def test_get_contactable_members_for_org(self):
