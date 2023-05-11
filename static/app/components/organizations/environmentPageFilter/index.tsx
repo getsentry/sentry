@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
@@ -12,6 +13,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+
+import {DesyncedFilterMessage} from '../pageFilters/desyncedFilter';
 
 import {EnvironmentPageFilterTrigger} from './trigger';
 
@@ -44,6 +47,7 @@ export function EnvironmentPageFilter({
   const {
     selection: {projects: projectPageFilterValue, environments: envPageFilterValue},
     isReady: pageFilterIsReady,
+    desyncedFilters,
   } = usePageFilters();
 
   const environments = useMemo<string[]>(() => {
@@ -87,6 +91,10 @@ export function EnvironmentPageFilter({
 
   const handleChange = useCallback(
     async (newValue: string[]) => {
+      if (isEqual(newValue, envPageFilterValue)) {
+        return;
+      }
+
       onChange?.(newValue);
 
       trackAnalytics('environmentselector.update', {
@@ -103,7 +111,7 @@ export function EnvironmentPageFilter({
         resetParams: resetParamsOnChange,
       });
     },
-    [resetParamsOnChange, router, organization, onChange]
+    [envPageFilterValue, resetParamsOnChange, router, organization, onChange]
   );
 
   const onToggle = useCallback(
@@ -133,6 +141,7 @@ export function EnvironmentPageFilter({
     [environments]
   );
 
+  const desynced = desyncedFilters.has('environments');
   const menuWidth = useMemo(() => {
     // EnvironmentPageFilter will try to expand to accommodate the longest env slug
     const longestSlugLength = options
@@ -142,13 +151,13 @@ export function EnvironmentPageFilter({
         0
       );
 
-    // Calculate an appropriate width for the menu. It should be between 16 and 24em.
-    // Within that range, the width is a function of the length of the longest slug. The
-    // environment slugs take up to (longestSlugLength * 0.6)em of horizontal space (each
-    // character occupies roughly 0.6em). We also need to add 6em to account for the
-    // checkbox and menu paddings.
-    return `${Math.max(16, Math.min(24, longestSlugLength * 0.6 + 6))}em`;
-  }, [options]);
+    // Calculate an appropriate width for the menu. It should be between 16 (22 if
+    // there's a desynced message) and 24em. Within that range, the width is a function
+    // of the length of the longest slug. The environment slugs take up to
+    // (longestSlugLength * 0.6)em of horizontal space (each character occupies roughly
+    // 0.6em). We also need to add 6em to account for the checkbox and menu paddings.
+    return `${Math.max(desynced ? 22 : 16, Math.min(24, longestSlugLength * 0.6 + 6))}em`;
+  }, [options, desynced]);
 
   return (
     <HybridFilter
@@ -166,12 +175,14 @@ export function EnvironmentPageFilter({
       emptyMessage={t('No environments found')}
       menuTitle={t('Filter Environments')}
       menuWidth={menuWidth}
+      menuBody={desynced && <DesyncedFilterMessage />}
       menuFooterMessage={footerMessage}
       trigger={triggerProps => (
         <EnvironmentPageFilterTrigger
           value={value}
           environments={environments}
           ready={projectsLoaded && pageFilterIsReady}
+          desynced={desynced}
           {...triggerProps}
         />
       )}
