@@ -88,7 +88,7 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
 
     return (
       <div>
-        <SettingsPageHeader title={t('Subscriptions')} />
+        <SettingsPageHeader title={this.getTitle()} />
         <TextBlock>
           {t(`Sentry is committed to respecting your inbox. Our goal is to
               provide useful content and resources that make fixing errors less
