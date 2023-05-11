@@ -895,6 +895,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
         use_metrics_layer: Optional[bool] = False,
+        groupby: Optional[Column] = None,
     ):
         super().__init__(
             params=params,
@@ -915,8 +916,12 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         self.time_column = self.resolve_time_column(interval)
         self.limit = None if limit is None else Limit(limit)
 
-        # This is a timeseries, the groupby will always be time
+        # This is a timeseries, the implied groupby will always be time
         self.groupby = [self.time_column]
+
+        # If additional groupby is provided it will be used first before time
+        if groupby is not None:
+            self.groupby.insert(0, groupby)
 
     def resolve_time_column(self, interval: int) -> Function:
         """Need to round the timestamp to the interval requested

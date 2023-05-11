@@ -1,19 +1,25 @@
-from datetime import datetime
-from typing import Optional
+import logging
 
 from django.conf import settings
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from snuba_sdk import Column
 from urllib3 import Retry
 
 from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.net.http import connection_from_url
-from sentry.snuba import discover
+from sentry.snuba import metrics_performance
+from sentry.snuba.discover import create_result_key, zerofill
+from sentry.snuba.metrics_performance import query
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
+from sentry.utils.snuba import SnubaTSResult
+
+logger = logging.getLogger(__name__)
+
 
 IMPROVED = "improved"
 REGRESSION = "regression"
@@ -55,8 +61,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         except NoProjects:
             return Response([])
 
-        # TODO get 2 weeks before and a week after if possible
-
         trend_type = request.GET.get("trendType", REGRESSION)
         if trend_type not in TREND_TYPES:
             raise ParseError(detail=f"{trend_type} is not a supported trend type")
@@ -65,35 +69,90 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         selected_columns = self.get_field_list(organization, request)
 
-        top_columns = ["count()", "transaction", "project"]
-        query = request.GET.get("query")
+        _query = request.GET.get("query")
 
         selected_columns.append(trend_function)
         selected_columns.append("count()")
         request.yAxis = selected_columns
 
-        def get_event_stats(
-            query_columns,
-            query,
-            params,
-            rollup: int,
-            zerofill_results: bool,
-            comparison_delta: Optional[datetime],
-        ):
-            results = discover.top_events_timeseries(
-                timeseries_columns=query_columns,
-                selected_columns=top_columns,
-                user_query=query,
+        def get_top_events(selected_columns, user_query, params, orderby, limit, referrer):
+            return query(
+                selected_columns,
+                query=user_query,
                 params=params,
-                rollup=rollup,
-                # high limit is set to validate the regression analysis
-                limit=50,
-                organization=organization,
-                referrer=Referrer.API_TRENDS_GET_EVENT_STATS_NEW.value,
-                allow_empty=False,
-                zerofill_results=zerofill_results,
-                orderby=["-count()"],
+                orderby=orderby,
+                limit=limit,
+                referrer=referrer,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
             )
+
+        def generate_top_transaction_query(events):
+            top_transaction_names = [event.get("transaction") for event in events["data"]]
+            top_transaction_as_str = ", ".join(
+                f'"{transaction}"' for transaction in top_transaction_names
+            )
+            return f" transaction:[{top_transaction_as_str}]"
+
+        def get_event_stats_metrics(_, user_query, params, rollup, zerofill_results, __):
+            # Get top events
+            top_events = get_top_events(
+                selected_columns,
+                user_query=user_query,
+                params=params,
+                orderby=["-count()"],
+                limit=100,
+                referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS.value,
+            )
+
+            if top_events.get("data", None) is None:
+                return None
+
+            new_query = user_query + generate_top_transaction_query(top_events)
+
+            result = metrics_performance.timeseries_query(
+                selected_columns,
+                new_query,
+                params,
+                rollup=rollup,
+                zerofill_results=zerofill_results,
+                referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES.value,
+                groupby=Column("transaction"),
+                apply_formatting=False,
+            )
+
+            translated_groupby = ["transaction"]
+
+            results = {}
+            for index, item in enumerate(top_events["data"]):
+                result_key = create_result_key(item, translated_groupby, {})
+                results[result_key] = {"order": index, "data": []}
+            for row in result["data"]:
+                result_key = create_result_key(row, translated_groupby, {})
+                if result_key in results:
+                    results[result_key]["data"].append(row)
+                else:
+                    # TODO filter out entries that don't have transaction or trend_function
+                    logger.warning(
+                        "trends.top-events.timeseries.key-mismatch",
+                        extra={"result_key": result_key, "top_event_keys": list(results.keys())},
+                    )
+            for key, item in results.items():
+                results[key] = SnubaTSResult(
+                    {
+                        "data": zerofill(
+                            item["data"], params["start"], params["end"], rollup, "time"
+                        )
+                        if zerofill_results
+                        else item["data"],
+                        "isMetricsData": True,
+                        "order": item["order"],
+                        "meta": result["meta"],
+                    },
+                    params["start"],
+                    params["end"],
+                    rollup,
+                )
 
             return results
 
@@ -101,11 +160,11 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             stats_data = self.get_event_stats_data(
                 request,
                 organization,
-                get_event_stats,
+                get_event_stats_metrics,
                 top_events=50,
                 query_column=trend_function,
                 params=params,
-                query=query,
+                query=_query,
                 additional_query_column="count()",
             )
 
