@@ -18,8 +18,7 @@ type Props = {
 };
 
 type DataRow = {
-  count: number;
-  // p50: Series;
+  p50: Series;
   tagKey: string;
   tagValue: string;
   throughput: Series;
@@ -35,11 +34,11 @@ const COLUMN_ORDER = [
   {
     key: 'tagValue',
     name: 'Value',
-    width: 300,
+    width: 200,
   },
   {
-    key: 'count',
-    name: 'count',
+    key: 'p50',
+    name: 'p50(duration)',
     width: 200,
   },
   {
@@ -99,8 +98,8 @@ export function FacetInsights({eventView}: Props) {
     transformedData.push({
       tagKey: element.split(',')[0],
       tagValue: element.split(',')[1],
-      count: totals[element].count,
       throughput: transformSeries('throughput', data![element]['count()'].data),
+      p50: transformSeries('p50', data![element]['p75(transaction.duration)'].data),
       tpmCorrelation: categorizeCorrelation(totals[element].sum_correlation),
     });
   }
@@ -121,10 +120,10 @@ export function FacetInsights({eventView}: Props) {
 }
 
 function renderBodyCell(column: GridColumnHeader, row: DataRow): React.ReactNode {
-  if (column.key === 'throughput') {
+  if (column.key === 'throughput' || column.key === 'p50') {
     return (
       <Sparkline
-        color={CHART_PALETTE[3][0]}
+        color={column.key === 'throughput' ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1]}
         series={row[column.key]}
         width={column.width ? column.width - column.width / 5 : undefined}
       />
