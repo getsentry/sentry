@@ -230,7 +230,7 @@ class ManageDashboards extends AsyncView<Props, State> {
       was_previewed: false,
     });
 
-    await createDashboard(
+    const newDashboard = await createDashboard(
       api,
       organization.slug,
       {
@@ -239,8 +239,18 @@ class ManageDashboards extends AsyncView<Props, State> {
       },
       true
     );
-    this.onDashboardsChange();
     addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
+    this.loadDashboard(newDashboard.id);
+  }
+
+  loadDashboard(dashboardId: string) {
+    const {organization, location} = this.props;
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
+        query: location.query,
+      })
+    );
   }
 
   onPreview(dashboardId: string) {
