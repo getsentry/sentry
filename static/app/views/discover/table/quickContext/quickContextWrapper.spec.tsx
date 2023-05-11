@@ -137,7 +137,7 @@ describe('Quick Context', function () {
       expect(await screen.findByText(/Issue/i)).toBeInTheDocument();
       expect(screen.getByText(/SENTRY-VVY/i)).toBeInTheDocument();
       expect(
-        screen.getByTestId('quick-context-hover-header-copy-icon')
+        screen.getByTestId('quick-context-hover-header-copy-button')
       ).toBeInTheDocument();
     });
 
@@ -167,7 +167,7 @@ describe('Quick Context', function () {
       expect(screen.getByText(/22.10.0/i)).toBeInTheDocument();
       expect(screen.getByText(/(aaf33944f93d)/i)).toBeInTheDocument();
       expect(
-        screen.getByTestId('quick-context-hover-header-copy-icon')
+        screen.getByTestId('quick-context-hover-header-copy-button')
       ).toBeInTheDocument();
     });
 
@@ -185,7 +185,7 @@ describe('Quick Context', function () {
       expect(await screen.findByText(/Event ID/i)).toBeInTheDocument();
       expect(screen.getByText(/6b43e285/i)).toBeInTheDocument();
       expect(
-        screen.getByTestId('quick-context-hover-header-copy-icon')
+        screen.getByTestId('quick-context-hover-header-copy-button')
       ).toBeInTheDocument();
     });
   });
