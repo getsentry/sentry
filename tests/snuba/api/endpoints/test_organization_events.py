@@ -34,9 +34,7 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
-class OrganizationEventsEndpointTestBase(
-    APITestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceIssueTestCase
-):
+class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
@@ -6013,7 +6011,9 @@ class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTe
 
 
 @region_silo_test
-class OrganizationEventsIssuePlatformDatasetEndpointTest(OrganizationEventsEndpointTestBase):
+class OrganizationEventsIssuePlatformDatasetEndpointTest(
+    OrganizationEventsEndpointTestBase, SearchIssueTestMixin, PerformanceIssueTestCase
+):
     def test_performance_issue_id_filter(self):
         event = self.create_performance_issue()
 
