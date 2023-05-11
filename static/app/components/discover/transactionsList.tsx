@@ -154,9 +154,10 @@ function TableRender({
   const tableHasResults =
     tableData && tableData.data && tableData.meta && tableData.data.length > 0;
   const query = decodeScalar(location.query.query, '');
+  const isMetricsData = mepContext?.isMetricsData ?? false;
 
   useEffect(() => {
-    if (isLoading || !mepContext?.isMetricsData || !organization.isDynamicallySampled) {
+    if (isLoading || !isMetricsData || !organization.isDynamicallySampled) {
       return;
     }
 
@@ -172,7 +173,7 @@ function TableRender({
       organization,
       query,
     });
-  }, [isLoading, tableHasResults, organization, mepContext, query]);
+  }, [isLoading, tableHasResults, organization, isMetricsData, query]);
 
   const content = (
     <TransactionsTable
