@@ -107,7 +107,7 @@ function useReplaysCount({
           query: {
             query: query.conditions,
             statsPeriod: '14d',
-            project: projectIds,
+            project: projectIds ?? -1,
           },
         }
       );
