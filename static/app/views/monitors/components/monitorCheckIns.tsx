@@ -31,7 +31,10 @@ type State = {
   checkInList: CheckIn[];
 };
 
-const checkStatusToIndicatorStatus: Record<CheckInStatus, string> = {
+const checkStatusToIndicatorStatus: Record<
+  CheckInStatus,
+  'success' | 'error' | 'muted' | 'warning'
+> = {
   [CheckInStatus.OK]: 'success',
   [CheckInStatus.ERROR]: 'error',
   [CheckInStatus.IN_PROGRESS]: 'muted',
@@ -39,7 +42,7 @@ const checkStatusToIndicatorStatus: Record<CheckInStatus, string> = {
   [CheckInStatus.TIMEOUT]: 'error',
 };
 
-const statusToText = {
+const statusToText: Record<CheckInStatus, string> = {
   [CheckInStatus.OK]: t('Okay'),
   [CheckInStatus.ERROR]: t('Failed'),
   [CheckInStatus.IN_PROGRESS]: t('In Progress'),
