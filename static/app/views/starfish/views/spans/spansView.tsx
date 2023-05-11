@@ -13,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HostDetails} from 'sentry/views/starfish/modules/APIModule/hostDetails';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
 import {CLUSTERS} from './clusters';
 import {getSpanListQuery, getSpansTrendsQuery, getTimeSpentQuery} from './queries';
@@ -159,7 +160,7 @@ export default function SpansView(props: Props) {
           return (
             <TagDistributionMeter
               key={cluster.name}
-              title={cluster.label}
+              title={cluster.explanation || cluster.label}
               onTagClick={(_name, tag) => {
                 const incomingCluster = CLUSTERS[tag.value];
                 const bottomCluster = currentClusters.at(-1);
@@ -196,6 +197,11 @@ export default function SpansView(props: Props) {
       {lastStaticCluster?.name === 'http.client.get' && currentCluster?.value && (
         <HostDetails host={currentCluster.value} />
       )}
+
+      <SpanTimeCharts
+        descriptionFilter={descriptionFilter || ''}
+        clusters={currentClusters}
+      />
 
       <SpansTable
         location={props.location}
