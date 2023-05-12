@@ -235,6 +235,7 @@ class DbAccess(Access):
     has_global_access: bool = False
 
     scopes: FrozenSet[str] = frozenset()
+    scopes_upper_bound: FrozenSet[str] | None = None
     permissions: FrozenSet[str] = frozenset()
 
     _member: OrganizationMember | None = None
@@ -340,7 +341,14 @@ class DbAccess(Access):
             return True
 
         membership = self._team_memberships.get(team)
-        if membership and scope in membership.get_scopes():
+        if not membership:
+            return False
+
+        team_scopes = membership.get_scopes()
+        if self.scopes_upper_bound:
+            team_scopes = team_scopes & self.scopes_upper_bound
+
+        if membership and scope in team_scopes:
             metrics.incr(
                 "team_roles.pass_by_team_scope",
                 tags={"team_role": membership.role, "scope": scope},
@@ -377,6 +385,9 @@ class DbAccess(Access):
 
             for membership in memberships:
                 team_scopes = membership.get_scopes()
+                if self.scopes_upper_bound:
+                    team_scopes = team_scopes & self.scopes_upper_bound
+
                 for scope in scopes:
                     if scope in team_scopes:
                         metrics.incr(
@@ -410,7 +421,7 @@ maybe_singular_api_access_org_context = maybe_singular_rpc_access_org_context
 @dataclass
 class RpcBackedAccess(Access):
     rpc_user_organization_context: RpcUserOrganizationContext
-    requested_scopes: Iterable[str] | None
+    scopes_upper_bound: FrozenSet[str] | None
     auth_state: RpcAuthState
 
     # TODO: remove once getsentry has updated to use the new names.
@@ -446,13 +457,13 @@ class RpcBackedAccess(Access):
     @cached_property
     def scopes(self) -> FrozenSet[str]:
         if self.rpc_user_organization_context.member is None:
-            return frozenset(self.requested_scopes or [])
+            return frozenset(self.scopes_upper_bound or [])
 
-        if self.requested_scopes is None:
+        if self.scopes_upper_bound is None:
             return frozenset(self.rpc_user_organization_context.member.scopes)
 
         return frozenset(self.rpc_user_organization_context.member.scopes) & frozenset(
-            self.requested_scopes
+            self.scopes_upper_bound
         )
 
     # TODO(cathy): remove this
@@ -531,7 +542,14 @@ class RpcBackedAccess(Access):
             return False
 
         team_membership = self.get_team_membership(team.id)
-        if team_membership and scope in team_membership.scopes:
+        if not team_membership:
+            return False
+
+        team_scopes = frozenset(team_membership.scopes)
+        if self.scopes_upper_bound:
+            team_scopes = team_scopes & self.scopes_upper_bound
+
+        if scope in team_scopes:
             metrics.incr(
                 "team_roles.pass_by_team_scope",
                 tags={"team_role": f"{team_membership.role}", "scope": scope},
@@ -587,6 +605,9 @@ class RpcBackedAccess(Access):
                     continue
 
                 team_scopes = member_team.role.scopes
+                if self.scopes_upper_bound:
+                    team_scopes = team_scopes & self.scopes_upper_bound
+
                 for scope in scopes:
                     if scope in team_scopes:
                         metrics.incr(
@@ -597,9 +618,19 @@ class RpcBackedAccess(Access):
         return False
 
 
+def _wrap_scopes(scopes_upper_bound: Iterable[str] | None) -> FrozenSet[str] | None:
+    if scopes_upper_bound is not None:
+        return frozenset(scopes_upper_bound)
+    return None
+
+
 class OrganizationMemberAccess(DbAccess):
     def __init__(
-        self, member: OrganizationMember, scopes: Iterable[str], permissions: Iterable[str]
+        self,
+        member: OrganizationMember,
+        scopes: Iterable[str],
+        permissions: Iterable[str],
+        scopes_upper_bound: Iterable[str] | None,
     ) -> None:
         auth_state = auth_service.get_user_auth_state(
             organization_id=member.organization_id,
@@ -619,6 +650,7 @@ class OrganizationMemberAccess(DbAccess):
             has_global_access=has_global_access,
             scopes=frozenset(scopes),
             permissions=frozenset(permissions),
+            scopes_upper_bound=_wrap_scopes(scopes_upper_bound),
         )
 
     def has_team_access(self, team: Team) -> bool:
@@ -691,12 +723,12 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
         super().__init__(
             rpc_user_organization_context=rpc_user_organization_context,
             auth_state=auth_state,
-            requested_scopes=scopes,
+            scopes_upper_bound=_wrap_scopes(scopes),
         )
 
     @cached_property
     def scopes(self) -> FrozenSet[str]:
-        return frozenset(self.requested_scopes or [])
+        return frozenset(self.scopes_upper_bound or [])
 
     @property
     def has_global_access(self) -> bool:
@@ -1095,7 +1127,7 @@ def from_member(
 
     permissions = get_permissions_for_user(member.user_id) if is_superuser else frozenset()
 
-    return OrganizationMemberAccess(member, scope_intersection, permissions)
+    return OrganizationMemberAccess(member, scope_intersection, permissions, scopes)
 
 
 def from_rpc_member(
@@ -1109,7 +1141,7 @@ def from_rpc_member(
 
     return RpcBackedAccess(
         rpc_user_organization_context=rpc_user_organization_context,
-        requested_scopes=scopes,
+        scopes_upper_bound=_wrap_scopes(scopes),
         auth_state=auth_state
         or auth_service.get_user_auth_state(
             user_id=rpc_user_organization_context.user_id,
