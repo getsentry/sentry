@@ -164,6 +164,16 @@ function getErrorMessage(
           ),
         },
       ];
+    case SourceMapProcessingIssueType.SOURCEMAP_NOT_FOUND:
+      return [
+        {
+          title: t("Source Map File doesn't exist"),
+          desc: t(
+            "Sentry couldn't fetch the source map file for this event. Read our docs for troubleshooting help."
+          ),
+          docsLink: getTroubleshootingLink(),
+        },
+      ];
     case SourceMapProcessingIssueType.SDK_OUT_OF_DATE:
       return [
         {
