@@ -234,7 +234,7 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
       });
 
       // Unique by `id` to avoid duplicates due to renames and state store data
-      const fetchedTeams = uniqBy([...results, ...store.teams], ({id}) => id);
+      const fetchedTeams = uniqBy<Team>([...results, ...store.teams], ({id}) => id);
       TeamStore.loadInitialData(fetchedTeams);
 
       setState({
@@ -291,7 +291,7 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
         cursor,
       });
 
-      const fetchedTeams = uniqBy([...store.teams, ...results], ({slug}) => slug);
+      const fetchedTeams = uniqBy<Team>([...store.teams, ...results], ({slug}) => slug);
 
       if (search) {
         // Only update the store if we have more items
