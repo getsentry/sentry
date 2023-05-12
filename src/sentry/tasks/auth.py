@@ -158,6 +158,7 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
     log_label = "verified email"
 
     def is_compliant(self, member: OrganizationMember) -> bool:
+        # TODO(hybridcloud) this is doing a join from member to user
         return UserEmail.objects.get_primary_email(member.user).is_verified
 
     def call_to_action(self, org: Organization, user: User, member: OrganizationMember):

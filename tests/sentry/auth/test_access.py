@@ -424,6 +424,53 @@ class FromUserTest(AccessFactoryTestCase):
         result = self.from_user(user, is_superuser=True)
         assert result.has_permission("test.permission")
 
+    @with_feature("organizations:team-roles")
+    def test_enforce_upper_bound_scope(self):
+        organization = self.create_organization()
+        team = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, teams=[team])
+        team_other = self.create_team(organization=organization)
+        project_other = self.create_project(organization=organization, teams=[team_other])
+
+        # Team Admin
+        user = self.create_user()
+        member = self.create_member(organization=organization, user=user)
+        self.create_team_membership(team, member, role="admin")
+
+        request = self.make_request(user=user)
+
+        results = [
+            self.from_user(user, organization, scopes=["org:read", "team:admin"]),
+            self.from_request(request, organization, scopes=["org:read", "team:admin"]),
+        ]
+        for result in results:
+            # Does not have scopes from org-role
+            assert not result.has_scope("org:admin")
+            assert not result.has_scope("org:write")
+            assert result.has_scope("org:read")
+            assert not result.has_scope("team:admin")  # Org-member do not have team:admin scope
+            assert not result.has_scope("team:read")
+            assert not result.has_scope("team:write")
+            assert not result.has_scope("project:admin")
+            assert not result.has_scope("project:write")
+            assert not result.has_scope("project:read")
+
+            # Has scopes from team-role
+            assert result.has_team_scope(team, "team:admin")  # From being a team-admin
+            assert not result.has_team_scope(team, "team:write")
+            assert not result.has_team_scope(team, "team:read")
+            assert not result.has_project_scope(project, "project:admin")
+            assert not result.has_project_scope(project, "project:write")
+            assert not result.has_project_scope(project, "project:read")
+
+            # Does not have scope from other team
+            assert not result.has_team_scope(team_other, "team:admin")
+            assert not result.has_team_scope(team_other, "team:write")
+            assert not result.has_team_scope(team_other, "team:read")
+            assert not result.has_project_scope(project_other, "project:admin")
+            assert not result.has_project_scope(project_other, "project:write")
+            assert not result.has_project_scope(project_other, "project:read")
+
 
 @all_silo_test(stable=True)
 class FromRequestTest(AccessFactoryTestCase):

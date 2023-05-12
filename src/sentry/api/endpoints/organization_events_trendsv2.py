@@ -124,9 +124,10 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             translated_groupby = ["transaction"]
 
             results = {}
+            formatted_results = {}
             for index, item in enumerate(top_events["data"]):
                 result_key = create_result_key(item, translated_groupby, {})
-                results[result_key] = {"order": index, "data": []}
+                results[result_key] = {"order": index, "data": [], "project": item["project"]}
             for row in result["data"]:
                 result_key = create_result_key(row, translated_groupby, {})
                 if result_key in results:
@@ -138,13 +139,15 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         extra={"result_key": result_key, "top_event_keys": list(results.keys())},
                     )
             for key, item in results.items():
-                results[key] = SnubaTSResult(
+                key = f'{key},{item["project"]}'
+                formatted_results[key] = SnubaTSResult(
                     {
                         "data": zerofill(
                             item["data"], params["start"], params["end"], rollup, "time"
                         )
                         if zerofill_results
                         else item["data"],
+                        "project": item["project"],
                         "isMetricsData": True,
                         "order": item["order"],
                         "meta": result["meta"],
@@ -154,7 +157,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     rollup,
                 )
 
-            return results
+            return formatted_results
 
         try:
             stats_data = self.get_event_stats_data(
