@@ -149,7 +149,7 @@ def _handles_frame(frame):
     if (abs_path := frame.get("abs_path")) is None:
         return False
     # skip "native" frames without a line
-    if abs_path == "native" and frame.get("lineno", 0) == 0:
+    if abs_path in ("native", "[native code]") and frame.get("lineno", 0) == 0:
         return False
     return True
 
