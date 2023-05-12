@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,13 +11,16 @@ from sentry.models.dashboard import Dashboard
 from sentry.snuba import metrics_enhanced_performance
 from sentry.snuba.referrer import Referrer
 
-TAG_ALIASES = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
-SIX_HOURS = int(timedelta(hours=6).total_seconds())
 FEATURE = "organizations:starfish-test-endpoint"
 
 
 @region_silo_endpoint
 class OrganizationEventsStarfishEndpoint(OrganizationEventsV2EndpointBase):
+    """
+    This is a test endpoint that's meant to only be used for starfish testing
+    purposes.
+    """
+
     def get(self, request: Request, organization) -> Response:
         if not features.has(FEATURE, organization, actor=request.user):
             return Response(status=404)
