@@ -157,7 +157,7 @@ async function fetchTeams(
  * slugs, or loading more through search.
  *
  */
-function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
+export function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
   const api = useApi();
   const {organization} = useLegacyStore(OrganizationStore);
   const store = useLegacyStore(TeamStore);
@@ -400,5 +400,3 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
 
   return result;
 }
-
-export default useTeams;

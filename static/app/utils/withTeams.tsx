@@ -1,6 +1,6 @@
 import {Team} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
-import useTeams from 'sentry/utils/useTeams';
+import {useTeams} from 'sentry/utils/useTeams';
 
 type InjectedTeamsProps = {
   teams?: Team[];
