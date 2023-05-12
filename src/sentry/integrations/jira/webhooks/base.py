@@ -14,6 +14,7 @@ from sentry_sdk import Scope
 
 from sentry.api.base import Endpoint
 from sentry.integrations.utils import AtlassianConnectValidationError
+from sentry.integrations.utils.atlassian_connect import get_integration_from_jwt
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,17 @@ class JiraWebhookBase(Endpoint, abc.ABC):
     def convert_args(self, request: Request, *args, **kwargs):
         token = self.get_token(request)
         kwargs["token"] = token
+
+        if self.lookup_integration_from_token:
+            integration = get_integration_from_jwt(
+                token=token,
+                path=request.path,
+                provider=self.provider,
+                query_params=request.GET,
+                method=request.method,
+            )
+            kwargs["integration"] = integration
+
         return super().convert_args(request, *args, **kwargs)
 
     def handle_exception(
