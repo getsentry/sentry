@@ -270,9 +270,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 email=result["email"],
                 organization=organization,
             )
-            if existing_invite.exists():
-                for om in existing_invite:
-                    om.delete()
+            for om in existing_invite:
+                om.delete()
 
             om = OrganizationMember(
                 organization=organization,
