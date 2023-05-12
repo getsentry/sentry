@@ -67,7 +67,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       !!projectSlug &&
       !firstError &&
       projectData?.status === OnboardingProjectStatus.WAITING, // Fetch only if the project is available and we have not yet received an error,
-    onSuccess: data => {
+    onSuccess: ([data]) => {
       setFirstError(data.firstEvent);
     },
   });
@@ -82,7 +82,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       !!firstError &&
       !firstIssue &&
       projectData?.status === OnboardingProjectStatus.PROCESSING, // Only fetch if an error event is received and we have not yet located the first issue,
-    onSuccess: data => {
+    onSuccess: ([data]) => {
       setFirstIssue(data.find((issue: Group) => issue.firstSeen === firstError));
     },
   });

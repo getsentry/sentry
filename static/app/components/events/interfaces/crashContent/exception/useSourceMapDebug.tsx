@@ -125,7 +125,7 @@ export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
     retry: false,
   };
   return useQueries({
-    queries: props.map<UseApiQueryOptions<SourceMapDebugResponse>>(p => {
+    queries: props.map(p => {
       const key = sourceMapDebugQuery(p);
       return {
         queryKey: sourceMapDebugQuery(p),
@@ -134,7 +134,7 @@ export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
           api.requestPromise(key[0], {
             method: 'GET',
             query: key[1]?.query,
-          }),
+          }) as Promise<SourceMapDebugResponse>,
         ...options,
       };
     }),
