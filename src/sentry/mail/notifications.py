@@ -112,7 +112,7 @@ def get_context(
 @register_notification_provider(ExternalProviders.EMAIL)
 def send_notification_as_email(
     notification: BaseNotification,
-    recipients: Iterable[RpcActor | Team | RpcUser],
+    recipients: Iterable[RpcActor],
     shared_context: Mapping[str, Any],
     extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None,
 ) -> None:
