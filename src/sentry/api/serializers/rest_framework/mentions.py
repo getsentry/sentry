@@ -5,7 +5,8 @@ from typing import Sequence
 from rest_framework import serializers
 
 from sentry.models import ActorTuple, Team, User
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 
 
 def extract_user_ids_from_mentions(organization_id, mentions):

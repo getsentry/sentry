@@ -1,6 +1,6 @@
 from sentry.api.serializers import Serializer, register
 from sentry.incidents.models import IncidentSeen
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 
 
 @register(IncidentSeen)

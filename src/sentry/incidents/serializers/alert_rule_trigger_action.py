@@ -17,7 +17,7 @@ from sentry.incidents.serializers import (
 from sentry.integrations.slack.utils import validate_channel_id
 from sentry.models import OrganizationMember, Team
 from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
 

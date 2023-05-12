@@ -16,7 +16,7 @@ from sentry.models import (
     User,
     remove_group_from_inbox,
 )
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import issue_archived
 from sentry.utils import metrics
 

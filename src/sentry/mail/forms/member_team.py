@@ -5,7 +5,7 @@ from typing import Any
 from django import forms
 
 from sentry.models import Project
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 
 
 class MemberTeamForm(forms.Form):

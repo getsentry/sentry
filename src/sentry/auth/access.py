@@ -44,7 +44,8 @@ from sentry.services.hybrid_cloud.organization import (
     organization_service,
 )
 from sentry.services.hybrid_cloud.organization.serial import summarize_member
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.request_cache import request_cache
 

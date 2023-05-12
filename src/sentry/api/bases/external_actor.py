@@ -18,7 +18,8 @@ from sentry.api.validators.integrations import validate_provider
 from sentry.models import ExternalActor, Organization, Team
 from sentry.models.actor import Actor, get_actor_for_user
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders, get_provider_choices
 
 AVAILABLE_PROVIDERS = {

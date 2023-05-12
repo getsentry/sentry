@@ -22,7 +22,8 @@ from sentry.models import (
     fetch_actors_by_actor_ids,
 )
 from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 
 

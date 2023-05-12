@@ -13,7 +13,7 @@ from sentry.models import (
     actor_type_to_string,
 )
 from sentry.ownership.grammar import parse_code_owners
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
