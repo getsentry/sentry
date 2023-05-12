@@ -11,6 +11,7 @@ describe('useTeams', function () {
 
   beforeEach(function () {
     TeamStore.reset();
+    OrganizationStore.onUpdate(org, {replace: true});
   });
 
   it('provides teams from the team store', function () {
@@ -24,7 +25,6 @@ describe('useTeams', function () {
 
   it('loads more teams when using onSearch', async function () {
     TeamStore.loadInitialData(mockTeams);
-    OrganizationStore.onUpdate(org, {replace: true});
     const newTeam2 = TestStubs.Team({id: '2', slug: 'test-team2'});
     const newTeam3 = TestStubs.Team({id: '3', slug: 'test-team3'});
 
