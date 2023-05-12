@@ -28,7 +28,7 @@ interface UseApiQueryOptions<TApiResponse, TError = RequestError>
     reactQuery.UseQueryOptions<
       ApiResult<TApiResponse>,
       TError,
-      TApiResponse,
+      ApiResult<TApiResponse>,
       ApiQueryKey
     >,
     // This is an explicit option in our function
@@ -111,11 +111,16 @@ function useApiQuery<TResponseData, TError = RequestError>(
 
   const {data, ...rest} = reactQuery.useQuery(queryKey, queryFn, options);
 
-  return {
+  const queryResult = {
     data: data?.[0],
     getResponseHeader: data?.[2]?.getResponseHeader,
     ...rest,
   };
+
+  // XXX: We need to cast here because unwrapping `data` breaks the type returned by
+  //      useQuery above. The react-query library's UseQueryResult is a union type and
+  //      too complex to recreate here so casting the entire object is more appropriate.
+  return queryResult as UseApiQueryResult<TResponseData, TError>;
 }
 
 /**
