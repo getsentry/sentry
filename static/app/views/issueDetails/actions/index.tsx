@@ -534,7 +534,6 @@ export function Actions(props: Props) {
                 isArchived={isIgnored}
                 onUpdate={onUpdate}
                 disabled={disabled}
-                hideIcon
                 disableTooltip
               />
             </GuideAnchor>
@@ -561,7 +560,6 @@ export function Actions(props: Props) {
               isResolved={isResolved}
               isAutoResolved={isAutoResolved}
               size="sm"
-              hideIcon
               priority="primary"
             />
           </GuideAnchor>
