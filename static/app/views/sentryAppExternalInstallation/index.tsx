@@ -15,6 +15,8 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import AsyncView from 'sentry/views/asyncView';
 
+import {OrganizationContext} from '../organizationContext';
+
 type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 
 type State = AsyncView['state'] & {
@@ -276,13 +278,15 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
         </OrgViewHolder>
         {this.checkAndRenderError()}
         {organization && (
-          <SentryAppDetailsModal
-            sentryApp={sentryApp}
-            organization={organization}
-            onInstall={this.onInstall}
-            closeModal={this.onClose}
-            isInstalled={this.disableInstall}
-          />
+          <OrganizationContext.Provider value={organization}>
+            <SentryAppDetailsModal
+              sentryApp={sentryApp}
+              organization={organization}
+              onInstall={this.onInstall}
+              closeModal={this.onClose}
+              isInstalled={this.disableInstall}
+            />
+          </OrganizationContext.Provider>
         )}
       </div>
     );

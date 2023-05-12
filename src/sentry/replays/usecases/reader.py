@@ -198,6 +198,8 @@ def _fetch_segments_from_snuba(
     conditions = []
     if segment_id:
         conditions.append(Condition(Column("segment_id"), Op.EQ, segment_id))
+    else:
+        conditions.append(Condition(Column("segment_id"), Op.IS_NOT_NULL, None))
 
     snuba_request = Request(
         dataset="replays",

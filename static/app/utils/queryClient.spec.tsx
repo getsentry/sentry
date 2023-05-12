@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -18,21 +20,31 @@ describe('queryClient', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/some/test/path/',
         body: {value: 5},
+        headers: {'Custom-Header': 'header value'},
       });
 
       function TestComponent() {
-        const {data} = useApiQuery<ResponseData>(['/some/test/path/'], {staleTime: 0});
+        const {data, getResponseHeader} = useApiQuery<ResponseData>(
+          ['/some/test/path/'],
+          {staleTime: 0}
+        );
 
         if (!data) {
           return null;
         }
 
-        return <div>{data.value}</div>;
+        return (
+          <Fragment>
+            <div>{data.value}</div>
+            <div>{getResponseHeader?.('Custom-Header')}</div>
+          </Fragment>
+        );
       }
 
       render(<TestComponent />);
 
       expect(await screen.findByText('5')).toBeInTheDocument();
+      expect(screen.getByText('header value')).toBeInTheDocument();
 
       expect(mock).toHaveBeenCalledWith('/some/test/path/', expect.anything());
     });
@@ -64,22 +76,6 @@ describe('queryClient', function () {
         '/some/test/path/',
         expect.objectContaining({query: {filter: 'red'}})
       );
-    });
-
-    it('can fetch with custom query function', async function () {
-      function TestComponent() {
-        const {data} = useApiQuery<ResponseData>(['some-key'], () => ({value: 5}));
-
-        if (!data) {
-          return null;
-        }
-
-        return <div>{data.value}</div>;
-      }
-
-      render(<TestComponent />);
-
-      expect(await screen.findByText('5')).toBeInTheDocument();
     });
 
     it('can return error state', async function () {

@@ -5,80 +5,62 @@ import {PlatformIcon} from 'platformicons';
 import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import Link from 'sentry/components/links/link';
-import {IconChevron, IconClose, IconEllipsis} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {IconChevron, IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import {OnboardingCustomComponentProps, Project} from 'sentry/types';
+import {OnboardingCustomComponentProps} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import SkipConfirm from './skipConfirm';
 
-const MAX_PROJECT_COUNT = 3;
-
 export default function OnboardingProjectsCard({
   organization: org,
-  onboardingState,
-  setOnboardingState,
+  onboardingContext,
   projects: allProjects,
 }: OnboardingCustomComponentProps) {
-  if (!onboardingState) {
+  const handleSkip = () => {
+    onboardingContext.setData({
+      ...onboardingContext.data,
+      selectedSDK: undefined,
+    });
+  };
+
+  // TODO(Priscila): Reflect on this logic
+  const selectedProjectSlug = onboardingContext.data.selectedSDK?.key;
+
+  const project = selectedProjectSlug
+    ? allProjects.find(p => p.slug === selectedProjectSlug)
+    : undefined;
+
+  // Project selected during onboarding but not received first event
+  const projectHasFirstEvent = !project?.firstEvent;
+
+  if (!project || !projectHasFirstEvent) {
     return null;
   }
 
-  const handleSkip = () => {
-    setOnboardingState({
-      ...onboardingState,
-      selectedPlatforms: [],
-    });
-  };
-  // Projects selected during onboarding but not received first event
-  const projects = onboardingState.selectedPlatforms
-    .map(platform => onboardingState.platformToProjectIdMap[platform.key])
-    .map(projectId => allProjects.find(p => p.slug === projectId))
-    .filter(project => project && !project.firstEvent) as Project[];
-  if (projects.length === 0) {
-    return null;
-  }
   return (
     <TaskCard key="onboarding-continue-card">
       <Title>{t('Project to Setup')}</Title>
       <OnboardingTaskProjectList>
-        {projects.slice(0, MAX_PROJECT_COUNT).map(p => (
-          <OnboardingTaskProjectListItem
-            key={p.id}
-            to={`/onboarding/${org.slug}/setup-docs/?project_id=${p.id}`}
-            onClick={() => {
-              trackAnalytics('growth.onboarding_quick_start_cta', {
-                platform: p.platform,
-                organization: org,
-              });
-            }}
-          >
-            <OnboardingTaskProjectListItemInner>
-              <StyledPlatformIcon platform={p.platform || 'default'} />
-              {p.slug}
-              <PulsingIndicator />
-              <PulsingIndicatorText>{t('Waiting for event')}</PulsingIndicatorText>
-              <IconChevron direction="right" />
-            </OnboardingTaskProjectListItemInner>
-          </OnboardingTaskProjectListItem>
-        ))}
-        {projects.length > MAX_PROJECT_COUNT && (
-          <OnboardingTaskProjectListItem
-            to={`/onboarding/${org.slug}/setup-docs/`}
-            onClick={() => {
-              trackAnalytics('growth.onboarding_quick_start_cta', {
-                organization: org,
-              });
-            }}
-          >
-            <OnboardingTaskProjectListItemInner>
-              <StyledAndMoreIcon />
-              {tct('and [num] more', {num: projects.length - MAX_PROJECT_COUNT})}
-            </OnboardingTaskProjectListItemInner>
-          </OnboardingTaskProjectListItem>
-        )}
+        <OnboardingTaskProjectListItem
+          to={`/onboarding/${org.slug}/setup-docs/?project_id=${project.id}`}
+          onClick={() => {
+            trackAnalytics('growth.onboarding_quick_start_cta', {
+              platform: project.platform,
+              organization: org,
+            });
+          }}
+        >
+          <OnboardingTaskProjectListItemInner>
+            <StyledPlatformIcon platform={project.platform || 'default'} />
+            {project.slug}
+            <PulsingIndicator />
+            <PulsingIndicatorText>{t('Waiting for event')}</PulsingIndicatorText>
+            <IconChevron direction="right" />
+          </OnboardingTaskProjectListItemInner>
+        </OnboardingTaskProjectListItem>
       </OnboardingTaskProjectList>
       <SkipConfirm onSkip={handleSkip}>
         {({skip}) => (
@@ -182,9 +164,5 @@ const CloseButton = styled(Button)`
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
-  margin-right: ${space(1)};
-`;
-
-const StyledAndMoreIcon = styled(IconEllipsis)`
   margin-right: ${space(1)};
 `;

@@ -537,18 +537,26 @@ def update_groups(
         new_substatus = (
             SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
         )
+        if new_substatus is None and new_status == GroupStatus.UNRESOLVED:
+            new_substatus = GroupSubStatus.ONGOING
+
         has_escalating_issues = features.has(
             "organizations:escalating-issues", group_list[0].organization
         )
 
         with transaction.atomic():
+            # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
+            #                we should centralize the logic for validating and defaulting substatus values
+            #                and refactor pre_save and the above new_substatus assignment to account for this
             status_updated = queryset.exclude(status=new_status).update(
                 status=new_status, substatus=new_substatus
             )
             GroupResolution.objects.filter(group__in=group_ids).delete()
             if new_status == GroupStatus.IGNORED:
                 if new_substatus == GroupSubStatus.UNTIL_ESCALATING and has_escalating_issues:
-                    handle_archived_until_escalating(group_list, acting_user)
+                    result["statusDetails"] = handle_archived_until_escalating(
+                        group_list, acting_user, projects, sender=update_groups
+                    )
                 else:
                     result["statusDetails"] = handle_ignored(
                         group_ids, group_list, status_details, acting_user, user

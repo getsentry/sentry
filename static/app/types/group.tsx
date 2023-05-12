@@ -170,6 +170,16 @@ export type TagWithTopValues = {
   canDelete?: boolean;
 };
 
+export const enum GroupSubstatus {
+  UNTIL_ESCALATING = 'until_escalating',
+  UNTIL_CONDITION_MET = 'until_condition_met',
+  FOREVER = 'forever',
+  ESCALATING = 'escalating',
+  ONGOING = 'ongoing',
+  REGRESSED = 'regressed',
+  NEW = 'new',
+}
+
 /**
  * Inbox, issue owners and Activity
  */
@@ -188,6 +198,7 @@ export const enum GroupInboxReason {
   MANUAL = 3,
   REPROCESSED = 4,
   ESCALATING = 5,
+  ONGOING = 6,
 }
 
 export type InboxDetails = {
@@ -325,14 +336,14 @@ export interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
 
 interface GroupActivitySetByResolvedInCommit extends GroupActivityBase {
   data: {
-    commit: Commit;
+    commit?: Commit;
   };
   type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
 }
 
 interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
   data: {
-    pullRequest: PullRequest;
+    pullRequest?: PullRequest;
   };
   type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST;
 }
@@ -342,6 +353,8 @@ export interface GroupActivitySetIgnored extends GroupActivityBase {
     ignoreCount?: number;
     ignoreDuration?: number;
     ignoreUntil?: string;
+    /** Archived until escalating */
+    ignoreUntilEscalating?: boolean;
     ignoreUserCount?: number;
     ignoreUserWindow?: number;
     ignoreWindow?: number;
@@ -479,6 +492,7 @@ export type ResolutionStatusDetails = {
   // Sent in requests. ignoreUntil is used in responses.
   ignoreDuration?: number;
   ignoreUntil?: string;
+  ignoreUntilEscalating?: boolean;
   ignoreUserCount?: number;
   ignoreUserWindow?: number;
   ignoreWindow?: number;
@@ -491,13 +505,12 @@ export type ResolutionStatusDetails = {
   inNextRelease?: boolean;
   inRelease?: string;
   repository?: string;
-  untilEscalating?: boolean;
 };
 
 export type GroupStatusResolution = {
   status: ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
-  substatus?: 'until_escalating';
+  substatus?: GroupSubstatus;
 };
 
 export type GroupRelease = {
@@ -538,12 +551,12 @@ export interface BaseGroup extends GroupRelease {
   shortId: string;
   status: string;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
+  substatus?: GroupSubstatus;
 }
 
 export interface GroupReprocessing

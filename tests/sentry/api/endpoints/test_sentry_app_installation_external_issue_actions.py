@@ -3,8 +3,10 @@ from django.urls import reverse
 
 from sentry.models import PlatformExternalIssue
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
@@ -27,7 +29,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
 
     @responses.activate
     def test_creates_external_issue(self):
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.user)
         data = {
             "groupId": self.group.id,
             "action": "create",
@@ -60,7 +62,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
 
     @responses.activate
     def test_external_issue_doesnt_get_created(self):
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.user)
         data = {
             "groupId": self.group.id,
             "action": "create",

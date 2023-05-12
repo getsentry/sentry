@@ -6,10 +6,12 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.tasks.organization_mapping import ORGANIZATION_MAPPING_EXPIRY, repair_mappings
 from sentry.testutils import TestCase
+from sentry.testutils.factories import Factories
 
 
 class OrganizationMappingRepairTest(TestCase):
     def test_removes_expired_unverified(self):
+        self.organization = Factories.create_organization(no_mapping=True)
         expired_time = datetime.now() - ORGANIZATION_MAPPING_EXPIRY
         mapping = self.create_organization_mapping(
             self.organization, verified=False, date_created=expired_time
@@ -26,6 +28,7 @@ class OrganizationMappingRepairTest(TestCase):
         assert mapping.verified
 
     def test_removes_expired_duplicates(self):
+        self.organization = Factories.create_organization(no_mapping=True)
         expired_time = datetime.now() - ORGANIZATION_MAPPING_EXPIRY
         mapping = self.create_organization_mapping(
             self.organization, verified=False, date_created=expired_time
@@ -46,6 +49,7 @@ class OrganizationMappingRepairTest(TestCase):
         assert mapping.verified
 
     def test_set_verified(self):
+        self.organization = Factories.create_organization(no_mapping=True)
         expired_time = datetime.now() - ORGANIZATION_MAPPING_EXPIRY
         mapping = self.create_organization_mapping(
             self.organization, verified=False, date_created=expired_time, idempotency_key="1234"

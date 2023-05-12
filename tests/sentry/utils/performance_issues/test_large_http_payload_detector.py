@@ -36,9 +36,9 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 "GET /api/0/organizations/endpoint1",
                 "hash1",
                 data={
-                    "Transfer Size": 50_000_000,
-                    "Encoded Body Size": 50_000_000,
-                    "Decoded Body Size": 50_000_000,
+                    "http.transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
                 },
             )
         ]
@@ -52,11 +52,11 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 type=PerformanceLargeHTTPPayloadGroupType,
                 parent_span_ids=None,
                 cause_span_ids=[],
-                offender_span_ids="bbbbbbbbbbbbbbbb",
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
                 evidence_data={
                     "parent_span_ids": [],
                     "cause_span_ids": [],
-                    "offender_span_ids": "bbbbbbbbbbbbbbbb",
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
                     "op": "http",
                 },
                 evidence_display=[],
@@ -70,9 +70,9 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
                 duration=1000.0,
                 data={
-                    "Transfer Size": 50_000_000,
-                    "Encoded Body Size": 50_000_000,
-                    "Decoded Body Size": 50_000_000,
+                    "http.transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
                 },
             )
         ]

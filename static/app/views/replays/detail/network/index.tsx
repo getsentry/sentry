@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -6,11 +6,14 @@ import Feature from 'sentry/components/acl/feature';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
+import useUrlParams from 'sentry/utils/useUrlParams';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import NetworkDetails from 'sentry/views/replays/detail/network/networkDetails';
+import NetworkDetails from 'sentry/views/replays/detail/network/details';
+import {ReqRespBodiesAlert} from 'sentry/views/replays/detail/network/details/onboarding';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
   COLUMN_COUNT,
@@ -25,8 +28,12 @@ import type {NetworkSpan} from 'sentry/views/replays/types';
 const HEADER_HEIGHT = 25;
 const BODY_HEIGHT = 28;
 
+const RESIZEABLE_HANDLE_HEIGHT = 90;
+
 type Props = {
+  isNetworkDetailsSetup: boolean;
   networkSpans: undefined | NetworkSpan[];
+  projectId: undefined | string;
   startTimestampMs: number;
 };
 
@@ -36,14 +43,16 @@ const cellMeasurer = {
   fixedHeight: true,
 };
 
-function NetworkList({networkSpans, startTimestampMs}: Props) {
+function NetworkList({
+  isNetworkDetailsSetup,
+  networkSpans,
+  projectId,
+  startTimestampMs,
+}: Props) {
   const organization = useOrganization();
   const {currentTime, currentHoverTime} = useReplayContext();
 
-  const initialRequestDetailsHeight = useMemo(
-    () => Math.max(150, window.innerHeight * 0.25),
-    []
-  );
+  const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
   const filterProps = useNetworkFilters({networkSpans: networkSpans || []});
   const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
@@ -53,37 +62,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
-  const itemLookup = useMemo(
-    () =>
-      items &&
-      items
-        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
-        .sort(([a], [b]) => a - b),
-    [items]
-  );
-
-  const current = useMemo(
-    () =>
-      getPrevReplayEvent({
-        itemLookup,
-        items,
-        targetTimestampMs: startTimestampMs + currentTime,
-      }),
-    [itemLookup, items, currentTime, startTimestampMs]
-  );
-
-  const hovered = useMemo(
-    () =>
-      currentHoverTime
-        ? getPrevReplayEvent({
-            itemLookup,
-            items,
-            targetTimestampMs: startTimestampMs + currentHoverTime,
-          })
-        : null,
-    [itemLookup, items, currentHoverTime, startTimestampMs]
-  );
-
+  const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<MultiGrid>(null);
   const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
@@ -91,9 +70,58 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
       cellMeasurer,
       gridRef,
       columnCount: COLUMN_COUNT,
-      dynamicColumnIndex: 1,
+      dynamicColumnIndex: 2,
       deps,
     });
+
+  // `initialSize` cannot depend on containerRef because the ref starts as
+  // `undefined` which then gets set into the hook and doesn't update.
+  const initialSize = Math.max(150, window.innerHeight * 0.4);
+
+  const {size: containerSize, ...resizableDrawerProps} = useResizableDrawer({
+    direction: 'up',
+    initialSize,
+    min: 0,
+    onResize: () => {},
+  });
+  const {getParamValue: getDetailRow, setParamValue: setDetailRow} = useUrlParams(
+    'n_detail_row',
+    ''
+  );
+  const detailDataIndex = getDetailRow();
+
+  const maxContainerHeight =
+    (containerRef.current?.clientHeight || window.innerHeight) - RESIZEABLE_HANDLE_HEIGHT;
+  const splitSize =
+    networkSpans && detailDataIndex
+      ? Math.min(maxContainerHeight, containerSize)
+      : undefined;
+
+  const onClickCell = useCallback(
+    ({dataIndex, rowIndex}: {dataIndex: number; rowIndex: number}) => {
+      if (getDetailRow() === String(dataIndex)) {
+        setDetailRow('');
+
+        trackAnalytics('replay.details-network-panel-closed', {
+          is_sdk_setup: isNetworkDetailsSetup,
+          organization,
+        });
+      } else {
+        setDetailRow(String(dataIndex));
+        setScrollToRow(rowIndex);
+
+        const item = items[dataIndex];
+        trackAnalytics('replay.details-network-panel-opened', {
+          is_sdk_setup: isNetworkDetailsSetup,
+          organization,
+          resource_method: item.data.method,
+          resource_status: item.data.statusCode,
+          resource_type: item.op,
+        });
+      }
+    },
+    [getDetailRow, isNetworkDetailsSetup, items, organization, setDetailRow]
+  );
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
     const network = items[rowIndex - 1];
@@ -123,13 +151,14 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             />
           ) : (
             <NetworkTableCell
-              ref={e => e && registerChild?.(e)}
               columnIndex={columnIndex}
-              handleClick={handleClick}
+              currentHoverTime={currentHoverTime}
+              currentTime={currentTime}
               handleMouseEnter={handleMouseEnter}
               handleMouseLeave={handleMouseLeave}
-              isCurrent={network.id === current?.id}
-              isHovered={network.id === hovered?.id}
+              onClickTimestamp={handleClick}
+              onClickCell={onClickCell}
+              ref={e => e && registerChild?.(e)}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
               span={network}
@@ -145,8 +174,19 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   return (
     <FluidHeight>
       <NetworkFilters networkSpans={networkSpans} {...filterProps} />
-      <NetworkTable>
-        <FluidHeight>
+      <Feature
+        features={['session-replay-network-details']}
+        organization={organization}
+        renderDisabled={false}
+      >
+        <ReqRespBodiesAlert isNetworkDetailsSetup={isNetworkDetailsSetup} />
+      </Feature>
+      <NetworkTable ref={containerRef}>
+        <SplitPanel
+          style={{
+            gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',
+          }}
+        >
           {networkSpans ? (
             <OverflowHidden>
               <AutoSizer onResize={onWrapperResize}>
@@ -170,6 +210,12 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
                       </NoRowRenderer>
                     )}
                     onScrollbarPresenceChange={onScrollbarPresenceChange}
+                    onScroll={() => {
+                      if (scrollToRow !== undefined) {
+                        setScrollToRow(undefined);
+                      }
+                    }}
+                    scrollToRow={scrollToRow}
                     overscanColumnCount={COLUMN_COUNT}
                     overscanRowCount={5}
                     rowCount={items.length + 1}
@@ -187,13 +233,35 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             organization={organization}
             renderDisabled={false}
           >
-            <NetworkDetails initialHeight={initialRequestDetailsHeight} items={items} />
+            <NetworkDetails
+              {...resizableDrawerProps}
+              isSetup={isNetworkDetailsSetup}
+              item={detailDataIndex ? (items[detailDataIndex] as NetworkSpan) : null}
+              onClose={() => {
+                setDetailRow('');
+                trackAnalytics('replay.details-network-panel-closed', {
+                  is_sdk_setup: isNetworkDetailsSetup,
+                  organization,
+                });
+              }}
+              projectId={projectId}
+              startTimestampMs={startTimestampMs}
+            />
           </Feature>
-        </FluidHeight>
+        </SplitPanel>
       </NetworkTable>
     </FluidHeight>
   );
 }
+
+const SplitPanel = styled('div')`
+  width: 100%;
+  height: 100%;
+
+  position: relative;
+  display: grid;
+  overflow: auto;
+`;
 
 const OverflowHidden = styled('div')`
   position: relative;
@@ -201,9 +269,45 @@ const OverflowHidden = styled('div')`
   overflow: hidden;
 `;
 
-const NetworkTable = styled(OverflowHidden)`
+const NetworkTable = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+
+  .beforeHoverTime + .afterHoverTime:before {
+    border-top: 1px solid ${p => p.theme.purple200};
+    content: '';
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 999999999%;
+  }
+
+  .beforeHoverTime:last-child:before {
+    border-bottom: 1px solid ${p => p.theme.purple200};
+    content: '';
+    right: 0;
+    position: absolute;
+    bottom: 0;
+    width: 999999999%;
+  }
+
+  .beforeCurrentTime + .afterCurrentTime:before {
+    border-top: 1px solid ${p => p.theme.purple300};
+    content: '';
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 999999999%;
+  }
+
+  .beforeCurrentTime:last-child:before {
+    border-bottom: 1px solid ${p => p.theme.purple300};
+    content: '';
+    right: 0;
+    position: absolute;
+    bottom: 0;
+    width: 999999999%;
+  }
 `;
 
 export default NetworkList;

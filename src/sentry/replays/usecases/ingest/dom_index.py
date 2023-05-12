@@ -189,7 +189,12 @@ def get_user_actions(
 
 
 def _get_testid(container: Dict[str, str]) -> str:
-    return container.get("data-testid") or container.get("data-test-id") or ""
+    return (
+        container.get("testId")
+        or container.get("data-testid")
+        or container.get("data-test-id")
+        or ""
+    )
 
 
 def _initialize_publisher() -> KafkaPublisher:

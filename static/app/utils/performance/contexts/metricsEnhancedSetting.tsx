@@ -4,6 +4,7 @@ import {Location} from 'history';
 
 import {Organization} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
+import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -76,11 +77,10 @@ export function canUseMetricsData(organization: Organization) {
   const isDevFlagOn = canUseMetricsDevUI(organization); // Forces metrics data on as well.
   const isInternalViewOn = organization.features.includes(
     'performance-transaction-name-only-search'
-  ); // TODO: Swap this flag out.
-
-  const samplingRolloutFlag = organization.features.includes('dynamic-sampling');
+  );
+  const samplingFeatureFlag = organization.features.includes('dynamic-sampling'); // Exists on AM2 plans only.
   const isRollingOut =
-    samplingRolloutFlag && organization.features.includes('mep-rollout-flag');
+    samplingFeatureFlag && organization.features.includes('mep-rollout-flag');
 
   return isDevFlagOn || isInternalViewOn || isRollingOut;
 }
@@ -166,7 +166,7 @@ export function MEPSettingProvider({
         setAutoSampleState,
       }}
     >
-      {children}
+      <MEPDataProvider>{children}</MEPDataProvider>
     </_MEPSettingProvider>
   );
 }

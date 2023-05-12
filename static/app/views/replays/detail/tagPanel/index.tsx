@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {ReactNode, useCallback} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
@@ -41,7 +41,7 @@ function TagPanel() {
   const replayRecord = replay?.getReplay();
 
   const generateUrl = useCallback(
-    (name: string, value: string) =>
+    (name: string, value: ReactNode) =>
       ({
         pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
         query: {

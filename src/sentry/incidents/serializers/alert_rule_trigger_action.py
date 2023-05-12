@@ -37,6 +37,9 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     sentry_app_config = serializers.JSONField(required=False)  # array of dicts
     sentry_app_installation_uuid = serializers.CharField(required=False)
 
+    integration = serializers.IntegerField(source="integration_id", required=False, allow_null=True)
+    sentry_app = serializers.IntegerField(source="sentry_app_id", required=False, allow_null=True)
+
     class Meta:
         model = AlertRuleTriggerAction
         fields = [
@@ -114,7 +117,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 ).exists():
                     raise serializers.ValidationError("User does not belong to this organization")
         elif attrs.get("type") == AlertRuleTriggerAction.Type.SLACK:
-            if not attrs.get("integration"):
+            if not attrs.get("integration_id"):
                 raise serializers.ValidationError(
                     {"integration": "Integration must be provided for slack"}
                 )
@@ -122,7 +125,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         elif attrs.get("type") == AlertRuleTriggerAction.Type.SENTRY_APP:
             sentry_app_installation_uuid = attrs.get("sentry_app_installation_uuid")
 
-            if not attrs.get("sentry_app"):
+            if not attrs.get("sentry_app_id"):
                 raise serializers.ValidationError(
                     {"sentry_app": "SentryApp must be provided for sentry_app"}
                 )
@@ -148,7 +151,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         should_validate_channel_id = self.context.get("validate_channel_id", True)
         # validate_channel_id is assumed to be true unless explicitly passed as false
         if attrs["input_channel_id"] and should_validate_channel_id:
-            validate_channel_id(identifier, attrs["integration"].id, attrs["input_channel_id"])
+            validate_channel_id(identifier, attrs["integration_id"], attrs["input_channel_id"])
         return attrs
 
     def create(self, validated_data):

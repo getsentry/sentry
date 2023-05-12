@@ -129,6 +129,9 @@ class ReferrerBase(Enum):
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_SUSPECTS = (
         "api.organization-events-spans-performance-suspects"
     )
+    API_PERFORMANCE_EVENTS_FACETS_STATS = (
+        "api.organization-events-facets-stats-performance.top-tags"
+    )
     API_ORGANIZATION_EVENTS_V2 = "api.organization-events-v2"
     API_ORGANIZATION_EVENTS = "api.organization-events"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
@@ -332,7 +335,14 @@ class ReferrerBase(Enum):
     API_TRACE_VIEW_HOVER_CARD = "api.trace-view.hover-card"
     API_TRACE_VIEW_SPAN_DETAIL = "api.trace-view.span-detail"
     API_TRENDS_GET_EVENT_STATS = "api.trends.get-event-stats"
-    API_TRENDS_GET_EVENT_STATS_NEW = "api.trends.get-event-stats-new"
+    API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS = "api.trends.get-event-statsv2.top-events"
+    API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_METRICS_ENHANCED = (
+        "api.trends.get-event-statsv2.top-events.metrics-enhanced"
+    )
+    API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES = "api.trends.get-event-statsv2.timeseries"
+    API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES_METRICS_ENHANCED = (
+        "api.trends.get-event-statsv2.timeseries.metrics-enhanced"
+    )
     API_TRENDS_GET_PERCENTAGE_CHANGE = "api.trends.get-percentage-change"
     API_VROOM = "api.vroom"
     BACKFILL_PERF_ISSUE_EVENTS = "migration.backfill_perf_issue_events_issue_platform"
@@ -357,12 +367,19 @@ class ReferrerBase(Enum):
     DYNAMIC_SAMPLING_DISTRIBUTION_GET_MOST_RECENT_DAY_WITH_TRANSACTIONS = (
         "dynamic-sampling.distribution.get-most-recent-day-with-transactions"
     )
+    DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES = (
+        "dynamic_sampling.counters.get_org_transaction_volumes"
+    )
+    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_ORGS_WITH_COUNT_PER_ROOT = (
+        "dynamic_sampling.distribution.fetch_orgs_with_count_per_root_total_volumes"
+    )
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
         "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
     )
     DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
         "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
     )
+    DYNAMIC_SAMPLING_COUNTERS_GET_ACTIVE_ORGS = "dynamic_sampling.counters.get_active_orgs"
     DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS = (
         "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
     )
@@ -387,6 +404,7 @@ class ReferrerBase(Enum):
     GROUP_UNHANDLED_FLAG = "group.unhandled-flag"
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
     INCIDENTS_GET_INCIDENT_AGGREGATES = "incidents.get_incident_aggregates"
+    IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
     OUTCOMES_TOTALS = "outcomes.totals"
     PREVIEW_GET_EVENTS = "preview.get_events"
@@ -518,6 +536,7 @@ class ReferrerBase(Enum):
         "snuba.sessions.check_releases_have_health_data"
     )
     SNUBA_SESSIONS_GET_PROJECT_RELEASES_COUNT = "snuba.sessions.get_project_releases_count"
+    SPIKE_PROJECTIONS = "getsentry.get_spike_projections"
     SRC_SENTRY_INGEST_TRANSACTION_CLUSTERER = "src.sentry.ingest.transaction_clusterer"
     SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY = "subscription_processor.comparison_query"
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
@@ -565,16 +584,7 @@ TSDB_MODEL_TO_SUFFIXES = {
         "alert_event_frequency",
         "alert_event_frequency_percent",
     },
-    TSDBModel.group_performance: {
-        "frequency_snoozes",
-        "alert_event_frequency",
-        "alert_event_frequency_percent",
-    },
     TSDBModel.users_affected_by_group: {"user_count_snoozes", "alert_event_uniq_user_frequency"},
-    TSDBModel.users_affected_by_perf_group: {
-        "user_count_snoozes",
-        "alert_event_uniq_user_frequency",
-    },
 }
 
 

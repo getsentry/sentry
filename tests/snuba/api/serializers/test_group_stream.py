@@ -2,13 +2,15 @@ import time
 from datetime import timedelta
 from unittest import mock
 
+import pytz
 from django.utils import timezone
 
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba, snuba_tsdb
 from sentry.models import Environment
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
@@ -226,3 +228,33 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
         assert result[0]["sessionCount"] == 2
         # No sessions in project2
         assert result[1]["sessionCount"] is None
+
+    def test_skipped_date_timestamp_filters(self):
+        group = self.create_group()
+        serializer = StreamGroupSerializerSnuba(
+            search_filters=[
+                SearchFilter(
+                    SearchKey("timestamp"),
+                    ">",
+                    SearchValue(before_now(hours=1).replace(tzinfo=pytz.UTC)),
+                ),
+                SearchFilter(
+                    SearchKey("timestamp"),
+                    "<",
+                    SearchValue(before_now(seconds=1).replace(tzinfo=pytz.UTC)),
+                ),
+                SearchFilter(
+                    SearchKey("date"),
+                    ">",
+                    SearchValue(before_now(hours=1).replace(tzinfo=pytz.UTC)),
+                ),
+                SearchFilter(
+                    SearchKey("date"),
+                    "<",
+                    SearchValue(before_now(seconds=1).replace(tzinfo=pytz.UTC)),
+                ),
+            ]
+        )
+        assert not serializer.conditions
+        result = serialize([group], self.user, serializer=serializer)
+        assert result[0]["id"] == str(group.id)

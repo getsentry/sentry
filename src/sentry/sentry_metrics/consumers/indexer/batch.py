@@ -19,10 +19,9 @@ from typing import (
 import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.codecs import ValidationError
-from arroyo.codecs.json import JsonCodec
 from arroyo.types import BrokerValue, Message
 from django.conf import settings
+from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
@@ -93,12 +92,12 @@ class IndexerBatch:
         outer_message: Message[MessageBatch],
         should_index_tag_values: bool,
         is_output_sliced: bool,
-        arroyo_input_codec: Optional[JsonCodec[Any]],
+        input_codec: Optional[Codec[Any]],
     ) -> None:
         self.outer_message = outer_message
         self.__should_index_tag_values = should_index_tag_values
         self.is_output_sliced = is_output_sliced
-        self.__input_codec = arroyo_input_codec
+        self.__input_codec = input_codec
 
         self._extract_messages()
 
@@ -160,6 +159,9 @@ class IndexerBatch:
         for offset in keys_to_remove:
             sentry_sdk.set_tag(
                 "sentry_metrics.organization_id", self.parsed_payloads_by_offset[offset]["org_id"]
+            )
+            sentry_sdk.set_tag(
+                "sentry_metrics.metric_name", self.parsed_payloads_by_offset[offset]["name"]
             )
             if _should_sample_debug_log():
                 logger.error(
@@ -385,6 +387,10 @@ class IndexerBatch:
 
             new_payload_value: Mapping[str, Any]
 
+            # timestamp when the message was produced to ingest-* topic,
+            # used for end-to-end latency metrics
+            sentry_received_timestamp = message.value.timestamp.timestamp()
+
             if self.__should_index_tag_values:
                 new_payload_v1: Metric = {
                     "tags": new_tags,
@@ -398,6 +404,7 @@ class IndexerBatch:
                     "project_id": old_payload_value["project_id"],
                     "type": old_payload_value["type"],
                     "value": old_payload_value["value"],
+                    "sentry_received_timestamp": sentry_received_timestamp,
                 }
 
                 new_payload_value = new_payload_v1
@@ -417,6 +424,7 @@ class IndexerBatch:
                     "project_id": old_payload_value["project_id"],
                     "type": old_payload_value["type"],
                     "value": old_payload_value["value"],
+                    "sentry_received_timestamp": sentry_received_timestamp,
                 }
                 new_payload_value = new_payload_v2
 

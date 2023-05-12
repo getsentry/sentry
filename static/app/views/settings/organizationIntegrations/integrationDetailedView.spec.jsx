@@ -113,8 +113,8 @@ describe('IntegrationDetailedView', function () {
       <IntegrationDetailedView
         params={{integrationSlug: 'bitbucket', orgId: org.slug}}
         location={{query: {tab: 'configurations'}}}
-        organization={TestStubs.Organization({access: ['org:read']})}
-      />
+      />,
+      {organization: TestStubs.Organization({access: ['org:read']})}
     );
 
     expect(screen.getByRole('button', {name: 'Configure'})).toBeDisabled();
@@ -156,8 +156,8 @@ describe('IntegrationDetailedView', function () {
       <IntegrationDetailedView
         params={{integrationSlug: 'github', orgId: org.slug}}
         location={{query: {tab: 'configurations'}}}
-        organization={TestStubs.Organization({access: ['org:read']})}
-      />
+      />,
+      {organization: TestStubs.Organization({access: ['org:read']})}
     );
 
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();

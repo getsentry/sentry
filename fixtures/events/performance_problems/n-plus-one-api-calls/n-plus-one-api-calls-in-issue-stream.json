@@ -66,7 +66,7 @@
       "trace_id": "0102834d0bf74d388ce0b1e15329f731",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/api/0/organizations/?member=1"},
+      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/organizations/?member=1"},
       "hash": "cbc1d1c7a6500a75"
     },
     {
@@ -81,7 +81,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/client-state/"
       },
@@ -98,7 +98,7 @@
       "trace_id": "0102834d0bf74d388ce0b1e15329f731",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/api/0/subscriptions/sentry/"},
+      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/subscriptions/sentry/"},
       "hash": "51a97bb49057facc"
     },
     {
@@ -113,7 +113,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/broadcasts/"
       },
@@ -153,7 +153,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/searches/"
       },
@@ -170,7 +170,7 @@
       "trace_id": "0102834d0bf74d388ce0b1e15329f731",
       "status": "cancelled",
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/tags/?statsPeriod=14d&use_cache=1"
       },
@@ -188,7 +188,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/users/"
       },
@@ -240,7 +240,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/processingissues/"
       },
@@ -258,7 +258,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/issues/?collapse=stats&expand=owners&expand=inbox&limit=25&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d"
       },
@@ -323,7 +323,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/issues-stats/?groups=3357551786&groups=3653952005&groups=3632201767&groups=3615922758&groups=1816441087&groups=2735845732&groups=2021019829&groups=3708674711&groups=3635082165&groups=1888630303&groups=2615251187&groups=3476760148&groups=3254685754&groups=2364324326&groups=3677909695&groups=1816441096&groups=3708657138&groups=3146776098&groups=3542232742&groups=2636653063&groups=2615489334&groups=3696257335&groups=3696257277&groups=3693916318&groups=3696257055&query=is%3Aunresolved&statsPeriod=14d"
       },
@@ -341,7 +341,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/issues-count/?query=is%3Aunresolved%20is%3Afor_review%20assigned_or_suggested%3A%5Bme%2C%20none%5D&query=is%3Aignored&query=is%3Areprocessing&statsPeriod=14d"
       },
@@ -370,7 +370,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3357551786%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -388,7 +388,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3653952005%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -406,7 +406,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3632201767%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -424,7 +424,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3615922758%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -442,7 +442,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A1816441087%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -460,7 +460,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2735845732%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -478,7 +478,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2021019829%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -496,7 +496,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3708674711%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -514,7 +514,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3635082165%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -532,7 +532,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A1888630303%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -550,7 +550,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2615251187%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -568,7 +568,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3476760148%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -586,7 +586,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3254685754%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -604,7 +604,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2364324326%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -622,7 +622,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3677909695%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -640,7 +640,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A1816441096%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -658,7 +658,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3708657138%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -676,7 +676,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3146776098%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -694,7 +694,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3542232742%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -712,7 +712,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2636653063%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -730,7 +730,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A2615489334%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -748,7 +748,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3696257335%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -766,7 +766,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3696257277%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -784,7 +784,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3693916318%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -802,7 +802,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A3696257055%20%21replayId%3A%22%22&statsPeriod=14d"
       },

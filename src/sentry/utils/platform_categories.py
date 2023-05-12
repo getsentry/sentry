@@ -46,6 +46,7 @@ FRONTEND = [
     "javascript-nextjs",
     "javascript-remix",
     "javascript-svelte",
+    "javascript-sveltekit",
     "unity",
 ]
 
@@ -218,6 +219,7 @@ RELEASE_HEALTH = [
     "javascript-nextjs",
     "javascript-remix",
     "javascript-svelte",
+    "javascript-sveltekit",
     # mobile
     "android",
     "apple-ios",

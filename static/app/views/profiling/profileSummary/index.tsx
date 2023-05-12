@@ -103,7 +103,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
       return null;
     }
 
-    return (profilesAggregateQuery.data?.[0]?.data?.[0]?.['count()'] as number) || null;
+    return (profilesAggregateQuery.data?.data?.[0]?.['count()'] as number) || null;
   }, [profilesAggregateQuery]);
 
   const filtersQuery = useMemo(() => {

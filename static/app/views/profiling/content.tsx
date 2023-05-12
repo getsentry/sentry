@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -179,43 +178,13 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
                   )}
                 />
-                <FeatureBadge type="beta" />
+                {isProfilingGA ? (
+                  <FeatureBadge type="new" />
+                ) : (
+                  <FeatureBadge type="beta" />
+                )}
               </Layout.Title>
             </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <ButtonBar gap={1}>
-                {isProfilingGA ? (
-                  <ProfilingUpgradeButton
-                    organization={organization}
-                    size="sm"
-                    fallback={
-                      <Button onClick={onSetupProfilingClick} size="sm">
-                        {t('Set Up Profiling')}
-                      </Button>
-                    }
-                  >
-                    {t('Update plan')}
-                  </ProfilingUpgradeButton>
-                ) : (
-                  <Button size="sm" onClick={onSetupProfilingClick}>
-                    {t('Set Up Profiling')}
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  priority="primary"
-                  href="https://discord.gg/zrMjKA4Vnz"
-                  external
-                  onClick={() => {
-                    trackAnalytics('profiling_views.visit_discord_channel', {
-                      organization,
-                    });
-                  }}
-                >
-                  {t('Join Discord')}
-                </Button>
-              </ButtonBar>
-            </Layout.HeaderActions>
           </Layout.Header>
           <Layout.Body>
             <Layout.Main fullWidth>
@@ -305,7 +274,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   </PanelsGrid>
                   <ProfileEventsTable
                     columns={fields.slice()}
-                    data={transactions.status === 'success' ? transactions.data[0] : null}
+                    data={transactions.status === 'success' ? transactions.data : null}
                     error={
                       transactions.status === 'error'
                         ? t('Unable to load profiles')
@@ -318,7 +287,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <Pagination
                     pageLinks={
                       transactions.status === 'success'
-                        ? transactions.data?.[2]?.getResponseHeader('Link') ?? null
+                        ? transactions.getResponseHeader?.('Link') ?? null
                         : null
                     }
                   />
@@ -341,7 +310,7 @@ function ProfilingBetaEndAlertBanner({organization}: {organization: Organization
   return (
     <StyledAlert system type="info">
       {t(
-        ' The beta program for Profiling is closed. Profiling will generally available soon. Check out the What’s New tab for updates.'
+        "The beta program for Profiling is now closed, but Profiling will become generally available soon. If you weren't part of the beta program, any Profiles sent during this time won't appear in your dashboard. Check out the What’s New tab for updates."
       )}
     </StyledAlert>
   );

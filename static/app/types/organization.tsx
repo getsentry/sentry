@@ -71,7 +71,8 @@ export interface Organization extends OrganizationSummary {
   orgRole?: string;
 }
 
-export type Team = {
+export interface Team {
+  access: Scope[];
   avatar: Avatar;
   externalTeams: ExternalTeam[];
   flags: {
@@ -86,7 +87,7 @@ export type Team = {
   orgRole: string | null;
   slug: string;
   teamRole: string | null;
-};
+}
 
 // TODO: Rename to BaseRole
 export interface MemberRole {

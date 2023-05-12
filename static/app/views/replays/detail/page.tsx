@@ -14,16 +14,25 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import ReplayMetaData from 'sentry/views/replays/detail/replayMetaData';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   children: ReactNode;
   orgSlug: string;
+  projectSlug: string | null;
+  replayErrors: ReplayError[];
   replayRecord: undefined | ReplayRecord;
   crumbs?: Crumb[];
 };
 
-function Page({children, crumbs, orgSlug, replayRecord}: Props) {
+function Page({
+  children,
+  crumbs,
+  orgSlug,
+  replayRecord,
+  projectSlug,
+  replayErrors,
+}: Props) {
   const title = replayRecord
     ? `${replayRecord.id} - Session Replay - ${orgSlug}`
     : `Session Replay - ${orgSlug}`;
@@ -35,7 +44,9 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
       <ButtonActionsWrapper>
         <ShareButton />
         <FeedbackButton />
-        <DeleteButton />
+        {replayRecord?.id && projectSlug && (
+          <DeleteButton replayId={replayRecord.id} projectSlug={projectSlug} />
+        )}
       </ButtonActionsWrapper>
 
       {replayRecord ? (
@@ -68,7 +79,7 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
         <HeaderPlaceholder width="100%" height="58px" />
       )}
 
-      <ReplayMetaData replayRecord={replayRecord} />
+      <ReplayMetaData replayRecord={replayRecord} replayErrors={replayErrors} />
     </Header>
   );
 

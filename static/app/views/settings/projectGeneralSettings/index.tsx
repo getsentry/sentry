@@ -7,6 +7,7 @@ import {
   removeProject,
   transferProject,
 } from 'sentry/actionCreators/projects';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -70,7 +71,12 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       return;
     }
 
-    removeProject(this.api, organization.slug, project.slug)
+    removeProject({
+      api: this.api,
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+      origin: 'settings',
+    })
       .then(
         () => {
           addSuccessMessage(
@@ -109,7 +115,11 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     }
   };
 
-  isProjectAdmin = () => this.props.organization.access.includes('project:admin');
+  isProjectAdmin = () =>
+    hasEveryAccess(['project:admin'], {
+      organization: this.props.organization,
+      project: this.state.data,
+    });
 
   renderRemoveProject() {
     const project = this.state.data;
@@ -240,15 +250,17 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     const project = this.state.data;
     const {projectId} = this.props.params;
     const endpoint = `/projects/${organization.slug}/${projectId}/`;
-    const access = new Set(organization.access);
+    const access = new Set(organization.access.concat(project.access));
+
     const jsonFormProps = {
       additionalFieldProps: {
         organization,
       },
       features: new Set(organization.features),
       access,
-      disabled: !access.has('project:write'),
+      disabled: !hasEveryAccess(['project:write'], {organization, project}),
     };
+
     const team = project.teams.length ? project.teams?.[0] : undefined;
 
     /*
@@ -282,7 +294,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
-        <PermissionAlert />
+        <PermissionAlert project={project} />
 
         <Form {...formProps}>
           <JsonForm

@@ -1,5 +1,7 @@
-from sentry.models import ScheduledDeletion
-from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType
+from sentry.constants import ObjectStatus
+from sentry.mediators.project_rules import Creator
+from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, ScheduledDeletion
+from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -30,6 +32,19 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
         self.get_error_response(
             self.organization.slug, monitor.slug, environment="jungle", status_code=404
         )
+
+    def test_filtering_monitor_environment(self):
+        monitor = self._create_monitor()
+        self._create_monitor_environment(monitor, name="production")
+        self._create_monitor_environment(monitor, name="jungle")
+
+        response = self.get_success_response(self.organization.slug, monitor.slug)
+        assert len(response.data["environments"]) == 2
+
+        response = self.get_success_response(
+            self.organization.slug, monitor.slug, environment="production"
+        )
+        assert len(response.data["environments"]) == 1
 
 
 @region_silo_test(stable=True)
@@ -97,12 +112,12 @@ class UpdateMonitorTest(MonitorTestCase):
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.DISABLED
+        assert monitor.status == ObjectStatus.DISABLED
 
     def test_can_enable(self):
         monitor = self._create_monitor()
 
-        monitor.update(status=MonitorStatus.DISABLED)
+        monitor.update(status=ObjectStatus.DISABLED)
 
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
@@ -110,20 +125,7 @@ class UpdateMonitorTest(MonitorTestCase):
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.ACTIVE
-
-    def test_cannot_enable_if_enabled(self):
-        monitor = self._create_monitor()
-
-        monitor.update(status=MonitorStatus.OK)
-
-        resp = self.get_success_response(
-            self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
-        )
-        assert resp.data["slug"] == monitor.slug
-
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.OK
+        assert monitor.status == ObjectStatus.ACTIVE
 
     def test_timezone(self):
         monitor = self._create_monitor()
@@ -142,6 +144,14 @@ class UpdateMonitorTest(MonitorTestCase):
     def test_checkin_margin(self):
         monitor = self._create_monitor()
 
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"config": {"checkin_margin": -1}},
+        )
+
         resp = self.get_success_response(
             self.organization.slug,
             monitor.slug,
@@ -155,6 +165,14 @@ class UpdateMonitorTest(MonitorTestCase):
 
     def test_max_runtime(self):
         monitor = self._create_monitor()
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"config": {"max_runtime": -1}},
+        )
 
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"config": {"max_runtime": 30}}
@@ -299,6 +317,14 @@ class UpdateMonitorTest(MonitorTestCase):
             monitor.slug,
             method="PUT",
             status_code=400,
+            **{"config": {"schedule_type": "interval", "schedule": [-1, "day"]}},
+        )
+
+        self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
             **{"config": {"schedule_type": "interval", "schedule": "bar"}},
         )
 
@@ -346,10 +372,68 @@ class DeleteMonitorTest(MonitorTestCase):
         )
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.PENDING_DELETION
+        assert monitor.status == ObjectStatus.PENDING_DELETION
         # ScheduledDeletion only available in control silo
         assert ScheduledDeletion.objects.filter(object_id=monitor.id, model_name="Monitor").exists()
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
         self.get_error_response("asdf", monitor.slug, status_code=404)
+
+    def test_environment(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
+
+        self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="DELETE",
+            status_code=202,
+            qs_params={"environment": "production"},
+        )
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == ObjectStatus.ACTIVE
+
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status == ObjectStatus.PENDING_DELETION
+        # ScheduledDeletion only available in control silo
+        assert ScheduledDeletion.objects.filter(
+            object_id=monitor_environment.id, model_name="MonitorEnvironment"
+        ).exists()
+
+    def test_bad_environment(self):
+        monitor = self._create_monitor()
+        self._create_monitor_environment(monitor)
+
+        self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            status_code=404,
+            qs_params={"environment": "jungle"},
+        )
+
+    def test_simple_with_alert_rule(self):
+        monitor = self._create_monitor()
+        rule = Creator(
+            name="New Cool Rule",
+            owner=None,
+            project=self.project,
+            action_match="all",
+            filter_match="any",
+            conditions=[],
+            actions=[],
+            frequency=5,
+        ).call()
+        config = monitor.config
+        config["alert_rule_id"] = rule.id
+        monitor.config = config
+        monitor.save()
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="DELETE", status_code=202
+        )
+
+        rule = Rule.objects.get(project_id=monitor.project_id, id=monitor.config["alert_rule_id"])
+        assert rule.status == RuleStatus.PENDING_DELETION
+        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.DELETED.value).exists()

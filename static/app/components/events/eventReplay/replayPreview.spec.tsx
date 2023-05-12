@@ -10,6 +10,7 @@ import ReplayPreview from './replayPreview';
 
 const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
+const mockReplayId = '761104e184c64d439ee1014b72b4d83b';
 
 const mockEvent = {
   ...TestStubs.Event(),
@@ -17,7 +18,7 @@ const mockEvent = {
 };
 
 const mockButtonHref =
-  '/organizations/sentry-emerging-tech/replays/replays:761104e184c64d439ee1014b72b4d83b/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&t=62&t_main=console';
+  '/organizations/sentry-emerging-tech/replays/761104e184c64d439ee1014b72b4d83b/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&t=62&t_main=console';
 
 // Mock screenfull library
 jest.mock('screenfull', () => ({
@@ -51,6 +52,7 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
       return {
         replay: mockReplay,
         fetching: false,
+        replayId: mockReplayId,
       };
     }),
   };

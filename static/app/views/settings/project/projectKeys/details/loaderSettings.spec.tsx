@@ -36,20 +36,11 @@ function renderMockRequests(
 
 describe('Loader Script Settings', function () {
   it('allows to toggle options', async function () {
+    const {organization, project} = initializeOrg();
     const params = {
-      projectId: '1',
+      projectSlug: project.slug,
       keyId: '1',
     };
-
-    const {organization} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        ...initializeOrg().organization,
-      },
-      router: {
-        params,
-      },
-    });
 
     const data = {
       ...(TestStubs.ProjectKeys()[0] as ProjectKey),
@@ -58,7 +49,7 @@ describe('Loader Script Settings', function () {
 
     const mockRequests = renderMockRequests(
       organization.slug,
-      params.projectId,
+      params.projectSlug,
       params.keyId
     );
 
@@ -66,7 +57,7 @@ describe('Loader Script Settings', function () {
       <LoaderSettings
         orgSlug={organization.slug}
         keyId={params.keyId}
-        projectId={params.projectId}
+        project={project}
         projectKey={data}
       />
     );
@@ -93,7 +84,7 @@ describe('Loader Script Settings', function () {
 
     await waitFor(() => {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
-        `/projects/${organization.slug}/${params.projectId}/keys/${params.keyId}/`,
+        `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
         expect.objectContaining({
           data: {
             dynamicSdkLoaderOptions: {
@@ -110,7 +101,7 @@ describe('Loader Script Settings', function () {
 
     await waitFor(() => {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
-        `/projects/${organization.slug}/${params.projectId}/keys/${params.keyId}/`,
+        `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
         expect.objectContaining({
           data: {
             browserSdkVersion: '7.x',
@@ -121,20 +112,11 @@ describe('Loader Script Settings', function () {
   });
 
   it('resets performance & replay when selecting SDK version <7', async function () {
+    const {organization, project} = initializeOrg();
     const params = {
-      projectId: '1',
+      projectSlug: project.slug,
       keyId: '1',
     };
-
-    const {organization} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        ...initializeOrg().organization,
-      },
-      router: {
-        params,
-      },
-    });
 
     const data = {
       ...(TestStubs.ProjectKeys()[0] as ProjectKey),
@@ -143,7 +125,7 @@ describe('Loader Script Settings', function () {
 
     const mockRequests = renderMockRequests(
       organization.slug,
-      params.projectId,
+      params.projectSlug,
       params.keyId
     );
 
@@ -151,7 +133,7 @@ describe('Loader Script Settings', function () {
       <LoaderSettings
         orgSlug={organization.slug}
         keyId={params.keyId}
-        projectId={params.projectId}
+        project={project}
         projectKey={data}
       />
     );
@@ -161,7 +143,7 @@ describe('Loader Script Settings', function () {
 
     await waitFor(() => {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
-        `/projects/${organization.slug}/${params.projectId}/keys/${params.keyId}/`,
+        `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
         expect.objectContaining({
           data: {
             browserSdkVersion: '6.x',
@@ -178,20 +160,11 @@ describe('Loader Script Settings', function () {
   });
 
   it('disabled performance & replay when SDK version <7 is selected', function () {
+    const {organization, project} = initializeOrg();
     const params = {
-      projectId: '1',
+      projectSlug: project.slug,
       keyId: '1',
     };
-
-    const {organization} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        ...initializeOrg().organization,
-      },
-      router: {
-        params,
-      },
-    });
 
     const data = {
       ...(TestStubs.ProjectKeys()[0] as ProjectKey),
@@ -207,7 +180,7 @@ describe('Loader Script Settings', function () {
       <LoaderSettings
         orgSlug={organization.slug}
         keyId={params.keyId}
-        projectId={params.projectId}
+        project={project}
         projectKey={data}
       />
     );
@@ -224,25 +197,17 @@ describe('Loader Script Settings', function () {
       }
     }
 
-    const infos = screen.getAllByText('Only available in SDK version 7.x and above');
-    expect(infos.length).toBe(2);
+    expect(
+      screen.getAllByText('Only available in SDK version 7.x and above')
+    ).toHaveLength(2);
   });
 
   it('shows replay message when it is enabled', function () {
+    const {organization, project} = initializeOrg();
     const params = {
-      projectId: '1',
+      projectSlug: project.slug,
       keyId: '1',
     };
-
-    const {organization} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        ...initializeOrg().organization,
-      },
-      router: {
-        params,
-      },
-    });
 
     const data = {
       ...(TestStubs.ProjectKeys()[0] as ProjectKey),
@@ -253,13 +218,13 @@ describe('Loader Script Settings', function () {
       <LoaderSettings
         orgSlug={organization.slug}
         keyId={params.keyId}
-        projectId={params.projectId}
+        project={project}
         projectKey={data}
       />
     );
 
     expect(
-      screen.queryByText(
+      screen.getByText(
         'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
       )
     ).toBeInTheDocument();
@@ -270,7 +235,7 @@ describe('Loader Script Settings', function () {
       <LoaderSettings
         orgSlug={organization.slug}
         keyId={params.keyId}
-        projectId={params.projectId}
+        project={project}
         projectKey={data}
       />
     );

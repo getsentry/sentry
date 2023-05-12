@@ -10,7 +10,6 @@ from sentry.spans.grouping.strategy.base import (
     parametrize_db_span_strategy,
     remove_http_client_query_string_strategy,
     remove_redis_command_arguments_strategy,
-    wildcard_replacement_strategy,
 )
 
 
@@ -66,16 +65,6 @@ register_configuration(
     "default:2022-10-27",
     strategies=[
         parametrize_db_span_strategy,
-        remove_http_client_query_string_strategy,
-        remove_redis_command_arguments_strategy,
-    ],
-)
-
-register_configuration(
-    "clustering:2023-04-03",
-    strategies=[
-        parametrize_db_span_strategy,
-        wildcard_replacement_strategy,
         remove_http_client_query_string_strategy,
         remove_redis_command_arguments_strategy,
     ],

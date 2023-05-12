@@ -6,6 +6,7 @@ import logging
 from datetime import datetime
 from typing import Sequence
 
+from sentry import analytics
 from sentry.issues.escalating import (
     ParsedGroupsCount,
     parse_groups_past_counts,
@@ -29,17 +30,20 @@ def save_forecast_per_group(
     """
     time = datetime.now()
     group_dict = {group.id: group for group in until_escalating_groups}
-    for group_id in group_counts.keys():
-        forecasts = generate_issue_forecast(group_counts[group_id], time)
+    for group_id, group_count in group_counts.items():
+        forecasts = generate_issue_forecast(group_count, time)
         forecasts_list = [forecast["forecasted_value"] for forecast in forecasts]
-        escalating_group_forecast = EscalatingGroupForecast(
-            group_dict[group_id].project.id, group_id, forecasts_list, datetime.now()
-        )
-        escalating_group_forecast.save()
+
+        if group_dict.get(group_id):
+            escalating_group_forecast = EscalatingGroupForecast(
+                group_dict[group_id].project.id, group_id, forecasts_list, time
+            )
+            escalating_group_forecast.save()
     logger.info(
         "Saved forecasts in nodestore",
         extra={"num_groups": len(group_counts.keys())},
     )
+    analytics.record("issue_forecasts.saved", num_groups=len(group_counts.keys()))
 
 
 def generate_and_save_forecasts(groups: Sequence[Group]) -> None:

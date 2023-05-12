@@ -5,8 +5,8 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.constants import RESERVED_PROJECT_SLUGS
-from sentry.dynamic_sampling import DEFAULT_BIASES
+from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.models import (
     ApiToken,
     AuditLogEntry,
@@ -22,14 +22,13 @@ from sentry.models import (
     ProjectBookmark,
     ProjectOwnership,
     ProjectRedirect,
-    ProjectStatus,
     ProjectTeam,
     Rule,
     ScheduledDeletion,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import Feature, faux
+from sentry.testutils.helpers import Feature, faux, with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -407,8 +406,32 @@ class ProjectUpdateTest(APITestCase):
         )
 
         assert Project.objects.get(id=project.id).slug != "zzz"
-
         assert not ProjectBookmark.objects.filter(user_id=user.id, project_id=project.id).exists()
+
+    @with_feature("organizations:team-roles")
+    def test_member_with_team_role(self):
+        user = self.create_user("bar@example.com")
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="member",
+        )
+
+        team = self.create_team(organization=self.organization)
+        project = self.create_project(teams=[team])
+        self.create_team_membership(user=user, team=team, role="admin")
+
+        self.login_as(user=user)
+
+        self.get_success_response(
+            self.organization.slug,
+            project.slug,
+            slug="zzz",
+            isBookmarked="true",
+        )
+
+        assert Project.objects.get(id=project.id).slug == "zzz"
+        assert ProjectBookmark.objects.filter(user_id=user.id, project_id=project.id).exists()
 
     def test_name(self):
         self.get_success_response(self.org_slug, self.proj_slug, name="hello world")
@@ -1169,7 +1192,7 @@ class ProjectDeleteTest(APITestCase):
         assert ScheduledDeletion.objects.filter(model_name="Project", object_id=project.id).exists()
 
         deleted_project = Project.objects.get(id=project.id)
-        assert deleted_project.status == ProjectStatus.PENDING_DELETION
+        assert deleted_project.status == ObjectStatus.PENDING_DELETION
         assert deleted_project.slug == "abc123"
         assert OrganizationOption.objects.filter(
             organization_id=deleted_project.organization_id,
@@ -1230,6 +1253,7 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
             },
             {"id": "ignoreHealthChecks", "active": False},
             {"id": "boostKeyTransactions", "active": False},
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ]
         self.project.update_option("sentry:dynamic_sampling_biases", new_biases)
         with Feature(
@@ -1340,14 +1364,13 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 {"id": "ignoreHealthChecks", "active": True},
                 {"id": "boostKeyTransactions", "active": True},
                 {"id": "boostLowVolumeTransactions", "active": True},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
             ]
 
     def test_get_dynamic_sampling_biases_with_previously_assigned_biases(self):
         self.project.update_option(
             "sentry:dynamic_sampling_biases",
-            [
-                {"id": "boostEnvironments", "active": False},
-            ],
+            [{"id": "boostEnvironments", "active": False}],
         )
 
         with Feature(
@@ -1367,6 +1390,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 {"id": "ignoreHealthChecks", "active": True},
                 {"id": "boostKeyTransactions", "active": True},
                 {"id": "boostLowVolumeTransactions", "active": True},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
             ]
 
     def test_dynamic_sampling_bias_activation(self):
@@ -1380,6 +1404,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             "sentry:dynamic_sampling_biases",
             [
                 {"id": "boostEnvironments", "active": False},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             ],
         )
         self.login_as(self.user)
@@ -1423,6 +1448,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             "sentry:dynamic_sampling_biases",
             [
                 {"id": "boostEnvironments", "active": True},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             ],
         )
         self.login_as(self.user)
@@ -1446,6 +1472,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 data={
                     "dynamicSamplingBiases": [
                         {"id": "boostEnvironments", "active": False},
+                        {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
                     ]
                 },
             )
@@ -1485,6 +1512,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             {"id": "ignoreHealthChecks", "active": False},
             {"id": "boostKeyTransactions", "active": False},
             {"id": "boostLowVolumeTransactions", "active": False},
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ]
         with Feature(
             {

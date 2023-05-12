@@ -5,8 +5,6 @@ from django.db.models import Max, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import RuleSerializer
-from sentry.incidents.endpoints.utils import translate_threshold
-from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivity,
@@ -99,6 +97,8 @@ class AlertRuleSerializer(Serializer):
 
         resolved_actors = {}
         for k, v in ACTOR_TYPES.items():
+            # TODO(actorid) This relies on ducktyping between user and team.
+            # This will need to handle user + team separately.
             resolved_actors[k] = {
                 a.actor_id: a.id
                 for a in fetch_actors_by_actor_ids(actor_type_to_class(v), owners_by_type[k])
@@ -137,6 +137,9 @@ class AlertRuleSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
+        from sentry.incidents.endpoints.utils import translate_threshold
+        from sentry.incidents.logic import translate_aggregate_field
+
         env = obj.snuba_query.environment
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)

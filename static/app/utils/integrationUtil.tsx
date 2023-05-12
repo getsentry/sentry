@@ -268,3 +268,11 @@ export const sentryNameToOption = ({id, name}): Result => ({
   value: id,
   label: name,
 });
+
+export function getIntegrationStatus(integration: Integration) {
+  // there are multiple status fields for an integration we consider
+  const statusList = [integration.organizationIntegrationStatus, integration.status];
+  const firstNotActive = statusList.find(s => s !== 'active');
+  // Active if everything is active, otherwise the first inactive status
+  return firstNotActive ?? 'active';
+}

@@ -17,7 +17,7 @@ import ListItem from 'sentry/components/list/listItem';
 import Text from 'sentry/components/text';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
@@ -41,6 +41,8 @@ const SCHEDULE_OPTIONS: RadioOption<string>[] = [
 
 const DEFAULT_MONITOR_TYPE = 'cron_job';
 const DEFAULT_CRONTAB = '0 0 * * *';
+
+export const DEFAULT_MAX_RUNTIME = 30;
 
 const getIntervals = (n: number): SelectValue<string>[] => [
   {value: 'minute', label: tn('minute', 'minutes', n)},
@@ -336,7 +338,7 @@ function MonitorForm({
         <InputGroup>
           <StyledNumberField
             name="config.max_runtime"
-            placeholder="Defaults to 30 minutes"
+            placeholder={`Defaults to ${DEFAULT_MAX_RUNTIME} minutes`}
             stacked
             inline={false}
           />

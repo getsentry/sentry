@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytz
 from django.utils import timezone
 
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
 from sentry.issues.grouptype import (
@@ -442,6 +443,36 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
             assert iso_format(start) == iso_format(before_now(days=expected))
 
+    def test_skipped_date_timestamp_filters(self):
+        group = self.create_group()
+        serializer = GroupSerializerSnuba(
+            search_filters=[
+                SearchFilter(
+                    SearchKey("timestamp"),
+                    ">",
+                    SearchValue(before_now(hours=1).replace(tzinfo=pytz.UTC)),
+                ),
+                SearchFilter(
+                    SearchKey("timestamp"),
+                    "<",
+                    SearchValue(before_now(seconds=1).replace(tzinfo=pytz.UTC)),
+                ),
+                SearchFilter(
+                    SearchKey("date"),
+                    ">",
+                    SearchValue(before_now(hours=1).replace(tzinfo=pytz.UTC)),
+                ),
+                SearchFilter(
+                    SearchKey("date"),
+                    "<",
+                    SearchValue(before_now(seconds=1).replace(tzinfo=pytz.UTC)),
+                ),
+            ]
+        )
+        assert not serializer.conditions
+        result = serialize(group, self.user, serializer=serializer)
+        assert result["id"] == str(group.id)
+
 
 @region_silo_test
 class PerformanceGroupSerializerSnubaTest(
@@ -489,21 +520,6 @@ class PerformanceGroupSerializerSnubaTest(
         assert iso_format(result["lastSeen"]) == iso_format(timestamp + timedelta(minutes=2))
         assert iso_format(result["firstSeen"]) == iso_format(timestamp + timedelta(minutes=1))
         assert result["count"] == str(times + 1)
-
-        with self.feature("organizations:issue-platform-search-perf-issues"):
-            result = serialize(
-                first_group,
-                serializer=GroupSerializerSnuba(
-                    environment_ids=[environment.id],
-                    start=timestamp - timedelta(hours=1),
-                    end=timestamp + timedelta(hours=1),
-                ),
-            )
-
-            assert result["userCount"] == 2
-            assert iso_format(result["lastSeen"]) == iso_format(timestamp + timedelta(minutes=2))
-            assert iso_format(result["firstSeen"]) == iso_format(timestamp + timedelta(minutes=1))
-            assert result["count"] == str(times + 1)
 
 
 @region_silo_test

@@ -25,7 +25,7 @@ function CreateIntegrationButton({
   );
 
   return (
-    <Access organization={organization} access={['org:write']}>
+    <Access access={['org:write']}>
       {({hasAccess}) => (
         <Button
           size="sm"

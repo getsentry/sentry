@@ -111,7 +111,7 @@ class Settings extends AsyncView<Props, State> {
             </Button>
           }
         />
-        <PermissionAlert />
+        <PermissionAlert project={project} />
         <AlertLink to="/settings/account/notifications/" icon={<IconMail />}>
           {t(
             'Looking to fine-tune your personal notification preferences? Visit your Account Settings'

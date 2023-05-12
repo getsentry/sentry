@@ -78,7 +78,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         return ExternalActor.objects.filter(
             actor_id__in=actor_ids,
             organization=organization,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name=self.channel_name,
             external_id=self.channel_id,
@@ -125,7 +125,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
 
         with exempt_from_silo_limits():
             team_settings = NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
+                scope_type=NotificationScopeType.TEAM.value, target_id=self.team.actor.id
             )
             assert len(team_settings) == 1
 
@@ -213,7 +213,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
 
         with exempt_from_silo_limits():
             team_settings = NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
+                scope_type=NotificationScopeType.TEAM.value, target_id=self.team.actor.id
             )
         assert len(team_settings) == 0
 
@@ -256,7 +256,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
 
         with exempt_from_silo_limits():
             team_settings = NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
+                scope_type=NotificationScopeType.TEAM.value, target_id=self.team.actor.id
             )
         assert len(team_settings) == 0
 

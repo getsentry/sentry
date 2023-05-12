@@ -25,7 +25,7 @@ from sentry.issues.grouptype import should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import GroupHash, Release
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
-from sentry.utils import metrics, redis
+from sentry.utils import json, metrics, redis
 
 from .utils import can_create_group
 
@@ -113,7 +113,7 @@ def _create_issue_kwargs(
         "first_release": release,
         "data": materialize_metadata(occurrence, event),
     }
-    kwargs["data"]["last_received"] = event.datetime
+    kwargs["data"]["last_received"] = json.datetime_to_str(event.datetime)
     return kwargs
 
 
@@ -123,7 +123,7 @@ class OccurrenceMetadata(TypedDict):
     metadata: Mapping[str, Any]
     title: str
     location: Optional[str]
-    last_received: datetime
+    last_received: str
 
 
 def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> OccurrenceMetadata:
@@ -143,7 +143,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         "culprit": occurrence.culprit,
         "metadata": event_metadata,
         "location": event.location,
-        "last_received": event.datetime,
+        "last_received": json.datetime_to_str(event.datetime),
     }
 
 

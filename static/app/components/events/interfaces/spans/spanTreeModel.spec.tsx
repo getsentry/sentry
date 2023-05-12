@@ -47,7 +47,7 @@ describe('SpanTreeModel', () => {
               'http.status_code': '200',
             },
             data: {
-              method: 'GET',
+              'http.method': 'GET',
               type: 'fetch',
               url: '/api/0/organizations/?member=1',
             },
@@ -65,7 +65,7 @@ describe('SpanTreeModel', () => {
               'http.status_code': '200',
             },
             data: {
-              method: 'GET',
+              'http.method': 'GET',
               type: 'fetch',
               url: '/api/0/internal/health/',
             },
@@ -79,9 +79,9 @@ describe('SpanTreeModel', () => {
             parent_span_id: 'a453cc713e5baf9c',
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
-              'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
-              'Transfer Size': 275,
+              'http.decoded_response_content_length': 159248,
+              'http.response_content_length': 159248,
+              'http.response_transfer_size': 275,
             },
           },
         ],
@@ -161,7 +161,7 @@ describe('SpanTreeModel', () => {
                 'http.status_code': '200',
               },
               data: {
-                method: 'GET',
+                'http.method': 'GET',
                 type: 'fetch',
                 url: '/api/0/organizations/?member=1',
               },
@@ -240,7 +240,7 @@ describe('SpanTreeModel', () => {
             'http.status_code': '200',
           },
           data: {
-            method: 'GET',
+            'http.method': 'GET',
             type: 'fetch',
             url: '/api/0/organizations/?member=1',
           },
@@ -271,7 +271,7 @@ describe('SpanTreeModel', () => {
             'http.status_code': '200',
           },
           data: {
-            method: 'GET',
+            'http.method': 'GET',
             type: 'fetch',
             url: '/api/0/internal/health/',
           },
@@ -298,9 +298,9 @@ describe('SpanTreeModel', () => {
           parent_span_id: 'a453cc713e5baf9c',
           trace_id: '8cbbc19c0f54447ab702f00263262726',
           data: {
-            'Decoded Body Size': 159248,
-            'Encoded Body Size': 159248,
-            'Transfer Size': 275,
+            'http.decoded_response_content_length': 159248,
+            'http.response_content_length': 159248,
+            'http.response_transfer_size': 275,
           },
         },
         numOfSpanChildren: 0,
@@ -547,7 +547,7 @@ describe('SpanTreeModel', () => {
         'http.status_code': '200',
       },
       data: {
-        method: 'GET',
+        'http.method': 'GET',
         type: 'fetch',
         url: '/api/0/internal/health/',
       },
@@ -628,7 +628,7 @@ describe('SpanTreeModel', () => {
         'http.status_code': '200',
       },
       data: {
-        method: 'GET',
+        'http.method': 'GET',
         type: 'fetch',
         url: '/api/0/internal/health/',
       },
@@ -704,7 +704,7 @@ describe('SpanTreeModel', () => {
         'http.status_code': '200',
       },
       data: {
-        method: 'GET',
+        'http.method': 'GET',
         type: 'fetch',
         url: '/api/0/internal/health/',
       },
@@ -723,7 +723,7 @@ describe('SpanTreeModel', () => {
         'http.status_code': '200',
       },
       data: {
-        method: 'GET',
+        'http.method': 'GET',
         type: 'fetch',
         url: '/api/0/internal/health/',
       },

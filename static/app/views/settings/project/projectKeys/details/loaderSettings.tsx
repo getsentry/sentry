@@ -12,6 +12,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
+import {Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -20,7 +21,7 @@ import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 type Props = {
   keyId: string;
   orgSlug: string;
-  projectId: string;
+  project: Project;
   projectKey: ProjectKey;
 };
 
@@ -45,7 +46,7 @@ export const sdkLoaderOptions = {
   },
 };
 
-export function LoaderSettings({keyId, orgSlug, projectId, projectKey}: Props) {
+export function LoaderSettings({keyId, orgSlug, project, projectKey}: Props) {
   const api = useApi();
   const [browserSdkVersion, setBrowserSdkVersion] = useState(
     projectKey.browserSdkVersion
@@ -62,7 +63,7 @@ export function LoaderSettings({keyId, orgSlug, projectId, projectKey}: Props) {
     setDynamicSDKLoaderOptions(projectKey.dynamicSdkLoaderOptions);
   }, [projectKey.dynamicSdkLoaderOptions]);
 
-  const apiEndpoint = `/projects/${orgSlug}/${projectId}/keys/${keyId}/`;
+  const apiEndpoint = `/projects/${orgSlug}/${project.slug}/keys/${keyId}/`;
   const loaderLink = getDynamicText({
     value: projectKey.dsn.cdn,
     fixed: '__JS_SDK_LOADER_URL__',
@@ -159,7 +160,7 @@ export function LoaderSettings({keyId, orgSlug, projectId, projectKey}: Props) {
   );
 
   return (
-    <Access access={['project:write']}>
+    <Access access={['project:write']} project={project}>
       {({hasAccess}) => (
         <Fragment>
           <FieldGroup

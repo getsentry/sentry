@@ -141,12 +141,11 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('disables the entire form if user does not have write access', function () {
-    render(
-      <OrganizationGeneralSettings
-        {...defaultProps}
-        organization={TestStubs.Organization({access: ['org:read']})}
-      />
-    );
+    const readOnlyOrg = TestStubs.Organization({access: ['org:read']});
+
+    render(<OrganizationGeneralSettings {...defaultProps} organization={readOnlyOrg} />, {
+      organization: readOnlyOrg,
+    });
 
     const formElements = [
       ...screen.getAllByRole('textbox'),

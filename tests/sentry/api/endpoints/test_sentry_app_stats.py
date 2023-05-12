@@ -1,6 +1,7 @@
 from django.urls import reverse
 
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.dates import to_timestamp
 
 
@@ -33,6 +34,7 @@ class SentryAppStatsTest(APITestCase):
         )
 
 
+@control_silo_test
 class GetSentryAppStatsTest(SentryAppStatsTest):
     def test_superuser_sees_unowned_published_stats(self):
         self.login_as(user=self.superuser, superuser=True)

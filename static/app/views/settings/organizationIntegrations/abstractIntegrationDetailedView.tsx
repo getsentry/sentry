@@ -258,14 +258,13 @@ class AbstractIntegrationDetailedView<
   }
 
   renderAddInstallButton(hideButtonIfDisabled = false) {
-    const {organization} = this.props;
     const {IntegrationFeatures} = getIntegrationFeatureGate();
 
     return (
       <IntegrationFeatures {...this.featureProps}>
         {({disabled, disabledReason}) => (
           <DisableWrapper>
-            <Access organization={organization} access={['org:integrations']}>
+            <Access access={['org:integrations']}>
               {({hasAccess}) => (
                 <Tooltip
                   title={t(

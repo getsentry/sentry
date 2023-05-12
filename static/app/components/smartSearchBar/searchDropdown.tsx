@@ -252,6 +252,7 @@ function ItemTitle({item, searchSubstring, isChild}: ItemTitleProps) {
           .{combinedRestWords}
         </RestOfWordsContainer>
       )}
+      {item.titleBadge}
     </SearchItemTitleWrapper>
   );
 }

@@ -120,6 +120,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             "organizations:profiling",
             "organizations:dynamic-sampling",
             "organizations:use-metrics-layer",
+            "organizations:starfish-view",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -249,12 +250,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             or batch_features.get("organizations:dashboards-mep", False)
         )
 
-        use_profiles = batch_features.get("organizations:profiling", False)
-
-        use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
-
-        use_custom_dataset = use_metrics or use_profiles
-        dataset = self.get_dataset(request) if use_custom_dataset else discover
+        dataset = self.get_dataset(request)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
@@ -283,7 +279,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 transform_alias_to_input_format=True,
                 # Whether the flag is enabled or not, regardless of the referrer
                 has_metrics=use_metrics,
-                use_metrics_layer=use_metrics_layer,
+                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
             )
 
         with self.handle_query_errors():
@@ -296,6 +292,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         params["project_id"],
                         data_fn(0, self.get_per_page(request)),
                         standard_meta=True,
+                        dataset=dataset,
                     )
                 )
             else:
@@ -308,6 +305,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         params["project_id"],
                         results,
                         standard_meta=True,
+                        dataset=dataset,
                     ),
                 )
 

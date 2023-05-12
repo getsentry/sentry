@@ -1,40 +1,31 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import moment from 'moment';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
-import {useQuery} from 'sentry/utils/queryClient';
-import Chart from 'sentry/views/starfish/components/chart';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import FailureRateChart from 'sentry/views/starfish/views/webServiceView/failureRateChart';
-import {
-  ModuleButtonType,
-  ModuleLinkButton,
-} from 'sentry/views/starfish/views/webServiceView/moduleLinkButton';
-import {MODULE_DURATION_QUERY} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
 
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 
-import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
+import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
+import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
-import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/panel';
+import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/failureDetailPanel';
+import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 import EndpointList from './endpointList';
 
@@ -46,40 +37,10 @@ type BasePerformanceViewProps = {
   projects: Project[];
 };
 
-const HOST = 'http://localhost:8080';
-
-const handleClose = () => {};
-
 export function StarfishView(props: BasePerformanceViewProps) {
-  const {organization, eventView, onSelect, location} = props;
+  const {organization, eventView, onSelect} = props;
   const theme = useTheme();
-  const [selectedSpike, setSelectedSpike] = useState<any | undefined>();
-
-  const {isLoading: isDurationDataLoading, data: moduleDurationData} = useQuery({
-    queryKey: ['durationBreakdown'],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${MODULE_DURATION_QUERY}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
-  const modules = ['db', 'cache', 'http'];
-
-  const seriesByModule: {[module: string]: Series} = {};
-  modules.forEach(module => {
-    seriesByModule[module] = {
-      seriesName: `p75(${module})`,
-      data: [],
-    };
-  });
-
-  moduleDurationData.forEach(value => {
-    seriesByModule[value.module].data.push({value: value.p75, name: value.interval});
-  });
-
-  const data = Object.values(seriesByModule).map(series =>
-    zeroFillSeries(series, moment.duration(12, 'hours'))
-  );
+  const [selectedSpike, setSelectedSpike] = useState<FailureSpike>(null);
 
   function renderFailureRateChart() {
     const query = new MutableSearch(['event.type:transaction']);
@@ -107,6 +68,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
               data: series.data,
               seriesName: t('Failure Rate'),
               color: CHART_PALETTE[5][3],
+              silent: true,
             })
           );
 
@@ -117,35 +79,99 @@ export function StarfishView(props: BasePerformanceViewProps) {
           insertClickableAreasIntoSeries(transformedData, theme.red300);
 
           return (
-            <FailureRateChart
-              statsPeriod={eventView.statsPeriod}
-              height={180}
+            <Fragment>
+              <FailureDetailPanel
+                onClose={() => setSelectedSpike(null)}
+                chartData={transformedData}
+                spike={selectedSpike}
+              />
+              <FailureRateChart
+                statsPeriod={eventView.statsPeriod}
+                height={145}
+                data={transformedData}
+                start={eventView.start as string}
+                end={eventView.end as string}
+                loading={eventData.loading}
+                utc={false}
+                grid={{
+                  left: '0',
+                  right: '0',
+                  top: '16px',
+                  bottom: '8px',
+                }}
+                definedAxisTicks={2}
+                handleSpikeAreaClick={e => {
+                  if (e.componentType === 'markArea') {
+                    setSelectedSpike({
+                      startTimestamp: e.data.coord[0][0],
+                      endTimestamp: e.data.coord[1][0],
+                    });
+                  }
+                }}
+              />
+            </Fragment>
+          );
+        }}
+      </EventsRequest>
+    );
+  }
+
+  function renderThroughputChart() {
+    const query = new MutableSearch([
+      'event.type:transaction',
+      'has:http.method',
+      'transaction.op:http.server',
+    ]);
+
+    return (
+      <EventsRequest
+        query={query.formatString()}
+        includePrevious={false}
+        partial
+        interval="1h"
+        includeTransformedData
+        limit={1}
+        environment={eventView.environment}
+        project={eventView.project}
+        period={eventView.statsPeriod}
+        referrer="starfish-homepage-count"
+        start={eventView.start}
+        end={eventView.end}
+        organization={organization}
+        yAxis="tpm()"
+        queryExtras={{dataset: 'metrics'}}
+      >
+        {({loading, timeseriesData}) => {
+          const transformedData: Series[] | undefined = timeseriesData?.map(series => ({
+            data: series.data,
+            seriesName: t('Throughput'),
+            color: CHART_PALETTE[0][0],
+          }));
+
+          if (!transformedData) {
+            return null;
+          }
+
+          return (
+            <Chart
+              statsPeriod="24h"
+              height={145}
               data={transformedData}
-              start={eventView.start as string}
-              end={eventView.end as string}
-              loading={eventData.loading}
+              start=""
+              end=""
+              loading={loading}
               utc={false}
               grid={{
                 left: '0',
                 right: '0',
-                top: '16px',
-                bottom: '8px',
+                top: '8px',
+                bottom: '0',
               }}
-              handleSpikeAreaClick={e => {
-                if (e.componentType === 'markArea') {
-                  setSelectedSpike(e);
-                  const startTime = new Date(e.data.coord[0][0]);
-                  const endTime = new Date(e.data.coord[1][0]);
-                  browserHistory.push({
-                    pathname: `${location.pathname}failure-detail/`,
-                    query: {
-                      start: normalizeDateTimeString(startTime),
-                      end: normalizeDateTimeString(endTime),
-                      project: decodeList(location.query.project),
-                    },
-                  });
-                }
-              }}
+              definedAxisTicks={4}
+              stacked
+              isLineChart
+              chartColors={theme.charts.getColorPalette(2)}
+              disableXAxis
             />
           );
         }}
@@ -155,35 +181,16 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
   return (
     <div data-test-id="starfish-view">
-      <FailureDetailPanel onClose={handleClose} spikeObject={selectedSpike} />
-      <ModuleLinkButton type={ModuleButtonType.API} />
-      <ModuleLinkButton type={ModuleButtonType.CACHE} />
-      <ModuleLinkButton type={ModuleButtonType.DB} />
       <StyledRow minSize={200}>
-        <Fragment>
-          <ChartPanel title={t('Response Time')}>
-            <Chart
-              statsPeriod="24h"
-              height={180}
-              data={data}
-              start=""
-              end=""
-              loading={isDurationDataLoading}
-              utc={false}
-              grid={{
-                left: '0',
-                right: '0',
-                top: '16px',
-                bottom: '8px',
-              }}
-              disableMultiAxis
-              definedAxisTicks={4}
-              stacked
-              chartColors={['#444674', '#7a5088', '#b85586']}
-            />
-          </ChartPanel>
-          {renderFailureRateChart()}
-        </Fragment>
+        <ChartsContainer>
+          <ChartsContainerItem>
+            <FacetBreakdownBar title={t('Where is time spent in my web service?')} />
+          </ChartsContainerItem>
+          <ChartsContainerItem2>
+            <ChartPanel title={t('Error Rate')}>{renderFailureRateChart()}</ChartPanel>
+            <ChartPanel title={t('Throughput')}>{renderThroughputChart()}</ChartPanel>
+          </ChartsContainerItem2>
+        </ChartsContainer>
       </StyledRow>
 
       <EndpointList
@@ -195,7 +202,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           'endpoint',
           'tpm',
           'p50(duration)',
-          'p95(duration)',
+          'p50 change',
           'failure count',
           'cumulative time',
         ]}
@@ -206,4 +213,19 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
 const StyledRow = styled(PerformanceLayoutBodyRow)`
   margin-bottom: ${space(2)};
+`;
+
+const ChartsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: ${space(2)};
+`;
+
+const ChartsContainerItem = styled('div')`
+  flex: 1.5;
+`;
+
+const ChartsContainerItem2 = styled('div')`
+  flex: 1;
 `;

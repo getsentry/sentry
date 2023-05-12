@@ -248,8 +248,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         if not projects:
             return Response([])
 
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400
@@ -428,8 +431,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :auth: required
         """
         projects = self.get_projects(request, organization)
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400
@@ -469,8 +476,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :auth: required
         """
         projects = self.get_projects(request, organization)
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400
