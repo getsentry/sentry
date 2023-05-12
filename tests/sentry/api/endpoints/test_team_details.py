@@ -86,7 +86,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         team = self.create_team()
         member = self.create_member(user=user, organization=self.organization, role="member")
 
-        self.create_team_membership(team, member, role="member")
+        self.create_team_membership(team, member)
         self.login_as(user)
 
         self.get_error_response(team.organization.slug, team.slug, slug="foobar", status_code=403)

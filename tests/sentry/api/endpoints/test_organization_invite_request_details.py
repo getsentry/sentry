@@ -108,14 +108,14 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase):
 
     def test_owner_can_update_role(self):
         self.login_as(user=self.user)
-        resp = self.get_response(self.org.slug, self.invite_request.id, role="admin")
+        resp = self.get_response(self.org.slug, self.invite_request.id, role="manager")
 
         assert resp.status_code == 200
-        assert resp.data["role"] == "admin"
-        assert resp.data["orgRole"] == "admin"
+        assert resp.data["role"] == "manager"
+        assert resp.data["orgRole"] == "manager"
         assert resp.data["inviteStatus"] == "requested_to_be_invited"
 
-        assert OrganizationMember.objects.filter(id=self.invite_request.id, role="admin").exists()
+        assert OrganizationMember.objects.filter(id=self.invite_request.id, role="manager").exists()
 
     def test_owner_can_update_teams(self):
         self.login_as(user=self.user)
@@ -163,7 +163,7 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase):
 
     def test_member_cannot_update_invite_request(self):
         self.login_as(user=self.member.user)
-        resp = self.get_response(self.org.slug, self.request_to_join.id, role="admin")
+        resp = self.get_response(self.org.slug, self.request_to_join.id, role="manager")
         assert resp.status_code == 403
 
 
@@ -255,16 +255,20 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase):
     def test_owner_can_update_and_approve(self, mock_invite_email):
         self.login_as(user=self.user)
         resp = self.get_response(
-            self.org.slug, self.request_to_join.id, approve=1, role="admin", teams=[self.team.slug]
+            self.org.slug,
+            self.request_to_join.id,
+            approve=1,
+            role="manager",
+            teams=[self.team.slug],
         )
 
         assert resp.status_code == 200
-        assert resp.data["role"] == "admin"
-        assert resp.data["orgRole"] == "admin"
+        assert resp.data["role"] == "manager"
+        assert resp.data["orgRole"] == "manager"
         assert resp.data["inviteStatus"] == "approved"
 
         assert OrganizationMember.objects.filter(
-            id=self.request_to_join.id, role="admin", invite_status=InviteStatus.APPROVED.value
+            id=self.request_to_join.id, role="manager", invite_status=InviteStatus.APPROVED.value
         ).exists()
 
         assert OrganizationMemberTeam.objects.filter(

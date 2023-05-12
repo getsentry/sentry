@@ -78,7 +78,8 @@ class OrganizationMemberSerializerTest(TestCase):
             "orgRole": ["You do not have permission to set that org-level role"]
         }
 
-    def test_deprecated_org_role(self):
+    @with_feature({"organizations:team-roles": False})
+    def test_deprecated_org_role_without_flag(self):
         context = {
             "organization": self.organization,
             "allowed_roles": [roles.get("admin"), roles.get("member")],
@@ -340,7 +341,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         assert response.data["email"] == "eric@localhost"
 
     def test_valid_for_invites(self):
-        data = {"email": "foo@example.com", "role": "admin", "teams": [self.team.slug]}
+        data = {"email": "foo@example.com", "role": "manager", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
             self.get_success_response(self.organization.slug, method="post", **data)
 
@@ -349,7 +350,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         )
 
         assert member.user is None
-        assert member.role == "admin"
+        assert member.role == "manager"
 
         om_teams = OrganizationMemberTeam.objects.filter(organizationmember=member.id)
 
@@ -399,7 +400,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         assert member.role == "member"
 
     def test_invalid_user_for_direct_add(self):
-        data = {"email": "notexisting@example.com", "role": "admin", "teams": [self.team.slug]}
+        data = {"email": "notexisting@example.com", "role": "manager", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=False):
             self.get_success_response(self.organization.slug, method="post", **data)
 
@@ -407,8 +408,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
             organization=self.organization, email="notexisting@example.com"
         )
         assert len(mail.outbox) == 0
-        # todo(maxbittker) this test is a false positive, need to figure out why
-        assert member.role == "admin"
+        assert member.role == "manager"
 
 
 @region_silo_test(stable=True)
