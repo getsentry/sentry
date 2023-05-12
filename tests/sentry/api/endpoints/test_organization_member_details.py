@@ -433,6 +433,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "member"
 
+    @with_feature({"organizations:team-roles": False})
     def test_can_update_from_retired_role_without_flag(self):
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
@@ -456,6 +457,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "member"
 
+    @with_feature({"organizations:team-roles": False})
     def test_can_update_to_retired_role_without_flag(self):
         member = self.create_user("baz@example.com")
         member_om = self.create_member(

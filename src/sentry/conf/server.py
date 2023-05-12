@@ -2094,14 +2094,14 @@ SENTRY_TEAM_ROLES = (
         "scopes": {
             "event:read",
             "event:write",
-            "event:admin",
+            # "event:admin",  # Scope granted/withdrawn by "sentry:events_member_admin" to org-level role
             "project:releases",
             "project:read",
             "org:read",
             "member:read",
             "team:read",
             "alerts:read",
-            "alerts:write",
+            # "alerts:write",  # Scope granted/withdrawn by "sentry:alerts_member_write" to org-level role
         },
     },
     {
