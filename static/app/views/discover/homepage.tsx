@@ -6,6 +6,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {
   getDatetimeFromState,
+  normalizeDateTimeParams,
   normalizeDateTimeString,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {getPageFilterStorage} from 'sentry/components/organizations/pageFilters/persistence';
@@ -82,7 +83,12 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
+    const {organization, selection} = this.props;
+    const {projects, environments, datetime} = selection;
+    const commonQuery = {
+      environment: environments,
+      project: projects.map(proj => String(proj)),
+    };
 
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
     if (organization.features.includes('discover-query')) {
@@ -95,6 +101,7 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
       endpoints.push([
         'starfishResult',
         `/organizations/${organization.slug}/events-starfish/`,
+        {query: {...commonQuery, ...normalizeDateTimeParams(datetime)}},
       ]);
     }
     return endpoints;

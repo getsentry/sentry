@@ -86,6 +86,7 @@ class ManageDashboards extends AsyncView<Props, State> {
       endpoints.push([
         'starfishResult',
         `/organizations/${organization.slug}/events-starfish/`,
+        {query: {statsPeriod: '7d'}},
       ]);
     }
     return endpoints;

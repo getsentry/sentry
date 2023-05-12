@@ -6,6 +6,7 @@ import moment from 'moment';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
@@ -70,9 +71,26 @@ export default function APIModuleView({location, onSelect}: Props) {
     datetime: pageFilter.selection.datetime,
   });
 
-  useApiQuery<null>([`/organizations/${organization.slug}/events-starfish/`, {}], {
-    staleTime: 10,
-  });
+  const {selection} = pageFilter;
+  const {projects, environments, datetime} = selection;
+
+  useApiQuery<null>(
+    [
+      `/organizations/${organization.slug}/events-starfish/`,
+      {
+        query: {
+          ...{
+            environment: environments,
+            project: projects.map(proj => String(proj)),
+          },
+          ...normalizeDateTimeParams(datetime),
+        },
+      },
+    ],
+    {
+      staleTime: 10,
+    }
+  );
 
   const {isLoading: _isDomainsLoading, data: domains} = useSpansQuery({
     eventView: endpointsDomainEventView,
