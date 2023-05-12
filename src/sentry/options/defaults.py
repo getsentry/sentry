@@ -5,6 +5,7 @@ from sentry.options import (
     FLAG_ALLOW_EMPTY,
     FLAG_IMMUTABLE,
     FLAG_MODIFIABLE_BOOL,
+    FLAG_MODIFIABLE_RATE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
@@ -707,7 +708,13 @@ register("dynamic-sampling.prioritise_transactions.num_explicit_small_transactio
 # there will still be some rebalancing between the explicit and implicit transactions ( so setting rebalancing
 # to 0.0 is not the same as no rebalancing. To effectively disable rebalancing set the number of explicit
 # transactions to be rebalance (both small and large) to 0
-register("dynamic-sampling.prioritise_transactions.rebalance_intensity", 0.8)
+register(
+    "dynamic-sampling.prioritise_transactions.rebalance_intensity",
+    default=0.8,
+    flags=FLAG_MODIFIABLE_RATE,
+)
 register("hybrid_cloud.outbox_rate", default=0.0)
 # controls whether we allow people to upload artifact bundles instead of release bundles
 register("sourcemaps.enable-artifact-bundles", default=0.0)
+# Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
+register("txnames.bump-lifetime-sample-rate", default=0.1)

@@ -23,6 +23,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
@@ -49,7 +50,12 @@ import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
 import SampleEventAlert from './sampleEventAlert';
 import {Tab, TabPaths} from './types';
-import {getGroupReprocessingStatus, markEventSeen, ReprocessingStatus} from './utils';
+import {
+  getGroupReprocessingStatus,
+  markEventSeen,
+  ReprocessingStatus,
+  useFetchIssueTagsForDetailsPage,
+} from './utils';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
@@ -90,7 +96,7 @@ function getGroupQuery({
   const query: Record<string, string | string[]> = {
     ...(environments ? {environment: environments} : {}),
     expand: ['inbox', 'owners'],
-    collapse: 'release',
+    collapse: ['release', 'tags'],
   };
 
   return query;
@@ -533,6 +539,8 @@ function useTrackView({
     stacktrace_link_viewed: false,
     // Will be updated by IssueQuickTrace if there is a trace
     trace_status: 'none',
+    // Will be updated in GroupDetailsHeader if there are replays
+    group_has_replay: false,
   });
 }
 
@@ -680,7 +688,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     projects,
     initiallyLoaded: projectsLoaded,
     fetchError: errorFetchingProjects,
-  } = useProjects({slugs: [props.project?.slug ?? '']});
+  } = useProjects({slugs: props.project?.slug ? [props.project.slug] : []});
 
   const project =
     (props.project?.slug
@@ -701,13 +709,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     return <LoadingIndicator />;
   }
 
-  return (
-    // TODO(ts): Update renderContent function to deal with empty group
-    // Search for the slug in the projects list if possible. This is because projects
-    // is just a complete list of stored projects and the first element may not be
-    // the expected project.
-    <GroupDetailsContent {...props} project={project} group={props.group} />
-  );
+  return <GroupDetailsContent {...props} project={project} group={props.group} />;
 }
 
 function GroupDetails(props: GroupDetailsProps) {
@@ -722,7 +724,15 @@ function GroupDetails(props: GroupDetailsProps) {
   const previousEventId = usePrevious(router.params.eventId);
   const previousIsGlobalSelectionReady = usePrevious(props.isGlobalSelectionReady);
 
-  const isSampleError = group?.tags?.some(tag => tag.key === 'sample_event');
+  const {data} = useFetchIssueTagsForDetailsPage(
+    {
+      groupId: router.params.groupId,
+      environment: props.environments,
+    },
+    // Don't want this query to take precedence over the main requests
+    {enabled: props.isGlobalSelectionReady && defined(group)}
+  );
+  const isSampleError = data?.some(tag => tag.key === 'sample_event') ?? false;
 
   useEffect(() => {
     const globalSelectionReadyChanged =

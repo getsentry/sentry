@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import moment from 'moment';
 import * as qs from 'query-string';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -21,11 +22,17 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
+import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
-import DatabaseTableView from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
-import {useQueryMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
+import DatabaseTableView, {
+  DataRow,
+} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
+import {
+  getDbAggregatesQuery,
+  useQueryMainTable,
+} from 'sentry/views/starfish/modules/databaseModule/queries';
+import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combineTableDataWithSparklineData';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {getModuleBreakdown} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -75,6 +82,16 @@ const DATABASE_SPAN_COLUMN_ORDER = [
     width: 100,
   },
   {
+    key: 'throughput',
+    name: 'Throughput',
+    width: 200,
+  },
+  {
+    key: 'p75_trend',
+    name: 'P75 Trend',
+    width: 200,
+  },
+  {
     key: 'epm',
     name: 'Tpm',
     width: COL_WIDTH_UNDEFINED,
@@ -105,19 +122,33 @@ export default function EndpointOverview() {
     isRefetching: isTableRefetching,
   } = useQueryMainTable({});
 
-  const {data: moduleBreakdown} = useQuery({
-    queryKey: [`moduleBreakdown${transaction}`],
+  const {data: dbAggregateData} = useQuery({
+    queryKey: ['dbAggregates'],
     queryFn: () =>
-      fetch(`${HOST}/?query=${getModuleBreakdown({transaction})}`).then(res =>
-        res.json()
-      ),
+      fetch(
+        `${HOST}/?query=${getDbAggregatesQuery({
+          datetime: pageFilter.selection.datetime,
+          transaction,
+        })}`
+      ).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
-  if (!transaction) {
-    return null;
-  }
+  const aggregatesGroupedByQuery = {};
+  dbAggregateData.forEach(({description, interval, count, p75}) => {
+    if (description in aggregatesGroupedByQuery) {
+      aggregatesGroupedByQuery[description].push({name: interval, count, p75});
+    } else {
+      aggregatesGroupedByQuery[description] = [{name: interval, count, p75}];
+    }
+  });
+
+  const combinedDbData = combineTableDataWithSparklineData(
+    tableData,
+    dbAggregateData,
+    moment.duration(12, 'hours')
+  );
 
   const query = new MutableSearch([
     'has:http.method',
@@ -180,7 +211,7 @@ export default function EndpointOverview() {
                       <SubHeader>{t('Throughput')}</SubHeader>
                       <Chart
                         statsPeriod={(statsPeriod as string) ?? '24h'}
-                        height={110}
+                        height={150}
                         data={results?.[0] ? [results?.[0]] : []}
                         start=""
                         end=""
@@ -203,7 +234,7 @@ export default function EndpointOverview() {
                       <SubHeader>{t('p50(duration)')}</SubHeader>
                       <Chart
                         statsPeriod={(statsPeriod as string) ?? '24h'}
-                        height={110}
+                        height={150}
                         data={results?.[1] ? [results?.[1]] : []}
                         start=""
                         end=""
@@ -228,10 +259,11 @@ export default function EndpointOverview() {
             }}
           </EventsRequest>
           <FacetBreakdownBar
-            segments={moduleBreakdown}
             title={t('Where is time spent in this endpoint?')}
             transaction={transaction as string}
           />
+          <SubHeader>{t('Correlations')}</SubHeader>
+          <FacetInsights eventView={eventView} />
           <SubHeader>{t('HTTP Spans')}</SubHeader>
           <EndpointTable
             location={location}
@@ -261,7 +293,7 @@ export default function EndpointOverview() {
               );
             }}
             isDataLoading={isTableDataLoading || isTableRefetching}
-            data={tableData}
+            data={combinedDbData as DataRow[]}
             columns={DATABASE_SPAN_COLUMN_ORDER}
           />
         </Layout.Main>

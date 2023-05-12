@@ -17,6 +17,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ObjectStatus
 from sentry.models import Project, ProjectKey
 from sentry.monitors.models import (
     CheckInStatus,
@@ -25,7 +26,6 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
     MonitorLimitsExceeded,
-    MonitorStatus,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created
@@ -99,8 +99,8 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         Note: If a DSN is utilized for authentication, the response will be limited in details.
         """
         if monitor and monitor.status in [
-            MonitorStatus.PENDING_DELETION,
-            MonitorStatus.DELETION_IN_PROGRESS,
+            ObjectStatus.PENDING_DELETION,
+            ObjectStatus.DELETION_IN_PROGRESS,
         ]:
             return self.respond(status=404)
 
@@ -195,7 +195,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
             signal_first_checkin(project, monitor)
 
-            if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
+            if checkin.status == CheckInStatus.ERROR and monitor.status != ObjectStatus.DISABLED:
                 monitor_failed = monitor_environment.mark_failed(last_checkin=checkin.date_added)
                 if not monitor_failed:
                     if isinstance(request.auth, ProjectKey):

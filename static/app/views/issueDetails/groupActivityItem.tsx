@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import CommitLink from 'sentry/components/commitLink';
+import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -81,6 +82,13 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
       });
     }
 
+    if (data.ignoreUntil) {
+      return tct('[author] [action] this issue until [date]', {
+        author,
+        action: ignoredOrArchived,
+        date: <DateTime date={data.ignoreUntil} />,
+      });
+    }
     if (hasEscalatingIssuesUi && data.ignoreUntilEscalating) {
       return tct('[author] archived this issue until it escalates', {
         author,

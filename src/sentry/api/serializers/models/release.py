@@ -18,7 +18,7 @@ from sentry.models import (
     ReleaseStatus,
     User,
 )
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 

@@ -18,7 +18,8 @@ from sentry.models import (
     User,
 )
 from sentry.plugins.base import bindings
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder

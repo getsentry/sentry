@@ -22,7 +22,8 @@ from sentry.models import (
     fetch_actors_by_actor_ids,
 )
 from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 
 
@@ -97,6 +98,8 @@ class AlertRuleSerializer(Serializer):
 
         resolved_actors = {}
         for k, v in ACTOR_TYPES.items():
+            # TODO(actorid) This relies on ducktyping between user and team.
+            # This will need to handle user + team separately.
             resolved_actors[k] = {
                 a.actor_id: a.id
                 for a in fetch_actors_by_actor_ids(actor_type_to_class(v), owners_by_type[k])
