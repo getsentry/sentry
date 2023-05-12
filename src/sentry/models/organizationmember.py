@@ -284,6 +284,11 @@ class OrganizationMember(Model):
             payload=dict(user_id=self.user_id),
         )
 
+    def save_outbox_for_update(self) -> RegionOutbox:
+        outbox = self.outbox_for_update()
+        outbox.save()
+        return outbox
+
     def refresh_expires_at(self):
         now = timezone.now()
         self.token_expires_at = now + timedelta(days=INVITE_DAYS_VALID)
