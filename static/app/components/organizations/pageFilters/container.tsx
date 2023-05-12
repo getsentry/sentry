@@ -35,6 +35,12 @@ type Props = InitializeUrlStateProps & {
    */
   desyncedAlertMessage?: string;
   /**
+   * When true, changes to page filters' value won't be saved to local storage, and will
+   * be forgotten when the user navigates to a different page. This is useful for local
+   * filtering contexts like in Dashboard Details.
+   */
+  disablePersistence?: boolean;
+  /**
    * Whether to hide the desynced filter alert.
    */
   hideDesyncAlert?: boolean;
@@ -61,6 +67,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     shouldForceProject,
     specificProjectSlugs,
     skipInitializeUrlParams,
+    disablePersistence,
     desyncedAlertMessage,
     hideDesyncAlert,
     hideDesyncRevertButton,
@@ -94,6 +101,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
       forceProject,
       shouldForceProject,
       shouldEnforceSingleProject: enforceSingleProject,
+      shouldPersist: !disablePersistence,
       showAbsolute,
       skipInitializeUrlParams,
     });

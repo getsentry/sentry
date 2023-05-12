@@ -36,7 +36,8 @@ describe('DatePageFilter', function () {
           utc: false,
         },
       },
-      new Set(['datetime'])
+      new Set(['datetime']),
+      true
     );
   });
 
@@ -58,6 +59,7 @@ describe('DatePageFilter', function () {
     );
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      shouldPersist: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(['datetime']),
       selection: {
@@ -100,6 +102,7 @@ describe('DatePageFilter', function () {
     );
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      shouldPersist: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(['datetime']),
       selection: {

@@ -1,8 +1,11 @@
+import {act} from 'sentry-test/reactTestingLibrary';
+
 import {
   initializeUrlState,
   revertToPinnedFilters,
   updateDateTime,
   updateEnvironments,
+  updatePersistence,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
@@ -60,7 +63,8 @@ describe('PageFilters ActionCreators', function () {
           environments: [],
           projects: [1],
         }),
-        new Set(['projects', 'environments'])
+        new Set(['projects', 'environments']),
+        true
       );
       expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -85,6 +89,49 @@ describe('PageFilters ActionCreators', function () {
       expect(localStorage.getItem).not.toHaveBeenCalled();
     });
 
+    it('does not update local storage (persist) when `shouldPersist` is false', async function () {
+      localStorage.setItem.mockClear();
+      localStorage.getItem.mockReturnValueOnce(
+        JSON.stringify({
+          environments: [],
+          projects: [],
+          pinnedFilters: ['projects'],
+        })
+      );
+
+      initializeUrlState({
+        organization,
+        queryParams: {},
+        shouldPersist: false,
+        router,
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          environments: [],
+          projects: [],
+        }),
+        new Set(['projects']),
+        false
+      );
+
+      // `onInitializeUrlState` is being spied on, so PageFiltersStore wasn't actually
+      // updated. We need to call `updatePersistence` manually.
+      updatePersistence(false);
+
+      await act(async () => {
+        // Filters shouldn't persist even when `save` is true
+        updateProjects([1], router, {save: true});
+
+        // Page filter values are asynchronously persisted to local storage after a tick,
+        // so we need to wait before checking for commits to local storage
+        await tick();
+      });
+
+      // New value wasn't committed to local storage
+      expect(localStorage.setItem).not.toHaveBeenCalled();
+    });
+
     it('does not change dates with no query params or defaultSelection', function () {
       initializeUrlState({
         organization,
@@ -103,7 +150,8 @@ describe('PageFilters ActionCreators', function () {
             utc: null,
           },
         }),
-        new Set()
+        new Set(),
+        true
       );
     });
 
@@ -130,7 +178,8 @@ describe('PageFilters ActionCreators', function () {
             utc: null,
           },
         }),
-        new Set()
+        new Set(),
+        true
       );
     });
 
@@ -211,7 +260,8 @@ describe('PageFilters ActionCreators', function () {
           projects: [1],
           environments: [],
         },
-        new Set()
+        new Set(),
+        true
       );
       expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
