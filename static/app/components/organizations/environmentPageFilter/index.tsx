@@ -3,7 +3,10 @@ import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
-import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
+import {
+  HybridFilter,
+  HybridFilterProps,
+} from 'sentry/components/organizations/hybridFilter';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -18,15 +21,27 @@ import {DesyncedFilterMessage} from '../pageFilters/desyncedFilter';
 
 import {EnvironmentPageFilterTrigger} from './trigger';
 
-export interface EnvironmentPageFilterProps {
+export interface EnvironmentPageFilterProps
+  extends Partial<
+    Omit<
+      HybridFilterProps<string>,
+      | 'searchable'
+      | 'multiple'
+      | 'options'
+      | 'value'
+      | 'onReplace'
+      | 'onToggle'
+      | 'menuBody'
+      | 'menuFooter'
+      | 'menuFooterMessage'
+      | 'checkboxWrapper'
+      | 'shouldCloseOnInteractOutside'
+    >
+  > {
   /**
    * Message to show in the menu footer
    */
   footerMessage?: string;
-  /**
-   * Triggers any time a selection is changed, but the menu has not yet been closed or "applied"
-   */
-  onChange?: (selected: string[]) => void;
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
@@ -35,6 +50,14 @@ export interface EnvironmentPageFilterProps {
 
 export function EnvironmentPageFilter({
   onChange,
+  onClear,
+  disabled,
+  sizeLimit,
+  sizeLimitMessage,
+  emptyMessage,
+  menuTitle,
+  menuWidth,
+  trigger,
   resetParamsOnChange,
   footerMessage,
   ...selectProps
@@ -142,7 +165,7 @@ export function EnvironmentPageFilter({
   );
 
   const desynced = desyncedFilters.has('environments');
-  const menuWidth = useMemo(() => {
+  const defaultMenuWidth = useMemo(() => {
     // EnvironmentPageFilter will try to expand to accommodate the longest env slug
     const longestSlugLength = options
       .slice(0, 25)
@@ -167,25 +190,29 @@ export function EnvironmentPageFilter({
       options={options}
       value={value}
       onChange={handleChange}
+      onClear={onClear}
       onReplace={onReplace}
       onToggle={onToggle}
-      disabled={!projectsLoaded || !pageFilterIsReady}
-      sizeLimit={25}
-      sizeLimitMessage={t('Use search to find more environments…')}
-      emptyMessage={t('No environments found')}
-      menuTitle={t('Filter Environments')}
-      menuWidth={menuWidth}
+      disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
+      sizeLimit={sizeLimit ?? 25}
+      sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}
+      emptyMessage={emptyMessage ?? t('No environments found')}
+      menuTitle={menuTitle ?? t('Filter Environments')}
+      menuWidth={menuWidth ?? defaultMenuWidth}
       menuBody={desynced && <DesyncedFilterMessage />}
       menuFooterMessage={footerMessage}
-      trigger={triggerProps => (
-        <EnvironmentPageFilterTrigger
-          value={value}
-          environments={environments}
-          ready={projectsLoaded && pageFilterIsReady}
-          desynced={desynced}
-          {...triggerProps}
-        />
-      )}
+      trigger={
+        trigger ??
+        (triggerProps => (
+          <EnvironmentPageFilterTrigger
+            value={value}
+            environments={environments}
+            ready={projectsLoaded && pageFilterIsReady}
+            desynced={desynced}
+            {...triggerProps}
+          />
+        ))
+      }
     />
   );
 }
