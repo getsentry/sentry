@@ -315,7 +315,8 @@ export const useQueryTopTablesChart = (
 export const useQueryPanelTable = (
   row: DataRow,
   sortKey: string | undefined,
-  sortDirection: string | undefined
+  sortDirection: string | undefined,
+  transaction: string | undefined
 ): DefinedUseQueryResult<
   Pick<TransactionListDataRow, 'transaction' | 'count' | 'p75'>[]
 > => {
@@ -323,6 +324,7 @@ export const useQueryPanelTable = (
   const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
   const orderBy = getOrderByFromKey(sortKey, sortDirection) ?? ORDERBY;
+  const transactionFilter = transaction ? `and transaction='${transaction}'` : '';
   const query = `
     SELECT
       transaction,
@@ -333,13 +335,67 @@ export const useQueryPanelTable = (
       ${DEFAULT_WHERE}
       ${dateFilters} AND
       group_id = '${row.group_id}'
+      ${transactionFilter}
     GROUP BY transaction
     ORDER BY ${orderBy}
-    LIMIT 10
+    LIMIT 5
   `;
   return useQuery({
     queryKey: [
       'dbQueryDetailsTable',
+      row.group_id,
+      pageFilter.selection.datetime,
+      sortKey,
+      sortDirection,
+    ],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: true,
+    initialData: [],
+  });
+};
+
+export const useQueryPanelSparklines = (
+  row: DataRow,
+  sortKey: string | undefined,
+  sortDirection: string | undefined,
+  interval: number,
+  transaction: string | undefined
+): DefinedUseQueryResult<{interval: string; spm: number; transaction: string}[]> => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+  const orderBy = getOrderByFromKey(sortKey, sortDirection) ?? ORDERBY;
+  const transactionFilter = transaction ? `and transaction='${transaction}'` : '';
+  const query = `
+    SELECT
+      transaction,
+      toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval,
+      quantile(0.50)(exclusive_time) AS p50,
+      divide(count(), ${(endTime.unix() - startTime.unix()) / 60}) AS spm
+    FROM spans_experimental_starfish
+    WHERE
+      transaction in (
+        SELECT
+          transaction
+        FROM spans_experimental_starfish
+        WHERE
+          ${DEFAULT_WHERE}
+          ${dateFilters} AND
+          group_id = '${row.group_id}'
+          ${transactionFilter}
+        GROUP BY transaction
+        ORDER BY ${orderBy}
+        LIMIT 5
+      ) and
+      ${DEFAULT_WHERE}
+      ${dateFilters} AND
+      group_id = '${row.group_id}'
+    GROUP BY transaction, interval
+    ORDER BY transaction, interval, ${orderBy}
+  `;
+  return useQuery({
+    queryKey: [
+      'dbQueryDetailsSparklines',
       row.group_id,
       pageFilter.selection.datetime,
       sortKey,
@@ -498,7 +554,8 @@ type QueryTransactionByTPMAndP75ReturnType = {
   transaction: string;
 }[];
 export const useQueryTransactionByTPMAndP75 = (
-  transactionNames: string[]
+  transactionNames: string[],
+  interval: number
 ): UseSpansQueryReturnType<QueryTransactionByTPMAndP75ReturnType> => {
   const {
     selection: {datetime},
@@ -506,8 +563,8 @@ export const useQueryTransactionByTPMAndP75 = (
   return useWrappedDiscoverTimeseriesQuery(
     EventView.fromSavedQuery({
       name: '',
-      fields: ['transaction', 'count()', 'p75(transaction.duration)'],
-      yAxis: ['count()', 'p75(transaction.duration)'],
+      fields: ['transaction', 'epm()', 'p50(transaction.duration)'],
+      yAxis: ['epm()', 'p50(transaction.duration)'],
       orderby: '-count',
       query: `transaction:["${transactionNames.join('","')}"]`,
       topEvents: '5',
@@ -515,6 +572,7 @@ export const useQueryTransactionByTPMAndP75 = (
       end: datetime.end as string,
       range: datetime.period as string,
       dataset: DiscoverDatasets.METRICS,
+      interval: `${interval}h`,
       projects: [1],
       version: 2,
     }),
