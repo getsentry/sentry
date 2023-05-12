@@ -53,7 +53,7 @@ interface PageFiltersStoreDefinition
   onInitializeUrlState(
     newSelection: PageFilters,
     pinned: Set<PinnedPageFilter>,
-    persist: boolean
+    persist?: boolean
   ): void;
   onReset(): void;
   pin(filter: PinnedPageFilter, pin: boolean): void;
@@ -88,7 +88,7 @@ const storeConfig: PageFiltersStoreDefinition = {
   /**
    * Initializes the page filters store data
    */
-  onInitializeUrlState(newSelection, pinned, persist) {
+  onInitializeUrlState(newSelection, pinned, persist = true) {
     this._isReady = true;
 
     this.selection = newSelection;

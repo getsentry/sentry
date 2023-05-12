@@ -34,8 +34,7 @@ describe('EnvironmentPageFilter', function () {
         environments: [],
         datetime: {start: null, end: null, period: '14d', utc: null},
       },
-      new Set(['environments']),
-      true
+      new Set(['environments'])
     );
 
     OrganizationStore.onUpdate(organization, {replace: true});

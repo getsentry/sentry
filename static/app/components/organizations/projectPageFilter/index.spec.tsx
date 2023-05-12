@@ -43,8 +43,7 @@ describe('ProjectPageFilter', function () {
         environments: [],
         datetime: {start: null, end: null, period: '14d', utc: null},
       },
-      new Set(['projects']),
-      true
+      new Set(['projects'])
     );
 
     OrganizationStore.onUpdate(organization, {replace: true});

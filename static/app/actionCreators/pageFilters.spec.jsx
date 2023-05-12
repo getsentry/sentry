@@ -81,8 +81,8 @@ describe('PageFilters ActionCreators', function () {
       initializeUrlState({
         organization,
         queryParams: {},
-        pathname: '/mock-pathname/',
         skipLoadLastUsed: true,
+        pathname: '/mock-pathname/',
         router,
       });
 
