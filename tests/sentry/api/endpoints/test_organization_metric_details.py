@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.metrics import SingularEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import complement, division_float
@@ -37,7 +37,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 def _indexer_record(org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=string)
+    return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)
 
 
 @region_silo_test(stable=True)
@@ -242,7 +242,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         """
         mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS_2
         org_id = self.project.organization.id
-        use_key_id = UseCaseID.SESSIONS
+        use_key_id = UseCaseKey.RELEASE_HEALTH
         metric_id = _indexer_record(org_id, "metric_foo_doe")
 
         self.store_session(

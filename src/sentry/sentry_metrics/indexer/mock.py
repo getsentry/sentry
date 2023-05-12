@@ -5,6 +5,7 @@ from typing import DefaultDict, Dict, Mapping, Optional, Set
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
+    KeyResults,
     OrgId,
     StringIndexer,
     UseCaseKeyCollection,
@@ -27,6 +28,16 @@ class RawSimpleIndexer(StringIndexer):
         self._reverse: Dict[int, str] = {}
 
     def bulk_record(
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
+    ) -> KeyResults:
+        res = self._uca_bulk_record({REVERSE_METRIC_PATH_MAPPING[use_case_id]: org_strings})
+        return res.results[REVERSE_METRIC_PATH_MAPPING[use_case_id]]
+
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+        res = self._uca_bulk_record({REVERSE_METRIC_PATH_MAPPING[use_case_id]: {org_id: {string}}})
+        return res.results[REVERSE_METRIC_PATH_MAPPING[use_case_id]][org_id][string]
+
+    def _uca_bulk_record(
         self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
     ) -> UseCaseKeyResults:
         db_read_keys = UseCaseKeyCollection(strings)
@@ -60,7 +71,7 @@ class RawSimpleIndexer(StringIndexer):
 
         return db_read_key_results.merge(db_write_key_results)
 
-    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def _uca_record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         return self._record(use_case_id, org_id, string)
 
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
