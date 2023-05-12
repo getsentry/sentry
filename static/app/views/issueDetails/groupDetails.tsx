@@ -32,6 +32,7 @@ import {
   getMessage,
   getTitle,
 } from 'sentry/utils/events';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -717,7 +718,7 @@ function GroupDetails(props: GroupDetailsProps) {
   const location = useLocation();
   const router = useRouter();
 
-  const {fetchData, project, group, ...fetchGroupDetailsProps} =
+  const {fetchData, project, group, event, ...fetchGroupDetailsProps} =
     useFetchGroupDetails(props);
 
   const previousPathname = usePrevious(location.pathname);
@@ -778,15 +779,24 @@ function GroupDetails(props: GroupDetailsProps) {
       )}
       <SentryDocumentTitle noSuffix title={getGroupDetailsTitle()}>
         <PageFiltersContainer skipLoadLastUsed forceProject={project} shouldForceProject>
-          <GroupDetailsPageContent
-            {...props}
-            {...{
-              group,
-              project,
-              fetchData,
-              ...fetchGroupDetailsProps,
-            }}
-          />
+          <VisuallyCompleteWithData
+            id="IssueDetails-EventBody"
+            hasData={defined(event) && defined(group)}
+            isLoading={
+              fetchGroupDetailsProps.loadingEvent || fetchGroupDetailsProps.loadingGroup
+            }
+          >
+            <GroupDetailsPageContent
+              {...props}
+              {...{
+                group,
+                event,
+                project,
+                fetchData,
+                ...fetchGroupDetailsProps,
+              }}
+            />
+          </VisuallyCompleteWithData>
         </PageFiltersContainer>
       </SentryDocumentTitle>
     </Fragment>

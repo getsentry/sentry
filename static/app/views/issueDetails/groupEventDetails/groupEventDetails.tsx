@@ -26,11 +26,9 @@ import {
   Project,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
 import fetchSentryAppInstallations from 'sentry/utils/fetchSentryAppInstallations';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
-import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import usePrevious from 'sentry/utils/usePrevious';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
@@ -209,61 +207,55 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
       transactionId={event?.type === 'transaction' ? event.id : undefined}
       timestamp={event?.dateReceived}
     >
-      <VisuallyCompleteWithData
-        id="IssueDetails-EventBody"
-        hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
-        isLoading={loadingEvent}
-      >
-        <StyledLayoutBody data-test-id="group-event-details">
-          {hasReprocessingV2Feature &&
-          groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
-            <ReprocessingProgress
-              totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
-              pendingEvents={
-                (group.statusDetails as BaseGroupStatusReprocessing['statusDetails'])
-                  .pendingEvents
-              }
-            />
-          ) : (
-            <Fragment>
-              <QuickTraceQuery
+      <StyledLayoutBody data-test-id="group-event-details">
+        {hasReprocessingV2Feature &&
+        groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
+          <ReprocessingProgress
+            totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
+            pendingEvents={
+              (group.statusDetails as BaseGroupStatusReprocessing['statusDetails'])
+                .pendingEvents
+            }
+          />
+        ) : (
+          <Fragment>
+            <QuickTraceQuery
+              event={eventWithMeta}
+              location={location}
+              orgSlug={organization.slug}
+            >
+              {results => {
+                return (
+                  <StyledLayoutMain>
+                    {renderGroupStatusBanner()}
+                    <IssuePriorityFeedback organization={organization} group={group} />
+                    <QuickTraceContext.Provider value={results}>
+                      {eventWithMeta && (
+                        <GroupEventHeader
+                          group={group}
+                          event={eventWithMeta}
+                          project={project}
+                        />
+                      )}
+                      {renderReprocessedBox()}
+                      {renderContent()}
+                    </QuickTraceContext.Provider>
+                  </StyledLayoutMain>
+                );
+              }}
+            </QuickTraceQuery>
+            <StyledLayoutSide>
+              <GroupSidebar
+                organization={organization}
+                project={project}
+                group={group}
                 event={eventWithMeta}
-                location={location}
-                orgSlug={organization.slug}
-              >
-                {results => {
-                  return (
-                    <StyledLayoutMain>
-                      {renderGroupStatusBanner()}
-                      <IssuePriorityFeedback organization={organization} group={group} />
-                      <QuickTraceContext.Provider value={results}>
-                        {eventWithMeta && (
-                          <GroupEventHeader
-                            group={group}
-                            event={eventWithMeta}
-                            project={project}
-                          />
-                        )}
-                        {renderReprocessedBox()}
-                        {renderContent()}
-                      </QuickTraceContext.Provider>
-                    </StyledLayoutMain>
-                  );
-                }}
-              </QuickTraceQuery>
-              <StyledLayoutSide>
-                <GroupSidebar
-                  organization={organization}
-                  project={project}
-                  group={group}
-                  event={eventWithMeta}
-                  environments={environments}
-                />
-              </StyledLayoutSide>
-            </Fragment>
-          )}
-        </StyledLayoutBody>
-      </VisuallyCompleteWithData>
+                environments={environments}
+              />
+            </StyledLayoutSide>
+          </Fragment>
+        )}
+      </StyledLayoutBody>
     </TransactionProfileIdProvider>
   );
 }
