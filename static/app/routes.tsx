@@ -1226,10 +1226,7 @@ function buildRoutes() {
               component={make(() => import('sentry/views/alerts/edit'))}
             />
           </Route>
-          <Route
-            path=":projectId/:ruleId/details/"
-            component={make(() => import('sentry/views/alerts/rules/issue/details'))}
-          >
+          <Route path=":projectId/:ruleId/details/">
             <IndexRoute
               component={make(
                 () => import('sentry/views/alerts/rules/issue/details/ruleDetails')
