@@ -61,7 +61,11 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
             raise ResourceDoesNotExist
 
         if query:
-            query_q = Q(bundle_id__icontains=query)
+            query_q = (
+                Q(bundle_id__icontains=query)
+                | Q(releaseartifactbundle__release_name__icontains=query)
+                | Q(releaseartifactbundle__dist_name__icontains=query)
+            )
             queryset = queryset.filter(query_q)
 
         return self.paginate(
