@@ -171,9 +171,9 @@ export type TagWithTopValues = {
 };
 
 export const enum GroupSubstatus {
-  UNTIL_ESCALATING = 'until_escalating',
-  UNTIL_CONDITION_MET = 'until_condition_met',
-  FOREVER = 'forever',
+  ARCHIVED_UNTIL_ESCALATING = 'archived_until_escalating',
+  ARCHIVED_UNTIL_CONDITION_MET = 'archived_until_condition_met',
+  ARCHIVED_FOREVER = 'archived_forever',
   ESCALATING = 'escalating',
   ONGOING = 'ongoing',
   REGRESSED = 'regressed',
