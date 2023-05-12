@@ -9,7 +9,7 @@ from django.conf import settings
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
-logger = logging.getLogger()
+logger = logging.getLogger("sentry.replays")
 
 EVENT_LIMIT = 20
 
@@ -69,7 +69,7 @@ def parse_replay_actions(
     segment_data: List[Dict[str, Any]],
 ) -> Optional[ReplayActionsEvent]:
     """Parse RRWeb payload to ReplayActionsEvent."""
-    actions = get_user_actions(replay_id, segment_data)
+    actions = get_user_actions(project_id, replay_id, segment_data)
     if len(actions) == 0:
         return None
 
@@ -105,6 +105,7 @@ def create_replay_actions_payload(
 
 
 def get_user_actions(
+    project_id: int,
     replay_id: str,
     events: List[Dict[str, Any]],
 ) -> List[ReplayActionsEventPayloadClick]:
@@ -136,7 +137,9 @@ def get_user_actions(
             payload = event["data"].get("payload", {})
             category = payload.get("category")
             if category == "ui.slowClickDetected":
-                logger.info(f"Slow click detected: {json.dumps(payload)}")
+                payload["project_id"] = project_id
+                payload["replay_id"] = replay_id
+                logger.info("Slow click detected", extra=payload)
             elif category == "ui.click":
                 node = payload.get("data", {}).get("node")
                 if node is None:
