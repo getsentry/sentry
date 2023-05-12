@@ -4,7 +4,7 @@ import responses
 
 from sentry import audit_log
 from sentry.constants import SentryAppInstallationStatus
-from sentry.models import ApiGrant, AuditLogEntry, ServiceHook, ServiceHookProject, actor
+from sentry.models import ApiGrant, AuditLogEntry, ServiceHook, ServiceHookProject
 from sentry.sentry_apps import SentryAppInstallationCreator
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
@@ -13,11 +13,7 @@ from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 @control_silo_test(stable=True)
 class TestCreator(TestCase):
     def setUp(self):
-        actor.pre_save.disconnect(
-            dispatch_uid="handle_actor_pre_save",
-            sender="sentry.User",
-            receiver=actor.handle_actor_pre_save,
-        )
+
         self.user = self.create_user()
         self.org = self.create_organization()
 
@@ -31,11 +27,6 @@ class TestCreator(TestCase):
             organization_id=self.org.id,
             scopes=("project:read",),
             events=("issue.created",),
-        )
-
-    def tearDown(self):
-        actor.pre_save.connect(
-            actor.handle_actor_pre_save, dispatch_uid="handle_actor_pre_save", sender="sentry.User"
         )
 
     def run_creator(self, **kwargs):

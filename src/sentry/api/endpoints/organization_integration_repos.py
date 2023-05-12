@@ -4,7 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
+from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import RepositoryMixin
@@ -19,7 +19,7 @@ class IntegrationRepository(TypedDict):
 
 
 @region_silo_endpoint
-class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
+class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndpoint):
     def get(self, request: Request, organization, integration_id) -> Response:
         """
         Get the list of repositories available in an integration
@@ -31,7 +31,7 @@ class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
 
         :qparam string search: Name fragment to search repositories by.
         """
-        integration = self.get_integration(organization, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
 
         if integration.status == ObjectStatus.DISABLED:
             context = {"repos": []}

@@ -93,12 +93,12 @@ describe('OrganizationAuditLog', function () {
             event: 'sampling_priority.enabled',
             ipAddress: '127.0.0.1',
             id: '14',
-            note: 'enabled dynamic sampling priority "boostKeyTransactions"',
+            note: 'enabled dynamic sampling priority "boostLatestRelease"',
             targetObject: 4504363022811136,
             targetUser: null,
             data: {
               id: project.id,
-              name: 'boostKeyTransactions',
+              name: 'boostLatestRelease',
               public: false,
               slug: project.slug,
               status: 0,
@@ -109,12 +109,12 @@ describe('OrganizationAuditLog', function () {
             event: 'sampling_priority.disabled',
             ipAddress: '127.0.0.1',
             id: '15',
-            note: 'disabled dynamic sampling priority "boostKeyTransactions"',
+            note: 'disabled dynamic sampling priority "boostLatestRelease"',
             targetObject: 4504363022811136,
             targetUser: null,
             data: {
               id: project.id,
-              name: 'boostKeyTransactions',
+              name: 'boostLatestRelease',
               public: false,
               slug: project.slug,
               status: 0,
@@ -134,7 +134,7 @@ describe('OrganizationAuditLog', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          `Enabled retention priority "Prioritize key transactions" in project ${project.slug}`
+          `Enabled retention priority "Prioritize new releases" in project ${project.slug}`
         )
       )
     ).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe('OrganizationAuditLog', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          `Disabled retention priority "Prioritize key transactions" in project ${project.slug}`
+          `Disabled retention priority "Prioritize new releases" in project ${project.slug}`
         )
       )
     ).toBeInTheDocument();

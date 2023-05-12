@@ -6,6 +6,7 @@ import logging
 import random
 import re
 import time
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from hashlib import md5
@@ -78,6 +79,9 @@ from sentry.grouping.api import (
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory, reduce_noise
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.producer import produce_occurrence_to_kafka
+from sentry.issues.utils import can_create_group, write_occurrence_to_platform
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.locks import locks
@@ -115,6 +119,7 @@ from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPIN
 from sentry.quotas.base import index_data_category
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import (
     first_event_received,
@@ -127,6 +132,7 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -519,7 +525,7 @@ class EventManager:
 
         # Because this logic is not complex enough we want to special case the situation where we
         # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
-        # _save_aggregate needs special logic to not create orphaned hashes in migration cases
+        # `_save_aggregate` needs special logic to not create orphaned hashes in migration cases
         # but it wants a different logic to implement splitting of hierarchical hashes.
         migrate_off_hierarchical = bool(
             secondary_hashes
@@ -814,9 +820,7 @@ def _is_commit_sha(version: str) -> bool:
 def _associate_commits_with_release(release: Release, project: Project) -> None:
     previous_release = release.get_previous_release(project)
     possible_repos = (
-        RepositoryProjectPathConfig.objects.select_related(
-            "repository", "organization_integration", "organization_integration__integration"
-        )
+        RepositoryProjectPathConfig.objects.select_related("repository")
         .filter(project=project, repository__provider="integrations:github")
         .all()
     )
@@ -824,11 +828,20 @@ def _associate_commits_with_release(release: Release, project: Project) -> None:
         # If it does exist, kick off a task to look if the commit exists in the repository
         target_repo = None
         for repo_proj_path_model in possible_repos:
-            integration_installation = (
-                repo_proj_path_model.organization_integration.integration.get_installation(
-                    organization_id=project.organization.id
-                )
+            ois = integration_service.get_organization_integrations(
+                org_integration_ids=[repo_proj_path_model.organization_integration_id]
             )
+            oi = ois[0]
+            if not oi:
+                continue
+            integration = integration_service.get_integration(integration_id=oi.integration_id)
+            if not integration:
+                continue
+            integration_installation = integration_service.get_installation(
+                integration=integration, organization_id=oi.organization_id
+            )
+            if not integration_installation:
+                continue
             repo_client = integration_installation.get_client()
             try:
                 repo_client.get_commit(
@@ -1574,11 +1587,11 @@ def _save_aggregate(
 
     is_new = False
 
-    # For the migrarion from hierarchical to non hierarchical we want to associate
-    # all group hashes9
+    # For the migration from hierarchical to non hierarchical we want to associate
+    # all group hashes
     if migrate_off_hierarchical:
         new_hashes = [h for h in flat_grouphashes if h.group_id is None]
-        if root_hierarchical_grouphash:
+        if root_hierarchical_grouphash and root_hierarchical_grouphash.group_id is None:
             new_hashes.append(root_hierarchical_grouphash)
     elif root_hierarchical_grouphash is None:
         # No hierarchical grouping was run, only consider flat hashes
@@ -1774,6 +1787,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             # at the value
             last_seen=date,
             status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.REGRESSED,
         )
     )
     issue_unresolved.send_robust(
@@ -1786,6 +1800,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
 
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
+    group.substatus = GroupSubStatus.REGRESSED
 
     if is_regression and release:
         resolution = None
@@ -2214,9 +2229,7 @@ def _calculate_event_grouping(
         apply_server_fingerprinting(
             event.data.data,
             get_fingerprinting_config_for_project(project),
-            allow_custom_title=features.has(
-                "organizations:custom-event-title", project.organization, actor=None
-            ),
+            allow_custom_title=True,
         )
 
     with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
@@ -2304,7 +2317,6 @@ def _message_from_metadata(meta: Mapping[str, str]) -> str:
 
 @metrics.wraps("save_event.save_aggregate_performance")
 def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: ProjectsMapping) -> None:
-
     MAX_GROUPS = (
         10  # safety check in case we are passed too many. constant will live somewhere else tbd
     )
@@ -2317,7 +2329,6 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
         # Granular, per-project option
         per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 1.0)
         if per_project_rate > random.random():
-
             kwargs = _create_kwargs(job)
             kwargs["culprit"] = job["culprit"]
             kwargs["data"] = materialize_metadata(
@@ -2327,7 +2338,14 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
             )
             kwargs["data"]["last_received"] = job["received_timestamp"]
 
-            performance_problems = job["performance_problems"]
+            all_performance_problems = job["performance_problems"]
+
+            # Filter out performance problems that will be later sent to the issues platform
+            performance_problems = [
+                problem
+                for problem in all_performance_problems
+                if not can_create_group(problem, project)
+            ]
             for problem in performance_problems:
                 problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
 
@@ -2455,6 +2473,35 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                 EventPerformanceProblem(event, performance_problems_by_hash[problem_hash]).save()
 
 
+@metrics.wraps("save_event.send_occurrence_to_platform")
+def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    for job in jobs:
+        event = job["event"]
+        project = event.project
+        event_id = event.event_id
+
+        performance_problems = job["performance_problems"]
+        for problem in performance_problems:
+            if write_occurrence_to_platform(problem, project):
+                occurrence = IssueOccurrence(
+                    id=uuid.uuid4().hex,
+                    resource_id=None,
+                    project_id=project.id,
+                    event_id=event_id,
+                    fingerprint=[problem.fingerprint],
+                    type=problem.type,
+                    issue_title=problem.title,
+                    subtitle=problem.desc,
+                    culprit=event.transaction,
+                    evidence_data=problem.evidence_data,
+                    evidence_display=problem.evidence_display,
+                    detection_time=event.datetime,
+                    level=job["level"],
+                )
+
+                produce_occurrence_to_kafka(occurrence)
+
+
 @metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
@@ -2493,6 +2540,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
+    _send_occurrence_to_platform(jobs, projects)
     return jobs
 
 

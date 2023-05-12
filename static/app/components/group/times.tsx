@@ -16,24 +16,26 @@ type Props = {
   lastSeen: string;
 };
 
-const Times = ({lastSeen, firstSeen}: Props) => (
-  <Container>
-    <FlexWrapper>
-      {lastSeen && (
-        <Fragment>
-          <StyledIconClock legacySize="11px" />
-          <TimeSince date={lastSeen} suffix={t('ago')} />
-        </Fragment>
-      )}
-      {firstSeen && lastSeen && (
-        <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>
-      )}
-      {firstSeen && (
-        <TimeSince date={firstSeen} suffix={t('old')} className="hidden-xs hidden-sm" />
-      )}
-    </FlexWrapper>
-  </Container>
-);
+function Times({lastSeen, firstSeen}: Props) {
+  return (
+    <Container>
+      <FlexWrapper>
+        {lastSeen && (
+          <Fragment>
+            <StyledIconClock legacySize="11px" />
+            <TimeSince date={lastSeen} suffix={t('ago')} />
+          </Fragment>
+        )}
+        {firstSeen && lastSeen && (
+          <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>
+        )}
+        {firstSeen && (
+          <TimeSince date={firstSeen} suffix={t('old')} className="hidden-xs hidden-sm" />
+        )}
+      </FlexWrapper>
+    </Container>
+  );
+}
 
 const Container = styled('div')`
   flex-shrink: 1;

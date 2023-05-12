@@ -41,7 +41,7 @@ class OrganizationIntegrationReposTest(APITestCase):
 
     def test_no_repository_method(self):
         integration = self.create_integration(
-            organization=self.org, provider="example", name="Example", external_id="example:1"
+            organization=self.org, provider="jira", name="Example", external_id="example:1"
         )
         path = f"/api/0/organizations/{self.org.slug}/integrations/{integration.id}/repos/"
         response = self.client.get(path, format="json")

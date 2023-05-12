@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import responses
 
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
+
 __all__ = (
     "TestCase",
     "TransactionTestCase",
@@ -67,7 +69,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk import Granularity, Limit, Offset
-from snuba_sdk.conditions import BooleanCondition, Condition
+from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry import auth, eventstore
 from sentry.auth.authenticators import TotpInterface
@@ -82,7 +84,8 @@ from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
 from sentry.event_manager import EventManager
 from sentry.eventstream.snuba import SnubaEventStream
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
+from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
 from sentry.models import ApiToken
 from sentry.models import AuthProvider as AuthProviderModel
@@ -95,6 +98,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     DeletedOrganization,
     Deploy,
+    Environment,
     File,
     GroupMeta,
     Identity,
@@ -109,7 +113,7 @@ from sentry.models import (
     UserEmail,
     UserOption,
 )
-from sentry.monitors.models import Monitor, MonitorType, ScheduleType
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.replays.models import ReplayRecordingSegment
@@ -137,6 +141,7 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
+from ..services.hybrid_cloud.actor import RpcActor
 from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
@@ -226,7 +231,9 @@ class BaseTestCase(Fixtures):
         self.client.cookies[name] = value
         self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
-    def make_request(self, user=None, auth=None, method=None, is_superuser=False, path="/"):
+    def make_request(
+        self, user=None, auth=None, method=None, is_superuser=False, path="/"
+    ) -> HttpRequest:
         request = HttpRequest()
         if method:
             request.method = method
@@ -242,7 +249,7 @@ class BaseTestCase(Fixtures):
         # must happen after request.user/request.session is populated
         request.superuser = Superuser(request)
         if is_superuser:
-            # XXX: this is gross, but its a one off and apis change only once in a great while
+            # XXX: this is gross, but it's a one-off and apis change only once in a great while
             request.superuser.set_logged_in(user)
         request.is_superuser = lambda: request.superuser.is_active
         request.successful_authenticator = None
@@ -478,18 +485,35 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 
 class PerformanceIssueTestCase(BaseTestCase):
-    def create_performance_issue(self):
+    def create_performance_issue(
+        self, tags=None, contexts=None, fingerprint="group1", transaction=None
+    ):
         event_data = load_data(
             "transaction-n-plus-one",
             timestamp=before_now(minutes=10),
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"],
         )
+        if tags is not None:
+            event_data["tags"] = tags
+        if contexts is not None:
+            event_data["contexts"] = contexts
+        if transaction:
+            event_data["transaction"] = transaction
+
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
-        with override_options(
+
+        with mock.patch(
+            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+            side_effect=send_issue_occurrence_to_eventstream,
+        ) as mock_eventstream, mock.patch.object(
+            PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
+        ), override_options(
             {
                 "performance.issues.all.problem-detection": 1.0,
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
+                "performance.issues.send_to_issues_platform": True,
+                "performance.issues.create_issues_through_platform": True,
             }
         ), self.feature(
             [
@@ -497,14 +521,16 @@ class PerformanceIssueTestCase(BaseTestCase):
             ]
         ):
             event = perf_event_manager.save(self.project.id)
-        return event.for_group(event.groups[0])
+            group_event = event.for_group(mock_eventstream.call_args[0][2].group)
+            group_event.occurrence = mock_eventstream.call_args[0][1]
+            return group_event
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
     """
     Extend APITestCase to inherit access to `client`, an object with methods
     that simulate API calls to Sentry, and the helper `get_response`, which
-    combines and simplify a lot of tedious parts of making API calls in tests.
+    combines and simplifies a lot of tedious parts of making API calls in tests.
     When creating API tests, use a new class per endpoint-method pair. The class
     must set the string `endpoint`.
     """
@@ -1014,7 +1040,7 @@ class SnubaTestCase(BaseTestCase):
         last_events_seen = 0
 
         while attempt < attempts:
-            events = eventstore.get_events(snuba_filter)
+            events = eventstore.get_events(snuba_filter, referrer="test.wait_for_event_count")
             last_events_seen = len(events)
             if len(events) >= total:
                 break
@@ -1234,21 +1260,33 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         def metric_id(key: str):
             assert isinstance(key, str)
-            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=key)
+            res = indexer.record(
+                use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
+                org_id=org_id,
+                string=key,
+            )
             assert res is not None, key
             mapping_meta[str(res)] = key
             return res
 
         def tag_key(name):
             assert isinstance(name, str)
-            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
+            res = indexer.record(
+                use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
+                org_id=org_id,
+                string=name,
+            )
             assert res is not None, name
             mapping_meta[str(res)] = name
             return res
 
         def tag_value(name):
             assert isinstance(name, str)
-            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
+            res = indexer.record(
+                use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
+                org_id=org_id,
+                string=name,
+            )
             assert res is not None, name
             mapping_meta[str(res)] = name
             return res
@@ -1271,6 +1309,9 @@ class BaseMetricsTestCase(SnubaTestCase):
             "value": value,
             "retention_days": 90,
             "use_case_id": use_case_id,
+            # making up a sentry_received_timestamp, but it should be sometime
+            # after the timestamp of the event
+            "sentry_received_timestamp": timestamp + 10,
         }
 
         msg["mapping_meta"] = {}
@@ -1465,6 +1506,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         select: Sequence[MetricField],
         project_ids: Sequence[int] = None,
         where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None,
+        having: Optional[ConditionGroup] = None,
         groupby: Optional[Sequence[MetricGroupByField]] = None,
         orderby: Optional[Sequence[MetricOrderByField]] = None,
         limit: Optional[Limit] = None,
@@ -1487,6 +1529,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             end=end,
             granularity=Granularity(granularity=granularity_in_seconds),
             where=where,
+            having=having,
             groupby=groupby,
             orderby=orderby,
             limit=limit,
@@ -1536,7 +1579,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             *list(METRICS_MAP.values()),
         ]
         org_strings = {self.organization.id: set(strings)}
-        indexer.bulk_record(use_case_id=UseCaseKey.PERFORMANCE, org_strings=org_strings)
+        indexer.bulk_record({UseCaseID.TRANSACTIONS: org_strings})
 
     def store_transaction_metric(
         self,
@@ -2010,7 +2053,9 @@ class TestMigrations(TransactionTestCase):
 class SCIMTestCase(APITestCase):
     def setUp(self, provider="dummy"):
         super().setUp()
-        self.auth_provider = AuthProviderModel(organization=self.organization, provider=provider)
+        self.auth_provider = AuthProviderModel(
+            organization_id=self.organization.id, provider=provider
+        )
         self.auth_provider.enable_scim(self.user)
         self.auth_provider.save()
         self.scim_user = ApiToken.objects.get(token=self.auth_provider.get_scim_token()).user
@@ -2085,19 +2130,19 @@ class SlackActivityNotificationTest(ActivityTestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
         self.integration = install_slack(self.organization)
@@ -2149,19 +2194,19 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 
@@ -2216,7 +2261,7 @@ class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
 
 class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
     def __indexer_record(self, org_id: int, value: str) -> int:
-        return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=value)
+        return indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=value)
 
     def setUp(self):
         super().setUp()
@@ -2309,6 +2354,18 @@ class MonitorTestCase(APITestCase):
             **kwargs,
         )
 
+    def _create_monitor_environment(self, monitor, name="production", **kwargs):
+        environment = Environment.get_or_create(project=self.project, name=name)
+
+        monitorenvironment_defaults = {
+            "status": monitor.status,
+            **kwargs,
+        }
+
+        return MonitorEnvironment.objects.create(
+            monitor=monitor, environment=environment, **monitorenvironment_defaults
+        )
+
 
 class MonitorIngestTestCase(MonitorTestCase):
     """
@@ -2348,8 +2405,8 @@ class MonitorIngestTestCase(MonitorTestCase):
         # Because removing old urls takes time and consideration of the cost of breaking lingering references, a
         # decision to permanently remove either path schema is a TODO.
         return (
-            lambda monitor_id: reverse(self.endpoint, args=[monitor_id]),
-            lambda monitor_id: reverse(
-                self.endpoint_with_org, args=[self.organization.slug, monitor_id]
+            lambda monitor_slug: reverse(self.endpoint, args=[monitor_slug]),
+            lambda monitor_slug: reverse(
+                self.endpoint_with_org, args=[self.organization.slug, monitor_slug]
             ),
         )

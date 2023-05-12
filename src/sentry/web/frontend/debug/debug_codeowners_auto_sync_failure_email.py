@@ -12,8 +12,8 @@ class DebugCodeOwnersAutoSyncFailureView(View):
     def get(self, request: Request) -> Response:
         org = Organization(id=1, slug="petal", name="Petal")
         project = Project(id=1, slug="nodejs", name="Node.js", organization=org)
-        user = User(name="Nisanthan")
-        OrganizationMember(organization=org, user=user, role="admin")
+        user = User(name="Nisanthan", actor_id=1)
+        OrganizationMember(organization=org, user_id=user.id, role="admin")
         notification = AutoSyncNotification(project)
 
         return render_preview_email_for_notification(notification, user)

@@ -83,6 +83,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",
             "organizations:use-metrics-layer",
+            "organizations:starfish-view",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -156,16 +157,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 )
             )
 
-            use_profiles = features.has(
-                "organizations:profiling",
-                organization=organization,
-                actor=request.user,
-            )
-
-            use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
-
-            use_custom_dataset = use_metrics or use_profiles
-            dataset = self.get_dataset(request) if use_custom_dataset else discover
+            dataset = self.get_dataset(request)
             metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
@@ -205,7 +197,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 comparison_delta=comparison_delta,
                 allow_metric_aggregates=allow_metric_aggregates,
                 has_metrics=use_metrics,
-                use_metrics_layer=use_metrics_layer,
+                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
             )
 
         try:
@@ -220,6 +212,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                         request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
                     ),
                     comparison_delta=comparison_delta,
+                    dataset=discover if top_events > 0 else dataset,
                 ),
                 status=200,
             )

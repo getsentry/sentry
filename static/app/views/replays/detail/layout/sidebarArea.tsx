@@ -11,14 +11,13 @@ function SidebarArea() {
     case 'tags':
       return <TagPanel />;
     case 'crumbs':
+    default:
       return (
         <Breadcrumbs
-          breadcrumbs={replay?.getRawCrumbs()}
+          breadcrumbs={replay?.getNonConsoleCrumbs()}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );
-    default:
-      return null;
   }
 }
 

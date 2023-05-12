@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import isNil from 'lodash/isNil';
 
 import {ThreadStates} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -8,6 +9,7 @@ import {space} from 'sentry/styles/space';
 type Props = {
   details: ThreadInfo;
   id: number;
+  name?: string | null;
 };
 
 type ThreadInfo = {
@@ -16,17 +18,21 @@ type ThreadInfo = {
   state?: ThreadStates;
 };
 
-function getThreadLabel(details: ThreadInfo) {
-  const threadLabel = details?.label || `<${t('unknown')}>`;
-  return details.state ? `${threadLabel} (${details.state})` : threadLabel;
+function getThreadLabel(details: ThreadInfo, name?: string | null) {
+  if (!isNil(name) && name) {
+    return name;
+  }
+  return details?.label || `<${t('unknown')}>`;
 }
 
-const SelectedOption = ({id, details}: Props) => (
-  <Wrapper>
-    <ThreadId>{tct('Thread #[id]:', {id})}</ThreadId>
-    <Label>{getThreadLabel(details)}</Label>
-  </Wrapper>
-);
+function SelectedOption({id, name, details}: Props) {
+  return (
+    <Wrapper>
+      <ThreadId>{tct('Thread #[id]:', {id})}</ThreadId>
+      <Label>{getThreadLabel(details, name)}</Label>
+    </Wrapper>
+  );
+}
 
 export default SelectedOption;
 

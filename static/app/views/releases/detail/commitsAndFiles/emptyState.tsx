@@ -5,14 +5,16 @@ type Props = {
   children: React.ReactNode;
 };
 
-const EmptyState = ({children}: Props) => (
-  <Panel>
-    <PanelBody>
-      <EmptyStateWarning>
-        <p>{children}</p>
-      </EmptyStateWarning>
-    </PanelBody>
-  </Panel>
-);
+function EmptyState({children}: Props) {
+  return (
+    <Panel>
+      <PanelBody>
+        <EmptyStateWarning>
+          <p>{children}</p>
+        </EmptyStateWarning>
+      </PanelBody>
+    </Panel>
+  );
+}
 
 export default EmptyState;

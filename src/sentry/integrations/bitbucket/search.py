@@ -3,7 +3,7 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
@@ -11,12 +11,14 @@ from sentry.shared_integrations.exceptions import ApiError
 logger = logging.getLogger("sentry.integrations.bitbucket")
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class BitbucketSearchEndpoint(IntegrationEndpoint):
     def get(self, request: Request, organization, integration_id) -> Response:
         try:
             integration = Integration.objects.get(
-                organizations=organization, id=integration_id, provider="bitbucket"
+                organizationintegration__organization_id=organization.id,
+                id=integration_id,
+                provider="bitbucket",
             )
         except Integration.DoesNotExist:
             return Response(status=404)

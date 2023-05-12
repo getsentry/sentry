@@ -1,21 +1,36 @@
-import {CSSProperties, memo, useCallback} from 'react';
+import {CSSProperties, memo, MouseEvent, useCallback} from 'react';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 
 interface Props {
   breadcrumb: Crumb;
-  breadcrumbs: Crumb[];
+  index: number;
+  isCurrent: boolean;
+  isHovered: boolean;
+  onDimensionChange: (
+    index: number,
+    path: string,
+    expandedState: Record<string, boolean>,
+    event: MouseEvent<HTMLDivElement>
+  ) => void;
   startTimestampMs: number;
   style: CSSProperties;
+  breadcrumbIndex?: number[][];
+  expandPaths?: string[];
 }
 
-function BreadcrumbRow({breadcrumb, breadcrumbs, startTimestampMs, style}: Props) {
-  const {currentTime, currentHoverTime} = useReplayContext();
-
+function BreadcrumbRow({
+  breadcrumb,
+  expandPaths,
+  index,
+  isCurrent,
+  onDimensionChange,
+  isHovered,
+  startTimestampMs,
+  style,
+}: Props) {
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
@@ -32,27 +47,9 @@ function BreadcrumbRow({breadcrumb, breadcrumbs, startTimestampMs, style}: Props
     [handleMouseLeave, breadcrumb]
   );
 
-  const current = getPrevReplayEvent({
-    items: breadcrumbs,
-    targetTimestampMs: startTimestampMs + currentTime,
-    allowEqual: true,
-    allowExact: true,
-  });
-
-  const hovered = currentHoverTime
-    ? getPrevReplayEvent({
-        items: breadcrumbs,
-        targetTimestampMs: startTimestampMs + currentHoverTime,
-        allowEqual: true,
-        allowExact: true,
-      })
-    : undefined;
-
-  const isCurrent = breadcrumb.id === current?.id;
-  const isHovered = breadcrumb.id === hovered?.id;
-
   return (
     <BreadcrumbItem
+      index={index}
       crumb={breadcrumb}
       isCurrent={isCurrent}
       isHovered={isHovered}
@@ -61,6 +58,8 @@ function BreadcrumbRow({breadcrumb, breadcrumbs, startTimestampMs, style}: Props
       onMouseLeave={onMouseLeave}
       startTimestampMs={startTimestampMs}
       style={style}
+      expandPaths={expandPaths}
+      onDimensionChange={onDimensionChange}
     />
   );
 }

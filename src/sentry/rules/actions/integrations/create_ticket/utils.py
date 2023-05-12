@@ -81,8 +81,8 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             integration = Integration.objects.get(
                 id=integration_id,
                 provider=provider,
-                organizations=organization,
-                status=ObjectStatus.VISIBLE,
+                organizationintegration__organization_id=organization.id,
+                status=ObjectStatus.ACTIVE,
             )
         except Integration.DoesNotExist:
             # Integration removed, rule still active.

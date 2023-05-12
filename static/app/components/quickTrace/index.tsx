@@ -18,7 +18,7 @@ import {IconFire} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDocsPlatform} from 'sentry/utils/docs';
 import {getDuration} from 'sentry/utils/formatters';
 import localStorage from 'sentry/utils/localStorage';
@@ -243,7 +243,7 @@ export default function QuickTrace({
 }
 
 function handleNode(key: string, organization: OrganizationSummary) {
-  trackAdvancedAnalyticsEvent('quick_trace.node.clicked', {
+  trackAnalytics('quick_trace.node.clicked', {
     organization: organization.id,
     node_key: key,
   });
@@ -257,7 +257,7 @@ function handleDropdownItem(
   const eventKey = extra
     ? 'quick_trace.dropdown.clicked_extra'
     : 'quick_trace.dropdown.clicked';
-  trackAdvancedAnalyticsEvent(eventKey, {
+  trackAnalytics(eventKey, {
     organization: organization.id,
     node_key: key,
   });
@@ -392,7 +392,8 @@ function EventNodeSelector({
             error,
             organization,
             location,
-            errorDest
+            errorDest,
+            'related-issues-of-trace'
           );
           return (
             <DropdownNodeItem
@@ -566,7 +567,7 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
       (now + HIDE_MISSING_EXPIRES).toString()
     );
     this.setState({hideMissing: true});
-    trackAdvancedAnalyticsEvent('quick_trace.missing_service.dismiss', {
+    trackAnalytics('quick_trace.missing_service.dismiss', {
       organization: organization.id,
       platform,
     });
@@ -574,7 +575,7 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
 
   trackExternalLink = () => {
     const {organization, platform} = this.props;
-    trackAdvancedAnalyticsEvent('quick_trace.missing_service.docs', {
+    trackAnalytics('quick_trace.missing_service.docs', {
       organization: organization.id,
       platform,
     });

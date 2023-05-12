@@ -30,6 +30,7 @@
     // Don't do anything to JSX. This doesn't really matter since we don't use
     // typescript to compile files, but left here for documentation purposes.
     "jsx": "preserve",
+    "jsxImportSource": "@emotion/react",
 
     // Type checking specific options
     "alwaysStrict": false,
@@ -91,7 +92,6 @@
 
     "esModuleInterop": true,
     "experimentalDecorators": true,
-    "noImplicitUseStrict": true,
     "resolveJsonModule": true,
 
     "baseUrl": "../",

@@ -144,12 +144,12 @@ class CURSOR_QUERY_PARAM(serializers.Serializer):  # type: ignore
 
 
 class MONITOR_PARAMS:
-    MONITOR_ID = OpenApiParameter(
-        name="monitor_id",
+    MONITOR_SLUG = OpenApiParameter(
+        name="monitor_slug",
         location="path",
         required=True,
-        type=OpenApiTypes.UUID,
-        description="The id of the monitor",
+        type=str,
+        description="The slug of the monitor",
     )
     CHECKIN_ID = OpenApiParameter(
         name="checkin_id",

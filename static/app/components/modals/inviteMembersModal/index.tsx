@@ -14,7 +14,7 @@ import {IconAdd, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import withLatestContext from 'sentry/utils/withLatestContext';
 
@@ -63,7 +63,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     this.sessionId = uniqueId();
 
     const {organization, source} = this.props;
-    trackAdvancedAnalyticsEvent('invite_modal.opened', {
+    trackAnalytics('invite_modal.opened', {
       organization,
       modal_session: this.sessionId,
       can_invite: this.willInvite,
@@ -104,7 +104,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
       complete: false,
       sendingInvites: false,
     });
-    trackAdvancedAnalyticsEvent('invite_modal.add_more', {
+    trackAnalytics('invite_modal.add_more', {
       organization: this.props.organization,
       modal_session: this.sessionId,
     });
@@ -158,7 +158,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     await Promise.all(this.invites.map(this.sendInvite));
     this.setState({sendingInvites: false, complete: true});
 
-    trackAdvancedAnalyticsEvent(
+    trackAnalytics(
       this.willInvite ? 'invite_modal.invites_sent' : 'invite_modal.requests_sent',
       {
         organization: this.props.organization,
@@ -388,7 +388,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
                     priority="primary"
                     size="sm"
                     onClick={() => {
-                      trackAdvancedAnalyticsEvent('invite_modal.closed', {
+                      trackAnalytics('invite_modal.closed', {
                         organization: this.props.organization,
                         modal_session: this.sessionId,
                       });

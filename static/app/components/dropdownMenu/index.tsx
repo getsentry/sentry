@@ -58,6 +58,7 @@ interface DropdownMenuProps
       | 'isDismissable'
       | 'shouldCloseOnBlur'
       | 'shouldCloseOnInteractOutside'
+      | 'onInteractOutside'
       | 'preventOverflowOptions'
     > {
   /**
@@ -143,6 +144,7 @@ function DropdownMenu({
   isDismissable = true,
   shouldCloseOnBlur = true,
   shouldCloseOnInteractOutside,
+  onInteractOutside,
   preventOverflowOptions,
   ...props
 }: DropdownMenuProps) {
@@ -163,6 +165,7 @@ function DropdownMenu({
     isDismissable,
     shouldCloseOnBlur,
     shouldCloseOnInteractOutside,
+    onInteractOutside,
     preventOverflowOptions,
   });
 

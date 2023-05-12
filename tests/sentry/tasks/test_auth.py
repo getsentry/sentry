@@ -11,7 +11,7 @@ class EmailMissingLinksTest(TestCase):
         self.user = self.create_user(email="bar@example.com")
         self.organization = self.create_organization(name="Test")
         self.provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         om = OrganizationMember.objects.create(
             user=self.user,

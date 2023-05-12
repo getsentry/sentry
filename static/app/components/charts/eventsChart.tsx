@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, isValidElement} from 'react';
 import {InjectedRouter} from 'react-router';
 import {Theme, withTheme} from '@emotion/react';
 import type {
@@ -44,6 +44,7 @@ import {
   getEquation,
   isEquation,
 } from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList} from 'sentry/utils/queryString';
 
 import EventsGeoRequest from './eventsGeoRequest';
@@ -104,7 +105,7 @@ type State = {
   seriesSelection: Record<string, boolean>;
 };
 
-class Chart extends React.Component<ChartProps, State> {
+class Chart extends Component<ChartProps, State> {
   state: State = {
     seriesSelection: {},
     forceUpdate: false,
@@ -209,9 +210,9 @@ class Chart extends React.Component<ChartProps, State> {
     } = this.props;
     const {seriesSelection} = this.state;
 
-    let Component = this.getChartComponent();
+    let ChartComponent = this.getChartComponent();
 
-    if (Component === WorldMapChart) {
+    if (ChartComponent === WorldMapChart) {
       const {data, title} = processTableResults(tableData);
       const tableSeries = [
         {
@@ -222,7 +223,7 @@ class Chart extends React.Component<ChartProps, State> {
       return <WorldMapChart series={tableSeries} fromDiscover={fromDiscover} />;
     }
 
-    Component = Component as Exclude<
+    ChartComponent = ChartComponent as Exclude<
       ChartComponent,
       React.ComponentType<WorldMapChartProps>
     >;
@@ -340,11 +341,11 @@ class Chart extends React.Component<ChartProps, State> {
         },
       },
       ...(chartOptionsProp ?? {}),
-      animation: typeof Component === typeof BarChart ? false : undefined,
+      animation: typeof ChartComponent === typeof BarChart ? false : undefined,
     };
 
     return (
-      <Component
+      <ChartComponent
         {...props}
         {...zoomRenderProps}
         {...chartOptions}
@@ -403,6 +404,10 @@ export type EventsChartProps = {
    * Name of the series
    */
   currentSeriesName?: string;
+  /**
+   * Specifies the dataset to query from. Defaults to discover.
+   */
+  dataset?: DiscoverDatasets;
   /**
    * Don't show the previous period's data. Will automatically disable
    * when start/end are used.
@@ -496,7 +501,7 @@ type ChartDataProps = {
   topEvents?: number;
 };
 
-class EventsChart extends React.Component<EventsChartProps> {
+class EventsChart extends Component<EventsChartProps> {
   isStacked() {
     const {topEvents, yAxis} = this.props;
     return (
@@ -548,6 +553,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       additionalSeries,
       loadingAdditionalSeries,
       reloadingAdditionalSeries,
+      dataset,
       ...props
     } = this.props;
 
@@ -600,7 +606,7 @@ class EventsChart extends React.Component<EventsChartProps> {
         >
           <TransparentLoadingMask visible={reloading || !!reloadingAdditionalSeries} />
 
-          {React.isValidElement(chartHeader) && chartHeader}
+          {isValidElement(chartHeader) && chartHeader}
 
           <ThemedChart
             zoomRenderProps={zoomRenderProps}
@@ -679,6 +685,7 @@ class EventsChart extends React.Component<EventsChartProps> {
                 end={end}
                 environments={environments}
                 referrer={props.referrer}
+                dataset={dataset}
               >
                 {({errored, loading, reloading, tableData}) =>
                   chartImplementation({
@@ -715,6 +722,7 @@ class EventsChart extends React.Component<EventsChartProps> {
               partial
               // Cannot do interpolation when stacking series
               withoutZerofill={withoutZerofill && !this.isStacked()}
+              dataset={dataset}
             >
               {eventData => {
                 return chartImplementation({

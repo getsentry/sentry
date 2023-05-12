@@ -1,6 +1,5 @@
 import copy
 from unittest import mock
-from uuid import uuid4
 
 import pytest
 from django.core import mail
@@ -39,6 +38,7 @@ from sentry.models import (
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.audit import create_system_audit_entry
@@ -177,7 +177,7 @@ class OrganizationTest(TestCase):
 
         assert OrganizationAvatar.objects.filter(id=from_avatar.id, organization=to_org).exists()
         assert OrganizationIntegration.objects.filter(
-            integration=integration, organization=to_org
+            integration=integration, organization_id=to_org.id
         ).exists()
 
     def test_get_default_owner(self):
@@ -299,7 +299,7 @@ class OrganizationTest(TestCase):
         self.assertFalse(has_changed(inst, "name"))
 
 
-class Require2fa(TestCase):
+class Require2fa(TestCase, HybridCloudTestMixin):
     def setUp(self):
         self.owner = self.create_user("foo@example.com")
         TotpInterface().enroll(self.owner)
@@ -311,15 +311,11 @@ class Require2fa(TestCase):
             return self.create_user("")
         return self.create_user()
 
-    def _create_user_and_member(self, has_2fa=False, has_user_email=True, has_member_email=False):
+    def _create_user_and_member(self, has_2fa=False, has_user_email=True):
         user = self._create_user(has_email=has_user_email)
         if has_2fa:
             TotpInterface().enroll(user)
-        if has_member_email:
-            email = uuid4().hex
-            member = self.create_member(organization=self.org, user=user, email=email)
-        else:
-            member = self.create_member(organization=self.org, user=user)
+        member = self.create_member(organization=self.org, user=user)
         return user, member
 
     def is_organization_member(self, user_id, member_id):
@@ -331,7 +327,8 @@ class Require2fa(TestCase):
 
     def is_pending_organization_member(self, user_id, member_id, was_booted=True):
         member = OrganizationMember.objects.get(id=member_id)
-        assert User.objects.filter(id=user_id).exists()
+        if user_id:
+            assert User.objects.filter(id=user_id).exists()
         assert member.is_pending
         assert member.email
         if was_booted:
@@ -345,11 +342,17 @@ class Require2fa(TestCase):
         compliant_user, compliant_member = self._create_user_and_member(has_2fa=True)
         non_compliant_user, non_compliant_member = self._create_user_and_member()
 
+        self.assert_org_member_mapping(org_member=compliant_member)
+        self.assert_org_member_mapping(org_member=non_compliant_member)
+
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.org.handle_2fa_required(self.request)
 
         self.is_organization_member(compliant_user.id, compliant_member.id)
         self.is_pending_organization_member(non_compliant_user.id, non_compliant_member.id)
+
+        self.assert_org_member_mapping(org_member=compliant_member)
+        self.assert_org_member_mapping(org_member=non_compliant_member)
 
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == [non_compliant_user.email]
@@ -386,6 +389,7 @@ class Require2fa(TestCase):
         non_compliant = []
         for num in range(0, 4):
             user, member = self._create_user_and_member()
+            self.assert_org_member_mapping(org_member=member)
             non_compliant.append((user, member))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
@@ -393,6 +397,7 @@ class Require2fa(TestCase):
 
         for user, member in non_compliant:
             self.is_pending_organization_member(user.id, member.id)
+            self.assert_org_member_mapping(org_member=member)
 
         assert len(mail.outbox) == len(non_compliant)
         assert AuditLogEntry.objects.filter(
@@ -402,13 +407,12 @@ class Require2fa(TestCase):
         ).count() == len(non_compliant)
 
     def test_handle_2fa_required__pending_member__ok(self):
-        user, member = self._create_user_and_member(has_member_email=True)
-        member.user = None
-        member.save()
+        member = self.create_member(organization=self.org, email="bob@zombo.com")
+        assert not member.user
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.org.handle_2fa_required(self.request)
-        self.is_pending_organization_member(user.id, member.id, was_booted=False)
+        self.is_pending_organization_member(user_id=None, member_id=member.id, was_booted=False)
 
         assert len(mail.outbox) == 0
         assert not AuditLogEntry.objects.filter(
@@ -418,28 +422,9 @@ class Require2fa(TestCase):
         ).exists()
 
     @mock.patch("sentry.tasks.auth.logger")
-    def test_handle_2fa_required__no_user_email__ok(self, auth_log):
-        user, member = self._create_user_and_member(has_user_email=False, has_member_email=True)
-        assert not user.email
-        assert member.email
-
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.org.handle_2fa_required(self.request)
-
-        self.is_pending_organization_member(user.id, member.id)
-
-        assert len(mail.outbox) == 1
-        assert mail.outbox[0].to == [member.email]
-
-        assert not auth_log.warning.called
-        auth_log.info.assert_called_with(
-            "2FA noncompliant user removed from org",
-            extra={"organization_id": self.org.id, "user_id": user.id, "member_id": member.id},
-        )
-
-    @mock.patch("sentry.tasks.auth.logger")
     def test_handle_2fa_required__no_email__warning(self, auth_log):
         user, member = self._create_user_and_member(has_user_email=False)
+        assert not user.has_2fa()
         assert not user.email
         assert not member.email
 
@@ -456,9 +441,11 @@ class Require2fa(TestCase):
     def test_handle_2fa_required__no_actor_and_api_key__ok(self, auth_log):
         user, member = self._create_user_and_member()
 
+        self.assert_org_member_mapping(org_member=member)
+
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             api_key = ApiKey.objects.create(
-                organization=self.org,
+                organization_id=self.org.id,
                 scope_list=["org:read", "org:write", "member:read", "member:write"],
             )
             request = copy.deepcopy(self.request)
@@ -466,6 +453,7 @@ class Require2fa(TestCase):
             request.auth = api_key
             self.org.handle_2fa_required(request)
         self.is_pending_organization_member(user.id, member.id)
+        self.assert_org_member_mapping(org_member=member)
 
         assert len(mail.outbox) == 1
         assert (
@@ -481,12 +469,14 @@ class Require2fa(TestCase):
     @mock.patch("sentry.tasks.auth.logger")
     def test_handle_2fa_required__no_ip_address__ok(self, auth_log):
         user, member = self._create_user_and_member()
+        self.assert_org_member_mapping(org_member=member)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             request = copy.deepcopy(self.request)
             request.META["REMOTE_ADDR"] = None
             self.org.handle_2fa_required(request)
         self.is_pending_organization_member(user.id, member.id)
+        self.assert_org_member_mapping(org_member=member)
 
         assert len(mail.outbox) == 1
         assert (

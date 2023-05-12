@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import ParameterValidationError
+from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
@@ -18,9 +19,10 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import ScheduledDeletion
-from sentry.monitors.models import Monitor, MonitorStatus
-from sentry.monitors.serializers import MonitorSerializerResponse
+from sentry.constants import ObjectStatus
+from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, ScheduledDeletion
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
+from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.validators import MonitorValidator
 
 from .base import MonitorEndpoint
@@ -35,7 +37,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         operation_id="Retrieve a monitor",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
+            GLOBAL_PARAMS.ENVIRONMENT,
         ],
         responses={
             200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
@@ -48,13 +51,18 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         """
         Retrieves details for a monitor.
         """
-        return self.respond(serialize(monitor, request.user))
+
+        environments = get_environments(request, organization)
+
+        return self.respond(
+            serialize(monitor, request.user, MonitorSerializer(environments=environments))
+        )
 
     @extend_schema(
         operation_id="Update a monitor",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
         ],
         request=MonitorValidator,
         responses={
@@ -74,6 +82,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             partial=True,
             instance={
                 "name": monitor.name,
+                "slug": monitor.slug,
                 "status": monitor.status,
                 "type": monitor.type,
                 "config": monitor.config,
@@ -92,11 +101,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         if "slug" in result:
             params["slug"] = result["slug"]
         if "status" in result:
-            if result["status"] == MonitorStatus.ACTIVE:
-                if monitor.status not in (MonitorStatus.OK, MonitorStatus.ERROR):
-                    params["status"] = MonitorStatus.ACTIVE
-            else:
-                params["status"] = result["status"]
+            params["status"] = result["status"]
         if "config" in result:
             params["config"] = result["config"]
         if "project" in result and result["project"].id != monitor.project_id:
@@ -115,10 +120,11 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         return self.respond(serialize(monitor, request.user))
 
     @extend_schema(
-        operation_id="Delete a monitor",
+        operation_id="Delete a monitor or monitor environments",
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.MONITOR_SLUG,
+            GLOBAL_PARAMS.ENVIRONMENT,
         ],
         request=MonitorValidator,
         responses={
@@ -130,26 +136,62 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
     )
     def delete(self, request: Request, organization, project, monitor) -> Response:
         """
-        Delete a monitor.
+        Delete a monitor or monitor environments.
         """
+        environment_names = request.query_params.getlist("environment")
         with transaction.atomic():
-            affected = (
-                Monitor.objects.filter(id=monitor.id)
-                .exclude(
-                    status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
+            if environment_names:
+                monitor_object = (
+                    MonitorEnvironment.objects.filter(
+                        environment__name__in=environment_names, monitor__id=monitor.id
+                    )
+                    .exclude(
+                        monitor__status__in=[
+                            ObjectStatus.PENDING_DELETION,
+                            ObjectStatus.DELETION_IN_PROGRESS,
+                        ]
+                    )
+                    .exclude(
+                        status__in=[
+                            MonitorStatus.PENDING_DELETION,
+                            MonitorStatus.DELETION_IN_PROGRESS,
+                        ]
+                    )
+                    .first()
                 )
-                .update(status=MonitorStatus.PENDING_DELETION)
-            )
-            if not affected:
+            else:
+                monitor_object = (
+                    Monitor.objects.filter(id=monitor.id)
+                    .exclude(
+                        status__in=[
+                            ObjectStatus.PENDING_DELETION,
+                            ObjectStatus.DELETION_IN_PROGRESS,
+                        ]
+                    )
+                    .first()
+                )
+                alert_rule_id = monitor_object.config.get("alert_rule_id")
+                if alert_rule_id:
+                    rule = Rule.objects.filter(
+                        project_id=monitor.project_id, id=alert_rule_id
+                    ).first()
+                    rule.update(status=RuleStatus.PENDING_DELETION)
+                    RuleActivity.objects.create(
+                        rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+                    )
+
+            if not monitor_object or not monitor_object.update(
+                status=ObjectStatus.PENDING_DELETION
+            ):
                 return self.respond(status=404)
 
-            schedule = ScheduledDeletion.schedule(monitor, days=0, actor=request.user)
+            schedule = ScheduledDeletion.schedule(monitor_object, days=0, actor=request.user)
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
-                target_object=monitor.id,
+                target_object=monitor_object.id,
                 event=audit_log.get_event_id("MONITOR_REMOVE"),
-                data=monitor.get_audit_log_data(),
+                data=monitor_object.get_audit_log_data(),
                 transaction_id=schedule.guid,
             )
 

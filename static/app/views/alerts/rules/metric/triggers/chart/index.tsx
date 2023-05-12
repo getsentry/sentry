@@ -8,6 +8,7 @@ import minBy from 'lodash/minBy';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import OptionSelector from 'sentry/components/charts/optionSelector';
@@ -19,7 +20,9 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import LoadingMask from 'sentry/components/loadingMask';
+import {PanelAlert} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
@@ -29,6 +32,7 @@ import type {
   Project,
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
@@ -60,6 +64,7 @@ type Props = {
   dataset: MetricRule['dataset'];
   environment: string | null;
   handleMEPAlertDataset: (data: EventsStats | MultiSeriesEventsStats | null) => void;
+  isQueryValid: boolean;
   location: Location;
   newAlertOrQuery: boolean;
   organization: Organization;
@@ -203,8 +208,27 @@ class TriggersChart extends PureComponent<Props, State> {
   }
 
   async fetchTotalCount() {
-    const {api, organization, environment, projects, query} = this.props;
+    const {
+      api,
+      organization,
+      location,
+      newAlertOrQuery,
+      environment,
+      projects,
+      query,
+      dataset,
+    } = this.props;
     const statsPeriod = this.getStatsPeriod();
+
+    const queryExtras = getMetricDatasetQueryExtras({
+      organization,
+      location,
+      dataset,
+      newAlertOrQuery,
+    });
+
+    const queryDataset = queryExtras.dataset as undefined | DiscoverDatasets;
+
     try {
       const totalCount = await fetchTotalCount(api, organization.slug, {
         field: [],
@@ -212,6 +236,7 @@ class TriggersChart extends PureComponent<Props, State> {
         query,
         statsPeriod,
         environment: environment ? [environment] : [],
+        dataset: queryDataset,
       });
       this.setState({totalCount});
     } catch (e) {
@@ -219,14 +244,29 @@ class TriggersChart extends PureComponent<Props, State> {
     }
   }
 
-  renderChart(
-    timeseriesData: Series[] = [],
-    isLoading: boolean,
-    isReloading: boolean,
-    comparisonData?: Series[],
-    comparisonMarkLines?: LineChartSeries[],
-    minutesThresholdToDisplaySeconds?: number
-  ) {
+  renderChart({
+    isLoading,
+    isReloading,
+    timeseriesData = [],
+    comparisonData,
+    comparisonMarkLines,
+    errorMessage,
+    minutesThresholdToDisplaySeconds,
+    isQueryValid,
+    errored,
+    orgFeatures,
+  }: {
+    isLoading: boolean;
+    isQueryValid: boolean;
+    isReloading: boolean;
+    orgFeatures: string[];
+    timeseriesData: Series[];
+    comparisonData?: Series[];
+    comparisonMarkLines?: LineChartSeries[];
+    errorMessage?: string;
+    errored?: boolean;
+    minutesThresholdToDisplaySeconds?: number;
+  }) {
     const {
       triggers,
       resolveThreshold,
@@ -239,12 +279,32 @@ class TriggersChart extends PureComponent<Props, State> {
     const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = this.getStatsPeriod();
+
+    const error = orgFeatures.includes('alert-allow-indexed')
+      ? errored || errorMessage
+      : errored || errorMessage || !isQueryValid;
+
     return (
       <Fragment>
         {header}
         <TransparentLoadingMask visible={isReloading} />
-        {isLoading ? (
+        {isLoading && !error ? (
           <ChartPlaceholder />
+        ) : error ? (
+          <ChartErrorWrapper>
+            <PanelAlert type="error">
+              {!orgFeatures.includes('alert-allow-indexed') && !isQueryValid
+                ? t(
+                    'Your filter conditions contain an unsupported field - please review.'
+                  )
+                : typeof errorMessage === 'string'
+                ? errorMessage
+                : t('An error occurred while fetching data')}
+            </PanelAlert>
+            <StyledErrorPanel>
+              <IconWarning color="gray500" size="lg" />
+            </StyledErrorPanel>
+          </ChartErrorWrapper>
         ) : (
           <ThresholdsChart
             period={statsPeriod}
@@ -306,6 +366,7 @@ class TriggersChart extends PureComponent<Props, State> {
       comparisonDelta,
       triggers,
       thresholdType,
+      isQueryValid,
     } = this.props;
 
     const period = this.getStatsPeriod();
@@ -332,7 +393,7 @@ class TriggersChart extends PureComponent<Props, State> {
         field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
         groupBy={['session.status']}
       >
-        {({loading, reloading, response}) => {
+        {({loading, errored, reloading, response}) => {
           const {groups, intervals} = response || {};
           const sessionTimeSeries = [
             {
@@ -348,14 +409,17 @@ class TriggersChart extends PureComponent<Props, State> {
             },
           ];
 
-          return this.renderChart(
-            sessionTimeSeries,
-            loading,
-            reloading,
-            undefined,
-            undefined,
-            MINUTES_THRESHOLD_TO_DISPLAY_SECONDS
-          );
+          return this.renderChart({
+            timeseriesData: sessionTimeSeries,
+            isLoading: loading,
+            isReloading: reloading,
+            comparisonData: undefined,
+            comparisonMarkLines: undefined,
+            minutesThresholdToDisplaySeconds: MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
+            isQueryValid,
+            errored,
+            orgFeatures: organization.features,
+          });
         }}
       </SessionsRequest>
     ) : (
@@ -375,7 +439,14 @@ class TriggersChart extends PureComponent<Props, State> {
         queryExtras={queryExtras}
         dataLoadedCallback={handleMEPAlertDataset}
       >
-        {({loading, reloading, timeseriesData, comparisonTimeseriesData}) => {
+        {({
+          loading,
+          errored,
+          errorMessage,
+          reloading,
+          timeseriesData,
+          comparisonTimeseriesData,
+        }) => {
           let comparisonMarkLines: LineChartSeries[] = [];
           if (renderComparisonStats && comparisonTimeseriesData) {
             comparisonMarkLines = getComparisonMarkLines(
@@ -387,13 +458,17 @@ class TriggersChart extends PureComponent<Props, State> {
             );
           }
 
-          return this.renderChart(
-            timeseriesData,
-            loading,
-            reloading,
-            comparisonTimeseriesData,
-            comparisonMarkLines
-          );
+          return this.renderChart({
+            timeseriesData: timeseriesData as Series[],
+            isLoading: loading,
+            isReloading: reloading,
+            comparisonData: comparisonTimeseriesData,
+            comparisonMarkLines,
+            errorMessage,
+            isQueryValid,
+            errored,
+            orgFeatures: organization.features,
+          });
         }}
       </EventsRequest>
     );
@@ -412,4 +487,12 @@ const ChartPlaceholder = styled(Placeholder)`
   /* Height and margin should add up to graph size (200px) */
   margin: 0 0 ${space(2)};
   height: 184px;
+`;
+
+const StyledErrorPanel = styled(ErrorPanel)`
+  padding: ${space(2)};
+`;
+
+const ChartErrorWrapper = styled('div')`
+  margin-top: ${space(2)};
 `;

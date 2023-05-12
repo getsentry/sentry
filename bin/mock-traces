@@ -150,6 +150,7 @@ def main(slow=False):
             "transaction": "MainActivity",
             "mobile": True,
             "errors": 1,
+            "performance_issues": ["db-main-thread"],
             "children": [
                 {
                     "project": backend_project,

@@ -31,7 +31,7 @@ function getMemberUser(member: Member): AvatarUser {
   };
 }
 
-const MemberBadge = ({
+function MemberBadge({
   avatarSize = 24,
   useLink = true,
   hideEmail = false,
@@ -40,7 +40,7 @@ const MemberBadge = ({
   member,
   orgId,
   className,
-}: MemberBadgeProps) => {
+}: MemberBadgeProps) {
   const user = getMemberUser(member);
   const title =
     displayName ||
@@ -67,7 +67,7 @@ const MemberBadge = ({
       </StyledNameAndEmail>
     </StyledUserBadge>
   );
-};
+}
 
 const StyledUserBadge = styled('div')`
   display: flex;
@@ -91,6 +91,7 @@ interface NameProps {
   hideEmail: boolean;
   to: LinkProps['to'];
   useLink: boolean;
+  children?: React.ReactNode;
 }
 
 const StyledName = styled(({useLink, to, ...props}: NameProps) => {

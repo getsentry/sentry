@@ -11,16 +11,18 @@ type Props = {
 };
 
 // TODO(mgaeta): Infer parentKey from parent.
-const ParentLabel = ({notificationType, parent}: Props) => (
-  <FieldLabel>
-    <Avatar
-      {...{
-        [getParentKey(notificationType)]: parent,
-      }}
-    />
-    <span>{parent.slug}</span>
-  </FieldLabel>
-);
+function ParentLabel({notificationType, parent}: Props) {
+  return (
+    <FieldLabel>
+      <Avatar
+        {...{
+          [getParentKey(notificationType)]: parent,
+        }}
+      />
+      <span>{parent.slug}</span>
+    </FieldLabel>
+  );
+}
 
 const FieldLabel = styled('div')`
   display: flex;

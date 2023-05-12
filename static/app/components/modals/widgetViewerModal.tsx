@@ -32,7 +32,7 @@ import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -67,6 +67,7 @@ import WidgetCardChart, {
   SLIDER_HEIGHT,
 } from 'sentry/views/dashboards/widgetCard/chart';
 import {
+  DashboardsMEPConsumer,
   DashboardsMEPProvider,
   useDashboardsMEPContext,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
@@ -174,6 +175,8 @@ function WidgetViewerModal(props: Props) {
   const location = useLocation();
   const router = useRouter();
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
+  // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
+  // let widgetContentLoadingStatus: boolean | undefined = undefined;
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
@@ -454,7 +457,7 @@ function WidgetViewerModal(props: Props) {
         ),
       },
     });
-    trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.toggle_legend', {
+    trackAnalytics('dashboards_views.widget_viewer.toggle_legend', {
       organization,
       widget_type: widget.widgetType ?? WidgetType.DISCOVER,
       display_type: widget.displayType,
@@ -518,7 +521,7 @@ function WidgetViewerModal(props: Props) {
                 setChartUnmodified(false);
               }
 
-              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
+              trackAnalytics('dashboards_views.widget_viewer.paginate', {
                 organization,
                 widget_type: WidgetType.DISCOVER,
                 display_type: widget.displayType,
@@ -593,7 +596,7 @@ function WidgetViewerModal(props: Props) {
                 setChartUnmodified(false);
               }
 
-              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
+              trackAnalytics('dashboards_views.widget_viewer.paginate', {
                 organization,
                 widget_type: WidgetType.ISSUE,
                 display_type: widget.displayType,
@@ -656,7 +659,7 @@ function WidgetViewerModal(props: Props) {
                     [WidgetViewerQueryField.CURSOR]: newCursor,
                   },
                 });
-                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
+                trackAnalytics('dashboards_views.widget_viewer.paginate', {
                   organization,
                   widget_type: WidgetType.RELEASE,
                   display_type: widget.displayType,
@@ -708,7 +711,7 @@ function WidgetViewerModal(props: Props) {
         [WidgetViewerQueryField.END]: newEnd,
       },
     });
-    trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.zoom', {
+    trackAnalytics('dashboards_views.widget_viewer.zoom', {
       organization,
       widget_type: widget.widgetType ?? WidgetType.DISCOVER,
       display_type: widget.displayType,
@@ -794,13 +797,18 @@ function WidgetViewerModal(props: Props) {
             cursor={cursor}
             dashboardFilters={getDashboardFiltersFromURL(location) ?? undefined}
           >
-            {({tableResults, loading, pageLinks}) => (
-              <DiscoverTable
-                tableResults={tableResults}
-                loading={loading}
-                pageLinks={pageLinks}
-              />
-            )}
+            {({tableResults, loading, pageLinks}) => {
+              // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
+              // small hack that improves the concurrency render of the warning triangle
+              // widgetContentLoadingStatus = loading;
+              return (
+                <DiscoverTable
+                  tableResults={tableResults}
+                  loading={loading}
+                  pageLinks={pageLinks}
+                />
+              );
+            }}
           </WidgetQueries>
         );
     }
@@ -890,14 +898,11 @@ function WidgetViewerModal(props: Props) {
                   },
                 });
 
-                trackAdvancedAnalyticsEvent(
-                  'dashboards_views.widget_viewer.select_query',
-                  {
-                    organization,
-                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                    display_type: widget.displayType,
-                  }
-                );
+                trackAnalytics('dashboards_views.widget_viewer.select_query', {
+                  organization,
+                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                  display_type: widget.displayType,
+                });
               }}
               components={{
                 // Replaces the displayed selected value
@@ -983,7 +988,32 @@ function WidgetViewerModal(props: Props) {
                   forceTransactions={metricsDataSide.forceTransactionsOnly}
                 >
                   <Header closeButton>
-                    <h3>{widget.title}</h3>
+                    <WidgetTitle>
+                      <h3>{widget.title}</h3>
+                      <DashboardsMEPConsumer>
+                        {({}) => {
+                          // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
+                          // if (
+                          //   widgetContentLoadingStatus === false &&
+                          //   widget.widgetType === WidgetType.DISCOVER &&
+                          //   isMetricsData === false
+                          // ) {
+                          //   return (
+                          //     <Tooltip
+                          //       containerDisplayMode="inline-flex"
+                          //       title={t(
+                          //         'Based on your search criteria, the sampled events available may be limited and may not be representative of all events.'
+                          //       )}
+                          //     >
+                          //       <IconWarning color="warningText" size="md" />
+                          //     </Tooltip>
+                          //   );
+                          // }
+
+                          return null;
+                        }}
+                      </DashboardsMEPConsumer>
+                    </WidgetTitle>
                   </Header>
                   <Body>{renderWidgetViewer()}</Body>
                   <Footer>
@@ -995,14 +1025,11 @@ function WidgetViewerModal(props: Props) {
                             onClick={() => {
                               closeModal();
                               onEdit();
-                              trackAdvancedAnalyticsEvent(
-                                'dashboards_views.widget_viewer.edit',
-                                {
-                                  organization,
-                                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                                  display_type: widget.displayType,
-                                }
-                              );
+                              trackAnalytics('dashboards_views.widget_viewer.edit', {
+                                organization,
+                                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                                display_type: widget.displayType,
+                              });
                             }}
                           >
                             {t('Edit Widget')}
@@ -1073,7 +1100,7 @@ function OpenButton({
       to={path}
       priority="primary"
       onClick={() => {
-        trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
+        trackAnalytics('dashboards_views.widget_viewer.open_source', {
           organization,
           widget_type: widget.widgetType ?? WidgetType.DISCOVER,
           display_type: widget.displayType,
@@ -1159,6 +1186,12 @@ const ResultsContainer = styled('div')`
 
 const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.disabled};
+`;
+
+const WidgetTitle = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
 `;
 
 export default withPageFilters(WidgetViewerModal);

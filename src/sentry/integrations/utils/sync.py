@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Mapping, Sequence
 from sentry import features
 from sentry.models import Group, GroupAssignee, Organization, Project
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.tasks.integrations import sync_assignee_outbound
 
 if TYPE_CHECKING:
@@ -80,7 +80,7 @@ def sync_group_assignee_inbound(
             GroupAssignee.objects.deassign(group)
         return affected_groups
 
-    users = user_service.get_many_by_email([email])
+    users = user_service.get_many_by_email(emails=[email])
     users_by_id = {user.id: user for user in users}
     projects_by_user = Project.objects.get_by_users(users)
 

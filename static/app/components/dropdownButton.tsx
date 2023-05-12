@@ -46,14 +46,19 @@ function DropdownButton({
       {prefix && <LabelText>{prefix}</LabelText>}
       {children}
       {showChevron && (
-        <StyledChevron size="xs" direction={isOpen ? 'up' : 'down'} aria-hidden="true" />
+        <ChevronWrap>
+          <IconChevron size="xs" direction={isOpen ? 'up' : 'down'} aria-hidden="true" />
+        </ChevronWrap>
       )}
     </StyledButton>
   );
 }
 
-const StyledChevron = styled(IconChevron)`
-  margin-left: ${space(0.75)};
+const ChevronWrap = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding-left: ${space(0.75)};
   flex-shrink: 0;
 `;
 

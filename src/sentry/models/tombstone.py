@@ -15,6 +15,15 @@ from sentry.silo import SiloMode
 
 
 class TombstoneBase(Model):
+    """
+    Records a hard deletion so that the delete action can be propagated
+    between regions. Subclasses provide specialized table names for each
+    direction data needs to flow in.
+
+    Tombstones are generally created by outbox receievers. Once
+    created, tombstones are propagated between regions with RPC (coming soon)
+    """
+
     class Meta:
         abstract = True
         unique_together = ("table_name", "object_identifier")

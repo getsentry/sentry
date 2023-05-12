@@ -201,7 +201,7 @@ function Information({
       return null;
     }
 
-    const {symbolType, fileType, cpuName, size, dateCreated} = candidate as
+    const {prettyFileType, size, dateCreated} = candidate as
       | ImageCandidateInternalOk
       | ImageCandidateUnApplied;
 
@@ -220,11 +220,7 @@ function Information({
         <Divider />
         <FileSize bytes={size} />
         <Divider />
-        <span>
-          {symbolType === SymbolType.PROGUARD && cpuName === 'any'
-            ? t('proguard mapping')
-            : `${symbolType}${fileType ? ` ${fileType}` : ''}`}
-        </span>
+        <span>{prettyFileType}</span>
         <Divider />
       </Fragment>
     );

@@ -16,7 +16,7 @@ Tags
 
 * browser = Chrome 108.0.0
 * browser.name = Chrome
-* client_os = Mac OS X 10.15.7
+* client_os = Mac OS X &gt;=10.15.7
 * client_os.name = Mac OS X
 * device = Mac
 * device.family = Mac

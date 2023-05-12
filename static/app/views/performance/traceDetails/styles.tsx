@@ -112,6 +112,7 @@ export function Tags({
                 key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
                 tag={tag}
                 projectSlug={transaction.project_slug}
+                projectId={transaction.project_id.toString()}
                 organization={organization}
                 query={query}
                 streamPath={streamPath}

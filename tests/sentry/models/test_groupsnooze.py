@@ -98,13 +98,18 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin, Se
     @freeze_time()
     def test_user_rate_reached_perf_issues(self):
         """Test that ignoring a performance issue until it's hit by 10 users in an hour works."""
-        for i in range(0, 10):
-            event = self.store_transaction(
-                environment=None,
-                project_id=self.project.id,
-                user_id=str(i),
-                fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-            )
+        with self.options(
+            {
+                "performance.issues.send_to_issues_platform": True,
+            }
+        ):
+            for i in range(0, 10):
+                event = self.store_transaction(
+                    environment=None,
+                    project_id=self.project.id,
+                    user_id=str(i),
+                    fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
+                )
         perf_group = event.groups[0]
         snooze = GroupSnooze.objects.create(group=perf_group, user_count=10, user_window=60)
         assert not snooze.is_valid(test_rates=True)
@@ -141,13 +146,14 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin, Se
     @freeze_time()
     def test_rate_reached_perf_issue(self):
         """Test when a performance issue is ignored until it happens 10 times in a day"""
-        for i in range(0, 10):
-            event = self.store_transaction(
-                environment=None,
-                project_id=self.project.id,
-                user_id=str(i),
-                fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-            )
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            for i in range(0, 10):
+                event = self.store_transaction(
+                    environment=None,
+                    project_id=self.project.id,
+                    user_id=str(i),
+                    fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
+                )
         perf_group = event.groups[0]
         snooze = GroupSnooze.objects.create(group=perf_group, count=10, window=24 * 60)
         assert not snooze.is_valid(test_rates=True)

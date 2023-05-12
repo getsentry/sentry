@@ -7,6 +7,7 @@ from sentry import tsdb
 from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
 from sentry.api.bases.sentryapps import COMPONENT_TYPES
+from sentry.services.hybrid_cloud.app import app_service
 
 logger = logging.getLogger(__name__)
 
@@ -32,17 +33,19 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
             model=tsdb.models.sentry_app_viewed,
             keys=[sentry_app.id],
             **self._parse_args(request),
-            tenant_ids={"organization_id": sentry_app.owner.id},
+            tenant_ids={"organization_id": sentry_app.owner_id},
         )[sentry_app.id]
+
+        components = app_service.find_app_components(app_id=sentry_app.id)
 
         component_interactions = tsdb.get_range(
             model=tsdb.models.sentry_app_component_interacted,
             keys=[
                 get_component_interaction_key(sentry_app, component.type)
-                for component in sentry_app.components.all()
+                for component in components
             ],
             **self._parse_args(request),
-            tenant_ids={"organization_id": sentry_app.owner.id},
+            tenant_ids={"organization_id": sentry_app.owner_id},
         )
 
         return Response(

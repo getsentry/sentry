@@ -13,7 +13,7 @@ import {CrumbLink} from '.';
 
 type Props = RouteComponentProps<{teamId: string}, {}>;
 
-const TeamCrumb = ({routes, route, ...props}: Props) => {
+function TeamCrumb({routes, route, ...props}: Props) {
   const {teams, onSearch, fetching} = useTeams();
   const params = useParams();
 
@@ -61,6 +61,6 @@ const TeamCrumb = ({routes, route, ...props}: Props) => {
       {...props}
     />
   );
-};
+}
 
 export default TeamCrumb;

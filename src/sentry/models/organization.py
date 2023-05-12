@@ -8,7 +8,6 @@ from typing import Collection, FrozenSet, Optional, Sequence
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.db.models import QuerySet
-from django.db.models.signals import post_delete
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -37,7 +36,8 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import Team
 from sentry.roles.manager import Role
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin, generate_snowflake_id
@@ -85,7 +85,7 @@ class OrganizationManager(BaseManager):
     def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
         """Returns the QuerySet of all organizations that a set of Users have access to."""
         return self.filter(
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
             member_set__user_id__in=user_ids,
         )
 
@@ -94,7 +94,7 @@ class OrganizationManager(BaseManager):
         from sentry.models import Team
 
         return self.filter(
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
             id__in=Team.objects.filter(id__in=team_ids).values("organization"),
         )
 
@@ -113,7 +113,7 @@ class OrganizationManager(BaseManager):
             else:
                 return list(self.filter())
 
-        qs = OrganizationMember.objects.filter(user=user).select_related("organization")
+        qs = OrganizationMember.objects.filter(user_id=user.id).select_related("organization")
         if only_visible:
             qs = qs.filter(organization__status=OrganizationStatus.ACTIVE)
 
@@ -131,13 +131,13 @@ class OrganizationManager(BaseManager):
 
         orgs = Organization.objects.filter(
             member_set__user_id=user_id,
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
         )
 
         # get owners from orgs
         owner_role_orgs = Organization.objects.filter(
             member_set__user_id=user_id,
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
             member_set__role=roles.get_top_dog().id,
         )
 
@@ -403,7 +403,7 @@ class Organization(Model, SnowflakeIdMixin):
         ):
             try:
                 to_member = OrganizationMember.objects.get(
-                    organization=to_org, user=from_member.user
+                    organization=to_org, user_id=from_member.user.id
                 )
             except OrganizationMember.DoesNotExist:
                 from_member.update(organization=to_org)
@@ -653,25 +653,9 @@ class Organization(Model, SnowflakeIdMixin):
         This method takes customer-domains into account and will update the path when
         customer-domains are active.
         """
-        # Avoid cycles.
-        from sentry.api.utils import customer_domain_path, generate_organization_url
-        from sentry.utils.http import absolute_uri
-
-        url_base = None
-        if self._has_customer_domain():
-            path = customer_domain_path(path)
-            url_base = generate_organization_url(self.slug)
-        uri = absolute_uri(path, url_prefix=url_base)
-        parts = [uri]
-        if query and not query.startswith("?"):
-            query = f"?{query}"
-        if query:
-            parts.append(query)
-        if fragment and not fragment.startswith("#"):
-            fragment = f"#{fragment}"
-        if fragment:
-            parts.append(fragment)
-        return "".join(parts)
+        return organization_absolute_url(
+            self._has_customer_domain(), self.slug, path=path, query=query, fragment=fragment
+        )
 
     def get_scopes(self, role: Role) -> FrozenSet[str]:
         if role.id != "member":
@@ -692,17 +676,36 @@ class Organization(Model, SnowflakeIdMixin):
 
         return Team.objects.filter(organization=self).exclude(org_role=None)
 
-    # TODO(hybrid-cloud): Replace with Region tombstone when it's implemented
-    @classmethod
-    def remove_organization_mapping(cls, instance, **kwargs):
-        from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 
-        organization_mapping_service.delete(instance.id)
+def organization_absolute_url(
+    has_customer_domain: bool,
+    slug: str,
+    path: str,
+    query: Optional[str] = None,
+    fragment: Optional[str] = None,
+) -> str:
+    """
+    Get an absolute URL to `path` for this organization.
 
+    This method takes customer-domains into account and will update the path when
+    customer-domains are active.
+    """
+    # Avoid cycles.
+    from sentry.api.utils import customer_domain_path, generate_organization_url
+    from sentry.utils.http import absolute_uri
 
-post_delete.connect(
-    Organization.remove_organization_mapping,
-    dispatch_uid="sentry.remove_organization_mapping",
-    sender=Organization,
-    weak=False,
-)
+    url_base = None
+    if has_customer_domain:
+        path = customer_domain_path(path)
+        url_base = generate_organization_url(slug)
+    uri = absolute_uri(path, url_prefix=url_base)
+    parts = [uri]
+    if query and not query.startswith("?"):
+        query = f"?{query}"
+    if query:
+        parts.append(query)
+    if fragment and not fragment.startswith("#"):
+        fragment = f"#{fragment}"
+    if fragment:
+        parts.append(fragment)
+    return "".join(parts)

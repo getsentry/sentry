@@ -16,7 +16,7 @@ describe('ApiTokenRow', () => {
     const cb = jest.fn();
     render(<ApiTokenRow onRemove={cb} token={TestStubs.ApiToken()} />);
 
-    await userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByLabelText('Remove'));
     expect(cb).toHaveBeenCalled();
   });
 });

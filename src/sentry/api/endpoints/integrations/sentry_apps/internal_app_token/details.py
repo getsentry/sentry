@@ -5,12 +5,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, deletions
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
 from sentry.models import ApiToken, SentryAppInstallationToken
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryInternalAppTokenPermission,)
 

@@ -32,13 +32,13 @@ function ProjectFilters(props: Props) {
     <Fragment>
       <SentryDocumentTitle title={t('Inbound Filters')} projectSlug={projectId} />
       <SettingsPageHeader title={t('Inbound Data Filters')} />
-      <PermissionAlert />
-
       <TextBlock>
         {t(
           'Filters allow you to prevent Sentry from storing events in certain situations. Filtered events are tracked separately from rate limits, and do not apply to any project quotas.'
         )}
       </TextBlock>
+
+      <PermissionAlert project={project} />
 
       <div>
         <ProjectFiltersChart project={project} organization={organization} />
@@ -60,8 +60,8 @@ function ProjectFilters(props: Props) {
 
         {filterType === 'discarded-groups' ? (
           <GroupTombstones
-            orgId={organization.slug}
-            projectId={project.slug}
+            organization={organization}
+            project={project}
             location={location}
           />
         ) : (

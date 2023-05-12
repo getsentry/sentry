@@ -20,7 +20,7 @@ from sentry.notifications.helpers import (
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
     from sentry.models import Group, Team, User
@@ -119,7 +119,9 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         """
         from sentry.notifications.utils.participants import ParticipantMap
 
-        all_possible_users = [RpcActor.from_rpc_user(u) for u in user_service.get_from_group(group)]
+        all_possible_users = [
+            RpcActor.from_rpc_user(u) for u in group.project.get_members_as_rpc_users()
+        ]
         active_and_disabled_subscriptions = self.filter(
             group=group, user_id__in=[u.id for u in all_possible_users]
         )

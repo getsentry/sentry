@@ -1,12 +1,10 @@
 import styled from '@emotion/styled';
 
+import ExternalLink from 'sentry/components/links/externalLink';
 import {IconDocs} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group} from 'sentry/types';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-
-import {EventDataSection} from '../../eventDataSection';
+import {Event} from 'sentry/types';
+import {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 
 export type ResourceLink = {
   link: string;
@@ -14,45 +12,36 @@ export type ResourceLink = {
 };
 
 type Props = {
-  event: Event;
-  group: Group;
+  configResources: NonNullable<IssueTypeConfig['resources']>;
+  eventPlatform: Event['platform'];
 };
 
 // This section provides users with resources on how to resolve an issue
-export function Resources({group, event}: Props) {
-  const config = getConfigForIssueType(group);
-
-  if (!config.resources) {
-    return null;
-  }
-
+export function Resources({configResources, eventPlatform}: Props) {
   const links = [
-    ...config.resources.links,
-    ...(config.resources.linksByPlatform[event.platform ?? ''] ?? []),
+    ...configResources.links,
+    ...(configResources.linksByPlatform[eventPlatform ?? ''] ?? []),
   ];
 
   return (
-    <EventDataSection type="resources-and-whatever" title={t('Resources and Whatever')}>
-      {config.resources.description}
+    <div>
+      {configResources.description}
       <LinkSection>
         {links.map(({link, text}) => (
-          <a key={link} href={link} target="_blank" rel="noreferrer">
+          // Please note that the UI will not fit a very long text and if we need to support that we will need to update the UI
+          <ExternalLink key={link} href={link} openInNewTab>
             <IconDocs /> {text}
-          </a>
+          </ExternalLink>
         ))}
       </LinkSection>
-    </EventDataSection>
+    </div>
   );
 }
 
 const LinkSection = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-row-gap: ${space(1)};
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 1fr;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 
   margin-top: ${space(2)};
 

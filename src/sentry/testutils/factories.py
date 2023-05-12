@@ -90,6 +90,7 @@ from sentry.models import (
     UserPermission,
     UserReport,
 )
+from sentry.models.actor import get_actor_id_for_user
 from sentry.models.apikey import ApiKey
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.notificationaction import (
@@ -101,7 +102,11 @@ from sentry.models.notificationaction import (
 from sentry.models.releasefile import update_artifact_index
 from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
 from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.services.hybrid_cloud.organizationmember_mapping import (
+    organizationmember_mapping_service,
+)
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.silo import exempt_from_silo_limits
@@ -261,7 +266,11 @@ class Factories:
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
 
+        create_mapping = not kwargs.pop("no_mapping", False)
         org = Organization.objects.create(name=name, **kwargs)
+        if create_mapping:
+            Factories.create_org_mapping(org)
+
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
         return org
@@ -282,7 +291,22 @@ class Factories:
         kwargs.setdefault("role", "member")
         teamRole = kwargs.pop("teamRole", None)
 
+        # user_id will have precedence over user
+        user = kwargs.pop("user", None)
+        user_id = kwargs.pop("user_id", None)
+        if not user_id and user:
+            user_id = user.id
+        kwargs["user_id"] = user_id
+
+        # inviter_id will have precedence over inviter
+        inviter = kwargs.pop("inviter", None)
+        inviter_id = kwargs.pop("inviter_id", None)
+        if not inviter_id and inviter:
+            inviter_id = inviter.id
+        kwargs["inviter_id"] = inviter_id
+
         om = OrganizationMember.objects.create(**kwargs)
+        organizationmember_mapping_service.create_with_organization_member(org_member=om)
 
         if team_roles:
             for team, role in team_roles:
@@ -297,7 +321,9 @@ class Factories:
     def create_team_membership(team, member=None, user=None, role=None):
         if member is None:
             member, _ = OrganizationMember.objects.get_or_create(
-                user=user, organization=team.organization, defaults={"role": "member"}
+                user_id=user.id if user else None,
+                organization=team.organization,
+                defaults={"role": "member"},
             )
 
         return OrganizationMemberTeam.objects.create(
@@ -307,7 +333,9 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_api_key(organization, scope_list=None, **kwargs):
-        return ApiKey.objects.create(organization=organization, scope_list=scope_list)
+        return ApiKey.objects.create(
+            organization_id=organization.id if organization else None, scope_list=scope_list
+        )
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -360,7 +388,7 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_project_bookmark(project, user):
-        return ProjectBookmark.objects.create(project_id=project.id, user=user)
+        return ProjectBookmark.objects.create(project_id=project.id, user_id=user.id)
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -543,8 +571,11 @@ class Factories:
     @classmethod
     @exempt_from_silo_limits()
     def create_artifact_bundle(
-        cls, org, artifact_count=0, fixture_path="artifact_bundle_debug_ids"
+        cls, org, artifact_count=0, fixture_path="artifact_bundle_debug_ids", date_uploaded=None
     ):
+        if date_uploaded is None:
+            date_uploaded = timezone.now()
+
         bundle = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
         file_ = File.objects.create(name="artifact-bundle.zip")
         file_.putfile(ContentFile(bundle))
@@ -555,6 +586,7 @@ class Factories:
             bundle_id=uuid4(),
             file=file_,
             artifact_count=artifact_count,
+            date_uploaded=date_uploaded,
         )
         return artifact_bundle
 
@@ -696,6 +728,8 @@ class Factories:
                         parent_span_ids=None,
                         cause_span_ids=None,
                         offender_span_ids=None,
+                        evidence_data={},
+                        evidence_display=[],
                     )
                 )
 
@@ -910,10 +944,11 @@ class Factories:
 
         install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
         install.save()
-
+        rpc_install = serialize_sentry_app_installation(install, install.sentry_app)
         if not prevent_token_exchange and (install.sentry_app.status != SentryAppStatus.INTERNAL):
+
             token_exchange.GrantExchanger.run(
-                install=install,
+                install=rpc_install,
                 code=install.api_grant.code,
                 client_id=install.sentry_app.application.client_id,
                 user=install.sentry_app.proxy_user,
@@ -1292,8 +1327,8 @@ class Factories:
             type,
             target_type,
             target_identifier,
-            integration,
-            sentry_app,
+            integration.id if integration else None,
+            sentry_app.id if sentry_app else None,
             sentry_app_config=sentry_app_config,
         )
 
@@ -1303,7 +1338,8 @@ class Factories:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
 
-        return ExternalActor.objects.create(actor=user.actor, **kwargs)
+        actor_id = get_actor_id_for_user(user)
+        return ExternalActor.objects.create(actor_id=actor_id, **kwargs)
 
     @staticmethod
     @exempt_from_silo_limits()

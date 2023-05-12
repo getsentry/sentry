@@ -6,7 +6,7 @@ import {Node} from '@react-types/shared';
 import domId from 'sentry/utils/domId';
 import {FormSize} from 'sentry/utils/theme';
 
-import {SelectContext} from '../control';
+import {SelectFilterContext} from '../list';
 import {
   SectionGroup,
   SectionHeader,
@@ -14,6 +14,7 @@ import {
   SectionTitle,
   SectionWrap,
 } from '../styles';
+import {SelectSection} from '../types';
 import {SectionToggle} from '../utils';
 
 import {GridListOption} from './option';
@@ -22,26 +23,26 @@ interface GridListSectionProps {
   listState: ListState<any>;
   node: Node<any>;
   size: FormSize;
+  onToggle?: (section: SelectSection<React.Key>, type: 'select' | 'unselect') => void;
 }
 
 /**
  * A <li /> element that functions as a grid list section (renders a nested <ul />
  * inside). https://react-spectrum.adobe.com/react-aria/useGridList.html
  */
-export function GridListSection({node, listState, size}: GridListSectionProps) {
+export function GridListSection({node, listState, onToggle, size}: GridListSectionProps) {
   const titleId = domId('grid-section-title-');
   const {separatorProps} = useSeparator({elementType: 'li'});
-
-  const {filterOption} = useContext(SelectContext);
-  const filteredOptions = useMemo(() => {
-    return [...node.childNodes].filter(child => {
-      return filterOption(child.props);
-    });
-  }, [node.childNodes, filterOption]);
 
   const showToggleAllButton =
     listState.selectionManager.selectionMode === 'multiple' &&
     node.value.showToggleAllButton;
+
+  const hiddenOptions = useContext(SelectFilterContext);
+  const childNodes = useMemo(
+    () => [...node.childNodes].filter(child => !hiddenOptions.has(child.props.value)),
+    [node.childNodes, hiddenOptions]
+  );
 
   return (
     <Fragment>
@@ -59,11 +60,13 @@ export function GridListSection({node, listState, size}: GridListSectionProps) {
                 {node.rendered}
               </SectionTitle>
             )}
-            {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
+            {showToggleAllButton && (
+              <SectionToggle item={node} listState={listState} onToggle={onToggle} />
+            )}
           </SectionHeader>
         )}
         <SectionGroup role="presentation">
-          {filteredOptions.map(child => (
+          {childNodes.map(child => (
             <GridListOption
               key={child.key}
               node={child}

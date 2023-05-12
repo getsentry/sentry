@@ -115,7 +115,7 @@ type CreateAlertButtonProps = {
   showPermissionGuide?: boolean;
 } & ButtonProps;
 
-const CreateAlertButton = ({
+function CreateAlertButton({
   organization,
   projectSlug,
   iconProps,
@@ -125,7 +125,7 @@ const CreateAlertButton = ({
   alertOption,
   onEnter,
   ...buttonProps
-}: CreateAlertButtonProps) => {
+}: CreateAlertButtonProps) {
   const router = useRouter();
   const api = useApi();
   const createAlertUrl = (providedProj: string): string => {
@@ -193,10 +193,10 @@ const CreateAlertButton = ({
   const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;
 
   return (
-    <Access organization={organization} access={['alerts:write']}>
+    <Access access={['alerts:write']}>
       {({hasAccess}) =>
         showGuide ? (
-          <Access organization={organization} access={['org:write']}>
+          <Access access={['org:write']}>
             {({hasAccess: isOrgAdmin}) => (
               <GuideAnchor
                 target={isOrgAdmin ? 'alerts_write_owner' : 'alerts_write_member'}
@@ -212,7 +212,7 @@ const CreateAlertButton = ({
       }
     </Access>
   );
-};
+}
 
 export {CreateAlertFromViewButton};
 export default CreateAlertButton;

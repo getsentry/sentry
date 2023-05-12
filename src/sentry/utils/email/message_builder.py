@@ -17,7 +17,7 @@ from sentry import options
 from sentry.db.models import Model
 from sentry.logging import LoggingFormat
 from sentry.models import Activity, Group, GroupEmailThread, Project
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_string
 
@@ -107,6 +107,13 @@ class MessageBuilder:
                 logger.debug(str(error))
             except AssertionError as error:
                 logger.warning(str(error))
+
+        # If a "type" is specified, add it to the headers to categorize the emails if not already set
+        if type is not None and "X-SMTPAPI" not in self.headers:
+            self.headers = {
+                "X-SMTPAPI": json.dumps({"category": type}),
+                **(self.headers),
+            }
 
     def __render_html_body(self) -> str | None:
         if self.html_template:

@@ -12,6 +12,7 @@ export type SpansSearchResult = {
 };
 
 export type FlamegraphSearch = {
+  highlightFrames: {name: string | undefined; package: string | undefined} | null;
   index: number | null;
   query: string;
   results: {
@@ -29,7 +30,7 @@ type SetFlamegraphResultsAction = {
     query: string;
     results: FlamegraphSearch['results'];
   };
-  type: 'set results';
+  type: 'set search results';
 };
 
 type FlamegraphSearchArrowNavigationAction = {
@@ -37,10 +38,19 @@ type FlamegraphSearchArrowNavigationAction = {
   type: 'set search index position';
 };
 
+type SetHighlightAllFrames = {
+  payload: {
+    name: string;
+    package: string;
+  } | null;
+  type: 'set highlight all frames';
+};
+
 type FlamegraphSearchAction =
   | ClearFlamegraphSearchAction
   | FlamegraphSearchArrowNavigationAction
-  | SetFlamegraphResultsAction;
+  | SetFlamegraphResultsAction
+  | SetHighlightAllFrames;
 
 export function flamegraphSearchReducer(
   state: FlamegraphSearch,
@@ -52,14 +62,21 @@ export function flamegraphSearchReducer(
         ...state,
         query: '',
         index: null,
+        highlightFrames: null,
         results: {
           frames: new Map(),
           spans: new Map(),
         },
       };
     }
-    case 'set results': {
-      return {...state, ...action.payload};
+    case 'set highlight all frames': {
+      return {
+        ...state,
+        highlightFrames: action.payload,
+      };
+    }
+    case 'set search results': {
+      return {...state, highlightFrames: null, ...action.payload};
     }
     case 'set search index position': {
       return {...state, index: action.payload};

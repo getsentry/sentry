@@ -76,6 +76,13 @@ class ConsecutiveDbDetectorTest(TestCase):
                 parent_span_ids=None,
                 cause_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
                 offender_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "db",
+                    "parent_span_ids": None,
+                    "cause_span_ids": ["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
             )
         ]
 
@@ -183,6 +190,13 @@ class ConsecutiveDbDetectorTest(TestCase):
                 parent_span_ids=None,
                 cause_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "db",
+                    "parent_span_ids": None,
+                    "cause_span_ids": ["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
             )
         ]
 

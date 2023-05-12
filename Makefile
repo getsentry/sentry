@@ -50,7 +50,8 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 	yarn deref-api-docs
 
 watch-api-docs:
-	@ts-node api-docs/watch.ts
+	@cd api-docs/ && yarn install
+	@cd api-docs/ && ts-node ./watch.ts
 
 diff-api-docs:
 	@echo "--> diffing local api docs against sentry-api-schema/openapi-derefed.json"
@@ -127,6 +128,7 @@ test-python-ci:
 	@echo "--> Running CI Python tests"
 	pytest tests/integration tests/sentry \
 		--ignore tests/sentry/eventstream/kafka \
+		--ignore tests/sentry/post_process_forwarder \
 		--ignore tests/sentry/snuba \
 		--ignore tests/sentry/search/events \
 		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
@@ -138,6 +140,7 @@ test-snuba:
 	@echo "--> Running snuba tests"
 	pytest tests/snuba \
 		tests/sentry/eventstream/kafka \
+		tests/sentry/post_process_forwarder \
 		tests/sentry/snuba \
 		tests/sentry/search/events \
 		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
@@ -153,9 +156,11 @@ backend-typing:
 	mypy --strict --warn-unreachable --config-file mypy.ini
 	@echo ""
 
+# JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
 	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"
+	pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
 	@echo ""
 
 test-chartcuterie:

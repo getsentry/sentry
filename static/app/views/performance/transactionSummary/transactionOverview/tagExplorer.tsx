@@ -18,7 +18,7 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView, {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -58,7 +58,7 @@ type TagColumn = GridColumnOrder<ColumnKeys> & {
   field: string;
   canSort?: boolean;
 };
-const COLUMN_ORDER: TagColumn[] = [
+export const TAG_EXPLORER_COLUMN_ORDER: TagColumn[] = [
   {
     key: 'key',
     field: 'key',
@@ -142,7 +142,7 @@ const getColumnsWithReplacedDuration = (
   projects: Project[],
   eventView: EventView
 ) => {
-  const columns = COLUMN_ORDER.map(c => ({...c}));
+  const columns = TAG_EXPLORER_COLUMN_ORDER.map(c => ({...c}));
   const durationColumn = columns.find(c => c.key === 'aggregate');
 
   if (!durationColumn) {
@@ -209,7 +209,7 @@ export class TagExplorer extends Component<Props> {
 
   onSortClick(currentSortKind?: string, currentSortField?: string) {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.summary.tag_explorer.sort', {
+    trackAnalytics('performance_views.summary.tag_explorer.sort', {
       organization,
       field: currentSortField,
       direction: currentSortKind,
@@ -268,7 +268,7 @@ export class TagExplorer extends Component<Props> {
 
   handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.summary.tag_explorer.tag_value', {
+    trackAnalytics('performance_views.summary.tag_explorer.tag_value', {
       organization,
     });
 
@@ -294,7 +294,7 @@ export class TagExplorer extends Component<Props> {
   ) => {
     return (action: Actions) => {
       const {eventView, location, organization} = this.props;
-      trackAdvancedAnalyticsEvent('performance_views.summary.tag_explorer.cell_action', {
+      trackAnalytics('performance_views.summary.tag_explorer.cell_action', {
         organization,
       });
 
@@ -315,7 +315,7 @@ export class TagExplorer extends Component<Props> {
 
   onTagKeyClick() {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.summary.tag_explorer.visit_tag_key', {
+    trackAnalytics('performance_views.summary.tag_explorer.visit_tag_key', {
       organization,
     });
   }
@@ -403,7 +403,7 @@ export class TagExplorer extends Component<Props> {
     const cursor = decodeScalar(location.query?.[TAGS_CURSOR_NAME]);
 
     const tagEventView = eventView.clone();
-    tagEventView.fields = COLUMN_ORDER;
+    tagEventView.fields = TAG_EXPLORER_COLUMN_ORDER;
 
     const tagSorts = fromSorts(tagSort);
 
@@ -484,7 +484,7 @@ function TagsHeader(props: HeaderProps) {
   const {pageLinks, organization, location, transactionName} = props;
 
   const handleCursor: CursorHandler = (cursor, pathname, query) => {
-    trackAdvancedAnalyticsEvent('performance_views.summary.tag_explorer.change_page', {
+    trackAnalytics('performance_views.summary.tag_explorer.change_page', {
       organization,
     });
     browserHistory.push({
@@ -494,7 +494,7 @@ function TagsHeader(props: HeaderProps) {
   };
 
   const handleViewAllTagsClick = () => {
-    trackAdvancedAnalyticsEvent('performance_views.summary.tag_explorer.change_page', {
+    trackAnalytics('performance_views.summary.tag_explorer.change_page', {
       organization,
     });
   };

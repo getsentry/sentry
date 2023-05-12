@@ -311,7 +311,7 @@ function FlamegraphSearch({
         allFlamegraphFrames,
         results => {
           dispatch({
-            type: 'set results',
+            type: 'set search results',
             payload: {
               results,
               query,
@@ -325,6 +325,10 @@ function FlamegraphSearch({
 
   useEffect(() => {
     if (allFlamegraphFrames.length === 0) {
+      return;
+    }
+
+    if (!search.query) {
       return;
     }
 

@@ -153,8 +153,8 @@ class FeatureManager(RegisteredFeatureManager):
         """
         Register a feature.
 
-        The passed class is a Feature container object, this object can be used
-        to encapsulate the context associated to a feature.
+        The passed class is a Feature container object, which can be used
+        to encapsulate the context associated with a feature.
 
         >>> FeatureManager.has('my:feature', actor=request.user)
         """
@@ -263,6 +263,33 @@ class FeatureManager(RegisteredFeatureManager):
                 feature_names, actor, projects=projects, organization=organization
             )
         else:
+            # Fall back to default handler if no entity handler available.
+            project_features = filter(lambda name: name.startswith("projects:"), feature_names)
+            if projects and project_features:
+                results: MutableMapping[str, Mapping[str, bool]] = {}
+                for project in projects:
+                    proj_results = results[f"project:{project.id}"] = {}
+                    for feature_name in project_features:
+                        proj_results[feature_name] = self.has(feature_name, project, actor=actor)
+                return results
+
+            org_features = filter(lambda name: name.startswith("organizations:"), feature_names)
+            if organization and org_features:
+                org_results = {}
+                for feature_name in org_features:
+                    org_results[feature_name] = self.has(feature_name, organization, actor=actor)
+                return {f"organization:{organization.id}": org_results}
+
+            unscoped_features = filter(
+                lambda name: not name.startswith("organizations:")
+                and not name.startswith("projects:"),
+                feature_names,
+            )
+            if unscoped_features:
+                unscoped_results = {}
+                for feature_name in unscoped_features:
+                    unscoped_results[feature_name] = self.has(feature_name, actor=actor)
+                return {"unscoped": unscoped_results}
             return None
 
     @staticmethod

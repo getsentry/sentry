@@ -1,10 +1,9 @@
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Event, EventOrGroupType} from 'sentry/types/event';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {QuickContextHoverWrapper} from './quickContextWrapper';
@@ -138,7 +137,7 @@ describe('Quick Context', function () {
       expect(await screen.findByText(/Issue/i)).toBeInTheDocument();
       expect(screen.getByText(/SENTRY-VVY/i)).toBeInTheDocument();
       expect(
-        screen.getByTestId('quick-context-hover-header-copy-icon')
+        screen.getByTestId('quick-context-hover-header-copy-button')
       ).toBeInTheDocument();
     });
 
@@ -168,7 +167,7 @@ describe('Quick Context', function () {
       expect(screen.getByText(/22.10.0/i)).toBeInTheDocument();
       expect(screen.getByText(/(aaf33944f93d)/i)).toBeInTheDocument();
       expect(
-        screen.getByTestId('quick-context-hover-header-copy-icon')
+        screen.getByTestId('quick-context-hover-header-copy-button')
       ).toBeInTheDocument();
     });
 
@@ -186,7 +185,7 @@ describe('Quick Context', function () {
       expect(await screen.findByText(/Event ID/i)).toBeInTheDocument();
       expect(screen.getByText(/6b43e285/i)).toBeInTheDocument();
       expect(
-        screen.getByTestId('quick-context-hover-header-copy-icon')
+        screen.getByTestId('quick-context-hover-header-copy-button')
       ).toBeInTheDocument();
     });
   });

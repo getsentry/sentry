@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [tool.black]
 # File filtering is taken care of in pre-commit.
-line-length=100
-target-version=['py38']
+line-length = 100
+target-version = ['py38']
 
 [tool.isort]
 profile = "black"
@@ -22,8 +22,9 @@ addopts = "-ra --tb=short --strict-markers -p no:celery"
 # TODO: --import-mode=importlib will become the default soon,
 # currently we have a few relative imports that don't work with that.
 markers = [
-    "snuba: mark a test as requiring snuba",
+    "snuba: test requires access to snuba",
     "sentry_metrics: test requires access to sentry metrics",
+    "symbolicator: test requires access to symbolicator",
 ]
 selenium_driver = "chrome"
 filterwarnings = [

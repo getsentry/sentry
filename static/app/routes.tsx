@@ -38,7 +38,10 @@ type CustomProps = {
  * We add some additional props to our routes
  */
 
-const Route = BaseRoute as React.ComponentClass<RouteProps & CustomProps>;
+const Route = BaseRoute as React.ComponentClass<
+  React.PropsWithChildren<RouteProps & CustomProps>
+>;
+
 const IndexRoute = BaseIndexRoute as React.ComponentClass<IndexRouteProps & CustomProps>;
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
@@ -56,11 +59,11 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
   resolve: () => Promise<{default: C}>
 ) {
   // XXX: Assign the component to a variable so it has a displayname
-  const RouteLazyLoad: React.FC<React.ComponentProps<C>> = props => {
+  function RouteLazyLoad(props: React.ComponentProps<C>) {
     // we can use this hook to set the organization as it's
     // a child of the organization context
     return <SafeLazyLoad {...props} component={resolve} />;
-  };
+  }
 
   return RouteLazyLoad;
 }
@@ -514,8 +517,8 @@ function buildRoutes() {
           })}
         />
         <Route
-          path="debug-id-bundles/"
-          name={t('Debug ID Bundles')}
+          path="artifact-bundles/"
+          name={t('Artifact Bundles')}
           component={make(async () => {
             const {ProjectSourceMapsContainer} = await import(
               'sentry/views/settings/projectSourceMaps'
@@ -551,7 +554,7 @@ function buildRoutes() {
           })}
         >
           <Route
-            name={t('Artifact Bundle')}
+            name={t('Release Bundle')}
             path=":bundleId/"
             component={make(async () => {
               const {ProjectSourceMapsContainer} = await import(
@@ -665,18 +668,6 @@ function buildRoutes() {
           path=":pluginId/"
           name={t('Integration Details')}
           component={make(() => import('sentry/views/settings/projectPlugins/details'))}
-        />
-      </Route>
-      <Route path="install/" name={t('Configuration')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/projectInstall/overview'))}
-        />
-        <Route
-          path=":platform/"
-          name={t('Docs')}
-          component={make(
-            () => import('sentry/views/projectInstall/platformOrIntegration')
-          )}
         />
       </Route>
     </Route>
@@ -1699,6 +1690,63 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const starfishChildRoutes = (
+    <Fragment>
+      <IndexRoute
+        component={make(() => import('sentry/views/starfish/views/webServiceView'))}
+      />
+      <Route
+        path="failure-detail/:slug/"
+        component={make(
+          () => import('sentry/views/starfish/views/webServiceView/endpointFailureEvents')
+        )}
+      />
+      <Route
+        path="endpoint-overview/"
+        component={make(
+          () => import('sentry/views/starfish/views/webServiceView/endpointOverview')
+        )}
+      />
+      <Route
+        path="database/"
+        component={make(() => import('sentry/views/starfish/modules/databaseModule'))}
+      />
+      <Route
+        path="api/"
+        component={make(() => import('sentry/views/starfish/modules/APIModule'))}
+      />
+      <Route
+        path="spans/"
+        component={make(() => import('sentry/views/starfish/views/spans'))}
+      />
+      <Route
+        path="span/:groupId/"
+        component={make(() => import('sentry/views/starfish/views/spanSummary'))}
+      />
+    </Fragment>
+  );
+
+  const starfishRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/starfish/"
+          component={withDomainRequired(make(() => import('sentry/views/starfish')))}
+          key="orgless-starfish-route"
+        >
+          {starfishChildRoutes}
+        </Route>
+      )}
+      <Route
+        path="/organizations/:orgId/starfish/"
+        component={withDomainRedirect(make(() => import('sentry/views/starfish/')))}
+        key="org-starfish"
+      >
+        {starfishChildRoutes}
+      </Route>
+    </Fragment>
+  );
+
   const userFeedbackRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -2125,6 +2173,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {starfishRoutes}
       {profilingRoutes}
       {adminManageRoutes}
       {gettingStartedRoutes}
@@ -2220,10 +2269,13 @@ function buildRoutes() {
           from="integrations/:providerKey/"
           to="/settings/:orgId/projects/:projectId/integrations/:providerKey/"
         />
-        <Redirect from="install/" to="/settings/:orgId/projects/:projectId/install/" />
         <Redirect
-          from="install/:platform'"
-          to="/settings/:orgId/projects/:projectId/install/:platform/"
+          from="/settings/projects/:projectId/install/"
+          to="/getting-started/:projectId/"
+        />
+        <Redirect
+          from="/settings/projects/:projectId/install/:platform/"
+          to="/getting-started/:projectId/:platform/"
         />
       </Route>
       <Redirect from=":projectId/group/:groupId/" to="issues/:groupId/" />

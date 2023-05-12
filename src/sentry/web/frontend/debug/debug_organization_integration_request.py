@@ -13,9 +13,9 @@ from .mail import render_preview_email_for_notification
 class DebugOrganizationIntegrationRequestEmailView(View):
     def get(self, request: Request) -> Response:
         org = Organization(id=1, slug="default", name="Default")
-        requester = User(name="Rick Swan")
-        recipient = User(name="James Bond")
-        recipient_member = OrganizationMember(user=recipient, organization=org)
+        requester = User(name="Rick Swan", actor_id=1)
+        recipient = User(name="James Bond", actor_id=2)
+        recipient_member = OrganizationMember(user_id=recipient.id, organization=org)
 
         notification = IntegrationRequestNotification(
             org,

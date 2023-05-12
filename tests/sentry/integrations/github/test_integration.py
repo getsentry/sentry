@@ -5,6 +5,7 @@ import responses
 from django.urls import reverse
 
 import sentry
+from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import API_ERRORS, MINIMUM_REQUESTS, GitHubIntegrationProvider
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
@@ -257,7 +258,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "account_type": "Organization",
         }
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
 
@@ -280,21 +281,31 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ),
             urlencode({"installation_id": self.installation_id}),
         )
-        resp = self.client.get(self.init_path_2)
-        assert (
-            b'{"success":false,"data":{"error":"Github installed on another Sentry organization."}}'
-            in resp.content
-        )
-        assert (
-            b"It seems that your GitHub account has been installed on another Sentry organization. Please uninstall and try again."
-            in resp.content
-        )
+        with self.feature({"organizations:customer-domains": [self.organization_2.slug]}):
+            resp = self.client.get(self.init_path_2)
+            self.assertTemplateUsed(
+                resp, "sentry/integrations/github-integration-exists-on-another-org.html"
+            )
+            assert (
+                b'{"success":false,"data":{"error":"Github installed on another Sentry organization."}}'
+                in resp.content
+            )
+            assert (
+                b"It seems that your GitHub account has been installed on another Sentry organization. Please uninstall and try again."
+                in resp.content
+            )
+            assert b'window.opener.postMessage({"success":false' in resp.content
+            assert (
+                f', "{generate_organization_url(self.organization_2.slug)}");'.encode()
+                in resp.content
+            )
 
         # Delete the Integration
         integration = Integration.objects.get(external_id=self.installation_id)
-        OrganizationIntegration.objects.filter(
-            organization=self.organization, integration=integration
-        ).delete()
+        for oi in OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id, integration=integration
+        ):
+            oi.delete()
         integration.delete()
 
         # Try again and should be successful
@@ -303,7 +314,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(external_id=self.installation_id)
         assert integration.provider == "github"
         assert OrganizationIntegration.objects.filter(
-            organization=self.organization_2, integration=integration
+            organization_id=self.organization_2.id, integration=integration
         ).exists()
 
     @responses.activate
@@ -353,7 +364,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert auth_header == "Bearer jwt_token_1"
 
         integration = Integration.objects.get(provider=self.provider.key)
-        assert integration.status == ObjectStatus.VISIBLE
+        assert integration.status == ObjectStatus.ACTIVE
         assert integration.external_id == self.installation_id
 
     @responses.activate
@@ -551,7 +562,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         # set installation to pending deletion
         oi.status = ObjectStatus.PENDING_DELETION
@@ -562,12 +573,16 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         self._stub_github()
 
-        resp = self.client.get(
-            "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
-        )
+        with self.feature({"organizations:customer-domains": [self.organization.slug]}):
+            resp = self.client.get(
+                "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
+            )
 
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/integrations/integration-pending-deletion.html")
+
+        assert b'window.opener.postMessage({"success":false' in resp.content
+        assert f', "{generate_organization_url(self.organization.slug)}");'.encode() in resp.content
 
         # Assert payload returned to main window
         assert (
@@ -587,7 +602,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(external_id=self.installation_id)
         assert integration.provider == "github"
         assert OrganizationIntegration.objects.filter(
-            organization=self.organization, integration=integration
+            organization_id=self.organization.id, integration=integration
         ).exists()
 
     def set_rate_limit(
@@ -742,3 +757,75 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 ("baz", "master", []),
             ]
         )
+
+    @responses.activate
+    def test_get_trees_for_org_makes_API_requests_before_MAX_CONNECTION_ERRORS_is_hit(self):
+        """
+        If some requests fail, but `MAX_CONNECTION_ERRORS` isn't hit, requests will continue
+        to be made to the API.
+        """
+        installation = self.get_installation_helper()
+        self.set_rate_limit()
+
+        # Given that below we mock MAX_CONNECTION_ERRORS to be 2, the error we hit here
+        # should NOT force the remaining repos to pull from the cache.
+        responses.replace(
+            responses.GET,
+            f"{self.base_url}/repos/Test-Organization/xyz/git/trees/master?recursive=1",
+            body=ApiError("Server Error"),
+        )
+
+        # Clear the cache so we can tell when we're pulling from it rather than from an
+        # API call
+        cache.clear()
+
+        with patch(
+            "sentry.integrations.github.client.MAX_CONNECTION_ERRORS",
+            new=2,
+        ):
+
+            trees = installation.get_trees_for_org()
+            assert trees == self._expected_trees(
+                [
+                    # xyz is missing because its request errors
+                    # foo has data because its API request is made in spite of xyz's error
+                    ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                    # bar and baz are missing because their API requests throw errors for
+                    # other reasons in the default mock responses
+                ]
+            )
+
+    @responses.activate
+    def test_get_trees_for_org_falls_back_to_cache_once_MAX_CONNECTION_ERRORS_is_hit(self):
+        """Once `MAX_CONNECTION_ERRORS` requests fail, the rest will grab from the cache."""
+        installation = self.get_installation_helper()
+        self.set_rate_limit()
+
+        # Given that below we mock MAX_CONNECTION_ERRORS to be 1, the error we hit here
+        # should force the remaining repos to pull from the cache.
+        responses.replace(
+            responses.GET,
+            f"{self.base_url}/repos/Test-Organization/xyz/git/trees/master?recursive=1",
+            body=ApiError("Server Error"),
+        )
+
+        # Clear the cache so we can tell when we're pulling from it rather than from an
+        # API call
+        cache.clear()
+
+        with patch(
+            "sentry.integrations.github.client.MAX_CONNECTION_ERRORS",
+            new=1,
+        ):
+
+            trees = installation.get_trees_for_org()
+            assert trees == self._expected_trees(
+                [
+                    # xyz isn't here because the request errors out.
+                    # foo, bar, and baz are here but have no files, because xyz's error
+                    # caused us to pull from the empty cache
+                    ("foo", "master", []),
+                    ("bar", "main", []),
+                    ("baz", "master", []),
+                ]
+            )

@@ -18,6 +18,7 @@ from typing import (
 )
 
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.post_process_forwarder import PostProcessForwarderType
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
@@ -27,12 +28,6 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
-
-
-class PostProcessForwarderType(str, Enum):
-    ERRORS = "errors"
-    TRANSACTIONS = "transactions"
-    ISSUE_PLATFORM = "search_issues"
 
 
 class ForwarderNotRequired(NotImplementedError):
@@ -192,7 +187,7 @@ class EventStream(Service):
         self,
         project_id: int,
         event_ids: Sequence[str],
-        old_primary_hash: Union[str, bool] = False,
+        old_primary_hash: Optional[str] = None,
         from_timestamp: Optional[datetime] = None,
         to_timestamp: Optional[datetime] = None,
     ) -> None:

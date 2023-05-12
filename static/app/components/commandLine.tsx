@@ -9,7 +9,9 @@ type Props = {
   children: string;
 };
 
-const CommandLine = ({children}: Props) => <Wrapper>{children}</Wrapper>;
+function CommandLine({children}: Props) {
+  return <Wrapper>{children}</Wrapper>;
+}
 
 export default CommandLine;
 

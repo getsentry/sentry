@@ -21,21 +21,19 @@ type Props = {
    */
   isHoverPreviewed?: boolean;
   isUsedForGrouping?: boolean;
-  nativeStackTraceV2?: boolean;
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
   showCompleteFunctionName?: boolean;
 };
 
-const Symbol = ({
+function Symbol({
   frame,
   absoluteFilePaths,
   onFunctionNameToggle,
   showCompleteFunctionName,
-  nativeStackTraceV2,
   isHoverPreviewed,
   isUsedForGrouping,
   className,
-}: Props) => {
+}: Props) {
   const hasFunctionNameHiddenDetails =
     defined(frame.rawFunction) &&
     defined(frame.function) &&
@@ -54,7 +52,6 @@ const Symbol = ({
   };
 
   const [hint, hintIcon] = getFrameHint(frame);
-  const enablePathTooltip = defined(frame.absPath) && frame.absPath !== frame.filename;
   const functionNameTooltipTitle = getFunctionNameTooltipTitle();
   const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
 
@@ -87,33 +84,19 @@ const Symbol = ({
             </Tooltip>
           </HintStatus>
         )}
-        {frame.filename &&
-          (nativeStackTraceV2 ? (
-            <Filename>
-              {'('}
-              {absoluteFilePaths ? frame.absPath : frame.filename}
-              {frame.lineNo && `:${frame.lineNo}`}
-              {')'}
-            </Filename>
-          ) : (
-            <FileNameTooltip
-              title={frame.absPath}
-              disabled={!enablePathTooltip}
-              delay={tooltipDelay}
-            >
-              <Filename>
-                {'('}
-                {frame.filename}
-                {frame.lineNo && `:${frame.lineNo}`}
-                {')'}
-              </Filename>
-            </FileNameTooltip>
-          ))}
+        {frame.filename && (
+          <Filename>
+            {'('}
+            {absoluteFilePaths ? frame.absPath : frame.filename}
+            {frame.lineNo && `:${frame.lineNo}`}
+            {')'}
+          </Filename>
+        )}
         {isUsedForGrouping && <GroupingIndicator />}
       </Data>
     </Wrapper>
   );
-};
+}
 
 const Wrapper = styled('div')`
   text-align: left;
@@ -152,10 +135,6 @@ const HintStatus = styled('span')`
   position: relative;
   top: ${space(0.25)};
   margin: 0 ${space(0.75)} 0 -${space(0.25)};
-`;
-
-const FileNameTooltip = styled(Tooltip)`
-  margin-right: ${space(0.75)};
 `;
 
 const Filename = styled('span')`

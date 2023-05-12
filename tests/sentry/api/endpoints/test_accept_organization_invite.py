@@ -14,11 +14,13 @@ from sentry.models import (
 )
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
 @region_silo_test
-class AcceptInviteTest(TestCase):
+class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
@@ -79,9 +81,7 @@ class AcceptInviteTest(TestCase):
 
     def test_invite_not_pending(self):
         user = self.create_user(email="test@gmail.com")
-        om = Factories.create_member(
-            email="newuser@example.com", token="abc", organization=self.organization, user=user
-        )
+        om = Factories.create_member(token="abc", organization=self.organization, user=user)
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 400
@@ -151,7 +151,7 @@ class AcceptInviteTest(TestCase):
             self._assert_pending_invite_details_not_in_session(resp)
 
     def test_user_can_use_sso(self):
-        AuthProvider.objects.create(organization=self.organization, provider="google")
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="google")
         self.login_as(self.user)
 
         om = Factories.create_member(
@@ -258,10 +258,13 @@ class AcceptInviteTest(TestCase):
                 token="abcd",
                 organization=self.organization,
             )
-            path = self._get_path(url, [om2.id, om2.token])
-            resp = self.client.post(path)
-            assert resp.status_code == 400
+            self.assert_org_member_mapping(org_member=om2)
+            with outbox_runner():
+                path = self._get_path(url, [om2.id, om2.token])
+                resp = self.client.post(path)
+                assert resp.status_code == 400
             assert not OrganizationMember.objects.filter(id=om2.id).exists()
+            self.assert_org_member_mapping_not_exists(org_member=om2)
 
     def test_can_accept_when_user_has_2fa(self):
         urls = self._get_urls()

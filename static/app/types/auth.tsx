@@ -1,8 +1,7 @@
 import type u2f from 'u2f-api';
 
 import type {Field} from 'sentry/components/forms/types';
-
-import type {Organization} from './organization';
+import {ControlSiloOrganization} from 'sentry/types/control_silo_organization';
 
 export type AuthenticatorDevice = {
   authId: string;
@@ -156,7 +155,7 @@ export type UserIdentityConfig = {
   id: string;
   isLogin: boolean;
   name: string;
-  organization: Organization | null;
+  organization: ControlSiloOrganization | null;
   provider: UserIdentityProvider;
   status: UserIdentityStatus;
 };

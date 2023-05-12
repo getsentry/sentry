@@ -35,6 +35,7 @@ from sentry.app import env
 from sentry.auth.access import Access
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
+    AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
@@ -48,6 +49,7 @@ from sentry.constants import (
     SAFE_FIELDS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
+    ObjectStatus,
 )
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
@@ -59,13 +61,13 @@ from sentry.models import (
     OrganizationOption,
     OrganizationStatus,
     Project,
-    ProjectStatus,
     Team,
     TeamStatus,
 )
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import RpcOrganizationAuthConfig, auth_service
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
@@ -191,6 +193,25 @@ class OrganizationSerializerResponse(TypedDict):
     features: Any  # TODO
     links: _Links
     hasAuthProvider: bool
+
+
+class ControlSiloOrganizationSerializerResponse(TypedDict):
+    # The control silo will not, cannot, should not contain most organization data.
+    # Therefore, we need a specialized, limited via of that data.
+    id: str
+    slug: str
+    name: str
+
+
+class ControlSiloOrganizationSerializer(Serializer):  # type: ignore
+    def serialize(
+        self, obj: RpcOrganizationSummary, attrs: Mapping[str, Any], user: User
+    ) -> ControlSiloOrganizationSerializerResponse:
+        return dict(
+            id=str(obj.id),
+            slug=obj.slug,
+            name=obj.name,
+        )
 
 
 @register(Organization)
@@ -414,6 +435,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     pendingAccessRequests: int
     onboardingTasks: OnboardingTasksSerializerResponse
     codecovAccess: bool
+    aiSuggestedSolution: bool
+    isDynamicallySampled: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -515,6 +538,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
                 "codecovAccess": bool(obj.flags.codecov_access),
+                "aiSuggestedSolution": bool(
+                    obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
+                ),
             }
         )
 
@@ -530,6 +556,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             team__organization=obj
         ).count()
         context["onboardingTasks"] = serialize(tasks_to_serialize, user)
+        sample_rate = quotas.get_blended_sample_rate(organization_id=obj.id)
+        context["isDynamicallySampled"] = sample_rate is not None and sample_rate < 1.0
+
         return context
 
 
@@ -548,9 +577,9 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
     def _project_list(self, organization: Organization, access: Access) -> list[Project]:
         project_list = list(
-            Project.objects.filter(
-                organization=organization, status=ProjectStatus.VISIBLE
-            ).order_by("slug")
+            Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).order_by(
+                "slug"
+            )
         )
 
         for project in project_list:
@@ -560,7 +589,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
     def _team_list(self, organization: Organization, access: Access) -> list[Team]:
         team_list = list(
-            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE).order_by(
+            Team.objects.filter(organization=organization, status=TeamStatus.ACTIVE).order_by(
                 "slug"
             )
         )

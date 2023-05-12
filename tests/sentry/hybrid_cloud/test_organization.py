@@ -1,4 +1,3 @@
-import dataclasses
 import itertools
 from typing import Any, Callable, List, Optional, Sequence, Tuple
 
@@ -21,7 +20,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcTeamMember,
     organization_service,
 )
-from sentry.services.hybrid_cloud.organization.impl import unescape_flag_name
+from sentry.services.hybrid_cloud.organization.serial import unescape_flag_name
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import use_real_service
 from sentry.testutils.silo import all_silo_test
@@ -134,7 +133,7 @@ def assert_organization_member_equals(
             OrganizationMemberTeam.objects.filter(
                 organizationmember_id=orm_organization_member.id,
                 is_active=True,
-                team__status=TeamStatus.VISIBLE,
+                team__status=TeamStatus.ACTIVE,
             )
         ),
         organization_member.member_teams,
@@ -147,9 +146,9 @@ def assert_organization_member_equals(
         )
     }
 
-    for field in dataclasses.fields(organization_member.flags):
-        assert getattr(organization_member.flags, field.name) == getattr(
-            orm_organization_member.flags, unescape_flag_name(field.name)
+    for field_name in organization_member.flags.get_field_names():
+        assert getattr(organization_member.flags, field_name) == getattr(
+            orm_organization_member.flags, unescape_flag_name(field_name)
         )
 
 
@@ -158,9 +157,9 @@ def assert_orgs_equal(orm_org: Organization, org: RpcOrganization) -> None:
     assert org.name == orm_org.name
     assert org.slug == orm_org.slug
 
-    for field in dataclasses.fields(org.flags):
-        orm_flag = getattr(orm_org.flags, field.name)
-        org_flag = getattr(org.flags, field.name)
+    for field_name in org.flags.get_field_names():
+        orm_flag = getattr(orm_org.flags, field_name)
+        org_flag = getattr(org.flags, field_name)
         assert orm_flag == org_flag
 
     assert_for_list(

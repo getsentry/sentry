@@ -8,7 +8,7 @@ import pytest
 from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, SessionMRI, TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import (
     SessionMetricKey,
@@ -23,12 +23,12 @@ from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
 
 
-def indexer_record(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
+    return indexer.record(use_case_id, org_id, string)
 
 
-perf_indexer_record = partial(indexer_record, UseCaseKey.PERFORMANCE)
-rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
+perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
+rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 pytestmark = [pytest.mark.sentry_metrics]
 
@@ -441,6 +441,29 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             useCase="performance",
         )
         assert response.status_code == 200
+
+    def test_query_with_wildcard(self):
+        rh_indexer_record(self.organization.id, "session.crash_free_user_rate")
+        self.build_and_store_session(
+            project_id=self.project.id,
+        )
+        response = self.get_response(
+            self.organization.slug,
+            field="session.crash_free_user_rate",
+            groupBy="release",
+            environment="Release",
+            query='!release:"0.99.0 (*)"',
+            statsPeriod="14d",
+            interval="1h",
+            includeTotals="1",
+            includeSeries="0",
+        )
+
+        assert response.status_code == 400
+        assert (
+            response.data["detail"]
+            == "Failed to parse query: Release Health Queries don't support wildcards"
+        )
 
     def test_pagination_offset_without_orderby(self):
         """

@@ -17,7 +17,7 @@ from django.utils.http import is_safe_url
 from sentry import options
 from sentry.models import Organization, User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
@@ -30,7 +30,7 @@ MFA_SESSION_KEY = "mfa"
 
 def _sso_expiry_from_env(seconds: str | None) -> timedelta:
     if seconds is None:
-        return timedelta(hours=20)
+        return timedelta(days=7)
     return timedelta(seconds=int(seconds))
 
 
@@ -251,7 +251,9 @@ def find_users(
     Return a list of users that match a username
     and falling back to email
     """
-    return user_service.get_by_username(username, with_valid_password, is_active)
+    return user_service.get_by_username(
+        username=username, with_valid_password=with_valid_password, is_active=is_active
+    )
 
 
 def login(

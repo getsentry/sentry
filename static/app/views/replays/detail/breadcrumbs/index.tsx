@@ -8,13 +8,17 @@ import {
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import type {Crumb} from 'sentry/types/breadcrumbs';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
+
+import useVirtualizedInspector from '../useVirtualizedInspector';
 
 type Props = {
   breadcrumbs: undefined | Crumb[];
@@ -29,17 +33,61 @@ const cellMeasurer = {
 };
 
 function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
-  const items = useMemo(
+  const {currentTime, currentHoverTime} = useReplayContext();
+
+  const listRef = useRef<ReactVirtualizedList>(null);
+  // Keep a reference of object paths that are expanded (via <ObjectInspector>)
+  // by log row, so they they can be restored as the Console pane is scrolling.
+  // Due to virtualization, components can be unmounted as the user scrolls, so
+  // state needs to be remembered.
+  //
+  // Note that this is intentionally not in state because we do not want to
+  // re-render when items are expanded/collapsed, though it may work in state as well.
+  const expandPathsRef = useRef(new Map<number, Set<string>>());
+
+  const itemLookup = useMemo(
     () =>
-      (breadcrumbs || []).filter(crumb => !['console'].includes(crumb.category || '')),
+      breadcrumbs &&
+      breadcrumbs
+        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .sort(([a], [b]) => a - b),
     [breadcrumbs]
   );
 
-  const listRef = useRef<ReactVirtualizedList>(null);
+  const current = useMemo(
+    () =>
+      breadcrumbs
+        ? getPrevReplayEvent({
+            itemLookup,
+            items: breadcrumbs,
+            targetTimestampMs: startTimestampMs + currentTime,
+          })
+        : undefined,
+    [itemLookup, breadcrumbs, currentTime, startTimestampMs]
+  );
+
+  const hovered = useMemo(
+    () =>
+      currentHoverTime && breadcrumbs
+        ? getPrevReplayEvent({
+            itemLookup,
+            items: breadcrumbs,
+            targetTimestampMs: startTimestampMs + currentHoverTime,
+          })
+        : undefined,
+    [itemLookup, breadcrumbs, currentHoverTime, startTimestampMs]
+  );
+
+  const deps = useMemo(() => [breadcrumbs], [breadcrumbs]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
-    deps: [items],
+    deps,
+  });
+  const {handleDimensionChange} = useVirtualizedInspector({
+    cache,
+    listRef,
+    expandPathsRef,
   });
 
   useScrollToCurrentItem({
@@ -49,7 +97,7 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
   });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
-    const item = items[index];
+    const item = (breadcrumbs || [])[index];
 
     return (
       <CellMeasurer
@@ -60,10 +108,14 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <BreadcrumbRow
+          index={index}
+          isCurrent={current?.id === item.id}
+          isHovered={hovered?.id === item.id}
           breadcrumb={item}
-          breadcrumbs={items}
           startTimestampMs={startTimestampMs}
           style={style}
+          expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
+          onDimensionChange={handleDimensionChange}
         />
       </CellMeasurer>
     );
@@ -85,7 +137,7 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
                 )}
                 overscanRowCount={5}
                 ref={listRef}
-                rowCount={items.length}
+                rowCount={breadcrumbs.length}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
                 width={width}

@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
@@ -10,13 +10,15 @@ from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, Int
 from .utils import build_user_choice
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class JiraServerSearchEndpoint(IntegrationEndpoint):
     provider = "jira_server"
 
     def _get_integration(self, organization, integration_id):
         return Integration.objects.get(
-            organizations=organization, id=integration_id, provider=self.provider
+            organizationintegration__organization_id=organization.id,
+            id=integration_id,
+            provider=self.provider,
         )
 
     def get(self, request: Request, organization, integration_id) -> Response:

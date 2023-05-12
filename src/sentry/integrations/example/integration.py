@@ -13,11 +13,12 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins import IssueSyncMixin, RepositoryMixin, ResolveSyncAction
 from sentry.mediators.plugins import Migrator
 from sentry.models import ExternalIssue, Repository
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
 
 
@@ -60,7 +61,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
+class ExampleIntegration(IntegrationInstallation, IssueSyncMixin, RepositoryMixin):
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_outbound"
     inbound_status_key = "sync_status_inbound"
@@ -128,7 +129,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
             "description": "This is a test external issue description",
         }
 
-    def get_repositories(self):
+    def get_repositories(self, query=None):
         return [{"name": "repo", "identifier": "user/repo"}]
 
     def get_unmigratable_repositories(self):

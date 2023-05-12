@@ -571,7 +571,7 @@ export const SEMVER_TAGS = {
  * Some tag keys should never be formatted as `tag[...]`
  * when used as a filter because they are predefined.
  */
-const EXCLUDED_TAG_KEYS = new Set(['release', 'user']);
+const EXCLUDED_TAG_KEYS = new Set(['release', 'user', 'device.class']);
 
 export function formatTagKey(key: string): string {
   // Some tags may be normalized from context, but not all of them are.

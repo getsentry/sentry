@@ -7,18 +7,17 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Clipboard from 'sentry/components/clipboard';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Integration, Organization, Project} from 'sentry/types';
-import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {useQuery} from 'sentry/utils/queryClient';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type DerivedCodeMapping = {
@@ -52,7 +51,7 @@ function StacktraceLinkModal({
   const [error, setError] = useState<null | string>(null);
   const [sourceCodeInput, setSourceCodeInput] = useState('');
 
-  const {data: sugestedCodeMappings} = useQuery<DerivedCodeMapping[]>(
+  const {data: sugestedCodeMappings} = useApiQuery<DerivedCodeMapping[]>(
     [
       `/organizations/${organization.slug}/derive-code-mappings/`,
       {
@@ -93,7 +92,7 @@ function StacktraceLinkModal({
     : t('source code');
 
   const onManualSetup = () => {
-    trackIntegrationAnalytics('integrations.stacktrace_manual_option_clicked', {
+    trackAnalytics('integrations.stacktrace_manual_option_clicked', {
       view: 'stacktrace_issue_details',
       setup_type: 'manual',
       provider:
@@ -105,9 +104,10 @@ function StacktraceLinkModal({
   };
 
   const handleSubmit = async () => {
-    trackIntegrationAnalytics('integrations.stacktrace_submit_config', {
+    trackAnalytics('integrations.stacktrace_submit_config', {
       setup_type: 'automatic',
       view: 'stacktrace_issue_details',
+      provider: sourceCodeProviders[0]?.provider.name ?? 'unknown',
       organization,
     });
     const parsingEndpoint = `/projects/${organization.slug}/${project.slug}/repo-path-parsing/`;
@@ -131,7 +131,7 @@ function StacktraceLinkModal({
       });
 
       addSuccessMessage(t('Stack trace configuration saved.'));
-      trackIntegrationAnalytics('integrations.stacktrace_complete_setup', {
+      trackAnalytics('integrations.stacktrace_complete_setup', {
         setup_type: 'automatic',
         provider: configData.config?.provider.key,
         view: 'stacktrace_issue_details',
@@ -225,11 +225,12 @@ function StacktraceLinkModal({
                       return (
                         <div key={i} style={{display: 'flex', alignItems: 'center'}}>
                           <SuggestionOverflow>{suggestion}</SuggestionOverflow>
-                          <Clipboard value={suggestion}>
-                            <Button type="button" borderless size="xs">
-                              <IconCopy size="xs" />
-                            </Button>
-                          </Clipboard>
+                          <CopyToClipboardButton
+                            borderless
+                            text={suggestion}
+                            size="xs"
+                            iconSize="xs"
+                          />
                         </div>
                       );
                     })}

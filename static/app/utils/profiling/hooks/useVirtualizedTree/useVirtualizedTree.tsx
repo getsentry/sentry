@@ -29,6 +29,7 @@ export interface UseVirtualizedTreeProps<T extends TreeLike> {
     itemHandlers: {
       handleExpandTreeNode: (
         node: VirtualizedTreeNode<T>,
+        expand: boolean,
         opts?: {expandChildren: boolean}
       ) => void;
       handleRowClick: (evt: React.MouseEvent<HTMLElement>) => void;
@@ -347,7 +348,7 @@ export function useVirtualizedTree<T extends TreeLike>(
   // We copy the properties of the old tree by creating a new instance of VirtualizedTree
   // and passing in the roots and its flattened representation so that no extra work is done.
   const handleExpandTreeNode = useCallback(
-    (node: VirtualizedTreeNode<T>, opts?: {expandChildren: boolean}) => {
+    (node: VirtualizedTreeNode<T>, expand: boolean, opts?: {expandChildren: boolean}) => {
       // When we expand nodes, tree.expand will mutate the underlying tree which then
       // gets copied to the new tree instance. To get the right index, we need to read
       // it before any mutations are made
@@ -356,7 +357,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           null
         : null;
 
-      latestTreeRef.current.expandNode(node, !node.expanded, opts);
+      latestTreeRef.current.expandNode(node, expand, opts);
       const newTree = new VirtualizedTree(
         latestTreeRef.current.roots,
         latestTreeRef.current.flattened
@@ -422,8 +423,20 @@ export function useVirtualizedTree<T extends TreeLike>(
       if (event.key === 'Enter') {
         handleExpandTreeNode(
           latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex],
+          !latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex]
+            .expanded,
           {
-            expandChildren: true,
+            expandChildren: event.metaKey || event.ctrlKey,
+          }
+        );
+      }
+
+      if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+        handleExpandTreeNode(
+          latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex],
+          event.key === 'ArrowLeft' ? false : true,
+          {
+            expandChildren: event.metaKey || event.ctrlKey,
           }
         );
       }

@@ -58,8 +58,7 @@ import {
   IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
 } from 'sentry/types/alerts';
-import {metric} from 'sentry/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -190,6 +189,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   componentWillUnmount() {
     GroupStore.reset();
     window.clearTimeout(this.pollingTimeout);
+    this.checkIncompatibleRuleDebounced.cancel();
+    this.fetchPreviewDebounced.cancel();
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
@@ -202,7 +203,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         incompatibleFilters: null,
       });
       this.fetchPreviewDebounced();
-      this.checkIncompatibleRule();
+      this.checkIncompatibleRuleDebounced();
     }
     if (prevState.project.id === this.state.project.id) {
       return;
@@ -437,7 +438,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }, 1000);
 
   // As more incompatible combinations are added, we will need a more generic way to check for incompatibility.
-  checkIncompatibleRule = debounce(() => {
+  checkIncompatibleRuleDebounced = debounce(() => {
     if (this.props.organization.features.includes('issue-alert-incompatible-rules')) {
       const {conditionIndices, filterIndices} = findIncompatibleRules(this.state.rule);
       if (
@@ -445,7 +446,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         (conditionIndices !== null || filterIndices !== null)
       ) {
         this.trackIncompatibleAnalytics = true;
-        trackAdvancedAnalyticsEvent('edit_alert_rule.incompatible_rule', {
+        trackAnalytics('edit_alert_rule.incompatible_rule', {
           organization: this.props.organization,
         });
       }
@@ -506,14 +507,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       })
       .then(() => {
         addSuccessMessage(tn('Notification sent!', 'Notifications sent!', actions));
-        trackAdvancedAnalyticsEvent('edit_alert_rule.notification_test', {
+        trackAnalytics('edit_alert_rule.notification_test', {
           organization,
           success: true,
         });
       })
       .catch(() => {
         addErrorMessage(tn('Notification failed', 'Notifications failed', actions));
-        trackAdvancedAnalyticsEvent('edit_alert_rule.notification_test', {
+        trackAnalytics('edit_alert_rule.notification_test', {
           organization,
           success: false,
         });
@@ -754,7 +755,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     const {organization} = this.props;
     const {project} = this.state;
-    trackAdvancedAnalyticsEvent('edit_alert_rule.add_row', {
+    trackAnalytics('edit_alert_rule.add_row', {
       organization,
       project_id: project.id,
       type,
@@ -1499,11 +1500,14 @@ export const findIncompatibleRules = (
         regression = i;
       } else if (id.endsWith('ReappearedEventCondition')) {
         reappeared = i;
-      } else if (id.endsWith('EventFrequencyCondition') && conditions[i].value >= 1) {
+      } else if (
+        id.endsWith('EventFrequencyCondition') &&
+        (conditions[i].value as number) >= 1
+      ) {
         eventFrequency = i;
       } else if (
         id.endsWith('EventUniqueUserFrequencyCondition') &&
-        conditions[i].value >= 1
+        (conditions[i].value as number) >= 1
       ) {
         userFrequency = i;
       }
@@ -1530,14 +1534,14 @@ export const findIncompatibleRules = (
     for (let i = 0; i < filters.length; i++) {
       const filter = filters[i];
       const id = filter.id;
-      if (id.endsWith('IssueOccurrencesFilter')) {
+      if (id.endsWith('IssueOccurrencesFilter') && filter) {
         if (
-          (rule.filterMatch === 'all' && filter.value > 1) ||
-          (rule.filterMatch === 'none' && filter.value <= 1)
+          (rule.filterMatch === 'all' && (filter.value as number) > 1) ||
+          (rule.filterMatch === 'none' && (filter.value as number) <= 1)
         ) {
           return {conditionIndices: [firstSeen], filterIndices: [i]};
         }
-        if (rule.filterMatch === 'any' && filter.value > 1) {
+        if (rule.filterMatch === 'any' && (filter.value as number) > 1) {
           incompatibleFilters += 1;
         }
       } else if (id.endsWith('AgeComparisonFilter')) {
@@ -1548,7 +1552,7 @@ export const findIncompatibleRules = (
             }
             incompatibleFilters += 1;
           }
-        } else if (filter.comparison_type === 'newer' && filter.value > 0) {
+        } else if (filter.comparison_type === 'newer' && (filter.value as number) > 0) {
           return {conditionIndices: [firstSeen], filterIndices: [i]};
         }
       }

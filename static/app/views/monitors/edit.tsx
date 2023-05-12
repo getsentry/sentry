@@ -6,8 +6,9 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -16,6 +17,7 @@ import {Monitor} from './types';
 
 export default function EditMonitor() {
   const {monitorSlug} = useParams();
+  const {selection} = usePageFilters();
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
@@ -26,14 +28,17 @@ export default function EditMonitor() {
     isError,
     data: monitor,
     refetch,
-  } = useQuery<Monitor>([queryKeyUrl], {
+  } = useApiQuery<Monitor>([queryKeyUrl], {
     staleTime: 0,
   });
 
   function onSubmitSuccess(data: Monitor) {
-    queryClient.setQueryData([queryKeyUrl], data);
+    setApiQueryData(queryClient, [queryKeyUrl], data);
     browserHistory.push(
-      normalizeUrl(`/organizations/${organization.slug}/crons/${data.slug}/`)
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/crons/${data.slug}/`,
+        query: {environment: selection.environments},
+      })
     );
   }
 

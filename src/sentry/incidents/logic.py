@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from copy import deepcopy
 from dataclasses import replace
@@ -34,6 +36,7 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models import Integration, PagerDutyService, Project
+from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -1081,25 +1084,24 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
 
 
 def create_alert_rule_trigger_action(
-    trigger,
-    type,
-    target_type,
-    target_identifier=None,
-    integration=None,
-    sentry_app=None,
-    use_async_lookup=False,
+    trigger: AlertRuleTrigger,
+    type: ActionService,
+    target_type: ActionTarget,
+    target_identifier: str | None = None,
+    integration_id: int | None = None,
+    sentry_app_id: int | None = None,
+    use_async_lookup: bool = False,
     input_channel_id=None,
     sentry_app_config=None,
-):
+) -> AlertRuleTriggerAction:
     """
     Creates an AlertRuleTriggerAction
     :param trigger: The trigger to create the action on
     :param type: Which sort of action to take
     :param target_type: Which type of target to send to
     :param target_identifier: (Optional) The identifier of the target
-    :param target_display: (Optional) Human readable name for the target
-    :param integration: (Optional) The Integration related to this action.
-    :param sentry_app: (Optional) The Sentry App related to this action.
+    :param integration_id: (Optional) The Integration related to this action.
+    :param sentry_app_id: (Optional) The Sentry App related to this action.
     :param use_async_lookup: (Optional) Longer lookup for the Slack channel async job
     :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return: The created action
@@ -1116,13 +1118,13 @@ def create_alert_rule_trigger_action(
             type.value,
             target_identifier,
             trigger.alert_rule.organization,
-            integration.id,
+            integration_id,
             use_async_lookup=use_async_lookup,
             input_channel_id=input_channel_id,
         )
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
-            trigger.alert_rule.organization, sentry_app.id
+            trigger.alert_rule.organization, sentry_app_id
         )
 
     return AlertRuleTriggerAction.objects.create(
@@ -1131,31 +1133,31 @@ def create_alert_rule_trigger_action(
         target_type=target_type.value,
         target_identifier=target_identifier,
         target_display=target_display,
-        integration=integration,
-        sentry_app=sentry_app,
+        integration_id=integration_id,
+        sentry_app_id=sentry_app_id,
         sentry_app_config=sentry_app_config,
     )
 
 
 def update_alert_rule_trigger_action(
-    trigger_action,
-    type=None,
-    target_type=None,
-    target_identifier=None,
-    integration=None,
-    sentry_app=None,
-    use_async_lookup=False,
+    trigger_action: AlertRuleTriggerAction,
+    type: ActionService | None = None,
+    target_type: ActionTarget | None = None,
+    target_identifier: str = None,
+    integration_id: int | None = None,
+    sentry_app_id: int | None = None,
+    use_async_lookup: bool = False,
     input_channel_id=None,
     sentry_app_config=None,
-):
+) -> AlertRuleTriggerAction:
     """
     Updates values on an AlertRuleTriggerAction
     :param trigger_action: The trigger action to update
     :param type: Which sort of action to take
     :param target_type: Which type of target to send to
     :param target_identifier: The identifier of the target
-    :param integration: (Optional) The Integration related to this action.
-    :param sentry_app: (Optional) The SentryApp related to this action.
+    :param integration_id: (Optional) The ID of the Integration related to this action.
+    :param sentry_app_id: (Optional) The ID of the SentryApp related to this action.
     :param use_async_lookup: (Optional) Longer lookup for the Slack channel async job
     :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return:
@@ -1165,35 +1167,35 @@ def update_alert_rule_trigger_action(
         updated_fields["type"] = type.value
     if target_type is not None:
         updated_fields["target_type"] = target_type.value
-    if integration is not None:
-        updated_fields["integration"] = integration
-    if sentry_app is not None:
-        updated_fields["sentry_app"] = sentry_app
+    if integration_id is not None:
+        updated_fields["integration_id"] = integration_id
+    if sentry_app_id is not None:
+        updated_fields["sentry_app_id"] = sentry_app_id
     if sentry_app_config is not None:
         updated_fields["sentry_app_config"] = sentry_app_config
     if target_identifier is not None:
         type = updated_fields.get("type", trigger_action.type)
 
         if type in AlertRuleTriggerAction.INTEGRATION_TYPES:
-            integration = updated_fields.get("integration", trigger_action.integration)
+            integration_id = updated_fields.get("integration_id", trigger_action.integration_id)
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
             target_identifier, target_display = get_target_identifier_display_for_integration(
                 type,
                 target_identifier,
                 organization,
-                integration.id,
+                integration_id,
                 use_async_lookup=use_async_lookup,
                 input_channel_id=input_channel_id,
             )
             updated_fields["target_display"] = target_display
 
         elif type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
-            sentry_app = updated_fields.get("sentry_app", trigger_action.sentry_app)
+            sentry_app_id = updated_fields.get("sentry_app_id", trigger_action.sentry_app_id)
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
             target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
-                organization, sentry_app.id
+                organization, sentry_app_id
             )
             updated_fields["target_display"] = target_display
 
@@ -1338,10 +1340,10 @@ def get_available_action_integrations_for_org(organization):
     )
 
 
-def get_pagerduty_services(organization, integration_id):
+def get_pagerduty_services(organization_id, integration_id):
     return PagerDutyService.objects.filter(
-        organization_integration__organization=organization,
-        organization_integration__integration_id=integration_id,
+        organization_id=organization_id,
+        integration_id=integration_id,
     ).values("id", "service_name")
 
 
@@ -1439,7 +1441,7 @@ def get_slack_channel_ids(organization, user, data):
                 action["type"].value,
                 action["target_identifier"],
                 organization,
-                action["integration"].id,
+                action["integration_id"],
                 use_async_lookup=True,
                 input_channel_id=None,
             )

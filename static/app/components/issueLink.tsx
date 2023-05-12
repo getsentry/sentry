@@ -22,7 +22,7 @@ type Props = {
   to: string;
 };
 
-const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
+function IssueLink({children, orgId, issue, to, card = true}: Props) {
   if (!card) {
     return <Link to={to}>{children}</Link>;
   }
@@ -96,7 +96,7 @@ const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
       <Link to={to}>{children}</Link>
     </Hovercard>
   );
-};
+}
 
 export default IssueLink;
 

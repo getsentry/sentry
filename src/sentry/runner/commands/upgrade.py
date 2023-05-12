@@ -43,10 +43,9 @@ def _upgrade(interactive, traceback, verbosity, repair, with_nodestore):
     _check_history()
 
     for db_conn in settings.DATABASES.keys():
-        # Always run migrations for the default connection.
-        # Also run migrations on connections that have migrations explicitly enabled.
+        # Run migrations on all non-read replica connections.
         # This is used for sentry.io as our production database runs on multiple hosts.
-        if db_conn == "default" or settings.DATABASES[db_conn].get("RUN_MIGRATIONS", False):
+        if not settings.DATABASES[db_conn].get("REPLICA_OF", False):
             click.echo(f"Running migrations for {db_conn}")
             dj_call_command(
                 "migrate",

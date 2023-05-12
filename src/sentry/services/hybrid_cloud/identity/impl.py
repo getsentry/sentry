@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import Any, List
 
+from sentry.models import AuthIdentity
 from sentry.services.hybrid_cloud.identity import IdentityService, RpcIdentity, RpcIdentityProvider
+from sentry.services.hybrid_cloud.identity.serial import (
+    serialize_identity,
+    serialize_identity_provider,
+)
 
 
 class DatabaseBackedIdentityService(IdentityService):
@@ -27,7 +32,7 @@ class DatabaseBackedIdentityService(IdentityService):
 
         idp = IdentityProvider.objects.filter(**idp_kwargs).first()
 
-        return self._serialize_identity_provider(idp) if idp else None
+        return serialize_identity_provider(idp) if idp else None
 
     def get_identity(
         self,
@@ -43,7 +48,7 @@ class DatabaseBackedIdentityService(IdentityService):
 
         identity = Identity.objects.filter(**identity_kwargs, idp_id=provider_id).first()
 
-        return self._serialize_identity(identity) if identity else None
+        return serialize_identity(identity) if identity else None
 
     def get_user_identities_by_provider_type(
         self,
@@ -64,4 +69,15 @@ class DatabaseBackedIdentityService(IdentityService):
             # We need to exclude rows where this is NOT updated to the user_id later.
             identities = identities.exclude(external_id=F("idp__external_id"))
 
-        return [self._serialize_identity(identity) for identity in identities]
+        return [serialize_identity(identity) for identity in identities]
+
+    def delete_identities(self, user_id: int, organization_id: int) -> None:
+        """
+        Deletes the set of identities associated with a user and organization context.
+        :param user_id:
+        :param organization_id:
+        :return:
+        """
+        AuthIdentity.objects.filter(
+            user_id=user_id, auth_provider__organization_id=organization_id
+        ).delete()

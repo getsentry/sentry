@@ -30,8 +30,18 @@ class Feature:
         self.name = name
 
     @abc.abstractmethod
-    def get_subject(self) -> User | Organization:
+    def get_subject(self) -> User | Organization | None:
         raise NotImplementedError
+
+
+class SystemFeature(Feature):
+    """
+    System feature flags don't have user/project/organization and are
+    based on how the application is configured instead.
+    """
+
+    def get_subject(self) -> None:
+        return None
 
 
 class OrganizationFeature(Feature):

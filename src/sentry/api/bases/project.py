@@ -1,11 +1,17 @@
+from __future__ import annotations
+
+from typing import Any, Mapping
+
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import Scope
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ProjectMoved, ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import InvalidParams, get_date_range_from_params
-from sentry.models import Project, ProjectRedirect, ProjectStatus
+from sentry.constants import ObjectStatus
+from sentry.models import Project, ProjectRedirect
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 from .organization import OrganizationPermission
@@ -24,10 +30,11 @@ class ProjectPermission(OrganizationPermission):
     }
 
     def has_object_permission(self, request: Request, view, project):
-        result = super().has_object_permission(request, view, project.organization)
+        has_org_scope = super().has_object_permission(request, view, project.organization)
 
-        if not result:
-            return result
+        # If allow_joinleave is False, some org-roles will not have project:read for all projects
+        if has_org_scope and request.access.has_project_access(project):
+            return has_org_scope
 
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return request.access.has_any_project_scope(project, allowed_scopes)
@@ -131,7 +138,7 @@ class ProjectEndpoint(Endpoint):
             except ProjectRedirect.DoesNotExist:
                 raise ResourceDoesNotExist
 
-        if project.status != ProjectStatus.VISIBLE:
+        if project.status != ObjectStatus.ACTIVE:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
@@ -162,7 +169,13 @@ class ProjectEndpoint(Endpoint):
 
         return params
 
-    def handle_exception(self, request: Request, exc):
+    def handle_exception(
+        self,
+        request: Request,
+        exc: Exception,
+        handler_context: Mapping[str, Any] | None = None,
+        scope: Scope | None = None,
+    ) -> Response:
         if isinstance(exc, ProjectMoved):
             response = Response(
                 {"slug": exc.detail["detail"]["extra"]["slug"], "detail": exc.detail["detail"]},
@@ -170,4 +183,4 @@ class ProjectEndpoint(Endpoint):
             )
             response["Location"] = exc.detail["detail"]["extra"]["url"]
             return response
-        return super().handle_exception(request, exc)
+        return super().handle_exception(request, exc, handler_context, scope)

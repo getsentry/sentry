@@ -1,9 +1,8 @@
 import {Location} from 'history';
 
 import {Button, ButtonProps} from 'sentry/components/button';
-import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -19,7 +18,7 @@ interface Props {
 function TransactionToProfileButton({
   projectSlug,
   query,
-  children = t('Go to Profile'),
+  children = t('View Profile'),
   size = 'sm',
 }: Props) {
   const profileId = useTransactionProfileId();
@@ -30,7 +29,7 @@ function TransactionToProfileButton({
   }
 
   function handleGoToProfile() {
-    trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+    trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
       source: 'transaction_details',
     });
@@ -44,12 +43,7 @@ function TransactionToProfileButton({
   });
 
   return (
-    <Button
-      size={size}
-      onClick={handleGoToProfile}
-      to={target}
-      icon={<IconProfiling size="xs" />}
-    >
+    <Button size={size} onClick={handleGoToProfile} to={target}>
       {children}
     </Button>
   );

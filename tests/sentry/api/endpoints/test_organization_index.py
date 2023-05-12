@@ -5,6 +5,7 @@ from sentry.auth.authenticators import TotpInterface
 from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
@@ -95,7 +96,7 @@ class OrganizationsListTest(OrganizationIndexTest):
 
 
 @region_silo_test
-class OrganizationsCreateTest(OrganizationIndexTest):
+class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
     method = "post"
 
     def test_missing_params(self):
@@ -212,6 +213,16 @@ class OrganizationsCreateTest(OrganizationIndexTest):
     def test_slug_already_taken(self):
         OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
         self.get_error_response(slug="taken", name="TaKeN", status_code=409)
+
+    def test_add_organization_member(self):
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(name="org name")
+
+        org_member = OrganizationMember.objects.get(
+            organization_id=response.data["id"], user=self.user
+        )
+        self.assert_org_member_mapping(org_member=org_member)
 
 
 @region_silo_test

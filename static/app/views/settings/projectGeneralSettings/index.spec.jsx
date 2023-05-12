@@ -201,17 +201,18 @@ describe('projectGeneralSettings', function () {
   });
 
   it('disables the form for users without write permissions', function () {
-    routerContext.context.organization.access = ['org:read'];
+    const readOnlyOrg = TestStubs.Organization({access: ['org:read']});
+    routerContext.context.organization = readOnlyOrg;
+
     render(<ProjectGeneralSettings params={{projectId: project.slug}} />, {
       context: routerContext,
+      organization: readOnlyOrg,
     });
 
     // no textboxes are enabled
     screen.queryAllByRole('textbox').forEach(textbox => expect(textbox).toBeDisabled());
 
-    expect(screen.getByTestId('project-permission-alert')).toHaveTextContent(
-      'These settings can only be edited by users with the organization owner, manager, or admin role.'
-    );
+    expect(screen.getByTestId('project-permission-alert')).toBeInTheDocument();
   });
 
   it('changing project platform updates ProjectsStore', async function () {

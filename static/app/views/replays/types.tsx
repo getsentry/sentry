@@ -48,9 +48,11 @@ export type ReplayRecord = {
    */
   id: string;
   /**
-   * The longest transaction associated with the replay measured in milliseconds.
+   * Whether the replay was deleted.
+   * When deleted the rrweb data & attachments are removed from blob storage,
+   * but the record of the replay is not removed.
    */
-  longest_transaction: number;
+  is_archived: boolean;
   os: {
     name: null | string;
     version: null | string;
@@ -105,15 +107,18 @@ export type ReplayListLocationQuery = {
 export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
+  | 'browser'
   | 'count_errors'
   | 'duration'
   | 'finished_at'
   | 'id'
+  | 'is_archived'
+  | 'os'
   | 'project_id'
   | 'started_at'
+  | 'urls'
   | 'user'
-> &
-  Partial<Pick<ReplayRecord, 'browser' | 'count_urls' | 'os' | 'urls'>>;
+>;
 
 // Sync with ReplayListRecord above
 export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
@@ -121,10 +126,10 @@ export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
   'browser.name',
   'browser.version',
   'count_errors',
-  'count_urls',
   'duration',
   'finished_at',
   'id',
+  'is_archived',
   'os.name',
   'os.version',
   'project_id',

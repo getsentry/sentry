@@ -15,11 +15,10 @@ import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
-import {Resources} from 'sentry/components/events/interfaces/performance/resources';
+import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
-import {EventSdkUpdates} from 'sentry/components/events/sdkUpdates';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -27,6 +26,7 @@ import {Event, Group, IssueCategory, Project} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
 
 type GroupEventDetailsContentProps = {
   group: Group;
@@ -41,7 +41,7 @@ type GroupEventEntryProps = {
   project: Project;
 };
 
-const GroupEventEntry = ({event, entryType, group, project}: GroupEventEntryProps) => {
+function GroupEventEntry({event, entryType, group, project}: GroupEventEntryProps) {
   const organization = useOrganization();
   const matchingEntry = event.entries.find(entry => entry.type === entryType);
 
@@ -57,16 +57,19 @@ const GroupEventEntry = ({event, entryType, group, project}: GroupEventEntryProp
       {...{organization, event}}
     />
   );
-};
+}
 
-const GroupEventDetailsContent = ({
+function GroupEventDetailsContent({
   group,
   event,
   project,
-}: GroupEventDetailsContentProps) => {
+}: GroupEventDetailsContentProps) {
   const organization = useOrganization();
   const location = useLocation();
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
+  const mechanism = event?.tags?.find(({key}) => key === 'mechanism')?.value;
+  const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
+  const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
 
   if (!event) {
     return (
@@ -107,6 +110,9 @@ const GroupEventDetailsContent = ({
       <GroupEventEntry entryType={EntryType.EXCEPTION} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.STACKTRACE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.THREADS} {...eventEntryProps} />
+      {hasAnrImprovementsFeature && isANR && (
+        <AnrRootCause event={event} organization={organization} />
+      )}
       {group.issueCategory === IssueCategory.PERFORMANCE && (
         <SpanEvidenceSection
           event={event as EventTransaction}
@@ -120,9 +126,13 @@ const GroupEventDetailsContent = ({
       <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
-      <Resources {...{event, group}} />
-      <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
+      <ResourcesAndMaybeSolutions
+        event={event}
+        projectSlug={project.slug}
+        group={group}
+      />
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
+      <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
       <EventContexts group={group} event={event} />
       <EventExtraData event={event} />
       <EventPackageData event={event} />
@@ -130,7 +140,6 @@ const GroupEventDetailsContent = ({
       <EventViewHierarchy event={event} project={project} />
       <EventAttachments event={event} projectSlug={project.slug} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
-      <EventSdkUpdates event={event} />
       {event.groupID && (
         <EventGroupingInfo
           projectSlug={project.slug}
@@ -139,6 +148,7 @@ const GroupEventDetailsContent = ({
             organization.features.includes('set-grouping-config') &&
             'groupingConfig' in event
           }
+          group={group}
         />
       )}
 
@@ -151,7 +161,7 @@ const GroupEventDetailsContent = ({
       )}
     </Fragment>
   );
-};
+}
 
 const NotFoundMessage = styled('div')`
   padding: ${space(2)} ${space(4)};

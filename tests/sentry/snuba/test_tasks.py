@@ -13,6 +13,7 @@ from sentry.incidents.logic import query_datasets_to_type
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -39,7 +40,11 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 def indexer_record(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+    return indexer.record(
+        use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
+        org_id=org_id,
+        string=string,
+    )
 
 
 perf_indexer_record = partial(indexer_record, UseCaseKey.PERFORMANCE)
@@ -556,7 +561,7 @@ class BuildSnqlQueryTest(TestCase):
             select=select,
             where=expected_conditions,
             groupby=None if use_none_clauses else [],
-            having=None if use_none_clauses else [],
+            having=[],
             orderby=None if use_none_clauses else [],
         )
         if granularity is not None:

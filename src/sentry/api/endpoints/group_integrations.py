@@ -15,8 +15,8 @@ from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.user import User
-from sentry.services.hybrid_cloud import RpcPaginationArgs
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs
 from sentry.utils.json import JSONData
 
 

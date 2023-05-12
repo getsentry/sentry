@@ -52,11 +52,11 @@ def get_provider(organization_slug):
     except Organization.DoesNotExist:
         return None
 
-    if organization.status != OrganizationStatus.VISIBLE:
+    if organization.status != OrganizationStatus.ACTIVE:
         return None
 
     try:
-        provider = AuthProvider.objects.get(organization=organization).get_provider()
+        provider = AuthProvider.objects.get(organization_id=organization.id).get_provider()
     except AuthProvider.DoesNotExist:
         return None
 
@@ -117,7 +117,7 @@ class SAML2AcceptACSView(BaseView):
             return self.redirect(reverse("sentry-login"))
 
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
             return self.redirect(reverse("sentry-login"))

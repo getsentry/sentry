@@ -25,6 +25,7 @@ Tags
 * level = info
 * runtime = CPython 3.8.9
 * runtime.name = CPython
+* sentry:release = 0.1
 * sentry:user = ip:127.0.0.1
 * transaction = /books/
 * url = http://127.0.0.1:9007/books/

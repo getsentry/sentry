@@ -42,7 +42,7 @@ function getSortOptions(sortKeys: IssueSortOptions[], hasTrendSort = false) {
   }));
 }
 
-const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
+function IssueListSortOptions({onSelect, sort, query}: Props) {
   const sortKey = sort || IssueSortOptions.DATE;
   const sortKeys = [
     ...(query === Query.FOR_REVIEW ? [IssueSortOptions.INBOX] : []),
@@ -69,6 +69,6 @@ const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
       )}
     </Feature>
   );
-};
+}
 
 export default IssueListSortOptions;

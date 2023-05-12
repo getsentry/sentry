@@ -57,52 +57,50 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
     };
 
     const forms = cloneDeep(organizationSettingsFields);
-    if (organization.features.includes('codecov-stacktrace-integration')) {
-      forms[0].fields = [
-        ...forms[0].fields,
-        {
-          name: 'codecovAccess',
-          type: 'boolean',
-          disabled: !organization.features.includes('codecov-integration'),
-          label: (
-            <PoweredByCodecov>
-              {t('Enable Code Coverage Insights')}{' '}
-              <Feature
-                hookName="feature-disabled:codecov-integration-setting"
-                renderDisabled={p => (
-                  <Hovercard
-                    body={
-                      <FeatureDisabled
-                        features={p.features}
-                        hideHelpToggle
-                        featureName={t('Codecov Coverage')}
-                      />
-                    }
-                  >
-                    <Tag role="status" icon={<IconLock isSolid />}>
-                      {t('disabled')}
-                    </Tag>
-                  </Hovercard>
-                )}
-                features={['organizations:codecov-integration']}
-              >
-                {() => null}
-              </Feature>
-            </PoweredByCodecov>
-          ),
-          formatMessageValue: (value: boolean) => {
-            const onOff = value ? t('on') : t('off');
-            return t('Codecov access was turned %s', onOff);
-          },
-          help: (
-            <PoweredByCodecov>
-              {t('powered by')} <IconCodecov /> Codecov{' '}
-              <HookCodecovSettingsLink organization={organization} />
-            </PoweredByCodecov>
-          ),
+    forms[0].fields = [
+      ...forms[0].fields,
+      {
+        name: 'codecovAccess',
+        type: 'boolean',
+        disabled: !organization.features.includes('codecov-integration'),
+        label: (
+          <PoweredByCodecov>
+            {t('Enable Code Coverage Insights')}{' '}
+            <Feature
+              hookName="feature-disabled:codecov-integration-setting"
+              renderDisabled={p => (
+                <Hovercard
+                  body={
+                    <FeatureDisabled
+                      features={p.features}
+                      hideHelpToggle
+                      featureName={t('Codecov Coverage')}
+                    />
+                  }
+                >
+                  <Tag role="status" icon={<IconLock isSolid />}>
+                    {t('disabled')}
+                  </Tag>
+                </Hovercard>
+              )}
+              features={['organizations:codecov-integration']}
+            >
+              {() => null}
+            </Feature>
+          </PoweredByCodecov>
+        ),
+        formatMessageValue: (value: boolean) => {
+          const onOff = value ? t('on') : t('off');
+          return t('Codecov access was turned %s', onOff);
         },
-      ];
-    }
+        help: (
+          <PoweredByCodecov>
+            {t('powered by')} <IconCodecov /> Codecov{' '}
+            <HookCodecovSettingsLink organization={organization} />
+          </PoweredByCodecov>
+        ),
+      },
+    ];
 
     return (
       <Form

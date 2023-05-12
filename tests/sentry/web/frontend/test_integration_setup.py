@@ -20,5 +20,5 @@ class ExampleIntegrationTest(IntegrationTestCase):
         assert integration.name == "test"
         assert integration.metadata == {}
         assert OrganizationIntegration.objects.filter(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         ).exists()

@@ -176,11 +176,11 @@ export class SampledProfile extends Profile {
       type: 'sampled',
     },
     {
-      0: new Frame({key: 0, name: 'f0'}),
-      1: new Frame({key: 1, name: 'f1'}),
+      0: new Frame({key: 0, name: 'f0', is_application: true}),
+      1: new Frame({key: 1, name: 'f1', is_application: true}),
       2: new Frame({key: 2, name: 'f2'}),
       3: new Frame({key: 3, name: 'f3'}),
-      4: new Frame({key: 4, name: 'f4'}),
+      4: new Frame({key: 4, name: 'f4', is_application: true}),
       5: new Frame({key: 5, name: 'f5'}),
     },
     {type: 'flamechart'}

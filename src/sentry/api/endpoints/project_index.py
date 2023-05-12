@@ -9,8 +9,9 @@ from sentry.api.bases.project import ProjectPermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import ProjectWithOrganizationSerializer, serialize
 from sentry.auth.superuser import is_active_superuser
+from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
-from sentry.models import Project, ProjectPlatform, ProjectStatus
+from sentry.models import Project, ProjectPlatform
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.search.utils import tokenize_query
 
@@ -33,17 +34,17 @@ class ProjectIndexEndpoint(Endpoint):
 
         status = request.GET.get("status", "active")
         if status == "active":
-            queryset = queryset.filter(status=ProjectStatus.VISIBLE)
+            queryset = queryset.filter(status=ObjectStatus.ACTIVE)
         elif status == "deleted":
-            queryset = queryset.exclude(status=ProjectStatus.VISIBLE)
+            queryset = queryset.exclude(status=ObjectStatus.ACTIVE)
         elif status:
             queryset = queryset.none()
 
         if request.auth and not request.user.is_authenticated:
             if hasattr(request.auth, "project"):
                 queryset = queryset.filter(id=request.auth.project_id)
-            elif request.auth.organization is not None:
-                queryset = queryset.filter(organization=request.auth.organization.id)
+            elif request.auth.organization_id is not None:
+                queryset = queryset.filter(organization_id=request.auth.organization_id)
             else:
                 queryset = queryset.none()
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):

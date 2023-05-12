@@ -26,7 +26,7 @@ type Props = {
   scoreList?: [string, ScoreValue][];
 };
 
-const SimilarScoreCard = ({scoreList = []}: Props) => {
+function SimilarScoreCard({scoreList = []}: Props) {
   if (scoreList.length === 0) {
     return null;
   }
@@ -64,7 +64,7 @@ const SimilarScoreCard = ({scoreList = []}: Props) => {
       )}
     </Fragment>
   );
-};
+}
 
 const Wrapper = styled('div')`
   display: flex;

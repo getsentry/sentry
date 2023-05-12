@@ -1,6 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  act,
   render,
   renderGlobalModal,
   screen,
@@ -416,71 +415,72 @@ describe('Dashboards > WidgetCard', function () {
 
   it('calls events with a limit of 20 items', async function () {
     const mock = jest.fn();
-    await act(async () => {
-      renderWithProviders(
-        <WidgetCard
-          api={api}
-          organization={organization}
-          widget={{
-            ...multipleQueryWidget,
-            displayType: DisplayType.TABLE,
-            queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
-          }}
-          selection={selection}
-          isEditing={false}
-          onDelete={mock}
-          onEdit={() => undefined}
-          onDuplicate={() => undefined}
-          renderErrorMessage={() => undefined}
-          showContextMenu
-          widgetLimitReached={false}
-          tableItemLimit={20}
-        />
-      );
-      await tick();
-    });
-    expect(eventsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          per_page: 20,
-        }),
-      })
+
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TABLE,
+          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={mock}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+        tableItemLimit={20}
+      />
     );
+
+    await waitFor(() => {
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            per_page: 20,
+          }),
+        })
+      );
+    });
   });
 
   it('calls events with a default limit of 5 items', async function () {
     const mock = jest.fn();
-    await act(async () => {
-      renderWithProviders(
-        <WidgetCard
-          api={api}
-          organization={organization}
-          widget={{
-            ...multipleQueryWidget,
-            displayType: DisplayType.TABLE,
-            queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
-          }}
-          selection={selection}
-          isEditing={false}
-          onDelete={mock}
-          onEdit={() => undefined}
-          onDuplicate={() => undefined}
-          renderErrorMessage={() => undefined}
-          showContextMenu
-          widgetLimitReached={false}
-        />
-      );
-      await tick();
-    });
-    expect(eventsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          per_page: 5,
-        }),
-      })
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TABLE,
+          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={mock}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+      />
     );
+
+    await waitFor(() => {
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            per_page: 5,
+          }),
+        })
+      );
+    });
   });
 
   it('has sticky table headers', async function () {
@@ -500,25 +500,24 @@ describe('Dashboards > WidgetCard', function () {
         },
       ],
     };
-    await act(async () => {
-      renderWithProviders(
-        <WidgetCard
-          api={api}
-          organization={organization}
-          widget={tableWidget}
-          selection={selection}
-          isEditing={false}
-          onDelete={() => undefined}
-          onEdit={() => undefined}
-          onDuplicate={() => undefined}
-          renderErrorMessage={() => undefined}
-          showContextMenu
-          widgetLimitReached={false}
-          tableItemLimit={20}
-        />
-      );
-      await tick();
-    });
+
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={tableWidget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+        tableItemLimit={20}
+      />
+    );
+
     await waitFor(() => expect(eventsMock).toHaveBeenCalled());
 
     expect(SimpleTableChart).toHaveBeenCalledWith(
@@ -620,17 +619,13 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await waitFor(() => {
-      // Badge in the widget header
-      expect(screen.getByText('Indexed')).toBeInTheDocument();
-    });
+    // Badge in the widget header
+    expect(await screen.findByText('Indexed')).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(
-        // Alert below the widget
-        screen.getByText(/we've automatically adjusted your results/i)
-      ).toBeInTheDocument();
-    });
+    expect(
+      // Alert below the widget
+      await screen.findByText(/we've automatically adjusted your results/i)
+    ).toBeInTheDocument();
   });
 
   it('renders chart using axis and tooltip formatters from custom measurement meta', async function () {

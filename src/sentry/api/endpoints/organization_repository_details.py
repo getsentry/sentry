@@ -11,6 +11,7 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Commit, Integration, Repository, ScheduledDeletion
+from sentry.services.hybrid_cloud import coerce_id_from
 
 
 class RepositorySerializer(serializers.Serializer):
@@ -51,13 +52,14 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         update_kwargs = {}
         if result.get("status"):
             if result["status"] in ("visible", "active"):
-                update_kwargs["status"] = ObjectStatus.VISIBLE
+                update_kwargs["status"] = ObjectStatus.ACTIVE
             else:
                 raise NotImplementedError
         if result.get("integrationId"):
             try:
                 integration = Integration.objects.get(
-                    id=result["integrationId"], organizations=organization
+                    id=result["integrationId"],
+                    organizationintegration__organization_id=coerce_id_from(organization),
                 )
             except Integration.DoesNotExist:
                 return Response({"detail": "Invalid integration id"}, status=400)
@@ -80,7 +82,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 repo.update(**update_kwargs)
                 if (
                     old_status == ObjectStatus.PENDING_DELETION
-                    and repo.status == ObjectStatus.VISIBLE
+                    and repo.status == ObjectStatus.ACTIVE
                 ):
                     repo.reset_pending_deletion_field_names()
                     repo.delete_pending_deletion_option()
@@ -98,7 +100,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
 
         with transaction.atomic():
             updated = Repository.objects.filter(
-                id=repo.id, status__in=[ObjectStatus.VISIBLE, ObjectStatus.DISABLED]
+                id=repo.id, status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED]
             ).update(status=ObjectStatus.PENDING_DELETION)
             if updated:
                 repo.status = ObjectStatus.PENDING_DELETION

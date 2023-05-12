@@ -41,7 +41,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMember,
     organization_service,
 )
-from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
+from sentry.services.hybrid_cloud.organization.serial import serialize_organization
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, json, metrics
@@ -228,7 +228,10 @@ class AuthIdentityHandler:
 
     def _handle_new_membership(self, auth_identity: RpcAuthIdentity) -> RpcOrganizationMember:
         user, om = auth_service.handle_new_membership(
-            self.request, self.organization, auth_identity, self.auth_provider
+            request=self.request,
+            organization=self.organization,
+            auth_identity=auth_identity,
+            auth_provider=self.auth_provider,
         )
 
         if om is not None:
@@ -734,7 +737,7 @@ class AuthHelper(Pipeline):
     def auth_handler(self, identity: Mapping[str, Any]) -> AuthIdentityHandler:
         # This is a temporary step to keep test_helper integrated
         # TODO: Move this conversion further upstream
-        rpc_org = DatabaseBackedOrganizationService.serialize_organization(self.organization)
+        rpc_org = serialize_organization(self.organization)
 
         return AuthIdentityHandler(
             self.provider_model, self.provider, rpc_org, self.request, identity
@@ -825,7 +828,7 @@ class AuthHelper(Pipeline):
         self.disable_2fa_required()
 
         self.provider_model = AuthProvider.objects.create(
-            organization=self.organization, provider=self.provider.key, config=config
+            organization_id=self.organization.id, provider=self.provider.key, config=config
         )
 
         self.auth_handler(identity).handle_attach_identity(om)

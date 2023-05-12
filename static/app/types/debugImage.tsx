@@ -101,11 +101,10 @@ interface ImageCandidateBase {
 }
 
 type InternalSource = {
-  cpuName: string;
   dateCreated: string;
-  fileType: string | null;
   filename: string;
   location: string;
+  prettyFileType: string;
   size: number;
   symbolType: SymbolType;
 };

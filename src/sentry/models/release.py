@@ -34,6 +34,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
     Activity,
+    ArtifactBundle,
     BaseManager,
     CommitFileChange,
     GroupInbox,
@@ -608,6 +609,31 @@ class Release(Model):
             # This can happen on invalid legacy releases
             return False
 
+    @staticmethod
+    def is_release_newer_or_equal(org_id, release, other_release):
+        if release is None:
+            return False
+
+        if other_release is None:
+            return True
+
+        if release == other_release:
+            return True
+
+        releases = {
+            release.version: float(release.date_added.timestamp())
+            for release in Release.objects.filter(
+                organization_id=org_id, version__in=[release, other_release]
+            )
+        }
+        release_date = releases.get(release)
+        other_release_date = releases.get(other_release)
+
+        if release_date is not None and other_release_date is not None:
+            return release_date > other_release_date
+
+        return False
+
     @classmethod
     def get_cache_key(cls, organization_id, version):
         return f"release:3:{organization_id}:{md5_text(version).hexdigest()}"
@@ -1121,7 +1147,7 @@ class Release(Model):
                     },
                 )
                 group = Group.objects.get(id=group_id)
-                group.update(status=GroupStatus.RESOLVED)
+                group.update(status=GroupStatus.RESOLVED, substatus=None)
                 remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
                 record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
 
@@ -1176,6 +1202,24 @@ class Release(Model):
         """
         counts = get_artifact_counts([self.id])
         return counts.get(self.id, 0)
+
+    def count_artifacts_in_artifact_bundles(self):
+        """Counts the number of artifacts in the artifact bundles associated with this release."""
+        qs = (
+            ArtifactBundle.objects.filter(
+                organization_id=self.organization.id,
+                releaseartifactbundle__release_name=self.version,
+            )
+            .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
+            .values_list("releaseartifactbundle__release_name", "count")
+        )
+
+        qs.query.group_by = ["releaseartifactbundle__release_name"]
+
+        if len(qs) == 0:
+            return None
+
+        return qs[0]
 
     def clear_commits(self):
         """

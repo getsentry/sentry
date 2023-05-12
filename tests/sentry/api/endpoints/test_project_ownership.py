@@ -1,13 +1,18 @@
+from datetime import timedelta
 from unittest import mock
 
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
 from sentry.models import AuditLogEntry, ProjectOwnership
+from sentry.models.group import Group
+from sentry.models.groupowner import ISSUE_OWNERS_DEBOUNCE_DURATION, GroupOwner, GroupOwnerType
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.cache import cache
 
 
 @region_silo_test
@@ -123,9 +128,22 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         auditlog = AuditLogEntry.objects.filter(
             organization_id=self.project.organization.id,
             event=audit_log.get_event_id("PROJECT_EDIT"),
+            target_object=self.project.id,
         )
         assert len(auditlog) == 1
         assert "Auto Assign to Issue Owner" in auditlog[0].data["autoAssignment"]
+
+    def test_audit_log_ownership_change(self):
+        resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
+        assert resp.status_code == 200
+
+        auditlog = AuditLogEntry.objects.filter(
+            organization_id=self.project.organization.id,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
+            target_object=self.project.id,
+        )
+        assert len(auditlog) == 1
+        assert "modified" in auditlog[0].data["ownership_rules"]
 
     @with_feature("organizations:streamline-targeting-context")
     def test_update_with_streamline_targeting(self):
@@ -192,6 +210,92 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "schema": None,
         }
 
+    def test_get_rule_deleted_owner_with_streamline_targeting(self):
+        self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
+        self.create_member(
+            user=self.member_user_delete,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        # Put without the streamline-targeting-context flag
+        self.client.put(self.path, {"raw": "*.js member_delete@localhost #tiger-team"})
+
+        # Get after with the streamline-targeting-context flag
+        with self.feature({"organizations:streamline-targeting-context": True}):
+            self.member_user_delete.delete()
+            resp = self.client.get(self.path)
+            assert resp.data["schema"] == {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"type": "path", "pattern": "*.js"},
+                        "owners": [{"type": "team", "name": "tiger-team", "id": self.team.id}],
+                    }
+                ],
+            }
+
+    def test_get_no_rule_deleted_owner_with_streamline_targeting(self):
+        self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
+        self.create_member(
+            user=self.member_user_delete,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        # Put without the streamline-targeting-context flag
+        self.client.put(self.path, {"raw": "*.js member_delete@localhost"})
+
+        # Get after with the streamline-targeting-context flag
+        with self.feature({"organizations:streamline-targeting-context": True}):
+            self.member_user_delete.delete()
+            resp = self.client.get(self.path)
+            assert resp.data["schema"] == {"$version": 1, "rules": []}
+
+    def test_get_multiple_rules_deleted_owners_with_streamline_targeting(self):
+        self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
+        self.create_member(
+            user=self.member_user_delete,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.member_user_delete2 = self.create_user("member_delete2@localhost", is_superuser=False)
+        self.create_member(
+            user=self.member_user_delete2,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        # Put without the streamline-targeting-context flag
+        self.client.put(
+            self.path,
+            {
+                "raw": "*.js member_delete@localhost\n*.py #tiger-team\n*.css member_delete2@localhost\n*.rb member@localhost"
+            },
+        )
+
+        # Get after with the streamline-targeting-context flag
+        with self.feature({"organizations:streamline-targeting-context": True}):
+            self.member_user_delete.delete()
+            self.member_user_delete2.delete()
+            resp = self.client.get(self.path)
+            assert resp.data["schema"] == {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"pattern": "*.py", "type": "path"},
+                        "owners": [{"id": self.team.id, "name": "tiger-team", "type": "team"}],
+                    },
+                    {
+                        "matcher": {"pattern": "*.rb", "type": "path"},
+                        "owners": [
+                            {"id": self.member_user.id, "name": "member@localhost", "type": "user"}
+                        ],
+                    },
+                ],
+            }
+
     def test_invalid_email(self):
         resp = self.client.put(self.path, {"raw": "*.js idont@exist.com #tiger-team"})
         assert resp.status_code == 400
@@ -257,3 +361,41 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
         assert resp.data["codeownersAutoSync"] is True
+
+    def test_turn_off_auto_assignment_clears_autoassignment_cache(self):
+        ProjectOwnership.objects.create(
+            project=self.project, raw="*.js member@localhost #tiger-team"
+        )
+        # Turn auto assignment on
+        self.client.put(self.path, {"autoAssignment": "Auto Assign to Issue Owner"})
+        auto_assignment_ownership = ProjectOwnership.objects.get(project=self.project)
+        auto_assignment_types = ProjectOwnership._get_autoassignment_types(
+            auto_assignment_ownership
+        )
+        # Get the cache keys
+        groups = Group.objects.filter(
+            project_id=self.project.id,
+            last_seen__gte=timezone.now() - timedelta(seconds=ISSUE_OWNERS_DEBOUNCE_DURATION),
+        ).values_list("id", flat=True)
+        auto_assignment_cache_keys = [
+            GroupOwner.get_autoassigned_cache_key(group.id, self.project.id, auto_assignment_types)
+            for group in groups
+        ]
+        assert auto_assignment_types == [
+            GroupOwnerType.OWNERSHIP_RULE.value,
+            GroupOwnerType.CODEOWNERS.value,
+        ]
+        # Assert the cache is set
+        for cache_key in auto_assignment_cache_keys:
+            assert cache.get(cache_key) is None
+
+        # Turn auto assignment off
+        self.client.put(self.path, {"autoAssignment": "Turn off Auto-Assignment"})
+        no_auto_assignment_ownership = ProjectOwnership.objects.get(project=self.project)
+        no_auto_assignment_types = ProjectOwnership._get_autoassignment_types(
+            no_auto_assignment_ownership
+        )
+        assert no_auto_assignment_types == []
+        # Assert that the autoassignment cache was cleared
+        for cache_key in auto_assignment_cache_keys:
+            assert cache.get(cache_key) is None

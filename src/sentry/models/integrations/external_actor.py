@@ -9,6 +9,8 @@ from sentry.db.models import (
     FlexibleForeignKey,
     region_silo_only_model,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.types.integrations import ExternalProviders
 
 logger = logging.getLogger(__name__)
@@ -20,7 +22,7 @@ class ExternalActor(DefaultFieldsModel):
 
     actor = FlexibleForeignKey("sentry.Actor", db_index=True, on_delete=models.CASCADE)
     organization = FlexibleForeignKey("sentry.Organization")
-    integration = FlexibleForeignKey("sentry.Integration")
+    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
     provider = BoundedPositiveIntegerField(
         choices=(
             (ExternalProviders.EMAIL, "email"),
@@ -43,10 +45,15 @@ class ExternalActor(DefaultFieldsModel):
         unique_together = (("organization", "provider", "external_name", "actor"),)
 
     def delete(self, **kwargs):
-        install = self.integration.get_installation(self.organization_id)
+        from sentry.services.hybrid_cloud.integration import integration_service
+
+        integration = integration_service.get_integration(integration_id=self.integration_id)
+        install = integration_service.get_installation(
+            integration=integration, organization_id=self.organization.id
+        )
 
         install.notify_remove_external_team(external_team=self, team=self.actor.resolve())
-        install.remove_notification_settings(
+        notifications_service.remove_notification_settings(
             actor_id=self.actor_id, provider=ExternalProviders(self.provider)
         )
 
@@ -60,7 +67,10 @@ def process_resource_change(instance, **kwargs):
     def _spawn_task():
         try:
             update_code_owners_schema.apply_async(
-                kwargs={"organization": instance.organization, "integration": instance.integration}
+                kwargs={
+                    "organization": instance.organization,
+                    "integration": instance.integration_id,
+                }
             )
         except (Organization.DoesNotExist, Project.DoesNotExist):
             pass

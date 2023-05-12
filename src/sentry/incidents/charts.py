@@ -63,7 +63,7 @@ def fetch_metric_alert_sessions_data(
 ) -> Any:
     try:
         resp = client.get(
-            auth=ApiKey(organization=organization, scope_list=["org:read"]),
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
             user=user,
             path=f"/organizations/{organization.slug}/sessions/",
             params={
@@ -89,7 +89,7 @@ def fetch_metric_alert_events_timeseries(
 ) -> List[Any]:
     try:
         resp = client.get(
-            auth=ApiKey(organization=organization, scope_list=["org:read"]),
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
             user=user,
             path=f"/organizations/{organization.slug}/events-stats/",
             params={
@@ -125,7 +125,7 @@ def fetch_metric_alert_incidents(
 ) -> List[Any]:
     try:
         resp = client.get(
-            auth=ApiKey(organization=organization, scope_list=["org:read"]),
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
             user=user,
             path=f"/organizations/{organization.slug}/incidents/",
             params={

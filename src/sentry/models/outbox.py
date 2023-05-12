@@ -37,6 +37,7 @@ class OutboxScope(IntEnum):
     USER_IP_SCOPE = 4
     INTEGRATION_SCOPE = 5
     APP_SCOPE = 6
+    TEAM_SCOPE = 7
 
     def __str__(self):
         return self.name
@@ -58,6 +59,9 @@ class OutboxCategory(IntEnum):
     PROJECT_UPDATE = 8
     API_APPLICATION_UPDATE = 9
     SENTRY_APP_INSTALLATION_UPDATE = 10
+    TEAM_UPDATE = 11
+    ORGANIZATION_INTEGRATION_UPDATE = 12
+    ORGANIZATION_MEMBER_CREATE = 13
 
     @classmethod
     def as_choices(cls):
@@ -174,11 +178,15 @@ class OutboxBase(Model):
         # result in a future processing, we should always converge on non stale values.
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         yield coalesced
+
+        # If the context block didn't raise we mark messages as completed by deleting them.
         if coalesced is not None:
             first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
-            _, deleted = self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
+            deleted_count, _ = (
+                self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
+            )
             tags = {"category": OutboxCategory(self.category).name}
-            metrics.incr("outbox.processed", deleted, tags=tags)
+            metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
                 "outbox.processing_lag",
                 datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
@@ -224,6 +232,7 @@ class RegionOutbox(OutboxBase):
             sender=OutboxCategory(self.category),
             payload=self.payload,
             object_identifier=self.object_identifier,
+            shard_identifier=self.shard_identifier,
         )
 
     sharding_columns = ("shard_scope", "shard_identifier")
@@ -258,7 +267,7 @@ class RegionOutbox(OutboxBase):
     __repr__ = sane_repr("shard_scope", "shard_identifier", "category", "object_identifier")
 
 
-# Outboxes bound from region silo -> control silo
+# Outboxes bound from control silo -> region silo
 @control_silo_only_model
 class ControlOutbox(OutboxBase):
     sharding_columns = ("region_name", "shard_scope", "shard_identifier")
@@ -278,6 +287,7 @@ class ControlOutbox(OutboxBase):
             payload=self.payload,
             region_name=self.region_name,
             object_identifier=self.object_identifier,
+            shard_identifier=self.shard_identifier,
         )
 
     class Meta:

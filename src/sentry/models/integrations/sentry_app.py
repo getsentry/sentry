@@ -22,6 +22,7 @@ from sentry.db.models import (
     ParanoidModel,
     control_silo_only_model,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.apiscopes import HasApiScopes
 from sentry.utils import metrics
@@ -120,7 +121,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
     # The Organization the Sentry App was created in "owns" it. Members of that
     # Org have differing access, dependent on their role within the Org.
-    owner = FlexibleForeignKey("sentry.Organization", related_name="owned_sentry_apps")
+    owner_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
 
     name = models.TextField()
     slug = models.CharField(max_length=SENTRY_APP_SLUG_MAX_LENGTH, unique=True)
@@ -195,7 +196,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
         from sentry.models import SentryAppInstallation
 
         return SentryAppInstallation.objects.filter(
-            organization=organization,
+            organization_id=organization.id,
             sentry_app=self,
         ).exists()
 

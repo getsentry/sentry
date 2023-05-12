@@ -123,6 +123,7 @@ export type ReleaseMeta = {
   commitCount: number;
   commitFilesChanged: number;
   deployCount: number;
+  isArtifactBundle: boolean;
   projects: ReleaseProject[];
   releaseFileCount: number;
   released: string;

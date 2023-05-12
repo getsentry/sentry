@@ -47,40 +47,6 @@ class RecordingTestCaseMixin:
         strategy.join(1)
         strategy.terminate()
 
-    def chunked_messages(
-        self,
-        message: bytes = b'[{"hello":"world"}]',
-        segment_id: int = 0,
-        compressed: bool = False,
-    ) -> List[Dict[str, Any]]:
-        message = zlib.compress(message) if compressed else message
-        return [
-            {
-                "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message,
-                "replay_id": self.replay_id,
-                "project_id": self.project.id,
-                "id": self.replay_recording_id,
-                "chunk_index": 0,
-                "type": "replay_recording_chunk",
-                "org_id": self.organization.id,
-                "received": time.time(),
-                "retention_days": 30,
-                "key_id": 123,
-            },
-            {
-                "type": "replay_recording",
-                "replay_id": self.replay_id,
-                "replay_recording": {
-                    "chunks": 1,
-                    "id": self.replay_recording_id,
-                },
-                "project_id": self.project.id,
-                "org_id": self.organization.id,
-                "received": time.time(),
-                "retention_days": 30,
-            },
-        ]
-
     def nonchunked_messages(
         self,
         message: bytes = b'[{"hello":"world"}]',
@@ -100,56 +66,6 @@ class RecordingTestCaseMixin:
                 "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message,
             }
         ]
-
-    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
-    @patch("sentry.analytics.record")
-    def test_chunked_compressed_segment_ingestion(self, mock_record, mock_onboarding_task):
-        segment_id = 0
-        self.submit(self.chunked_messages(segment_id=segment_id, compressed=True))
-        self.assert_replay_recording_segment(segment_id, compressed=True)
-
-        self.project.refresh_from_db()
-        assert self.project.flags.has_replays
-
-        mock_onboarding_task.assert_called_with(
-            organization_id=self.project.organization_id,
-            task=OnboardingTask.SESSION_REPLAY,
-            status=OnboardingTaskStatus.COMPLETE,
-            date_completed=ANY,
-        )
-
-        mock_record.assert_called_with(
-            "first_replay.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            platform=self.project.platform,
-            user_id=self.organization.default_owner_id,
-        )
-
-    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
-    @patch("sentry.analytics.record")
-    def test_chunked_uncompressed_segment_ingestion(self, mock_record, mock_onboarding_task):
-        segment_id = 0
-        self.submit(self.chunked_messages(segment_id=segment_id, compressed=False))
-        self.assert_replay_recording_segment(segment_id, compressed=False)
-
-        self.project.refresh_from_db()
-        assert self.project.flags.has_replays
-
-        mock_onboarding_task.assert_called_with(
-            organization_id=self.project.organization_id,
-            task=OnboardingTask.SESSION_REPLAY,
-            status=OnboardingTaskStatus.COMPLETE,
-            date_completed=ANY,
-        )
-
-        mock_record.assert_called_with(
-            "first_replay.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            platform=self.project.platform,
-            user_id=self.organization.default_owner_id,
-        )
 
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")

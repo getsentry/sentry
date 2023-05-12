@@ -7,6 +7,7 @@ import Confirm from 'sentry/components/confirm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {OrgRoleInfo} from 'sentry/components/orgRole';
 import {PanelItem} from 'sentry/components/panels';
 import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -70,12 +71,11 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     if (typeof onSendInvite !== 'function') {
       return;
     }
-
     onSendInvite(member);
   };
 
   renderMemberRole() {
-    const {member} = this.props;
+    const {member, organization} = this.props;
     const {roleName, pending, expired} = member;
     if (isMemberDisabledFromLimit(member)) {
       return <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>;
@@ -88,7 +88,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
         </InvitedRole>
       );
     }
-    return roleName;
+    return <OrgRoleInfo member={member} organization={organization} />;
   }
 
   render() {

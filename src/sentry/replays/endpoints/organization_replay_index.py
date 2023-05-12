@@ -17,11 +17,16 @@ from sentry.replays.validators import ReplayValidator
 @region_silo_endpoint
 class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
     def get_replay_filter_params(self, request, organization):
+
+        query_referrer = request.GET.get("queryReferrer", None)
+
         filter_params = self.get_filter_params(request, organization)
 
-        has_global_views = features.has(
-            "organizations:global-views", organization, actor=request.user
+        has_global_views = (
+            features.has("organizations:global-views", organization, actor=request.user)
+            or query_referrer == "issueReplays"
         )
+
         if not has_global_views and len(filter_params.get("project_id", [])) > 1:
             raise ParseError(detail="You cannot view events from multiple projects.")
 
@@ -61,7 +66,8 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 limit=limit,
                 offset=offset,
                 search_filters=search_filters,
-                tenant_ids={"organization_id": organization.id},
+                organization=organization,
+                actor=request.user,
             )
 
         return self.paginate(

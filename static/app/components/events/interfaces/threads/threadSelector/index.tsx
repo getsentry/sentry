@@ -26,14 +26,14 @@ type Props = {
 
 const DROPDOWN_MAX_HEIGHT = 400;
 
-const ThreadSelector = ({
+function ThreadSelector({
   threads,
   event,
   exception,
   activeThread,
   onChange,
   fullWidth = false,
-}: Props) => {
+}: Props) {
   const hasThreadStates = threads.some(thread =>
     defined(getMappedThreadState(thread.state))
   );
@@ -103,11 +103,13 @@ const ThreadSelector = ({
               {selectedItem ? (
                 <SelectedOption
                   id={selectedItem.thread.id}
+                  name={selectedItem.thread.name}
                   details={selectedItem.threadInfo}
                 />
               ) : (
                 <SelectedOption
                   id={activeThread.id}
+                  name={activeThread.name}
                   details={filterThreadInfo(event, activeThread, exception)}
                 />
               )}
@@ -117,7 +119,7 @@ const ThreadSelector = ({
       )}
     </ClassNames>
   );
-};
+}
 
 export default ThreadSelector;
 

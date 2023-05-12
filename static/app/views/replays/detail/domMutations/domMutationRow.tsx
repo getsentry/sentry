@@ -1,30 +1,34 @@
-import {CSSProperties, useCallback} from 'react';
+import {CSSProperties, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 import beautify from 'js-beautify';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {space} from 'sentry/styles/space';
-import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type Props = {
+  currentHoverTime: number | undefined;
+  currentTime: number;
   mutation: Extraction;
-  mutations: Extraction[];
   startTimestampMs: number;
   style: CSSProperties;
 };
 
-function DomMutationRow({mutation, mutations, startTimestampMs, style}: Props) {
+function DomMutationRow({
+  currentHoverTime,
+  currentTime,
+  mutation,
+  startTimestampMs,
+  style,
+}: Props) {
   const {html, crumb: breadcrumb} = mutation;
-
-  const {currentTime, currentHoverTime} = useReplayContext();
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
@@ -42,37 +46,26 @@ function DomMutationRow({mutation, mutations, startTimestampMs, style}: Props) {
     [handleMouseLeave, breadcrumb]
   );
 
-  const breadcrumbs = mutations.map(({crumb}) => crumb);
-  const current = getPrevReplayEvent({
-    items: breadcrumbs,
-    targetTimestampMs: startTimestampMs + currentTime,
-    allowEqual: true,
-    allowExact: true,
-  });
-
-  const hovered = currentHoverTime
-    ? getPrevReplayEvent({
-        items: breadcrumbs,
-        targetTimestampMs: startTimestampMs + currentHoverTime,
-        allowEqual: true,
-        allowExact: true,
-      })
-    : undefined;
-
-  const hasOccurred =
-    currentTime >= relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs);
-  const isCurrent = breadcrumb.id === current?.id;
-  const isHovered = breadcrumb.id === hovered?.id;
+  const crumbTime = useMemo(
+    () => relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs),
+    [breadcrumb.timestamp, startTimestampMs]
+  );
+  const hasOccurred = currentTime >= crumbTime;
+  const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= crumbTime;
 
   const {title} = getDetails(breadcrumb);
 
   return (
     <MutationListItem
+      className={classNames({
+        beforeCurrentTime: hasOccurred,
+        afterCurrentTime: !hasOccurred,
+        beforeHoverTime: currentHoverTime !== undefined && isBeforeHover,
+        afterHoverTime: currentHoverTime !== undefined && !isBeforeHover,
+      })}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={style}
-      isCurrent={isCurrent}
-      isHovered={isHovered}
     >
       <IconWrapper color={breadcrumb.color} hasOccurred={hasOccurred}>
         <BreadcrumbIcon type={breadcrumb.type} />
@@ -97,17 +90,14 @@ function DomMutationRow({mutation, mutations, startTimestampMs, style}: Props) {
   );
 }
 
-const MutationListItem = styled('div')<{
-  isCurrent: boolean;
-  isHovered: boolean;
-}>`
+const MutationListItem = styled('div')`
   display: flex;
   gap: ${space(1)};
   padding: ${space(1)} ${space(1.5)};
 
-  border-bottom: 1px solid
-    ${p =>
-      p.isCurrent ? p.theme.purple300 : p.isHovered ? p.theme.purple200 : 'transparent'};
+  /* Overridden in TabItemContainer, depending on *CurrentTime and *HoverTime classes */
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
 
   &:hover {
     background-color: ${p => p.theme.hover};
@@ -154,10 +144,12 @@ const List = styled('div')`
 const Row = styled('div')`
   display: flex;
   flex-direction: row;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Title = styled('span')<{hasOccurred?: boolean}>`
   color: ${p => (p.hasOccurred ? p.theme.gray400 : p.theme.gray300)};
+  font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
   line-height: ${p => p.theme.text.lineHeightBody};
   text-transform: capitalize;

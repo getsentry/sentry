@@ -11,7 +11,7 @@ import {
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
@@ -84,14 +84,11 @@ function TransactionSummaryCharts({
 }: Props) {
   function handleDisplayChange(value: string) {
     const display = decodeScalar(location.query.display, DisplayModes.DURATION);
-    trackAdvancedAnalyticsEvent(
-      'performance_views.transaction_summary.change_chart_display',
-      {
-        organization,
-        from_chart: display,
-        to_chart: value,
-      }
-    );
+    trackAnalytics('performance_views.transaction_summary.change_chart_display', {
+      organization,
+      from_chart: display,
+      to_chart: value,
+    });
 
     browserHistory.push({
       pathname: location.pathname,
@@ -154,11 +151,7 @@ function TransactionSummaryCharts({
   };
 
   const mepSetting = useMEPSettingContext();
-  const queryExtras = getTransactionMEPParamsIfApplicable(
-    mepSetting,
-    organization,
-    location
-  );
+  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, organization);
 
   return (
     <Panel>

@@ -31,7 +31,10 @@ from sentry.ingest.inbound_filters import (
     get_all_filter_specs,
     get_filter_key,
 )
-from sentry.ingest.transaction_clusterer.rules import get_sorted_rules
+from sentry.ingest.transaction_clusterer.rules import (
+    TRANSACTION_NAME_RULE_TTL_SECS,
+    get_sorted_rules,
+)
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project, ProjectKey
 from sentry.relay.config.metric_extraction import get_metric_conditional_tagging_rules
@@ -44,11 +47,13 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
-    "organizations:transaction-name-normalize",
+    "projects:span-metrics-extraction",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
+    "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
     "organizations:session-replay-recording-scrubbing",
+    "organizations:device-class-synthesis",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -148,7 +153,14 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
 
 def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) -> List[str]:
-    return [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
+    try:
+        computed_quotas = [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
+    except BaseException:
+        metrics.incr("relay.config.get_quotas", tags={"success": False}, sample_rate=1.0)
+        raise
+    else:
+        metrics.incr("relay.config.get_quotas", tags={"success": True}, sample_rate=1.0)
+        return computed_quotas
 
 
 def get_project_config(
@@ -211,10 +223,6 @@ def get_transaction_names_config(project: Project) -> Optional[Sequence[Transact
     return [_get_tx_name_rule(p, s) for p, s in cluster_rules]
 
 
-#: How long a transaction name rule lasts, in seconds.
-TRANSACTION_NAME_RULE_TTL_SECS = 90 * 24 * 60 * 60  # 90 days
-
-
 def _get_tx_name_rule(pattern: str, seen_last: int) -> TransactionNameRule:
     rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
     expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat()
@@ -259,7 +267,7 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 def _get_project_config(
     project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
 ) -> "ProjectConfig":
-    if project.status != ObjectStatus.VISIBLE:
+    if project.status != ObjectStatus.ACTIVE:
         return ProjectConfig(project, disabled=True)
 
     public_keys = get_public_key_configs(project, full_config, project_keys=project_keys)
@@ -515,42 +523,6 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 TRANSACTION_METRICS_EXTRACTION_VERSION = 1
 
 
-#: Top-level metrics for transactions
-TRANSACTION_METRICS = frozenset(
-    [
-        "s:transactions/user@none",
-        "d:transactions/duration@millisecond",
-    ]
-)
-
-
-ALL_MEASUREMENT_METRICS = frozenset(
-    [
-        "d:transactions/measurements.fcp@millisecond",
-        "d:transactions/measurements.lcp@millisecond",
-        "d:transactions/measurements.app_start_cold@millisecond",
-        "d:transactions/measurements.app_start_warm@millisecond",
-        "d:transactions/measurements.cls@none",
-        "d:transactions/measurements.fid@millisecond",
-        "d:transactions/measurements.inp@millisecond",
-        "d:transactions/measurements.fp@millisecond",
-        "d:transactions/measurements.frames_frozen@none",
-        "d:transactions/measurements.frames_frozen_rate@ratio",
-        "d:transactions/measurements.frames_slow@none",
-        "d:transactions/measurements.frames_slow_rate@ratio",
-        "d:transactions/measurements.frames_total@none",
-        "d:transactions/measurements.time_to_initial_display@millisecond",
-        "d:transactions/measurements.time_to_full_display@millisecond",
-        "d:transactions/measurements.stall_count@none",
-        "d:transactions/measurements.stall_longest_time@millisecond",
-        "d:transactions/measurements.stall_percentage@ratio",
-        "d:transactions/measurements.stall_total_time@millisecond",
-        "d:transactions/measurements.ttfb@millisecond",
-        "d:transactions/measurements.ttfb.requesttime@millisecond",
-    ]
-)
-
-
 class CustomMeasurementSettings(TypedDict):
     limit: int
 
@@ -560,7 +532,6 @@ TransactionNameStrategy = Literal["strict", "clientBased"]
 
 class TransactionMetricsSettings(TypedDict):
     version: int
-    extractMetrics: List[str]
     extractCustomTags: List[str]
     customMeasurements: CustomMeasurementSettings
     acceptTransactionNames: TransactionNameStrategy
@@ -580,14 +551,7 @@ def get_transaction_metrics_settings(
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.
     """
-    metrics: List[str] = []
     custom_tags: List[str] = []
-
-    metrics.extend(sorted(TRANSACTION_METRICS))
-    # TODO: for now let's extract all known measurements. we might want to
-    # be more fine-grained in the future once we know which measurements we
-    # really need (or how that can be dynamically determined)
-    metrics.extend(sorted(ALL_MEASUREMENT_METRICS))
 
     if breakdowns_config is not None:
         # we already have a breakdown configuration that tells relay which
@@ -598,8 +562,6 @@ def get_transaction_metrics_settings(
             for _, breakdown_config in breakdowns_config.items():
                 assert breakdown_config["type"] == "spanOperations"
 
-                for op_name in breakdown_config["matches"]:
-                    metrics.append(f"d:transactions/breakdowns.span_ops.ops.{op_name}@millisecond")
         except Exception:
             capture_exception()
 
@@ -614,7 +576,6 @@ def get_transaction_metrics_settings(
 
     return {
         "version": TRANSACTION_METRICS_EXTRACTION_VERSION,
-        "extractMetrics": metrics,
         "extractCustomTags": custom_tags,
         "customMeasurements": {"limit": CUSTOM_MEASUREMENT_LIMIT},
         "acceptTransactionNames": "clientBased",

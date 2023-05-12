@@ -32,12 +32,40 @@ const profileConfig: IssueCategoryConfigMapping = {
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: {
     resources: {
       description: t(
-        'I/O operations on the UI thread can cause jank and lead to frame drops that are distracting. If long enough, these blocking operations can cause Application Not Responding dialogs that will cause the app to crash. To learn more about how to fix calls that block the main thread, check out these resources:'
+        'File I/O can be a long running operation that blocks the main thread. This may result in app hangs and poor UI performance. To learn more, read our documentation:'
       ),
       links: [
         {
-          text: t('File IO on Main Thread'),
+          text: t('File I/O on Main Thread'),
           link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/main-thread-io/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PROFILE_JSON_DECODE_MAIN_THREAD]: {
+    resources: {
+      description: t(
+        'Decoding a JSON blob can be a long running operation that blocks the main thread. This may result in app hangs and poor UI performance. To learn more, read our documentation:'
+      ),
+      links: [
+        {
+          text: t('JSON Decode on Main Thread'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/json-decoding-main-thread/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD]: {
+    resources: {
+      description: t(
+        'Decoding a compressed image (e.g. JPEG, PNG) into a bitmap can be a long running operation that blocks the main thread. This may result in app hangs and poor UI performance. To learn more, read our documentation:'
+      ),
+      links: [
+        {
+          text: t('Image Decode on Main Thread'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/image-decoding-main-thread/',
         },
       ],
       linksByPlatform: {},

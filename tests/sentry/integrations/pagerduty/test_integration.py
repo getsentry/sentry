@@ -112,7 +112,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
             }
         ]
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
 
@@ -123,9 +123,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
 
         integration = Integration.objects.get(provider=self.provider.key)
         service = PagerDutyService.objects.get(
-            organization_integration=OrganizationIntegration.objects.get(
-                integration=integration, organization=self.organization
-            )
+            integration_id=integration.id, organization_id=self.organization.id
         )
 
         url = "https://%s.pagerduty.com" % (integration.metadata["domain_name"])
@@ -195,9 +193,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
 
         integration = Integration.objects.get(provider=self.provider.key)
         service = PagerDutyService.objects.get(
-            organization_integration=OrganizationIntegration.objects.get(
-                integration=integration, organization=self.organization
-            )
+            organization_id=self.organization.id, integration_id=integration.id
         )
         config = integration.get_installation(self.organization.id).get_config_data()
         assert config == {

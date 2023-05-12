@@ -1,15 +1,14 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Clipboard from 'sentry/components/clipboard';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Version from 'sentry/components/version';
-import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -131,19 +130,19 @@ function HoverHeader({
         {copyLabel}
 
         {!hideCopy && copyContent && (
-          <Clipboard value={copyContent}>
-            <IconCopy
-              cursor="pointer"
-              data-test-id="quick-context-hover-header-copy-icon"
-              size="xs"
-              onClick={() => {
-                trackAdvancedAnalyticsEvent('discover_v2.quick_context_header_copy', {
-                  organization,
-                  clipBoardTitle: title,
-                });
-              }}
-            />
-          </Clipboard>
+          <CopyToClipboardButton
+            borderless
+            data-test-id="quick-context-hover-header-copy-button"
+            iconSize="xs"
+            onCopy={() => {
+              trackAnalytics('discover_v2.quick_context_header_copy', {
+                organization,
+                clipBoardTitle: title,
+              });
+            }}
+            size="zero"
+            text={copyContent}
+          />
         )}
       </HoverHeaderContent>
     </HoverHeaderWrapper>

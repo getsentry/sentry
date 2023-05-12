@@ -4,7 +4,18 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, FrozenSet, Optional, Sequence, Set, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    FrozenSet,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 from django.db import DataError, connections, router
 from django.utils import timezone
@@ -24,6 +35,7 @@ from sentry.models import (
 )
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.base import ANY
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
 from sentry.utils.auth import find_users
 
 
@@ -45,12 +57,20 @@ def get_user_tag(projects: Sequence[Project], key: str, value: str) -> str:
     return euser.tag_value  # type: ignore
 
 
-def parse_status_value(value: Union[str, int]) -> int:
-    if value in STATUS_QUERY_CHOICES:
-        return int(STATUS_QUERY_CHOICES[value])
-    if value in STATUS_QUERY_CHOICES.values():
-        return int(value)
+def parse_status_value(status: Union[str, int]) -> int:
+    if status in STATUS_QUERY_CHOICES:
+        return int(STATUS_QUERY_CHOICES[status])
+    if status in STATUS_QUERY_CHOICES.values():
+        return int(status)
     raise ValueError("Invalid status value")
+
+
+def parse_substatus_value(substatus: Union[str, int]) -> int:
+    if substatus in SUBSTATUS_UPDATE_CHOICES:
+        return int(SUBSTATUS_UPDATE_CHOICES[substatus])
+    if substatus in SUBSTATUS_UPDATE_CHOICES.values():
+        return int(substatus)
+    raise ValueError("Invalid substatus value")
 
 
 def parse_duration(value: str, interval: str) -> float:
@@ -758,7 +778,7 @@ def validate_cdc_search_filters(search_filters: Optional[Sequence[SearchFilter]]
 
 
 # Mapping of device class to the store corresponding tag value
-DEVICE_CLASS = {
+DEVICE_CLASS: Dict[str, Set[str]] = {
     "low": {"1"},
     "medium": {"2"},
     "high": {"3"},

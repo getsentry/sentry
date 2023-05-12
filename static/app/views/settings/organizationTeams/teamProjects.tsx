@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -17,15 +18,18 @@ import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization, Project, Team} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = {
   api: Client;
   organization: Organization;
+  team: Team;
 } & RouteComponentProps<{teamId: string}, {}>;
 
 type State = {
@@ -152,21 +156,20 @@ class TeamProjects extends Component<Props, State> {
   };
 
   projectPanelContents(projects: Project[]) {
-    const {organization} = this.props;
-    const access = new Set(organization.access);
-    const canWrite = access.has('org:write');
+    const {organization, team} = this.props;
+    const hasWriteAccess = hasEveryAccess(['team:write'], {organization, team});
 
     return projects.length ? (
       sortProjects(projects).map(project => (
         <StyledPanelItem key={project.id}>
           <ProjectListItem project={project} organization={organization} />
           <Tooltip
-            disabled={canWrite}
+            disabled={hasWriteAccess}
             title={t('You do not have enough permission to change project association.')}
           >
             <Button
               size="sm"
-              disabled={!canWrite}
+              disabled={!hasWriteAccess}
               icon={<IconSubtract isCircled size="xs" />}
               aria-label={t('Remove')}
               onClick={() => {
@@ -186,6 +189,7 @@ class TeamProjects extends Component<Props, State> {
   }
 
   render() {
+    const {organization, team} = this.props;
     const {linkedProjects, unlinkedProjects, error, loading} = this.state;
 
     if (error) {
@@ -196,21 +200,29 @@ class TeamProjects extends Component<Props, State> {
       return <LoadingIndicator />;
     }
 
-    const access = new Set(this.props.organization.access);
-
-    const otherProjects = unlinkedProjects.map(p => ({
-      value: p.id,
-      searchKey: p.slug,
-      label: <ProjectListElement>{p.slug}</ProjectListElement>,
-    }));
+    const hasWriteAccess = hasEveryAccess(['team:write'], {organization, team});
+    const otherProjects = unlinkedProjects
+      .filter(p => p.access.includes('project:write'))
+      .map(p => ({
+        value: p.id,
+        searchKey: p.slug,
+        label: <ProjectListElement>{p.slug}</ProjectListElement>,
+      }));
 
     return (
       <Fragment>
+        <TextBlock>
+          {t(
+            'If you have Team Admin permissions for other projects, you can associate them with this team.'
+          )}
+        </TextBlock>
+        <PermissionAlert access={['team:write']} team={team} />
+
         <Panel>
           <PanelHeader hasButtons>
             <div>{t('Projects')}</div>
             <div style={{textTransform: 'none'}}>
-              {!access.has('org:write') ? (
+              {!hasWriteAccess ? (
                 <DropdownButton
                   disabled
                   title={t('You do not have enough permission to associate a project.')}
@@ -223,7 +235,7 @@ class TeamProjects extends Component<Props, State> {
                   items={otherProjects}
                   onChange={this.handleQueryUpdate}
                   onSelect={this.handleProjectSelected}
-                  emptyMessage={t('No projects')}
+                  emptyMessage={t('You are not an admin for any other projects')}
                   alignMenu="right"
                 >
                   {({isOpen}) => (

@@ -114,7 +114,7 @@ class OrganizationSCIMPermission(OrganizationPermission):
         if not result:
             return result
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:
             return False
         if not auth_provider.flags.scim_enabled:

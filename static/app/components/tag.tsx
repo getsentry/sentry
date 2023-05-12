@@ -11,10 +11,12 @@ import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import theme, {Color} from 'sentry/utils/theme';
 
 const TAG_HEIGHT = '20px';
+
+type TooltipProps = React.ComponentProps<typeof Tooltip>;
 
 interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   /**
@@ -44,9 +46,13 @@ interface Props extends React.HTMLAttributes<HTMLSpanElement> {
    */
   to?: LinkProps['to'];
   /**
+   * Additional properites for the Tooltip when `tooltipText` is set.
+   */
+  tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
+  /**
    * Text to show up on a hover.
    */
-  tooltipText?: React.ComponentProps<typeof Tooltip>['title'];
+  tooltipText?: TooltipProps['title'];
   /**
    * Dictates color scheme of the tag.
    */
@@ -57,6 +63,7 @@ function Tag({
   type = 'default',
   icon,
   tooltipText,
+  tooltipProps,
   to,
   onClick,
   href,
@@ -71,7 +78,7 @@ function Tag({
   };
 
   const tag = (
-    <Tooltip title={tooltipText} containerDisplayMode="inline-flex">
+    <Tooltip title={tooltipText} containerDisplayMode="inline-flex" {...tooltipProps}>
       <Background type={type}>
         {tagIcon()}
 
@@ -99,7 +106,7 @@ function Tag({
   }
 
   const trackClickEvent = () => {
-    trackAdvancedAnalyticsEvent('tag.clicked', {
+    trackAnalytics('tag.clicked', {
       is_clickable: defined(onClick) || defined(to) || defined(href),
       organization: null,
     });

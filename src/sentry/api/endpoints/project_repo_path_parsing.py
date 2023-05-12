@@ -70,7 +70,7 @@ class PathMappingSerializer(CamelSnakeSerializer):
 
         # now find the matching integration
         integrations = Integration.objects.filter(
-            organizations=self.org_id, provider__in=self.providers
+            organizationintegration__organization_id=self.org_id, provider__in=self.providers
         )
 
         matching_integrations = list(filter(integration_match, integrations))

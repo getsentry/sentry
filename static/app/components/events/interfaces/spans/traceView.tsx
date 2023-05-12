@@ -4,6 +4,7 @@ import {Observer} from 'mobx-react';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {TracePerformanceIssue} from 'sentry/utils/performance/quickTrace/types';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -19,6 +20,7 @@ type Props = {
   organization: Organization;
   waterfallModel: WaterfallModel;
   isEmbedded?: boolean;
+  performanceIssues?: TracePerformanceIssue[];
 };
 
 function TraceView(props: Props) {
@@ -69,7 +71,7 @@ function TraceView(props: Props) {
     </Observer>
   );
 
-  const {organization, waterfallModel, isEmbedded} = props;
+  const {organization, waterfallModel, isEmbedded, performanceIssues} = props;
 
   if (!getTraceContext(waterfallModel.event)) {
     return (
@@ -77,6 +79,11 @@ function TraceView(props: Props) {
         <p>{t('There is no trace for this transaction')}</p>
       </EmptyStateWarning>
     );
+  }
+  if (!waterfallModel.affectedSpanIds && performanceIssues) {
+    waterfallModel.affectedSpanIds = performanceIssues
+      .map(issue => issue.suspect_spans)
+      .flat();
   }
 
   return (

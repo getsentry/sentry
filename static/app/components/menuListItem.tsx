@@ -86,6 +86,7 @@ interface OtherProps {
   detailsProps?: object;
   innerWrapProps?: object;
   isFocused?: boolean;
+  isPressed?: boolean;
   isSelected?: boolean;
   labelProps?: object;
   showDivider?: boolean;
@@ -109,6 +110,7 @@ function BaseMenuListItem({
   trailingItemsSpanFullHeight = false,
   isFocused = false,
   isSelected = false,
+  isPressed,
   innerWrapProps = {},
   labelProps = {},
   detailsProps = {},
@@ -140,6 +142,7 @@ function BaseMenuListItem({
         >
           <StyledInteractionStateLayer
             isHovered={isFocused}
+            isPressed={isPressed}
             higherOpacity={priority !== 'default'}
           />
           {leadingItems && (

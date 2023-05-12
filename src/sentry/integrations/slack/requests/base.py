@@ -9,7 +9,8 @@ from rest_framework.request import Request
 from sentry import options
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 
 from ..utils import check_signing_secret, logger
 
@@ -64,9 +65,9 @@ class SlackRequest:
         Ensure everything is present to properly process this request
         """
         self._log_request()
-        self._authorize()
+        self.authorize()
         self._validate_data()
-        self._validate_integration()
+        self.validate_integration()
 
     def is_bot(self) -> bool:
         """
@@ -147,7 +148,7 @@ class SlackRequest:
         except (ValueError, TypeError):
             raise SlackRequestError(status=status_.HTTP_400_BAD_REQUEST)
 
-    def _authorize(self) -> None:
+    def authorize(self) -> None:
         # XXX(meredith): Signing secrets are the preferred way
         # but self-hosted could still have an older slack bot
         # app that just has the verification token.
@@ -177,7 +178,7 @@ class SlackRequest:
     def _check_verification_token(self, verification_token: str) -> bool:
         return self.data.get("token") == verification_token
 
-    def _validate_integration(self) -> None:
+    def validate_integration(self) -> None:
         self._integration = integration_service.get_integration(
             provider="slack", external_id=self.team_id
         )

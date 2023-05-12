@@ -17,6 +17,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import region_silo_test
 
 
@@ -136,7 +137,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
 
 @region_silo_test
-class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
+class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMixin):
     method = "put"
 
     def test_invalid_id(self):
@@ -196,6 +197,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         assert old_invite != member_om.get_invite_link()
         mock_send_invite_email.assert_called_once_with()
         assert response.data["invite_link"] == member_om.get_invite_link()
+        self.assert_org_member_mapping(org_member=member_om)
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
     def test_reinvite_invite_expired_member(self, mock_send_invite_email):
@@ -227,6 +229,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
 
         member = OrganizationMember.objects.get(pk=member.id)
         assert member.token_expired is False
+        self.assert_org_member_mapping(org_member=member)
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
     def test_cannot_reinvite_unapproved_invite(self, mock_send_invite_email):
@@ -255,7 +258,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
     def test_reinvite_sso_link(self):
         member = self.create_user("bar@example.com")
         member_om = self.create_member(organization=self.organization, user=member, role="member")
-        AuthProvider.objects.create(organization=self.organization, provider="dummy", flags=1)
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy", flags=1)
 
         with self.tasks():
             self.get_success_response(self.organization.slug, member_om.id, reinvite=1)
@@ -271,6 +274,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_success_response(self.organization.slug, member_om.id, role="manager")
         member_om = OrganizationMember.objects.get(id=member_om.id)
         assert member_om.role == "manager"
+        self.assert_org_member_mapping(org_member=member_om)
 
     def test_cannot_update_own_membership(self):
         member_om = OrganizationMember.objects.get(
@@ -362,6 +366,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
 
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "manager"
+        self.assert_org_member_mapping(org_member=member_om)
 
     @with_feature("organizations:team-roles")
     def test_can_update_team_role(self):
@@ -426,12 +431,41 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
             flags=OrganizationMember.flags["idp:role-restricted"],
         )
 
-        self.get_error_response(self.organization.slug, member_om.id, role="admin", status_code=403)
+        self.get_error_response(
+            self.organization.slug, member_om.id, role="manager", status_code=403
+        )
 
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "member"
 
-    def test_can_update_with_retired_role_without_flag(self):
+    @with_feature({"organizations:team-roles": False})
+    def test_can_update_from_retired_role_without_flag(self):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="admin", teams=[]
+        )
+
+        self.get_success_response(self.organization.slug, member_om.id, role="member")
+
+        member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
+        assert member_om.role == "member"
+        self.assert_org_member_mapping(org_member=member_om)
+
+    @with_feature("organizations:team-roles")
+    def test_can_update_from_retired_role_with_flag(self):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="admin", teams=[]
+        )
+
+        self.get_success_response(self.organization.slug, member_om.id, role="member")
+
+        member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
+        assert member_om.role == "member"
+        self.assert_org_member_mapping(org_member=member_om)
+
+    @with_feature({"organizations:team-roles": False})
+    def test_can_update_to_retired_role_without_flag(self):
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
@@ -441,9 +475,10 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
 
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "admin"
+        self.assert_org_member_mapping(org_member=member_om)
 
     @with_feature("organizations:team-roles")
-    def test_cannot_update_with_retired_role_with_flag(self):
+    def test_cannot_update_to_retired_role_with_flag(self):
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]

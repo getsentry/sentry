@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useCallback, useContext, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {motion, MotionProps} from 'framer-motion';
 
@@ -8,16 +8,16 @@ import OnboardingSetup from 'sentry-images/spot/onboarding-setup.svg';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
 
 import {StepProps} from './types';
-import {usePersistedOnboardingState} from './utils';
 
 const fadeAway: MotionProps = {
   variants: {
@@ -48,55 +48,39 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   );
 }
 
-function TargetedOnboardingWelcome({jumpToSetupProject, ...props}: StepProps) {
+function TargetedOnboardingWelcome(props: StepProps) {
   const organization = useOrganization();
-  const [clientState, setClientState] = usePersistedOnboardingState();
+  const onboardingContext = useContext(OnboardingContext);
 
   const source = 'targeted_onboarding';
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
+    trackAnalytics('growth.onboarding_start_onboarding', {
       organization,
       source,
     });
-  });
 
-  // Jump to setup project if the backend set this state for us
-  useEffect(() => {
-    if (clientState?.state === 'projects_selected') {
-      jumpToSetupProject();
+    if (onboardingContext.data.selectedSDK) {
+      // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
+      onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
     }
-  }, [clientState, jumpToSetupProject]);
+  }, [organization, onboardingContext]);
 
   const handleComplete = useCallback(() => {
-    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
+    trackAnalytics('growth.onboarding_clicked_instrument_app', {
       organization,
       source,
-    });
-
-    setClientState({
-      platformToProjectIdMap: clientState?.platformToProjectIdMap ?? {},
-      selectedPlatforms: [],
-      url: 'select-platform/',
-      state: 'started',
     });
 
     props.onComplete();
-  }, [organization, source, clientState, setClientState, props]);
+  }, [organization, source, props]);
 
   const handleSkipOnboarding = useCallback(() => {
-    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+    trackAnalytics('growth.onboarding_clicked_skip', {
       organization,
       source,
     });
-
-    setClientState({
-      platformToProjectIdMap: clientState?.platformToProjectIdMap ?? {},
-      selectedPlatforms: [],
-      url: 'welcome/',
-      state: 'skipped',
-    });
-  }, [organization, source, clientState, setClientState]);
+  }, [organization, source]);
 
   return (
     <FallingError>

@@ -14,13 +14,14 @@ type Props = {
 // Constrain the number of visible suggestions
 const MAX_SUGGESTIONS = 3;
 
-const SuggestedAvatarStack = ({
+function SuggestedAvatarStack({
   owners,
   tooltip,
   tooltipOptions,
   reverse = true,
+  suggested = true,
   ...props
-}: Props) => {
+}: Props) {
   const [firstSuggestion, ...suggestedOwners] = owners;
   const numAvatars = Math.min(owners.length, MAX_SUGGESTIONS);
   return (
@@ -34,6 +35,7 @@ const SuggestedAvatarStack = ({
           key={i}
           index={i}
           reverse={reverse}
+          suggested={suggested}
         />
       ))}
       <Avatar
@@ -43,10 +45,11 @@ const SuggestedAvatarStack = ({
         {...props}
         index={numAvatars - 1}
         reverse={reverse}
+        suggested={suggested}
       />
     </AvatarStack>
   );
-};
+}
 
 const AvatarStack = styled('div')<{reverse: boolean}>`
   display: flex;

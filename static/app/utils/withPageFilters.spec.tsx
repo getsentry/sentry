@@ -11,7 +11,7 @@ describe('withPageFilters HoC', function () {
   });
 
   it('handles projects', function () {
-    const PrintProjectsComponent = ({selection}: {selection: PageFilters}) => {
+    function PrintProjectsComponent({selection}: {selection: PageFilters}) {
       return (
         <div>
           {selection.projects.map(project => (
@@ -21,7 +21,7 @@ describe('withPageFilters HoC', function () {
           ))}
         </div>
       );
-    };
+    }
 
     const Container = withPageFilters(PrintProjectsComponent);
 
@@ -37,7 +37,7 @@ describe('withPageFilters HoC', function () {
   });
 
   it('handles datetime', function () {
-    const PrintDatetimeComponent = ({selection}) => {
+    function PrintDatetimeComponent({selection}) {
       return (
         <div>
           <div data-test-id="period">{selection.datetime.period}</div>
@@ -45,7 +45,7 @@ describe('withPageFilters HoC', function () {
           <div data-test-id="end">{selection.datetime.end}</div>
         </div>
       );
-    };
+    }
 
     const Container = withPageFilters(PrintDatetimeComponent);
 
@@ -82,7 +82,7 @@ describe('withPageFilters HoC', function () {
   });
 
   it('handles environments', function () {
-    const PrintProjectsComponent = ({selection}) => {
+    function PrintProjectsComponent({selection}) {
       return (
         <div>
           {selection.environments.map(env => (
@@ -92,7 +92,7 @@ describe('withPageFilters HoC', function () {
           ))}
         </div>
       );
-    };
+    }
 
     const Container = withPageFilters(PrintProjectsComponent);
 

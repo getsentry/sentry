@@ -1,27 +1,33 @@
-import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
-
-import {Button} from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
-const MonitorOnboarding = () => {
+import {Monitor} from '../types';
+
+import MonitorQuickStartGuide from './monitorQuickStartGuide';
+
+interface Props {
+  monitor: Monitor;
+  orgId: string;
+}
+
+function MonitorOnboarding({orgId, monitor}: Props) {
   return (
-    <OnboardingPanel image={<img src={onboardingImg} />}>
-      <h3>{t('Learn how to instrument your cron monitor')}</h3>
+    <OnboardingPanel noCenter>
+      <h3>{t('Instrument your monitor')}</h3>
       <p>
-        {t(
-          "We'll tell you if this recurring job is running on schedule, failing, or succeeding."
+        {tct(
+          'Select an integration method for your new monitor. For in-depth instructions on integrating Crons, view [docsLink:our complete documentation].',
+          {
+            docsLink: (
+              <ExternalLink href="https://docs.sentry.io/product/crons/getting-started/" />
+            ),
+          }
         )}
       </p>
-      <Button
-        priority="primary"
-        href="https://docs.sentry.io/product/crons/getting-started/#step-2-set-up-health-checks"
-        external
-      >
-        {t('Start Setup')}
-      </Button>
+      <MonitorQuickStartGuide orgId={orgId} monitor={monitor} />
     </OnboardingPanel>
   );
-};
+}
 
 export default MonitorOnboarding;

@@ -63,8 +63,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                 for v in resp["device.class"]["topValues"]:
                     for key, value in DEVICE_CLASS.items():
                         if v["value"] in value:
-                            name = key
-                            v.update({"name": name})
+                            v.update({"name": key, "value": key})
                             filtered_values.append(v)
                             continue
 

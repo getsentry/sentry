@@ -10,7 +10,7 @@ const pageErrorContext = createContext<{
   setPageError: (_: string | undefined) => {},
 });
 
-export const PageErrorProvider = ({children}: {children: React.ReactNode}) => {
+export function PageErrorProvider({children}: {children: React.ReactNode}) {
   const [pageError, setPageError] = useState<string | undefined>();
   return (
     <pageErrorContext.Provider
@@ -22,9 +22,9 @@ export const PageErrorProvider = ({children}: {children: React.ReactNode}) => {
       {children}
     </pageErrorContext.Provider>
   );
-};
+}
 
-export const PageErrorAlert = () => {
+export function PageErrorAlert() {
   const {pageError} = useContext(pageErrorContext);
   if (!pageError) {
     return null;
@@ -35,6 +35,6 @@ export const PageErrorAlert = () => {
       {pageError}
     </Alert>
   );
-};
+}
 
 export const usePageError = () => useContext(pageErrorContext);

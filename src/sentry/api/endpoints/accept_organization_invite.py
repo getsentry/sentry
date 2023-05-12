@@ -55,7 +55,7 @@ class AcceptOrganizationInvite(Endpoint):
         request.session["invite_email"] = organization_member.email
 
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:
             auth_provider = None
 

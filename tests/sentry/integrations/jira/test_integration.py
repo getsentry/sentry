@@ -20,7 +20,7 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
@@ -1052,7 +1052,7 @@ class JiraInstallationTest(IntegrationTestCase):
         integration = Integration.objects.get(external_id="my-external-id")
         assert integration.metadata == self.metadata
         assert OrganizationIntegration.objects.filter(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         ).exists()
 
     def test_installation(self):

@@ -12,7 +12,7 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
         super().setUp()
         self.create_project(organization=self.organization)
         self.sentry_app = self.create_sentry_app(
-            organization=self.organization,
+            organization_id=self.organization.id,
             published=True,
             verify_install=False,
             name="Super Awesome App",
@@ -33,7 +33,7 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
 
         self.browser.wait_until('[data-test-id="toast-success"]')
         assert SentryAppInstallation.objects.filter(
-            organization=self.organization, sentry_app=self.sentry_app
+            organization_id=self.organization.id, sentry_app=self.sentry_app
         )
 
     def test_uninstallation(self):
@@ -52,5 +52,5 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
         detail_view_page.uninstall()
         self.browser.wait_until('[data-test-id="toast-success"]')
         assert not SentryAppInstallation.objects.filter(
-            organization=self.organization, sentry_app=self.sentry_app
+            organization_id=self.organization.id, sentry_app=self.sentry_app
         )

@@ -58,22 +58,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         'debugFiles',
         `/projects/${organization.slug}/${params.projectId}/files/dsyms/`,
         {
-          query: {
-            query,
-            file_formats: [
-              'breakpad',
-              'macho',
-              'elf',
-              'pe',
-              'pdb',
-              'sourcebundle',
-              'wasm',
-              'bcsymbolmap',
-              'uuidmap',
-              'il2cpp',
-              'portablepdb',
-            ],
-          },
+          query: {query},
         },
       ],
     ];

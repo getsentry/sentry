@@ -67,10 +67,7 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
 
         // Get a list of the breadcrumbs that relate directly to the DOM, for each
         // crumb we will extract the referenced HTML.
-        const crumbs = replay
-          .getRawCrumbs()
-          .filter(crumb => crumb.data && 'nodeId' in crumb.data);
-
+        const crumbs = replay.getCrumbsWithRRWebNodes();
         const rrwebEvents = replay.getRRWebEvents();
 
         // Grab the last event, but skip the synthetic `replay-end` event that the

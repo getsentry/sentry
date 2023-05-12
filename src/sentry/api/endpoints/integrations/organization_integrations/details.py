@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from django.db import transaction
 from django.http import Http404
+from django.views.decorators.cache import never_cache
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
@@ -23,10 +24,11 @@ class IntegrationSerializer(serializers.Serializer):
     domain = serializers.URLField(required=False, allow_blank=True)
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
+    @never_cache
     def get(self, request: Request, organization, integration_id) -> Response:
-        org_integration = self.get_organization_integration(organization, integration_id)
+        org_integration = self.get_organization_integration(organization.id, integration_id)
 
         return self.respond(
             serialize(
@@ -35,8 +37,9 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         )
 
     @requires_feature("organizations:integrations-custom-scm")
+    @never_cache
     def put(self, request: Request, organization, integration_id) -> Response:
-        integration = self.get_integration(organization, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
 
         if integration.provider != "custom_scm":
             return self.respond({"detail": "Invalid action for this integration"}, status=400)
@@ -55,7 +58,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
                 update_kwargs["metadata"] = metadata
             integration_service.update_integration(integration_id=integration.id, **update_kwargs)
 
-            org_integration = self.get_organization_integration(organization, integration_id)
+            org_integration = self.get_organization_integration(organization.id, integration_id)
 
             return self.respond(
                 serialize(
@@ -66,6 +69,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
             )
         return self.respond(serializer.errors, status=400)
 
+    @never_cache
     def delete(self, request: Request, organization, integration_id) -> Response:
         # Removing the integration removes the organization
         # integrations and all linked issues.
@@ -76,7 +80,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         ).first()
         if not org_integration:
             raise Http404
-        integration = self.get_integration(organization, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
         # do any integration specific deleting steps
         integration_service.get_installation(
             integration=integration, organization_id=organization.id
@@ -84,7 +88,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
 
         with transaction.atomic():
             updated = OrganizationIntegration.objects.filter(
-                id=org_integration.id, status=ObjectStatus.VISIBLE
+                id=org_integration.id, status=ObjectStatus.ACTIVE
             ).update(status=ObjectStatus.PENDING_DELETION)
 
             if updated:
@@ -99,8 +103,9 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
 
         return self.respond(status=204)
 
+    @never_cache
     def post(self, request: Request, organization, integration_id) -> Response:
-        integration = self.get_integration(organization, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
         installation = integration_service.get_installation(
             integration=integration, organization_id=organization.id
         )

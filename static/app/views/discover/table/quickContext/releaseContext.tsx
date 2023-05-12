@@ -11,8 +11,8 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {ReleaseWithHealth, User} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {useQuery} from 'sentry/utils/queryClient';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {NoContext} from './quickContextWrapper';
 import {
@@ -27,7 +27,7 @@ import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
 
 function ReleaseContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
-  const {isLoading, isError, data} = useQuery<ReleaseWithHealth>(
+  const {isLoading, isError, data} = useApiQuery<ReleaseWithHealth>(
     [`/organizations/${organization.slug}/releases/${dataRow.release}/`],
     {
       staleTime: tenSecondInMs,
@@ -35,7 +35,7 @@ function ReleaseContext(props: BaseContextProps) {
   );
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+    trackAnalytics('discover_v2.quick_context_hover_contexts', {
       organization,
       contextType: ContextType.RELEASE,
     });

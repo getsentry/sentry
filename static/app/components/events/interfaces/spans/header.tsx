@@ -1,6 +1,12 @@
 import {Component, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  getDataPoints,
+  MIN_DATA_POINTS,
+  MS_PER_S,
+  ProfilingMeasurements,
+} from 'sentry/components/events/interfaces/spans/profilingMeasurements';
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
 import {
   DividerSpacer,
@@ -18,11 +24,14 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
+import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
 import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_HEIGHT,
+  PROFILE_MEASUREMENTS_CHART_HEIGHT,
   TIME_AXIS_HEIGHT,
   VIEW_HANDLE_HEIGHT,
 } from './constants';
@@ -113,15 +122,18 @@ class TraceViewHeader extends Component<PropType, State> {
     );
   }
 
-  renderViewHandles({
-    isDragging,
-    onLeftHandleDragStart,
-    leftHandlePosition,
-    onRightHandleDragStart,
-    rightHandlePosition,
-    viewWindowStart,
-    viewWindowEnd,
-  }: DragManagerChildrenProps) {
+  renderViewHandles(
+    {
+      isDragging,
+      onLeftHandleDragStart,
+      leftHandlePosition,
+      onRightHandleDragStart,
+      rightHandlePosition,
+      viewWindowStart,
+      viewWindowEnd,
+    }: DragManagerChildrenProps,
+    hasProfileMeasurementsChart: boolean
+  ) {
     const leftHandleGhost = isDragging ? (
       <Handle
         left={viewWindowStart}
@@ -129,6 +141,7 @@ class TraceViewHeader extends Component<PropType, State> {
           // do nothing
         }}
         isDragging={false}
+        hasProfileMeasurementsChart={hasProfileMeasurementsChart}
       />
     ) : null;
 
@@ -137,6 +150,7 @@ class TraceViewHeader extends Component<PropType, State> {
         left={leftHandlePosition}
         onMouseDown={onLeftHandleDragStart}
         isDragging={isDragging}
+        hasProfileMeasurementsChart={hasProfileMeasurementsChart}
       />
     );
 
@@ -145,6 +159,7 @@ class TraceViewHeader extends Component<PropType, State> {
         left={rightHandlePosition}
         onMouseDown={onRightHandleDragStart}
         isDragging={isDragging}
+        hasProfileMeasurementsChart={hasProfileMeasurementsChart}
       />
     );
 
@@ -155,6 +170,7 @@ class TraceViewHeader extends Component<PropType, State> {
           // do nothing
         }}
         isDragging={false}
+        hasProfileMeasurementsChart={hasProfileMeasurementsChart}
       />
     ) : null;
 
@@ -168,13 +184,25 @@ class TraceViewHeader extends Component<PropType, State> {
     );
   }
 
-  renderFog(dragProps: DragManagerChildrenProps) {
+  renderFog(
+    dragProps: DragManagerChildrenProps,
+    hasProfileMeasurementsChart: boolean = false
+  ) {
     return (
       <Fragment>
-        <Fog style={{height: '100%', width: toPercent(dragProps.viewWindowStart)}} />
         <Fog
           style={{
-            height: '100%',
+            height: hasProfileMeasurementsChart
+              ? `calc(100% - ${TIME_AXIS_HEIGHT}px)`
+              : '100%',
+            width: toPercent(dragProps.viewWindowStart),
+          }}
+        />
+        <Fog
+          style={{
+            height: hasProfileMeasurementsChart
+              ? `calc(100% - ${TIME_AXIS_HEIGHT}px)`
+              : '100%',
             width: toPercent(1 - dragProps.viewWindowEnd),
             left: toPercent(dragProps.viewWindowEnd),
           }}
@@ -305,12 +333,14 @@ class TraceViewHeader extends Component<PropType, State> {
   renderTimeAxis({
     showCursorGuide,
     mouseLeft,
+    hasProfileMeasurementsChart,
   }: {
+    hasProfileMeasurementsChart: boolean;
     mouseLeft: number | undefined;
     showCursorGuide: boolean;
   }) {
     return (
-      <TimeAxis>
+      <TimeAxis hasProfileMeasurementsChart={hasProfileMeasurementsChart}>
         {this.renderTicks()}
         {this.renderCursorGuide({
           showCursorGuide,
@@ -356,7 +386,7 @@ class TraceViewHeader extends Component<PropType, State> {
     });
   }
 
-  renderSecondaryHeader() {
+  renderSecondaryHeader(hasProfileMeasurementsChart: boolean = false) {
     const {event} = this.props;
 
     const hasMeasurements = Object.keys(event.measurements ?? {}).length > 0;
@@ -367,7 +397,7 @@ class TraceViewHeader extends Component<PropType, State> {
           const {dividerPosition} = dividerHandlerChildrenProps;
 
           return (
-            <SecondaryHeader>
+            <SecondaryHeader hasProfileMeasurementsChart={hasProfileMeasurementsChart}>
               <ScrollbarManager.Consumer>
                 {({virtualScrollbarRef, scrollBarAreaRef, onDragStart, onScroll}) => {
                   return (
@@ -413,101 +443,147 @@ class TraceViewHeader extends Component<PropType, State> {
   }
 
   render() {
+    const {organization, trace} = this.props;
+    const handleStartWindowSelection = (event: React.MouseEvent<HTMLDivElement>) => {
+      const target = event.target;
+
+      if (
+        target instanceof Element &&
+        target.getAttribute &&
+        target.getAttribute('data-ignore')
+      ) {
+        // ignore this event if we need to
+        return;
+      }
+
+      this.props.dragProps.onWindowSelectionDragStart(event);
+    };
+
     return (
-      <HeaderContainer ref={this.props.traceViewHeaderRef}>
-        <DividerHandlerManager.Consumer>
-          {dividerHandlerChildrenProps => {
-            const {dividerPosition} = dividerHandlerChildrenProps;
-            return (
-              <Fragment>
-                <OperationsBreakdown
-                  style={{
-                    width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-                  }}
-                >
-                  {this.props.event && (
-                    <OpsBreakdown
-                      operationNameFilters={this.props.operationNameFilters}
-                      event={this.props.event}
-                      topN={3}
-                      hideHeader
-                    />
-                  )}
-                </OperationsBreakdown>
-                <DividerSpacer
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-                    height: `${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px`,
-                  }}
-                />
-                <ActualMinimap
-                  spans={this.props.spans}
-                  generateBounds={this.props.generateBounds}
-                  dividerPosition={dividerPosition}
-                  rootSpan={this.props.rootSpan}
-                />
-                <CursorGuideHandler.Consumer>
-                  {({
-                    displayCursorGuide,
-                    hideCursorGuide,
-                    mouseLeft,
-                    showCursorGuide,
-                  }) => (
-                    <RightSidePane
-                      ref={this.props.minimapInteractiveRef}
-                      style={{
-                        width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
-                        left: `calc(${toPercent(dividerPosition)} + 0.5px)`,
-                      }}
-                      onMouseEnter={event => {
-                        displayCursorGuide(event.pageX);
-                      }}
-                      onMouseLeave={() => {
-                        hideCursorGuide();
-                      }}
-                      onMouseMove={event => {
-                        displayCursorGuide(event.pageX);
-                      }}
-                      onMouseDown={event => {
-                        const target = event.target;
+      <ProfileContext.Consumer>
+        {profiles => {
+          const transactionDuration = Math.abs(
+            trace.traceEndTimestamp - trace.traceStartTimestamp
+          );
+          const hasProfileMeasurementsChart =
+            organization.features.includes('mobile-cpu-memory-in-transactions') &&
+            profiles?.type === 'resolved' &&
+            // Check that this profile is for android
+            'metadata' in profiles.data &&
+            profiles.data.metadata.platform === 'android' &&
+            // Check that this profile has measurements
+            'measurements' in profiles?.data &&
+            defined(profiles.data.measurements?.cpu_usage) &&
+            // Check that this profile has enough data points
+            getDataPoints(
+              profiles.data.measurements!.cpu_usage,
+              transactionDuration * MS_PER_S
+            ).length >= MIN_DATA_POINTS;
 
-                        if (
-                          target instanceof Element &&
-                          target.getAttribute &&
-                          target.getAttribute('data-ignore')
-                        ) {
-                          // ignore this event if we need to
-                          return;
-                        }
-
-                        this.props.dragProps.onWindowSelectionDragStart(event);
-                      }}
-                    >
-                      <MinimapContainer>
-                        {this.renderFog(this.props.dragProps)}
-                        {this.renderCursorGuide({
-                          showCursorGuide,
+          return (
+            <HeaderContainer
+              ref={this.props.traceViewHeaderRef}
+              hasProfileMeasurementsChart={hasProfileMeasurementsChart}
+            >
+              <DividerHandlerManager.Consumer>
+                {dividerHandlerChildrenProps => {
+                  const {dividerPosition} = dividerHandlerChildrenProps;
+                  return (
+                    <Fragment>
+                      <OperationsBreakdown
+                        style={{
+                          width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                        }}
+                      >
+                        {this.props.event && (
+                          <OpsBreakdown
+                            operationNameFilters={this.props.operationNameFilters}
+                            event={this.props.event}
+                            topN={3}
+                            hideHeader
+                          />
+                        )}
+                      </OperationsBreakdown>
+                      <DividerSpacer
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                          height: `${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px`,
+                        }}
+                      />
+                      <ActualMinimap
+                        spans={this.props.spans}
+                        generateBounds={this.props.generateBounds}
+                        dividerPosition={dividerPosition}
+                        rootSpan={this.props.rootSpan}
+                      />
+                      <CursorGuideHandler.Consumer>
+                        {({
+                          displayCursorGuide,
+                          hideCursorGuide,
                           mouseLeft,
-                          cursorGuideHeight: MINIMAP_HEIGHT,
-                        })}
-                        {this.renderViewHandles(this.props.dragProps)}
-                        {this.renderWindowSelection(this.props.dragProps)}
-                      </MinimapContainer>
-                      {this.renderTimeAxis({
-                        showCursorGuide,
-                        mouseLeft,
-                      })}
-                    </RightSidePane>
-                  )}
-                </CursorGuideHandler.Consumer>
-                {this.renderSecondaryHeader()}
-              </Fragment>
-            );
-          }}
-        </DividerHandlerManager.Consumer>
-      </HeaderContainer>
+                          showCursorGuide,
+                        }) => (
+                          <RightSidePane
+                            ref={this.props.minimapInteractiveRef}
+                            style={{
+                              width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
+                              left: `calc(${toPercent(dividerPosition)} + 0.5px)`,
+                            }}
+                            onMouseEnter={event => {
+                              displayCursorGuide(event.pageX);
+                            }}
+                            onMouseLeave={() => {
+                              hideCursorGuide();
+                            }}
+                            onMouseMove={event => {
+                              displayCursorGuide(event.pageX);
+                            }}
+                            onMouseDown={handleStartWindowSelection}
+                          >
+                            <MinimapContainer>
+                              {this.renderFog(this.props.dragProps)}
+                              {this.renderCursorGuide({
+                                showCursorGuide,
+                                mouseLeft,
+                                cursorGuideHeight: MINIMAP_HEIGHT,
+                              })}
+                              {this.renderViewHandles(
+                                this.props.dragProps,
+                                hasProfileMeasurementsChart
+                              )}
+                              {this.renderWindowSelection(this.props.dragProps)}
+                            </MinimapContainer>
+                            {this.renderTimeAxis({
+                              showCursorGuide,
+                              mouseLeft,
+                              hasProfileMeasurementsChart,
+                            })}
+                          </RightSidePane>
+                        )}
+                      </CursorGuideHandler.Consumer>
+                      {hasProfileMeasurementsChart && (
+                        <ProfilingMeasurements
+                          transactionDuration={transactionDuration}
+                          profileData={profiles.data}
+                          renderCursorGuide={this.renderCursorGuide}
+                          renderFog={() => this.renderFog(this.props.dragProps, true)}
+                          renderWindowSelection={() =>
+                            this.renderWindowSelection(this.props.dragProps)
+                          }
+                          onStartWindowSelection={handleStartWindowSelection}
+                        />
+                      )}
+                      {this.renderSecondaryHeader(hasProfileMeasurementsChart)}
+                    </Fragment>
+                  );
+                }}
+              </DividerHandlerManager.Consumer>
+            </HeaderContainer>
+          );
+        }}
+      </ProfileContext.Consumer>
     );
   }
 }
@@ -637,11 +713,14 @@ class ActualMinimap extends PureComponent<{
   }
 }
 
-const TimeAxis = styled('div')`
+const TimeAxis = styled('div')<{hasProfileMeasurementsChart: boolean}>`
   width: 100%;
   position: absolute;
   left: 0;
-  top: ${MINIMAP_HEIGHT}px;
+  top: ${p =>
+    p.hasProfileMeasurementsChart
+      ? MINIMAP_HEIGHT + PROFILE_MEASUREMENTS_CHART_HEIGHT
+      : MINIMAP_HEIGHT}px;
   border-top: 1px solid ${p => p.theme.border};
   height: ${TIME_AXIS_HEIGHT}px;
   background-color: ${p => p.theme.background};
@@ -696,12 +775,12 @@ const TickMarker = styled('div')`
   transform: translateX(-50%);
 `;
 
-const TickLabel = (props: {
+function TickLabel(props: {
   duration: number;
   style: React.CSSProperties;
   align?: TickAlignment;
   hideTickMarker?: boolean;
-}) => {
+}) {
   const {style, duration, hideTickMarker = false, align = TickAlignment.Center} = props;
 
   return (
@@ -710,7 +789,7 @@ const TickLabel = (props: {
       <TickText align={align}>{getHumanDuration(duration)}</TickText>
     </TickLabelContainer>
   );
-};
+}
 
 const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   position: absolute;
@@ -731,7 +810,7 @@ const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   }};
 `;
 
-export const HeaderContainer = styled('div')`
+export const HeaderContainer = styled('div')<{hasProfileMeasurementsChart: boolean}>`
   width: 100%;
   position: sticky;
   left: 0;
@@ -739,7 +818,10 @@ export const HeaderContainer = styled('div')`
   z-index: ${p => p.theme.zIndex.traceView.minimapContainer};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
-  height: ${MINIMAP_CONTAINER_HEIGHT}px;
+  height: ${p =>
+    p.hasProfileMeasurementsChart
+      ? MINIMAP_CONTAINER_HEIGHT + PROFILE_MEASUREMENTS_CHART_HEIGHT
+      : MINIMAP_CONTAINER_HEIGHT}px;
   border-top-left-radius: ${p => p.theme.borderRadius};
   border-top-right-radius: ${p => p.theme.borderRadius};
 `;
@@ -762,11 +844,12 @@ const MinimapContainer = styled('div')`
 const ViewHandleContainer = styled('div')`
   position: absolute;
   top: 0;
-  height: ${MINIMAP_HEIGHT}px;
+  height: 100%;
+  z-index: 1;
 `;
 
 const ViewHandleLine = styled('div')`
-  height: ${MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}px;
+  height: calc(100% - ${VIEW_HANDLE_HEIGHT}px);
   width: 2px;
   background-color: ${p => p.theme.textColor};
 `;
@@ -820,43 +903,55 @@ const CursorGuide = styled('div')`
   transform: translateX(-50%);
 `;
 
-const Handle = ({
+function Handle({
   left,
   onMouseDown,
   isDragging,
+  hasProfileMeasurementsChart,
 }: {
+  hasProfileMeasurementsChart: boolean;
   isDragging: boolean;
   left: number;
   onMouseDown: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
-}) => (
-  <ViewHandleContainer
-    style={{
-      left: toPercent(left),
-    }}
-  >
-    <ViewHandleLine />
-    <ViewHandle
-      data-ignore="true"
-      onMouseDown={onMouseDown}
-      isDragging={isDragging}
+}) {
+  return (
+    <ViewHandleContainer
       style={{
-        height: `${VIEW_HANDLE_HEIGHT}px`,
+        left: toPercent(left),
+        height: `${
+          hasProfileMeasurementsChart
+            ? MINIMAP_HEIGHT + PROFILE_MEASUREMENTS_CHART_HEIGHT
+            : MINIMAP_HEIGHT
+        }px`,
       }}
-    />
-  </ViewHandleContainer>
-);
+    >
+      <ViewHandleLine />
+      <ViewHandle
+        data-ignore="true"
+        onMouseDown={onMouseDown}
+        isDragging={isDragging}
+        style={{
+          height: `${VIEW_HANDLE_HEIGHT}px`,
+        }}
+      />
+    </ViewHandleContainer>
+  );
+}
 
 const WindowSelection = styled('div')`
   position: absolute;
   top: 0;
-  height: ${MINIMAP_HEIGHT}px;
+  height: 100%;
   background-color: ${p => p.theme.textColor};
   opacity: 0.1;
 `;
 
-export const SecondaryHeader = styled('div')`
+export const SecondaryHeader = styled('div')<{hasProfileMeasurementsChart?: boolean}>`
   position: absolute;
-  top: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
+  top: ${p =>
+    MINIMAP_HEIGHT +
+    TIME_AXIS_HEIGHT +
+    (p.hasProfileMeasurementsChart ? PROFILE_MEASUREMENTS_CHART_HEIGHT : 0)}px;
   left: 0;
   height: ${TIME_AXIS_HEIGHT}px;
   width: 100%;

@@ -12,7 +12,7 @@ import {
   Project,
   ReleaseProject,
 } from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
@@ -89,8 +89,10 @@ export enum PROJECT_PERFORMANCE_TYPE {
 
 // The native SDK is equally used on clients and end-devices as on
 // backend, the default view should be "All Transactions".
-const FRONTEND_PLATFORMS: string[] = [...frontend].filter(
-  platform => platform !== 'javascript-nextjs' // Next has both frontend and backend transactions.
+const FRONTEND_PLATFORMS: string[] = frontend.filter(
+  platform =>
+    // Next, Remix and Sveltekit habe both, frontend and backend transactions.
+    !['javascript-nextjs', 'javascript-remix', 'javascript-sveltekit'].includes(platform)
 );
 const BACKEND_PLATFORMS: string[] = backend.filter(platform => platform !== 'native');
 const MOBILE_PLATFORMS: string[] = [...mobile];
@@ -111,31 +113,27 @@ export function platformToPerformanceType(
     return PROJECT_PERFORMANCE_TYPE.ANY;
   }
 
-  if (
-    selectedProjects.every(project =>
-      FRONTEND_PLATFORMS.includes(project.platform as string)
-    )
-  ) {
-    return PROJECT_PERFORMANCE_TYPE.FRONTEND;
-  }
+  const projectPerformanceTypes = new Set<PROJECT_PERFORMANCE_TYPE>();
 
-  if (
-    selectedProjects.every(project =>
-      BACKEND_PLATFORMS.includes(project.platform as string)
-    )
-  ) {
-    return PROJECT_PERFORMANCE_TYPE.BACKEND;
-  }
+  selectedProjects.forEach(project => {
+    if (FRONTEND_PLATFORMS.includes(project.platform ?? '')) {
+      projectPerformanceTypes.add(PROJECT_PERFORMANCE_TYPE.FRONTEND);
+    }
+    if (BACKEND_PLATFORMS.includes(project.platform ?? '')) {
+      projectPerformanceTypes.add(PROJECT_PERFORMANCE_TYPE.BACKEND);
+    }
+    if (MOBILE_PLATFORMS.includes(project.platform ?? '')) {
+      projectPerformanceTypes.add(PROJECT_PERFORMANCE_TYPE.MOBILE);
+    }
+  });
 
-  if (
-    selectedProjects.every(project =>
-      MOBILE_PLATFORMS.includes(project.platform as string)
-    )
-  ) {
-    return PROJECT_PERFORMANCE_TYPE.MOBILE;
-  }
+  const uniquePerformanceTypeCount = projectPerformanceTypes.size;
 
-  return PROJECT_PERFORMANCE_TYPE.ANY;
+  if (!uniquePerformanceTypeCount || uniquePerformanceTypeCount > 1) {
+    return PROJECT_PERFORMANCE_TYPE.ANY;
+  }
+  const [platformType] = projectPerformanceTypes;
+  return platformType;
 }
 
 /**
@@ -197,7 +195,7 @@ export function handleTrendsClick({
   organization: Organization;
   projectPlatforms: string;
 }) {
-  trackAdvancedAnalyticsEvent('performance_views.change_view', {
+  trackAnalytics('performance_views.change_view', {
     organization,
     view_name: 'TRENDS',
     project_platforms: projectPlatforms,

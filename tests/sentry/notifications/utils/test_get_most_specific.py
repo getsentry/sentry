@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 from sentry.models import User
 from sentry.notifications.helpers import (
     get_highest_notification_setting_value,
@@ -10,17 +8,19 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
 
 
 class GetMostSpecificNotificationSettingValueTestCase(TestCase):
     def setUp(self) -> None:
-        self.user = User(id=1)
+        self.user = self.create_user()
 
     def test_get_most_specific_notification_setting_value_empty_workflow(self):
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope={},
-            recipient=self.user,
+            recipient=RpcActor.from_object(self.user),
             parent_id=1,
             type=NotificationSettingTypes.WORKFLOW,
         )
@@ -29,7 +29,7 @@ class GetMostSpecificNotificationSettingValueTestCase(TestCase):
     def test_get_most_specific_notification_setting_value_empty_alerts(self):
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope={},
-            recipient=self.user,
+            recipient=RpcActor.from_object(self.user),
             parent_id=1,
             type=NotificationSettingTypes.ISSUE_ALERTS,
         )
@@ -46,7 +46,7 @@ class GetMostSpecificNotificationSettingValueTestCase(TestCase):
         }
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope,
-            recipient=self.user,
+            recipient=RpcActor.from_object(self.user),
             parent_id=1,
             type=NotificationSettingTypes.ISSUE_ALERTS,
         )
@@ -71,7 +71,7 @@ class GetMostSpecificNotificationSettingValueTestCase(TestCase):
         }
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope,
-            recipient=self.user,
+            recipient=RpcActor.from_object(self.user),
             parent_id=project_id,
             type=NotificationSettingTypes.ISSUE_ALERTS,
         )

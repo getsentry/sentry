@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -253,11 +253,9 @@ describe('Dashboards > Dashboard', () => {
         ...mockDashboard,
         widgets: [newWidget, issueWidget],
       };
-      await act(async () => {
-        mount(mockDashboardWithIssueWidget, organization);
-        await tick();
-      });
-      expect(screen.getByText('Test Discover Widget')).toBeInTheDocument();
+
+      mount(mockDashboardWithIssueWidget, organization);
+      expect(await screen.findByText('Test Discover Widget')).toBeInTheDocument();
       expect(screen.getByText('Test Issue Widget')).toBeInTheDocument();
     });
 
@@ -312,24 +310,21 @@ describe('Dashboards > Dashboard', () => {
 
     it('displays the copy widget button in edit mode', async () => {
       const dashboardWithOneWidget = {...mockDashboard, widgets};
-      await act(async () => {
-        mount(dashboardWithOneWidget);
-        await tick();
-      });
 
-      expect(screen.getByLabelText('Duplicate Widget')).toBeInTheDocument();
+      mount(dashboardWithOneWidget);
+      expect(await screen.findByLabelText('Duplicate Widget')).toBeInTheDocument();
     });
 
     it('duplicates the widget', async () => {
       const dashboardWithOneWidget = {...mockDashboard, widgets};
-      await act(async () => {
-        const {rerender} = mount(dashboardWithOneWidget);
+      const {rerender} = mount(dashboardWithOneWidget);
 
-        await userEvent.click(screen.getByLabelText('Duplicate Widget'));
-        rerender();
-        await tick();
+      await userEvent.click(await screen.findByLabelText('Duplicate Widget'));
+      rerender();
+
+      await waitFor(() => {
+        expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
       });
-      expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
     });
 
     it('opens the widget builder when editing with the modal access flag', async function () {
@@ -344,17 +339,14 @@ describe('Dashboards > Dashboard', () => {
         widgets: [newWidget],
       };
 
-      await act(async () => {
-        mount(
-          dashboardWithOneWidget,
-          testData.organization,
-          testData.router,
-          testData.router.location
-        );
-        await tick();
+      mount(
+        dashboardWithOneWidget,
+        testData.organization,
+        testData.router,
+        testData.router.location
+      );
 
-        await userEvent.click(screen.getByLabelText('Edit Widget'));
-      });
+      await userEvent.click(await screen.findByLabelText('Edit Widget'));
 
       expect(testData.router.push).toHaveBeenCalledWith(
         expect.objectContaining({

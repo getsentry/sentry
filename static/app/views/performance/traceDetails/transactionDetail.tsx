@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import Clipboard from 'sentry/components/clipboard';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import DateTime from 'sentry/components/dateTime';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import Link from 'sentry/components/links/link';
@@ -19,11 +19,10 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconLink, IconProfiling} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
@@ -46,7 +45,7 @@ class TransactionDetail extends Component<Props> {
   componentDidMount() {
     const {organization, transaction} = this.props;
 
-    trackAdvancedAnalyticsEvent('performance_views.trace_view.open_transaction_details', {
+    trackAnalytics('performance_views.trace_view.open_transaction_details', {
       organization,
       operation: transaction['transaction.op'],
       transaction: transaction.transaction,
@@ -55,9 +54,9 @@ class TransactionDetail extends Component<Props> {
 
   renderTransactionErrors() {
     const {organization, transaction} = this.props;
-    const {errors} = transaction;
+    const {errors, performance_issues} = transaction;
 
-    if (errors.length === 0) {
+    if (errors.length + performance_issues.length === 0) {
       return null;
     }
 
@@ -65,7 +64,7 @@ class TransactionDetail extends Component<Props> {
       <Alert
         system
         type="error"
-        expand={errors.map(error => (
+        expand={[...errors, ...performance_issues].map(error => (
           <ErrorMessageContent key={error.event_id}>
             <ErrorDot level={error.level} />
             <ErrorLevel>{error.level}</ErrorLevel>
@@ -79,9 +78,9 @@ class TransactionDetail extends Component<Props> {
       >
         <ErrorMessageTitle>
           {tn(
-            '%s error event occurred in this transaction.',
-            '%s error events occurred in this transaction.',
-            errors.length
+            '%s issue occurred in this transaction.',
+            '%s issues occurred in this transaction.',
+            errors.length + performance_issues.length
           )}
         </ErrorMessageTitle>
       </Alert>
@@ -141,20 +140,15 @@ class TransactionDetail extends Component<Props> {
     });
 
     function handleOnClick() {
-      trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+      trackAnalytics('profiling_views.go_to_flamegraph', {
         organization,
         source: 'performance.trace_view',
       });
     }
 
     return (
-      <StyledButton
-        size="xs"
-        to={target}
-        onClick={handleOnClick}
-        icon={<IconProfiling size="xs" />}
-      >
-        {t('Go to Profile')}
+      <StyledButton size="xs" to={target} onClick={handleOnClick}>
+        {t('View Profile')}
       </StyledButton>
     );
   }
@@ -224,19 +218,19 @@ class TransactionDetail extends Component<Props> {
                   onClick={this.scrollBarIntoView(transaction.event_id)}
                 >
                   {t('Event ID')}
-                  <Clipboard
-                    value={`${window.location.href.replace(
-                      window.location.hash,
-                      ''
-                    )}#txn-${transaction.event_id}`}
-                  >
-                    <StyledIconLink />
-                  </Clipboard>
                 </TransactionIdTitle>
               }
               extra={this.renderGoToTransactionButton()}
             >
               {transaction.event_id}
+              <CopyToClipboardButton
+                borderless
+                size="zero"
+                iconSize="xs"
+                text={`${window.location.href.replace(window.location.hash, '')}#txn-${
+                  transaction.event_id
+                }`}
+              />
             </Row>
             <Row title="Transaction" extra={this.renderGoToSummaryButton()}>
               {transaction.transaction}
@@ -308,12 +302,6 @@ const TransactionIdTitle = styled('a')`
   :hover {
     color: ${p => p.theme.textColor};
   }
-`;
-
-const StyledIconLink = styled(IconLink)`
-  display: block;
-  color: ${p => p.theme.gray300};
-  margin-left: ${space(1)};
 `;
 
 const StyledButton = styled(Button)`

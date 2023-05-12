@@ -22,6 +22,7 @@ type DefaultProps = {
 type Props = {
   clipFlex: number;
   clipHeight: number;
+  children?: React.ReactNode;
   className?: string;
   /**
    * When available replaces the default clipFade component

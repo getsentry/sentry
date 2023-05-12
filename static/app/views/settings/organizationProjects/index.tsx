@@ -80,7 +80,7 @@ class OrganizationProjects extends AsyncView<Props, State> {
   renderBody(): React.ReactNode {
     const {projectList, projectListPageLinks, projectStats} = this.state;
     const {organization} = this.props;
-    const canCreateProjects = new Set(organization.access).has('project:admin');
+    const canCreateProjects = organization.access.includes('project:admin');
 
     const action = (
       <Button

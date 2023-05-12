@@ -1,3 +1,4 @@
+import {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
@@ -11,7 +12,7 @@ type Props = {
   timestampMs: string | number | Date;
   className?: string;
   format?: 'mm:ss' | 'mm:ss.SSS';
-  onClick?: () => void;
+  onClick?: (event: MouseEvent) => void;
 };
 
 function TimestampButton({
@@ -22,7 +23,7 @@ function TimestampButton({
   timestampMs,
 }: Props) {
   return (
-    <Tooltip title={<DateTime date={timestampMs} />}>
+    <Tooltip title={<DateTime seconds date={timestampMs} />} skipWrapper>
       <StyledButton
         as={onClick ? 'button' : 'span'}
         onClick={onClick}
@@ -39,20 +40,13 @@ const StyledButton = styled('button')`
   background: transparent;
   border: none;
   color: inherit;
-  font-size: ${p => p.theme.fontSizeSmall};
   font-variant-numeric: tabular-nums;
 
   display: flex;
   align-items: center;
   gap: ${space(0.25)};
   padding: 0;
-
-  & > svg {
-    visibility: hidden;
-  }
-  &:hover svg {
-    visibility: visible;
-  }
+  height: 100%;
 `;
 
 export default TimestampButton;

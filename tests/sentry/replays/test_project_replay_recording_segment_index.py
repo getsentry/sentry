@@ -137,6 +137,23 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
             )
         )
 
+        # Insert an empty segment row into ClickHouse (this should not be returned). If the tests
+        # do not error it means these empty rows were not retured.
+        #
+        # TODO: Apparently we can't submit replays with a null segment_id?  This breaks older
+        # versions of Clickhouse ingestion.
+        #
+        # self.store_replays(
+        #     mock_replay(
+        #         datetime.datetime.now() - datetime.timedelta(seconds=22),
+        #         self.project.id,
+        #         self.replay_id,
+        #         segment_id=None,
+        #         retention_days=30,
+        #         **metadata,
+        #     )
+        # )
+
         # Store the binary blob in the remote storage provider.
         metadata = RecordingSegmentStorageMeta(
             project_id=self.project.id,

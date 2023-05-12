@@ -63,7 +63,9 @@ class MSTeamsMessageBuilderTest(TestCase):
             external_id="f3ll0wsh1p",
             metadata={},
         )
-        OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
+        OrganizationIntegration.objects.create(
+            organization_id=self.org.id, integration=self.integration
+        )
 
         self.project1 = self.create_project(organization=self.org)
         self.event1 = self.store_event(
@@ -344,6 +346,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_resolved_issue_message(self):
         self.group1.status = GroupStatus.RESOLVED
+        self.group1.substatus = None
         self.group1.save()
 
         issue_card = MSTeamsIssueMessageBuilder(
@@ -358,6 +361,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_ignored_issue_message(self):
         self.group1.status = GroupStatus.IGNORED
+        self.group1.substatus = None
 
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration

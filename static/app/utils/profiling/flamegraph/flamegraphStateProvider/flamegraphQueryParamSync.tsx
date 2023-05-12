@@ -71,20 +71,20 @@ export function decodeFlamegraphStateFromQueryParams(
   // omit the field entirely if it is not present in the query string or
   // if it is an empty string.
   if (typeof query.frameName === 'string') {
-    decoded.profiles = {
-      ...(decoded.profiles ?? {}),
+    decoded.search = {
+      ...(decoded.search ?? {}),
       highlightFrames: {
-        ...(decoded.profiles?.highlightFrames ?? {}),
+        ...(decoded.search?.highlightFrames ?? {}),
         name: query.frameName ? query.frameName : undefined,
       },
     };
   }
 
   if (typeof query.framePackage === 'string') {
-    decoded.profiles = {
-      ...(decoded.profiles ?? {}),
+    decoded.search = {
+      ...(decoded.search ?? {}),
       highlightFrames: {
-        ...(decoded.profiles?.highlightFrames ?? {}),
+        ...(decoded.search?.highlightFrames ?? {}),
         package: query.framePackage ? query.framePackage : undefined,
       },
     };
@@ -103,7 +103,7 @@ export function decodeFlamegraphStateFromQueryParams(
   }
 
   decoded.preferences = {};
-  decoded.search = {};
+  decoded.search = decoded.search || {};
 
   if (isLayout(query.layout)) {
     decoded.preferences.layout = query.layout;
@@ -132,17 +132,17 @@ export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
   // the field entirely from the query string. This is to avoid default values being used
   // as qs.parse will initialize empty values to "" which can differ from the respective
   // frame values which are undefined.
-  if (state.profiles.highlightFrames?.name) {
-    highlightFrameToEncode.frameName = state.profiles.highlightFrames.name;
+  if (state.search.highlightFrames?.name) {
+    highlightFrameToEncode.frameName = state.search.highlightFrames.name;
   }
-  if (state.profiles.highlightFrames?.package) {
-    highlightFrameToEncode.framePackage = state.profiles.highlightFrames.package;
+  if (state.search.highlightFrames?.package) {
+    highlightFrameToEncode.framePackage = state.search.highlightFrames.package;
   }
 
-  const highlightFrame = state.profiles.highlightFrames
+  const highlightFrame = state.search.highlightFrames
     ? {
-        frameName: state.profiles.highlightFrames?.name,
-        framePackage: state.profiles.highlightFrames?.package,
+        frameName: state.search.highlightFrames?.name,
+        framePackage: state.search.highlightFrames?.package,
       }
     : {};
 
@@ -162,7 +162,7 @@ export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
 }
 
 function maybeOmitHighlightedFrame(query: Query, state: FlamegraphState) {
-  if (!state.profiles.highlightFrames && query.frameName && query.framePackage) {
+  if (!state.search.highlightFrames && query.frameName && query.framePackage) {
     const {frameName: _, framePackage: __, ...rest} = query;
     return rest;
   }

@@ -70,9 +70,14 @@ describe('sanitizePath', function () {
     ['/customers/sentry-test/issues/', '/customers/{orgSlug}/issues/'],
     ['/customers/sentry-test/issues/123/', '/customers/{orgSlug}/issues/123/'],
 
+    // replays endpionts
     [
       '/projects/sentry/javascript/replays/123/',
       '/projects/{orgSlug}/{projectSlug}/replays/{replayId}/',
+    ],
+    [
+      '/organizations/sentry/replays/abc123/',
+      '/organizations/{orgSlug}/replays/{replayId}/',
     ],
   ])('sanitizes %s', (path, expected) => {
     expect(sanitizePath(path)).toBe(expected);

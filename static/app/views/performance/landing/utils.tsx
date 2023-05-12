@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   formatAbbreviatedNumber,
@@ -135,7 +135,7 @@ export function handleLandingDisplayChange(
       ? {...queryWithConditions}
       : {...queryWithConditions, landingDisplay: field};
 
-  trackAdvancedAnalyticsEvent('performance_views.landingv3.display_change', {
+  trackAnalytics('performance_views.landingv3.display_change', {
     organization,
     change_to_display: field,
     default_display: defaultDisplay,

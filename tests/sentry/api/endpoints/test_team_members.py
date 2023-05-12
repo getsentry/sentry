@@ -50,12 +50,11 @@ class TeamMembersTest(APITestCase):
         assert response.data[1]["id"] == str(pending_invite.id)
 
     def test_team_members_list_does_not_include_inactive_users(self):
-        inactive_user = self.create_user()
+        inactive_user = self.create_user(email="inactive@example.com")
         inactive_user.is_active = False
         inactive_user.save()
 
         inactive_member = self.create_member(
-            email="inactive@example.com",
             organization=self.org,
             user=inactive_user,
             teams=[self.team],

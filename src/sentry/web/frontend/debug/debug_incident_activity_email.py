@@ -13,7 +13,7 @@ from .mail import MailPreview
 class DebugIncidentActivityEmailView(View):
     def get(self, request: Request) -> Response:
         organization = Organization(slug="myorg")
-        user = User(id=1235, name="Hello There")
+        user = User(id=1235, name="Hello There", actor_id=1)
         incident = Incident(
             id=2, identifier=123, organization=organization, title="Something broke"
         )

@@ -34,7 +34,8 @@ describe('TeamSettings', function () {
 
     render(<TeamSettings team={team} params={{teamId: team.slug}} />);
 
-    const input = screen.getByRole('textbox', {name: 'Name'});
+    const input = screen.getByRole('textbox', {name: 'Team Slug'});
+
     await userEvent.clear(input);
     await userEvent.type(input, 'NEW SLUG');
 
@@ -56,7 +57,7 @@ describe('TeamSettings', function () {
     );
   });
 
-  it('can set team org role', async function () {
+  it('can set team org-role', async function () {
     const team = TestStubs.Team({orgRole: ''});
     const putMock = MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team.slug}/`,
@@ -85,7 +86,6 @@ describe('TeamSettings', function () {
     await selectEvent.select(unsetDropdown, 'Owner');
 
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
-
     expect(putMock).toHaveBeenCalledWith(
       `/teams/org-slug/${team.slug}/`,
       expect.objectContaining({
@@ -124,10 +124,10 @@ describe('TeamSettings', function () {
       context,
     });
 
-    expect(screen.getByRole('button', {name: 'Remove Team'})).toBeDisabled();
+    expect(screen.getByTestId('button-remove-team')).toBeDisabled();
   });
 
-  it('needs org:admin in order to set team org role', function () {
+  it('needs org:admin in order to set team org-role', function () {
     const team = TestStubs.Team();
 
     const context = TestStubs.routerContext([
@@ -146,7 +146,7 @@ describe('TeamSettings', function () {
     expect(screen.getByRole('textbox', {name: 'Organization Role'})).toBeDisabled();
   });
 
-  it('cannot set team org role for idp:provisioned team', function () {
+  it('cannot set team org-role for idp:provisioned team', function () {
     const team = TestStubs.Team({flags: {'idp:provisioned': true}});
 
     const context = TestStubs.routerContext([

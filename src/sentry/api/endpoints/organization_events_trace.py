@@ -32,7 +32,7 @@ from sentry.eventstore.models import Event
 from sentry.models import Group, Organization
 from sentry.search.events.builder import QueryBuilder
 from sentry.snuba import discover
-from sentry.utils.numbers import format_grouped_length
+from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import Dataset, bulk_snql_query
@@ -90,12 +90,17 @@ class TraceError(TypedDict):
 class TracePerformanceIssue(TypedDict):
     event_id: str
     issue_id: int
+    issue_short_id: Optional[str]
     span: List[str]
     suspect_spans: List[str]
     project_id: int
     project_slug: str
     title: str
     level: str
+    culprit: str
+    type: int
+    start: Optional[float]
+    end: Optional[float]
 
 
 LightResponse = TypedDict(
@@ -184,6 +189,8 @@ class TraceEvent:
                 continue
 
             suspect_spans: List[str] = []
+            start: Optional[float] = None
+            end: Optional[float] = None
             if light:
                 # This value doesn't matter for the light view
                 span = [self.event["trace.span"]]
@@ -204,20 +211,48 @@ class TraceEvent:
                     for event_span in self.nodestore_event.data.get("spans", []):
                         for problem in problems:
                             if event_span.get("span_id") in problem.offender_span_ids:
+                                try:
+                                    start_timestamp = float(event_span.get("start_timestamp"))
+                                    if start is None:
+                                        start = start_timestamp
+                                    else:
+                                        start = min(start, start_timestamp)
+                                except ValueError:
+                                    pass
+                                try:
+                                    end_timestamp = float(event_span.get("timestamp"))
+                                    if end is None:
+                                        end = end_timestamp
+                                    else:
+                                        end = max(end, end_timestamp)
+                                except ValueError:
+                                    pass
                                 suspect_spans.append(event_span.get("span_id"))
                 else:
                     span = [self.event["trace.span"]]
+
+            # Logic for qualified_short_id is copied from property on the Group model
+            # to prevent an N+1 query from accessing project.slug everytime
+            qualified_short_id = None
+            project_slug = self.event["project"]
+            if group.short_id is not None:
+                qualified_short_id = f"{project_slug.upper()}-{base32_encode(group.short_id)}"
 
             self.performance_issues.append(
                 {
                     "event_id": self.event["id"],
                     "issue_id": group_id,
+                    "issue_short_id": qualified_short_id,
                     "span": span,
                     "suspect_spans": suspect_spans,
                     "project_id": self.event["project.id"],
                     "project_slug": self.event["project"],
                     "title": group.title,
                     "level": constants.LOG_LEVELS[group.level],
+                    "culprit": group.culprit,
+                    "type": group.type,
+                    "start": start,
+                    "end": end,
                 }
             )
 

@@ -1,24 +1,42 @@
-import {MouseEvent} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, ReactNode} from 'react';
 import queryString from 'query-string';
 
-import NavTabs from 'sentry/components/navTabs';
+import FeatureBadge from 'sentry/components/featureBadge';
+import ListLink from 'sentry/components/links/listLink';
+import ScrollableTabs from 'sentry/components/replays/scrollableTabs';
 import {t} from 'sentry/locale';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const ReplayTabs: Record<TabKey, string> = {
-  console: t('Console'),
-  network: t('Network'),
-  dom: t('DOM Events'),
-  issues: t('Issues'),
-  memory: t('Memory'),
-  trace: t('Trace'),
-};
+function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
+  const hasReplayNetworkDetails = organization.features.includes(
+    'session-replay-network-details'
+  );
 
-type Props = {className?: string};
+  const networkLabel = hasReplayNetworkDetails ? (
+    <Fragment>
+      {t('Network')} <FeatureBadge type="new" />
+    </Fragment>
+  ) : (
+    t('Network')
+  );
+
+  return {
+    [TabKey.console]: t('Console'),
+    [TabKey.network]: networkLabel,
+    [TabKey.dom]: t('DOM Events'),
+    [TabKey.issues]: t('Issues'),
+    [TabKey.memory]: t('Memory'),
+    [TabKey.trace]: t('Trace'),
+  };
+}
+
+type Props = {
+  className?: string;
+};
 
 function FocusTabs({className}: Props) {
   const organization = useOrganization();
@@ -26,38 +44,28 @@ function FocusTabs({className}: Props) {
   const {getActiveTab, setActiveTab} = useActiveReplayTab();
   const activeTab = getActiveTab();
 
-  const createTabChangeHandler = (tab: string) => (e: MouseEvent) => {
-    e.preventDefault();
-    setActiveTab(tab);
-
-    trackAdvancedAnalyticsEvent('replay.details-tab-changed', {
-      tab,
-      organization,
-    });
-  };
-
   return (
-    <ScrollableNavTabs underlined className={className}>
-      {Object.entries(ReplayTabs).map(([tab, label]) => (
-        <li key={tab} className={activeTab === tab ? 'active' : ''}>
-          <a
-            href={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
-            onClick={createTabChangeHandler(tab)}
-          >
-            <span>{label}</span>
-          </a>
-        </li>
+    <ScrollableTabs className={className} underlined>
+      {Object.entries(getReplayTabs(organization)).map(([tab, label]) => (
+        <ListLink
+          key={tab}
+          isActive={() => tab === activeTab}
+          to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
+          onClick={e => {
+            e.preventDefault();
+            setActiveTab(tab);
+
+            trackAnalytics('replay.details-tab-changed', {
+              tab,
+              organization,
+            });
+          }}
+        >
+          {label}
+        </ListLink>
       ))}
-    </ScrollableNavTabs>
+    </ScrollableTabs>
   );
 }
-
-const ScrollableNavTabs = styled(NavTabs)`
-  display: flex;
-  flex-wrap: nowrap;
-  overflow-y: hidden;
-  overflow-x: auto;
-  white-space: nowrap;
-`;
 
 export default FocusTabs;

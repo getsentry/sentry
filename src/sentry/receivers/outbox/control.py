@@ -1,3 +1,10 @@
+"""
+This module contains signal handler for control silo outbox messages.
+
+These receivers are triggered on the control silo as outbox messages
+are drained. Receivers are expected to make local state changes (tombstones)
+and perform RPC calls to propagate changes to relevant region(s).
+"""
 from __future__ import annotations
 
 from typing import Any
@@ -7,6 +14,7 @@ from django.dispatch import receiver
 from sentry.models import (
     ApiApplication,
     Integration,
+    OrganizationIntegration,
     OutboxCategory,
     SentryAppInstallation,
     User,
@@ -43,3 +51,14 @@ def process_sentry_app_installation_updates(object_identifier: int, **kwds: Any)
     ) is None:
         return
     sentry_app_installation  # Currently we do not sync any other api application changes, but if we did, you can use this variable.
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.ORGANIZATION_INTEGRATION_UPDATE)
+def process_organization_integration_update(object_identifier: int, **kwds: Any):
+    if (
+        organization_integration := maybe_process_tombstone(
+            OrganizationIntegration, object_identifier
+        )
+    ) is None:
+        return
+    organization_integration  # Currently we do not sync any other organization integration changes, but if we did, you can use this variable.

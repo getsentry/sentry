@@ -560,21 +560,19 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      await act(async () => {
-        render(
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />,
-          {context: initialData.routerContext, organization: initialData.organization}
-        );
-        await tick();
-      });
 
-      await screen.findByText('First Widget');
-      await screen.findByText('Second Widget');
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext, organization: initialData.organization}
+      );
+
+      expect(await screen.findByText('First Widget')).toBeInTheDocument();
+      expect(await screen.findByText('Second Widget')).toBeInTheDocument();
     });
 
     it('does not trigger request if layout not updated', async () => {
@@ -603,22 +601,19 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      await act(async () => {
-        render(
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />,
-          {context: initialData.routerContext, organization: initialData.organization}
-        );
-        await tick();
 
-        await userEvent.click(screen.getByText('Edit Dashboard'));
-        await userEvent.click(screen.getByText('Save and Finish'));
-        await tick();
-      });
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext, organization: initialData.organization}
+      );
+
+      await userEvent.click(await screen.findByText('Edit Dashboard'));
+      await userEvent.click(await screen.findByText('Save and Finish'));
 
       expect(screen.getByText('Edit Dashboard')).toBeInTheDocument();
       expect(mockPut).not.toHaveBeenCalled();
@@ -651,18 +646,15 @@ describe('Dashboards > Detail', function () {
         ),
       });
 
-      await act(async () => {
-        render(
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />,
-          {context: initialData.routerContext, organization: initialData.organization}
-        );
-        await tick();
-      });
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext, organization: initialData.organization}
+      );
 
       await userEvent.click(await screen.findByText('Edit Dashboard'));
       const widget = screen.getByText('First Widget').closest('.react-grid-item');
@@ -697,23 +689,19 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      await act(async () => {
-        render(
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />,
-          {context: initialData.routerContext, organization: initialData.organization}
-        );
-        await tick();
-      });
 
-      await act(async () => {
-        await userEvent.click(await screen.findByText('Edit Dashboard'));
-        await userEvent.click(await screen.findByText('Cancel'));
-      });
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext, organization: initialData.organization}
+      );
+
+      await userEvent.click(await screen.findByText('Edit Dashboard'));
+      await userEvent.click(await screen.findByText('Cancel'));
 
       expect(window.confirm).not.toHaveBeenCalled();
     });
@@ -743,26 +731,25 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.Dashboard([widget], {id: '1', title: 'Custom Errors'}),
       });
 
-      await act(async () => {
-        render(
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
-            router={initialData.router}
-            location={{...initialData.router.location, pathname: '/widget/123/'}}
-          />,
-          {context: initialData.routerContext, organization: initialData.organization}
-        );
-        await tick();
-      });
-
-      expect(openWidgetViewerModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          organization: initialData.organization,
-          widget,
-          onClose: expect.anything(),
-        })
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
+          router={initialData.router}
+          location={{...initialData.router.location, pathname: '/widget/123/'}}
+        />,
+        {context: initialData.routerContext, organization: initialData.organization}
       );
+
+      await waitFor(() => {
+        expect(openWidgetViewerModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            organization: initialData.organization,
+            widget,
+            onClose: expect.anything(),
+          })
+        );
+      });
     });
 
     it('redirects user to dashboard url if widget is not found', async () => {
@@ -781,7 +768,7 @@ describe('Dashboards > Detail', function () {
         {context: initialData.routerContext, organization: initialData.organization}
       );
 
-      await screen.findByText('All Releases');
+      expect(await screen.findByText('All Releases')).toBeInTheDocument();
 
       expect(openWidgetViewerModal).not.toHaveBeenCalled();
       expect(initialData.router.replace).toHaveBeenCalledWith(
@@ -1410,12 +1397,10 @@ describe('Dashboards > Detail', function () {
 
       await userEvent.click(await screen.findByText('All Releases'));
       await userEvent.type(screen.getByPlaceholderText('Search\u2026'), 's');
-      await act(async () => {
-        await userEvent.click(await screen.findByRole('option', {name: 'search-result'}));
-      });
+      await userEvent.click(await screen.findByRole('option', {name: 'search-result'}));
 
       // Validate that after search is cleared, search result still appears
-      expect(screen.getByText('Latest Release(s)')).toBeInTheDocument();
+      expect(await screen.findByText('Latest Release(s)')).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'search-result'})).toBeInTheDocument();
     });
   });

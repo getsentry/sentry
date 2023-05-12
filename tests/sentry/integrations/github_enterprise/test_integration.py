@@ -151,7 +151,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             },
         }
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
 

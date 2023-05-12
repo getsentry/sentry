@@ -30,6 +30,8 @@ const EVENT_FREQUENCY_CONDITION =
   'sentry.rules.conditions.event_frequency.EventFrequencyCondition';
 export const EVENT_FREQUENCY_PERCENT_CONDITION =
   'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition';
+export const REAPPEARED_EVENT_CONDITION =
+  'sentry.rules.conditions.reappeared_event.ReappearedEventCondition';
 const ISSUE_ALERT_DEFAULT_ACTION: Omit<
   IssueAlertRuleAction,
   'label' | 'name' | 'prompt'

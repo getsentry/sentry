@@ -51,6 +51,8 @@ def sort_dependencies():
     """
     from django.apps import apps
 
+    from sentry.models import Actor, Team, User
+
     # Process the list of models, and get the list of dependencies
     model_dependencies = []
     models = set()
@@ -76,6 +78,12 @@ def sort_dependencies():
                 if hasattr(field.remote_field, "model"):
                     rel_model = field.remote_field.model
                     if rel_model != model:
+                        # TODO(hybrid-cloud): actor refactor.
+                        # Add cludgy conditional preventing walking actor.team_id, actor.user_id
+                        # Which avoids circular imports
+                        if model == Actor and (rel_model == Team or rel_model == User):
+                            continue
+
                         deps.append(rel_model)
 
             # Also add a dependency for any simple M2M relation with a model

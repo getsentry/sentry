@@ -7,12 +7,13 @@ import {
   IconTimer,
 } from 'sentry/icons';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
+import {ObjectStatus} from 'sentry/types';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
 import {MonitorStatus} from '../types';
 
 interface MonitorBadgeProps {
-  status: MonitorStatus;
+  status: MonitorStatus | ObjectStatus;
 }
 
 interface StatusData {
@@ -33,6 +34,10 @@ const statusMap: Record<MonitorStatus, StatusData> = {
     color: 'successText',
   },
   error: {
+    Icon: IconFire,
+    color: 'errorText',
+  },
+  timeout: {
     Icon: IconFire,
     color: 'errorText',
   },

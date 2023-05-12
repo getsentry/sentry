@@ -30,6 +30,7 @@ export type PerformanceEventParameters = {
   'performance_views.event_details.json_button_click': {};
   'performance_views.event_details.open_span_details': {
     operation: string;
+    origin: string;
     project_platform: string;
   };
   'performance_views.event_details.search_query': {};
@@ -160,6 +161,12 @@ export type PerformanceEventParameters = {
     value: string;
     widget_type: string;
   };
+  'performance_views.trends.change_function': {
+    function_name: string;
+  };
+  'performance_views.trends.change_parameter': {
+    parameter_name: string;
+  };
   'performance_views.trends.widget_interaction': {
     widget_type: string;
   };
@@ -175,6 +182,8 @@ export type PerformanceEventParameters = {
     project_platforms: string;
   };
   'performance_views.vitals.filter_changed': {value: string};
+  'performance_views.vitals.open_all_events': {vital: string};
+  'performance_views.vitals.open_in_discover': {vital: string};
   'performance_views.vitals.reset_view': {};
   'performance_views.vitals.vitals_tab_clicked': PageLayoutParams;
 };
@@ -289,4 +298,10 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.tags.interaction': 'Performance Views: Tag Page - Interaction',
   'performance_views.vitals.filter_changed': 'Performance Views: Change vitals filter',
   'performance_views.vitals.reset_view': 'Performance Views: Reset vitals view',
+  'performance_views.trends.change_parameter': 'Performance Views: Change Parameter',
+  'performance_views.trends.change_function': 'Performance Views: Change Function',
+  'performance_views.vitals.open_in_discover':
+    'Performance Views: Open vitals in discover',
+  'performance_views.vitals.open_all_events':
+    'Performance Views: Open vitals in all events',
 };

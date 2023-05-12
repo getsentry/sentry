@@ -177,5 +177,3 @@ export const CHART_PALETTE = [
     '#f2b712',
   ],
 ] as string[][];
-
-export default CHART_PALETTE;

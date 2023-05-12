@@ -18,7 +18,7 @@ from sentry.integrations.github.webhook import (
     PullRequestEventWebhook,
     PushEventWebhook,
 )
-from sentry.integrations.utils.cleanup import clear_tags_and_context
+from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models import Integration
 from sentry.utils import json
 from sentry.utils.sdk import configure_scope

@@ -17,6 +17,6 @@ function getKnownData(data: Props['data']) {
     }));
 }
 
-export const DefaultContext = ({data}: Props) => (
-  <ContextBlock data={getKnownData(data)} />
-);
+export function DefaultContext({data}: Props) {
+  return <ContextBlock data={getKnownData(data)} />;
+}

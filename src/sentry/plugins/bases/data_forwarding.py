@@ -6,14 +6,11 @@ from sentry.api.serializers import serialize
 from sentry.eventstore.models import Event
 from sentry.plugins.base import Plugin
 from sentry.plugins.base.configuration import react_plugin_config
-from sentry.plugins.status import PluginStatus
 
 logger = logging.getLogger(__name__)
 
 
 class DataForwardingPlugin(Plugin):
-    status = PluginStatus.BETA
-
     def configure(self, project, request):
         return react_plugin_config(self, project, request)
 

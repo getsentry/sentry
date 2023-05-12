@@ -12,7 +12,7 @@
 {% script %}
 <script>
   if (window.opener) {
-    window.opener.postMessage({{ payload|to_json }}, document.origin);
+    window.opener.postMessage({{ payload|to_json }}, {{ document_origin|safe }});
   }
   window.close();
 </script>

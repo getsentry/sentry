@@ -38,6 +38,7 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
 from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils.sdk import mark_scope_as_unsafe
+from sentry.utils.snuba import RateLimitExceeded
 
 logger = logging.getLogger(__name__)
 
@@ -367,10 +368,22 @@ def process_individual_attachment(message, projects) -> None:
         logger.info("Organization has no event attachments: %s", project_id)
         return
 
-    # Attachments may be uploaded for events that already exist. Fetch the
-    # existing group_id, so that the attachment can be fetched by group-level
-    # APIs. This is inherently racy.
-    event = eventstore.get_event_by_id(project.id, event_id)
+    try:
+        # Attachments may be uploaded for events that already exist. Fetch the
+        # existing group_id, so that the attachment can be fetched by group-level
+        # APIs. This is inherently racy.
+        #
+        # This is not guaranteed to provide correct results. Eventstore runs queries
+        # against Snuba. This is problematic on the critical path on the ingestion
+        # pipeline as Snuba can rate limit queries for specific projects when they
+        # are above their quota. There is no guarantee that, when a project is within
+        # their ingestion quota, they are also within the snuba queries quota.
+        # Since there is no dead letter queue on this consumer, the only way to
+        # prevent the consumer to crash as of now is to ignore the error and proceed.
+        event = eventstore.get_event_by_id(project.id, event_id)
+    except RateLimitExceeded as e:
+        event = None
+        logger.exception(e)
 
     group_id = None
     if event is not None:

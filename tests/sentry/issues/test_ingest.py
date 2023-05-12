@@ -33,6 +33,7 @@ from sentry.ratelimits.sliding_windows import Quota
 from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import raw_query
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -207,7 +208,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
                 type_id = 1
                 slug = "test"
                 description = "Test"
-                category = GroupCategory.PERFORMANCE.value
+                category = GroupCategory.PROFILE.value
                 noise_config = NoiseConfig(ignore_limit=2)
 
             event = self.store_event(data={}, project_id=self.project.id)
@@ -250,7 +251,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):  # type: ignore
             "metadata": {"title": occurrence.issue_title, "value": occurrence.subtitle},
             "title": occurrence.issue_title,
             "location": event.location,
-            "last_received": event.datetime,
+            "last_received": json.datetime_to_str(event.datetime),
         }
 
 

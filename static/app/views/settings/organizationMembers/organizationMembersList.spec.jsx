@@ -7,16 +7,17 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent', () => jest.fn());
+jest.mock('sentry/utils/analytics');
 
 jest.mock('sentry/api');
 jest.mock('sentry/actionCreators/indicator');
@@ -34,10 +35,39 @@ const roles = [
     desc: 'This is the member role',
     allowed: true,
   },
+  {
+    id: 'owner',
+    name: 'Owner',
+    desc: 'This is the owner role',
+    allowed: true,
+  },
 ];
 
 describe('OrganizationMembersList', function () {
   const members = TestStubs.Members();
+
+  const ownerTeam = TestStubs.Team({slug: 'owner-team', orgRole: 'owner'});
+  const member = TestStubs.Member({
+    id: '5',
+    email: 'member@sentry.io',
+    teams: [ownerTeam.slug],
+    teamRoles: [
+      {
+        teamSlug: ownerTeam.slug,
+        role: null,
+      },
+    ],
+    flags: {
+      'sso:linked': true,
+    },
+    orgRolesFromTeams: [
+      {
+        teamSlug: ownerTeam.slug,
+        role: {id: 'owner'},
+      },
+    ],
+  });
+
   const currentUser = members[1];
   const organization = TestStubs.Organization({
     access: ['member:admin', 'org:admin', 'member:write'],
@@ -67,7 +97,11 @@ describe('OrganizationMembersList', function () {
     Client.addMockResponse({
       url: '/organizations/org-slug/members/',
       method: 'GET',
-      body: TestStubs.Members(),
+      body: [...TestStubs.Members(), member],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/members/${member.id}/`,
+      body: member,
     });
     Client.addMockResponse({
       url: '/organizations/org-slug/access-requests/',
@@ -101,7 +135,7 @@ describe('OrganizationMembersList', function () {
     Client.addMockResponse({
       url: '/organizations/org-slug/teams/',
       method: 'GET',
-      body: TestStubs.Team(),
+      body: [TestStubs.Team(), ownerTeam],
     });
     Client.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',
@@ -312,7 +346,7 @@ describe('OrganizationMembersList', function () {
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Member'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Member'}));
 
     expect(searchMock).toHaveBeenLastCalledWith(
       '/organizations/org-slug/members/',
@@ -322,15 +356,18 @@ describe('OrganizationMembersList', function () {
       })
     );
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Member'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Member'}));
 
     for (const [filter, label] of [
       ['isInvited', 'Invited'],
       ['has2fa', '2FA'],
       ['ssoLinked', 'SSO Linked'],
     ]) {
+      const filterSection = screen.getByRole('listbox', {name: label});
       await userEvent.click(
-        screen.getByRole('checkbox', {name: `Enable ${label} filter`})
+        within(filterSection).getByRole('option', {
+          name: 'True',
+        })
       );
 
       expect(searchMock).toHaveBeenLastCalledWith(
@@ -341,7 +378,11 @@ describe('OrganizationMembersList', function () {
         })
       );
 
-      await userEvent.click(screen.getByRole('checkbox', {name: `Toggle ${label}`}));
+      await userEvent.click(
+        within(filterSection).getByRole('option', {
+          name: 'False',
+        })
+      );
 
       expect(searchMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/members/',
@@ -352,9 +393,25 @@ describe('OrganizationMembersList', function () {
       );
 
       await userEvent.click(
-        screen.getByRole('checkbox', {name: `Enable ${label} filter`})
+        within(filterSection).getByRole('option', {
+          name: 'All',
+        })
       );
     }
+  });
+
+  it('can filter members with org roles from team membership', async function () {
+    const routerContext = TestStubs.routerContext();
+    render(<OrganizationMembersList {...defaultProps} />, {
+      context: routerContext,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Owner'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+
+    const owners = screen.queryAllByText('Owner');
+    expect(owners).toHaveLength(3);
   });
 
   describe('OrganizationInviteRequests', function () {
@@ -429,14 +486,11 @@ describe('OrganizationMembersList', function () {
 
       expect(screen.queryByText('Pending Members')).not.toBeInTheDocument();
 
-      expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
-        'invite_request.approved',
-        {
-          invite_status: inviteRequest.inviteStatus,
-          member_id: parseInt(inviteRequest.id, 10),
-          organization: org,
-        }
-      );
+      expect(trackAnalytics).toHaveBeenCalledWith('invite_request.approved', {
+        invite_status: inviteRequest.inviteStatus,
+        member_id: parseInt(inviteRequest.id, 10),
+        organization: org,
+      });
     });
 
     it('can deny invite request and remove', async function () {
@@ -466,7 +520,7 @@ describe('OrganizationMembersList', function () {
 
       expect(screen.queryByText('Pending Members')).not.toBeInTheDocument();
 
-      expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith('invite_request.denied', {
+      expect(trackAnalytics).toHaveBeenCalledWith('invite_request.denied', {
         invite_status: joinRequest.inviteStatus,
         member_id: parseInt(joinRequest.id, 10),
         organization: org,

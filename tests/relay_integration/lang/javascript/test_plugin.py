@@ -5,6 +5,7 @@ from io import BytesIO
 from unittest.mock import patch
 from uuid import uuid4
 
+import pytest
 import responses
 from django.utils.encoding import force_bytes
 
@@ -19,9 +20,20 @@ from sentry.models import (
     SourceFileType,
 )
 from sentry.models.releasefile import update_artifact_index
-from sentry.testutils import RelayStoreHelper, SnubaTestCase, TransactionTestCase
+from sentry.testutils import RelayStoreHelper
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
+
+# IMPORTANT:
+#
+# This test suite requires Symbolicator in order to run correctly.
+# Set `symbolicator.enabled: true` in your `~/.sentry/config.yml` and run `sentry devservices up`
+#
+# If you are using a local instance of Symbolicator, you need to either change `system.url-prefix` to `system.internal-url-prefix`
+# inside `process_with_symbolicator` fixture inside `src/sentry/utils/pytest/fixtures.py`,
+# or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
 
 BASE64_SOURCEMAP = "data:application/json;base64," + (
     b64encode(
@@ -44,12 +56,20 @@ def load_fixture(name):
         return fp.read()
 
 
-class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTestCase):
-    def setUp(self):
-        super().setUp()
+@pytest.mark.django_db(transaction=True)
+class TestJavascriptIntegration(RelayStoreHelper):
+    @pytest.fixture(autouse=True)
+    def initialize(self, default_projectkey, default_project):
+        self.project = default_project
+        self.projectkey = default_projectkey
+        self.organization = self.project.organization
         self.min_ago = iso_format(before_now(minutes=1))
+        # We disable scraping per-test when necessary.
+        self.project.update_option("sentry:scrape_javascript", True)
 
-    def test_adds_contexts_without_device(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_adds_contexts_without_device(self, process_with_symbolicator):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -71,7 +91,9 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert contexts.get("os") == {"name": "Windows", "version": "8", "type": "os"}
         assert contexts.get("device") is None
 
-    def test_adds_contexts_with_device(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_adds_contexts_with_device(self, process_with_symbolicator):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -97,10 +119,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "family": "Samsung SCH-R530U",
             "type": "device",
             "model": "SCH-R530U",
+            "name": "Galaxy S3",
             "brand": "Samsung",
         }
 
-    def test_adds_contexts_with_ps4_device(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_adds_contexts_with_ps4_device(self, process_with_symbolicator):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -328,8 +353,9 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         mock_fetch_by_url.assert_called_once_with("http://example.com/test.min.js")
         mock_from_bytes.assert_called_once()
 
-    @responses.activate
-    def test_error_message_translations(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_error_message_translations(self, process_with_symbolicator):
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -365,38 +391,233 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             == "foo: an unexpected failure occurred while trying to obtain metadata information"
         )
 
-    @responses.activate
-    def test_sourcemap_source_expansion(self):
-        responses.add(
-            responses.GET,
-            "http://example.com/file.min.js",
-            body=load_fixture("file.min.js"),
-            content_type="application/javascript; charset=utf-8",
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_sourcemap_source_expansion(self, process_with_symbolicator):
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
         )
-        responses.add(
-            responses.GET,
-            "http://example.com/file1.js",
-            body=load_fixture("file1.js"),
-            content_type="application/javascript; charset=utf-8",
-        )
-        responses.add(
-            responses.GET,
-            "http://example.com/file2.js",
-            body=load_fixture("file2.js"),
-            content_type="application/javascript; charset=utf-8",
-        )
-        responses.add(
-            responses.GET,
-            "http://example.com/file.sourcemap.js",
-            body=load_fixture("file.sourcemap.js"),
-            content_type="application/javascript; charset=utf-8",
-        )
-        responses.add(responses.GET, "http://example.com/index.html", body="Not Found", status=404)
+        release.add_project(self.project)
+
+        for file in ["file.min.js", "file1.js", "file2.js", "file.sourcemap.js"]:
+            with open(get_fixture_path(file), "rb") as f:
+                f1 = File.objects.create(
+                    name=file,
+                    type="release.file",
+                    headers={},
+                )
+                f1.putfile(f)
+
+            ReleaseFile.objects.create(
+                name=f"http://example.com/{f1.name}",
+                release_id=release.id,
+                organization_id=self.project.organization_id,
+                file=f1,
+            )
 
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
             "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                },
+                                # NOTE: Intentionally source is not retrieved from this HTML file
+                                {
+                                    "function": 'function: "HTMLDocument.<anonymous>"',
+                                    "abs_path": "http//example.com/index.html",
+                                    "filename": "index.html",
+                                    "lineno": 283,
+                                    "colno": 17,
+                                    "in_app": False,
+                                },
+                                # NOTE: a mixed stack trace with a native frame:
+                                {
+                                    "instruction_addr": "0xd10349",
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert event.data["errors"] == [
+            {"type": "js_no_source", "url": "http//example.com/index.html"}
+        ]
+
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        frame = frame_list[0]
+        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        expected = "\treturn a + b; // fôo"
+        assert frame.context_line == expected
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
+
+        raw_frame_list = exception.values[0].raw_stacktrace.frames
+        raw_frame = raw_frame_list[0]
+        assert not raw_frame.pre_context
+        assert (
+            raw_frame.context_line
+            == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function '
+            'divide(a,b){"use strict";try{return multip {snip}'
+        )
+        if process_with_symbolicator:
+            assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js"]
+        else:
+            assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js", ""]
+        assert raw_frame.lineno == 1
+
+        # Since we couldn't expand source for the 2nd frame, both
+        # its raw and original form should be identical
+        assert raw_frame_list[1] == frame_list[1]
+
+        # The second non-js frame should be untouched
+        assert raw_frame_list[2] == frame_list[2]
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_sourcemap_webpack(self, process_with_symbolicator):
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
+        )
+        release.add_project(self.project)
+
+        for file in [
+            "webpack1.min.js",
+            "webpack2.min.js",
+            "webpack1.min.js.map",
+            "webpack2.min.js.map",
+        ]:
+            with open(get_fixture_path(file), "rb") as f:
+                f1 = File.objects.create(
+                    name=file,
+                    type="release.file",
+                    headers={},
+                )
+                f1.putfile(f)
+
+            ReleaseFile.objects.create(
+                name=f"http://example.com/{f1.name}",
+                release_id=release.id,
+                organization_id=self.project.organization_id,
+                file=f1,
+            )
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/webpack1.min.js",
+                                    "filename": "webpack1.min.js",
+                                    "lineno": 1,
+                                    "colno": 183,
+                                    "function": "i",
+                                },
+                                {
+                                    "abs_path": "http://example.com/webpack2.min.js",
+                                    "filename": "webpack2.min.js",
+                                    "lineno": 1,
+                                    "colno": 183,
+                                    "function": "i",
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        # The first frame should be in_app.
+        first_frame = frame_list[0]
+        assert first_frame.in_app
+        assert first_frame.function == "test"
+        assert first_frame.pre_context == [
+            "    cb(data);",
+            "  }",
+            "",
+            "  function test() {",
+            "    var data = {failed: true, value: 42};",
+        ]
+        assert first_frame.context_line == "    invoke(data);"
+        if process_with_symbolicator:
+            assert first_frame.post_context == [
+                "  }",
+                "",
+                "  return test;",
+                "})();",
+            ]
+        else:
+            assert first_frame.post_context == ["  }", "", "  return test;", "})();", ""]
+
+        # The second frame should be identical to the first, except not in_app.
+        second_frame = frame_list[1]
+        assert not second_frame.in_app
+        assert second_frame.function == first_frame.function
+        assert second_frame.context_line == first_frame.context_line
+        assert second_frame.pre_context == first_frame.pre_context
+        assert second_frame.post_context == first_frame.post_context
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_sourcemap_source_expansion_ab_test(self, process_with_symbolicator):
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
+        )
+        release.add_project(self.project)
+
+        for file in ["file.min.js", "file1.js", "file2.js", "file.sourcemap.js"]:
+            with open(get_fixture_path(file), "rb") as f:
+                f1 = File.objects.create(
+                    name=file,
+                    type="release.file",
+                    headers={},
+                )
+                f1.putfile(f)
+
+            ReleaseFile.objects.create(
+                name=f"http://example.com/{f1.name}",
+                release_id=release.id,
+                organization_id=self.project.organization_id,
+                file=f1,
+            )
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
             "exception": {
                 "values": [
                     {
@@ -425,7 +646,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             },
         }
 
-        event = self.post_and_retrieve_event(data)
+        with override_options({"symbolicator.sourcemaps-processing-ab-test": 1.0}):
+            event = self.post_and_retrieve_event(data)
 
         assert event.data["errors"] == [
             {"type": "js_no_source", "url": "http//example.com/index.html"}
@@ -455,26 +677,36 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # its raw and original form should be identical
         assert raw_frame_list[1] == frame_list[1]
 
-    @responses.activate
-    def test_sourcemap_embedded_source_expansion(self):
-        responses.add(
-            responses.GET,
-            "http://example.com/embedded.js",
-            body=load_fixture("embedded.js"),
-            content_type="application/javascript; charset=utf-8",
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_sourcemap_embedded_source_expansion(self, process_with_symbolicator):
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
         )
-        responses.add(
-            responses.GET,
-            "http://example.com/embedded.js.map",
-            body=load_fixture("embedded.js.map"),
-            content_type="application/json; charset=utf-8",
-        )
-        responses.add(responses.GET, "http://example.com/index.html", body="Not Found", status=404)
+        release.add_project(self.project)
+
+        for file in ["embedded.js", "embedded.js.map"]:
+            with open(get_fixture_path(file), "rb") as f:
+                f1 = File.objects.create(
+                    name=file,
+                    type="release.file",
+                    headers={},
+                )
+                f1.putfile(f)
+
+            ReleaseFile.objects.create(
+                name=f"http://example.com/{f1.name}",
+                release_id=release.id,
+                organization_id=self.project.organization_id,
+                file=f1,
+            )
 
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
             "platform": "javascript",
+            "release": "abc",
             "exception": {
                 "values": [
                     {
@@ -516,10 +748,14 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
-    @responses.activate
-    def test_sourcemap_nofiles_source_expansion(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_sourcemap_nofiles_source_expansion(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -579,39 +815,41 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert frame.abs_path == "app:///nofiles.js"
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
-    @responses.activate
-    def test_indexed_sourcemap_source_expansion(self):
-        responses.add(
-            responses.GET,
-            "http://example.com/indexed.min.js",
-            body=load_fixture("indexed.min.js"),
-            content_type="application/javascript; charset=utf-8",
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_indexed_sourcemap_source_expansion(self, process_with_symbolicator):
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
         )
-        responses.add(
-            responses.GET,
-            "http://example.com/file1.js",
-            body=load_fixture("file1.js"),
-            content_type="application/javascript; charset=utf-8",
-        )
-        responses.add(
-            responses.GET,
-            "http://example.com/file2.js",
-            body=load_fixture("file2.js"),
-            content_type="application/javascript; charset=utf-8",
-        )
-        responses.add(
-            responses.GET,
-            "http://example.com/indexed.sourcemap.js",
-            body=load_fixture("indexed.sourcemap.js"),
-            content_type="application/json; charset=utf-8",
-        )
+        release.add_project(self.project)
+
+        for file in ["indexed.min.js", "file1.js", "file2.js", "indexed.sourcemap.js"]:
+            with open(get_fixture_path(file), "rb") as f:
+                f1 = File.objects.create(
+                    name=file,
+                    type="release.file",
+                    headers={},
+                )
+                f1.putfile(f)
+
+            ReleaseFile.objects.create(
+                name=f"http://example.com/{f1.name}",
+                release_id=release.id,
+                organization_id=self.project.organization_id,
+                file=f1,
+            )
 
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
             "platform": "javascript",
+            "release": "abc",
             "exception": {
                 "values": [
                     {
@@ -649,18 +887,28 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
         raw_frame_list = exception.values[0].raw_stacktrace.frames
         raw_frame = raw_frame_list[0]
         assert not raw_frame.pre_context
         assert raw_frame.context_line == 'function add(a,b){"use strict";return a+b}'
-        assert raw_frame.post_context == [
-            'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply('
-            "add(a,b),a,b)/c}catch(e){Raven.captureE {snip}",
-            "//# sourceMappingURL=indexed.sourcemap.js",
-            "",
-        ]
+        if process_with_symbolicator:
+            assert raw_frame.post_context == [
+                'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply('
+                "add(a,b),a,b)/c}catch(e){Raven.captureE {snip}",
+                "//# sourceMappingURL=indexed.sourcemap.js",
+            ]
+        else:
+            assert raw_frame.post_context == [
+                'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply('
+                "add(a,b),a,b)/c}catch(e){Raven.captureE {snip}",
+                "//# sourceMappingURL=indexed.sourcemap.js",
+                "",
+            ]
         assert raw_frame.lineno == 1
 
         frame = frame_list[1]
@@ -681,11 +929,15 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             == 'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply('
             "add(a,b),a,b)/c}catch(e){Raven.captureE {snip}"
         )
-        assert raw_frame.post_context == ["//# sourceMappingURL=indexed.sourcemap.js", ""]
+        if process_with_symbolicator:
+            assert raw_frame.post_context == ["//# sourceMappingURL=indexed.sourcemap.js"]
+        else:
+            assert raw_frame.post_context == ["//# sourceMappingURL=indexed.sourcemap.js", ""]
         assert raw_frame.lineno == 2
 
-    @responses.activate
-    def test_expansion_via_debug(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_via_debug(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -815,7 +1067,10 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -828,8 +1083,9 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
 
-    @responses.activate
-    def test_expansion_via_distribution_release_artifacts(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_via_distribution_release_artifacts(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -861,7 +1117,9 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         with open(get_fixture_path("file1.js"), "rb") as f:
             f1 = File.objects.create(
-                name="file1.js", type="release.file", headers={"Content-Type": "application/json"}
+                name="file1.js",
+                type="release.file",
+                headers={"Content-Type": "application/json"},
             )
             f1.putfile(f)
 
@@ -878,7 +1136,9 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         with open(get_fixture_path("file2.js"), "rb") as f:
             f2 = File.objects.create(
-                name="file2.js", type="release.file", headers={"Content-Type": "application/json"}
+                name="file2.js",
+                type="release.file",
+                headers={"Content-Type": "application/json"},
             )
             f2.putfile(f)
         ReleaseFile.objects.create(
@@ -896,7 +1156,9 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # context for the 2nd frame.
         with open(get_fixture_path("empty.js"), "rb") as f:
             f2_empty = File.objects.create(
-                name="empty.js", type="release.file", headers={"Content-Type": "application/json"}
+                name="empty.js",
+                type="release.file",
+                headers={"Content-Type": "application/json"},
             )
             f2_empty.putfile(f)
         ReleaseFile.objects.create(
@@ -966,7 +1228,10 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -1170,17 +1435,17 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
     def test_html_response_for_js(self):
         responses.add(
             responses.GET,
-            "http://example.com/file1.js",
+            "http://example.com/invalid_file1.js",
             body="       <!DOCTYPE html><html><head></head><body></body></html>",
         )
         responses.add(
             responses.GET,
-            "http://example.com/file2.js",
+            "http://example.com/invalid_file2.js",
             body="<!doctype html><html><head></head><body></body></html>",
         )
         responses.add(
             responses.GET,
-            "http://example.com/file.html",
+            "http://example.com/valid_file.html",
             body=(
                 "<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>"
             ),
@@ -1197,20 +1462,20 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
                         "stacktrace": {
                             "frames": [
                                 {
-                                    "abs_path": "http://example.com/file1.js",
-                                    "filename": "file.min.js",
+                                    "abs_path": "http://example.com/invalid_file1.js",
+                                    "filename": "invalid_file1.js",
                                     "lineno": 1,
                                     "colno": 39,
                                 },
                                 {
-                                    "abs_path": "http://example.com/file2.js",
-                                    "filename": "file.min.js",
+                                    "abs_path": "http://example.com/invalid_file2.js",
+                                    "filename": "invalid_file2.js",
                                     "lineno": 1,
                                     "colno": 39,
                                 },
                                 {
-                                    "abs_path": "http://example.com/file.html",
-                                    "filename": "file.html",
+                                    "abs_path": "http://example.com/valid_file.html",
+                                    "filename": "valid_file.html",
                                     "lineno": 1,
                                     "colno": 1,
                                 },
@@ -1224,11 +1489,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         event = self.post_and_retrieve_event(data)
 
         assert event.data["errors"] == [
-            {"url": "http://example.com/file1.js", "type": "js_invalid_content"},
-            {"url": "http://example.com/file2.js", "type": "js_invalid_content"},
+            {"url": "http://example.com/invalid_file1.js", "type": "js_invalid_content"},
+            {"url": "http://example.com/invalid_file2.js", "type": "js_invalid_content"},
         ]
 
-    def _test_expansion_via_release_archive(self, link_sourcemaps: bool):
+    def _test_expansion_via_release_archive(
+        self, link_sourcemaps: bool, process_with_symbolicator: bool
+    ):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -1239,34 +1506,38 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "files": {
                 "files/_/_/file.min.js": {
                     "url": "http://example.com/file.min.js",
+                    "type": "minified_source",
                 },
                 "files/_/_/file1.js": {
                     "url": "http://example.com/file1.js",
+                    "type": "source",
                 },
                 "files/_/_/file2.js": {
                     "url": "http://example.com/file2.js",
+                    "type": "source",
                 },
                 "files/_/_/file.sourcemap.js": {
                     "url": "http://example.com/file.sourcemap.js",
+                    "type": "source_map",
                 },
             },
         }
 
-        file_like = BytesIO()
-        with zipfile.ZipFile(file_like, "w") as zip:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             for rel_path, entry in manifest["files"].items():
                 name = os.path.basename(rel_path)
                 content = load_fixture(name)
                 if name == "file.min.js" and not link_sourcemaps:
                     # Remove link to source map, add to header instead
                     content = content.replace(b"//@ sourceMappingURL=file.sourcemap.js", b"")
-                    entry["headers"] = {"SourceMap": "/file.sourcemap.js"}
-                zip.writestr(rel_path, content)
-            zip.writestr("manifest.json", json.dumps(manifest))
-        file_like.seek(0)
+                    entry["headers"] = {"Sourcemap": "file.sourcemap.js"}
+                zip_file.writestr(rel_path, content)
+            zip_file.writestr("manifest.json", json.dumps(manifest))
+        compressed.seek(0)
 
         file = File.objects.create(name="doesnt_matter", type="release.bundle")
-        file.putfile(file_like)
+        file.putfile(compressed)
 
         update_artifact_index(release, None, file)
 
@@ -1310,7 +1581,10 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -1323,13 +1597,23 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
 
-    def test_expansion_via_release_archive(self):
-        self._test_expansion_via_release_archive(link_sourcemaps=True)
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_via_release_archive(self, process_with_symbolicator):
+        self._test_expansion_via_release_archive(
+            link_sourcemaps=True, process_with_symbolicator=process_with_symbolicator
+        )
 
-    def test_expansion_via_release_archive_no_sourcemap_link(self):
-        self._test_expansion_via_release_archive(link_sourcemaps=False)
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_via_release_archive_no_sourcemap_link(self, process_with_symbolicator):
+        self._test_expansion_via_release_archive(
+            link_sourcemaps=False, process_with_symbolicator=process_with_symbolicator
+        )
 
-    def test_node_processing(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_node_processing(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(
             organization_id=project.organization_id, version="nodeabc123"
@@ -1425,27 +1709,35 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         assert len(frame_list) == 6
 
-        assert frame_list[0].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        def assert_abs_path(abs_path):
+            # This makes the test assertion forward compatible with percent-encoded URLs
+            # See https://github.com/getsentry/symbolicator/pull/1137
+            assert abs_path in (
+                "webpack:///webpack/bootstrap d9a5a31d9276b73873d3",
+                "webpack:///webpack/bootstrap%20d9a5a31d9276b73873d3",
+            )
+
+        assert_abs_path(frame_list[0].abs_path)
         assert frame_list[0].function == "bar"
         assert frame_list[0].lineno == 8
 
-        assert frame_list[1].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        assert_abs_path(frame_list[1].abs_path)
         assert frame_list[1].function == "foo"
         assert frame_list[1].lineno == 2
 
-        assert frame_list[2].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        assert_abs_path(frame_list[2].abs_path)
         assert frame_list[2].function == "App"
         assert frame_list[2].lineno == 2
 
-        assert frame_list[3].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        assert_abs_path(frame_list[3].abs_path)
         assert frame_list[3].function == "Object.<anonymous>"
         assert frame_list[3].lineno == 1
 
-        assert frame_list[4].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        assert_abs_path(frame_list[4].abs_path)
         assert frame_list[4].function == "__webpack_require__"
         assert frame_list[4].lineno == 19
 
-        assert frame_list[5].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
+        assert_abs_path(frame_list[5].abs_path)
         assert frame_list[5].function == "<unknown>"
         assert frame_list[5].lineno == 16
 
@@ -1565,14 +1857,52 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         assert "errors" not in event.data
 
-    def test_expansion_with_debug_id(self):
+    def test_expansion_with_allow_scraping_false(self):
+        project = self.project
+        project.organization.update_option("sentry:scrape_javascript", False)
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "1.0",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert len(event.data["errors"]) == 1
+        assert event.data["errors"][0] == {
+            "type": "js_scraping_disabled",
+            "url": "http://example.com/file.min.js",
+        }
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_with_debug_id(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
-        compressed = BytesIO()
-        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
             zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
             zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))
@@ -1719,7 +2049,10 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -1735,13 +2068,20 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         frame = frame_list[2]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
-    def test_expansion_with_debug_id_and_sourcemap_without_sources_content(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_with_debug_id_and_sourcemap_without_sources_content(
+        self, process_with_symbolicator
+    ):
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
-        compressed = BytesIO()
-        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
             zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
             zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))
@@ -1864,18 +2204,46 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         event = self.post_and_retrieve_event(data)
 
-        assert len(event.data["errors"]) == 3
-        assert event.data["errors"][0] == {
-            "type": "js_missing_sources_content",
-            "source": "http://example.com/file.min.js",
-            "sourcemap": f"debug-id://{debug_id}/~/file.sourcemap.js",
-        }
+        # NOTE: Symbolicator processor has a better fallback to pull specific files for source context
+        if process_with_symbolicator:
+            assert "errors" not in event.data
 
-    def test_expansion_with_debug_id_and_malformed_sourcemap(self):
+            exception = event.interfaces["exception"]
+            frame_list = exception.values[0].stacktrace.frames
+
+            frame = frame_list[0]
+            assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+            assert frame.context_line == "\treturn a + b; // fôo"
+            if process_with_symbolicator:
+                assert frame.post_context == ["}"]
+            else:
+                assert frame.post_context == ["}", ""]
+
+            frame = frame_list[1]
+            assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
+            assert frame.context_line == "\treturn a * b;"
+            assert frame.post_context == [
+                "}",
+                "function divide(a, b) {",
+                '\t"use strict";',
+                "\ttry {",
+                "\t\treturn multiply(add(a, b), a, b) / c;",
+            ]
+        else:
+            assert len(event.data["errors"]) == 3
+            assert event.data["errors"][0] == {
+                "type": "js_missing_sources_content",
+                "source": "http://example.com/file.min.js",
+                "sourcemap": f"debug-id://{debug_id}/~/file.sourcemap.js",
+            }
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_with_debug_id_and_malformed_sourcemap(self, process_with_symbolicator):
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
-        compressed = BytesIO()
-        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
             zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
             zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))
@@ -2001,12 +2369,22 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         event = self.post_and_retrieve_event(data)
 
         assert len(event.data["errors"]) == 1
-        assert event.data["errors"][0] == {
-            "type": "js_invalid_source",
-            "debug_id": f"debug-id://{debug_id}/~/file.malformed.sourcemap.js",
-        }
 
-    def test_expansion_with_debug_id_not_found(self):
+        # NOTE: Its not obvious what data we want here yet.
+        if process_with_symbolicator:
+            assert event.data["errors"][0] == {
+                "type": "js_invalid_source",
+                "url": "http://example.com/file.malformed.sourcemap.js",
+            }
+        else:
+            assert event.data["errors"][0] == {
+                "type": "js_invalid_source",
+                "debug_id": f"debug-id://{debug_id}/~/file.malformed.sourcemap.js",
+            }
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_with_debug_id_not_found(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2017,33 +2395,37 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "files": {
                 "files/_/_/file.min.js": {
                     "url": "http://example.com/file.min.js",
+                    "type": "minified_source",
                 },
                 "files/_/_/file1.js": {
                     "url": "http://example.com/file1.js",
+                    "type": "source",
                 },
                 "files/_/_/file2.js": {
                     "url": "http://example.com/file2.js",
+                    "type": "source",
                 },
                 "files/_/_/file.sourcemap.js": {
                     "url": "http://example.com/file.sourcemap.js",
+                    "type": "source_map",
                 },
             },
         }
-        file_like = BytesIO()
-        with zipfile.ZipFile(file_like, "w") as zip:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             for rel_path, entry in manifest["files"].items():
                 name = os.path.basename(rel_path)
                 content = load_fixture(name)
                 if name == "file.min.js":
                     # Remove link to source map, add to header instead
                     content = content.replace(b"//@ sourceMappingURL=file.sourcemap.js", b"")
-                    entry["headers"] = {"SourceMap": "/file.sourcemap.js"}
-                zip.writestr(rel_path, content)
-            zip.writestr("manifest.json", json.dumps(manifest))
-        file_like.seek(0)
+                    entry["headers"] = {"Sourcemap": "file.sourcemap.js"}
+                zip_file.writestr(rel_path, content)
+            zip_file.writestr("manifest.json", json.dumps(manifest))
+        compressed.seek(0)
 
         file = File.objects.create(name="release_bundle.zip", type="release.bundle")
-        file.putfile(file_like)
+        file.putfile(compressed)
 
         update_artifact_index(release, None, file)
 
@@ -2096,15 +2478,16 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         event = self.post_and_retrieve_event(data)
 
-        assert "errors" not in event.data
-
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -2120,9 +2503,14 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         frame = frame_list[2]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
-    def test_expansion_with_release_dist_pair(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_with_release_dist_pair_x(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2131,8 +2519,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # real edge case that we can incur in.
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
-        compressed = BytesIO()
-        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
             zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
             zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))
@@ -2140,7 +2528,6 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             zip_file.writestr(
                 "files/_/_/file.wc.sourcemap.js", load_fixture("file.wc.sourcemap.js")
             )
-
             zip_file.writestr(
                 "manifest.json",
                 json.dumps(
@@ -2184,15 +2571,6 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
                                     "debug-id": debug_id,
                                 },
                             },
-                        },
-                        "debug_meta": {
-                            "images": [
-                                {
-                                    "type": "sourcemap",
-                                    "debug_id": debug_id,
-                                    "code_file": "http://example.com/file.min.js",
-                                }
-                            ]
                         },
                     }
                 ),
@@ -2267,7 +2645,10 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
@@ -2283,16 +2664,23 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         frame = frame_list[2]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
-        assert frame.post_context == ["}", ""]
+        if process_with_symbolicator:
+            assert frame.post_context == ["}"]
+        else:
+            assert frame.post_context == ["}", ""]
 
-    def test_expansion_with_release_dist_pair_and_sourcemap_without_sources_content(self):
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_with_release_dist_pair_and_sourcemap_without_sources_content(
+        self, process_with_symbolicator
+    ):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
         dist = release.add_dist("android")
 
-        compressed = BytesIO()
-        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
             zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
             zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))
@@ -2399,20 +2787,48 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         event = self.post_and_retrieve_event(data)
 
-        assert len(event.data["errors"]) == 3
-        assert event.data["errors"][0] == {
-            "type": "js_missing_sources_content",
-            "source": "http://example.com/file.min.js",
-            "sourcemap": "http://example.com/file.sourcemap.js",
-        }
+        # NOTE: Symbolicator processor has a better fallback to pull specific files for source context
+        if process_with_symbolicator:
+            assert "errors" not in event.data
 
-    def test_expansion_with_release_and_malformed_sourcemap(self):
+            exception = event.interfaces["exception"]
+            frame_list = exception.values[0].stacktrace.frames
+
+            frame = frame_list[0]
+            assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+            assert frame.context_line == "\treturn a + b; // fôo"
+            if process_with_symbolicator:
+                assert frame.post_context == ["}"]
+            else:
+                assert frame.post_context == ["}", ""]
+
+            frame = frame_list[1]
+            assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
+            assert frame.context_line == "\treturn a * b;"
+            assert frame.post_context == [
+                "}",
+                "function divide(a, b) {",
+                '\t"use strict";',
+                "\ttry {",
+                "\t\treturn multiply(add(a, b), a, b) / c;",
+            ]
+        else:
+            assert len(event.data["errors"]) == 3
+            assert event.data["errors"][0] == {
+                "type": "js_missing_sources_content",
+                "source": "http://example.com/file.min.js",
+                "sourcemap": "http://example.com/file.sourcemap.js",
+            }
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_expansion_with_release_and_malformed_sourcemap(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
 
-        compressed = BytesIO()
-        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
             zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
             zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
             zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))

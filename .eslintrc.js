@@ -42,5 +42,14 @@ module.exports = {
       files: ['*.ts', '*.tsx'],
       rules: {},
     },
+    {
+      // We specify rules explicitly for the sdk-loader here so we do not have
+      // eslint ignore comments included in the source file, which is consumed
+      // by users.
+      files: ['**/js-sdk-loader.ts'],
+      rules: {
+        'no-console': 'off',
+      },
+    },
   ],
 };

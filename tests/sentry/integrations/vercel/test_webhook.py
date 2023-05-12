@@ -78,7 +78,7 @@ class VercelReleasesTest(APITestCase):
         )
 
         self.org_integration = OrganizationIntegration.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             integration=self.integration,
             config={
                 "project_mappings": [
@@ -94,7 +94,7 @@ class VercelReleasesTest(APITestCase):
         )
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=self.sentry_app)
         self.installation_for_provider = SentryAppInstallationForProvider.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             provider="vercel",
             sentry_app_installation=sentry_app_installation,
         )

@@ -1,9 +1,10 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {Group, Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -36,6 +37,16 @@ function GroupReplays({group}: Props) {
     organization,
   });
 
+  useEffect(() => {
+    trackAnalytics('replay.render-issues-group-list', {
+      project_id: group.project.id,
+      platform: group.project.platform,
+      organization,
+    });
+    // we only want to fire this event once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (!eventView) {
     return (
       <StyledLayoutPage withPadding>
@@ -59,7 +70,7 @@ function GroupReplays({group}: Props) {
   );
 }
 
-const GroupReplaysTable = ({
+function GroupReplaysTable({
   eventView,
   organization,
   visibleColumns,
@@ -68,13 +79,14 @@ const GroupReplaysTable = ({
   organization: Organization;
   pageLinks: string | null;
   visibleColumns: ReplayColumns[];
-}) => {
+}) {
   const location = useMemo(() => ({query: {}} as Location<ReplayListLocationQuery>), []);
 
   const {replays, isFetching, fetchError} = useReplayList({
     eventView,
     location,
     organization,
+    queryReferrer: 'issueReplays',
   });
 
   return (
@@ -88,7 +100,7 @@ const GroupReplaysTable = ({
       />
     </StyledLayoutPage>
   );
-};
+}
 
 const StyledLayoutPage = styled(Layout.Page)`
   box-shadow: 0px 0px 1px ${p => p.theme.gray200};

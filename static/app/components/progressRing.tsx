@@ -70,7 +70,7 @@ AnimatedText.defaultProps = {
   transition: testableTransition(),
 };
 
-const ProgressRing = ({
+function ProgressRing({
   value,
   minValue = 0,
   maxValue = 100,
@@ -83,7 +83,7 @@ const ProgressRing = ({
   backgroundColor = theme.gray200,
   progressEndcaps,
   ...p
-}: Props) => {
+}: Props) {
   const radius = size / 2 - barWidth / 2;
   const circumference = 2 * Math.PI * radius;
 
@@ -135,7 +135,7 @@ const ProgressRing = ({
       </foreignObject>
     </RingSvg>
   );
-};
+}
 
 const RingSvg = styled('svg')`
   position: relative;

@@ -1,15 +1,20 @@
 from collections import defaultdict, namedtuple
 from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union
 
-from django.db import models
-from django.db.models.signals import pre_save
+import sentry_sdk
+from django.conf import settings
+from django.db import IntegrityError, models, transaction
+from django.db.models.signals import post_save
 from rest_framework import serializers
 
 from sentry.db.models import Model, region_silo_only_model
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 
 if TYPE_CHECKING:
-    from sentry.models import Team
+    from sentry.models import Team, User
 
 ACTOR_TYPES = {"team": 0, "user": 1}
 
@@ -34,7 +39,10 @@ def fetch_actors_by_actor_ids(cls, actor_ids: List[int]) -> Union[List["Team"], 
     from sentry.models import Team, User
 
     if cls is User:
-        return user_service.get_by_actor_ids(actor_ids=actor_ids)
+        user_ids = Actor.objects.filter(type=ACTOR_TYPES["user"], id__in=actor_ids).values_list(
+            "user_id", flat=True
+        )
+        return user_service.get_many(filter={"user_ids": user_ids})
     if cls is Team:
         return Team.objects.filter(actor_id__in=actor_ids).all()
 
@@ -48,7 +56,6 @@ def fetch_actor_by_id(cls, id: int) -> Union["Team", "RpcUser"]:
         return Team.objects.get(id=id)
 
     if cls is User:
-
         user = user_service.get_user(id)
         if user is None:
             raise User.DoesNotExist()
@@ -73,6 +80,18 @@ class Actor(Model):
             (ACTOR_TYPES["user"], "user"),
         )
     )
+    user_id = HybridCloudForeignKey(
+        settings.AUTH_USER_MODEL, on_delete="CASCADE", db_index=True, unique=True, null=True
+    )
+    team = FlexibleForeignKey(
+        "sentry.Team",
+        related_name="actor_from_team",
+        db_constraint=True,
+        db_index=True,
+        unique=True,
+        null=True,
+        on_delete=models.CASCADE,
+    )
 
     class Meta:
         app_label = "sentry"
@@ -91,6 +110,25 @@ class Actor(Model):
         # Returns a string like "team:1"
         # essentially forwards request to ActorTuple.get_actor_identifier
         return self.get_actor_tuple().get_actor_identifier()
+
+
+def get_actor_id_for_user(user: Union["User", RpcUser]):
+    return get_actor_for_user(user).id
+
+
+def get_actor_for_user(user: Union["User", RpcUser]) -> "Actor":
+    try:
+        with transaction.atomic():
+            actor, created = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user.id)
+            if created:
+                # TODO(actorid) This RPC call should be removed once all reads to
+                # User.actor_id have been removed.
+                user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
+    except IntegrityError as err:
+        # Likely a race condition. Long term these need to be eliminated.
+        sentry_sdk.capture_exception(err)
+        actor = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).first()
+    return actor
 
 
 class ActorTuple(namedtuple("Actor", "id type")):
@@ -148,7 +186,12 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return fetch_actor_by_id(self.type, self.id)
 
     def resolve_to_actor(self) -> Actor:
-        return Actor.objects.get(id=self.resolve().actor_id)
+        obj = self.resolve()
+        # TODO(actorid) Remove this once user no longer has actor_id.
+        if obj.actor_id is None or isinstance(obj, RpcUser):
+            return get_actor_for_user(obj)
+        # Team case
+        return Actor.objects.get(id=obj.actor_id)
 
     @classmethod
     def resolve_many(cls, actors: Sequence["ActorTuple"]) -> Sequence[Union["Team", "RpcUser"]]:
@@ -179,17 +222,16 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return list(filter(None, [results.get((actor.type, actor.id)) for actor in actors]))
 
 
-def handle_actor_pre_save(instance, **kwargs):
+def handle_team_post_save(instance, **kwargs):
     # we want to create an actor if we don't have one
     if not instance.actor_id:
         instance.actor_id = Actor.objects.create(
-            type=ACTOR_TYPES[type(instance).__name__.lower()]
+            type=ACTOR_TYPES[type(instance).__name__.lower()],
+            team_id=instance.id,
         ).id
+        instance.save()
 
 
-pre_save.connect(
-    handle_actor_pre_save, sender="sentry.Team", dispatch_uid="handle_actor_pre_save", weak=False
-)
-pre_save.connect(
-    handle_actor_pre_save, sender="sentry.User", dispatch_uid="handle_actor_pre_save", weak=False
+post_save.connect(
+    handle_team_post_save, sender="sentry.Team", dispatch_uid="handle_team_post_save", weak=False
 )

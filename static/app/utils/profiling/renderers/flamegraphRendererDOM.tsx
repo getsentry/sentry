@@ -83,10 +83,6 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
     }
   }
 
-  setHighlightedFrames(_frames: FlamegraphFrame[] | null) {
-    // @TODO for now just dont do anything as it will throw in tests
-  }
-
   setSearchResults(
     _query: string,
     _searchResults: FlamegraphSearch['results']['frames']

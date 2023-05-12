@@ -39,14 +39,14 @@ class GetParticipantsTest(TestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.APPROVAL,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.APPROVAL,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user2,
+            actor=RpcActor.from_orm_user(self.user2),
         )
 
         notification = DummyRequestNotification(self.organization, self.user)

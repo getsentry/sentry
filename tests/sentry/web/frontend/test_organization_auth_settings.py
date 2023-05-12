@@ -15,9 +15,11 @@ from sentry.models import (
     OrganizationMember,
     SentryAppInstallationForProvider,
 )
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
+from sentry.web.frontend.organization_auth_settings import get_scim_url
 
 
 @region_silo_test
@@ -25,7 +27,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
         self.auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         AuthIdentity.objects.create(user=self.user, ident="foo", auth_provider=self.auth_provider)
         self.login_as(self.user, organization_id=self.organization.id)
@@ -134,7 +136,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         else:
             self.assertRedirects(resp, configure_path)
 
-        auth_provider = AuthProvider.objects.get(organization=organization, provider="dummy")
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id, provider="dummy")
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
         assert user == auth_identity.user
 
@@ -147,7 +149,9 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         self.user.update(is_managed=True)
         organization = self.create_organization(name="foo", owner=self.user)
 
-        auth_provider = AuthProvider.objects.create(organization=organization, provider="dummy")
+        auth_provider = AuthProvider.objects.create(
+            organization_id=organization.id, provider="dummy"
+        )
 
         AuthIdentity.objects.create(user=self.user, ident="foo", auth_provider=auth_provider)
         return organization, auth_provider
@@ -249,7 +253,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert resp.status_code == 302
 
-        assert not AuthProvider.objects.filter(organization=organization).exists()
+        assert not AuthProvider.objects.filter(organization_id=organization.id).exists()
         assert not AuthProvider.objects.filter(id=auth_provider.id).exists()
 
         om = OrganizationMember.objects.get(id=om.id)
@@ -277,7 +281,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert resp.status_code == 302
 
-        assert not AuthProvider.objects.filter(organization=organization).exists()
+        assert not AuthProvider.objects.filter(organization_id=organization.id).exists()
         assert not AuthProvider.objects.filter(id=auth_provider.id).exists()
 
         om = OrganizationMember.objects.get(id=om.id)
@@ -289,7 +293,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         with pytest.raises(SentryAppInstallationForProvider.DoesNotExist):
             SentryAppInstallationForProvider.objects.get(
-                organization=self.organization, provider="dummy_scim"
+                organization_id=self.organization.id, provider="dummy_scim"
             )
 
     def test_edit_sso_settings(self):
@@ -308,7 +312,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert resp.status_code == 200
 
-        auth_provider = AuthProvider.objects.get(organization=organization)
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert getattr(auth_provider.flags, "allow_unlinked")
         organization = Organization.objects.get(id=organization.id)
         assert organization.default_role == "owner"
@@ -338,7 +342,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert resp.status_code == 200
 
-        auth_provider = AuthProvider.objects.get(organization=organization)
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert getattr(auth_provider.flags, "allow_unlinked")
         organization = Organization.objects.get(id=organization.id)
         assert organization.default_role == "member"
@@ -368,7 +372,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert resp.status_code == 200
 
-        auth_provider = AuthProvider.objects.get(organization=organization)
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert not getattr(auth_provider.flags, "allow_unlinked")
         organization = Organization.objects.get(id=organization.id)
         assert organization.default_role == "owner"
@@ -398,7 +402,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert resp.status_code == 200
 
-        auth_provider = AuthProvider.objects.get(organization=organization)
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert not getattr(auth_provider.flags, "allow_unlinked")
         organization = Organization.objects.get(id=organization.id)
         assert organization.default_role == "member"
@@ -429,10 +433,18 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert resp.status_code == 200
 
-        auth_provider = AuthProvider.objects.get(organization=organization)
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert getattr(auth_provider.flags, "scim_enabled")
         assert auth_provider.get_scim_token() is not None
-        assert auth_provider.get_scim_url() is not None
+        assert (
+            get_scim_url(
+                auth_provider,
+                organization_service.get_organization_by_id(
+                    id=auth_provider.organization_id
+                ).organization,
+            )
+            is not None
+        )
 
         # "add" some scim users
         u1 = self.create_user()
@@ -462,14 +474,21 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             )
 
         assert resp.status_code == 200
-        auth_provider = AuthProvider.objects.get(organization=organization)
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
 
         assert not getattr(auth_provider.flags, "scim_enabled")
-        assert auth_provider.get_scim_token() is None
-        assert auth_provider.get_scim_url() is None
+        assert (
+            get_scim_url(
+                auth_provider,
+                organization_service.get_organization_by_id(
+                    id=auth_provider.organization_id
+                ).organization,
+            )
+            is None
+        )
         with pytest.raises(SentryAppInstallationForProvider.DoesNotExist):
             SentryAppInstallationForProvider.objects.get(
-                organization=self.organization, provider="dummy_scim"
+                organization_id=self.organization.id, provider="dummy_scim"
             )
         not_scim_member.refresh_from_db()
         scim_member.refresh_from_db()

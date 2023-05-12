@@ -14,17 +14,14 @@ import {Breadcrumbs} from './interfaces/breadcrumbs';
 import {Csp} from './interfaces/csp';
 import {DebugMeta} from './interfaces/debugMeta';
 import {Exception} from './interfaces/exception';
-import {ExceptionV2} from './interfaces/exceptionV2';
 import {Generic} from './interfaces/generic';
 import {Message} from './interfaces/message';
 import {SpanEvidenceSection} from './interfaces/performance/spanEvidence';
 import {Request} from './interfaces/request';
 import {Spans} from './interfaces/spans';
 import {StackTrace} from './interfaces/stackTrace';
-import {StackTraceV2} from './interfaces/stackTraceV2';
 import {Template} from './interfaces/template';
 import {Threads} from './interfaces/threads';
-import {ThreadsV2} from './interfaces/threadsV2';
 
 type Props = {
   entry: Entry;
@@ -47,23 +44,11 @@ function EventEntryContent({
     !!organization.features?.includes('grouping-stacktrace-ui') &&
     !!(event.metadata.current_tree_label || event.metadata.finest_tree_label);
 
-  const hasNativeStackTraceV2 = !!organization.features?.includes(
-    'native-stack-trace-v2'
-  );
-
   const groupingCurrentLevel = group?.metadata?.current_level;
 
   switch (entry.type) {
     case EntryType.EXCEPTION:
-      return hasNativeStackTraceV2 ? (
-        <ExceptionV2
-          event={event}
-          data={entry.data}
-          projectSlug={projectSlug}
-          groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-        />
-      ) : (
+      return (
         <Exception
           event={event}
           data={entry.data}
@@ -80,15 +65,7 @@ function EventEntryContent({
       return <Request event={event} data={entry.data} />;
 
     case EntryType.STACKTRACE:
-      return hasNativeStackTraceV2 ? (
-        <StackTraceV2
-          event={event}
-          data={entry.data}
-          projectSlug={projectSlug}
-          groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-        />
-      ) : (
+      return (
         <StackTrace
           event={event}
           data={entry.data}
@@ -126,21 +103,14 @@ function EventEntryContent({
       );
 
     case EntryType.THREADS:
-      return hasNativeStackTraceV2 ? (
-        <ThreadsV2
-          event={event}
-          data={entry.data}
-          projectSlug={projectSlug}
-          groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-        />
-      ) : (
+      return (
         <Threads
           event={event}
           data={entry.data}
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
+          organization={organization as Organization}
         />
       );
 

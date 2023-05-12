@@ -50,6 +50,7 @@ for cmd in map(
         "sentry.runner.commands.backup.import_",
         "sentry.runner.commands.cleanup.cleanup",
         "sentry.runner.commands.config.config",
+        "sentry.runner.commands.configoptions.configoptions",
         "sentry.runner.commands.createuser.createuser",
         "sentry.runner.commands.devserver.devserver",
         "sentry.runner.commands.django.django",
@@ -73,6 +74,7 @@ for cmd in map(
         "sentry.runner.commands.performance.performance",
         "sentry.runner.commands.spans.spans",
         "sentry.runner.commands.spans.write_hashes",
+        "sentry.runner.commands.openai.openai",
     ),
 ):
     cli.add_command(cmd)

@@ -142,7 +142,7 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
         OrganizationIntegration.objects.create(
-            organization=organization2, integration=self.integration
+            organization_id=organization2.id, integration=self.integration
         )
         self.link_team(team2)
 

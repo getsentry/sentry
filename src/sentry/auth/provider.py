@@ -6,7 +6,7 @@ from typing import Any, Mapping, Sequence, cast
 from django.utils.encoding import force_text
 from django.views import View
 
-from sentry.models import AuthIdentity, Organization, User
+from sentry.models import AuthIdentity, User
 from sentry.pipeline import PipelineProvider
 
 from .view import AuthView, ConfigureView
@@ -130,7 +130,7 @@ class Provider(PipelineProvider, abc.ABC):
         """
         raise NotImplementedError
 
-    def can_use_scim(self, organization: Organization, user: User) -> bool:
+    def can_use_scim(self, organization_id: int, user: User) -> bool:
         """
         Controls whether or not a provider can have SCIM enabled to manage users.
         By default we have this on for all providers.

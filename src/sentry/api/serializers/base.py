@@ -45,7 +45,7 @@ def serialize(
 
     :param objects: A list of objects
     :param user: The user who will be viewing the objects. Omit to view as `AnonymousUser`.
-    :param serializer: The `Serializer` class who's logic we'll use to serialize
+    :param serializer: The `Serializer` class whose logic we'll use to serialize
         `objects` (see below.) Omit to just look up the Serializer in the
         registry by the `objects`'s type.
     :param kwargs Any

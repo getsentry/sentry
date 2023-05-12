@@ -9,7 +9,7 @@ from pytz import UTC
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
-from sentry import audit_log, features, roles
+from sentry import audit_log, roles
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
@@ -120,6 +120,12 @@ ORG_OPTIONS = (
     ("relayPiiConfig", "sentry:relay_pii_config", str, None),
     ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
+    (
+        "aiSuggestedSolution",
+        "sentry:ai_suggested_solution",
+        bool,
+        org_serializers.AI_SUGGESTED_SOLUTION,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -161,6 +167,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
+    aiSuggestedSolution = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
@@ -178,7 +185,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     def _has_sso_enabled(self):
         org = self.context["organization"]
-        return AuthProvider.objects.filter(organization=org).exists()
+        return AuthProvider.objects.filter(organization_id=org.id).exists()
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
@@ -439,7 +446,7 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
         if "defaultRole" in data:
             org.default_role = data["defaultRole"]
         if cancel_deletion:
-            org.status = OrganizationStatus.VISIBLE
+            org.status = OrganizationStatus.ACTIVE
         return super().save(*args, **kwargs)
 
 
@@ -495,9 +502,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         was_pending_deletion = organization.status in DELETION_STATUSES
 
         enabling_codecov = "codecovAccess" in request.data and request.data["codecovAccess"]
-        if enabling_codecov and features.has(
-            "organizations:codecov-stacktrace-integration-v2", organization
-        ):
+        if enabling_codecov:
             has_integration, error = has_codecov_integration(organization)
             if not has_integration:
                 return self.respond(
@@ -518,7 +523,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
                     if "slug" in changed_data:
                         organization_mapping_service.create(
-                            user=request.user,
                             organization_id=organization.id,
                             slug=organization.slug,
                             name=organization.name,
@@ -528,7 +532,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         )
                     elif "name" in changed_data:
                         organization_mapping_service.update(
-                            organization.id, RpcOrganizationMappingUpdate(name=organization.name)
+                            organization_id=organization.id,
+                            update=RpcOrganizationMappingUpdate(name=organization.name),
                         )
             # TODO(hybrid-cloud): This will need to be a more generic error
             # when the internal RPC is implemented.
@@ -582,7 +587,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         with transaction.atomic():
             updated = Organization.objects.filter(
-                id=organization.id, status=OrganizationStatus.VISIBLE
+                id=organization.id, status=OrganizationStatus.ACTIVE
             ).update(status=OrganizationStatus.PENDING_DELETION)
             if updated:
                 organization.status = OrganizationStatus.PENDING_DELETION

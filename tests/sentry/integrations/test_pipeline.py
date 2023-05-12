@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from sentry.api.utils import generate_organization_url
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
 from sentry.models import (
@@ -50,6 +51,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         resp = self.pipeline.finish_pipeline()
 
         self.assertDialogSuccess(resp)
+        assert b"document.origin);" in resp.content
 
         integration = Integration.objects.get(
             provider=self.provider.key, external_id=self.external_id
@@ -59,6 +61,31 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert OrganizationIntegration.objects.filter(
             organization_id=self.organization.id, integration_id=integration.id
         ).exists()
+
+    def test_with_customer_domain(self, *args):
+        with self.feature({"organizations:customer-domains": [self.organization.slug]}):
+            data = {
+                "external_id": self.external_id,
+                "name": "Name",
+                "metadata": {"url": "https://example.com"},
+            }
+            self.pipeline.state.data = data
+            resp = self.pipeline.finish_pipeline()
+
+            self.assertDialogSuccess(resp)
+            assert (
+                f', "{generate_organization_url(self.organization.slug)}");'.encode()
+                in resp.content
+            )
+
+            integration = Integration.objects.get(
+                provider=self.provider.key, external_id=self.external_id
+            )
+            assert integration.name == data["name"]
+            assert integration.metadata == data["metadata"]
+            assert OrganizationIntegration.objects.filter(
+                organization_id=self.organization.id, integration_id=integration.id
+            ).exists()
 
     def test_aliased_integration_key(self, *args):
         self.provider = AliasedIntegrationProvider
@@ -161,7 +188,9 @@ class FinishPipelineTestCase(IntegrationTestCase):
             metadata={"url": "https://example.com"},
         )
         OrganizationIntegration.objects.create(
-            organization=self.organization, integration=integration, default_auth_id=old_identity_id
+            organization_id=self.organization.id,
+            integration=integration,
+            default_auth_id=old_identity_id,
         )
         self.pipeline.state.data = {
             "external_id": self.external_id,
@@ -297,7 +326,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         resp = self.pipeline.finish_pipeline()
         self.assertDialogSuccess(resp)
         assert OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization=self.organization.id
+            integration_id=integration.id, organization_id=self.organization.id
         ).exists()
 
     @patch("sentry.mediators.plugins.Migrator.call")

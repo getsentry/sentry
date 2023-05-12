@@ -119,7 +119,7 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to filter events by.",
             "event_id": "An event ID as given in the event payload.",
             "platform": "The event platform as defined in the event payload's platform field.",
-            "symbolication_function": "process_minidump, process_applecrashreport, or process_payload",
+            "symbolication_function": "process_minidump, process_applecrashreport, process_native_stacktraces, or process_js_stacktraces",
         },
     ),
     "store.load-shed-save-event-projects": KillswitchInfo(

@@ -4,7 +4,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import type {Actor, ParsedOwnershipRule} from 'sentry/types';
 
-import {OwnershipRulesTable} from './ownshipRulesTable';
+import {OwnershipRulesTable} from './ownershipRulesTable';
 
 describe('OwnershipRulesTable', () => {
   const user1 = TestStubs.User();
@@ -35,6 +35,31 @@ describe('OwnershipRulesTable', () => {
     expect(screen.getByText('path')).toBeInTheDocument();
     expect(screen.getByText('pattern')).toBeInTheDocument();
     expect(screen.getByText(user1.name)).toBeInTheDocument();
+  });
+
+  it('should filter codeowners rules without actor names', () => {
+    const rules: ParsedOwnershipRule[] = [
+      {
+        matcher: {pattern: 'pattern', type: 'path'},
+        // Name = undefined only seems to happen when adding a new codeowners file
+        owners: [{type: 'user', id: user1.id, name: undefined as any}],
+      },
+      {
+        matcher: {pattern: 'my/path', type: 'path'},
+        owners: [{type: 'user', id: user2.id, name: user2.name}],
+      },
+    ];
+
+    render(
+      <OwnershipRulesTable
+        projectRules={[]}
+        codeowners={[TestStubs.CodeOwner({schema: {rules}})]}
+      />
+    );
+
+    expect(screen.getByText('pattern')).toBeInTheDocument();
+    expect(screen.getByText('my/path')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Everyone'})).toBeEnabled();
   });
 
   it('should render multiple project owners', () => {

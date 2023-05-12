@@ -8,7 +8,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import tagstore, tsdb
+from sentry import features, tagstore, tsdb
 from sentry.api import client
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
@@ -22,13 +22,14 @@ from sentry.api.helpers.group_index import (
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer, is_plugin_deprecated
 from sentry.issues.constants import get_issue_tsdb_group_model
+from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -185,12 +186,18 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     }
                 )
 
-            tags = tagstore.get_group_tag_keys(
-                group,
-                environment_ids,
-                limit=100,
-                tenant_ids={"organization_id": group.project.organization_id},
-            )
+            if "tags" not in collapse:
+                tags = tagstore.get_group_tag_keys(
+                    group,
+                    environment_ids,
+                    limit=100,
+                    tenant_ids={"organization_id": group.project.organization_id},
+                )
+                data.update(
+                    {
+                        "tags": sorted(serialize(tags, request.user), key=lambda x: x["name"]),
+                    }
+                )
 
             user_reports = (
                 UserReport.objects.filter(group_id=group.id)
@@ -212,6 +219,21 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 owners = owner_details.get(group.id)
                 data.update({"owners": owners})
 
+            if "forecast" in expand and features.has(
+                "organizations:escalating-issues", group.organization
+            ):
+                fetched_forecast = EscalatingGroupForecast.fetch(
+                    group.project_id, group.id
+                ).to_dict()
+                data.update(
+                    {
+                        "forecast": {
+                            "data": fetched_forecast.get("forecast"),
+                            "date_added": fetched_forecast.get("date_added"),
+                        }
+                    }
+                )
+
             action_list = self._get_actions(request, group)
             data.update(
                 {
@@ -227,7 +249,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     "pluginIssues": self._get_available_issue_plugins(request, group),
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
-                    "tags": sorted(serialize(tags, request.user), key=lambda x: x["name"]),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
                 }
             )
@@ -279,6 +300,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                                      the bookmark flag.
         :param boolean isSubscribed:
         :param boolean isPublic: sets the issue to public or private.
+        :param string substatus: the new substatus for the issues. Valid values
+                                 defined in GroupSubStatus.
         :auth: required
         """
         try:

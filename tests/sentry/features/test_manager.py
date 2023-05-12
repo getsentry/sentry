@@ -27,13 +27,21 @@ class MockBatchHandler(features.BatchFeatureHandler):
     ) -> Union[Optional[bool], Mapping[str, Optional[bool]]]:
         return {feature.name: True}
 
-    def batch_has(self, feature_names, *args: Any, **kwargs: Any):
+    def batch_has(self, feature_names, *args: Any, projects=None, organization=None, **kwargs: Any):
         if isinstance(feature_names, str):
-            return {feature_names: True}
+            feature_names = [feature_names]
 
-        return {
+        feature_results = {
             feature_name: True for feature_name in feature_names if feature_name in self.features
         }
+
+        if projects:
+            return {f"project:{project.id}": feature_results for project in projects}
+
+        if organization:
+            return {f"organization:{organization.id}": feature_results}
+
+        return {"unscoped": feature_results}
 
     def _check_for_batch(self, feature_name, organization, actor):
         return True if feature_name in self.features else None
@@ -209,13 +217,28 @@ class FeatureManagerTest(TestCase):
         manager.add("projects:feature", features.ProjectFeature)
         manager.add_entity_handler(MockBatchHandler())
 
-        assert manager.batch_has("auth:register", actor=self.user)["auth:register"]
+        assert manager.batch_has(["auth:register"], actor=self.user)["unscoped"]["auth:register"]
         assert manager.batch_has(
-            "organizations:feature", actor=self.user, organization=self.organization
-        )["organizations:feature"]
-        assert manager.batch_has("projects:feature", actor=self.user, projects=[self.project])[
-            "projects:feature"
-        ]
+            ["organizations:feature"], actor=self.user, organization=self.organization
+        )[f"organization:{self.organization.id}"]["organizations:feature"]
+        assert manager.batch_has(["projects:feature"], actor=self.user, projects=[self.project])[
+            f"project:{self.project.id}"
+        ]["projects:feature"]
+
+    def test_batch_has_no_entity(self):
+        manager = features.FeatureManager()
+        manager.add("auth:register")
+        manager.add("organizations:feature", features.OrganizationFeature)
+        manager.add("projects:feature", features.ProjectFeature)
+        manager.add_handler(MockBatchHandler())
+
+        assert manager.batch_has(["auth:register"], actor=self.user)["unscoped"]["auth:register"]
+        assert manager.batch_has(
+            ["organizations:feature"], actor=self.user, organization=self.organization
+        )[f"organization:{self.organization.id}"]["organizations:feature"]
+        assert manager.batch_has(["projects:feature"], actor=self.user, projects=[self.project])[
+            f"project:{self.project.id}"
+        ]["projects:feature"]
 
     def test_has(self):
         manager = features.FeatureManager()

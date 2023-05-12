@@ -70,10 +70,11 @@ class StreamGroupSerializerTestCase(TestCase, SnubaTestCase, SearchIssueTestMixi
             "received": cur_time.timestamp(),
             "fingerprint": [f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         }
-        event = self.store_event(
-            data=event_data,
-            project_id=self.project.id,
-        )
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            event = self.store_event(
+                data=event_data,
+                project_id=self.project.id,
+            )
         group = event.groups[0]
         serialized = serialize(group, serializer=StreamGroupSerializerSnuba(stats_period="24h"))
         assert serialized["count"] == "1"

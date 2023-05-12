@@ -17,8 +17,8 @@ def kickoff_vsts_subscription_check() -> None:
 
     organization_integrations = OrganizationIntegration.objects.filter(
         integration__provider="vsts",
-        integration__status=ObjectStatus.VISIBLE,
-        status=ObjectStatus.VISIBLE,
+        integration__status=ObjectStatus.ACTIVE,
+        status=ObjectStatus.ACTIVE,
     ).select_related("integration")
 
     six_hours_ago = time() - timedelta(hours=6).seconds

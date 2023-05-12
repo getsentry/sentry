@@ -14,12 +14,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             # ProjectKey gets revoked immediately, in bulk
             ModelRelation(models.ProjectKey, {"project_id": instance.id})
         ]
-        relations.append(
-            ModelRelation(
-                AlertRule,
-                {"snuba_query__subscriptions__project": instance, "include_all_projects": False},
-            )
-        )
 
         # in bulk
         model_list = (
@@ -38,7 +32,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.GroupShare,
             models.GroupSubscription,
             models.LatestAppConnectBuildsCheck,
-            Monitor,
             models.ProjectBookmark,
             models.ProjectKey,
             models.ProjectTeam,
@@ -61,7 +54,14 @@ class ProjectDeletionTask(ModelDeletionTask):
                 for m in model_list
             ]
         )
+        relations.append(ModelRelation(Monitor, {"project_id": instance.id}))
         relations.append(ModelRelation(models.Group, {"project_id": instance.id}))
+        relations.append(
+            ModelRelation(
+                AlertRule,
+                {"snuba_query__subscriptions__project": instance, "include_all_projects": False},
+            )
+        )
 
         # Release needs to handle deletes after Group is cleaned up as the foreign
         # key is protected

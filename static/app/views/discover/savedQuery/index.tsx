@@ -16,7 +16,6 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {Hovercard} from 'sentry/components/hovercard';
 import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -24,8 +23,7 @@ import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project, SavedQuery} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import useOverlay from 'sentry/utils/useOverlay';
@@ -302,12 +300,9 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
   handleCreateAlertSuccess = () => {
     const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.create_alert_clicked',
-      eventName: 'Discoverv2: Create alert clicked',
+    trackAnalytics('discover_v2.create_alert_clicked', {
+      organization,
       status: 'success',
-      organization_id: organization.id,
-      url: window.location.href,
     });
   };
 
@@ -316,7 +311,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     return (
       <Button
         onClick={() => {
-          trackAdvancedAnalyticsEvent('discover_v2.view_saved_queries', {organization});
+          trackAnalytics('discover_v2.view_saved_queries', {organization});
         }}
         data-test-id="discover2-savedquery-button-view-saved"
         disabled={disabled}
@@ -457,7 +452,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           data-test-id="reset-discover-homepage"
           onClick={async () => {
             await handleResetHomepageQuery(api, organization);
-            trackAdvancedAnalyticsEvent('discover_v2.remove_default', {
+            trackAnalytics('discover_v2.remove_default', {
               organization,
               source: analyticsEventSource,
             });
@@ -478,7 +473,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           disabled={buttonDisabled}
         >
           {t('Remove Default')}
-          <FeatureBadge type="new" />
         </Button>
       );
     }
@@ -493,7 +487,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             organization,
             eventView.toNewQuery()
           );
-          trackAdvancedAnalyticsEvent('discover_v2.set_as_default', {
+          trackAnalytics('discover_v2.set_as_default', {
             organization,
             source: analyticsEventSource,
           });

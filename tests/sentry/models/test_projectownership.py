@@ -5,11 +5,12 @@ from sentry.models import (
     Repository,
     Team,
     User,
+    UserAvatar,
     UserEmail,
 )
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -639,3 +640,17 @@ class ResolveActorsTestCase(TestCase):
             owner5: actor5,
             owner6: actor6,
         }
+
+    def test_with_user_avatar(self):
+        # Check for regressions associated with serializing to RpcUser with a
+        # non-null UserAvatar
+
+        user = self.create_user()
+        UserAvatar.objects.create(user=user)
+
+        org = self.create_organization(owner=user)
+        team = self.create_team(organization=org, members=[user])
+        project = self.create_project(organization=org, teams=[team])
+
+        owner = Owner("user", user.email)
+        resolve_actors([owner], project.id)

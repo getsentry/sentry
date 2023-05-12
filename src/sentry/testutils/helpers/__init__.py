@@ -1,5 +1,6 @@
 from .auth_header import *  # NOQA
 from .auth_providers import *  # NOQA
+from .context_manager import *  # NOQA
 from .features import *  # NOQA
 from .link_header import *  # NOQA
 from .options import *  # NOQA

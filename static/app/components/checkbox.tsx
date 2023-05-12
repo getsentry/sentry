@@ -34,13 +34,7 @@ const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
-const Checkbox = ({
-  className,
-  inputCss,
-  checked = false,
-  size = 'sm',
-  ...props
-}: Props) => {
+function Checkbox({className, inputCss, checked = false, size = 'sm', ...props}: Props) {
   const checkboxRef = useRef<HTMLInputElement>(null);
 
   // Support setting the indeterminate value, which is only possible through
@@ -80,7 +74,7 @@ const Checkbox = ({
       )}
     </Wrapper>
   );
-};
+}
 
 const Wrapper = styled('div')<{checked: Props['checked']; size: FormSize}>`
   position: relative;

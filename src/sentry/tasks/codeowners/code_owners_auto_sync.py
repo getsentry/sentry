@@ -1,6 +1,12 @@
 from rest_framework.exceptions import NotFound
 
-from sentry.models import Commit, ProjectCodeOwners, ProjectOwnership, RepositoryProjectPathConfig
+from sentry.models import (
+    Commit,
+    Organization,
+    ProjectCodeOwners,
+    ProjectOwnership,
+    RepositoryProjectPathConfig,
+)
 from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNotification
 from sentry.tasks.base import instrumented_task, retry
 
@@ -22,7 +28,7 @@ def code_owners_auto_sync(commit_id: int, **kwargs):
     code_mappings = (
         RepositoryProjectPathConfig.objects.filter(
             repository_id=commit.repository_id,
-            organization_integration__organization_id=commit.organization_id,
+            project__organization_id=commit.organization_id,
         )
         .annotate(
             # By default, we don't create a ProjectOwnership record (bc we treat as a negative cache) when we create ProjectCodeOwners records.
@@ -68,7 +74,10 @@ def code_owners_auto_sync(commit_id: int, **kwargs):
             return AutoSyncNotification(code_mapping.project).send()
 
         codeowners = ProjectCodeOwners.objects.get(repository_project_path_config=code_mapping)
-
-        codeowners.update_schema(codeowner_contents["raw"])
+        organization = Organization.objects.get(id=code_mapping.organization_id)
+        codeowners.update_schema(
+            organization=organization,
+            raw=codeowner_contents["raw"],
+        )
 
         # TODO(Nisanthan): Record analytics on auto-sync success

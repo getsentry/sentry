@@ -80,5 +80,5 @@ class LostPasswordHash(Model):
     def for_user(cls, user) -> "RpcLostPasswordHash":
         from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
 
-        password_hash = lost_password_hash_service.get_or_create(user.id)
+        password_hash = lost_password_hash_service.get_or_create(user_id=user.id)
         return password_hash

@@ -1,10 +1,10 @@
 import {ReactNode} from 'react';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
+import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const {organization} = initializeOrg();

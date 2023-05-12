@@ -394,11 +394,12 @@ export function computeClampedConfigView(
   if (!newConfigView.isValid()) {
     throw new Error(newConfigView.toString());
   }
+
   const clampedWidth = clamp(newConfigView.width, width.min, width.max);
   const clampedHeight = clamp(newConfigView.height, height.min, height.max);
 
   const maxX = width.max - clampedWidth;
-  const maxY = clampedHeight >= height.max ? 0 : height.max - clampedHeight;
+  const maxY = Math.max(height.max - clampedHeight, 0);
 
   const clampedX = clamp(newConfigView.x, 0, maxX);
   const clampedY = clamp(newConfigView.y, 0, maxY);
@@ -521,9 +522,14 @@ export function computeConfigViewWithStrategy(
 }
 
 export function computeMinZoomConfigViewForFrames(view: Rect, frames: Rect[]): Rect {
+  if (!frames.length) {
+    return view;
+  }
+
   if (frames.length === 1) {
     return new Rect(frames[0].x, frames[0].y, frames[0].width, view.height);
   }
+
   const frame = frames.reduce(
     (min, f) => {
       return {

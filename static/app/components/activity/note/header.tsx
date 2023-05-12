@@ -17,7 +17,7 @@ type Props = {
   user?: User;
 };
 
-const NoteHeader = ({authorName, user, onEdit, onDelete}: Props) => {
+function NoteHeader({authorName, user, onEdit, onDelete}: Props) {
   const activeUser = ConfigStore.get('user');
   const canEdit = activeUser && (activeUser.isSuperuser || user?.id === activeUser.id);
 
@@ -48,7 +48,7 @@ const NoteHeader = ({authorName, user, onEdit, onDelete}: Props) => {
       )}
     </div>
   );
-};
+}
 
 const getActionStyle = (p: {theme: Theme}) => `
   padding: 0 7px;

@@ -41,7 +41,7 @@ const defaultOnCursor: CursorHandler = (cursor, path, query, _direction) =>
     query: {...query, cursor},
   });
 
-const Pagination = ({
+function Pagination({
   to,
   className,
   onCursor = defaultOnCursor,
@@ -50,7 +50,7 @@ const Pagination = ({
   size = 'sm',
   caption,
   disabled = false,
-}: Props) => {
+}: Props) {
   const location = useLocation();
   if (!pageLinks) {
     return null;
@@ -89,7 +89,7 @@ const Pagination = ({
       </ButtonBar>
     </Wrapper>
   );
-};
+}
 
 const Wrapper = styled('div')`
   display: flex;

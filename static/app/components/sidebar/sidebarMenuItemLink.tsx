@@ -26,7 +26,7 @@ type Props = {
   to?: string;
 };
 
-const SidebarMenuItemLink = ({to, href, ...props}: Props) => {
+function SidebarMenuItemLink({to, href, ...props}: Props) {
   if (href) {
     return <ExternalLink href={href} {...props} />;
   }
@@ -36,6 +36,6 @@ const SidebarMenuItemLink = ({to, href, ...props}: Props) => {
   }
 
   return <div tabIndex={0} {...props} />;
-};
+}
 
 export default SidebarMenuItemLink;

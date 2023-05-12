@@ -5,6 +5,7 @@ from sentry.options import (
     FLAG_ALLOW_EMPTY,
     FLAG_IMMUTABLE,
     FLAG_MODIFIABLE_BOOL,
+    FLAG_MODIFIABLE_RATE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
@@ -230,6 +231,13 @@ register(
     default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
+# The sample rate at which to allow dom-click-search.
+register(
+    "replay.ingest.dom-click-search",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
 
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
@@ -351,6 +359,8 @@ register("symbolicator.minidump-refactor-random-sampling", default=0.0)  # unuse
 register("symbolicator.sourcemaps-processing-projects", type=Sequence, default=[])
 # Enable use of Symbolicator Source Maps processing for fraction of projects.
 register("symbolicator.sourcemaps-processing-sample-rate", default=0.0)
+# Use a fraction of Symbolicator Source Maps processing events for A/B testing.
+register("symbolicator.sourcemaps-processing-ab-test", default=0.0)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0)  # unused
@@ -422,6 +432,9 @@ register("store.reprocessing-force-disable", default=False)
 
 register("store.race-free-group-creation-force-disable", default=False)
 
+# Option to enable dart deobfuscation on ingest
+register("processing.view-hierarchies-dart-deobfuscation", default=0.0)
+
 
 # ## sentry.killswitches
 #
@@ -452,8 +465,8 @@ register("store.background-grouping-before", default=False)
 # Store release files bundled as zip files
 register("processing.save-release-archives", default=False)  # unused
 
-# Minimum number of files in an archive. Small archives are extracted and its contents
-# are stored as separate release files.
+# Minimum number of files in an archive. Archives with fewer files are extracted and have their
+# contents stored as separate release files.
 register("processing.release-archive-min-files", default=10)
 
 # Try to read release artifacts from zip archives
@@ -565,6 +578,15 @@ register("api.deprecation.brownout-duration", default="PT1M")
 # values or not
 register("sentry-metrics.performance.index-tag-values", default=True)
 
+
+# A slow rollout option for writing "new" cache keys
+# as the transition from UseCaseKey to UseCaseID occurs
+register("sentry-metrics.indexer.cache-key-rollout-rate", default=0.0)
+
+# A option for double writing old and new cache keys
+# for the same transition
+register("sentry-metrics.indexer.cache-key-double-write", default=False)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -601,6 +623,9 @@ register("sentry-metrics.cardinality-limiter.limits.performance.per-org", defaul
 register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", default=[])
 register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 register("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", default=0.0)
+
+register("sentry-metrics.producer-schema-validation.release-health.rollout-rate", default=0.0)
+register("sentry-metrics.producer-schema-validation.performance.rollout-rate", default=0.0)
 
 # Flag to determine whether abnormal_mechanism tag should be extracted
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
@@ -647,9 +672,20 @@ register("performance.issues.render_blocking_assets.fcp_minimum_threshold", defa
 register("performance.issues.render_blocking_assets.fcp_maximum_threshold", default=10000.0)
 register("performance.issues.render_blocking_assets.fcp_ratio_threshold", default=0.33)
 register("performance.issues.render_blocking_assets.size_threshold", default=1000000)
+register("performance.issues.consecutive_http.max_duration_between_spans", default=1000)
+register("performance.issues.consecutive_http.consecutive_count_threshold", default=3)
+register("performance.issues.consecutive_http.span_duration_threshold", default=1000)
+register("performance.issues.large_http_payload.size_threshold", default=1000000)  # 1MB
+
+# System-wide option for sending occurrences to the issues platform
+register("performance.issues.send_to_issues_platform", default=False, flags=FLAG_MODIFIABLE_BOOL)
 
 # System-wide option for performance issue creation through issues platform
-register("performance.issues.send_to_issues_platform", default=False, flags=FLAG_MODIFIABLE_BOOL)
+register(
+    "performance.issues.create_issues_through_platform",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL,
+)
 
 # Dynamic Sampling system wide options
 # Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases
@@ -658,12 +694,27 @@ register("dynamic-sampling:enabled-biases", default=True)
 # project config computation. This is temporary option to monitor the performance of this feature.
 register("dynamic-sampling:boost-latest-release", default=False)
 register("dynamic-sampling.prioritise_projects.sample_rate", default=0.0)
+# Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
+register("dynamic-sampling:sliding_window.size", default=24)
 # controls how many orgs will be queried by the prioritise by transaction task
 # 0-> no orgs , 0.5 -> half of the orgs, 1.0 -> all orgs
 register("dynamic-sampling.prioritise_transactions.load_rate", default=0.0)
-
-# Killswitch for deriving code mappings
-register("post_process.derive-code-mappings", default=True)
-# Allows adjusting the GA percentage
-register("derive-code-mappings.general-availability-rollout", default=0.0)
+# the number of large transactions to retrieve from Snuba for transaction re-balancing
+register("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions", 30)
+# the number of large transactions to retrieve from Snuba for transaction re-balancing
+register("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions", 0)
+# controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
+# not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
+# there will still be some rebalancing between the explicit and implicit transactions ( so setting rebalancing
+# to 0.0 is not the same as no rebalancing. To effectively disable rebalancing set the number of explicit
+# transactions to be rebalance (both small and large) to 0
+register(
+    "dynamic-sampling.prioritise_transactions.rebalance_intensity",
+    default=0.8,
+    flags=FLAG_MODIFIABLE_RATE,
+)
 register("hybrid_cloud.outbox_rate", default=0.0)
+# controls whether we allow people to upload artifact bundles instead of release bundles
+register("sourcemaps.enable-artifact-bundles", default=0.0)
+# Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
+register("txnames.bump-lifetime-sample-rate", default=0.1)
