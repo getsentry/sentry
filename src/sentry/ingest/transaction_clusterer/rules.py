@@ -207,7 +207,7 @@ def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None
 
 
 def bump_last_used(project: Project, pattern: str) -> None:
-    """If an entry for `pattern` exists, bump its last_used timestamp in redis
+    """If an entry for `pattern` exists, bump its last_used timestamp in redis.
 
     The updated last_used timestamps are transferred from redis to project options
     in the `cluster_projects` task.

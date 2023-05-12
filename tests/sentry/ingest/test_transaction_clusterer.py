@@ -417,7 +417,7 @@ def test_stale_rules_arent_saved(default_project):
 
 
 def test_bump_last_used():
-    """Redis update works and does not delete other keys in the set"""
+    """Redis update works and does not delete other keys in the set."""
     project1 = Project(id=123, name="project1")
     RedisRuleStore().write(project1, {"foo": 1, "bar": 2})
     assert get_redis_rules(project1) == {"foo": 1, "bar": 2}
