@@ -11,6 +11,7 @@ from sentry.models import Integration, PullRequest, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import TestCase
 from sentry.testutils.asserts import assert_commit_shape
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
@@ -23,6 +24,7 @@ def stub_installation_token(external_id=654321):
     )
 
 
+@control_silo_test
 class GitHubAppsProviderTest(TestCase):
     def setUp(self):
         super().setUp()

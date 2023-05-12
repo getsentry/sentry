@@ -37,6 +37,7 @@ class EmailAuthBackendTest(TestCase):
         self.assertEqual(result, None)
 
 
+@control_silo_test
 class GetLoginRedirectTest(TestCase):
     def make_request(self, next=None):
         request = HttpRequest()
@@ -115,6 +116,7 @@ class GetLoginRedirectTest(TestCase):
         assert result == f"http://orgslug.testserver{reverse('sentry-login')}"
 
 
+@control_silo_test
 class LoginTest(TestCase):
     def make_request(self, next=None):
         request = HttpRequest()

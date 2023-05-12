@@ -18,7 +18,7 @@ from sentry.models import Deploy, Environment, OrganizationOnboardingTask, Relea
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test, region_silo_test
 
 mock_options_as_features = {
     "sentry:set_no_value": [
@@ -204,6 +204,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
         options.set("api.organization.disable-last-deploys", opt_val)
 
 
+@control_silo_test
 class OnboardingTasksSerializerTest(TestCase):
     def test_onboarding_tasks_serializer(self):
         completion_seen = timezone.now()
@@ -223,6 +224,7 @@ class OnboardingTasksSerializerTest(TestCase):
         assert result["data"] == {}
 
 
+@control_silo_test
 class TrustedRelaySerializer(TestCase):
     def test_trusted_relay_serializer(self):
         completion_seen = timezone.now()

@@ -18,9 +18,11 @@ from sentry.options.manager import (
 )
 from sentry.options.store import OptionsStore
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.types import Int, String
 
 
+@control_silo_test
 class OptionsManagerTest(TestCase):
     @cached_property
     def store(self):
