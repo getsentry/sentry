@@ -96,6 +96,7 @@ export function useWrappedDiscoverTimeseriesQuery(
       excludeOther: 1,
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
+      interval: eventView.interval,
     }),
   });
   return {

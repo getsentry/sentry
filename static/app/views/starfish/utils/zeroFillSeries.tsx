@@ -6,10 +6,14 @@ export function zeroFillSeries(
   series: Series,
   interval: moment.Duration,
   startTime?: moment.Moment,
-  endTime?: moment.Moment
+  endTime?: moment.Moment,
+  zerofillValue?: any
 ): Series {
   if (!series?.data?.length) {
     return series;
+  }
+  if (!zerofillValue) {
+    zerofillValue = 0;
   }
 
   const firstDatum = series.data[0];
@@ -28,11 +32,11 @@ export function zeroFillSeries(
   const seriesData = [
     ...(startTimeNearestInterval &&
     startTimeNearestInterval.diff(moment(firstDatum.name)) < 0
-      ? [{value: 0, name: startTimeNearestInterval.format(dateFormat)}]
+      ? [{value: zerofillValue, name: startTimeNearestInterval.format(dateFormat)}]
       : []),
     ...series.data,
     ...(endTimeNearestInterval && endTimeNearestInterval.diff(moment(lastDatum.name)) > 0
-      ? [{value: 0, name: endTimeNearestInterval.format(dateFormat)}]
+      ? [{value: zerofillValue, name: endTimeNearestInterval.format(dateFormat)}]
       : []),
   ];
 
@@ -60,7 +64,7 @@ export function zeroFillSeries(
       lastSeenDate.add(interval);
 
       newData.push({
-        value: 0,
+        value: zerofillValue,
         name: moment(lastSeenDate).format(dateFormat),
       });
 
