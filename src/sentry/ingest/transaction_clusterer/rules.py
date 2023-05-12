@@ -59,6 +59,7 @@ class RedisRuleStore:
             p.delete(key)
             if len(rules) > 0:
                 p.hmset(key, rules)
+            p.execute()
 
 
 class ProjectOptionRuleStore:

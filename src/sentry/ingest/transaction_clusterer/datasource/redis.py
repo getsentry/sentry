@@ -1,10 +1,12 @@
 """ Write transactions into redis sets """
 import logging
+import random
 from typing import Any, Iterator, Mapping
 
 import sentry_sdk
 from django.conf import settings
 
+from sentry import options
 from sentry.ingest.transaction_clusterer.datasource import (
     HTTP_404_TAG,
     TRANSACTION_SOURCE_SANITIZED,
@@ -86,7 +88,9 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
 
     if transaction_name and _should_store_transaction_name(event_data):
         safe_execute(_store_transaction_name, project, transaction_name, _with_transaction=False)
-        safe_execute(_bump_rule_lifetime, project, event_data, _with_transaction=False)
+        sample_rate = options.get("txnames.bump-lifetime-sample-rate")
+        if sample_rate and random.random() <= sample_rate:
+            safe_execute(_bump_rule_lifetime, project, event_data, _with_transaction=False)
 
 
 def _should_store_transaction_name(event_data: Mapping[str, Any]) -> bool:
