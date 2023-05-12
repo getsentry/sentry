@@ -102,7 +102,3 @@ export function resendMemberInvite(
     },
   });
 }
-
-export function getCurrentMember(api: Client, orgId: string) {
-  return api.requestPromise(`/organizations/${orgId}/members/me/`);
-}
