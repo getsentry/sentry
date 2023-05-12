@@ -291,7 +291,13 @@ function TableView(props: TableViewProps) {
     const count = Math.min(tableData?.data?.length ?? topEvents, topEvents);
 
     const unit = tableData.meta.units?.[columnKey];
-    let cell = fieldRenderer(dataRow, {organization, location, unit});
+    let cell = fieldRenderer(dataRow, {
+      organization,
+      location,
+      unit,
+      projects,
+      eventView,
+    });
 
     if (columnKey === 'id') {
       const eventSlug = generateEventSlug(dataRow);

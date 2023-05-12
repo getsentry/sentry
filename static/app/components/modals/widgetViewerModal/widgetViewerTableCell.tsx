@@ -8,7 +8,7 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -45,9 +45,11 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  eventView?: EventView;
   isFirstPage?: boolean;
   isMetricsData?: boolean;
   onHeaderClick?: () => void;
+  projects?: Project[];
   tableData?: TableDataWithTitle;
 };
 
@@ -175,6 +177,8 @@ export const renderGridBodyCell = ({
   widget,
   tableData,
   isFirstPage,
+  projects,
+  eventView,
 }: Props) =>
   function (
     column: GridColumnOrder,
@@ -205,6 +209,8 @@ export const renderGridBodyCell = ({
           organization,
           location,
           unit,
+          projects,
+          eventView,
         });
 
         const fieldName = getAggregateAlias(columnKey);

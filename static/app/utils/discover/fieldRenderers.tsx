@@ -46,6 +46,7 @@ import {
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {decodeScalar} from '../queryString';
 
@@ -72,6 +73,7 @@ export type RenderFunctionBaggage = {
   organization: Organization;
   eventView?: EventView;
   projectSlug?: string;
+  projects?: Project[];
   unit?: string;
 };
 
@@ -318,6 +320,7 @@ type SpecialFields = {
   'timestamp.to_day': SpecialField;
   'timestamp.to_hour': SpecialField;
   trace: SpecialField;
+  transaction: SpecialField;
   'trend_percentage()': SpecialField;
   user: SpecialField;
   'user.display': SpecialField;
@@ -494,6 +497,30 @@ const SPECIAL_FIELDS: SpecialFields = {
               <OverflowFieldShortId shortId={`${data.issue}`} />
             </StyledLink>
           </QuickContextHoverWrapper>
+        </Container>
+      );
+    },
+  },
+  transaction: {
+    sortField: 'transaction',
+    renderFunc: (data, {organization, projects, eventView}) => {
+      const projectMatch = projects?.find(
+        project =>
+          project.slug && [data['project.name'], data.project].includes(project.slug)
+      );
+
+      const projectID = projectMatch ? [projectMatch.id] : undefined;
+
+      const target = transactionSummaryRouteWithQuery({
+        orgSlug: organization.slug,
+        transaction: String(data.transaction),
+        projectID,
+        query: eventView?.getPageFiltersQuery() || {},
+      });
+
+      return (
+        <Container>
+          <StyledLink to={target}>{data.transaction}</StyledLink>
         </Container>
       );
     },

@@ -14,6 +14,7 @@ import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -57,6 +58,7 @@ function SimpleTableChart({
   fieldAliases,
   loader,
 }: Props) {
+  const {projects} = useProjects();
   function renderRow(
     index: number,
     row: TableDataRow,
@@ -74,7 +76,7 @@ function SimpleTableChart({
           {topResultsIndicators && columnIndex === 0 && (
             <TopResultsIndicator count={topResultsIndicators} index={index} />
           )}
-          {fieldRenderer(row, {organization, location, eventView, unit})}
+          {fieldRenderer(row, {organization, location, eventView, unit, projects})}
         </TableCell>
       );
     });
