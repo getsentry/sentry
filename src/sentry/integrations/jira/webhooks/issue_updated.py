@@ -9,7 +9,6 @@ from rest_framework.response import Response
 from sentry_sdk import Scope
 
 from sentry.api.base import control_silo_endpoint
-from sentry.integrations.utils import get_integration_from_jwt
 from sentry.shared_integrations.exceptions import ApiError
 
 from ..utils import handle_assignee_change, handle_jira_api_error, handle_status_change
@@ -39,14 +38,7 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
         return super().handle_exception(request, exc, handler_context, scope)
 
     def post(self, request: Request, *args, **kwargs) -> Response:
-        token = self.get_token(request)
-        integration = get_integration_from_jwt(
-            token=token,
-            path=request.path,
-            provider=self.provider,
-            query_params=request.GET,
-            method="POST",
-        )
+        integration = kwargs["integration"]
 
         data = request.data
         if not data.get("changelog"):
