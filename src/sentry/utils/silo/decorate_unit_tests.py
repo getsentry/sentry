@@ -32,12 +32,11 @@ def decorate_unit_tests(model_manifest: ModelManifest):
         test_name = match.path + "::" + match.case.name
         test = model_manifest.test_names.get(test_name, None)
         if test and not test["annotated"]:
-            logger.info(f"!!! Updating {match.path}")
             mode = model_manifest.determine_silo_based_on_connections(test_name)
             if mode == SiloMode.REGION:
                 return "region_silo_test"
             elif mode == SiloMode.CONTROL:
-                "control_silo_test"
+                return "control_silo_test"
 
         return None
 
@@ -186,7 +185,7 @@ class TestCaseMap:
         count = 0
         for match in self.case_matches:
             decorator = condition(match)
-            if decorator:
+            if decorator == "control_silo_test":
                 result = match.add_decorator(decorator)
                 if result:
                     count += int(result)
@@ -200,6 +199,9 @@ class TestCaseMatch:
     decorators: Tuple[str]
 
     def add_decorator(self, decorator: str) -> bool:
+        logger.info(
+            f"Decorator: {decorator}. IN: {self.decorators} - {decorator in self.decorators}"
+        )
         if decorator in self.decorators:
             return False
         with open(self.path) as f:
@@ -210,4 +212,5 @@ class TestCaseMatch:
         new_code = f"from sentry.testutils.silo import {decorator}\n{new_code}"
         with open(self.path, mode="w") as f:
             f.write(new_code)
+        logger.info(f"!!! Updating {self.path}")
         return True
