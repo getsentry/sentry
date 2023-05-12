@@ -61,7 +61,7 @@ class RedisRuleStore:
                 p.hmset(key, rules)
             p.execute()
 
-    def update_rule(self, project: Project, rule: str, last_used: int):
+    def update_rule(self, project: Project, rule: str, last_used: int) -> None:
         """Overwrite a rule's last_used timestamp.
 
         This function does not create the rule if it does not exist.
@@ -206,7 +206,7 @@ def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None
     rule_store.merge(project)
 
 
-def bump_last_used(project: Project, pattern: str):
+def bump_last_used(project: Project, pattern: str) -> None:
     """If an entry for `pattern` exists, bump its last_used timestamp in redis
 
     The updated last_used timestamps are transferred from redis to project options
