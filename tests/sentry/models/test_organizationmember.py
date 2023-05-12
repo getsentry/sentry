@@ -17,15 +17,16 @@ from sentry.models import (
 )
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
 @region_silo_test(stable=True)
-class OrganizationMemberTest(TestCase):
+class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
     def test_legacy_token_generation(self):
         member = OrganizationMember(id=1, organization_id=1, email="foo@example.com")
         with self.settings(SECRET_KEY="a"):
@@ -153,6 +154,7 @@ class OrganizationMemberTest(TestCase):
         org = self.create_organization()
         user = self.create_user()
         member = self.create_member(user_id=user.id, organization_id=org.id)
+        self.assert_org_member_mapping(org_member=member)
         with exempt_from_silo_limits():
             ap = AuthProvider.objects.create(
                 organization_id=org.id, provider="sentry_auth_provider", config={}
@@ -174,6 +176,7 @@ class OrganizationMemberTest(TestCase):
 
         with exempt_from_silo_limits():
             assert not qs.exists()
+            self.assert_org_member_mapping_not_exists(org_member=member)
 
     def test_delete_expired_SCIM_enabled(self):
         organization = self.create_organization()
@@ -314,6 +317,7 @@ class OrganizationMemberTest(TestCase):
         team = self.create_team(organization=self.organization, org_role="owner")
         OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
 
+        member.refresh_from_db()
         assert member.get_scopes() == owner_member_scopes
 
     def test_get_contactable_members_for_org(self):

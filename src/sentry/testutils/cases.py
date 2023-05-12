@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import responses
 
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
+
 __all__ = (
     "TestCase",
     "TransactionTestCase",
@@ -82,7 +84,8 @@ from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
 from sentry.event_manager import EventManager
 from sentry.eventstream.snuba import SnubaEventStream
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
+from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
 from sentry.models import ApiToken
 from sentry.models import AuthProvider as AuthProviderModel
@@ -482,18 +485,35 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 
 class PerformanceIssueTestCase(BaseTestCase):
-    def create_performance_issue(self):
+    def create_performance_issue(
+        self, tags=None, contexts=None, fingerprint="group1", transaction=None
+    ):
         event_data = load_data(
             "transaction-n-plus-one",
             timestamp=before_now(minutes=10),
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"],
         )
+        if tags is not None:
+            event_data["tags"] = tags
+        if contexts is not None:
+            event_data["contexts"] = contexts
+        if transaction:
+            event_data["transaction"] = transaction
+
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
-        with override_options(
+
+        with mock.patch(
+            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+            side_effect=send_issue_occurrence_to_eventstream,
+        ) as mock_eventstream, mock.patch.object(
+            PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
+        ), override_options(
             {
                 "performance.issues.all.problem-detection": 1.0,
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
+                "performance.issues.send_to_issues_platform": True,
+                "performance.issues.create_issues_through_platform": True,
             }
         ), self.feature(
             [
@@ -501,7 +521,9 @@ class PerformanceIssueTestCase(BaseTestCase):
             ]
         ):
             event = perf_event_manager.save(self.project.id)
-        return event.for_group(event.groups[0])
+            group_event = event.for_group(mock_eventstream.call_args[0][2].group)
+            group_event.occurrence = mock_eventstream.call_args[0][1]
+            return group_event
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
@@ -1238,21 +1260,33 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         def metric_id(key: str):
             assert isinstance(key, str)
-            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=key)
+            res = indexer.record(
+                use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
+                org_id=org_id,
+                string=key,
+            )
             assert res is not None, key
             mapping_meta[str(res)] = key
             return res
 
         def tag_key(name):
             assert isinstance(name, str)
-            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
+            res = indexer.record(
+                use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
+                org_id=org_id,
+                string=name,
+            )
             assert res is not None, name
             mapping_meta[str(res)] = name
             return res
 
         def tag_value(name):
             assert isinstance(name, str)
-            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
+            res = indexer.record(
+                use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
+                org_id=org_id,
+                string=name,
+            )
             assert res is not None, name
             mapping_meta[str(res)] = name
             return res
@@ -1275,6 +1309,9 @@ class BaseMetricsTestCase(SnubaTestCase):
             "value": value,
             "retention_days": 90,
             "use_case_id": use_case_id,
+            # making up a sentry_received_timestamp, but it should be sometime
+            # after the timestamp of the event
+            "sentry_received_timestamp": timestamp + 10,
         }
 
         msg["mapping_meta"] = {}
@@ -1542,7 +1579,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             *list(METRICS_MAP.values()),
         ]
         org_strings = {self.organization.id: set(strings)}
-        indexer.bulk_record(use_case_id=UseCaseKey.PERFORMANCE, org_strings=org_strings)
+        indexer.bulk_record({UseCaseID.TRANSACTIONS: org_strings})
 
     def store_transaction_metric(
         self,
@@ -2224,7 +2261,7 @@ class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
 
 class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
     def __indexer_record(self, org_id: int, value: str) -> int:
-        return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=value)
+        return indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=value)
 
     def setUp(self):
         super().setUp()
@@ -2322,8 +2359,6 @@ class MonitorTestCase(APITestCase):
 
         monitorenvironment_defaults = {
             "status": monitor.status,
-            "next_checkin": monitor.next_checkin,
-            "last_checkin": monitor.last_checkin,
             **kwargs,
         }
 

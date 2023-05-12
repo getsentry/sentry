@@ -1,20 +1,21 @@
 import {Fragment, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import moment from 'moment';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {HostDetails} from 'sentry/views/starfish/modules/APIModule/hostDetails';
-import {HOST} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
@@ -25,6 +26,7 @@ import HostTable from './hostTable';
 import {
   getEndpointDomainsEventView,
   getEndpointDomainsQuery,
+  getEndpointGraphEventView,
   getEndpointGraphQuery,
 } from './queries';
 
@@ -60,6 +62,7 @@ export default function APIModuleView({location, onSelect}: Props) {
     transaction: '',
   });
   const endpointTableRef = useRef<HTMLInputElement>(null);
+  const organization = useOrganization();
 
   const endpointsDomainEventView = getEndpointDomainsEventView({
     datetime: pageFilter.selection.datetime,
@@ -68,25 +71,51 @@ export default function APIModuleView({location, onSelect}: Props) {
     datetime: pageFilter.selection.datetime,
   });
 
+  const {selection} = pageFilter;
+  const {projects, environments, datetime} = selection;
+
+  useApiQuery<null>(
+    [
+      `/organizations/${organization.slug}/events-starfish/`,
+      {
+        query: {
+          ...{
+            environment: environments,
+            project: projects.map(proj => String(proj)),
+          },
+          ...normalizeDateTimeParams(datetime),
+        },
+      },
+    ],
+    {
+      staleTime: 10,
+    }
+  );
+
   const {isLoading: _isDomainsLoading, data: domains} = useSpansQuery({
     eventView: endpointsDomainEventView,
     queryString: endpointsDomainQuery,
     initialData: [],
   });
 
-  const {isLoading: isGraphLoading, data: graphData} = useQuery({
-    queryKey: ['graph', pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getEndpointGraphQuery({
-          datetime: pageFilter.selection.datetime,
-        })}`
-      ).then(res => res.json()),
-    retry: false,
+  const endpointsGraphEventView = getEndpointGraphEventView({
+    datetime: pageFilter.selection.datetime,
+  });
+
+  const {isLoading: isGraphLoading, data: graphData} = useSpansQuery({
+    eventView: endpointsGraphEventView,
+    queryString: getEndpointGraphQuery({
+      datetime: pageFilter.selection.datetime,
+    }),
     initialData: [],
   });
 
-  const quantiles = ['p50', 'p75', 'p95', 'p99'];
+  const quantiles = [
+    'p50(span.self_time)',
+    'p75(span.self_time)',
+    'p95(span.self_time)',
+    'p99(span.self_time)',
+  ];
 
   const seriesByQuantile: {[quantile: string]: Series} = {};
   quantiles.forEach(quantile => {
@@ -112,11 +141,11 @@ export default function APIModuleView({location, onSelect}: Props) {
       });
     });
     countSeries.data.push({
-      value: datum.count,
+      value: datum['count()'],
       name: datum.interval,
     });
     failureRateSeries.data.push({
-      value: datum.failure_rate,
+      value: datum['failure_rate()'],
       name: datum.interval,
     });
   });
