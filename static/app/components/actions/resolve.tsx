@@ -9,7 +9,7 @@ import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolut
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCheckmark, IconChevron} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   GroupStatusResolution,
@@ -29,7 +29,6 @@ interface ResolveActionsProps {
   disableDropdown?: boolean;
   disableTooltip?: boolean;
   disabled?: boolean;
-  hideIcon?: boolean;
   isAutoResolved?: boolean;
   isResolved?: boolean;
   latestRelease?: Release;
@@ -53,7 +52,6 @@ function ResolveActions({
   disabled,
   disableDropdown,
   priority,
-  hideIcon,
   projectFetchError,
   disableTooltip,
   onUpdate,
@@ -126,7 +124,6 @@ function ResolveActions({
         <Button
           priority="primary"
           size="xs"
-          icon={<IconCheckmark size="xs" />}
           aria-label={t('Unresolve')}
           disabled={isAutoResolved}
           onClick={() =>
@@ -246,7 +243,6 @@ function ResolveActions({
           size={size}
           title={t("We'll nag you with a notification if the issue's seen again.")}
           tooltipProps={{delay: 1000, disabled: disabled || disableTooltip}}
-          icon={hideIcon ? null : <IconCheckmark size={size} />}
           onClick={() =>
             openConfirmModal({
               bypass: !shouldConfirm,
