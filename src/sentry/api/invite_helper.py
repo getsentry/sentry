@@ -88,6 +88,8 @@ class ApiInviteHelper:
             organization_member_id=invite_member_id
         )
         if rpc_org_member is None:
+            if logger:
+                logger.error("Invalid pending invite cookie", exc_info=True)
             return None
 
         api_invite_helper = ApiInviteHelper(
@@ -98,10 +100,6 @@ class ApiInviteHelper:
             logger=logger,
         )
 
-        if api_invite_helper.om is None:
-            if logger:
-                logger.error("Invalid pending invite cookie", exc_info=True)
-            return None
         return api_invite_helper
 
     def __init__(
