@@ -13,6 +13,8 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
 )
 from sentry.ingest.transaction_clusterer.rules import (
     ProjectOptionRuleStore,
+    RedisRuleStore,
+    bump_last_used,
     get_redis_rules,
     get_rules,
     get_sorted_rules,
@@ -412,3 +414,13 @@ def test_stale_rules_arent_saved(default_project):
     with freeze_time("2001-01-01 01:00:00"):
         update_rules(default_project, [ReplacementRule("baz/baz")])
     assert get_sorted_rules(default_project) == [("baz/baz", 978310800)]
+
+
+def test_bump_last_used():
+    """Redis update works and does not delete other keys in the set."""
+    project1 = Project(id=123, name="project1")
+    RedisRuleStore().write(project1, {"foo": 1, "bar": 2})
+    assert get_redis_rules(project1) == {"foo": 1, "bar": 2}
+    with freeze_time("2000-01-01 01:00:00"):
+        bump_last_used(project1, "bar")
+    assert get_redis_rules(project1) == {"foo": 1, "bar": 946688400}

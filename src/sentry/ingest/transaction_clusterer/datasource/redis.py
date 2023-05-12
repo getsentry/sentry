@@ -124,8 +124,6 @@ def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None
     if not applied_rules:
         return
 
-    stored_rules = clusterer_rules.get_redis_rules(project)
-
     for applied_rule in applied_rules:
         # There are two types of rules:
         # Transaction clustering rules  -- ["<pattern>", "<action>"]
@@ -134,7 +132,6 @@ def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None
         # for the length of the array should be enough.
         if len(applied_rule) == 2:
             pattern = applied_rule[0]
-            if pattern in stored_rules:
-                # Only one clustering rule is applied per project
-                clusterer_rules.update_redis_rules(project, [pattern])
-                return
+            # Only one clustering rule is applied per project
+            clusterer_rules.bump_last_used(project, pattern)
+            return
