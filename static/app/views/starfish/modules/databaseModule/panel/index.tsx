@@ -130,7 +130,7 @@ function QueryDetailBody({
     return data as TransactionListDataRow;
   });
 
-  const [countSeries, p75Series] = throughputQueryToChartData(
+  const [countSeries, p50Series, p95Series] = throughputQueryToChartData(
     graphData,
     startTime,
     endTime
@@ -210,17 +210,19 @@ function QueryDetailBody({
           />
         </FlexRowItem>
         <FlexRowItem>
-          <SubHeader>{t('Duration (P75)')}</SubHeader>
-          <SubSubHeader>{row.p75.toFixed(3)}ms</SubSubHeader>
+          <SubHeader>{t('Duration P50 / P95')}</SubHeader>
+          <SubSubHeader>
+            {row.p50.toFixed(3)}ms / {row.p95.toFixed(3)}ms
+          </SubSubHeader>
           <Chart
             statsPeriod="24h"
             height={140}
-            data={[p75Series]}
+            data={[p50Series, p95Series]}
             start=""
             end=""
             loading={isDataLoading}
             utc={false}
-            chartColors={[theme.charts.getColorPalette(4)[3]]}
+            chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
             stacked
             isLineChart
             disableXAxis
@@ -360,14 +362,17 @@ const throughputQueryToChartData = (
   endTime: moment.Moment
 ): Series[] => {
   const countSeries: Series = {seriesName: 'count()', data: [] as any[]};
-  const p75Series: Series = {seriesName: 'p75()', data: [] as any[]};
-  data.forEach(({count, p75, interval}: any) => {
+  const p50Series: Series = {seriesName: 'p50()', data: [] as any[]};
+  const p95Series: Series = {seriesName: 'p95()', data: [] as any[]};
+  data.forEach(({count, p50, p95, interval}) => {
     countSeries.data.push({value: count, name: interval});
-    p75Series.data.push({value: p75, name: interval});
+    p50Series.data.push({value: p50, name: interval});
+    p95Series.data.push({value: p95, name: interval});
   });
   return [
     zeroFillSeries(countSeries, moment.duration(INTERVAL, 'hours'), startTime, endTime),
-    zeroFillSeries(p75Series, moment.duration(INTERVAL, 'hours'), startTime, endTime),
+    zeroFillSeries(p50Series, moment.duration(INTERVAL, 'hours'), startTime, endTime),
+    zeroFillSeries(p95Series, moment.duration(INTERVAL, 'hours'), startTime, endTime),
   ];
 };
 

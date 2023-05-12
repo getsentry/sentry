@@ -351,14 +351,20 @@ export const useQueryPanelTable = (
   });
 };
 
-export const useQueryPanelGraph = (row: DataRow, interval: number) => {
+export const useQueryPanelGraph = (
+  row: DataRow,
+  interval: number
+): DefinedUseQueryResult<
+  {count: number; interval: string; p50: number; p95: number}[]
+> => {
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
   const query = `
     SELECT
       toStartOfInterval(start_timestamp, INTERVAL ${interval} HOUR) as interval,
-      quantile(0.75)(exclusive_time) as p75,
+      quantile(0.95)(exclusive_time) as p95,
+      quantile(0.50)(exclusive_time) as p50,
       count() as count
     FROM spans_experimental_starfish
     WHERE
@@ -446,6 +452,8 @@ export const useQueryMainTable = (options: {
     group_id, count() as count,
     (divide(count, ${(endTime.unix() - startTime.unix()) / 60}) AS epm),
     quantile(0.75)(exclusive_time) as p75,
+    quantile(0.50)(exclusive_time) as p50,
+    quantile(0.95)(exclusive_time) as p95,
     uniq(transaction) as transactions,
     sum(exclusive_time) as total_time,
     domain,

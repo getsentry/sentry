@@ -37,7 +37,9 @@ export type DataRow = {
   group_id: string;
   lastSeen: string;
   newish: number;
+  p50: number;
   p75: number;
+  p95: number;
   retired: number;
   total_time: number;
   transactions: number;
