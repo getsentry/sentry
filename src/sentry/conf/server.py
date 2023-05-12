@@ -1426,6 +1426,8 @@ SENTRY_FEATURES = {
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
+    # Enable starfish endpoint that's used for regressing testing purposes
+    "organizations:starfish-test-endpoint": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
