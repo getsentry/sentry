@@ -1203,10 +1203,8 @@ class Release(Model):
         counts = get_artifact_counts([self.id])
         return counts.get(self.id, 0)
 
-    def count_weakly_associated_artifact_bundles(self):
-        """Counts the number of artifacts in the most recent "ArtifactBundle" that is weakly associated
-        with this release.
-        """
+    def count_artifacts_in_artifact_bundles(self):
+        """Counts the number of artifacts in the artifact bundles associated with this release."""
         qs = (
             ArtifactBundle.objects.filter(
                 organization_id=self.organization.id,
