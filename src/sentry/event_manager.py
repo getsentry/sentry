@@ -1801,6 +1801,9 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
     group.substatus = GroupSubStatus.REGRESSED
+    # we already update these fields in the DB on .update() call, but we need to .save()
+    # to ensure the cache is updated properly since post_process_group retrieves the cached group
+    group.save(update_fields=["active_at", "status", "substatus"])
 
     if is_regression and release:
         resolution = None
