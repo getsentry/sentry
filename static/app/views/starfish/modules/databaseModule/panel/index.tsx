@@ -201,7 +201,7 @@ function QueryDetailBody({
           spmTransactionSeries[0].data,
           theme
         )
-      : [];
+      : undefined;
 
   return (
     <div>

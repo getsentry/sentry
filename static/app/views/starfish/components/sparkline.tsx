@@ -60,9 +60,9 @@ export default function Sparkline({series, width, color}: SparklineProps) {
 
 type MultiSparklineProps = {
   color: string[];
-  markLine: Series[];
   series: Series[];
   height?: number;
+  markLine?: Series;
   width?: number;
 };
 

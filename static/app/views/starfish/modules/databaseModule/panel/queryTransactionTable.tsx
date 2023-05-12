@@ -19,7 +19,6 @@ export type PanelSort = Sort<TableColumnHeader>;
 
 type Props = {
   isDataLoading: boolean;
-  markLine: Series[];
   onClickSort: (sort: PanelSort) => void;
   row: DataRow;
   sort: PanelSort;
@@ -28,6 +27,7 @@ type Props = {
   tableData: TransactionListDataRow[];
   tpmData: Series[];
   txnP50Data: Series[];
+  markLine?: Series;
 };
 
 type Keys = 'transaction' | 'spm' | 'p50' | 'frequency' | 'uniqueEvents';
