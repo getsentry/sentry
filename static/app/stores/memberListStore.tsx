@@ -4,7 +4,7 @@ import {User} from 'sentry/types';
 
 interface MemberListStoreDefinition extends StoreDefinition {
   getAll(): User[];
-  getById(id: string): User | undefined;
+  getById(memberId: string): User | undefined;
   getState(): User[];
   init(): void;
   isLoaded(): boolean;
@@ -36,18 +36,8 @@ const storeConfig: MemberListStoreDefinition = {
     return this.loaded;
   },
 
-  getById(id) {
-    if (!this.state) {
-      return undefined;
-    }
-
-    id = '' + id;
-    for (let i = 0; i < this.state.length; i++) {
-      if (this.state[i].id === id) {
-        return this.state[i];
-      }
-    }
-    return undefined;
+  getById(memberId) {
+    return this.state.find(({id}) => memberId === id);
   },
 
   getAll() {

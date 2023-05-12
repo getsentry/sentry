@@ -351,14 +351,8 @@ class MonitorEnvironmentManager(BaseManager):
         # TODO: assume these objects exist once backfill is completed
         environment = Environment.get_or_create(project=project, name=environment_name)
 
-        monitorenvironment_defaults = {
-            "status": monitor.status,
-            "next_checkin": monitor.next_checkin,
-            "last_checkin": monitor.last_checkin,
-        }
-
         return MonitorEnvironment.objects.get_or_create(
-            monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
+            monitor=monitor, environment=environment, defaults={"status": MonitorStatus.ACTIVE}
         )[0]
 
 

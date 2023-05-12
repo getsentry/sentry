@@ -51,6 +51,7 @@ class ExternalActorSerializer(Serializer):  # type: ignore
             cls = actor_type_to_class(type_id)
             actor_ids = actor_ids_by_type[type_str]
 
+            # TODO(actorid) This relies on ducktyping. Need to handle user + team separately
             for model in fetch_actors_by_actor_ids(cls, actor_ids):
                 resolved_actors[model.actor_id] = {type_str: model}
 

@@ -1,4 +1,4 @@
-import React, {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
