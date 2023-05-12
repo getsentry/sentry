@@ -148,10 +148,6 @@ class JSONField(models.TextField):
         return self.value_from_object(obj)
 
 
-class JSONFieldNoCreator(JSONField):
-    no_creator_hook = True
-
-
 class NoPrepareMixin:
     def get_prep_lookup(self):
         return self.rhs
