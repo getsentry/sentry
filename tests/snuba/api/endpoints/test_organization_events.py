@@ -5676,36 +5676,33 @@ class OrganizationEventsEndpointTest(
             {
                 "data": [
                     {
-                        "name": "foo_fn",
+                        "function": "foo_fn",
                         "transaction": "foo_tx",
                         "is_application": 1,
                         "project": "python",
                         "release": "backend@1",
                         "platform.name": "python",
-                        "os.name": "Darwin",
                         "retention_days": 90,
-                        "path": "/lib/foo",
                         "package": "lib_foo",
                         "environment": "development",
-                        "os.version": "22.3.0",
                         "p95()": 92592143.6,
                         "p50()": 34695708.0,
                         "p99()": 103764495.12000002,
                         "p75()": 45980969.0,
                         "examples()": [
-                            "b04bafc3-78ea-421b-83b8-680fd1caea52",
-                            "ceac40e4-0a0c-44ad-b7f7-b1e07f02586f",
-                            "6919e407-6b4a-46bb-af1f-3ef1f0666147",
-                            "68acd0a8-bdea-46a5-9ba2-3907152b1ce5",
-                            "8ad29465-8669-4c1b-83d8-17fab3bccbc1",
+                            "6919e4076b4a46bbaf1f3ef1f0666147",
+                            "b04bafc378ea421b83b8680fd1caea52",
+                            "ceac40e40a0c44adb7f7b1e07f02586f",
+                            "6919e4076b4a46bbaf1f3ef1f0666147",
+                            "68acd0a8bdea46a59ba23907152b1ce5",
+                            "8ad2946586694c1b83d817fab3bccbc1",
                         ],
-                        "worst()": "6919e407-6b4a-46bb-af1f-3ef1f0666147",
                         "count()": 12,
                     },
                 ],
                 "meta": [
                     {
-                        "name": "name",
+                        "name": "function",
                         "type": "String",
                     },
                     {
@@ -5729,16 +5726,8 @@ class OrganizationEventsEndpointTest(
                         "type": "String",
                     },
                     {
-                        "name": "os.name",
-                        "type": "String",
-                    },
-                    {
                         "name": "retention_days",
                         "type": "UInt16",
-                    },
-                    {
-                        "name": "path",
-                        "type": "String",
                     },
                     {
                         "name": "package",
@@ -5746,10 +5735,6 @@ class OrganizationEventsEndpointTest(
                     },
                     {
                         "name": "environment",
-                        "type": "String",
-                    },
-                    {
-                        "name": "os.version",
                         "type": "String",
                     },
                     {
@@ -5771,10 +5756,6 @@ class OrganizationEventsEndpointTest(
                     {
                         "name": "examples()",
                         "type": "Array(String)",
-                    },
-                    {
-                        "name": "worst()",
-                        "type": "String",
                     },
                     {
                         "name": "count()",
