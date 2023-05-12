@@ -55,8 +55,6 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
 
         monitorenvironment_defaults = {
             "status": monitor.status,
-            "next_checkin": monitor.next_checkin,
-            "last_checkin": monitor.last_checkin,
         }
 
         return MonitorEnvironment.objects.create(

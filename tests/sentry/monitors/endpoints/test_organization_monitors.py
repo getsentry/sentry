@@ -48,7 +48,6 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             # TODO(rjo100): this is precursor to removing the MonitorStatus values from Monitors
             monitor = self._create_monitor(
                 status=ObjectStatus.ACTIVE,
-                last_checkin=date or last_checkin,
                 name=status_key,
             )
             self._create_monitor_environment(

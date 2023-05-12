@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict
 from unittest import mock
 
@@ -9,7 +9,6 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.conf import settings
 from django.test.utils import override_settings
-from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.monitors.consumers.monitor_consumer import (
@@ -54,7 +53,6 @@ class MonitorConsumerTest(TestCase):
         return Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            next_checkin=timezone.now() + timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={
                 "schedule": "* * * * *",
@@ -153,7 +151,10 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.ERROR
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
-        assert monitor_environment.status == MonitorStatus.DISABLED
+
+        # The created monitor environment is active, but the parent monitor is
+        # disabled
+        assert monitor_environment.status == MonitorStatus.ACTIVE
         assert monitor_environment.last_checkin == checkin.date_added
         assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
             checkin.date_added
