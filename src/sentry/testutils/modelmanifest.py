@@ -5,7 +5,6 @@ import logging
 import os
 from collections import defaultdict
 from contextlib import ExitStack, contextmanager
-from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, MutableMapping, Set, Tuple, Type, Union
 
 import django.apps
@@ -24,14 +23,14 @@ class ModelManifest:
 
     file_path: str
     connections: MutableMapping[int, Set[int]]
-    model_names: MutableMapping[str, int]
+    model_names: MutableMapping[str, Dict[str, Any]]
     test_names: MutableMapping[str, Dict[str, Any]]
     reverse_lookup: MutableMapping[int, str]
     next_id: int
 
-    def get_or_create_id(self, cache: MutableMapping[str, int], name: str) -> int:
+    def get_or_create_id(self, cache: MutableMapping[str, Dict[str, Any]], name: str) -> int:
         if name in cache:
-            return cache[name]["id"]
+            return int(cache[name]["id"])
         next_id = self.next_id
         cache[name] = {"id": next_id}
         self.reverse_lookup[next_id] = name
@@ -153,7 +152,7 @@ class ModelManifest:
                     with open(self.file_path, mode="w") as f:
                         json.dump(self.to_json(), f)
 
-    def hybrid_cloud_test(self, test_name: Path) -> HybridCloudTestVisitor:
+    def hybrid_cloud_test(self, test_name: str) -> HybridCloudTestVisitor:
         # test_id = self.test_names[test_name]["id"]
         test_file_path: str
         test_case_name: str
@@ -165,7 +164,7 @@ class ModelManifest:
         test_visitor.load()
         return test_visitor
 
-    def determine_silo_based_on_connections(self, test_name) -> SiloMode:
+    def determine_silo_based_on_connections(self, test_name: str) -> SiloMode:
         logger = logging.getLogger()
         test_id = self.get_or_create_id(self.test_names, test_name)
         region_votes = 0
