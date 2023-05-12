@@ -6,8 +6,15 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.models import ArtifactBundle, DebugIdArtifactBundle, File, ReleaseFile, SourceFileType
-from sentry.models.artifactbundle import ReleaseArtifactBundle
+from sentry.models import (
+    ArtifactBundle,
+    DebugIdArtifactBundle,
+    File,
+    ProjectArtifactBundle,
+    ReleaseArtifactBundle,
+    ReleaseFile,
+    SourceFileType,
+)
 from sentry.models.releasefile import read_artifact_index, update_artifact_index
 from sentry.testutils import APITestCase
 from sentry.utils import json
@@ -235,10 +242,20 @@ class ArtifactLookupTest(APITestCase):
             dist_name=dist.name,
             artifact_bundle=artifact_bundle_a,
         )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle_a,
+        )
         ReleaseArtifactBundle.objects.create(
             organization_id=self.organization.id,
             release_name=self.release.version,
             dist_name=dist.name,
+            artifact_bundle=artifact_bundle_b,
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
             artifact_bundle=artifact_bundle_b,
         )
 

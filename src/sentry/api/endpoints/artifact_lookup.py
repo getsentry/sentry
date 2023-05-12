@@ -13,9 +13,7 @@ from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.serializers import serialize
 from sentry.auth.system import is_system_auth
 from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
-from sentry.models import DebugIdArtifactBundle, Distribution, File, Release, ReleaseFile
-from sentry.models.artifactbundle import ReleaseArtifactBundle
-from sentry.models.project import Project
+from sentry.models import ArtifactBundle, Distribution, File, Project, Release, ReleaseFile
 
 logger = logging.getLogger("sentry.api")
 
@@ -148,13 +146,12 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 def get_artifact_bundles_containing_debug_id(debug_id: str, project: Project) -> Set[int]:
     # We want to have the newest `File` for each `debug_id`.
     return set(
-        DebugIdArtifactBundle.objects.filter(
+        ArtifactBundle.objects.filter(
             organization_id=project.organization.id,
-            debug_id=debug_id,
+            debugidartifactbundle__debug_id=debug_id,
         )
-        .select_related("artifact_bundle__file_id")
-        .values_list("artifact_bundle__file_id", flat=True)
-        .order_by("-artifact_bundle__date_uploaded")[:1]
+        .values_list("file_id", flat=True)
+        .order_by("-date_uploaded")[:1]
     )
 
 
@@ -164,16 +161,16 @@ def get_release_artifacts(
     dist_name: Optional[str],
 ) -> Set[int]:
     return set(
-        ReleaseArtifactBundle.objects.filter(
+        ArtifactBundle.objects.filter(
             organization_id=project.organization.id,
-            release_name=release_name,
+            projectartifactbundle__project_id=project.id,
+            releaseartifactbundle__release_name=release_name,
             # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our tables.
             # See `_create_artifact_bundle` in `src/sentry/tasks/assemble.py` for the reference.
-            dist_name=dist_name or "",
+            releaseartifactbundle__dist_name=dist_name or "",
         )
-        .select_related("artifact_bundle__file_id")
-        .values_list("artifact_bundle__file_id", flat=True)
-        .order_by("-artifact_bundle__date_uploaded")[:MAX_BUNDLES_QUERY]
+        .values_list("file_id", flat=True)
+        .order_by("-date_uploaded")[:MAX_BUNDLES_QUERY]
     )
 
 
