@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
-from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, cast
+from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, TypedDict, cast
 
 import sentry_sdk
 from django.db.models import Q
@@ -51,6 +51,12 @@ from sentry.search.utils import validate_cdc_search_filters
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
+
+
+class PrioritySortWeights(TypedDict):
+    log_level: int
+    frequency: int
+    has_stacktrace: int
 
 
 def get_search_filter(
@@ -143,7 +149,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
-        aggregate_kwargs: Optional[Mapping[str, Any]] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
@@ -193,7 +199,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         start: datetime,
         end: datetime,
         having: Sequence[Sequence[Any]],
-        aggregate_kwargs: Optional[Mapping[str, Any]] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
@@ -205,10 +211,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
             if callable(aggregation):
-                # TODO: If we want to expand this pattern we should probably figure out
-                # more generic things to pass here.
-                if aggregate_kwargs:  # maybe add start and end to aggregate_kwargs?
-                    aggregation = aggregation(start, end, **aggregate_kwargs.get(alias, {}))
+                if aggregate_kwargs:
+                    aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
                 else:
                     aggregation = aggregation(start, end)
             aggregations.append(aggregation + [alias])
@@ -231,7 +235,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         cursor: Optional[Cursor],
         get_sample: bool,
         actor: Optional[Any] = None,
-        aggregate_kwargs: Optional[Mapping[str, Any]] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> SnubaQueryParams:
         """
         :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
@@ -315,7 +319,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         search_filters: Optional[Sequence[SearchFilter]] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
-        aggregate_kwargs: Optional[Mapping[str, Any]] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> Tuple[List[Tuple[int, Any]], int]:
         """Queries Snuba for events with associated Groups based on the input criteria.
 
@@ -462,19 +466,23 @@ def trend_aggregation(start: datetime, end: datetime) -> Sequence[str]:
 
 
 def better_priority_aggregation(
-    start: datetime, end: datetime, age: int, log_level: int, frequency: int, has_stacktrace: int
+    start: datetime,
+    end: datetime,
+    aggregate_kwargs: Optional[PrioritySortWeights],
 ) -> Sequence[str]:
-    event_age = "divide(now() - timestamp, 3600)"
+    event_age_hours = "divide(now() - timestamp, 3600)"
     event_score = 1
-    event_score_halflife = 4  # halves score every 4 hours
+    event_halflife_hours = 4  # halves score every 4 hours
     aggregate_event_score = (
-        f"sum(divide({event_score}, pow(2, divide({event_age}, {event_score_halflife}))))"
+        f"sum(divide({event_score}, pow(2, divide({event_age_hours}, {event_halflife_hours}))))"
     )
 
-    issue_age = "divide(toUInt64(now() - min(timestamp)), 3600)"
+    issue_age_hours = "divide(now() - min(timestamp), 3600)"
     issue_score = 1
-    issue_halflife = "multiply(24, 7)"  # issues half in value every week
-    aggregate_issue_score = f"divide({issue_score}, pow(2, divide({issue_age}, {issue_halflife})))"
+    issue_halflife_hours = "multiply(24, 7)"  # issues half in value every week
+    aggregate_issue_score = (
+        f"divide({issue_score}, pow(2, divide({issue_age_hours}, {issue_halflife_hours})))"
+    )
 
     return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
 

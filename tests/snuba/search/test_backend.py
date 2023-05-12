@@ -34,7 +34,7 @@ from sentry.search.snuba.backend import (
     CdcEventsDatasetSnubaSearchBackend,
     EventsDatasetSnubaSearchBackend,
 )
-from sentry.search.snuba.executors import InvalidQueryForExecutor
+from sentry.search.snuba.executors import InvalidQueryForExecutor, PrioritySortWeights
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -358,9 +358,10 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
     def test_better_priority_sort(self):
         with self.feature("organizations:issue-list-better-priority-sort"):
+            weights: PrioritySortWeights = {"log_level": 5, "frequency": 5, "has_stacktrace": 5}
             results = self.make_query(
                 sort_by="better priority",
-                aggregate_kwargs={"age": 5, "log_level": 5, "frequency": 5, "has_stacktrace": 5},
+                aggregate_kwargs=weights,
             )
         assert list(results) == [self.group1, self.group2]
 

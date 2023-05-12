@@ -164,7 +164,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         """Temporary function to be used while developing the new priority sort"""
         return {
             "better_priority": {
-                "age": request.GET.get("age", 5),
                 "log_level": request.GET.get("logLevel", 5),
                 "frequency": request.GET.get("frequency", 5),
                 "has_stacktrace": request.GET.get("hasStacktrace", False),
@@ -182,9 +181,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 assert "environment" not in extra_query_kwargs
                 query_kwargs.update(extra_query_kwargs)
 
-            if query_kwargs["sort_by"] == "better priority" and features.has(
-                "organizations:issue-list-better-priority-sort", organization, actor=request.user
-            ):
+            if query_kwargs["sort_by"] == "better priority":
+                if not features.has(
+                    "organizations:issue-list-better-priority-sort",
+                    organization,
+                    actor=request.user,
+                ):
+                    return self.respond(
+                        {
+                            "error": "This organization does not have the better priority sort feature."
+                        },
+                        status=403,
+                    )
                 query_kwargs["aggregate_kwargs"] = self.build_better_priority_sort_kwargs(request)
 
             query_kwargs["environments"] = environments if environments else None

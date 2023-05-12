@@ -49,6 +49,7 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
+from sentry.search.snuba.executors import PrioritySortWeights
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -153,7 +154,11 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         self.login_as(user=self.user)
 
-        aggregate_kwargs = {"age": 1, "log_level": 3, "frequency": 5, "has_stacktrace": 5}
+        aggregate_kwargs: PrioritySortWeights = {
+            "log_level": 3,
+            "frequency": 5,
+            "has_stacktrace": 5,
+        }
 
         response = self.get_success_response(
             sort="better priority",
@@ -161,7 +166,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             limit=25,
             start=iso_format(before_now(days=1)),
             end=iso_format(before_now(seconds=1)),
-            aggregate_kwargs={"better_priority": {**aggregate_kwargs}},
+            aggregate_kwargs={"better_priority": aggregate_kwargs},
         )
         assert len(response.data) == 2
         assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
