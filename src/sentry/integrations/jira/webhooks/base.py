@@ -31,6 +31,7 @@ class JiraWebhookBase(Endpoint, abc.ABC):
     authentication_classes = ()
     permission_classes = ()
     provider = "jira"
+    lookup_integration_from_token = True
 
     @csrf_exempt
     def dispatch(self, request: Request, *args, **kwargs) -> Response:

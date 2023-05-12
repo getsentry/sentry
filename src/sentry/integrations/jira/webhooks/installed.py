@@ -18,6 +18,10 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
     Webhook hit by Jira whenever someone installs the Sentry integration in their Jira instance.
     """
 
+    # Prevent the base `dispatch` method from trying to look up the integration based on the auth
+    # headers of the request, given that it doesn't exist yet at that point
+    lookup_integration_from_token = False
+
     def post(self, request: Request, *args, **kwargs) -> Response:
         token = kwargs["token"]
 
