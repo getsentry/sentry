@@ -270,6 +270,11 @@ class OrganizationMember(Model):
             payload=dict(user_id=self.user_id),
         )
 
+    def save_outbox_for_create(self) -> RegionOutbox:
+        outbox = self.outbox_for_create()
+        outbox.save()
+        return outbox
+
     def outbox_for_update(self) -> RegionOutbox:
         return RegionOutbox(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
