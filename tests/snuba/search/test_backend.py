@@ -365,6 +365,47 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             )
         assert list(results) == [self.group1, self.group2]
 
+    def test_better_priority_sort_old_and_new_events(self):
+        """Test that an issue with only one old event is ranked lower than an issue with only one new event"""
+        new_project = self.create_project(organization=self.project.organization)
+
+        recent_event = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-recent-group"],
+                "event_id": "c" * 32,
+                "message": "group1",
+                "environment": "production",
+                "tags": {"server": "example.com", "sentry:user": "event3@example.com"},
+                "timestamp": iso_format(self.base_datetime),
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=new_project.id,
+        )
+        old_event = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-old-group"],
+                "event_id": "a" * 32,
+                "message": "foo. Also, this message is intended to be greater than 256 characters so that we can put some unique string identifier after that point in the string. The purpose of this is in order to verify we are using snuba to search messages instead of Postgres (postgres truncates at 256 characters and clickhouse does not). santryrox.",
+                "environment": "production",
+                "tags": {"server": "example.com", "sentry:user": "old_event@example.com"},
+                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=new_project.id,
+        )
+        old_event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+
+        with self.feature("organizations:issue-list-better-priority-sort"):
+            weights: PrioritySortWeights = {"log_level": 5, "frequency": 5, "has_stacktrace": 5}
+            results = self.make_query(
+                sort_by="better priority",
+                projects=[new_project],
+                aggregate_kwargs=weights,
+            )
+        recent_group = Group.objects.get(id=recent_event.group.id)
+        old_group = Group.objects.get(id=old_event.group.id)
+        assert list(results) == [recent_group, old_group]
+
     def test_sort_with_environment(self):
         for dt in [
             self.group1.first_seen + timedelta(days=1),

@@ -39,6 +39,7 @@ from sentry.search.snuba.executors import (
     AbstractQueryExecutor,
     CdcPostgresSnubaQueryExecutor,
     PostgresSnubaQueryExecutor,
+    PrioritySortWeights,
 )
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -363,7 +364,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
-        aggregate_kwargs: Optional[Mapping[str, Any]] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
 
         search_filters = search_filters if search_filters is not None else []
