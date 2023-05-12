@@ -232,7 +232,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         {"data": trending_events, "meta": {"isMetricsData": True}},
                         True,
                     ),
-                    "stats": trending_transaction_names_stats,
+                    # et
+                    "stats": stats_data,
                 },
                 status=200,
             )
