@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
+import RequestError from 'sentry/utils/requestError/requestError';
 
-type Error = {
+type TrustedRelaysResponseError = {
   message: string;
   type:
     | 'unknown'
@@ -12,13 +13,15 @@ type Error = {
     | 'duplicated-key';
 };
 
-type XhrError = {
+interface TrustedRelaysRequestError extends RequestError {
   responseJSON?: {
     trustedRelays: Array<string>;
   };
-};
+}
 
-function handleError(error: XhrError): Error {
+function createTrustedRelaysResponseError(
+  error: TrustedRelaysRequestError
+): TrustedRelaysResponseError {
   const errorMessage = error.responseJSON?.trustedRelays[0];
 
   if (!errorMessage) {
@@ -76,4 +79,4 @@ function handleError(error: XhrError): Error {
   };
 }
 
-export default handleError;
+export default createTrustedRelaysResponseError;
