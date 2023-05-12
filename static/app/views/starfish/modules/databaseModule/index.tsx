@@ -4,6 +4,7 @@ import moment from 'moment';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
@@ -13,7 +14,7 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -63,8 +64,28 @@ function DatabaseModule() {
     sortKey: sort.sortHeader?.key,
     sortDirection: sort.direction,
   });
-
   const pageFilters = usePageFilters();
+
+  const {selection} = pageFilters;
+  const {projects, environments, datetime} = selection;
+
+  useApiQuery<null>(
+    [
+      `/organizations/${organization.slug}/events-starfish/`,
+      {
+        query: {
+          ...{
+            environment: environments,
+            project: projects.map(proj => String(proj)),
+          },
+          ...normalizeDateTimeParams(datetime),
+        },
+      },
+    ],
+    {
+      staleTime: 10,
+    }
+  );
 
   const {data: dbAggregateData} = useQuery({
     queryKey: ['dbAggregates', transaction, filterNew, filterOld],
