@@ -545,7 +545,7 @@ class RpcBackedAccess(Access):
         if not team_membership:
             return False
 
-        team_scopes = team_membership.scopes
+        team_scopes = frozenset(team_membership.scopes)
         if self.scopes_upper_bound:
             team_scopes = team_scopes & self.scopes_upper_bound
 
