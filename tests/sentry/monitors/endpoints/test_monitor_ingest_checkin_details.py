@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models import Environment
 from sentry.monitors.models import (
     CheckInStatus,
@@ -150,6 +151,36 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             assert monitor_environment.next_checkin > checkin.date_added
             assert monitor_environment.status == MonitorStatus.ERROR
             assert monitor_environment.last_checkin > checkin.date_added
+
+    def test_invalid_duration(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor, name="dev")
+        for path_func in self._get_path_functions():
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                date_added=monitor.date_added,
+            )
+
+            path = path_func(monitor.guid, checkin.guid)
+            resp = self.client.put(
+                path, data={"status": "ok", "duration": -1}, **self.token_auth_headers
+            )
+            assert resp.status_code == 400, resp.content
+            assert resp.data["duration"][0] == "Ensure this value is greater than or equal to 0."
+
+            resp = self.client.put(
+                path,
+                {"status": "ok", "duration": BoundedPositiveIntegerField.MAX_VALUE + 1},
+                **self.token_auth_headers,
+            )
+
+            assert resp.status_code == 400, resp.content
+            assert (
+                resp.data["duration"][0]
+                == f"Ensure this value is less than or equal to {BoundedPositiveIntegerField.MAX_VALUE}."
+            )
 
     def test_latest_returns_last_unfinished(self):
         monitor = self._create_monitor()
