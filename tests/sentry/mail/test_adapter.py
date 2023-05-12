@@ -1227,7 +1227,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
 
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
-        assert "Issue regressed" in msg.alternatives[0][0]
+        assert "Regressed issue" in msg.alternatives[0][0]
 
 
 class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):

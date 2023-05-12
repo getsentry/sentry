@@ -10,7 +10,7 @@ from sentry import features
 from sentry.db.models import Model
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
 from sentry.models import UserOption
-from sentry.models.groupinbox import GroupInbox, GroupInboxReason, get_inbox_reason_text
+from sentry.models.groupinbox import GroupInbox, get_inbox_reason_text
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -121,9 +121,7 @@ class AlertRuleNotification(ProjectNotification):
         group_inbox_reason = GroupInbox.objects.filter(
             group=self.group, project=self.project
         ).first()
-        group_header = "New Alert"
-        if group_inbox_reason:
-            group_header = get_inbox_reason_text(GroupInboxReason(group_inbox_reason.reason))
+        group_header = get_inbox_reason_text(group_inbox_reason)
 
         context = {
             "project_label": self.project.get_full_name(),

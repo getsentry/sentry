@@ -1,5 +1,6 @@
 import logging
 from enum import Enum
+from typing import Optional
 
 import jsonschema
 from django.db import models
@@ -155,12 +156,12 @@ def get_inbox_details(group_list):
     return inbox_stats
 
 
-def get_inbox_reason_text(inbox_reason: GroupInboxReason):
-    if inbox_reason == GroupInboxReason.NEW:
+def get_inbox_reason_text(inbox_reason: Optional[GroupInbox]):
+    reason = GroupInboxReason(inbox_reason.reason) if inbox_reason else None
+    if reason == GroupInboxReason.NEW:
         return "New issue"
-    elif inbox_reason == GroupInboxReason.REGRESSION:
-        return "Issue regressed"
-    elif inbox_reason == GroupInboxReason.ONGOING:
-        return "Issue ongoing"
-    else:
-        return "New Alert"
+    elif reason == GroupInboxReason.REGRESSION:
+        return "Regressed issue"
+    elif reason == GroupInboxReason.ONGOING:
+        return "Ongoing issue"
+    return "New Alert"
