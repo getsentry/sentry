@@ -160,6 +160,18 @@ export default class ReplayReader {
   });
 
   isNetworkDetailsSetup = memoize(() => {
-    return this.sdkConfig()?.networkDetailHasUrls;
+    const config = this.sdkConfig();
+    if (config) {
+      return this.sdkConfig()?.networkDetailHasUrls;
+    }
+
+    // Network data was added in JS SDK 7.50.0 while sdkConfig was added in v7.51.1
+    // So even if we don't have the config object, we should still fallback and
+    // look for spans with network data, as that means things are setup!
+    return this.getNetworkSpans().some(
+      span =>
+        Object.keys(span.data.request?.headers || {}).length ||
+        Object.keys(span.data.response?.headers || {}).length
+    );
   });
 }
