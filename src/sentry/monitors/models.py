@@ -217,8 +217,6 @@ class Monitor(Model):
         choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
     )
     config = JSONField(default=dict)
-    next_checkin = models.DateTimeField(null=True)
-    last_checkin = models.DateTimeField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
