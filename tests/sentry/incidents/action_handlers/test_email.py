@@ -25,7 +25,7 @@ from sentry.incidents.models import (
 from sentry.models import NotificationSetting, UserEmail, UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils import TestCase
@@ -391,7 +391,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
     @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
     def test_metric_chart_mep(self, mock_generate_chart, mock_fetch_metric_alert_events_timeseries):
         indexer.record(
-            use_case_id=UseCaseKey.PERFORMANCE, org_id=self.organization.id, string="level"
+            use_case_id=UseCaseID.TRANSACTIONS, org_id=self.organization.id, string="level"
         )
         trigger_status = TriggerStatus.ACTIVE
         alert_rule = self.create_alert_rule(
