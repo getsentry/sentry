@@ -629,3 +629,21 @@ export function useDiscoverEventsStatsQuery(
     ...props,
   });
 }
+
+export const getDbAggregatesQuery = ({datetime, transaction}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
+  return `
+    SELECT
+    description,
+    toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
+    count() AS count,
+    quantile(0.75)(exclusive_time) as p75
+    FROM spans_experimental_starfish
+    WHERE module = 'db'
+    ${transaction ? `AND transaction = '${transaction}'` : ''}
+    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
+    GROUP BY description, interval
+    ORDER BY interval asc
+  `;
+};
