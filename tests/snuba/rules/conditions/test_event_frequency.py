@@ -92,10 +92,8 @@ class PerfIssuePlatformEventMixin(PerfIssueTransactionTestMixin):
             return event.for_group(event.groups[0])
 
     def assertPasses(self, rule, event=None, **kwargs):
-        self.project.update_option("sentry:performance_issue_create_issue_through_platform", True)
         with self.options({"performance.issues.create_issues_through_platform": True}):
             super().assertPasses(rule, event=event, **kwargs)
-        self.project.update_option("sentry:performance_issue_create_issue_through_platform", False)
 
 
 class StandardIntervalMixin:
