@@ -127,6 +127,8 @@ def _do_symbolicate_event(
             )
             return
 
+    has_changed = False
+
     def _continue_to_process_event() -> None:
         store.submit_process(
             from_reprocessing=task_kind.is_reprocessing,
@@ -159,8 +161,6 @@ def _do_symbolicate_event(
         },
     ):
         return _continue_to_process_event()
-
-    has_changed = False
 
     symbolication_start_time = time()
 
