@@ -1,4 +1,4 @@
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'sentry/constants';
 import {RecentSearch, SavedSearch, SavedSearchType} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
@@ -29,7 +29,9 @@ export function saveRecentSearch(
     },
   });
 
-  promise.catch(handleXhrErrorResponse('Unable to save a recent search'));
+  promise.catch((resp: ResponseMeta) =>
+    handleXhrErrorResponse('Unable to save a recent search', resp)
+  );
 
   return promise;
 }
