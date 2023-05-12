@@ -1,13 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (
-    JSONField,
-    Model,
-    control_silo_only_model,
-    region_silo_only_model,
-    sane_repr,
-)
+from sentry.db.models import Model, control_silo_only_model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.picklefield import PickledObjectField
 
 
@@ -28,6 +22,8 @@ class BaseOption(Model):  # type: ignore
     class Meta:
         abstract = True
 
+    value = PickledObjectField()
+
     __repr__ = sane_repr("key", "value")
 
 
@@ -39,8 +35,6 @@ class Option(BaseOption):
         app_label = "sentry"
         db_table = "sentry_option"
 
-    value = PickledObjectField()
-
     __repr__ = sane_repr("key", "value")
 
 
@@ -51,7 +45,5 @@ class ControlOption(BaseOption):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_controloption"
-
-    value = JSONField(no_creator_hook=True)
 
     __repr__ = sane_repr("key", "value")

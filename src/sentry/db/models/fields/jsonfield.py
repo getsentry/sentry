@@ -70,20 +70,20 @@ class JSONField(models.TextField):
 
     By default, this field will also invoke the Creator descriptor when setting the attribute.
     This can make it difficult to use json fields that receive raw strings, so optionally setting no_creator_hook=True
-    suppresses this behavior.
+    surpresses this behavior.
     """
 
     default_error_messages = {"invalid": _("'%s' is not a valid JSON string.")}
     description = "JSON object"
+    no_creator_hook = False
 
-    def __init__(self, *args, no_creator_hook=False, **kwargs):
+    def __init__(self, *args, **kwargs):
         if not kwargs.get("null", False):
             kwargs["default"] = kwargs.get("default", dict)
         self.encoder_kwargs = {
             "indent": kwargs.pop("indent", getattr(settings, "JSONFIELD_INDENT", None))
         }
         super().__init__(*args, **kwargs)
-        self.no_creator_hook = no_creator_hook
         self.validate(self.get_default(), None)
 
     def contribute_to_class(self, cls, name):
@@ -120,7 +120,7 @@ class JSONField(models.TextField):
         return "text"
 
     def to_python(self, value):
-        if isinstance(value, str):
+        if isinstance(value, str) or self.no_creator_hook:
             if value == "":
                 if self.null:
                     return None
@@ -146,6 +146,10 @@ class JSONField(models.TextField):
 
     def value_to_string(self, obj):
         return self.value_from_object(obj)
+
+
+class JSONFieldNoCreator(JSONField):
+    no_creator_hook = True
 
 
 class NoPrepareMixin:
