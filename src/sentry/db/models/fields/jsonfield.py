@@ -67,10 +67,15 @@ class JSONField(models.TextField):
     - always using a text field
     - being able to serialize dates/decimals
     - not emitting deprecation warnings
+
+    By default, this field will also invoke the Creator descriptor when setting the attribute.
+    This can make it difficult to use json fields that receive raw strings, so optionally setting no_creator_hook=True
+    surpresses this behavior.
     """
 
     default_error_messages = {"invalid": _("'%s' is not a valid JSON string.")}
     description = "JSON object"
+    no_creator_hook = False
 
     def __init__(self, *args, **kwargs):
         if not kwargs.get("null", False):
@@ -87,7 +92,8 @@ class JSONField(models.TextField):
         with previous Django behavior.
         """
         super().contribute_to_class(cls, name)
-        setattr(cls, name, Creator(self))
+        if not self.no_creator_hook:
+            setattr(cls, name, Creator(self))
 
     def validate(self, value, model_instance):
         if not self.null and value is None:
@@ -114,7 +120,7 @@ class JSONField(models.TextField):
         return "text"
 
     def to_python(self, value):
-        if isinstance(value, str):
+        if isinstance(value, str) or self.no_creator_hook:
             if value == "":
                 if self.null:
                     return None

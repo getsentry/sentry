@@ -1,9 +1,6 @@
 from celery.signals import task_postrun
 from django.core.signals import request_finished
 
-from sentry.services.hybrid_cloud import silo_mode_delegation, stubbed
-from sentry.silo import SiloMode
-
 from .manager import (  # NOQA
     DEFAULT_FLAGS,
     FLAG_ADMIN_MODIFIABLE,
@@ -21,7 +18,7 @@ from .manager import (  # NOQA
     OptionsManager,
     UnknownOption,
 )
-from .store import AbstractOptionsStore, OptionsStore
+from .store import OptionsStore
 
 __all__ = (
     "get",
@@ -35,24 +32,7 @@ __all__ = (
 )
 
 # See notes in ``runner.initializer`` regarding lazy cache configuration.
-_local_store_impl = OptionsStore(cache=None)
-
-
-def impl_locally() -> AbstractOptionsStore:
-    return _local_store_impl
-
-
-# An abstraction for hybrid cloud.  Currently, under the hood, all silo modes still use the original options store.
-# However, to allow tests to validate abstraction for future silo separation, we need to use a delegator that can,
-# eventually, use a new implementation.
-default_store: AbstractOptionsStore = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_locally,
-        SiloMode.REGION: stubbed(impl_locally, SiloMode.CONTROL),
-        SiloMode.CONTROL: impl_locally,
-    }
-)
-
+default_store = OptionsStore(cache=None)
 task_postrun.connect(default_store.maybe_clean_local_cache)
 request_finished.connect(default_store.maybe_clean_local_cache)
 
