@@ -67,7 +67,7 @@ export function getTrendsRequestPayload(props: RequestProps) {
 }
 
 function TrendsDiscoverQuery(props: Props) {
-  const route = props.withBreakpoint ? 'new-events-trends-stats' : 'events-trends-stats';
+  const route = props.withBreakpoint ? 'events-trends-statsv2' : 'events-trends-stats';
   return (
     <GenericDiscoverQuery<TrendsData, TrendsRequest>
       {...props}

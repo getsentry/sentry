@@ -270,6 +270,9 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                         "is_new_group_environment": False,
                     }
                 ],
+                occurrence_id=event.occurrence_id,
+                project_id=event.group.project_id,
+                group_id=event.group_id,
             )
 
         assert len(mail.outbox) == 1

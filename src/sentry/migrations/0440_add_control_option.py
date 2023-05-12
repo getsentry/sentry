@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0438_break_inviter_fk_organizationmember"),
+        ("sentry", "0439_backfill_notificationsetting"),
     ]
 
     operations = [

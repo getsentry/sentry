@@ -12,14 +12,11 @@ import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
-import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
-import {HOST} from 'sentry/views/starfish/utils/constants';
-import {getModuleBreakdown} from 'sentry/views/starfish/views/webServiceView/queries';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -74,16 +71,6 @@ export default function EndpointDetail({
 function EndpointDetailBody({row, eventView, organization}: EndpointDetailBodyProps) {
   const theme = useTheme();
   const {aggregateDetails, transaction, httpOp} = row;
-
-  const {data: moduleBreakdown} = useQuery({
-    queryKey: [`moduleBreakdown${row.transaction}`],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getModuleBreakdown({transaction})}`).then(res =>
-        res.json()
-      ),
-    retry: false,
-    initialData: [],
-  });
 
   const query = new MutableSearch([
     'has:http.method',
@@ -191,7 +178,6 @@ function EndpointDetailBody({row, eventView, organization}: EndpointDetailBodyPr
         }}
       </EventsRequest>
       <FacetBreakdownBar
-        segments={moduleBreakdown}
         title={t('Where is time spent in this endpoint?')}
         transaction={row.transaction}
       />

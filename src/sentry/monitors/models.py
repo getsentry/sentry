@@ -67,6 +67,10 @@ def get_next_schedule(last_checkin, schedule_type, schedule):
     else:
         raise NotImplementedError("unknown schedule_type")
 
+    # Ensure we clamp the expected time down to the minute, that is the level
+    # of granularity we're able to support
+    next_schedule = next_schedule.replace(second=0, microsecond=0)
+
     return next_schedule
 
 
@@ -438,7 +442,7 @@ class MonitorEnvironment(Model):
             "last_checkin": ts,
             "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
         }
-        if checkin.status == CheckInStatus.OK and self.monitor.status != MonitorStatus.DISABLED:
+        if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
             params["status"] = MonitorStatus.OK
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
