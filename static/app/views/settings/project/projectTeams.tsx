@@ -10,6 +10,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TeamSelectForProject from 'sentry/views/settings/components/teamSelect/teamSelectForProject';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = {
   organization: Organization;
@@ -132,6 +133,7 @@ class ProjectTeams extends AsyncView<Props, State> {
     return (
       <div>
         <SettingsPageHeader title={t('Project Teams for %s', project.slug)} />
+        <PermissionAlert project={project} />
         <TeamSelectForProject
           disabled={!hasAccess}
           canCreateTeam={canCreateTeam}

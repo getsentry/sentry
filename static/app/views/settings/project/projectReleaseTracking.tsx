@@ -183,7 +183,7 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
             >
               <div>
                 <Confirm
-                  disableConfirmButton={!hasWrite}
+                  disabled={!hasWrite}
                   priority="danger"
                   onConfirm={this.handleRegenerateToken}
                   message={t(

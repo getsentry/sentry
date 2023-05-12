@@ -74,8 +74,6 @@ class ProjectTags extends AsyncView<Props, State> {
     return (
       <Fragment>
         <SettingsPageHeader title={t('Tags')} />
-        <PermissionAlert project={project} />
-
         <TextBlock>
           {tct(
             `Each event in Sentry may be annotated with various tags (key and value pairs).
@@ -88,6 +86,7 @@ class ProjectTags extends AsyncView<Props, State> {
           )}
         </TextBlock>
 
+        <PermissionAlert project={project} />
         <Panel>
           <PanelHeader>{t('Tags')}</PanelHeader>
           <PanelBody>

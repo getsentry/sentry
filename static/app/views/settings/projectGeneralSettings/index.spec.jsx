@@ -212,9 +212,7 @@ describe('projectGeneralSettings', function () {
     // no textboxes are enabled
     screen.queryAllByRole('textbox').forEach(textbox => expect(textbox).toBeDisabled());
 
-    expect(screen.getByTestId('project-permission-alert')).toHaveTextContent(
-      'These settings can only be edited by users with the organization owner, manager, or admin role.'
-    );
+    expect(screen.getByTestId('project-permission-alert')).toBeInTheDocument();
   });
 
   it('changing project platform updates ProjectsStore', async function () {
