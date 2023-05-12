@@ -191,6 +191,7 @@ def test_save_rules(default_project):
     wraps=cluster_projects,  # call immediately
 )
 @pytest.mark.django_db
+@freeze_time("2000-01-01 01:00:00")
 def test_run_clusterer_task(cluster_projects_delay, default_organization):
     def _add_mock_data(proj, number):
         for i in range(0, number):
@@ -227,7 +228,9 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     # Add a transaction to project2 so it runs again
     _store_transaction_name(project2, "foo")
 
-    with mock.patch("sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1):
+    with mock.patch("sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1), freeze_time(
+        "2000-01-01 01:00:01"
+    ):
         spawn_clusterers()
 
     # One project per batch now:
@@ -240,6 +243,12 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
         "/test/path/*/**",
         "/users/trans/*/**",
     }
+
+    assert (
+        ProjectOptionRuleStore().get_meta(project1)
+        == ProjectOptionRuleStore().get_meta(project2)
+        == {"first_write": 946688400, "last_write": 946688401, "writes": 2}
+    )
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 2)
