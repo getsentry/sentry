@@ -1548,7 +1548,7 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
             assert set(actual) == {(p1.id, 4), (p2.id, 2)}
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 @parametrize_backend
 class InitWithoutUserTestCase(TestCase, SnubaTestCase):
     def setUp(self):

@@ -10,7 +10,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class TestValidator(TestCase):
     def setUp(self):
         self.install = self.create_sentry_app_installation()

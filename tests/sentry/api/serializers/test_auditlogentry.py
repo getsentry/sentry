@@ -7,7 +7,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class AuditLogEntrySerializerTest(TestCase):
     def test_simple(self):
         datetime = timezone.now()

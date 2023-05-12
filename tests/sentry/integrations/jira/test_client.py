@@ -17,7 +17,7 @@ class StubJiraCloud(JiraCloudClient):
         return r
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class JiraClientTest(TestCase):
     @mock.patch("sentry.integrations.jira.integration.JiraCloudClient", new=StubJiraCloud)
     def setUp(self):

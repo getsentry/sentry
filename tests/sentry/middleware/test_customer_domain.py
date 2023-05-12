@@ -185,7 +185,7 @@ def provision_middleware():
     SENTRY_SELF_HOSTED=False,
     SENTRY_USE_CUSTOMER_DOMAINS=True,
 )
-@control_silo_test
+@control_silo_test(stable=True)
 class End2EndTest(APITestCase):
     def setUp(self):
         super().setUp()

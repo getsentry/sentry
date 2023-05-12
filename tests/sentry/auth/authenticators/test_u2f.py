@@ -13,7 +13,7 @@ def verifiy_origin(origin):
     return True
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class U2FInterfaceTest(TestCase):
     def setUp(self):
         self.u2f = U2fInterface()

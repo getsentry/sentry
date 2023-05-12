@@ -15,7 +15,7 @@ from sentry.utils import json
 from sentry.utils.cache import memoize
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SlackRequestTest(TestCase):
     def setUp(self):
         super().setUp()

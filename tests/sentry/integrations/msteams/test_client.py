@@ -9,7 +9,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class MsTeamsClientTest(TestCase):
     def setUp(self):
         self.expires_at = 1594768808

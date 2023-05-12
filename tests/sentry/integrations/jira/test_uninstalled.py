@@ -10,7 +10,7 @@ from sentry.utils.http import absolute_uri
 from tests.sentry.utils.test_jwt import RS256_KEY, RS256_PUB_KEY
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class JiraUninstalledTest(APITestCase):
     external_id = "it2may+cody"
     kid = "cudi"

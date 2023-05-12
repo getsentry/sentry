@@ -51,7 +51,7 @@ class ShouldBeParticipatingTest(TestCase):
         assert not value
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class WhereShouldBeParticipatingTest(TestCase):
     def setUp(self) -> None:
         self.user = RpcActor.from_orm_user(self.create_user())

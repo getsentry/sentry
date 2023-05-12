@@ -10,7 +10,7 @@ from sentry.testutils.silo import control_silo_test
 from . import EXAMPLE_ISSUE_SEARCH, EXAMPLE_USER_SEARCH_RESPONSE, get_integration
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class JiraServerSearchEndpointTest(APITestCase):
     @cached_property
     def integration(self):

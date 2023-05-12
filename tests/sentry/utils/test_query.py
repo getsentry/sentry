@@ -17,7 +17,7 @@ class InIexactQueryTest(TestCase):
         assert Organization.objects.filter(in_iexact("slug", [])).count() == 0
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class RangeQuerySetWrapperTest(TestCase):
     def test_basic(self):
         total = 10

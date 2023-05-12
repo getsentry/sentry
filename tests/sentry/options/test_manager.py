@@ -22,7 +22,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils.types import Int, String
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class OptionsManagerTest(TestCase):
     @cached_property
     def store(self):

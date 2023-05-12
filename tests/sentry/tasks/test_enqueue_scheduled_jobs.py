@@ -12,7 +12,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class EnqueueScheduledJobsTest(TestCase):
     def test_does_not_schedule_future_job(self):
         sj = ScheduledJob.objects.create(

@@ -5,7 +5,7 @@ from sentry.testutils.silo import control_silo_test
 newsletter = Newsletter()
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class BaseNewsletterTest(TestCase):
     def test_defaults(self):
         assert newsletter.DEFAULT_LISTS == newsletter.get_default_list_ids()

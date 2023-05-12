@@ -25,7 +25,7 @@ class DummySAML2Provider(SAML2Provider):
         pass
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SAML2ProviderTest(TestCase):
     def setUp(self):
         self.auth_provider = AuthProvider.objects.create(

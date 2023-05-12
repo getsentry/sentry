@@ -7,7 +7,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class RpcModelTest(TestCase):
     def test_schema_generation(self):
         for api_type in self._get_rpc_model_subclasses():

@@ -33,7 +33,7 @@ class ParentSerializer(Serializer):
         }
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class BaseSerializerTest(TestCase):
     def test_serialize(self):
         assert serialize([]) == []

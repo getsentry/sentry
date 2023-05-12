@@ -6,7 +6,7 @@ from sentry.testutils.silo import control_silo_test
 
 
 @override_settings(ROOT_URLCONF="sentry.conf.urls")
-@control_silo_test
+@control_silo_test(stable=True)
 class Error500Test(TestCase):
     def test_renders(self):
         resp = self.client.get(reverse("error-500"))

@@ -27,7 +27,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
-@control_silo_test
+@control_silo_test(stable=True)
 class RatelimitMiddlewareTest(TestCase):
     middleware = RatelimitMiddleware(None)
 

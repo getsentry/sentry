@@ -27,7 +27,7 @@ team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
 kid = "Su-pdZys9LJGhDVgah3UjfPouuc"
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class MsTeamsWebhookTest(APITestCase):
     def setUp(self):
         super().setUp()

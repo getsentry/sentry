@@ -12,7 +12,7 @@ from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class ChartcuterieTest(TestCase):
     def test_enabled(self):
         assert not is_enabled()
