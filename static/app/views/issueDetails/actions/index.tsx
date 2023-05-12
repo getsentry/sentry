@@ -544,7 +544,6 @@ export function Actions(props: Props) {
               onUpdate={onUpdate}
               disabled={disabled}
               size="sm"
-              hideIcon
               disableTooltip
             />
           )}
