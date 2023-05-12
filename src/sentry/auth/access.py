@@ -618,7 +618,6 @@ class RpcBackedAccess(Access):
         return False
 
 
-# todo: add an additional test on Access to make sure that upper_bound is always enforced
 def _wrap_scopes(scopes_upper_bound: Iterable[str] | None) -> FrozenSet[str] | None:
     if scopes_upper_bound is not None:
         return frozenset(scopes_upper_bound)
