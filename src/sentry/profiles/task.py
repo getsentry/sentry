@@ -5,6 +5,7 @@ from datetime import datetime
 from time import sleep, time
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
+import msgpack
 import sentry_sdk
 from django.conf import settings
 from pytz import UTC
@@ -18,7 +19,7 @@ from sentry.profiles.device import classify_device
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 
 Profile = MutableMapping[str, Any]
@@ -43,9 +44,26 @@ class VroomTimeout(Exception):
     task_acks_on_failure_or_timeout=False,
 )
 def process_profile_task(
-    profile: Profile,
+    profile: Optional[Profile] = None,
+    payload: Any = None,
     **kwargs: Any,
 ) -> None:
+    if payload:
+        message_dict = msgpack.unpackb(payload, use_list=False)
+        profile = json.loads(message_dict["payload"], use_rapid_json=True)
+
+        assert profile is not None
+
+        profile.update(
+            {
+                "organization_id": message_dict["organization_id"],
+                "project_id": message_dict["project_id"],
+                "received": message_dict["received"],
+            }
+        )
+
+    assert profile is not None
+
     organization = Organization.objects.get_from_cache(id=profile["organization_id"])
 
     sentry_sdk.set_tag("organization", organization.id)
