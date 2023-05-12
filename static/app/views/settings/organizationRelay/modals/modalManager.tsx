@@ -98,7 +98,7 @@ class DialogManager<P extends Props = Props, S extends State = State> extends Co
     }));
   }
 
-  convertErrorXhrResponse(error: ReturnType<typeof handleXhrErrorResponse>) {
+  handleErrorResponse(error: ReturnType<typeof handleXhrErrorResponse>) {
     switch (error.type) {
       case 'invalid-key':
       case 'missing-key':
@@ -142,7 +142,7 @@ class DialogManager<P extends Props = Props, S extends State = State> extends Co
       onSubmitSuccess(response);
       closeModal();
     } catch (error) {
-      this.convertErrorXhrResponse(handleXhrErrorResponse(error));
+      this.handleErrorResponse(handleXhrErrorResponse(error));
     }
   };
 
