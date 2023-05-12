@@ -12,6 +12,7 @@ from psycopg2.errorcodes import DEADLOCK_DETECTED
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
+    KeyResults,
     OrgId,
     StringIndexer,
     UseCaseKeyCollection,
@@ -22,7 +23,11 @@ from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCac
 from sentry.sentry_metrics.indexer.limiters.writes import writes_limiter_factory
 from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, BaseIndexer, IndexerTable
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
-from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import (
+    METRIC_PATH_MAPPING,
+    REVERSE_METRIC_PATH_MAPPING,
+    UseCaseID,
+)
 from sentry.utils import metrics
 
 __all__ = ["PostgresIndexer"]
@@ -101,6 +106,17 @@ class PGStringIndexerV2(StringIndexer):
             raise last_seen_exception
 
     def bulk_record(
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
+    ) -> KeyResults:
+        res = self._uca_bulk_record({REVERSE_METRIC_PATH_MAPPING[use_case_id]: org_strings})
+        return res.results[REVERSE_METRIC_PATH_MAPPING[use_case_id]]
+
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+        """Store a string and return the integer ID generated for it"""
+        result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
+        return result[org_id][string]
+
+    def _uca_bulk_record(
         self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
     ) -> UseCaseKeyResults:
         db_read_keys = UseCaseKeyCollection(strings)
@@ -228,8 +244,8 @@ class PGStringIndexerV2(StringIndexer):
 
         return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
 
-    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
-        result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
+    def _uca_record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        result = self._uca_bulk_record(strings={use_case_id: {org_id: {string}}})
         return result[use_case_id][org_id][string]
 
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
