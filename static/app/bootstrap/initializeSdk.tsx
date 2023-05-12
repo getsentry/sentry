@@ -4,6 +4,7 @@ import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
 import {BrowserTracing} from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
+import {Event} from '@sentry/types';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
@@ -130,6 +131,11 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
        */
       "TypeError: can't access dead object",
     ],
+
+    // Temporary fix while `ignoreErrors` bug is fixed and request error handling is cleaned up
+    beforeSend(event, _hint) {
+      return isFilteredRequestErrorEvent(event) ? null : event;
+    },
   });
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations
@@ -154,4 +160,30 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     Sentry.setTag('customerDomain.sentryUrl', customerDomain.sentryUrl);
     Sentry.setTag('customerDomain.subdomain', customerDomain.subdomain);
   }
+}
+
+export function isFilteredRequestErrorEvent(event: Event): boolean {
+  const exceptionValues = event.exception?.values;
+
+  if (!exceptionValues) {
+    return false;
+  }
+
+  // In case there's a chain, we take the last entry, because that's the one
+  // passed to `captureException`
+  const mainError = exceptionValues[exceptionValues.length - 1];
+
+  const {type = '', value = ''} = mainError;
+
+  const is401 =
+    ['UnauthorizedError', 'RequestError'].includes(type) &&
+    !!value.match('(GET|POST|PUT|DELETE) .* 401');
+  const is403 =
+    ['ForbiddenError', 'RequestError'].includes(type) &&
+    !!value.match('(GET|POST|PUT|DELETE) .* 403');
+  const is404 =
+    ['NotFoundError', 'RequestError'].includes(type) &&
+    !!value.match('(GET|POST|PUT|DELETE) .* 404');
+
+  return is401 || is403 || is404;
 }
