@@ -72,6 +72,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         _query = request.GET.get("query")
 
         selected_columns.append(trend_function)
+        selected_columns.append("count()")
         request.yAxis = selected_columns
 
         def get_top_events(selected_columns, user_query, params, orderby, limit, referrer):
