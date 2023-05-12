@@ -17,7 +17,6 @@ from sentry.search.events.builder import (
 from sentry.search.events.types import HistogramParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.utils.snuba import Dataset
@@ -104,7 +103,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
         self.expected_tag_value_type = "String"
 
         indexer.record(
-            use_case_id=UseCaseID.TRANSACTIONS, org_id=self.organization.id, string="transaction"
+            use_case_id=UseCaseKey.PERFORMANCE, org_id=self.organization.id, string="transaction"
         )
 
     def setup_orderby_data(self):

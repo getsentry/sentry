@@ -3,13 +3,14 @@ from typing import Mapping, Optional, Set
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
+    KeyResults,
     OrgId,
     StringIndexer,
     UseCaseKeyCollection,
     UseCaseKeyResult,
     UseCaseKeyResults,
 )
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
 
 # !!! DO NOT CHANGE THESE VALUES !!!
 #
@@ -167,6 +168,15 @@ class StaticStringIndexer(StringIndexer):
         self.indexer = indexer
 
     def bulk_record(
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
+    ) -> KeyResults:
+        res = self._uca_bulk_record({REVERSE_METRIC_PATH_MAPPING[use_case_id]: org_strings})
+        return res.results[REVERSE_METRIC_PATH_MAPPING[use_case_id]]
+
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+        return self._uca_record(REVERSE_METRIC_PATH_MAPPING[use_case_id], org_id, string)
+
+    def _uca_bulk_record(
         self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
     ) -> UseCaseKeyResults:
         static_keys = UseCaseKeyCollection(strings)
@@ -183,7 +193,7 @@ class StaticStringIndexer(StringIndexer):
         if org_strings_left.size == 0:
             return static_key_results
 
-        indexer_results = self.indexer.bulk_record(
+        indexer_results = self.indexer._uca_bulk_record(
             {
                 use_case_id: key_collection.mapping
                 for use_case_id, key_collection in org_strings_left.mapping.items()
@@ -192,10 +202,10 @@ class StaticStringIndexer(StringIndexer):
 
         return static_key_results.merge(indexer_results)
 
-    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def _uca_record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
-        return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+        return self.indexer._uca_record(use_case_id=use_case_id, org_id=org_id, string=string)
 
     def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
