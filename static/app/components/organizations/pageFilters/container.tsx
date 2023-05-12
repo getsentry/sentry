@@ -7,6 +7,7 @@ import {
   InitializeUrlStateParams,
   updateDateTime,
   updateEnvironments,
+  updatePersistence,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -122,6 +123,9 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     doInitialization();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectsLoaded, shouldForceProject, enforceSingleProject]);
+
+  // Update store persistence when `disablePersistence` changes
+  useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);
 
   const lastQuery = useRef(location.query);
 
