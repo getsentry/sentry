@@ -61,6 +61,18 @@ class RedisRuleStore:
                 p.hmset(key, rules)
             p.execute()
 
+    def update_rule(self, project: Project, rule: str, last_used: int):
+        """Overwrite a rule's last_used timestamp.
+
+        This function does not create the rule if it does not exist.
+        """
+        client = get_redis_client()
+        key = self._get_rules_key(project)
+        # There is no atomic "overwrite if exists" for hashes, so fetch keys first:
+        existing_rules = client.hkeys(key)
+        if rule in existing_rules:
+            client.hset(key, rule, last_used)
+
 
 class ProjectOptionRuleStore:
     _option_name = "sentry:transaction_name_cluster_rules"
@@ -194,16 +206,10 @@ def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None
     rule_store.merge(project)
 
 
-def update_redis_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
-    if not new_rules:
-        return
+def bump_last_used(project: Project, pattern: str):
+    """If an entry for `pattern` exists, bump its last_used timestamp in redis
 
-    last_seen = _now()
-    new_rule_set = {rule: last_seen for rule in new_rules}
-    rule_store = CompositeRuleStore(
-        [
-            RedisRuleStore(),
-            LocalRuleStore(new_rule_set),
-        ]
-    )
-    rule_store.merge(project)
+    The updated last_used timestamps are transferred from redis to project options
+    in the `cluster_projects` task.
+    """
+    RedisRuleStore().update_rule(project, pattern, _now())
