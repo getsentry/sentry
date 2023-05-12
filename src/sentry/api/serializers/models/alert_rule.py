@@ -97,6 +97,8 @@ class AlertRuleSerializer(Serializer):
 
         resolved_actors = {}
         for k, v in ACTOR_TYPES.items():
+            # TODO(actorid) This relies on ducktyping between user and team.
+            # This will need to handle user + team separately.
             resolved_actors[k] = {
                 a.actor_id: a.id
                 for a in fetch_actors_by_actor_ids(actor_type_to_class(v), owners_by_type[k])
