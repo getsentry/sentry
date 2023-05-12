@@ -171,6 +171,10 @@ function AddToDashboardModal({
       closeModal();
       addSuccessMessage(t('Successfully added widget to dashboard'));
     } catch (e) {
+      // TODO: Seems like we won't ever get here, since `updateDashboard`
+      // already includes a `.catch()` on the promise it returns. Does this even
+      // need to be in a try-catch? The existing `.catch()` calls
+      // `addErrorMessage`, but should it also call `handleXhrErrorResponse`?
       const errorMessage = t('Unable to add widget to dashboard');
       handleXhrErrorResponse(errorMessage, e);
       addErrorMessage(errorMessage);
