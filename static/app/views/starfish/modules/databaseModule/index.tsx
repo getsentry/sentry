@@ -13,7 +13,7 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -62,6 +62,10 @@ function DatabaseModule() {
     filterOld,
     sortKey: sort.sortHeader?.key,
     sortDirection: sort.direction,
+  });
+
+  useApiQuery<null>([`/organizations/${organization.slug}/events-starfish/`, {}], {
+    staleTime: 10,
   });
 
   const pageFilters = usePageFilters();

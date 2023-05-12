@@ -29,6 +29,7 @@ type Props = {
 
 type HomepageQueryState = AsyncComponent['state'] & {
   savedQuery?: SavedQuery | null;
+  starfishResult?: null;
 };
 
 class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
@@ -88,6 +89,12 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
       endpoints.push([
         'savedQuery',
         `/organizations/${organization.slug}/discover/homepage/`,
+      ]);
+    }
+    if (organization.features.includes('starfish-test-endpoint')) {
+      endpoints.push([
+        'starfishResult',
+        `/organizations/${organization.slug}/events-starfish/`,
       ]);
     }
     return endpoints;

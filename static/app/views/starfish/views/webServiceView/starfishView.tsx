@@ -17,6 +17,7 @@ const EventsRequest = withApi(_EventsRequest);
 import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
@@ -41,6 +42,10 @@ export function StarfishView(props: BasePerformanceViewProps) {
   const {organization, eventView, onSelect} = props;
   const theme = useTheme();
   const [selectedSpike, setSelectedSpike] = useState<FailureSpike>(null);
+
+  useApiQuery<null>([`/organizations/${organization.slug}/events-starfish/`, {}], {
+    staleTime: 10,
+  });
 
   function renderFailureRateChart() {
     const query = new MutableSearch(['event.type:transaction']);
