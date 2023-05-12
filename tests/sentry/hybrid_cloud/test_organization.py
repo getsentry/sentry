@@ -235,6 +235,8 @@ def test_get_top_dog_team_member_ids(org_factory: Callable[[], Organization]):
 class RpcOrganizationMemberTest(TestCase):
     def test_get_audit_log_metadata(self):
         org = self.create_organization(owner=self.user)
-        member = self.create_member(email="foobar@sentry.io", role="owner", organization_id=org.id)
+        user = self.create_user(email="foobar@sentry.io")
+        member = self.create_member(user_id=user.id, role="owner", organization_id=org.id)
+        self.create_team(organization=org, slug="baz", members=[user])
         rpc_member = serialize_member(member)
         assert member.get_audit_log_data() == rpc_member.get_audit_log_metadata()
