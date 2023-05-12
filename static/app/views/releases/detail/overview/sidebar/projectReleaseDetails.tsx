@@ -59,7 +59,7 @@ function ProjectReleaseDetails({release, releaseMeta, orgSlug, projectSlug}: Pro
                   isArtifactBundle
                     ? `/settings/${orgSlug}/projects/${projectSlug}/source-maps/artifact-bundles/?query=${encodeURIComponent(
                         version
-                      )}/`
+                      )}`
                     : `/settings/${orgSlug}/projects/${projectSlug}/source-maps/release-bundles/${encodeURIComponent(
                         version
                       )}/`
