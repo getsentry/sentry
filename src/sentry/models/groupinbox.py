@@ -156,8 +156,8 @@ def get_inbox_details(group_list):
     return inbox_stats
 
 
-def get_inbox_reason_text(inbox_reason: Optional[GroupInbox]):
-    reason = GroupInboxReason(inbox_reason.reason) if inbox_reason else None
+def get_inbox_reason_text(group_inbox: Optional[GroupInbox]):
+    reason = GroupInboxReason(group_inbox.reason) if group_inbox else None
     if reason == GroupInboxReason.NEW:
         return "New issue"
     elif reason == GroupInboxReason.REGRESSION:
