@@ -214,6 +214,7 @@ function DatabaseModule() {
               nextRow={rows.next}
               prevRow={rows.prev}
               onClose={unsetSelectedSpanGroup}
+              transaction={transaction}
             />
           </Layout.Main>
         </Layout.Body>
