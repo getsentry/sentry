@@ -129,7 +129,7 @@ class ProjectContext extends Component<Props, State> {
   );
 
   unsubscribeMembers = MemberListStore.listen(
-    (memberList: (typeof MemberListStore)['state']) => this.setState({memberList}),
+    ({members}: typeof MemberListStore.state) => this.setState({memberList: members}),
     undefined
   );
 

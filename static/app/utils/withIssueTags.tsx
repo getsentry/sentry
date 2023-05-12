@@ -103,9 +103,12 @@ function withIssueTags<Props extends WithIssueTagsProps>(
 
     // Listen to member store updates and cleanup listener on unmount
     useEffect(() => {
-      const unsubscribeMembers = MemberListStore.listen((users: User[]) => {
-        setAssigned({users});
-      }, undefined);
+      const unsubscribeMembers = MemberListStore.listen(
+        ({members}: typeof MemberListStore.state) => {
+          setAssigned({users: members});
+        },
+        undefined
+      );
 
       return () => unsubscribeMembers();
     }, [setAssigned]);

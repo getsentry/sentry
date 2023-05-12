@@ -39,9 +39,9 @@ function IssueWidgetQueries({
   const [memberListStoreLoaded, setMemberListStoreLoaded] = useState(false);
 
   useEffect(() => {
-    setMemberListStoreLoaded(MemberListStore.isLoaded());
+    setMemberListStoreLoaded(!MemberListStore.state.loading);
     const unlistener = MemberListStore.listen(() => {
-      setMemberListStoreLoaded(MemberListStore.isLoaded());
+      setMemberListStoreLoaded(!MemberListStore.state.loading);
     }, undefined);
     return () => unlistener();
   }, []);

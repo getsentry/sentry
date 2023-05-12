@@ -63,7 +63,7 @@ function NoteInput({
 }: Props) {
   const theme = useTheme();
 
-  const members = useLegacyStore(MemberListStore).map(member => ({
+  const members = useLegacyStore(MemberListStore).members.map(member => ({
     id: `user:${member.id}`,
     display: member.name,
     email: member.email,

@@ -1936,7 +1936,7 @@ class SmartSearchBarContainer extends Component<Props, ContainerState> {
   }
 
   unsubscribe = MemberListStore.listen(
-    (members: ContainerState['members']) => this.setState({members}),
+    ({members}: typeof MemberListStore.state) => this.setState({members}),
     undefined
   );
 
