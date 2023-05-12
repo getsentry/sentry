@@ -486,19 +486,32 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 class PerformanceIssueTestCase(BaseTestCase):
     def create_performance_issue(
-        self, tags=None, contexts=None, fingerprint="group1", transaction=None
+        self,
+        tags=None,
+        contexts=None,
+        fingerprint="group1",
+        transaction=None,
+        event_data=None,
+        issue_type=None,
+        noise_limit=0,
+        project_id=None,
     ):
-        event_data = load_data(
-            "transaction-n-plus-one",
-            timestamp=before_now(minutes=10),
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"],
-        )
+        if issue_type is None:
+            issue_type = PerformanceNPlusOneGroupType
+        if event_data is None:
+            event_data = load_data(
+                "transaction-n-plus-one",
+                timestamp=before_now(minutes=10),
+                fingerprint=[f"{issue_type.type_id}-{fingerprint}"],
+            )
         if tags is not None:
             event_data["tags"] = tags
         if contexts is not None:
             event_data["contexts"] = contexts
         if transaction:
             event_data["transaction"] = transaction
+        if project_id is None:
+            project_id = self.project.id
 
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
@@ -507,23 +520,36 @@ class PerformanceIssueTestCase(BaseTestCase):
             "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
             side_effect=send_issue_occurrence_to_eventstream,
         ) as mock_eventstream, mock.patch.object(
-            PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
+            issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
         ), override_options(
             {
                 "performance.issues.all.problem-detection": 1.0,
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
                 "performance.issues.send_to_issues_platform": True,
-                "performance.issues.create_issues_through_platform": True,
             }
         ), self.feature(
             [
                 "projects:performance-suspect-spans-ingestion",
             ]
         ):
+<<<<<<< HEAD
             event = perf_event_manager.save(self.project.id)
+<<<<<<< HEAD
             group_event = event.for_group(mock_eventstream.call_args[0][2].group)
             group_event.occurrence = mock_eventstream.call_args[0][1]
             return group_event
+=======
+            event = perf_event_manager.save(project_id)
+=======
+>>>>>>> bc365235e3 (test)
+            if mock_eventstream.call_args:
+                event = event.for_group(mock_eventstream.call_args[0][2].group)
+                event.occurrence = mock_eventstream.call_args[0][1]
+            return event
+<<<<<<< HEAD
+>>>>>>> 392ac6ded6 (fix(issue-platform): Fix `get_event_by_id` to correctly return occurrence information for transactions)
+=======
+>>>>>>> bc365235e3 (test)
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
