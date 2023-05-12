@@ -1162,6 +1162,7 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
                     "type": "s",
                     "value": [1, 2, 3],
                     "retention_days": 90,
+                    "sentry_received_timestamp": time.time(),
                 }
             ],
             entity=EntityKey.MetricsSets.value,
