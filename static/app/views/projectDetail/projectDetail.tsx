@@ -198,7 +198,11 @@ class ProjectDetail extends AsyncView<Props, State> {
     }
 
     return (
-      <PageFiltersContainer skipLoadLastUsed showAbsolute={!hasOnlyBasicChart}>
+      <PageFiltersContainer
+        disablePersistence
+        skipLoadLastUsed
+        showAbsolute={!hasOnlyBasicChart}
+      >
         <Layout.Page>
           <NoProjectMessage organization={organization}>
             <Layout.Header>

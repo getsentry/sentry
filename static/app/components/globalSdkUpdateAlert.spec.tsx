@@ -19,6 +19,7 @@ const makeFilterProps = (
 ): ReturnType<typeof importedUsePageFilters> => {
   return {
     isReady: true,
+    shouldPersist: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
     selection: {

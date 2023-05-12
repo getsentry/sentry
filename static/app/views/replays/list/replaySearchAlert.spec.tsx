@@ -59,6 +59,7 @@ describe('ReplaySearchAlert', () => {
         environments: [],
       },
       isReady: true,
+      shouldPersist: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
     });

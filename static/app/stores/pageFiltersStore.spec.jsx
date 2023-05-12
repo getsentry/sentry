@@ -2,6 +2,7 @@ import {
   pinFilter,
   updateDateTime,
   updateEnvironments,
+  updatePersistence,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -22,6 +23,7 @@ describe('PageFiltersStore', function () {
   it('getState()', function () {
     expect(PageFiltersStore.getState()).toEqual({
       isReady: false,
+      shouldPersist: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       selection: {
@@ -89,6 +91,13 @@ describe('PageFiltersStore', function () {
     updateEnvironments(['alpha']);
     await tick();
     expect(PageFiltersStore.getState().selection.environments).toEqual(['alpha']);
+  });
+
+  it('updatePersistence()', async function () {
+    expect(PageFiltersStore.getState().shouldPersist).toEqual(true);
+    updatePersistence(false);
+    await tick();
+    expect(PageFiltersStore.getState().shouldPersist).toEqual(false);
   });
 
   it('can mark filters as pinned', async function () {

@@ -21,6 +21,12 @@ interface CommonState {
    * The current page filter selection
    */
   selection: PageFilters;
+  /**
+   * Whether to save changes to local storage. This setting should be page-specific:
+   * most pages should have it on (default) and some, like Dashboard Details, need it
+   * off.
+   */
+  shouldPersist: boolean;
 }
 
 /**
@@ -44,13 +50,18 @@ interface PageFiltersStoreDefinition
   extends InternalDefinition,
     CommonStoreDefinition<State> {
   init(): void;
-  onInitializeUrlState(newSelection: PageFilters, pinned: Set<PinnedPageFilter>): void;
+  onInitializeUrlState(
+    newSelection: PageFilters,
+    pinned: Set<PinnedPageFilter>,
+    persist?: boolean
+  ): void;
   onReset(): void;
   pin(filter: PinnedPageFilter, pin: boolean): void;
   reset(selection?: PageFilters): void;
   updateDateTime(datetime: PageFilters['datetime']): void;
   updateDesyncedFilters(filters: Set<PinnedPageFilter>): void;
   updateEnvironments(environments: string[] | null): void;
+  updatePersistence(shouldPersist: boolean): void;
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
 }
 
@@ -58,6 +69,7 @@ const storeConfig: PageFiltersStoreDefinition = {
   selection: getDefaultSelection(),
   pinnedFilters: new Set(),
   desyncedFilters: new Set(),
+  shouldPersist: true,
   hasInitialState: false,
 
   init() {
@@ -76,11 +88,12 @@ const storeConfig: PageFiltersStoreDefinition = {
   /**
    * Initializes the page filters store data
    */
-  onInitializeUrlState(newSelection, pinned) {
+  onInitializeUrlState(newSelection, pinned, persist = true) {
     this._isReady = true;
 
     this.selection = newSelection;
     this.pinnedFilters = pinned;
+    this.shouldPersist = persist;
     this.trigger(this.getState());
   },
 
@@ -89,12 +102,18 @@ const storeConfig: PageFiltersStoreDefinition = {
       selection: this.selection,
       pinnedFilters: this.pinnedFilters,
       desyncedFilters: this.desyncedFilters,
+      shouldPersist: this.shouldPersist,
       isReady: this._isReady,
     };
   },
 
   onReset() {
     this.reset();
+    this.trigger(this.getState());
+  },
+
+  updatePersistence(shouldPersist: boolean) {
+    this.shouldPersist = shouldPersist;
     this.trigger(this.getState());
   },
 
