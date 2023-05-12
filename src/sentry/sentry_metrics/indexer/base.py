@@ -1,9 +1,11 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
+from functools import wraps
 from itertools import groupby
 from typing import (
     Any,
+    Callable,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -18,7 +20,7 @@ from typing import (
 )
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
 from sentry.utils.services import Service
 
 
@@ -395,6 +397,34 @@ class UseCaseKeyResults:
         return self.results[use_case_id]
 
 
+def _metric_path_key_compatible_resolve(
+    resolve_func: Callable[[Any, UseCaseID, int, str], Optional[int]]
+) -> Callable[[Any, Union[UseCaseID, UseCaseKey], int, str], Optional[int]]:
+    @wraps(resolve_func)
+    def wrapper(
+        self: Any, use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, string: str
+    ) -> Optional[int]:
+        if isinstance(use_case_id, UseCaseKey):
+            use_case_id = REVERSE_METRIC_PATH_MAPPING[use_case_id]
+        return resolve_func(self, use_case_id, org_id, string)
+
+    return wrapper
+
+
+def _metric_path_key_compatible_rev_resolve(
+    rev_resolve_func: Callable[[Any, UseCaseID, int, int], Optional[str]]
+) -> Callable[[Any, Union[UseCaseID, UseCaseKey], int, int], Optional[str]]:
+    @wraps(rev_resolve_func)
+    def wrapper(
+        self: Any, use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, id: int
+    ) -> Optional[str]:
+        if isinstance(use_case_id, UseCaseKey):
+            use_case_id = REVERSE_METRIC_PATH_MAPPING[use_case_id]
+        return rev_resolve_func(self, use_case_id, org_id, id)
+
+    return wrapper
+
+
 class StringIndexer(Service):
     """
     Provides integer IDs for metric names, tag keys and tag values
@@ -449,7 +479,8 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    @_metric_path_key_compatible_resolve
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
@@ -461,7 +492,8 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    @_metric_path_key_compatible_rev_resolve
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Callers should not rely on the default use_case_id -- it exists only
