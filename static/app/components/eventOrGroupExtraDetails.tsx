@@ -44,15 +44,27 @@ function EventOrGroupExtraDetails({
     lifetime,
     isUnhandled,
     inbox,
+    status,
+    substatus,
   } = data as Group;
 
   const issuesPath = `/organizations/${organization.slug}/issues/`;
 
   const showReplayCount = organization.features.includes('session-replay');
+  const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
 
   return (
     <GroupExtra>
       {inbox && <InboxReason inbox={inbox} showDateAdded={showInboxTime} />}
+      {hasEscalatingIssues && status === 'ignored' && (
+        <InboxReason
+          inbox={{
+            reason: 'archived',
+            reason_details: {substatus},
+          }}
+          showDateAdded={false}
+        />
+      )}
       {shortId && (
         <InboxShortId
           shortId={shortId}

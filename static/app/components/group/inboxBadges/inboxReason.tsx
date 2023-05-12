@@ -6,13 +6,20 @@ import DateTime from 'sentry/components/dateTime';
 import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
-import {GroupInboxReason, InboxDetails} from 'sentry/types';
+import {Group, GroupInboxReason, GroupSubstatus, InboxDetails} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useOrganization from 'sentry/utils/useOrganization';
 
+/**
+ * Since archived issues are not actually in the inbox, we're faking the inbox reason
+ */
+type ArchivedReason = {
+  reason: 'archived';
+  reason_details: {substatus: Group['substatus']};
+} & Omit<InboxDetails, 'reason'>;
 type Props = {
-  inbox: InboxDetails;
+  inbox: InboxDetails | ArchivedReason;
   fontSize?: 'sm' | 'md';
   /** Displays the time an issue was added to inbox */
   showDateAdded?: boolean;
@@ -163,6 +170,17 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
             t('Created %(relative)s', {
               relative: relativeDateAdded,
             }),
+        };
+      case 'archived':
+        return {
+          tagType: 'info',
+          reasonBadgeText: t('Archived'),
+          tooltipText:
+            reasonDetails.substatus === GroupSubstatus.ARCHIVED_FOREVER
+              ? t('Archived forever')
+              : reasonDetails.substatus === GroupSubstatus.ARCHIVED_UNTIL_ESCALATING
+              ? t('Archived until escalating')
+              : t('Archived until condition met'),
         };
       default:
         if (hasIssueStates) {
