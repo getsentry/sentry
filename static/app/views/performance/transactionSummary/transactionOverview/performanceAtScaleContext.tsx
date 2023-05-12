@@ -67,7 +67,6 @@ export function PerformanceAtScaleContextProvider({children}: ProviderProps) {
         organization,
         query,
       });
-      return;
     }
 
     // If the transaction list table is not empty and there are metrics, it means that
