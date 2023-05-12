@@ -532,24 +532,11 @@ class PerformanceIssueTestCase(BaseTestCase):
                 "projects:performance-suspect-spans-ingestion",
             ]
         ):
-<<<<<<< HEAD
-            event = perf_event_manager.save(self.project.id)
-<<<<<<< HEAD
-            group_event = event.for_group(mock_eventstream.call_args[0][2].group)
-            group_event.occurrence = mock_eventstream.call_args[0][1]
-            return group_event
-=======
             event = perf_event_manager.save(project_id)
-=======
->>>>>>> bc365235e3 (test)
             if mock_eventstream.call_args:
                 event = event.for_group(mock_eventstream.call_args[0][2].group)
                 event.occurrence = mock_eventstream.call_args[0][1]
             return event
-<<<<<<< HEAD
->>>>>>> 392ac6ded6 (fix(issue-platform): Fix `get_event_by_id` to correctly return occurrence information for transactions)
-=======
->>>>>>> bc365235e3 (test)
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
