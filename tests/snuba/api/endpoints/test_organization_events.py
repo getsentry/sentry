@@ -5789,16 +5789,12 @@ class OrganizationEventsEndpointTest(
             "project",
             "name",
             "package",
-            "path",
             "is_application",
             "platform.name",
             "environment",
             "release",
-            "os.name",
-            "os.version",
             "retention_days",
             "count()",
-            "worst()",
             "examples()",
             "p50()",
             "p75()",
@@ -5809,7 +5805,7 @@ class OrganizationEventsEndpointTest(
         query = {
             "field": fields,
             "project": [self.project.id],
-            "dataset": "profile_functions",
+            "dataset": "profileFunctions",
         }
         response = self.do_request(query, features={"organizations:profiling": True})
         assert response.status_code == 200, response.content
