@@ -6,7 +6,7 @@ import pytest
 from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import get_mri
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
@@ -20,7 +20,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 def _indexer_record(org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)
+    return indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=string)
 
 
 @region_silo_test(stable=True)
