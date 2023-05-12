@@ -1,4 +1,4 @@
-import React, {useCallback} from 'react';
+import {useCallback} from 'react';
 import {Location} from 'history';
 
 import Count from 'sentry/components/count';
