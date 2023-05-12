@@ -110,7 +110,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       window.location.assign('/');
     } catch (err) {
       if (err.status >= 500) {
-        handleXhrErrorResponse('Unable to transfer project')(err);
+        handleXhrErrorResponse('Unable to transfer project', err);
       }
     }
   };

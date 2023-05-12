@@ -248,7 +248,7 @@ function Onboarding(props: Props) {
         project_id: recentCreatedProject.id,
       });
     } catch (error) {
-      handleXhrErrorResponse(t('Unable to delete project in onboarding'))(error);
+      handleXhrErrorResponse(t('Unable to delete project in onboarding'), error);
       // we don't give the user any feedback regarding this error as this shall be silent
     }
   }, [api, organization, recentCreatedProject, onboardingContext]);
