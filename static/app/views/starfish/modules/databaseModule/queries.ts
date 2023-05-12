@@ -522,10 +522,7 @@ export const useQueryTransactionByTPMAndP75 = (
   );
 };
 
-export const useQueryGetProfileIds = (
-  transactionNames: string[],
-  spanHash: string
-): DefinedUseQueryResult<{transaction_id: string}[]> => {
+export const useQueryGetProfileIds = (transactionNames: string[]) => {
   const location = useLocation();
   const {slug: orgSlug} = useOrganization();
   const eventView = EventView.fromNewQueryWithLocation(
@@ -535,30 +532,11 @@ export const useQueryGetProfileIds = (
       query: `transaction:[${transactionNames.join(',')}] has:profile.id`,
       projects: [1],
       version: 1,
+      orderby: 'id',
     },
     location
   );
-  const discoverResult = useDiscoverQuery({eventView, location, orgSlug});
-
-  const transactionIds = discoverResult?.data?.data?.map(d => d.id);
-
-  const query = `
-    SELECT
-      transaction_id
-    FROM
-      default.spans_experimental_starfish
-    WHERE
-      group_id = '${spanHash}' AND
-      transaction_id IN ('${transactionIds?.join(`','`)}')
-  `;
-
-  return useQuery({
-    enabled: !!transactionIds?.length,
-    queryKey: ['transactionsWithProfiles', transactionIds?.join(',')],
-    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
+  return useDiscoverQuery({eventView, location, orgSlug, queryExtras: {per_page: '10'}});
 };
 
 export const useQueryGetEvent = (

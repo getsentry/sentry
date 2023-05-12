@@ -32,9 +32,14 @@ const TOP_NODE_MIN_COUNT = 3;
 interface SpanProfileDetailsProps {
   event: Readonly<EventTransaction>;
   span: Readonly<SpanType>;
+  onNoProfileFound?: () => void;
 }
 
-export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
+export function SpanProfileDetails({
+  event,
+  span,
+  onNoProfileFound,
+}: SpanProfileDetailsProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === event.projectID);
@@ -141,6 +146,9 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
   }
 
   if (!frames.length) {
+    if (onNoProfileFound) {
+      onNoProfileFound();
+    }
     return null;
   }
 
