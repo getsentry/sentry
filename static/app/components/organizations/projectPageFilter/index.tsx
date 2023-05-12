@@ -34,15 +34,27 @@ import {DesyncedFilterMessage} from '../pageFilters/desyncedFilter';
 import {ProjectPageFilterMenuFooter} from './menuFooter';
 import {ProjectPageFilterTrigger} from './trigger';
 
-export interface ProjectPageFilterProps {
+export interface ProjectPageFilterProps
+  extends Partial<
+    Omit<
+      HybridFilterProps<number>,
+      | 'searchable'
+      | 'multiple'
+      | 'options'
+      | 'value'
+      | 'onReplace'
+      | 'onToggle'
+      | 'menuBody'
+      | 'menuFooter'
+      | 'menuFooterMessage'
+      | 'checkboxWrapper'
+      | 'shouldCloseOnInteractOutside'
+    >
+  > {
   /**
    * Message to show in the menu footer
    */
   footerMessage?: string;
-  /**
-   * Triggers any time a selection is changed, but the menu has not yet been closed or "applied"
-   */
-  onChange?: (selected: number[]) => void;
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
@@ -51,6 +63,14 @@ export interface ProjectPageFilterProps {
 
 export function ProjectPageFilter({
   onChange,
+  onClear,
+  disabled,
+  sizeLimit,
+  sizeLimitMessage,
+  emptyMessage,
+  menuTitle,
+  menuWidth,
+  trigger,
   resetParamsOnChange,
   footerMessage,
   ...selectProps
@@ -198,12 +218,13 @@ export function ProjectPageFilter({
     });
   }, [routes, organization]);
 
-  const onClear = useCallback(() => {
+  const handleClear = useCallback(() => {
+    onClear?.();
     trackAnalytics('projectselector.clear', {
       path: getRouteStringFromRoutes(routes),
       organization,
     });
-  }, [routes, organization]);
+  }, [onClear, routes, organization]);
 
   const options = useMemo<SelectOptionOrSection<number>[]>(() => {
     const hasProjects = !!memberProjects.length || !!nonMemberProjects.length;
@@ -286,7 +307,7 @@ export function ProjectPageFilter({
   ]);
 
   const desynced = desyncedFilters.has('projects');
-  const menuWidth = useMemo(() => {
+  const defaultMenuWidth = useMemo(() => {
     const flatOptions: SelectOption<number>[] = options.flatMap(item =>
       'options' in item ? item.options : [item]
     );
@@ -319,15 +340,15 @@ export function ProjectPageFilter({
       options={options}
       value={value}
       onChange={handleChange}
+      onClear={handleClear}
       onReplace={onReplace}
       onToggle={onToggle}
-      onClear={onClear}
-      disabled={!projectsLoaded || !pageFilterIsReady}
-      sizeLimit={25}
-      sizeLimitMessage={t('Use search to find more projects…')}
-      emptyMessage={t('No projects found')}
-      menuTitle={t('Filter Projects')}
-      menuWidth={menuWidth}
+      disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
+      sizeLimit={sizeLimit ?? 25}
+      sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more projects…')}
+      emptyMessage={emptyMessage ?? t('No projects found')}
+      menuTitle={menuTitle ?? t('Filter Projects')}
+      menuWidth={menuWidth ?? defaultMenuWidth}
       menuBody={desynced && <DesyncedFilterMessage />}
       menuFooter={
         hasProjectWrite && (
@@ -338,16 +359,19 @@ export function ProjectPageFilter({
         )
       }
       menuFooterMessage={footerMessage}
-      trigger={triggerProps => (
-        <ProjectPageFilterTrigger
-          value={value}
-          memberProjects={memberProjects}
-          nonMemberProjects={nonMemberProjects}
-          ready={projectsLoaded && pageFilterIsReady}
-          desynced={desynced}
-          {...triggerProps}
-        />
-      )}
+      trigger={
+        trigger ??
+        (triggerProps => (
+          <ProjectPageFilterTrigger
+            value={value}
+            memberProjects={memberProjects}
+            nonMemberProjects={nonMemberProjects}
+            ready={projectsLoaded && pageFilterIsReady}
+            desynced={desynced}
+            {...triggerProps}
+          />
+        ))
+      }
       checkboxWrapper={checkboxWrapper}
       shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
     />
