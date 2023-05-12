@@ -32,6 +32,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, transaction
 from django.db.models import Func
+from django.db.models.signals import post_save
 from django.utils.encoding import force_text
 from pytz import UTC
 
@@ -1797,13 +1798,16 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
         transition_type="automatic",
         sender="handle_regression",
     )
-
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
     group.substatus = GroupSubStatus.REGRESSED
-    # we already update these fields in the DB on .update() call, but we need to .save()
-    # to ensure the cache is updated properly since post_process_group retrieves the cached group
-    group.save(update_fields=["active_at", "status", "substatus"])
+    # intentionally fire the signal to update the cached Group
+    post_save.send(
+        sender=Group,
+        instance=group,
+        create=False,
+        update_fields=["last_seen", "active_at", "status", "substatus"],
+    )
 
     if is_regression and release:
         resolution = None
