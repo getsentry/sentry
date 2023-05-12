@@ -1,4 +1,4 @@
-import React, {Component, Fragment, useEffect} from 'react';
+import React, {Component, Fragment, useContext, useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
@@ -11,11 +11,9 @@ import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
-import {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -24,7 +22,11 @@ import {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {mapShowTransactionToPercentile} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
-import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
+import {PerformanceAtScaleContext} from 'sentry/views/performance/transactionSummary/transactionOverview/performanceAtScaleContext';
+import {
+  DisplayModes,
+  TransactionFilterOptions,
+} from 'sentry/views/performance/transactionSummary/utils';
 import {TrendChangeType, TrendView} from 'sentry/views/performance/trends/types';
 
 import TransactionsTable from './transactionsTable';
@@ -114,7 +116,6 @@ type Props = {
    * The callback for when Open in Discover is clicked.
    */
   handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
-  mepContext?: MetricsEnhancedPerformanceDataContext;
   referrer?: string;
   showTransactions?: TransactionFilterOptions;
   /**
@@ -128,7 +129,6 @@ type TableRenderProps = Omit<React.ComponentProps<typeof Pagination>, 'size'> &
   React.ComponentProps<typeof TransactionsTable> & {
     header: React.ReactNode;
     paginationCursorSize: React.ComponentProps<typeof Pagination>['size'];
-    mepContext?: MetricsEnhancedPerformanceDataContext;
     target?: string;
   };
 
@@ -149,31 +149,41 @@ function TableRender({
   useAggregateAlias,
   target,
   paginationCursorSize,
-  mepContext,
 }: TableRenderProps) {
-  const tableHasResults =
-    tableData && tableData.data && tableData.meta && tableData.data.length > 0;
   const query = decodeScalar(location.query.query, '');
-  const isMetricsData = mepContext?.isMetricsData ?? false;
+  const display = decodeScalar(location.query.display, DisplayModes.DURATION);
+  const performanceAtScaleContext = useContext(PerformanceAtScaleContext);
+  const hasResults =
+    tableData && tableData.data && tableData.meta && tableData.data.length > 0;
 
   useEffect(() => {
-    if (isLoading || !isMetricsData || !organization.isDynamicallySampled) {
+    if (!performanceAtScaleContext) {
       return;
     }
 
-    if (!tableHasResults) {
-      trackAnalytics('dynamic_sampling_transaction_summary.no_samples', {
-        organization,
-        query,
-      });
+    // we are now only collecting analytics data from the transaction summary page
+    // when the display mode is set to duration
+    if (display !== DisplayModes.DURATION) {
       return;
     }
 
-    trackAnalytics('dynamic_sampling_transaction_summary.baseline', {
-      organization,
+    if (isLoading || hasResults === null) {
+      performanceAtScaleContext.setTransactionListTableData(undefined);
+      return;
+    }
+
+    if (
+      !hasResults === performanceAtScaleContext.transactionListTableData?.empty &&
+      query === performanceAtScaleContext.transactionListTableData?.query
+    ) {
+      return;
+    }
+
+    performanceAtScaleContext.setTransactionListTableData({
+      empty: !hasResults,
       query,
     });
-  }, [isLoading, tableHasResults, organization, isMetricsData, query]);
+  }, [display, isLoading, hasResults, performanceAtScaleContext, query]);
 
   const content = (
     <TransactionsTable
@@ -321,7 +331,6 @@ class _TransactionsList extends Component<Props> {
       generateLink,
       forceLoading,
       referrer,
-      mepContext,
     } = this.props;
 
     const eventView = this.getEventView();
@@ -344,7 +353,6 @@ class _TransactionsList extends Component<Props> {
       target: 'transactions_table',
       paginationCursorSize: 'xs',
       onCursor: this.handleCursor,
-      mepContext,
     };
 
     if (forceLoading) {
@@ -375,15 +383,8 @@ class _TransactionsList extends Component<Props> {
   }
 
   renderTrendsTable(): React.ReactNode {
-    const {
-      trendView,
-      location,
-      selected,
-      organization,
-      cursorName,
-      generateLink,
-      mepContext,
-    } = this.props;
+    const {trendView, location, selected, organization, cursorName, generateLink} =
+      this.props;
 
     const sortedEventView: TrendView = trendView!.clone();
     sortedEventView.sorts = [selected.sort];
@@ -421,7 +422,6 @@ class _TransactionsList extends Component<Props> {
               {field: 'trend_difference()'},
             ])}
             generateLink={generateLink}
-            mepContext={mepContext}
             useAggregateAlias
           />
         )}

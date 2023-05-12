@@ -67,6 +67,7 @@ import {
 } from '../utils';
 
 import TransactionSummaryCharts from './charts';
+import {PerformanceAtScaleContextProvider} from './performanceAtScaleContext';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
@@ -105,6 +106,7 @@ function SummaryContent({
 }: Props) {
   const routes = useRoutes();
   const mepDataContext = useMEPDataContext();
+
   function handleSearch(query: string) {
     const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
@@ -360,43 +362,45 @@ function SummaryContent({
             )}
           />
         </FilterActions>
-        <TransactionSummaryCharts
-          organization={organization}
-          location={location}
-          eventView={eventView}
-          totalValue={totalCount}
-          currentFilter={spanOperationBreakdownFilter}
-          withoutZerofill={hasPerformanceChartInterpolation}
-        />
-        <TransactionsList
-          location={location}
-          organization={organization}
-          eventView={transactionsListEventView}
-          {...openAllEventsProps}
-          showTransactions={
-            decodeScalar(
-              location.query.showTransactions,
-              TransactionFilterOptions.SLOW
-            ) as TransactionFilterOptions
-          }
-          breakdown={decodeFilterFromLocation(location)}
-          titles={transactionsListTitles}
-          handleDropdownChange={handleTransactionsListSortChange}
-          generateLink={{
-            id: generateTransactionLink(transactionName),
-            trace: generateTraceLink(eventView.normalizeDateSelection(location)),
-            replayId: generateReplayLink(routes),
-            'profile.id': generateProfileLink(),
-          }}
-          handleCellAction={handleCellAction}
-          {...getTransactionsListSort(location, {
-            p95: totalValues?.['p95()'] ?? 0,
-            spanOperationBreakdownFilter,
-          })}
-          forceLoading={isLoading}
-          referrer="performance.transactions_summary"
-          mepContext={mepDataContext}
-        />
+        <PerformanceAtScaleContextProvider>
+          <TransactionSummaryCharts
+            organization={organization}
+            location={location}
+            eventView={eventView}
+            totalValue={totalCount}
+            currentFilter={spanOperationBreakdownFilter}
+            withoutZerofill={hasPerformanceChartInterpolation}
+          />
+          <TransactionsList
+            location={location}
+            organization={organization}
+            eventView={transactionsListEventView}
+            {...openAllEventsProps}
+            showTransactions={
+              decodeScalar(
+                location.query.showTransactions,
+                TransactionFilterOptions.SLOW
+              ) as TransactionFilterOptions
+            }
+            breakdown={decodeFilterFromLocation(location)}
+            titles={transactionsListTitles}
+            handleDropdownChange={handleTransactionsListSortChange}
+            generateLink={{
+              id: generateTransactionLink(transactionName),
+              trace: generateTraceLink(eventView.normalizeDateSelection(location)),
+              replayId: generateReplayLink(routes),
+              'profile.id': generateProfileLink(),
+            }}
+            handleCellAction={handleCellAction}
+            {...getTransactionsListSort(location, {
+              p95: totalValues?.['p95()'] ?? 0,
+              spanOperationBreakdownFilter,
+            })}
+            forceLoading={isLoading}
+            referrer="performance.transactions_summary"
+          />
+        </PerformanceAtScaleContextProvider>
+
         <SuspectSpans
           location={location}
           organization={organization}
