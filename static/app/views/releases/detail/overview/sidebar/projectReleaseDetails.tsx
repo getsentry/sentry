@@ -20,7 +20,7 @@ type Props = {
 
 function ProjectReleaseDetails({release, releaseMeta, orgSlug, projectSlug}: Props) {
   const {version, versionInfo, dateCreated, firstEvent, lastEvent} = release;
-  const {releaseFileCount, bundleId} = releaseMeta;
+  const {releaseFileCount, isArtifactBundle} = releaseMeta;
 
   return (
     <SidebarSection.Wrap>
@@ -56,9 +56,9 @@ function ProjectReleaseDetails({release, releaseMeta, orgSlug, projectSlug}: Pro
             value={
               <Link
                 to={
-                  bundleId
-                    ? `/settings/${orgSlug}/projects/${projectSlug}/source-maps/artifact-bundles/${encodeURIComponent(
-                        bundleId
+                  isArtifactBundle
+                    ? `/settings/${orgSlug}/projects/${projectSlug}/source-maps/artifact-bundles/?query=${encodeURIComponent(
+                        version
                       )}/`
                     : `/settings/${orgSlug}/projects/${projectSlug}/source-maps/release-bundles/${encodeURIComponent(
                         version
