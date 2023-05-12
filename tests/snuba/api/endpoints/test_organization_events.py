@@ -5787,7 +5787,7 @@ class OrganizationEventsEndpointTest(
         fields = [
             "transaction",
             "project",
-            "name",
+            "function",
             "package",
             "is_application",
             "platform.name",
