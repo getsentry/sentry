@@ -68,7 +68,7 @@ def get_notification_card(
 @register_notification_provider(ExternalProviders.MSTEAMS)
 def send_notification_as_msteams(
     notification: BaseNotification,
-    recipients: Iterable[Team | User],
+    recipients: Iterable[RpcActor],
     shared_context: Mapping[str, Any],
     extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None,
 ):
