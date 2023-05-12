@@ -475,11 +475,11 @@ def better_priority_aggregation(
     min_score = 0.01
     max_pow = 16
     event_halflife_hours = 4  # halves score every 4 hours
-    aggregate_event_score = f"least({min_score}, sum(divide({event_score}, pow(2, greatest({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
+    aggregate_event_score = f"greatest({min_score}, sum(divide({event_score}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
     issue_age_hours = "divide(now() - min(timestamp), 3600)"
     issue_score = 1
     issue_halflife_hours = "multiply(24, 7)"  # issues half in value every week
-    aggregate_issue_score = f"least({min_score}, divide({issue_score}, pow(2, greatest({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
+    aggregate_issue_score = f"greatest({min_score}, divide({issue_score}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
 
     return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
 

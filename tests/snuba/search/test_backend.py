@@ -363,7 +363,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 sort_by="better priority",
                 aggregate_kwargs=weights,
             )
-        assert list(results) == [self.group1, self.group2]
+        assert list(results) == [self.group2, self.group1]
 
     def test_better_priority_sort_old_and_new_events(self):
         """Test that an issue with only one old event is ranked lower than an issue with only one new event"""
