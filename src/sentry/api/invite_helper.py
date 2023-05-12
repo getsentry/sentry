@@ -48,24 +48,28 @@ class ApiInviteHelper:
         """
         invite_token, invite_member_id = get_invite_details(request)
 
-        om = None
+        rpc_org_member = None
         if invite_token and invite_member_id:
-            om = organization_service.check_membership_by_invite_token(
+            rpc_org_member = organization_service.check_membership_by_invite_token(
                 organization_id=organization_id,
                 member_id=invite_member_id,
                 invite_token=invite_token,
             )
         else:
-            om = organization_service.check_membership_by_email(
+            rpc_org_member = organization_service.check_membership_by_email(
                 organization_id=organization_id, email=email
             )
-        if om is None:
+        if rpc_org_member is None:
             # Unable to locate the pending organization member. Cannot setup
             # the invite helper.
             return None
 
         return cls(
-            request=request, member_id=om.id, token=om.token, instance=instance, logger=logger
+            request=request,
+            rpc_org_member=rpc_org_member,
+            token=rpc_org_member.token,
+            instance=instance,
+            logger=logger,
         )
 
     @classmethod
@@ -80,9 +84,15 @@ class ApiInviteHelper:
         if not invite_token or not invite_member_id:
             return None
 
+        rpc_org_member = organization_service.get_organization_member(
+            organization_member_id=invite_member_id
+        )
+        if rpc_org_member is None:
+            return None
+
         api_invite_helper = ApiInviteHelper(
             request=request,
-            member_id=invite_member_id,
+            rpc_org_member=rpc_org_member,
             token=invite_token,
             instance=instance,
             logger=logger,
@@ -97,17 +107,17 @@ class ApiInviteHelper:
     def __init__(
         self,
         request: Request,
-        member_id: int,
+        rpc_org_member: RpcOrganizationMember,
         token: str | None,
         instance: Any | None = None,
         logger: Logger | None = None,
     ) -> None:
         self.request = request
-        self.member_id = member_id
+        self.member_id = rpc_org_member.id
         self.token = token
         self.instance = instance
         self.logger = logger
-        self.om = organization_service.get_organization_member(organization_member_id=member_id)
+        self.om = rpc_org_member
         self.organization_id = self.om.organization_id if self.om else None
 
     def handle_success(self) -> None:
