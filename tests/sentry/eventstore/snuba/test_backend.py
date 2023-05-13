@@ -183,23 +183,23 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         with mock.patch("sentry.eventstore.snuba.backend.Event") as mock_event:
             dummy_event = Event(
                 project_id=self.project2.id,
-                event_id="f" * 32,
-                data={"something": "hi", "timestamp": self.min_ago},
+                event_id="1" * 32,
+                data={"something": "hi", "timestamp": self.min_ago, "type": "error"},
             )
             mock_event.return_value = dummy_event
-            event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)
+            event = self.eventstore.get_event_by_id(self.project2.id, "1" * 32)
             # Result of query should be None
             assert event is None
 
         # Now we store the event properly, so it will exist in Snuba.
         self.store_event(
-            data={"event_id": "f" * 32, "timestamp": self.min_ago},
+            data={"event_id": "1" * 32, "timestamp": self.min_ago, "type": "error"},
             project_id=self.project2.id,
         )
 
         # Make sure that the negative cache isn't causing the event to not show up
-        event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)
-        assert event.event_id == "f" * 32
+        event = self.eventstore.get_event_by_id(self.project2.id, "1" * 32)
+        assert event.event_id == "1" * 32
         assert event.project_id == self.project2.id
         assert event.group_id == event.group.id
 

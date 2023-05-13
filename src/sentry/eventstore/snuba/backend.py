@@ -230,7 +230,9 @@ class SnubaEventStorage(EventStorage):
                     ["timestamp", ">", datetime.fromtimestamp(random.randint(0, 1000000000))]
                 ]
             dataset = (
-                Dataset.IssuePlatform if event.get_event_type() != "errors" else Dataset.Events
+                Dataset.IssuePlatform
+                if event.get_event_type() in ("transaction", "generic")
+                else Dataset.Events
             )
             try:
                 tenant_ids = tenant_ids or {"organization_id": event.project.organization_id}
@@ -275,14 +277,14 @@ class SnubaEventStorage(EventStorage):
             event._snuba_data = result["data"][0]
 
         # Set passed group_id if not a transaction
-        if event.get_event_type() == "transaction" and not skip_transaction_groupevent:
+        if event.get_event_type() == "transaction" and not skip_transaction_groupevent and group_id:
             logger.warning("eventstore.passed-group-id-for-transaction")
             return event.for_group(Group.objects.get(id=group_id))
 
         return event
 
     def _get_dataset_for_event(self, event):
-        if getattr(event, "occurrence") or event.get_event_type() == "generic":
+        if getattr(event, "occurrence", None) or event.get_event_type() == "generic":
             return snuba.Dataset.IssuePlatform
         elif event.get_event_type() == "transaction":
             return snuba.Dataset.Transactions

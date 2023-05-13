@@ -83,6 +83,7 @@ from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
 from sentry.event_manager import EventManager
+from sentry.eventstore.models import Event
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
@@ -106,6 +107,7 @@ from sentry.models import (
     IdentityStatus,
     NotificationSetting,
     Organization,
+    Project,
     ProjectOption,
     Release,
     ReleaseCommit,
@@ -136,6 +138,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
+from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
@@ -489,12 +492,13 @@ class PerformanceIssueTestCase(BaseTestCase):
         self,
         tags=None,
         contexts=None,
-        fingerprint="group1",
+        fingerprint=None,
         transaction=None,
         event_data=None,
         issue_type=None,
         noise_limit=0,
         project_id=None,
+        detector_option="performance.issues.n_plus_one_db.problem-creation",
     ):
         if issue_type is None:
             issue_type = PerformanceNPlusOneGroupType
@@ -502,7 +506,6 @@ class PerformanceIssueTestCase(BaseTestCase):
             event_data = load_data(
                 "transaction-n-plus-one",
                 timestamp=before_now(minutes=10),
-                fingerprint=[f"{issue_type.type_id}-{fingerprint}"],
             )
         if tags is not None:
             event_data["tags"] = tags
@@ -516,16 +519,27 @@ class PerformanceIssueTestCase(BaseTestCase):
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
 
+        def detect_performance_problems_interceptor(data: Event, project: Project):
+            perf_problems = detect_performance_problems(data, project)
+            if fingerprint:
+                for perf_problem in perf_problems:
+                    perf_problem.fingerprint = fingerprint
+            return perf_problems
+
         with mock.patch(
             "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
             side_effect=send_issue_occurrence_to_eventstream,
-        ) as mock_eventstream, mock.patch.object(
+        ) as mock_eventstream, mock.patch(
+            "sentry.event_manager.detect_performance_problems",
+            side_effect=detect_performance_problems_interceptor,
+        ), mock.patch.object(
             issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
         ), override_options(
             {
                 "performance.issues.all.problem-detection": 1.0,
-                "performance.issues.n_plus_one_db.problem-creation": 1.0,
+                detector_option: 1.0,
                 "performance.issues.send_to_issues_platform": True,
+                "performance.issues.create_issues_through_platform": True,
             }
         ), self.feature(
             [
