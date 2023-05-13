@@ -420,11 +420,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.name = data["name"]
         if "slug" in data:
             org.slug = data["slug"]
-        if (
-            features.has("organizations:api-auth-provider", org)
-            and "providerKey" in data
-            and "providerConfig" in data
-        ):
+        if self.has_api_auth_provider and "providerKey" in data and "providerConfig" in data:
             provider_key = data["providerKey"]
             provider_config = data["providerConfig"]
             with transaction.atomic():

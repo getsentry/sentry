@@ -858,7 +858,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     @with_feature("organizations:api-auth-provider")
     def test_invalid_auth_provider_configuration(self):
-
         self.get_error_response(
             self.organization.slug, method="put", providerKey="google", status_code=400
         )
