@@ -18,6 +18,7 @@ import {HOST} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {
+  getOverallAggregatesQuery,
   getSidebarAggregatesQuery,
   getSidebarSeriesQuery,
   getUniqueTransactionCountQuery,
@@ -50,16 +51,32 @@ export default function Sidebar({
   });
 
   // This is supposed to a metrics span query that fetches aggregate metric data
-  const {isLoading: _isLoadingSideBarAggregateData, data: aggregateData} = useQuery({
-    queryKey: [aggregatesQuery],
-    queryFn: () => fetch(`${HOST}/?query=${aggregatesQuery}`).then(res => res.json()),
+  const {isLoading: _isLoadingSideBarAggregateData, data: spanAggregateData} = useQuery({
+    queryKey: ['span-aggregates'],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${aggregatesQuery}&referrer=sidebar-aggregates`).then(res =>
+        res.json()
+      ),
     retry: false,
     initialData: [],
   });
 
+  const {isLoading: _isLoadingSideBarOverallAggregateData, data: overallAggregateData} =
+    useQuery({
+      queryKey: ['overall-aggregates'],
+      queryFn: () =>
+        fetch(
+          `${HOST}/?query=${getOverallAggregatesQuery(
+            pageFilter.selection.datetime
+          )}&referrer=overall-aggregates`
+        ).then(res => res.json()),
+      retry: false,
+      initialData: [],
+    });
+
   // Also a metrics span query that fetches series data
   const {isLoading: isLoadingSeriesData, data: seriesData} = useQuery({
-    queryKey: [seriesQuery],
+    queryKey: ['seriesdata'],
     queryFn: () => fetch(`${HOST}/?query=${seriesQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -89,9 +106,13 @@ export default function Sidebar({
     count,
     total_exclusive_time,
     count_unique_transaction_id,
+    count_unique_transaction,
     first_seen,
     last_seen,
-  } = aggregateData[0] || {};
+  } = spanAggregateData[0] || {};
+
+  const {count_overall_unique_transactions, overall_total_exclusive_time} =
+    overallAggregateData[0] || {};
 
   const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
   const startTime =
@@ -129,6 +150,19 @@ export default function Sidebar({
   return (
     <FlexContainer>
       <FlexItem>
+        <SidebarItemHeader>{t('Total Self Time')}</SidebarItemHeader>
+        <SidebarItemValueContainer>
+          <Duration seconds={total_exclusive_time / 1000} fixedDigits={2} abbreviation />{' '}
+          ({formatPercentage(total_exclusive_time / overall_total_exclusive_time)})
+        </SidebarItemValueContainer>
+      </FlexItem>
+      <FlexItem>
+        <SidebarItemHeader>{t('Unique Transactions')}</SidebarItemHeader>
+        <SidebarItemValueContainer>
+          {count_unique_transaction} / {count_overall_unique_transactions}
+        </SidebarItemValueContainer>
+      </FlexItem>
+      <FlexItem>
         <SidebarItemHeader>{t('First Seen')}</SidebarItemHeader>
         <SidebarItemValueContainer>
           <DateTime date={first_seen} timeZone seconds utc />
@@ -138,12 +172,6 @@ export default function Sidebar({
         <SidebarItemHeader>{t('Last Seen')}</SidebarItemHeader>
         <SidebarItemValueContainer>
           <DateTime date={last_seen} timeZone seconds utc />
-        </SidebarItemValueContainer>
-      </FlexItem>
-      <FlexItem>
-        <SidebarItemHeader>{t('Total Self Time')}</SidebarItemHeader>
-        <SidebarItemValueContainer>
-          <Duration seconds={total_exclusive_time / 1000} fixedDigits={2} abbreviation />
         </SidebarItemValueContainer>
       </FlexItem>
       <FlexItem>
@@ -306,7 +334,10 @@ function getQueries(spanGroupOperation: string) {
         getSeriesQuery: getEndpointDetailSeriesQuery,
         getAggregatesQuery: getEndpointDetailTableQuery,
       };
-    default: // TODO: Need a cleaner default case, but we should never end up here anyways
-      return {getSeriesQuery: () => '', getAggregatesQuery: () => ''};
+    default:
+      return {
+        getSeriesQuery: getSidebarSeriesQuery,
+        getAggregatesQuery: getSidebarAggregatesQuery,
+      };
   }
 }

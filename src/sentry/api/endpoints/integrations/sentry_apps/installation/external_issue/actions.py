@@ -7,7 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.mediators.external_issues import IssueLinkCreator
 from sentry.models import Group, Project
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.utils.functional import extract_lazy_object
 
 

@@ -6,7 +6,7 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
-import useNetworkFilters, {FilterFields} from './useNetworkFilters';
+import useNetworkFilters, {FilterFields, NetworkSelectOption} from './useNetworkFilters';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
@@ -144,8 +144,16 @@ describe('useNetworkFilters', () => {
   });
 
   it('should update the url when setters are called', () => {
-    const TYPE_FILTER = ['resource.fetch'];
-    const STATUS_FILTER = ['200'];
+    const TYPE_OPTION = {
+      value: 'resource.fetch',
+      label: 'resource.fetch',
+      qs: 'f_n_type',
+    } as NetworkSelectOption;
+    const STATUS_OPTION = {
+      value: '200',
+      label: '200',
+      qs: 'f_n_status',
+    } as NetworkSelectOption;
     const SEARCH_FILTER = 'pikachu';
 
     mockUseLocation
@@ -155,33 +163,36 @@ describe('useNetworkFilters', () => {
       } as Location<FilterFields>)
       .mockReturnValueOnce({
         pathname: '/',
-        query: {f_n_type: TYPE_FILTER},
+        query: {f_n_type: [TYPE_OPTION.value]},
       } as Location<FilterFields>)
       .mockReturnValueOnce({
         pathname: '/',
-        query: {f_n_type: TYPE_FILTER, f_n_status: STATUS_FILTER},
+        query: {f_n_type: [TYPE_OPTION.value], f_n_status: [STATUS_OPTION.value]},
       } as Location<FilterFields>);
 
     const {result, rerender} = reactHooks.renderHook(useNetworkFilters, {
       initialProps: {networkSpans},
     });
 
-    result.current.setType(TYPE_FILTER);
+    result.current.setFilters([TYPE_OPTION]);
     expect(browserHistory.push).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
-        f_n_type: TYPE_FILTER,
+        f_n_method: [],
+        f_n_status: [],
+        f_n_type: [TYPE_OPTION.value],
       },
     });
 
     rerender();
 
-    result.current.setStatus(STATUS_FILTER);
+    result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
     expect(browserHistory.push).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
-        f_n_type: TYPE_FILTER,
-        f_n_status: STATUS_FILTER,
+        f_n_method: [],
+        f_n_status: [STATUS_OPTION.value],
+        f_n_type: [TYPE_OPTION.value],
       },
     });
 
@@ -191,16 +202,24 @@ describe('useNetworkFilters', () => {
     expect(browserHistory.push).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
-        f_n_type: TYPE_FILTER,
-        f_n_status: STATUS_FILTER,
+        f_n_type: [TYPE_OPTION.value],
+        f_n_status: [STATUS_OPTION.value],
         f_n_search: SEARCH_FILTER,
       },
     });
   });
 
   it('should clear details params when setters are called', () => {
-    const TYPE_FILTER = ['resource.fetch'];
-    const STATUS_FILTER = ['200'];
+    const TYPE_OPTION = {
+      value: 'resource.fetch',
+      label: 'resource.fetch',
+      qs: 'f_n_type',
+    } as NetworkSelectOption;
+    const STATUS_OPTION = {
+      value: '200',
+      label: '200',
+      qs: 'f_n_status',
+    } as NetworkSelectOption;
     const SEARCH_FILTER = 'pikachu';
 
     mockUseLocation
@@ -213,13 +232,17 @@ describe('useNetworkFilters', () => {
       } as Location<FilterFields>)
       .mockReturnValueOnce({
         pathname: '/',
-        query: {f_n_type: TYPE_FILTER, n_detail_row: '0', n_detail_tab: 'response'},
+        query: {
+          f_n_type: [TYPE_OPTION.value],
+          n_detail_row: '0',
+          n_detail_tab: 'response',
+        },
       } as Location<FilterFields>)
       .mockReturnValueOnce({
         pathname: '/',
         query: {
-          f_n_type: TYPE_FILTER,
-          f_n_status: STATUS_FILTER,
+          f_n_type: [TYPE_OPTION.value],
+          f_n_status: [STATUS_OPTION.value],
           n_detail_row: '0',
           n_detail_tab: 'response',
         },
@@ -229,22 +252,25 @@ describe('useNetworkFilters', () => {
       initialProps: {networkSpans},
     });
 
-    result.current.setType(TYPE_FILTER);
+    result.current.setFilters([TYPE_OPTION]);
     expect(browserHistory.push).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
-        f_n_type: TYPE_FILTER,
+        f_n_method: [],
+        f_n_status: [],
+        f_n_type: [TYPE_OPTION.value],
       },
     });
 
     rerender();
 
-    result.current.setStatus(STATUS_FILTER);
+    result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
     expect(browserHistory.push).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
-        f_n_type: TYPE_FILTER,
-        f_n_status: STATUS_FILTER,
+        f_n_method: [],
+        f_n_status: [STATUS_OPTION.value],
+        f_n_type: [TYPE_OPTION.value],
       },
     });
 
@@ -254,8 +280,8 @@ describe('useNetworkFilters', () => {
     expect(browserHistory.push).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
-        f_n_type: TYPE_FILTER,
-        f_n_status: STATUS_FILTER,
+        f_n_status: [STATUS_OPTION.value],
+        f_n_type: [TYPE_OPTION.value],
         f_n_search: SEARCH_FILTER,
       },
     });
@@ -368,7 +394,9 @@ describe('getMethodTypes', () => {
       initialProps: {networkSpans},
     });
 
-    expect(result.current.getMethodTypes()).toStrictEqual([{label: 'GET', value: 'GET'}]);
+    expect(result.current.getMethodTypes()).toStrictEqual([
+      {label: 'GET', value: 'GET', qs: 'f_n_method'},
+    ]);
   });
 
   it('should return a sorted list of method types', () => {
@@ -379,8 +407,8 @@ describe('getMethodTypes', () => {
     });
 
     expect(result.current.getMethodTypes()).toStrictEqual([
-      {label: 'GET', value: 'GET'},
-      {label: 'POST', value: 'POST'},
+      {label: 'GET', value: 'GET', qs: 'f_n_method'},
+      {label: 'POST', value: 'POST', qs: 'f_n_method'},
     ]);
   });
 
@@ -391,7 +419,9 @@ describe('getMethodTypes', () => {
       initialProps: {networkSpans},
     });
 
-    expect(result.current.getMethodTypes()).toStrictEqual([{label: 'GET', value: 'GET'}]);
+    expect(result.current.getMethodTypes()).toStrictEqual([
+      {label: 'GET', value: 'GET', qs: 'f_n_method'},
+    ]);
   });
 });
 
@@ -404,7 +434,7 @@ describe('getResourceTypes', () => {
     });
 
     expect(result.current.getResourceTypes()).toStrictEqual([
-      {label: 'fetch', value: 'resource.fetch'},
+      {label: 'fetch', value: 'resource.fetch', qs: 'f_n_type'},
     ]);
   });
 
@@ -416,10 +446,10 @@ describe('getResourceTypes', () => {
     });
 
     expect(result.current.getResourceTypes()).toStrictEqual([
-      {label: 'fetch', value: 'resource.fetch'},
-      {label: 'link', value: 'resource.link'},
-      {label: 'navigate', value: 'navigation.navigate'},
-      {label: 'script', value: 'resource.script'},
+      {label: 'fetch', value: 'resource.fetch', qs: 'f_n_type'},
+      {label: 'link', value: 'resource.link', qs: 'f_n_type'},
+      {label: 'navigate', value: 'navigation.navigate', qs: 'f_n_type'},
+      {label: 'script', value: 'resource.script', qs: 'f_n_type'},
     ]);
   });
 
@@ -437,10 +467,10 @@ describe('getResourceTypes', () => {
     });
 
     expect(result.current.getResourceTypes()).toStrictEqual([
-      {label: 'fetch', value: 'resource.fetch'},
-      {label: 'link', value: 'resource.link'},
-      {label: 'navigate', value: 'navigation.navigate'},
-      {label: 'script', value: 'resource.script'},
+      {label: 'fetch', value: 'resource.fetch', qs: 'f_n_type'},
+      {label: 'link', value: 'resource.link', qs: 'f_n_type'},
+      {label: 'navigate', value: 'navigation.navigate', qs: 'f_n_type'},
+      {label: 'script', value: 'resource.script', qs: 'f_n_type'},
     ]);
   });
 });
@@ -457,9 +487,10 @@ describe('getStatusTypes', () => {
       {
         label: '200',
         value: '200',
+        qs: 'f_n_status',
       },
-      {label: '404', value: '404'},
-      {label: 'unknown', value: 'unknown'},
+      {label: '404', value: '404', qs: 'f_n_status'},
+      {label: 'unknown', value: 'unknown', qs: 'f_n_status'},
     ]);
   });
 
@@ -481,9 +512,10 @@ describe('getStatusTypes', () => {
       {
         label: '200',
         value: '200',
+        qs: 'f_n_status',
       },
-      {label: '404', value: '404'},
-      {label: 'unknown', value: 'unknown'},
+      {label: '404', value: '404', qs: 'f_n_status'},
+      {label: 'unknown', value: 'unknown', qs: 'f_n_status'},
     ]);
   });
 });

@@ -301,6 +301,8 @@ USE_TZ = True
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE = (
+    # Uncomment to enable Content Security Policy on this Sentry installation (experimental)
+    # "csp.middleware.CSPMiddleware",
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -406,6 +408,63 @@ SILENCED_SYSTEM_CHECKS = (
     # It's not our problem; refer to Django issue 32260.
     "urls.E007",
 )
+
+CSP_INCLUDE_NONCE_IN = [
+    "script-src",
+]
+
+CSP_DEFAULT_SRC = [
+    "'none'",
+]
+CSP_SCRIPT_SRC = [
+    "'self'",
+    "'unsafe-inline'",
+    "'report-sample'",
+]
+CSP_FONT_SRC = [
+    "'self'",
+    "data:",
+]
+CSP_CONNECT_SRC = [
+    "'self'",
+]
+CSP_FRAME_ANCESTORS = [
+    "'none'",
+]
+CSP_OBJECT_SRC = [
+    "'none'",
+]
+CSP_BASE_URI = [
+    "'none'",
+]
+CSP_STYLE_SRC = [
+    "'self'",
+    "'unsafe-inline'",
+]
+CSP_IMG_SRC = [
+    "'self'",
+    "blob:",
+    "data:",
+    "https://secure.gravatar.com",
+]
+
+if ENVIRONMENT == "development":
+    CSP_SCRIPT_SRC += [
+        "'unsafe-eval'",
+    ]
+    CSP_CONNECT_SRC += [
+        "ws://127.0.0.1:8000",
+    ]
+
+# Before enforcing Content Security Policy, we recommend creating a separate
+# Sentry project and collecting CSP violations in report only mode:
+# https://docs.sentry.io/product/security-policy-reporting/
+
+# Point this parameter to your Sentry installation:
+# CSP_REPORT_URI = "https://example.com/api/{PROJECT_ID}/security/?sentry_key={SENTRY_KEY}"
+
+# To enforce CSP (block violated resources), update the following parameter to False
+CSP_REPORT_ONLY = True
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
@@ -933,6 +992,11 @@ CELERYBEAT_SCHEDULE = {
         # Run every 10 minutes
         "schedule": crontab(minute="*/10"),
     },
+    "dynamic-sampling-sliding-window-org": {
+        "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
+    },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
@@ -949,13 +1013,13 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.schedule_auto_transition_new",
         # Run job once a day at 00:30
         "schedule": crontab(minute=30, hour="0"),
-        "options": {"expires": 3600},
+        "options": {"expires": 10 * 60},
     },
     "schedule_auto_transition_regressed": {
         "task": "sentry.tasks.schedule_auto_transition_regressed",
         # Run job once a day at 02:30
         "schedule": crontab(minute=30, hour="2"),
-        "options": {"expires": 3600},
+        "options": {"expires": 10 * 60},
     },
 }
 
@@ -1096,8 +1160,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
-    # Enables the new artifact bundle uploads
-    "organizations:artifact-bundles": False,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     "organizations:alert-allow-indexed": False,
     # Enables tagging javascript errors from the browser console.
@@ -1194,8 +1256,6 @@ SENTRY_FEATURES = {
     "organizations:grouping-title-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
-    # Lets organizations set a custom title through fingerprinting
-    "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature
@@ -1349,8 +1409,6 @@ SENTRY_FEATURES = {
     "organizations:session-replay": False,
     # Enable Session Replay showing in the sidebar
     "organizations:session-replay-ui": True,
-    # Enable Session Replay DOM search
-    "organizations:session-replay-dom-search": False,
     # Enabled for those orgs who participated in the Replay Beta program
     "organizations:session-replay-beta-grace": False,
     # Enable replay GA messaging (update paths from AM1 to AM2)
@@ -1368,6 +1426,8 @@ SENTRY_FEATURES = {
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
+    # Enable starfish endpoint that's used for regressing testing purposes
+    "organizations:starfish-test-endpoint": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -2036,14 +2096,14 @@ SENTRY_TEAM_ROLES = (
         "scopes": {
             "event:read",
             "event:write",
-            "event:admin",
+            # "event:admin",  # Scope granted/withdrawn by "sentry:events_member_admin" to org-level role
             "project:releases",
             "project:read",
             "org:read",
             "member:read",
             "team:read",
             "alerts:read",
-            "alerts:write",
+            # "alerts:write",  # Scope granted/withdrawn by "sentry:alerts_member_write" to org-level role
         },
     },
     {
@@ -2789,7 +2849,6 @@ KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
 KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
 KAFKA_INGEST_MONITORS = "ingest-monitors"
-KAFKA_REGION_TO_CONTROL = "region-to-control"
 KAFKA_EVENTSTREAM_GENERIC = "generic-events"
 KAFKA_GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
 
@@ -2834,8 +2893,6 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
     KAFKA_INGEST_OCCURRENCES: {"cluster": "default"},
     KAFKA_INGEST_MONITORS: {"cluster": "default"},
-    # Region to Control Silo messaging - eg UserIp and AuditLog
-    KAFKA_REGION_TO_CONTROL: {"cluster": "default"},
     KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
     KAFKA_GENERIC_EVENTS_COMMIT_LOG: {"cluster": "default"},
 }
