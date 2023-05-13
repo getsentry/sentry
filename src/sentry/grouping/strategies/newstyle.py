@@ -2,6 +2,8 @@ import itertools
 import re
 from typing import Any, Dict, Generator, List, Optional
 
+import sentry_sdk
+
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent, calculate_tree_label
 from sentry.grouping.strategies.base import (
@@ -712,7 +714,10 @@ def chained_exception(
     all_exceptions = interface.exceptions()
 
     # Filter them according to rules for handling exception groups.
-    exceptions = filter_exceptions_for_exception_groups(all_exceptions, context, event, **meta)
+    with sentry_sdk.start_span(
+        op="grouping.strategies.newstyle.filter_exceptions_for_exception_groups"
+    ):
+        exceptions = filter_exceptions_for_exception_groups(all_exceptions, context, event, **meta)
 
     # Case 1: we have a single exception, use the single exception
     # component directly to avoid a level of nesting
