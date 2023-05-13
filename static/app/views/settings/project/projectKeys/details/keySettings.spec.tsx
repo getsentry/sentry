@@ -20,10 +20,6 @@ describe('Key Settings', function () {
     };
 
     const {organization, project} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        ...initializeOrg().organization,
-      },
       router: {
         params,
       },
