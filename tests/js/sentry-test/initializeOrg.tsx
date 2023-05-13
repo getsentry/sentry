@@ -30,7 +30,7 @@ export function initializeOrg({
     },
   });
 
-  const routerContext = TestStubs.routerContext([
+  const routerContext: any = TestStubs.routerContext([
     {
       organization,
       project,
