@@ -52,7 +52,7 @@ class PGStringIndexerV2(StringIndexer):
         >>> 3. Change Read path (this code)
         We are currently at step 3.
         Only the performance-path Postgres table has a `use_case_id` column
-        at the moment, but this will change.
+        at the moment, but this will change in the future.
         """
         use_case_ids = db_use_case_keys.mapping.keys()
         metric_path_key = self._get_metric_path_key(use_case_ids)
