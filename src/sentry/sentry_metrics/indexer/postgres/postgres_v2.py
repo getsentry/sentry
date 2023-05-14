@@ -46,19 +46,27 @@ class PGStringIndexerV2(StringIndexer):
 
     def _get_db_records(self, db_use_case_keys: UseCaseKeyCollection) -> Any:
         """
-        We are not querying for the use case ID because the order of
-        operations for our changes needs to be:
-        >>> 1. Change write path
+        The order of operations for our changes needs to be:
+            1. Change write path
             2. do DB backfill
-            3. Change Read path (this code)
-        We are currently at step 1
+        >>> 3. Change Read path (this code)
+        We are currently at step 3.
+        Only the performance-path Postgres table has a `use_case_id` column
+        at the moment, but this will change.
         """
-        conditions = [
-            Q(organization_id=int(organization_id), string=string)
-            for _, organization_id, string in db_use_case_keys.as_tuples()
-        ]
+        use_case_ids = db_use_case_keys.mapping.keys()
+        metric_path_key = self._get_metric_path_key(use_case_ids)
 
-        return self._get_table_from_use_case_ids(db_use_case_keys.mapping.keys()).objects.filter(
+        conditions = []
+        for use_case_id, organization_id, string in db_use_case_keys.as_tuples():
+            if metric_path_key is UseCaseKey.PERFORMANCE:
+                conditions.append(
+                    Q(use_case_id=use_case_id, organization_id=int(organization_id), string=string)
+                )
+            else:
+                conditions.append(Q(organization_id=int(organization_id), string=string))
+
+        return self._get_table_from_use_case_ids(use_case_ids).objects.filter(
             reduce(or_, conditions)
         )
 
