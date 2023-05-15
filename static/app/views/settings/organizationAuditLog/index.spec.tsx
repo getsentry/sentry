@@ -158,7 +158,7 @@ describe('OrganizationAuditLog', function () {
     }
   });
 
-  it('Replaces text in rule and auditrule entries', async function () {
+  it('Replaces text in rule and alertrule entries', async function () {
     const {routerContext, router, projects} = initializeOrg({
       ...initializeOrg(),
       router: {
