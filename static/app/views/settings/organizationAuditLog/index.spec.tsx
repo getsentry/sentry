@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -156,5 +156,62 @@ describe('OrganizationAuditLog', function () {
         `/settings/${organization.slug}/projects/${project.slug}/performance/`
       );
     }
+  });
+
+  it('Replaces text in rule and auditrule entries', async function () {
+    const {routerContext, router, projects} = initializeOrg({
+      ...initializeOrg(),
+      router: {
+        params: {orgId: 'org-slug'},
+      },
+    });
+
+    ProjectsStore.loadInitialData(projects);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/audit-logs/`,
+      method: 'GET',
+      body: {
+        rows: [
+          {
+            actor: TestStubs.User(),
+            event: 'rule.edit',
+            ipAddress: '127.0.0.1',
+            id: '214',
+            note: 'edited rule "New issue"',
+            targetObject: 123,
+            targetUser: null,
+            data: {},
+          },
+          {
+            actor: TestStubs.User(),
+            event: 'alertrule.edit',
+            ipAddress: '127.0.0.1',
+            id: '215',
+            note: 'edited metric alert rule "Failure rate too high"',
+            targetObject: 456,
+            targetUser: null,
+            data: {},
+          },
+        ],
+        options: TestStubs.AuditLogsApiEventNames(),
+      },
+    });
+
+    render(<OrganizationAuditLog location={router.location} />, {
+      context: routerContext,
+    });
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    // rule.edit -> issue-alert.edit
+    expect(screen.getByText('issue-alert.edit')).toBeInTheDocument();
+    expect(screen.getByText('edited issue alert rule "New issue"')).toBeInTheDocument();
+
+    // alertrule.edit -> metric-alert.edit
+    expect(screen.getByText('metric-alert.edit')).toBeInTheDocument();
+    expect(
+      screen.getByText('edited metric alert rule "Failure rate too high"')
+    ).toBeInTheDocument();
   });
 });
