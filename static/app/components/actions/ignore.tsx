@@ -8,7 +8,7 @@ import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconMute} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {
   GroupStatusResolution,
@@ -207,7 +207,6 @@ type IgnoreActionProps = {
   confirmMessage?: () => React.ReactNode;
   disableTooltip?: boolean;
   disabled?: boolean;
-  hideIcon?: boolean;
   isIgnored?: boolean;
   shouldConfirm?: boolean;
   size?: 'xs' | 'sm';
@@ -219,7 +218,6 @@ function IgnoreActions({
   shouldConfirm,
   confirmMessage,
   className,
-  hideIcon,
   disableTooltip,
   size = 'xs',
   confirmLabel = t('Ignore'),
@@ -235,7 +233,6 @@ function IgnoreActions({
             onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
           }
           aria-label={t('Unignore')}
-          icon={<IconMute size="xs" />}
         />
       </Tooltip>
     );
@@ -256,7 +253,6 @@ function IgnoreActions({
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
         )}
-        icon={hideIcon ? null : <IconMute size={size} />}
         onClick={() => onIgnore()}
         disabled={disabled}
       >

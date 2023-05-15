@@ -32,13 +32,13 @@ function ProjectFilters(props: Props) {
     <Fragment>
       <SentryDocumentTitle title={t('Inbound Filters')} projectSlug={projectId} />
       <SettingsPageHeader title={t('Inbound Data Filters')} />
-      <PermissionAlert project={project} />
-
       <TextBlock>
         {t(
           'Filters allow you to prevent Sentry from storing events in certain situations. Filtered events are tracked separately from rate limits, and do not apply to any project quotas.'
         )}
       </TextBlock>
+
+      <PermissionAlert project={project} />
 
       <div>
         <ProjectFiltersChart project={project} organization={organization} />

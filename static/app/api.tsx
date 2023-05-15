@@ -467,11 +467,13 @@ export class Client {
         const {status, statusText} = response;
         let {ok} = response;
         let errorReason = 'Request not OK'; // the default error reason
+        let twoHundredErrorReason;
 
         // Try to get text out of the response no matter the status
         try {
           responseText = await response.text();
         } catch (error) {
+          twoHundredErrorReason = 'Failed awaiting response.text()';
           ok = false;
           if (error.name === 'AbortError') {
             errorReason = 'Request was aborted';
@@ -488,6 +490,7 @@ export class Client {
           try {
             responseJSON = JSON.parse(responseText);
           } catch (error) {
+            twoHundredErrorReason = 'Failed trying to parse responseText';
             if (error.name === 'AbortError') {
               ok = false;
               errorReason = 'Request was aborted';
@@ -514,6 +517,36 @@ export class Client {
         if (ok) {
           successHandler(responseMeta, statusText, responseData);
         } else {
+          // There's no reason we should be here with a 200 response, but we get
+          // tons of events from this codepath with a 200 status nonetheless.
+          // Until we know why, let's do what is essentially some very fancy print debugging.
+          if (status === 200) {
+            // Pass a scope object rather than using `withScope` to avoid even
+            // the possibility of scope bleed.
+            const scope = new Sentry.Scope();
+
+            // Grab everything that could conceivably be helpful to know
+            scope.setExtras({
+              twoHundredErrorReason,
+              path,
+              method,
+              status,
+              statusText,
+              responseJSON,
+              responseText,
+              responseContentType,
+              errorReason,
+            });
+
+            // Make sure all of these errors group, so we don't produce a bunch of noise
+            scope.setFingerprint(['200 as error']);
+
+            Sentry.captureException(
+              new Error(`200 treated as error: ${method} ${path}`),
+              scope
+            );
+          }
+
           const shouldSkipErrorHandler =
             globalErrorHandlers.map(handler => handler(responseMeta)).filter(Boolean)
               .length > 0;
