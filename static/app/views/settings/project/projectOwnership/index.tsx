@@ -15,6 +15,7 @@ import {CodeOwner, IssueOwnership, Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
@@ -138,17 +139,16 @@ tags.sku_class:enterprise #enterprise`;
             <ButtonBar gap={1}>
               {hasCodeowners && (
                 <Access access={['org:integrations']} project={project}>
-                  {({hasAccess}) =>
-                    hasAccess ? (
-                      <Button
-                        onClick={this.handleAddCodeOwner}
-                        size="sm"
-                        data-test-id="add-codeowner-button"
-                      >
-                        {t('Import CODEOWNERS')}
-                      </Button>
-                    ) : null
-                  }
+                  {({hasAccess}) => (
+                    <Button
+                      onClick={this.handleAddCodeOwner}
+                      size="sm"
+                      data-test-id="add-codeowner-button"
+                      disabled={!hasAccess}
+                    >
+                      {t('Import CODEOWNERS')}
+                    </Button>
+                  )}
                 </Access>
               )}
               {hasStreamlineTargetingContext && (
@@ -173,8 +173,7 @@ tags.sku_class:enterprise #enterprise`;
             </ButtonBar>
           }
         />
-
-        <p>
+        <TextBlock>
           {tct(
             `Auto-assign issues to users and teams. To learn more, [link:read the docs].`,
             {
@@ -183,12 +182,13 @@ tags.sku_class:enterprise #enterprise`;
               ),
             }
           )}
-        </p>
+        </TextBlock>
 
         <PermissionAlert
           access={!editOwnershipRulesDisabled ? ['project:read'] : ['project:write']}
           project={project}
         />
+
         <CodeOwnerErrors
           orgSlug={organization.slug}
           projectSlug={project.slug}

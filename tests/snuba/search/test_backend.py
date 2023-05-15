@@ -2612,7 +2612,6 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
     def test_generic_query_perf(self):
         event_id = uuid.uuid4().hex
         group_type = PerformanceNPlusOneGroupType
-        self.project.update_option("sentry:performance_issue_create_issue_through_platform", True)
 
         with self.options(
             {"performance.issues.create_issues_through_platform": True}
