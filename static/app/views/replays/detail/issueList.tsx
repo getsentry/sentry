@@ -11,9 +11,9 @@ import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import RequestError from 'sentry/utils/requestError/requestError';
 import theme from 'sentry/utils/theme';
-import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -25,23 +25,21 @@ const columns = [t('Issue'), t('Graph'), t('Events'), t('Users')];
 
 function IssueList({projectId, replayId}: Props) {
   const organization = useOrganization();
-  const api = useApi();
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
-  const apiUrl = `/organizations/${organization.slug}/issues/`;
-
-  const {data: issues = [], isLoading} = useQuery<Group[]>({
-    queryKey: [apiUrl, replayId],
-    queryFn: () =>
-      api.requestPromise(apiUrl, {
+  const {data: issues = [], isLoading} = useApiQuery<Group[], RequestError>(
+    [
+      `/organizations/${organization.slug}/issues/`,
+      {
         query: {
           query: `replayId:${replayId}`,
         },
-        headers: {
-          'x-sentry-replay-request': '1',
-        },
-      }),
-  });
+      },
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   const counts = useReplaysCount({
     groupIds: issues.map(issue => issue.id),
