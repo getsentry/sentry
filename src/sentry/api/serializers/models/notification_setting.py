@@ -4,7 +4,7 @@ from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 import sentry_sdk
 
 from sentry.api.serializers import Serializer
-from sentry.models.notificationaction import NotificationSetting
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.helpers import get_fallback_settings
@@ -41,8 +41,8 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         """
         type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
 
-        team_map = {}
-        user_map = {}
+        team_map: Mapping[int, Union[Team, RpcTeam]] = {}
+        user_map: Mapping[int, Union[User, RpcUser]] = {}
         for recipient in item_list:
             if isinstance(recipient, (User, RpcUser)):
                 user_map[recipient.id] = recipient
