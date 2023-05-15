@@ -8,19 +8,26 @@ import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import MarkLine from 'sentry/components/charts/components/markLine';
+import TimeSince from 'sentry/components/timeSince';
+import Version from 'sentry/components/version';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import ProfileView from 'sentry/views/starfish/modules/databaseModule/panel/profileView';
 import QueryTransactionTable, {
   PanelSort,
 } from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
 import SimilarQueryView from 'sentry/views/starfish/modules/databaseModule/panel/similarQueryView';
 import {
+  useQueryExampleTransaction,
+  useQueryGetEvent,
   useQueryPanelEventCount,
   useQueryPanelGraph,
   useQueryPanelSparklines,
@@ -97,6 +104,7 @@ function QueryDetailBody({
 }: DbQueryDetailProps) {
   const theme = useTheme();
   const pageFilter = usePageFilters();
+  const organization = useOrganization();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const isNew = row.newish === 1;
   const isOld = row.retired === 1;
@@ -132,12 +140,25 @@ function QueryDetailBody({
   const {isLoading: isEventCountLoading, data: eventCountData} =
     useQueryPanelEventCount(row);
 
+  const {isLoading: isExampleLoading, data: exampleTransaction} =
+    useQueryExampleTransaction(row);
+
+  const {isLoading: isFirstExampleLoading, data: firstSeenExample} = useQueryGetEvent(
+    exampleTransaction?.[0]?.first
+  );
+  const {isLoading: isLastExampleLoading, data: lastSeenExample} = useQueryGetEvent(
+    exampleTransaction?.[0]?.latest
+  );
+
   const isDataLoading =
     isLoading ||
     isTableLoading ||
     isEventCountLoading ||
     isRowLoading ||
     isP75GraphLoading ||
+    isExampleLoading ||
+    isFirstExampleLoading ||
+    isLastExampleLoading ||
     isSparklinesLoading;
 
   const eventCountMap = keyBy(eventCountData, 'transaction');
@@ -225,14 +246,48 @@ function QueryDetailBody({
             {t('First Seen')}
             {row.newish === 1 && <Badge type="new" text="new" />}
           </SubHeader>
-          <SubSubHeader>{row.firstSeen}</SubSubHeader>
+          {Math.abs(moment(row.firstSeen).diff(startTime, 'minutes')) < 360 ? (
+            <SubSubHeader>
+              More than <TimeSince date={row.firstSeen} />{' '}
+            </SubSubHeader>
+          ) : (
+            <span>
+              <SubSubHeader>
+                <TimeSince date={row.firstSeen} />{' '}
+              </SubSubHeader>
+              {firstSeenExample?.release && (
+                <VersionHoverCard
+                  organization={organization}
+                  projectSlug="sentry"
+                  releaseVersion={firstSeenExample.release.version}
+                  showUnderline
+                  underlineColor="linkUnderline"
+                >
+                  <Version version={String(firstSeenExample.release.version)} truncate />
+                </VersionHoverCard>
+              )}
+            </span>
+          )}
         </FlexRowItem>
         <FlexRowItem>
           <SubHeader>
             {t('Last Seen')}
             {row.retired === 1 && <Badge type="warning" text="old" />}
           </SubHeader>
-          <SubSubHeader>{row.lastSeen}</SubSubHeader>
+          <SubSubHeader>
+            <TimeSince date={row.lastSeen} />
+          </SubSubHeader>
+          {lastSeenExample?.release && (
+            <VersionHoverCard
+              organization={organization}
+              projectSlug="sentry"
+              releaseVersion={lastSeenExample.release.version}
+              showUnderline
+              underlineColor="linkUnderline"
+            >
+              <Version version={String(lastSeenExample.release.version)} truncate />
+            </VersionHoverCard>
+          )}
         </FlexRowItem>
         <FlexRowItem>
           <SubHeader>{t('Total Time')}</SubHeader>
@@ -439,15 +494,6 @@ const FlexRowContainer = styled('div')`
 const FlexRowItem = styled('div')`
   padding-right: ${space(4)};
   flex: 1;
-`;
-
-const FormattedCode = styled('div')`
-  padding: ${space(1)};
-  margin-bottom: ${space(3)};
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
-  overflow-x: auto;
-  white-space: pre;
 `;
 
 const Operation = styled('b')`

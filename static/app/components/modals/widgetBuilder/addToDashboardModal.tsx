@@ -17,7 +17,7 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import getXhrErrorResponseHandler from 'sentry/utils/handleXhrErrorResponse';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
@@ -172,7 +172,7 @@ function AddToDashboardModal({
       addSuccessMessage(t('Successfully added widget to dashboard'));
     } catch (e) {
       const errorMessage = t('Unable to add widget to dashboard');
-      handleXhrErrorResponse(errorMessage)(e);
+      getXhrErrorResponseHandler(errorMessage)(e);
       addErrorMessage(errorMessage);
     }
   }

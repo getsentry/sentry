@@ -23,7 +23,6 @@ from sentry.ingest.transaction_clusterer.rules import (
 from sentry.ingest.transaction_clusterer.tasks import cluster_projects, spawn_clusterers
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 from sentry.models import Organization, Project
-from sentry.models.options.project_option import ProjectOption
 from sentry.relay.config import get_project_config
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
@@ -140,16 +139,8 @@ def test_sort_rules():
     ]
 
 
-@pytest.fixture(params=(True, False))
-def pickle_mode(request):
-    field = ProjectOption._meta.get_field("value")
-    with mock.patch.object(field, "write_json", request.param):
-        yield
-
-
 @mock.patch("sentry.ingest.transaction_clusterer.rules.CompositeRuleStore.MERGE_MAX_RULES", 2)
 @pytest.mark.django_db
-@pytest.mark.usefixtures("pickle_mode")
 def test_max_rule_threshold_merge_composite_store(default_project):
     assert len(get_sorted_rules(default_project)) == 0
 
@@ -176,12 +167,12 @@ def test_save_rules(default_project):
     assert project_rules == {}
 
     with freeze_time("2012-01-14 12:00:01"):
-        update_rules(project, [ReplacementRule("foo"), ReplacementRule("bar")])
+        assert 2 == update_rules(project, [ReplacementRule("foo"), ReplacementRule("bar")])
     project_rules = get_rules(project)
     assert project_rules == {"foo": 1326542401, "bar": 1326542401}
 
     with freeze_time("2012-01-14 12:00:02"):
-        update_rules(project, [ReplacementRule("bar"), ReplacementRule("zap")])
+        assert 1 == update_rules(project, [ReplacementRule("bar"), ReplacementRule("zap")])
     project_rules = get_rules(project)
     assert {"bar": 1326542402, "foo": 1326542401, "zap": 1326542402}
 
@@ -204,7 +195,7 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     project2 = Project(id=223, name="project2", organization_id=default_organization.id)
     for project in (project1, project2):
         project.save()
-        _add_mock_data(project, 10)
+        _add_mock_data(project, 4)
 
     spawn_clusterers()
 
@@ -352,7 +343,7 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
         assert get_rules(project1) == {"/user/*/**": 1}
         # Update rules to update the project option storage.
         with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 3):
-            update_rules(project1, [])
+            assert 0 == update_rules(project1, [])
         # After project options are updated, the last_seen should also be updated.
         assert get_redis_rules(project1) == {"/user/*/**": 2}
         assert get_rules(project1) == {"/user/*/**": 2}
