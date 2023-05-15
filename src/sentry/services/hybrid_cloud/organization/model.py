@@ -134,12 +134,6 @@ class RpcOrganizationFlags(RpcModel):
     require_email_verification: bool = False
 
 
-class RpcOrganizationInvite(RpcModel):
-    id: int = -1
-    token: str = ""
-    email: str = ""
-
-
 class RpcOrganizationSummary(RpcModel):
     """
     The subset of organization metadata available from the control silo specifically.

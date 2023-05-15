@@ -17,7 +17,6 @@ from sentry.models.organizationmember import InviteStatus
 from sentry.services.hybrid_cloud import logger
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
-    RpcOrganizationInvite,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSummary,
@@ -204,10 +203,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
         model = OrganizationMember.objects.get(id=organization_member.id)
         model.flags = self._deserialize_member_flags(organization_member.flags)
         model.save()
-
-    @classmethod
-    def _serialize_invite(cls, om: OrganizationMember) -> RpcOrganizationInvite:
-        return RpcOrganizationInvite(id=om.id, token=om.token, email=om.email)
 
     def get_all_org_roles(
         self,
