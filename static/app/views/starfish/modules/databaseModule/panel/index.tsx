@@ -19,6 +19,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import ProfileView from 'sentry/views/starfish/modules/databaseModule/panel/profileView';
 import QueryTransactionTable, {
   PanelSort,
@@ -493,15 +494,6 @@ const FlexRowContainer = styled('div')`
 const FlexRowItem = styled('div')`
   padding-right: ${space(4)};
   flex: 1;
-`;
-
-export const FormattedCode = styled('div')`
-  padding: ${space(1)};
-  margin-bottom: ${space(3)};
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
-  overflow-x: auto;
-  white-space: pre;
 `;
 
 const Operation = styled('b')`

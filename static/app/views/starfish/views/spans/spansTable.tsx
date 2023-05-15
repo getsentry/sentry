@@ -13,9 +13,9 @@ import Link from 'sentry/components/links/link';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
+import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
 import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
-import {FormattedCode} from 'sentry/views/starfish/modules/databaseModule/panel';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 import type {Cluster} from './clusters';
