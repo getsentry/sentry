@@ -108,7 +108,9 @@ def process_profile_task(
     _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
-SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust", "javascript", "node"])
+JS_PLATFORMS = ["javascript", "node"]
+SHOULD_SYMBOLICATE_JS = frozenset(JS_PLATFORMS)
+SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"] + JS_PLATFORMS)
 SHOULD_DEOBFUSCATE = frozenset(["android"])
 
 
@@ -265,7 +267,7 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
 
         # in the sample format, we have a frames key containing all the frames
         if "version" in profile:
-            if profile["platform"] in ["javascript", "node"]:
+            if profile["platform"] in JS_PLATFORMS:
                 for idx, f in enumerate(profile["profile"]["frames"]):
                     if is_valid_javascript_frame(f):
                         frames_sent.append(idx)
@@ -305,7 +307,7 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
 def symbolicate(
     symbolicator: Symbolicator, profile: Profile, modules: List[Any], stacktraces: List[Any]
 ) -> Any:
-    if profile["platform"] in ["javascript", "node"]:
+    if profile["platform"] in SHOULD_SYMBOLICATE_JS:
         return process_js_stacktraces(
             symbolicator=symbolicator,
             profile=profile,
