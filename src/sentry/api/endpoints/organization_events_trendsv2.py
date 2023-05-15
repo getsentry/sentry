@@ -75,6 +75,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         selected_columns.append(trend_function)
         selected_columns.append("count()")
         request.yAxis = selected_columns
+        top_events_limit = 8
 
         def get_top_events(selected_columns, user_query, params, orderby, limit, referrer):
             return query(
@@ -102,7 +103,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 user_query=user_query,
                 params=params,
                 orderby=["-count()"],
-                limit=100,
+                limit=top_events_limit,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS.value,
             )
 
@@ -167,7 +168,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 request,
                 organization,
                 get_event_stats_metrics,
-                top_events=50,
+                top_events=top_events_limit,
                 query_column=trend_function,
                 params=params,
                 query=_query,
