@@ -32,11 +32,11 @@ class CardinalityLimiterState:
     keys_to_remove: Sequence[PartitionIdxOffset]
 
 
-def _build_quota_key(use_case_id: str, org_id: Optional[OrgId]) -> str:
+def _build_quota_key(use_case_id: UseCaseID, org_id: Optional[OrgId]) -> str:
     if org_id is not None:
-        return f"metrics-indexer-cardinality-{use_case_id}-org-{org_id}"
+        return f"metrics-indexer-cardinality-{use_case_id.value}-org-{org_id}"
     else:
-        return f"metrics-indexer-cardinality-{use_case_id}-global"
+        return f"metrics-indexer-cardinality-{use_case_id.value}-global"
 
 
 @metrics.wraps("sentry_metrics.indexer.construct_quotas")
