@@ -15,6 +15,7 @@ from sentry.ratelimits.cardinality import (
 )
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.batch import PartitionIdxOffset
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import metrics
 from sentry.utils.hashlib import hash_values
 from sentry.utils.options import sample_modulo
@@ -31,27 +32,34 @@ class CardinalityLimiterState:
     keys_to_remove: Sequence[PartitionIdxOffset]
 
 
-def _build_quota_key(namespace: str, org_id: Optional[OrgId]) -> str:
+def _build_quota_key(use_case_id: str, org_id: Optional[OrgId]) -> str:
     if org_id is not None:
-        return f"metrics-indexer-cardinality-{namespace}-org-{org_id}"
+        return f"metrics-indexer-cardinality-{use_case_id}-org-{org_id}"
     else:
-        return f"metrics-indexer-cardinality-{namespace}-global"
+        return f"metrics-indexer-cardinality-{use_case_id}-global"
 
 
 @metrics.wraps("sentry_metrics.indexer.construct_quotas")
-def _construct_quotas(use_case_id: UseCaseKey) -> Optional[Quota]:
+# this needs to now take in UseCaseID
+def _construct_quotas(use_case_str: str) -> Optional[Quota]:
     """
     Construct write limit's quotas based on current sentry options.
 
     This value can potentially cached globally as long as it is invalidated
     when sentry.options are.
     """
-    if use_case_id == UseCaseKey.PERFORMANCE:
-        quota_args = options.get("sentry-metrics.cardinality-limiter.limits.performance.per-org")
-    elif use_case_id == UseCaseKey.RELEASE_HEALTH:
-        quota_args = options.get("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org")
+    if use_case_str in {id.value for id in UseCaseID}:
+        use_case_id = UseCaseID(use_case_str)
     else:
-        raise ValueError(use_case_id)
+        raise ValueError(f"Passed invalid UseCaseID {use_case_str}")
+
+    # This use case-quota configuration is still under construction
+    # Likely, as we add new use cases, we will want to introduce a
+    # mapping between the UseCaseID and the Sentry option name
+    if use_case_id == UseCaseID.TRANSACTIONS:
+        quota_args = options.get("sentry-metrics.cardinality-limiter.limits.performance.per-org")
+    else:
+        quota_args = options.get("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org")
 
     if quota_args:
         if len(quota_args) > 1:
@@ -74,17 +82,20 @@ class TimeseriesCardinalityLimiter:
         self.namespace = namespace
         self.backend: CardinalityLimiter = rate_limiter
 
+    # one cardinality limiter per namespace (aka metric path key)
     def check_cardinality_limits(
         self, use_case_id: UseCaseKey, messages: Mapping[PartitionIdxOffset, InboundMessage]
     ) -> CardinalityLimiterState:
         request_hashes = defaultdict(set)
         hash_to_offset = {}
 
+        # use case-specific rollout rates of the cardinality limiter
         if use_case_id == UseCaseKey.PERFORMANCE:
             rollout_option = "sentry-metrics.cardinality-limiter.orgs-rollout-rate"
         elif use_case_id == UseCaseKey.RELEASE_HEALTH:
             rollout_option = "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate"
 
+        # creates the message hash for encountered strings, for each metric message
         for key, message in messages.items():
             org_id = message["org_id"]
             if not sample_modulo(rollout_option, org_id):
@@ -99,22 +110,31 @@ class TimeseriesCardinalityLimiter:
                 ),
                 16,
             )
-            prefix = _build_quota_key(self.namespace, org_id)
+            prefix = _build_quota_key(message["use_case_id"], org_id)
             hash_to_offset[prefix, message_hash] = key
-            request_hashes[prefix].add(message_hash)
+            configured_quota = _construct_quotas(message["use_case_id"])
+
+            # since we might have some use cases that are covered by
+            # a quota and some that are not, only add entries that
+            # are covered by a quota
+            if configured_quota is not None:
+                request_hashes[(prefix, configured_quota)].add(message_hash)
 
         requested_quotas = []
-        configured_quota = _construct_quotas(use_case_id)
 
         grants = None
         timestamp = None
 
-        if configured_quota is None:
+        # if none of the use cases are covered by a quota
+        if len(request_hashes) == 0:
             keys_to_remove = {}
+
         else:
-            for prefix, hashes in request_hashes.items():
+            for prefix_quota, hashes in request_hashes.items():
+                use_case_prefix, use_case_quota = prefix_quota
+
                 requested_quotas.append(
-                    RequestedQuota(prefix=prefix, unit_hashes=hashes, quota=configured_quota)
+                    RequestedQuota(prefix=use_case_prefix, unit_hashes=hashes, quota=use_case_quota)
                 )
 
             timestamp, grants = self.backend.check_within_quotas(requested_quotas)
