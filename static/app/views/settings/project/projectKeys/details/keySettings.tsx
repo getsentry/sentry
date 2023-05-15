@@ -162,7 +162,7 @@ export function KeySettings({onRemove, organization, project, params, data}: Pro
                     )}
                     onConfirm={handleRemove}
                     confirmText={t('Revoke Key')}
-                    disableConfirmButton={!hasAccess}
+                    disabled={!hasAccess}
                   >
                     <Button priority="danger">{t('Revoke Key')}</Button>
                   </Confirm>

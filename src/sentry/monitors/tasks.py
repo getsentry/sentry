@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
@@ -60,9 +61,9 @@ def check_monitors(current_datetime=None):
         )
         .exclude(
             monitor__status__in=[
-                MonitorStatus.DISABLED,
-                MonitorStatus.PENDING_DELETION,
-                MonitorStatus.DELETION_IN_PROGRESS,
+                ObjectStatus.DISABLED,
+                ObjectStatus.PENDING_DELETION,
+                ObjectStatus.DELETION_IN_PROGRESS,
             ]
         )[:MONITOR_LIMIT]
     )

@@ -6,14 +6,15 @@ import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
 import {getYAxisMaxFn} from 'sentry/components/charts/miniBarChart';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {intervalToMilliseconds} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import theme from 'sentry/utils/theme';
-import useApiRequests from 'sentry/utils/useApiRequests';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {Monitor, MonitorEnvironment, MonitorStat} from '../types';
@@ -24,11 +25,7 @@ type Props = {
   orgId: string;
 };
 
-type State = {
-  stats: MonitorStat[] | null;
-};
-
-const MonitorStats = ({monitor, monitorEnv, orgId}: Props) => {
+function MonitorStats({monitor, monitorEnv, orgId}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
 
@@ -42,22 +39,23 @@ const MonitorStats = ({monitor, monitorEnv, orgId}: Props) => {
     since = until - intervalSeconds;
   }
 
-  const {data, renderComponent} = useApiRequests<State>({
-    endpoints: [
-      [
-        'stats',
-        `/organizations/${orgId}/monitors/${monitor.slug}/stats/`,
-        {
-          query: {
-            since: since.toString(),
-            until: until.toString(),
-            resolution: '1d',
-            environment: monitorEnv.name,
-          },
-        },
-      ],
-    ],
-  });
+  const queryKey = [
+    `/organizations/${orgId}/monitors/${monitor.slug}/stats/`,
+    {
+      query: {
+        since: since.toString(),
+        until: until.toString(),
+        resolution: '1d',
+        environment: monitorEnv.name,
+      },
+    },
+  ] as const;
+
+  const {data: stats, isLoading} = useApiQuery<MonitorStat[]>(queryKey, {staleTime: 0});
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
 
   let emptyStats = true;
   const success: BarChartSeries = {
@@ -81,7 +79,7 @@ const MonitorStats = ({monitor, monitorEnv, orgId}: Props) => {
     data: [],
   };
 
-  data.stats?.forEach(p => {
+  stats?.forEach(p => {
     if (p.ok || p.error || p.missed || p.timeout) {
       emptyStats = false;
     }
@@ -107,7 +105,7 @@ const MonitorStats = ({monitor, monitorEnv, orgId}: Props) => {
   });
 
   if (emptyStats) {
-    return renderComponent(
+    return (
       <Panel>
         <PanelBody withPadding>
           <EmptyMessage
@@ -118,7 +116,7 @@ const MonitorStats = ({monitor, monitorEnv, orgId}: Props) => {
     );
   }
 
-  return renderComponent(
+  return (
     <React.Fragment>
       <Panel>
         <PanelBody withPadding>
@@ -170,7 +168,7 @@ const MonitorStats = ({monitor, monitorEnv, orgId}: Props) => {
       </Panel>
     </React.Fragment>
   );
-};
+}
 
 const StyledHeaderTitle = styled(HeaderTitle)`
   margin-bottom: ${space(1)};
