@@ -266,7 +266,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           title: t('Introducing Archive'),
           target: 'issue_details_archive_button',
           description: t(
-            "Archive this issue to move it out of the stream - but don't worry, we'll bring it back if it escalates."
+            "Archive your issues. We'll bring them back up if they escalate."
           ),
           dismissText: t('Go Away'),
         },
