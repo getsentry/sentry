@@ -69,10 +69,27 @@ function OrganizationAuditLog({location}: Props) {
           query: payload,
         }
       );
+      // Having both rule.x and alertrule.x may be confusing. We'll replace them with issue-alert and metric-alert.
+      // See https://github.com/getsentry/sentry/issues/46997
+      const entryList = data.rows.map((row: AuditLog) => {
+        let event = row.event;
+        let note = row.note;
+        if (event.startsWith('rule.')) {
+          event = event.replace('rule.', 'issue-alert.');
+          note = note.replace('rule', 'issue alert rule');
+        } else if (event.startsWith('alertrule.')) {
+          event = event.replace('alertrule.', 'metric-alert.');
+        }
+        return {
+          ...row,
+          event,
+          note,
+        };
+      });
       setState(prevState => ({
         ...prevState,
-        entryList: data.rows,
-        eventTypes: data.options.sort(),
+        entryList,
+        eventTypes: data.options,
         isLoading: false,
         entryListPageLinks: response?.getResponseHeader('Link') ?? null,
       }));

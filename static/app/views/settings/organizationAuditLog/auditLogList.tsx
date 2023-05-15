@@ -176,10 +176,30 @@ function AuditLogList({
   const hasEntries = entries && entries.length > 0;
   const ipv4Length = 15;
 
-  const eventOptions = eventTypes?.map(type => ({
-    label: type,
-    value: type,
-  }));
+  const eventOptions = eventTypes
+    ?.map(type => {
+      // Having both rule.x and alertrule.x may be confusing, so we'll replace their labels to be more descriptive.
+      // We need to maintain the values here so we still fetch the correct audit log events from the backend should we want
+      // to filter.
+      // See https://github.com/getsentry/sentry/issues/46997
+      if (type.startsWith('rule.')) {
+        return {
+          label: type.replace('rule.', 'issue-alert.'),
+          value: type,
+        };
+      }
+      if (type.startsWith('alertrule.')) {
+        return {
+          label: type.replace('alertrule.', 'metric-alert.'),
+          value: type,
+        };
+      }
+      return {
+        label: type,
+        value: type,
+      };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   const action = (
     <EventSelector
