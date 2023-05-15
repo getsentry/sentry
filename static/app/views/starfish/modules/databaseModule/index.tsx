@@ -1,8 +1,10 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
@@ -12,10 +14,17 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useQueryMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  getDbAggregatesQuery,
+  useQueryMainTable,
+} from 'sentry/views/starfish/modules/databaseModule/queries';
+import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combineTableDataWithSparklineData';
+import {HOST} from 'sentry/views/starfish/utils/constants';
 
 import DatabaseChartView from './databaseChartView';
 import DatabaseTableView, {DataRow, MainTableSort} from './databaseTableView';
@@ -30,7 +39,6 @@ function DatabaseModule() {
   const location = useLocation();
   const organization = useOrganization();
   const eventView = EventView.fromLocation(location);
-  const [action, setAction] = useState<string>('ALL');
   const [table, setTable] = useState<string>('ALL');
   const [filterNew, setFilterNew] = useState<boolean>(false);
   const [filterOld, setFilterOld] = useState<boolean>(false);
@@ -51,9 +59,60 @@ function DatabaseModule() {
   } = useQueryMainTable({
     transaction,
     table,
-    action,
+    filterNew,
+    filterOld,
     sortKey: sort.sortHeader?.key,
     sortDirection: sort.direction,
+  });
+  const pageFilters = usePageFilters();
+
+  const {selection} = pageFilters;
+  const {projects, environments, datetime} = selection;
+
+  useApiQuery<null>(
+    [
+      `/organizations/${organization.slug}/events-starfish/`,
+      {
+        query: {
+          ...{
+            environment: environments,
+            project: projects.map(proj => String(proj)),
+          },
+          ...normalizeDateTimeParams(datetime),
+        },
+      },
+    ],
+    {
+      staleTime: 10,
+    }
+  );
+
+  const {data: dbAggregateData} = useQuery({
+    queryKey: ['dbAggregates', transaction, filterNew, filterOld],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getDbAggregatesQuery({
+          datetime: pageFilters.selection.datetime,
+          transaction,
+        })}`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const combinedDbData = combineTableDataWithSparklineData(
+    tableData,
+    dbAggregateData,
+    moment.duration(12, 'hours')
+  );
+
+  const aggregatesGroupedByQuery = {};
+  dbAggregateData.forEach(({description, interval, count, p75}) => {
+    if (description in aggregatesGroupedByQuery) {
+      aggregatesGroupedByQuery[description].push({name: interval, count, p75});
+    } else {
+      aggregatesGroupedByQuery[description] = [{name: interval, count, p75}];
+    }
   });
 
   useEffect(() => {
@@ -77,7 +136,7 @@ function DatabaseModule() {
       document.removeEventListener('keydown', handleKeyDown);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [tableData]);
 
   const toggleFilterNew = () => {
     setFilterNew(!filterNew);
@@ -135,19 +194,7 @@ function DatabaseModule() {
             <FilterOptionsContainer>
               <DatePageFilter alignDropdown="left" />
             </FilterOptionsContainer>
-            <DatabaseChartView
-              location={location}
-              action={action}
-              table={table}
-              onChange={(key, val) => {
-                if (key === 'action') {
-                  setAction(val);
-                  setTable('ALL');
-                } else {
-                  setTable(val);
-                }
-              }}
-            />
+            <DatabaseChartView location={location} table={table} onChange={setTable} />
             <SearchFilterContainer>
               <LabelledSwitch
                 label="Filter New Queries"
@@ -172,7 +219,7 @@ function DatabaseModule() {
             </SearchFilterContainer>
             <DatabaseTableView
               location={location}
-              data={tableData}
+              data={combinedDbData as DataRow[]}
               isDataLoading={isTableDataLoading || isTableRefetching}
               onSelect={setSelectedRow}
               onSortChange={setSort}
@@ -188,6 +235,7 @@ function DatabaseModule() {
               nextRow={rows.next}
               prevRow={rows.prev}
               onClose={unsetSelectedSpanGroup}
+              transaction={transaction}
             />
           </Layout.Main>
         </Layout.Body>

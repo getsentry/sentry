@@ -145,7 +145,13 @@ def _handles_frame(frame):
     if not frame:
         return False
 
-    return frame.get("abs_path") is not None
+    # skip frames without an `abs_path`
+    if (abs_path := frame.get("abs_path")) is None:
+        return False
+    # skip "native" frames without a line
+    if abs_path in ("native", "[native code]") and frame.get("lineno", 0) == 0:
+        return False
+    return True
 
 
 def generate_scraping_config(project: Project) -> Dict[str, Any]:

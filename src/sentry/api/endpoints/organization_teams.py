@@ -176,7 +176,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             if self.should_add_creator_to_team(request):
                 try:
                     member = OrganizationMember.objects.get(
-                        user=request.user, organization=organization
+                        user_id=request.user.id, organization=organization
                     )
                 except OrganizationMember.DoesNotExist:
                     pass

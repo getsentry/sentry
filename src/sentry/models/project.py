@@ -32,6 +32,7 @@ from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
@@ -252,12 +253,16 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             user__is_active=True,
         ).distinct()
 
+    def get_members_as_rpc_users(self) -> Iterable[RpcUser]:
+        member_ids = self.member_set.values_list("user_id", flat=True)
+        return user_service.get_many(filter=dict(user_ids=list(member_ids)))
+
     def has_access(self, user, access=None):
         from sentry.models import AuthIdentity, OrganizationMember
 
         warnings.warn("Project.has_access is deprecated.", DeprecationWarning)
 
-        queryset = self.member_set.filter(user=user)
+        queryset = self.member_set.filter(user_id=user.id)
 
         if access is not None:
             queryset = queryset.filter(type__lte=access)

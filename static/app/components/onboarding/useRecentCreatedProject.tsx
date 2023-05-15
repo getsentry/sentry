@@ -26,7 +26,7 @@ export function useRecentCreatedProject({
         if (!data) {
           return false;
         }
-        const [projectData] = data as unknown as [Project | undefined, any, any];
+        const [projectData] = data;
         return projectData?.firstEvent ? false : DEFAULT_POLL_INTERVAL_MS;
       },
     }
