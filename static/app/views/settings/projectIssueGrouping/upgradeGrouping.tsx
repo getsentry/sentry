@@ -88,8 +88,8 @@ function UpgradeGrouping({
       clearIndicators();
       ProjectsStore.onUpdateSuccess(response);
       onUpgrade();
-    } catch {
-      getXhrErrorResponseHandler(t('Unable to upgrade config'));
+    } catch (err) {
+      getXhrErrorResponseHandler(t('Unable to upgrade config'))(err);
     }
   }
 
