@@ -26,7 +26,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import analytics, features, tagstore
+from sentry import analytics, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -69,7 +69,7 @@ from sentry.search.events.filter import convert_search_filter_to_snuba_query, fo
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken, auth_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
@@ -480,32 +480,18 @@ class GroupSerializerBase(Serializer, ABC):
         if not item_list:
             return
 
-        organization = item_list[0].organization
-        search_perf_issues = features.has(
-            "organizations:issue-platform-search-perf-issues", organization, actor=user
-        )
         # partition the item_list by type
         error_issues = [group for group in item_list if GroupCategory.ERROR == group.issue_category]
-        perf_issues = [
-            group
-            for group in item_list
-            if GroupCategory.PERFORMANCE == group.issue_category and not search_perf_issues
-        ]
         generic_issues = [
-            group
-            for group in item_list
-            if group.issue_category
-            and group.issue_category != GroupCategory.ERROR
-            and (group.issue_category != GroupCategory.PERFORMANCE or search_perf_issues)
+            group for group in item_list if group.issue_category != GroupCategory.ERROR
         ]
 
         # bulk query for the seen_stats by type
         error_stats = (self._seen_stats_error(error_issues, user) if error_issues else {}) or {}
-        perf_stats = (self._seen_stats_performance(perf_issues, user) if perf_issues else {}) or {}
         generic_stats = (
             self._seen_stats_generic(generic_issues, user) if generic_issues else {}
         ) or {}
-        agg_stats = {**error_stats, **perf_stats, **generic_stats}
+        agg_stats = {**error_stats, **generic_stats}
         # combine results back
         return {group: agg_stats.get(group, {}) for group in item_list}
 

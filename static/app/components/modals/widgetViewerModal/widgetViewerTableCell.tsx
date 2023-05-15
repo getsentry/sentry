@@ -8,7 +8,7 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -33,8 +33,10 @@ import {
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
+import {StyledLink} from 'sentry/views/discover/table/tableView';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/discover/table/types';
+import {getTargetForTransactionSummaryLink} from 'sentry/views/discover/utils';
 
 import {WidgetViewerQueryField} from './utils';
 // Dashboards only supports top 5 for now
@@ -45,9 +47,11 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  eventView?: EventView;
   isFirstPage?: boolean;
   isMetricsData?: boolean;
   onHeaderClick?: () => void;
+  projects?: Project[];
   tableData?: TableDataWithTitle;
 };
 
@@ -175,6 +179,8 @@ export const renderGridBodyCell = ({
   widget,
   tableData,
   isFirstPage,
+  projects,
+  eventView,
 }: Props) =>
   function (
     column: GridColumnOrder,
@@ -222,6 +228,23 @@ export const renderGridBodyCell = ({
         }
         break;
     }
+
+    if (columnKey === 'transaction' && dataRow.transaction) {
+      cell = (
+        <StyledLink
+          data-test-id="widget-viewer-transaction-link"
+          to={getTargetForTransactionSummaryLink(
+            dataRow,
+            organization,
+            projects,
+            eventView
+          )}
+        >
+          {cell}
+        </StyledLink>
+      );
+    }
+
     const topResultsCount = tableData
       ? Math.min(tableData?.data.length, DEFAULT_NUM_TOP_EVENTS)
       : DEFAULT_NUM_TOP_EVENTS;

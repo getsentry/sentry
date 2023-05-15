@@ -171,9 +171,9 @@ export type TagWithTopValues = {
 };
 
 export const enum GroupSubstatus {
-  UNTIL_ESCALATING = 'until_escalating',
-  UNTIL_CONDITION_MET = 'until_condition_met',
-  FOREVER = 'forever',
+  ARCHIVED_UNTIL_ESCALATING = 'archived_until_escalating',
+  ARCHIVED_UNTIL_CONDITION_MET = 'archived_until_condition_met',
+  ARCHIVED_FOREVER = 'archived_forever',
   ESCALATING = 'escalating',
   ONGOING = 'ongoing',
   REGRESSED = 'regressed',
@@ -510,7 +510,7 @@ export type ResolutionStatusDetails = {
 export type GroupStatusResolution = {
   status: ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
-  substatus?: GroupSubstatus;
+  substatus?: 'until_escalating';
 };
 
 export type GroupRelease = {
@@ -551,7 +551,6 @@ export interface BaseGroup extends GroupRelease {
   shortId: string;
   status: string;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
@@ -572,7 +571,7 @@ export interface GroupResolution
   // A proper fix for this would be to make the status field an enum or string and correctly extend it.
   extends Omit<BaseGroup, 'status'>,
     GroupStats,
-    GroupStatusResolution {}
+    Omit<GroupStatusResolution, 'substatus'> {}
 
 export type Group = GroupResolution | GroupReprocessing;
 export interface GroupCollapseRelease

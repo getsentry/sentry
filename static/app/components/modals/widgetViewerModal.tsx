@@ -48,6 +48,7 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
@@ -173,6 +174,7 @@ function WidgetViewerModal(props: Props) {
     seriesResultsType,
   } = props;
   const location = useLocation();
+  const {projects} = useProjects();
   const router = useRouter();
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
@@ -500,6 +502,8 @@ function WidgetViewerModal(props: Props) {
               location,
               tableData: tableResults?.[0],
               isFirstPage,
+              projects,
+              eventView,
             }),
             onResizeColumn,
           }}

@@ -2,6 +2,7 @@ from sentry.db.models.query import in_iexact
 from sentry.models import Organization, User
 from sentry.models.userreport import UserReport
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.query import RangeQuerySetWrapper, bulk_delete_objects
 
 
@@ -16,6 +17,7 @@ class InIexactQueryTest(TestCase):
         assert Organization.objects.filter(in_iexact("slug", [])).count() == 0
 
 
+@control_silo_test(stable=True)
 class RangeQuerySetWrapperTest(TestCase):
     def test_basic(self):
         total = 10
@@ -56,7 +58,6 @@ class BulkDeleteObjectsTest(TestCase):
         result = bulk_delete_objects(UserReport, id__in=[r.id for r in records])
         assert result, "Could be more work to do"
         assert len(UserReport.objects.all()) == 0
-        # assert len(Actor.objects.filter(id__in=[r.actor_id for r in records])) == 0
 
     def test_limiting(self):
         total = 10

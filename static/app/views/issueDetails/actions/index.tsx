@@ -527,15 +527,16 @@ export function Actions(props: Props) {
       ) : (
         <Fragment>
           {hasEscalatingIssues ? (
-            <ArchiveActions
-              className="hidden-xs"
-              size="sm"
-              isArchived={isIgnored}
-              onUpdate={onUpdate}
-              disabled={disabled}
-              hideIcon
-              disableTooltip
-            />
+            <GuideAnchor target="issue_details_archive_button" position="bottom">
+              <ArchiveActions
+                className="hidden-xs"
+                size="sm"
+                isArchived={isIgnored}
+                onUpdate={onUpdate}
+                disabled={disabled}
+                disableTooltip
+              />
+            </GuideAnchor>
           ) : (
             <IgnoreActions
               className="hidden-xs"
@@ -543,7 +544,6 @@ export function Actions(props: Props) {
               onUpdate={onUpdate}
               disabled={disabled}
               size="sm"
-              hideIcon
               disableTooltip
             />
           )}
@@ -559,7 +559,6 @@ export function Actions(props: Props) {
               isResolved={isResolved}
               isAutoResolved={isAutoResolved}
               size="sm"
-              hideIcon
               priority="primary"
             />
           </GuideAnchor>

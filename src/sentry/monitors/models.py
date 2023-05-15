@@ -351,14 +351,8 @@ class MonitorEnvironmentManager(BaseManager):
         # TODO: assume these objects exist once backfill is completed
         environment = Environment.get_or_create(project=project, name=environment_name)
 
-        monitorenvironment_defaults = {
-            "status": monitor.status,
-            "next_checkin": monitor.next_checkin,
-            "last_checkin": monitor.last_checkin,
-        }
-
         return MonitorEnvironment.objects.get_or_create(
-            monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
+            monitor=monitor, environment=environment, defaults={"status": MonitorStatus.ACTIVE}
         )[0]
 
 
@@ -442,7 +436,7 @@ class MonitorEnvironment(Model):
             "last_checkin": ts,
             "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
         }
-        if checkin.status == CheckInStatus.OK and self.monitor.status != MonitorStatus.DISABLED:
+        if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
             params["status"] = MonitorStatus.OK
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
