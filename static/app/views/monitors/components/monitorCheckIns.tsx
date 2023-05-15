@@ -25,7 +25,7 @@ import {
 
 type Props = {
   monitor: Monitor;
-  monitorEnv: MonitorEnvironment;
+  monitorEnvs: MonitorEnvironment[];
   orgId: string;
 };
 
@@ -48,11 +48,17 @@ const statusToText: Record<CheckInStatus, string> = {
   [CheckInStatus.TIMEOUT]: t('Timed Out'),
 };
 
-function MonitorCheckIns({monitor, monitorEnv, orgId}: Props) {
+function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
   const location = useLocation();
   const queryKey = [
     `/organizations/${orgId}/monitors/${monitor.slug}/checkins/`,
-    {query: {per_page: '10', environment: monitorEnv.name, ...location.query}},
+    {
+      query: {
+        per_page: '10',
+        environment: monitorEnvs.map(e => e.name),
+        ...location.query,
+      },
+    },
   ] as const;
 
   const {
