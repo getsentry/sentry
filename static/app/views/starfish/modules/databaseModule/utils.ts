@@ -10,7 +10,8 @@ export const queryToSeries = (
   groupByProperty: string,
   seriesValueProperty: string,
   startTime: moment.Moment,
-  endTime: moment.Moment
+  endTime: moment.Moment,
+  zerofill: boolean = true
 ): Series[] => {
   const seriesMap: Record<string, Series> = {};
 
@@ -27,6 +28,8 @@ export const queryToSeries = (
     }
   });
   return Object.values(seriesMap).map(series =>
-    zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+    zerofill
+      ? zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
+      : series
   );
 };
