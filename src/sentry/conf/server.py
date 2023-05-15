@@ -2981,9 +2981,10 @@ SYMBOLICATOR_MAX_RETRY_AFTER = 2
 
 # The `url` of the different Symbolicator pools.
 # We want to route different workloads to a different set of Symbolicator pools.
-# This can be as fine-grained as using a different pool for `js` symbolication,
-# for the `lpq` (See `SENTRY_LPQ_OPTIONS` and related settings) and for normal
-# symbolication. The keys here should match the `SymbolicatorPools` enum
+# This can be as fine-grained as using a different pool for normal "native"
+# symbolication, `js` symbolication, and for `lpq` / `lpq-js`.
+# (See `SENTRY_LPQ_OPTIONS` and related settings)
+# The keys here should match the `SymbolicatorPools` enum
 # defined in `src/sentry/lang/native/symbolicator.py`.
 # If a specific setting does not exist, this will fall back to the `default` pool.
 # If that is not configured, it will fall back to the `url` configured in
@@ -2992,8 +2993,9 @@ SYMBOLICATOR_MAX_RETRY_AFTER = 2
 # `symbolicator.options` for backwards compatibility.
 SYMBOLICATOR_POOL_URLS = {
     # "js": "...",
-    # "lpq": "...",
     # "default": "...",
+    # "lpq": "...",
+    # "lpq_js": "...",
 }
 
 SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
