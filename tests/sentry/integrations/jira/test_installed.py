@@ -102,7 +102,7 @@ class JiraInstalledTest(APITestCase):
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_secret()),
         )
         integration = Integration.objects.get(provider="jira", external_id=self.external_id)
-        assert integration.status == ObjectStatus.VISIBLE
+        assert integration.status == ObjectStatus.ACTIVE
 
     @responses.activate
     def test_with_key_id(self):
@@ -113,4 +113,4 @@ class JiraInstalledTest(APITestCase):
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
         )
         integration = Integration.objects.get(provider="jira", external_id=self.external_id)
-        assert integration.status == ObjectStatus.VISIBLE
+        assert integration.status == ObjectStatus.ACTIVE

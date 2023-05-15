@@ -13,8 +13,10 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
 )
 from sentry.ingest.transaction_clusterer.rules import (
     ProjectOptionRuleStore,
-    RuleSet,
-    _get_rules,
+    RedisRuleStore,
+    bump_last_used,
+    get_redis_rules,
+    get_rules,
     get_sorted_rules,
     update_rules,
 )
@@ -24,6 +26,7 @@ from sentry.models import Organization, Project
 from sentry.models.options.project_option import ProjectOption
 from sentry.relay.config import get_project_config
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.options import override_options
 
 
 def test_multi_fanout():
@@ -169,17 +172,17 @@ def test_max_rule_threshold_merge_composite_store(default_project):
 def test_save_rules(default_project):
     project = default_project
 
-    project_rules = _get_rules(project)
+    project_rules = get_rules(project)
     assert project_rules == {}
 
     with freeze_time("2012-01-14 12:00:01"):
-        update_rules(project, [ReplacementRule("foo"), ReplacementRule("bar")])
-    project_rules = _get_rules(project)
+        assert 2 == update_rules(project, [ReplacementRule("foo"), ReplacementRule("bar")])
+    project_rules = get_rules(project)
     assert project_rules == {"foo": 1326542401, "bar": 1326542401}
 
     with freeze_time("2012-01-14 12:00:02"):
-        update_rules(project, [ReplacementRule("bar"), ReplacementRule("zap")])
-    project_rules = _get_rules(project)
+        assert 1 == update_rules(project, [ReplacementRule("bar"), ReplacementRule("zap")])
+    project_rules = get_rules(project)
     assert {"bar": 1326542402, "foo": 1326542401, "zap": 1326542402}
 
 
@@ -201,7 +204,7 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     project2 = Project(id=223, name="project2", organization_id=default_organization.id)
     for project in (project1, project2):
         project.save()
-        _add_mock_data(project, 10)
+        _add_mock_data(project, 4)
 
     spawn_clusterers()
 
@@ -209,8 +212,8 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     cluster_projects_delay.reset_mock()
 
     # Not stored enough transactions yet
-    assert _get_rules(project1) == {}
-    assert _get_rules(project2) == {}
+    assert get_rules(project1) == {}
+    assert get_rules(project2) == {}
 
     # Clear transactions if batch minimum is not met
     assert list(get_transaction_names(project1)) == []
@@ -233,7 +236,7 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     # One project per batch now:
     assert cluster_projects_delay.call_count == 2, cluster_projects_delay.call_args
 
-    pr_rules = _get_rules(project1)
+    pr_rules = get_rules(project1)
     assert pr_rules.keys() == {
         "/org/*/**",
         "/user/*/**",
@@ -248,14 +251,14 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
 @pytest.mark.django_db
 def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default_organization):
     project = Project(id=456, name="test_project", organization_id=default_organization.id)
-    assert _get_rules(project) == {}
+    assert get_rules(project) == {}
 
     _store_transaction_name(project, "/transaction/number/1")
     cluster_projects([project])
     # Clusterer didn't create rules. Still, it updates the stores.
     assert mock_update_rules.call_count == 1
     assert mock_update_rules.call_args == mock.call(project, [])
-    assert _get_rules(project) == {}  # Transaction names are deleted if there aren't enough
+    assert get_rules(project) == {}  # Transaction names are deleted if there aren't enough
 
     _store_transaction_name(project, "/transaction/number/1")
     _store_transaction_name(project, "/transaction/number/2")
@@ -315,25 +318,17 @@ def test_transaction_clusterer_generates_rules(default_project):
 )
 @pytest.mark.django_db
 def test_transaction_clusterer_bumps_rules(_, default_organization):
-    tmp_redis_storage = {}
+    project1 = Project(id=123, name="project1", organization_id=default_organization.id)
+    project1.save()
 
-    class MockRedisRuleStore:
-        def read(self, project: Project) -> RuleSet:
-            return tmp_redis_storage.get(project, {})
-
-        def write(self, project: Project, rules) -> None:
-            tmp_redis_storage[project] = rules
-
-    with mock.patch("sentry.ingest.transaction_clusterer.rules.RedisRuleStore", MockRedisRuleStore):
-        project1 = Project(id=123, name="project1", organization_id=default_organization.id)
-        project1.save()
+    with override_options({"txnames.bump-lifetime-sample-rate": 1.0}):
         for i in range(10):
             _store_transaction_name(project1, f"/user/tx-{project1.name}-{i}/settings")
 
         with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 1):
             spawn_clusterers()
 
-        assert _get_rules(project1) == {"/user/*/**": 1}
+        assert get_rules(project1) == {"/user/*/**": 1}
 
         with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 2):
             record_transaction_name(
@@ -353,12 +348,14 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
             )
 
         # _get_rules fetches from project options, which arent updated yet.
-        assert _get_rules(project1) == {"/user/*/**": 1}
+        assert get_redis_rules(project1) == {"/user/*/**": 2}
+        assert get_rules(project1) == {"/user/*/**": 1}
         # Update rules to update the project option storage.
         with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 3):
-            update_rules(project1, [])
+            assert 0 == update_rules(project1, [])
         # After project options are updated, the last_seen should also be updated.
-        assert _get_rules(project1) == {"/user/*/**": 2}
+        assert get_redis_rules(project1) == {"/user/*/**": 2}
+        assert get_rules(project1) == {"/user/*/**": 2}
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 3)
@@ -369,15 +366,6 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
 )
 @pytest.mark.django_db
 def test_dont_store_inexisting_rules(_, default_organization):
-    tmp_redis_storage = {}
-
-    class MockRedisRuleStore:
-        def read(self, project: Project) -> RuleSet:
-            return tmp_redis_storage.get(project, {})
-
-        def write(self, project: Project, rules) -> None:
-            tmp_redis_storage[project] = rules
-
     rogue_transaction = {
         "transaction": "/transaction/for/rogue/*/rule",
         "transaction_info": {"source": "sanitized"},
@@ -394,10 +382,9 @@ def test_dont_store_inexisting_rules(_, default_organization):
         },
     }
 
-    with mock.patch("sentry.ingest.transaction_clusterer.rules.RedisRuleStore", MockRedisRuleStore):
+    with override_options({"txnames.bump-lifetime-sample-rate": 1.0}):
         project1 = Project(id=234, name="project1", organization_id=default_organization.id)
         project1.save()
-
         for i in range(3):
             _store_transaction_name(project1, f"/user/tx-{project1.name}-{i}/settings")
 
@@ -409,7 +396,7 @@ def test_dont_store_inexisting_rules(_, default_organization):
             rogue_transaction,
         )
 
-        assert _get_rules(project1) == {"/user/*/**": 1}
+        assert get_rules(project1) == {"/user/*/**": 1}
 
 
 @pytest.mark.django_db
@@ -427,3 +414,13 @@ def test_stale_rules_arent_saved(default_project):
     with freeze_time("2001-01-01 01:00:00"):
         update_rules(default_project, [ReplacementRule("baz/baz")])
     assert get_sorted_rules(default_project) == [("baz/baz", 978310800)]
+
+
+def test_bump_last_used():
+    """Redis update works and does not delete other keys in the set."""
+    project1 = Project(id=123, name="project1")
+    RedisRuleStore().write(project1, {"foo": 1, "bar": 2})
+    assert get_redis_rules(project1) == {"foo": 1, "bar": 2}
+    with freeze_time("2000-01-01 01:00:00"):
+        bump_last_used(project1, "bar")
+    assert get_redis_rules(project1) == {"foo": 1, "bar": 946688400}

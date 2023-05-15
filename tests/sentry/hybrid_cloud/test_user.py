@@ -1,7 +1,7 @@
 import pytest
 
 from sentry.models.avatars.user_avatar import UserAvatar
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.factories import Factories
 
 

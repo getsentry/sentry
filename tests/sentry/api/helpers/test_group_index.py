@@ -179,22 +179,27 @@ class UpdateGroupsTest(TestCase):  # type: ignore[misc]
 
     @patch("sentry.signals.issue_unignored.send_robust")
     def test_unignoring_group(self, send_robust: Mock) -> None:
-        group = self.create_group(status=GroupStatus.IGNORED)
+        for group, request_data in [
+            (self.create_group(status=GroupStatus.IGNORED), {"status": "unresolved"}),
+            (
+                self.create_group(status=GroupStatus.IGNORED),
+                {"status": "unresolved", "substatus": "ongoing"},
+            ),
+        ]:
+            request = self.make_request(user=self.user, method="GET")
+            request.user = self.user
+            request.data = request_data
+            request.GET = QueryDict(query_string=f"id={group.id}")
 
-        request = self.make_request(user=self.user, method="GET")
-        request.user = self.user
-        request.data = {"status": "unresolved"}
-        request.GET = QueryDict(query_string=f"id={group.id}")
+            update_groups(
+                request, request.GET.getlist("id"), [self.project], self.organization.id, Mock()
+            )
 
-        search_fn = Mock()
-        update_groups(
-            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
-        )
+            group.refresh_from_db()
 
-        group.refresh_from_db()
-
-        assert group.status == GroupStatus.UNRESOLVED
-        assert send_robust.called
+            assert group.status == GroupStatus.UNRESOLVED
+            assert group.substatus is GroupSubStatus.ONGOING
+            assert send_robust.called
 
     @patch("sentry.signals.issue_mark_reviewed.send_robust")
     def test_mark_reviewed_group(self, send_robust: Mock) -> None:

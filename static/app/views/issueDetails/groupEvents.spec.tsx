@@ -109,6 +109,12 @@ describe('groupEvents', () => {
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
+
+    requests.latestEvent = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/issues/1/events/latest/',
+      body: {},
+    });
   });
 
   afterEach(() => {

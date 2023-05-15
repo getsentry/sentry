@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Sequence
+from typing import Any, Dict, Sequence
 
 import sentry_sdk
 import sqlparse
@@ -27,8 +27,11 @@ from sentry.utils.safe import get_path
 
 CRASH_FILE_TYPES = {"event.minidump"}
 RESERVED_KEYS = frozenset(["user", "sdk", "device", "contexts"])
+
 FORMATTED_BREADCRUMB_CATEGORIES = frozenset(["query", "sql.query"])
 SQL_DOUBLEQUOTES_REGEX = re.compile(r"\"([a-zA-Z0-9_]+?)\"")
+MAX_SQL_FORMAT_OPS = 20
+MAX_SQL_FORMAT_LENGTH = 1500
 
 
 def get_crash_files(events):
@@ -346,13 +349,34 @@ class SqlFormatEventSerializer(EventSerializer):
     Applies formatting to SQL queries in the serialized event.
     """
 
+    def __init__(self) -> None:
+        super().__init__()
+        self.formatted_sql_cache: Dict[str, str] = {}
+
+    # Various checks to ensure that we don't spend too much time formatting
+    def _should_skip_formatting(self, query: str):
+        if (len(self.formatted_sql_cache) >= MAX_SQL_FORMAT_OPS) | (
+            len(query) > MAX_SQL_FORMAT_LENGTH
+        ):
+            return True
+
+        return False
+
     def _remove_doublequotes(self, message: str):
         return SQL_DOUBLEQUOTES_REGEX.sub(r"\1", message)
 
     def _format_sql_query(self, message: str):
+        formatted = self.formatted_sql_cache.get(message, None)
+        if formatted is not None:
+            return formatted
+        if self._should_skip_formatting(message):
+            return message
+
         formatted = sqlparse.format(message, reindent=True, wrap_after=80)
         if formatted != message:
             formatted = self._remove_doublequotes(formatted)
+        self.formatted_sql_cache[message] = formatted
+
         return formatted
 
     def _format_breadcrumb_messages(
@@ -364,9 +388,7 @@ class SqlFormatEventSerializer(EventSerializer):
                 None,
             )
 
-            if not breadcrumbs or not features.has(
-                "organizations:sql-format", event.project.organization, actor=user
-            ):
+            if not breadcrumbs:
                 return event_data
 
             for breadcrumb_item in breadcrumbs["data"]["values"]:
@@ -387,9 +409,7 @@ class SqlFormatEventSerializer(EventSerializer):
                 None,
             )
 
-            if not spans or not features.has(
-                "organizations:sql-format", event.project.organization, actor=user
-            ):
+            if not spans:
                 return event_data
 
             for span in spans["data"]:
@@ -403,8 +423,12 @@ class SqlFormatEventSerializer(EventSerializer):
 
     def serialize(self, obj, attrs, user):
         result = super().serialize(obj, attrs, user)
-        result = self._format_breadcrumb_messages(result, obj, user)
-        result = self._format_db_spans(result, obj, user)
+
+        if features.has("organizations:sql-format", obj.project.organization, actor=user):
+            with sentry_sdk.start_span(op="serialize", description="Format SQL"):
+                result = self._format_breadcrumb_messages(result, obj, user)
+                result = self._format_db_spans(result, obj, user)
+
         return result
 
 

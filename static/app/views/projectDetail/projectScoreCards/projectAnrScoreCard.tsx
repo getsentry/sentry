@@ -147,7 +147,7 @@ export function ProjectAnrScoreCard({
 
   const endpointPath = `/organizations/${organization.slug}/issues/`;
 
-  const issueQuery = ['mechanism:ANR', query].join(' ').trim();
+  const issueQuery = ['mechanism:[ANR,AppExitInfo]', query].join(' ').trim();
 
   const queryParams = {
     ...normalizeDateTimeParams(pick(location.query, [...Object.values(URL_PARAM)])),

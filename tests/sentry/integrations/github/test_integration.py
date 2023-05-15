@@ -364,7 +364,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert auth_header == "Bearer jwt_token_1"
 
         integration = Integration.objects.get(provider=self.provider.key)
-        assert integration.status == ObjectStatus.VISIBLE
+        assert integration.status == ObjectStatus.ACTIVE
         assert integration.external_id == self.installation_id
 
     @responses.activate

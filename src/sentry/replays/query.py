@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Union
 
 from rest_framework.exceptions import ParseError
@@ -255,7 +255,6 @@ def query_replays_dataset_with_subquery(
     if len(replay_ids_to_filter_results["data"]) == 0:
         # if no results, no need to carry on
         return {"data": []}
-    max_subquery_ts = 0
     min_subquery_ts = datetime.now().timestamp()
     replay_ids_to_filter = []
 
@@ -263,7 +262,6 @@ def query_replays_dataset_with_subquery(
         ts = int(datetime.fromisoformat(replay["timestamp"]).timestamp())
         replay_ids_to_filter.append(replay["replay_id"])
         min_subquery_ts = min(min_subquery_ts, ts)
-        max_subquery_ts = max(max_subquery_ts, ts)
 
     # do the full query to get all aggregated fields
     sorting = get_valid_sort_commands(
@@ -284,20 +282,12 @@ def query_replays_dataset_with_subquery(
             where=[
                 Condition(Column("project_id"), Op.IN, project_ids),
                 Condition(Column("replay_id"), Op.IN, replay_ids_to_filter),
-                # a replay can be up to an hour long, so query past the cutoff by an hour to get
-                # any segments outside the query window but still part of a replay within it.
-                Condition(
-                    Column("timestamp"),
-                    Op.LT,
-                    # end
-                    datetime.fromtimestamp(max_subquery_ts)
-                    + timedelta(hours=MAX_REPLAY_LENGTH_HOURS),
-                ),
                 Condition(
                     Column("timestamp"),
                     Op.GTE,
                     datetime.fromtimestamp(min_subquery_ts),
                 ),
+                Condition(Column("timestamp"), Op.LT, datetime.now()),
             ],
             orderby=sorting,
             groupby=[Column("project_id"), Column("replay_id")],

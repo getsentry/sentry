@@ -6,8 +6,13 @@ import Badge from 'sentry/components/badge';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
-import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel';
+import Sparkline from 'sentry/views/starfish/components/sparkline';
+import {Sort} from 'sentry/views/starfish/modules/databaseModule';
+import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
+
+import {highlightSql} from './panel';
 
 type Props = {
   isDataLoading: boolean;
@@ -15,13 +20,7 @@ type Props = {
   onSelect: (row: DataRow, rowIndex: number) => void;
   columns?: any;
   data?: DataRow[];
-  onSortChange?: ({
-    direction,
-    sortHeader,
-  }: {
-    direction: 'desc' | 'asc' | undefined;
-    sortHeader: TableColumnHeader;
-  }) => void;
+  onSortChange?: ({direction, sortHeader}: MainTableSort) => void;
   selectedRow?: DataRow;
 };
 
@@ -44,8 +43,17 @@ export type DataRow = {
   transactions: number;
 };
 
-type Keys = 'description' | 'domain' | 'epm' | 'p75' | 'transactions' | 'total_time';
+type Keys =
+  | 'description'
+  | 'domain'
+  | 'throughput'
+  | 'p75_trend'
+  | 'epm'
+  | 'p75'
+  | 'transactions'
+  | 'total_time';
 export type TableColumnHeader = GridColumnHeader<Keys>;
+export type MainTableSort = Sort<TableColumnHeader>;
 
 const COLUMN_ORDER: TableColumnHeader[] = [
   {
@@ -56,6 +64,16 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'domain',
     name: 'Table',
+    width: 200,
+  },
+  {
+    key: 'throughput',
+    name: 'Throughput',
+    width: 200,
+  },
+  {
+    key: 'p75_trend',
+    name: 'P75 Trend',
     width: 200,
   },
   {
@@ -76,7 +94,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   },
 ];
 
-function similarity(value: string, other: string): number {
+export function similarity(value: string, other: string): number {
   // If they're identical we don't care
   if (value === other || other === undefined || value === undefined) {
     return -1;
@@ -92,6 +110,7 @@ function similarity(value: string, other: string): number {
       short_words.splice(short_words.indexOf(word), 1);
     }
   }
+
   return count / total;
 }
 
@@ -126,7 +145,7 @@ function renderBadge(row, selectedRow) {
   return response;
 }
 
-export default function APIModuleView({
+export default function DatabaseTableView({
   location,
   data,
   onSelect,
@@ -142,10 +161,10 @@ export default function APIModuleView({
 
   function onSortClick(col: TableColumnHeader) {
     let direction: 'desc' | 'asc' | undefined = undefined;
-    if (sort.direction === 'desc') {
-      direction = 'asc';
-    } else if (!sort.direction) {
+    if (!sort.direction || col.key !== sort.sortHeader?.key) {
       direction = 'desc';
+    } else if (sort.direction === 'desc') {
+      direction = 'asc';
     }
     if (onSortChange) {
       setSort({direction, sortHeader: col});
@@ -180,10 +199,9 @@ export default function APIModuleView({
     const rowStyle: CSSProperties | undefined = isSelectedRow
       ? {fontWeight: 'bold'}
       : undefined;
+    const value = row[key];
 
     if (key === 'description') {
-      const value = row[key];
-
       let headerExtra = '';
       if (row.newish === 1) {
         headerExtra = `Query (First seen ${row.firstSeen})`;
@@ -191,7 +209,7 @@ export default function APIModuleView({
         headerExtra = `Query (Last seen ${row.lastSeen})`;
       }
       return (
-        <Hovercard header={headerExtra} body={value}>
+        <Hovercard header={headerExtra} body={highlightSql(row.formatted_desc, row)}>
           <Link onClick={() => onSelect(row, rowIndex)} to="" style={rowStyle}>
             {value.substring(0, 30)}
             {value.length > 30 ? '...' : ''}
@@ -201,11 +219,32 @@ export default function APIModuleView({
         </Hovercard>
       );
     }
+
     if (key === 'p75' || key === 'total_time') {
-      const value = row[key];
       return <span style={rowStyle}>{value.toFixed(2)}ms</span>;
     }
-    return <span style={rowStyle}>{row[key]}</span>;
+
+    if (key === 'throughput') {
+      return (
+        <Sparkline
+          color={CHART_PALETTE[3][0]}
+          series={value}
+          width={column.width ? column.width - column.width / 5 : undefined}
+        />
+      );
+    }
+
+    if (key === 'p75_trend') {
+      return (
+        <Sparkline
+          color={CHART_PALETTE[3][3]}
+          series={value}
+          width={column.width ? column.width - column.width / 5 : undefined}
+        />
+      );
+    }
+
+    return <span style={rowStyle}>{value}</span>;
   }
 
   return (

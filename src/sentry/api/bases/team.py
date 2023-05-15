@@ -44,7 +44,7 @@ class TeamEndpoint(Endpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if team.status != TeamStatus.VISIBLE:
+        if team.status != TeamStatus.ACTIVE:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, team)

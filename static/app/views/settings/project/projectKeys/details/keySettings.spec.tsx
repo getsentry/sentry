@@ -19,7 +19,7 @@ describe('Key Settings', function () {
       keyId: '1',
     };
 
-    const {organization} = initializeOrg({
+    const {organization, project} = initializeOrg({
       ...initializeOrg(),
       organization: {
         ...initializeOrg().organization,
@@ -39,6 +39,7 @@ describe('Key Settings', function () {
         data={data}
         onRemove={jest.fn()}
         organization={organization}
+        project={project}
         params={params}
       />
     );

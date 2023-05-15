@@ -7,9 +7,6 @@
  * When importing types prefer importing from `sentry/types` when possible for ergonomic and ease of updating and
  * re-organizing types in the future.
  */
-// XXX(epurkhiser): When we switch to the new React JSX runtime we will no
-// longer need this import and can drop babel-preset-css-prop for babel-preset.
-/// <reference types="@emotion/react/types/css-prop" />
 
 export * from './auth';
 export * from './core';
