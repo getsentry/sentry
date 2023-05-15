@@ -110,6 +110,8 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     email: str = ""
 
     def get_audit_log_metadata(self, user_email: Optional[str] = None) -> Mapping[str, Any]:
+        from sentry.models.organizationmember import invite_status_names
+
         team_ids = [mt.team_id for mt in self.member_teams]
         team_slugs = [mt.slug for mt in self.member_teams]
 
@@ -121,7 +123,7 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
             "teams": team_ids,
             "has_global_access": self.has_global_access,
             "role": self.role,
-            "invite_status": self.invite_status,
+            "invite_status": invite_status_names[self.invite_status],
             "user": self.user_id,
             "teams_slugs": team_slugs,
         }
