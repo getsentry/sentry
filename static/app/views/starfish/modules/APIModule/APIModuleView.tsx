@@ -208,7 +208,7 @@ export default function APIModuleView({location, onSelect}: Props) {
     'epm()',
     startTime,
     endTime,
-    false
+    24
   );
 
   const p75TransactionSeries = queryToSeries(
@@ -217,7 +217,7 @@ export default function APIModuleView({location, onSelect}: Props) {
     'p75(transaction.duration)',
     startTime,
     endTime,
-    false
+    24
   );
 
   return (

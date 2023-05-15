@@ -132,24 +132,24 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
     );
 
   const {isLoading: isP75GraphLoading, data: transactionGraphData} =
-    useQueryTransactionByTPMAndP75(tableData.map(d => d.transaction).splice(0, 5));
+    useQueryTransactionByTPMAndP75(tableData.map(d => d.transaction).splice(0, 5), 24);
 
   const tpmTransactionSeries = queryToSeries(
     transactionGraphData,
     'group',
-    'count()',
+    'epm()',
     startTime,
     endTime,
-    false
+    24
   );
 
-  const p75TransactionSeries = queryToSeries(
+  const p50TransactionSeries = queryToSeries(
     transactionGraphData,
     'group',
-    'p75(transaction.duration)',
+    'p50(transaction.duration)',
     startTime,
     endTime,
-    false
+    24
   );
 
   return (
@@ -223,7 +223,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
         </FlexRowItem>
         <FlexRowItem>
           <SubHeader>{t('Top 5 Transaction P75')}</SubHeader>
-          <APIDetailChart series={p75TransactionSeries} isLoading={isP75GraphLoading} />
+          <APIDetailChart series={p50TransactionSeries} isLoading={isP75GraphLoading} />
         </FlexRowItem>
       </FlexRowContainer>
       <GridEditable
