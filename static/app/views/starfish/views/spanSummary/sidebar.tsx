@@ -29,6 +29,7 @@ export default function Sidebar({
   groupId,
   description,
   transactionName,
+  sampledSpanData,
 }) {
   const theme = useTheme();
   const pageFilter = usePageFilters();
@@ -141,6 +142,10 @@ export default function Sidebar({
     ) / 100;
 
   const chartColors = theme.charts.getColorPalette(2);
+  const sampledSpanDataSeries = sampledSpanData.map(({timestamp, spanDuration}) => ({
+    name: timestamp,
+    value: spanDuration,
+  }));
 
   return (
     <FlexContainer>
@@ -207,6 +212,9 @@ export default function Sidebar({
           loading={isLoadingSeriesData}
           utc={false}
           chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
+          scatterPlot={[
+            {data: sampledSpanDataSeries, seriesName: 'Sampled Span Duration'},
+          ]}
           stacked
           isLineChart
           disableXAxis
