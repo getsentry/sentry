@@ -83,7 +83,9 @@ class ProjectOptionRuleStore:
         return [tuple(lst) for lst in ret]  # type: ignore[misc]
 
     def read(self, project: Project) -> RuleSet:
-        return {rule: last_seen for rule, last_seen in self.read_sorted(project)}
+        rules = {rule: last_seen for rule, last_seen in self.read_sorted(project)}
+        self.last_read = rules
+        return rules
 
     def _sort(self, rules: RuleSet) -> List[Tuple[ReplacementRule, int]]:
         """Sort rules by number of slashes, i.e. depth of the rule"""
@@ -188,7 +190,11 @@ def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
     return ProjectOptionRuleStore().read_sorted(project)
 
 
-def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
+def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> int:
+    """Write newly discovered rules to projection option and redis, and update last_used.
+
+    Returns the number of _new_ rules (that were not already present in project option).
+    """
     # Run the updates even if there aren't any new rules, to get all the stores
     # up-to-date.
     # NOTE: keep in mind this function writes to Postgres, so it shouldn't be
@@ -196,14 +202,20 @@ def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None
 
     last_seen = _now()
     new_rule_set = {rule: last_seen for rule in new_rules}
+    project_option = ProjectOptionRuleStore()
     rule_store = CompositeRuleStore(
         [
             RedisRuleStore(),
-            ProjectOptionRuleStore(),
+            project_option,
             LocalRuleStore(new_rule_set),
         ]
     )
+
     rule_store.merge(project)
+
+    num_rules_added = len(new_rule_set.keys() - project_option.last_read.keys())
+
+    return num_rules_added
 
 
 def bump_last_used(project: Project, pattern: str) -> None:
