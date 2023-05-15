@@ -285,7 +285,6 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
                         frame["adjust_instruction_addr"] = False
                         frames.append(frame)
                         stack[0] = len(frames) - 1
-                        frames_sent.add(stack[0])
 
             stacktraces = [{"frames": frames}]
         # in the original format, we need to gather frames from all samples
@@ -480,7 +479,7 @@ def _process_symbolicator_results_for_sample(
                     # the new stack extends the older by replacing
                     # a specific frame index with the indices of
                     # the frames originated from the original frame
-                    # should inlines be present
+                    # should inlines be present                    # should inlines be present
                     new_stack.extend(symbolicated_frames_dict[index])
                 else:
                     new_stack.append(index)
