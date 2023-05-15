@@ -29,7 +29,7 @@ from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -126,7 +126,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             environment_ids=environment_ids,
             tenant_ids={"organization_id": group.project.organization_id},
         )
-        model = get_issue_tsdb_group_model(group.issue_category, group.project)
+        model = get_issue_tsdb_group_model(group.issue_category)
         now = timezone.now()
         hourly_stats = tsdb.rollup(
             get_range(model=model, keys=[group.id], end=now, start=now - timedelta(days=1)),
@@ -186,12 +186,18 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     }
                 )
 
-            tags = tagstore.get_group_tag_keys(
-                group,
-                environment_ids,
-                limit=100,
-                tenant_ids={"organization_id": group.project.organization_id},
-            )
+            if "tags" not in collapse:
+                tags = tagstore.get_group_tag_keys(
+                    group,
+                    environment_ids,
+                    limit=100,
+                    tenant_ids={"organization_id": group.project.organization_id},
+                )
+                data.update(
+                    {
+                        "tags": sorted(serialize(tags, request.user), key=lambda x: x["name"]),
+                    }
+                )
 
             user_reports = (
                 UserReport.objects.filter(group_id=group.id)
@@ -243,7 +249,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     "pluginIssues": self._get_available_issue_plugins(request, group),
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
-                    "tags": sorted(serialize(tags, request.user), key=lambda x: x["name"]),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
                 }
             )

@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import Clipboard from 'sentry/components/clipboard';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import DateTime from 'sentry/components/dateTime';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import Link from 'sentry/components/links/link';
@@ -19,7 +19,6 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconLink} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -219,19 +218,19 @@ class TransactionDetail extends Component<Props> {
                   onClick={this.scrollBarIntoView(transaction.event_id)}
                 >
                   {t('Event ID')}
-                  <Clipboard
-                    value={`${window.location.href.replace(
-                      window.location.hash,
-                      ''
-                    )}#txn-${transaction.event_id}`}
-                  >
-                    <StyledIconLink />
-                  </Clipboard>
                 </TransactionIdTitle>
               }
               extra={this.renderGoToTransactionButton()}
             >
               {transaction.event_id}
+              <CopyToClipboardButton
+                borderless
+                size="zero"
+                iconSize="xs"
+                text={`${window.location.href.replace(window.location.hash, '')}#txn-${
+                  transaction.event_id
+                }`}
+              />
             </Row>
             <Row title="Transaction" extra={this.renderGoToSummaryButton()}>
               {transaction.transaction}
@@ -303,12 +302,6 @@ const TransactionIdTitle = styled('a')`
   :hover {
     color: ${p => p.theme.textColor};
   }
-`;
-
-const StyledIconLink = styled(IconLink)`
-  display: block;
-  color: ${p => p.theme.gray300};
-  margin-left: ${space(1)};
 `;
 
 const StyledButton = styled(Button)`

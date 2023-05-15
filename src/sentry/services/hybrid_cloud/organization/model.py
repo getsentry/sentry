@@ -8,22 +8,36 @@ from typing import Any, List, Mapping, Optional
 from pydantic import Field
 
 from sentry.constants import ObjectStatus
-from sentry.models.organization import OrganizationStatus
-from sentry.models.organizationmember import InviteStatus
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
 
 
-def team_status_visible() -> int:
-    from sentry.models import TeamStatus
+class _DefaultEnumHelpers:
+    """Helper functions to avoid importing sentry.models globally"""
 
-    return int(TeamStatus.ACTIVE)
+    @staticmethod
+    def get_default_team_status_value() -> int:
+        from sentry.models import TeamStatus
+
+        return TeamStatus.ACTIVE.value  # type: ignore[no-any-return]
+
+    @staticmethod
+    def get_default_invite_status_value() -> int:
+        from sentry.models import InviteStatus
+
+        return InviteStatus.APPROVED.value  # type: ignore[no-any-return]
+
+    @staticmethod
+    def get_default_organization_status_value() -> int:
+        from sentry.models import OrganizationStatus
+
+        return OrganizationStatus.ACTIVE.value  # type: ignore[no-any-return]
 
 
 class RpcTeam(RpcModel):
     id: int = -1
-    status: int = Field(default_factory=team_status_visible)
+    status: int = Field(default_factory=_DefaultEnumHelpers.get_default_team_status_value)
     organization_id: int = -1
     slug: str = ""
     actor_id: Optional[int] = None
@@ -86,7 +100,7 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     has_global_access: bool = False
     project_ids: List[int] = Field(default_factory=list)
     scopes: List[str] = Field(default_factory=list)
-    invite_status: int = InviteStatus.APPROVED.value
+    invite_status: int = Field(default_factory=_DefaultEnumHelpers.get_default_invite_status_value)
 
     def get_audit_log_metadata(self, user_email: str) -> Mapping[str, Any]:
         team_ids = [mt.team_id for mt in self.member_teams]
@@ -138,7 +152,7 @@ class RpcOrganization(RpcOrganizationSummary):
     projects: List[RpcProject] = Field(default_factory=list)
 
     flags: RpcOrganizationFlags = Field(default_factory=lambda: RpcOrganizationFlags())
-    status: OrganizationStatus = OrganizationStatus.ACTIVE
+    status: int = Field(default_factory=_DefaultEnumHelpers.get_default_organization_status_value)
 
     default_role: str = ""
 

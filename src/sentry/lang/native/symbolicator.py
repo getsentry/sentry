@@ -42,9 +42,10 @@ class SymbolicatorTaskKind:
 
 
 class SymbolicatorPools(Enum):
+    default = "default"
     js = "js"
     lpq = "lpq"
-    default = "default"
+    lpq_js = "lpq_js"
 
 
 class Symbolicator:
@@ -52,7 +53,10 @@ class Symbolicator:
         URLS = settings.SYMBOLICATOR_POOL_URLS
         pool = SymbolicatorPools.default.value
         if task_kind.is_low_priority:
-            pool = SymbolicatorPools.lpq.value
+            if task_kind.is_js:
+                pool = SymbolicatorPools.lpq_js.value
+            else:
+                pool = SymbolicatorPools.lpq.value
         elif task_kind.is_js:
             pool = SymbolicatorPools.js.value
 

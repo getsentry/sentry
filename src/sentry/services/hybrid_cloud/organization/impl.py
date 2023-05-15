@@ -165,11 +165,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
         flags: RpcOrganizationMemberFlags | None = None,
         role: str | None = None,
         inviter_id: int | None = None,
-        invite_status: int | None = InviteStatus.APPROVED.value,
+        invite_status: int | None = None,
     ) -> RpcOrganizationMember:
         assert (user_id is None and email) or (
             user_id and email is None
         ), "Must set either user_id or email"
+        if invite_status is None:
+            invite_status = InviteStatus.APPROVED.value
         region_outbox = None
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             org_member: OrganizationMember = OrganizationMember.objects.create(
@@ -181,8 +183,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 inviter_id=inviter_id,
                 invite_status=invite_status,
             )
-            region_outbox = org_member.outbox_for_create()
-            region_outbox.save()
+            region_outbox = org_member.save_outbox_for_create()
         if region_outbox:
             region_outbox.drain_shard(max_updates_to_drain=10)
         return serialize_member(org_member)
@@ -249,8 +250,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             )
             org_member.remove_user()
             org_member.save()
-            region_outbox = org_member.outbox_for_update()
-            region_outbox.save()
+            region_outbox = org_member.save_outbox_for_update()
         if region_outbox:
             region_outbox.drain_shard(max_updates_to_drain=10)
         return serialize_member(org_member)

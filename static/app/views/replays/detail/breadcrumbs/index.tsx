@@ -34,11 +34,7 @@ const cellMeasurer = {
 
 function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
-  const items = useMemo(
-    () =>
-      (breadcrumbs || []).filter(crumb => !['console'].includes(crumb.category || '')),
-    [breadcrumbs]
-  );
+
   const listRef = useRef<ReactVirtualizedList>(null);
   // Keep a reference of object paths that are expanded (via <ObjectInspector>)
   // by log row, so they they can be restored as the Console pane is scrolling.
@@ -82,7 +78,7 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
     [itemLookup, breadcrumbs, currentHoverTime, startTimestampMs]
   );
 
-  const deps = useMemo(() => [items], [items]);
+  const deps = useMemo(() => [breadcrumbs], [breadcrumbs]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
@@ -101,7 +97,7 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
   });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
-    const item = items[index];
+    const item = (breadcrumbs || [])[index];
 
     return (
       <CellMeasurer
@@ -141,7 +137,7 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
                 )}
                 overscanRowCount={5}
                 ref={listRef}
-                rowCount={items.length}
+                rowCount={breadcrumbs.length}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
                 width={width}

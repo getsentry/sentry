@@ -447,7 +447,7 @@ export function Control({
           </DropdownButton>
         )}
         <StyledPositionWrapper
-          zIndex={theme.zIndex.tooltip}
+          zIndex={theme.zIndex?.tooltip}
           visible={overlayIsOpen}
           {...overlayProps}
         >
@@ -561,9 +561,9 @@ const MenuTitle = styled('span')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
-    margin: ${space(0.5)} ${space(0.5)} ${space(0.5)} ${space(1)};
-    height: ${space(1)};
-    width: ${space(1)};
+    margin: 0 ${space(0.5)} 0 ${space(1)};
+    height: 12px;
+    width: 12px;
   }
 `;
 
