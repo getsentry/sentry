@@ -70,8 +70,17 @@ function IssueList({projectId, replayId}: Props) {
         }
       >
         {issues
-          // prioritize the replay issues first
-          .sort(a => (a.project.id === projectId ? -1 : 1))
+          // prioritize the replay issues for the project first, followed by first_seen
+          .sort((a, b) => {
+            if (a.project.id === projectId) {
+              if (a.project.id === b.project.id) {
+                return new Date(a.firstSeen).getTime() - new Date(b.firstSeen).getTime();
+              }
+
+              return -1;
+            }
+            return 1;
+          })
           .map(issue => (
             <TableRow
               key={issue.id}
