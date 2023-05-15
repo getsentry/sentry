@@ -21,6 +21,7 @@ from typing import (
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
+from sentry.utils import metrics
 from sentry.utils.services import Service
 
 
@@ -406,6 +407,7 @@ def _metric_path_key_compatible_resolve(
     ) -> Optional[int]:
         if isinstance(use_case_id, UseCaseKey):
             use_case_id = REVERSE_METRIC_PATH_MAPPING[use_case_id]
+            metrics.incr("sentry_metrics.indexer.unsafe_resolve")
         return resolve_func(self, use_case_id, org_id, string)
 
     return wrapper
@@ -420,6 +422,7 @@ def _metric_path_key_compatible_rev_resolve(
     ) -> Optional[str]:
         if isinstance(use_case_id, UseCaseKey):
             use_case_id = REVERSE_METRIC_PATH_MAPPING[use_case_id]
+            metrics.incr("sentry_metrics.indexer.unsafe_rev_resolve")
         return rev_resolve_func(self, use_case_id, org_id, id)
 
     return wrapper
