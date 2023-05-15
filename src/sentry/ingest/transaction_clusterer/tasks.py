@@ -71,7 +71,10 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 # The Redis store may have more up-to-date last_seen values,
                 # so we must update the stores to bring these values to
                 # project options, even if there aren't any new rules.
-                rules.update_rules(project, new_rules)
+                num_rules_added = rules.update_rules(project, new_rules)
+
+                # Track a global counter of new rules:
+                metrics.incr("txcluster.new_rules_discovered", num_rules_added)
 
                 # Clear transaction names to prevent the set from picking up
                 # noise over a long time range.
