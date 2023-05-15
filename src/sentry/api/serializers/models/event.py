@@ -12,6 +12,7 @@ from sentry_relay import meta_with_chunks
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import (
     GroupCategory,
@@ -193,7 +194,7 @@ class EventSerializer(Serializer):
             )
         except Release.DoesNotExist:
             return {"version": version}
-        return serialize(release, user)
+        return serialize(release, user, GroupEventReleaseSerializer())
 
     def _get_user_report(self, user, event):
         try:
