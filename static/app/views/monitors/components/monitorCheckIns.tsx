@@ -5,15 +5,17 @@ import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import StatusIndicator from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import useApiRequests from 'sentry/utils/useApiRequests';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
 import {
   CheckIn,
   CheckInStatus,
@@ -25,10 +27,6 @@ type Props = {
   monitor: Monitor;
   monitorEnv: MonitorEnvironment;
   orgId: string;
-};
-
-type State = {
-  checkInList: CheckIn[];
 };
 
 const checkStatusToIndicatorStatus: Record<
@@ -51,23 +49,32 @@ const statusToText: Record<CheckInStatus, string> = {
 };
 
 function MonitorCheckIns({monitor, monitorEnv, orgId}: Props) {
-  const {data, hasError, renderComponent} = useApiRequests<State>({
-    endpoints: [
-      [
-        'checkInList',
-        `/organizations/${orgId}/monitors/${monitor.slug}/checkins/`,
-        {query: {per_page: '10', environment: monitorEnv.name}},
-        {paginate: true},
-      ],
-    ],
-  });
+  const location = useLocation();
+  const queryKey = [
+    `/organizations/${orgId}/monitors/${monitor.slug}/checkins/`,
+    {query: {per_page: '10', environment: monitorEnv.name, ...location.query}},
+  ] as const;
+
+  const {
+    data: checkInList,
+    getResponseHeader,
+    isLoading,
+    isError,
+  } = useApiQuery<CheckIn[]>(queryKey, {staleTime: 0});
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+  if (isError) {
+    return <LoadingError />;
+  }
 
   const generateDownloadUrl = (checkin: CheckIn) =>
     `/api/0/organizations/${orgId}/monitors/${monitor.slug}/checkins/${checkin.id}/attachment/`;
 
   const emptyCell = <Text>{'\u2014'}</Text>;
 
-  const renderedComponent = renderComponent(
+  return (
     <React.Fragment>
       <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
       <PanelTable
@@ -79,7 +86,7 @@ function MonitorCheckIns({monitor, monitorEnv, orgId}: Props) {
           t('Timestamp'),
         ]}
       >
-        {data.checkInList?.map(checkIn => (
+        {checkInList.map(checkIn => (
           <React.Fragment key={checkIn.id}>
             <Status>
               <StatusIndicator
@@ -106,7 +113,7 @@ function MonitorCheckIns({monitor, monitorEnv, orgId}: Props) {
                 icon={<IconDownload size="xs" />}
                 href={generateDownloadUrl(checkIn)}
               >
-                Attachment
+                {t('Attachment')}
               </Button>
             ) : (
               emptyCell
@@ -115,11 +122,9 @@ function MonitorCheckIns({monitor, monitorEnv, orgId}: Props) {
           </React.Fragment>
         ))}
       </PanelTable>
-      <Pagination pageLinks={data.checkInListPageLinks} />
+      <Pagination pageLinks={getResponseHeader?.('Link')} />
     </React.Fragment>
   );
-
-  return hasError ? <ErrorWrapper>{renderedComponent}</ErrorWrapper> : renderedComponent;
 }
 
 export default MonitorCheckIns;
@@ -131,8 +136,4 @@ const Status = styled('div')`
 
 const Timestamp = styled(DateTime)`
   color: ${p => p.theme.subText};
-`;
-
-const ErrorWrapper = styled('div')`
-  margin: ${space(3)} ${space(3)} 0;
 `;
