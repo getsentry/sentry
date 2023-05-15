@@ -106,6 +106,7 @@ export default function EndpointTable({
           res.json()
         ),
       retry: false,
+      refetchOnWindowFocus: false,
       initialData: [],
     });
 

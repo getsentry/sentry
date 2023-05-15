@@ -586,8 +586,8 @@ export const useQueryTransactionByTPMAndP75 = (
   const {
     selection: {datetime},
   } = usePageFilters();
-  return useWrappedDiscoverTimeseriesQuery(
-    EventView.fromSavedQuery({
+  return useWrappedDiscoverTimeseriesQuery({
+    eventView: EventView.fromSavedQuery({
       name: '',
       fields: ['transaction', 'epm()', 'p50(transaction.duration)'],
       yAxis: ['epm()', 'p50(transaction.duration)'],
@@ -602,8 +602,8 @@ export const useQueryTransactionByTPMAndP75 = (
       projects: [1],
       version: 2,
     }),
-    []
-  );
+    initialData: [],
+  });
 };
 
 export const useQueryGetProfileIds = (transactionNames: string[]) => {

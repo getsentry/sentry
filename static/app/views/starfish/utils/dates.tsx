@@ -46,6 +46,7 @@ export const datetimeToClickhouseFilterTimestamps = (datetime?: DateTimeObject) 
       unit &&
       moment()
         .subtract(num, unit as 'h' | 'd')
+        .startOf('minute')
         .format(DATE_FORMAT));
 
   const end_timestamp = datetime.end && moment(datetime.end).format(DATE_FORMAT);

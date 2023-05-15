@@ -89,3 +89,5 @@ export const EXTERNAL_APIS = {
   linear: {statusPage: 'https://status.linear.app/'},
   gaussMoney: {},
 };
+
+export const INTERNAL_API_REGEX = /\d\.\d|localhost/;

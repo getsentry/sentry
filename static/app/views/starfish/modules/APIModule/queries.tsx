@@ -1,6 +1,18 @@
+import {useQuery} from '@tanstack/react-query';
+
+import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
+import {DefinedUseQueryResult} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {getDateQueryFilter} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {HOST} from 'sentry/views/starfish/utils/constants';
+import {
+  datetimeToClickhouseFilterTimestamps,
+  getDateFilters,
+} from 'sentry/views/starfish/utils/dates';
+import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export const getHostListQuery = ({datetime}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
@@ -335,4 +347,93 @@ export const getEndpointAggregatesQuery = ({datetime, transaction}) => {
     GROUP BY description, interval
     ORDER BY interval asc
   `;
+};
+
+const ORDERBY = `
+  -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
+`;
+
+const getTransactionsFromHostSubquery = (hostNames: string[], dateFilters: string) => {
+  const hostFilter = `domain IN ('${hostNames.join(`', '`)}')`;
+
+  return `
+  SELECT
+    transaction
+  FROM default.spans_experimental_starfish
+  WHERE
+    startsWith(span_operation, 'http')
+    AND ${hostFilter}
+    ${dateFilters}
+  GROUP BY transaction
+  ORDER BY ${ORDERBY}
+  LIMIT 5
+`;
+};
+
+type TopTransactionData = {
+  interval: string;
+  transaction: string;
+  epm?: number;
+  p75?: number;
+};
+
+export const useGetTransactionsForHosts = (
+  hostNames: string[],
+  interval: string
+): DefinedUseQueryResult<TopTransactionData[]> => {
+  const pageFilter = usePageFilters();
+  const location = useLocation();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+
+  const transactionNameQuery = getTransactionsFromHostSubquery(hostNames, dateFilters);
+
+  const {start, end, period} = pageFilter.selection.datetime;
+
+  const {isLoading: isTopTransactionNamesLoading, data: topTransactionNamesData} =
+    useQuery<{transaction: string}[]>({
+      enabled: !!hostNames?.length,
+      queryKey: ['topTransactionNames', hostNames.join(','), start, end],
+      queryFn: () =>
+        fetch(`${HOST}/?query=${transactionNameQuery}`).then(res => res.json()),
+      retry: false,
+      refetchOnWindowFocus: false,
+      initialData: [],
+    });
+
+  const query: NewQuery = {
+    id: undefined,
+    name: '',
+    query: `transaction:[${topTransactionNamesData
+      ?.map(d => `"${d.transaction}"`)
+      .join(',')}]`,
+    projects: [1],
+    fields: ['transaction', 'epm()', 'p75(transaction.duration)'],
+    version: 1,
+    topEvents: '5',
+    start: start?.toString(),
+    end: end?.toString(),
+    dataset: DiscoverDatasets.METRICS_ENHANCED,
+    interval,
+    yAxis: ['epm()', 'p75(transaction.duration)'],
+  };
+
+  const eventView = EventView.fromNewQueryWithLocation(query, location);
+  eventView.statsPeriod = period ?? undefined;
+
+  const {
+    isLoading: isTopTransactionSeriesLoading,
+    data: topTransactionSeriesData,
+    ...rest
+  } = useWrappedDiscoverTimeseriesQuery({
+    eventView,
+    initialData: [],
+    enabled: !isTopTransactionNamesLoading && !!topTransactionNamesData.length,
+  });
+
+  return {
+    ...rest,
+    isLoading: isTopTransactionSeriesLoading,
+    data: topTransactionSeriesData,
+  } as DefinedUseQueryResult<TopTransactionData[]>;
 };
