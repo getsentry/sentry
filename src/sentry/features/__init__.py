@@ -177,6 +177,7 @@ default_manager.add("organizations:set-grouping-config", OrganizationFeature, Fe
 default_manager.add("organizations:slack-escape-messages", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:starfish-test-endpoint", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:streamline-targeting-context", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:symbol-sources", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add('organizations:team-project-creation-all', OrganizationFeature, FeatureHandlerStrategy.REMOTE)

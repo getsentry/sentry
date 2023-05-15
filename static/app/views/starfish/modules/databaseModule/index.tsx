@@ -1,8 +1,10 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
@@ -12,10 +14,17 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useQueryMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  getDbAggregatesQuery,
+  useQueryMainTable,
+} from 'sentry/views/starfish/modules/databaseModule/queries';
+import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combineTableDataWithSparklineData';
+import {HOST} from 'sentry/views/starfish/utils/constants';
 
 import DatabaseChartView from './databaseChartView';
 import DatabaseTableView, {DataRow, MainTableSort} from './databaseTableView';
@@ -54,6 +63,56 @@ function DatabaseModule() {
     filterOld,
     sortKey: sort.sortHeader?.key,
     sortDirection: sort.direction,
+  });
+  const pageFilters = usePageFilters();
+
+  const {selection} = pageFilters;
+  const {projects, environments, datetime} = selection;
+
+  useApiQuery<null>(
+    [
+      `/organizations/${organization.slug}/events-starfish/`,
+      {
+        query: {
+          ...{
+            environment: environments,
+            project: projects.map(proj => String(proj)),
+          },
+          ...normalizeDateTimeParams(datetime),
+        },
+      },
+    ],
+    {
+      staleTime: 10,
+    }
+  );
+
+  const {data: dbAggregateData} = useQuery({
+    queryKey: ['dbAggregates', transaction, filterNew, filterOld],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getDbAggregatesQuery({
+          datetime: pageFilters.selection.datetime,
+          transaction,
+        })}`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const combinedDbData = combineTableDataWithSparklineData(
+    tableData,
+    dbAggregateData,
+    moment.duration(12, 'hours')
+  );
+
+  const aggregatesGroupedByQuery = {};
+  dbAggregateData.forEach(({description, interval, count, p75}) => {
+    if (description in aggregatesGroupedByQuery) {
+      aggregatesGroupedByQuery[description].push({name: interval, count, p75});
+    } else {
+      aggregatesGroupedByQuery[description] = [{name: interval, count, p75}];
+    }
   });
 
   useEffect(() => {
@@ -160,7 +219,7 @@ function DatabaseModule() {
             </SearchFilterContainer>
             <DatabaseTableView
               location={location}
-              data={tableData}
+              data={combinedDbData as DataRow[]}
               isDataLoading={isTableDataLoading || isTableRefetching}
               onSelect={setSelectedRow}
               onSortChange={setSort}
@@ -176,6 +235,7 @@ function DatabaseModule() {
               nextRow={rows.next}
               prevRow={rows.prev}
               onClose={unsetSelectedSpanGroup}
+              transaction={transaction}
             />
           </Layout.Main>
         </Layout.Body>

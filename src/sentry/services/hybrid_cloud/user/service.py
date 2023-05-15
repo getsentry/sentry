@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, List, Optional, cast
+from typing import Any, List, Optional, cast
 
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
@@ -16,9 +16,6 @@ from sentry.services.hybrid_cloud.user import (
     UserUpdateArgs,
 )
 from sentry.silo import SiloMode
-
-if TYPE_CHECKING:
-    from sentry.models import Group
 
 
 class UserService(RpcService):
@@ -82,12 +79,6 @@ class UserService(RpcService):
         filter for only active users
         :return:
         """
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def get_from_group(self, *, group: "Group") -> List[RpcUser]:
-        """Get all users in all teams in a given Group's project."""
         pass
 
     @rpc_method

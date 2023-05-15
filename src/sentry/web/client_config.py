@@ -12,7 +12,8 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
-from sentry.services.hybrid_cloud.user import UserSerializeType, user_service
+from sentry.services.hybrid_cloud.user import UserSerializeType
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import auth
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled

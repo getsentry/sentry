@@ -50,6 +50,11 @@ interface NoURLMatchDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.NO_URL_MATCH;
 }
 
+interface SDKOutOfDate extends BaseSourceMapDebugError {
+  data: {sdkName: string; sdkVersion: string; showMigrationGuide: boolean};
+  type: SourceMapProcessingIssueType.SDK_OUT_OF_DATE;
+}
+
 export type SourceMapDebugError =
   | UnknownErrorDebugError
   | MissingReleaseDebugError
@@ -59,7 +64,8 @@ export type SourceMapDebugError =
   | PartialMatchDebugError
   | DistMismatchDebugError
   | SourcemapNotFoundDebugError
-  | NoURLMatchDebugError;
+  | NoURLMatchDebugError
+  | SDKOutOfDate;
 
 export interface SourceMapDebugResponse {
   errors: SourceMapDebugError[];
@@ -75,6 +81,7 @@ export enum SourceMapProcessingIssueType {
   PARTIAL_MATCH = 'partial_match',
   DIST_MISMATCH = 'dist_mismatch',
   SOURCEMAP_NOT_FOUND = 'sourcemap_not_found',
+  SDK_OUT_OF_DATE = 'sdk_out_of_date',
 }
 
 const sourceMapDebugQuery = ({
@@ -125,7 +132,7 @@ export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
     retry: false,
   };
   return useQueries({
-    queries: props.map<UseApiQueryOptions<SourceMapDebugResponse>>(p => {
+    queries: props.map(p => {
       const key = sourceMapDebugQuery(p);
       return {
         queryKey: sourceMapDebugQuery(p),
@@ -134,7 +141,7 @@ export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
           api.requestPromise(key[0], {
             method: 'GET',
             query: key[1]?.query,
-          }),
+          }) as Promise<SourceMapDebugResponse>,
         ...options,
       };
     }),
