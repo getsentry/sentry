@@ -3,15 +3,14 @@ import moment from 'moment';
 import {Series} from 'sentry/types/echarts';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-const INTERVAL = 12;
-
 export const queryToSeries = (
   data: (Record<string, any> & {interval: string})[],
   groupByProperty: string,
   seriesValueProperty: string,
   startTime: moment.Moment,
   endTime: moment.Moment,
-  zerofill: boolean = true
+  interval: number,
+  zerofillValue?: any
 ): Series[] => {
   const seriesMap: Record<string, Series> = {};
 
@@ -28,8 +27,12 @@ export const queryToSeries = (
     }
   });
   return Object.values(seriesMap).map(series =>
-    zerofill
-      ? zeroFillSeries(series, moment.duration(INTERVAL, 'hours'), startTime, endTime)
-      : series
+    zeroFillSeries(
+      series,
+      moment.duration(interval, 'hours'),
+      startTime,
+      endTime,
+      zerofillValue
+    )
   );
 };

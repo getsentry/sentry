@@ -22,6 +22,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
+import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import DatabaseTableView, {
   DataRow,
@@ -210,7 +211,7 @@ export default function EndpointOverview() {
                       <SubHeader>{t('Throughput')}</SubHeader>
                       <Chart
                         statsPeriod={(statsPeriod as string) ?? '24h'}
-                        height={110}
+                        height={150}
                         data={results?.[0] ? [results?.[0]] : []}
                         start=""
                         end=""
@@ -233,7 +234,7 @@ export default function EndpointOverview() {
                       <SubHeader>{t('p50(duration)')}</SubHeader>
                       <Chart
                         statsPeriod={(statsPeriod as string) ?? '24h'}
-                        height={110}
+                        height={150}
                         data={results?.[1] ? [results?.[1]] : []}
                         start=""
                         end=""
@@ -261,6 +262,8 @@ export default function EndpointOverview() {
             title={t('Where is time spent in this endpoint?')}
             transaction={transaction as string}
           />
+          <SubHeader>{t('Correlations')}</SubHeader>
+          <FacetInsights eventView={eventView} />
           <SubHeader>{t('HTTP Spans')}</SubHeader>
           <EndpointTable
             location={location}
