@@ -11,10 +11,12 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.utils import AtlassianConnectValidationError, get_query_hash
 from sentry.models import Integration
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri
 from tests.sentry.utils.test_jwt import RS256_KEY, RS256_PUB_KEY
 
 
+@control_silo_test
 class JiraInstalledTest(APITestCase):
     endpoint = "sentry-extensions-jira-installed"
     method = "post"

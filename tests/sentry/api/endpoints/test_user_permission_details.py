@@ -32,7 +32,7 @@ class PermissionTestMixin:
         assert resp.status_code == 403
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserPermissionDetailsGetTest(UserDetailsTest, PermissionTestMixin):
     def test_with_permission(self):
         UserPermission.objects.create(user=self.user, permission="broadcasts.admin")
@@ -44,7 +44,7 @@ class UserPermissionDetailsGetTest(UserDetailsTest, PermissionTestMixin):
         assert resp.status_code == 404
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserPermissionDetailsPostTest(UserDetailsTest, PermissionTestMixin):
     method = "POST"
 
@@ -60,7 +60,7 @@ class UserPermissionDetailsPostTest(UserDetailsTest, PermissionTestMixin):
         assert UserPermission.objects.filter(user=self.user, permission="broadcasts.admin").exists()
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserPermissionDetailsDeleteTest(UserDetailsTest, PermissionTestMixin):
     method = "DELETE"
 

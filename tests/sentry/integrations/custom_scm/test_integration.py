@@ -1,8 +1,10 @@
 from sentry.integrations.custom_scm import CustomSCMIntegrationProvider
 from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class CustomSCMIntegrationTest(IntegrationTestCase):
     provider = CustomSCMIntegrationProvider
     config = {

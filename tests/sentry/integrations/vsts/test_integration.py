@@ -13,11 +13,13 @@ from sentry.models import (
     Repository,
 )
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
+from sentry.testutils.silo import control_silo_test
 
 FULL_SCOPES = ["vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 
 
+@control_silo_test
 class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     # Test data setup in ``VstsIntegrationTestCase``
 
@@ -144,6 +146,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert subscription["id"] is not None and subscription["secret"] is not None
 
 
+@control_silo_test
 class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_success(self, mock_get_scopes):
@@ -242,6 +245,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         assert "sufficient account access to create webhooks" in str(err)
 
 
+@control_silo_test
 class VstsIntegrationTest(VstsIntegrationTestCase):
     def test_get_organization_config(self):
         self.assert_installation()

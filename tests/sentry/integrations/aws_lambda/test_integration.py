@@ -11,6 +11,7 @@ from sentry.models import Integration, OrganizationIntegration, ProjectKey
 from sentry.pipeline import PipelineView
 from sentry.testutils import IntegrationTestCase
 from sentry.testutils.helpers.faux import Mock
+from sentry.testutils.silo import control_silo_test
 
 arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"
@@ -21,6 +22,7 @@ account_number = "599817902985"
 region = "us-east-2"
 
 
+@control_silo_test
 class AwsLambdaIntegrationTest(IntegrationTestCase):
     provider = AwsLambdaIntegrationProvider
 

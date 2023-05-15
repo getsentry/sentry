@@ -13,6 +13,7 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 
 
 class ExamplePlugin(IssuePlugin2):
@@ -30,6 +31,7 @@ def naive_build_integration(data):
     "sentry.integrations.example.ExampleIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
+@control_silo_test
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
 
@@ -354,6 +356,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
     "sentry.integrations.gitlab.GitlabIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
+@control_silo_test
 class GitlabFinishPipelineTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
 

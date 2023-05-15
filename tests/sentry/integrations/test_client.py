@@ -328,7 +328,7 @@ class OAuth2ApiClient(ApiClient, OAuth2RefreshMixin):
         self.identity = identity
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class OAuth2ApiClientTest(TestCase):
     def setUp(self):
         self.user = self.create_user()

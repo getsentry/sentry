@@ -12,8 +12,10 @@ from sentry.integrations.utils.codecov import (
 )
 from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class TestCodecovIntegration(APITestCase):
     def setUp(self):
         self.create_integration(

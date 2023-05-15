@@ -28,6 +28,7 @@ from sentry.auth.system import SystemToken
 from sentry.middleware.superuser import SuperuserMiddleware
 from sentry.models import User
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.auth import mark_sso_complete
 
@@ -43,6 +44,7 @@ IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
 
 
 @freeze_time(BASETIME)
+@control_silo_test(stable=True)
 class SuperuserTestCase(TestCase):
     def setUp(self):
         super().setUp()

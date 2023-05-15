@@ -13,8 +13,10 @@ from sentry.models import (
     Repository,
 )
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class GitlabIntegrationTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
     config = {
@@ -449,6 +451,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert commit_context == commit_context_expected
 
 
+@control_silo_test
 class GitlabIntegrationInstanceTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
     config = {

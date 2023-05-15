@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import ast
+import logging
 import os
 from collections import defaultdict
 from contextlib import ExitStack, contextmanager
-from pathlib import Path
-from typing import Any, Dict, Generator, Iterable, Iterator, MutableMapping, Set, Tuple, Type, Union
+from typing import Any, Dict, Generator, Iterable, MutableMapping, Set, Tuple, Type, Union
 
 import django.apps
+from django.apps import apps
 
 from sentry.db.models import BaseManager, Model
 from sentry.db.models.manager.base import ModelManagerTriggerAction, ModelManagerTriggerCondition
+from sentry.silo.base import SiloMode
 from sentry.utils import json
+
+ROOT = os.path.dirname(os.path.abspath(__file__)) + "/../../../"
 
 
 class ModelManifest:
@@ -19,16 +23,16 @@ class ModelManifest:
 
     file_path: str
     connections: MutableMapping[int, Set[int]]
-    model_names: MutableMapping[str, int]
-    test_names: MutableMapping[str, int]
+    model_names: MutableMapping[str, Dict[str, Any]]
+    test_names: MutableMapping[str, Dict[str, Any]]
     reverse_lookup: MutableMapping[int, str]
     next_id: int
 
-    def get_or_create_id(self, cache: MutableMapping[str, int], name: str) -> int:
+    def get_or_create_id(self, cache: MutableMapping[str, Dict[str, Any]], name: str) -> int:
         if name in cache:
-            return cache[name]
+            return int(cache[name]["id"])
         next_id = self.next_id
-        cache[name] = next_id
+        cache[name] = {"id": next_id}
         self.reverse_lookup[next_id] = name
         self.next_id += 1
         return next_id
@@ -54,6 +58,7 @@ class ModelManifest:
         self.test_names = {}
         self.reverse_lookup = {}
         self.next_id = 0
+        self.count = 0
 
     @classmethod
     def from_json_file(cls, file_path: str) -> ModelManifest:
@@ -62,15 +67,15 @@ class ModelManifest:
 
         manifest = ModelManifest(file_path)
         highest_id = 0
-        for model_name, model_id in content["model_names"].items():
-            manifest.model_names[model_name] = model_id
-            highest_id = max(model_id, highest_id)
-            manifest.reverse_lookup[model_id] = model_name
+        for model_name, m in content["model_names"].items():
+            manifest.model_names[model_name] = m
+            highest_id = max(m["id"], highest_id)
+            manifest.reverse_lookup[m["id"]] = model_name
 
-        for test_name, test_id in content["test_names"].items():
-            manifest.test_names[test_name] = test_id
-            highest_id = max(test_id, highest_id)
-            manifest.reverse_lookup[test_id] = test_name
+        for test_name, d in content["test_names"].items():
+            manifest.test_names[test_name] = d
+            highest_id = max(d["id"], highest_id)
+            manifest.reverse_lookup[d["id"]] = test_name
 
         for id, connections in content["connections"].items():
             for connection in connections:
@@ -118,12 +123,19 @@ class ModelManifest:
                     action = entry.create_trigger_action(condition)
                     stack.enter_context(model_manager.register_trigger(condition, action))
 
+            # Overwrite the entire test in place, in case it used to touch a
+            # model and doesn't anymore
+            test_id = self.get_or_create_id(self.test_names, test_name)
+            hc_test = self.hybrid_cloud_test(test_name)
+            self.test_names[test_name] = {
+                "id": test_id,
+                "stable": hc_test.decorator_was_stable or False,
+                "annotated": hc_test.decorator_match_line is not None,
+            }
+
             try:
                 yield
             finally:
-                # Overwrite the entire test in place, in case it used to touch a
-                # model and doesn't anymore
-                test_id = self.get_or_create_id(self.test_names, test_name)
                 self.connections[test_id] = set()
                 for key in list(self.connections.keys()):
                     if test_id in self.connections[key]:
@@ -135,19 +147,48 @@ class ModelManifest:
                         self.connections[test_id].add(model_id)
                         self.connections[model_id].add(test_id)
 
-    def each_hybrid_cloud_test(
-        self, path_refix: Path
-    ) -> Iterator[Tuple[int, HybridCloudTestVisitor]]:
-        for test_node_name, test_id in self.test_names.items():
-            test_file_path: str
-            test_case_name: str
-            test_node_name = test_node_name.split("[")[0]
-            test_file_path, test_case_name = test_node_name.split("::")
-            test_file_path = os.path.abspath(str(path_refix.joinpath(test_file_path)))
+                self.count += 1
+                if self.count % 100 == 0:
+                    with open(self.file_path, mode="w") as f:
+                        json.dump(self.to_json(), f)
 
-            test_visitor = HybridCloudTestVisitor(test_file_path, test_case_name)
-            if test_visitor.exists:
-                yield test_id, test_visitor
+    def hybrid_cloud_test(self, test_name: str) -> HybridCloudTestVisitor:
+        # test_id = self.test_names[test_name]["id"]
+        test_file_path: str
+        test_case_name: str
+        test_name = test_name.split("[")[0]
+        test_file_path, test_case_name = test_name.split("::")
+        test_file_path = ROOT + test_file_path
+
+        test_visitor = HybridCloudTestVisitor(test_file_path, test_case_name)
+        test_visitor.load()
+        return test_visitor
+
+    def determine_silo_based_on_connections(self, test_name: str) -> SiloMode:
+        logger = logging.getLogger()
+        test_id = self.get_or_create_id(self.test_names, test_name)
+        region_votes = 0
+        control_votes = 0
+        for model_id in self.connections[test_id]:
+            model_name = self.reverse_lookup[model_id]
+            try:
+                model = apps.get_model("sentry", model_name)
+            except Exception:
+                continue
+
+            if not model:
+                logger.warning(f"Model {model_name} not found in db 'sentry'")
+                continue
+
+            if SiloMode.CONTROL in model._meta.silo_limit.modes:
+                control_votes += 1
+            elif SiloMode.REGION in model._meta.silo_limit.modes:
+                region_votes += 1
+
+        logger.info(f"   Control: {control_votes}, Region: {region_votes}")
+        if control_votes > region_votes:
+            return SiloMode.CONTROL
+        return SiloMode.REGION
 
 
 class HybridCloudTestDecoratorVisitor(ast.NodeVisitor):

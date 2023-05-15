@@ -8,7 +8,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class OAuthTokenTest(TestCase):
     @cached_property
     def path(self):
@@ -38,7 +38,7 @@ class OAuthTokenTest(TestCase):
         assert json.loads(resp.content) == {"error": "unsupported_grant_type"}
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class OAuthTokenCodeTest(TestCase):
     @cached_property
     def path(self):
@@ -143,7 +143,7 @@ class OAuthTokenCodeTest(TestCase):
         assert data["user"]["id"] == str(token.user_id)
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class OAuthTokenRefreshTokenTest(TestCase):
     @cached_property
     def path(self):

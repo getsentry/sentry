@@ -40,7 +40,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test, region_silo_test
 from sentry.utils.audit import create_system_audit_entry
 
 
@@ -299,6 +299,7 @@ class OrganizationTest(TestCase):
         self.assertFalse(has_changed(inst, "name"))
 
 
+@control_silo_test
 class Require2fa(TestCase, HybridCloudTestMixin):
     def setUp(self):
         self.owner = self.create_user("foo@example.com")

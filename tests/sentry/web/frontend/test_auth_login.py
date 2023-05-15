@@ -23,6 +23,7 @@ from sentry.utils import json
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
 # @control_silo_test(stable=True)
+@control_silo_test
 class AuthLoginTest(TestCase, HybridCloudTestMixin):
     @cached_property
     def path(self):

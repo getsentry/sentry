@@ -23,7 +23,7 @@ class PermissionTestMixin:
         assert resp.status_code == 403
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserUserRolesTest(APITestCase, PermissionTestMixin):
     endpoint = "sentry-api-0-user-userrole-details"
 
@@ -34,7 +34,7 @@ class UserUserRolesTest(APITestCase, PermissionTestMixin):
         self.add_user_permission(self.user, "users.admin")
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserUserRolesDetailsTest(UserUserRolesTest, PermissionTestMixin):
     def test_lookup_self(self):
         role = UserRole.objects.create(name="support", permissions=["broadcasts.admin"])
@@ -46,7 +46,7 @@ class UserUserRolesDetailsTest(UserUserRolesTest, PermissionTestMixin):
         assert resp.data["name"] == "support"
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserUserRolesCreateTest(UserUserRolesTest, PermissionTestMixin):
     method = "POST"
 
@@ -70,7 +70,7 @@ class UserUserRolesCreateTest(UserUserRolesTest, PermissionTestMixin):
         assert resp.status_code == 410
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserUserRolesDeleteTest(UserUserRolesTest, PermissionTestMixin):
     method = "DELETE"
 

@@ -4,9 +4,11 @@ from django.urls import URLResolver, get_resolver, reverse
 
 from sentry.models import OrganizationStatus
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin
 
 
+@control_silo_test
 class ReactPageViewTest(TestCase):
     def test_redirects_unauthenticated_request(self):
         owner = self.create_user("bar@example.com")

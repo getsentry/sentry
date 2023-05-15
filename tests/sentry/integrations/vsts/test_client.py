@@ -5,9 +5,11 @@ import responses
 
 from fixtures.vsts import VstsIntegrationTestCase
 from sentry.models import Identity, IdentityProvider, Integration
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@control_silo_test
 class VstsApiClientTest(VstsIntegrationTestCase):
     def test_refreshes_expired_token(self):
         self.assert_installation()

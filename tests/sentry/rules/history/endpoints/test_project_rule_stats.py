@@ -9,9 +9,10 @@ from sentry.rules.history.base import TimeSeriesValue
 from sentry.rules.history.endpoints.project_rule_stats import TimeSeriesValueSerializer
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
+@control_silo_test(stable=True)
 class TimeSeriesValueSerializerTest(TestCase):
     def test(self):
         time_series_value = TimeSeriesValue(datetime.now(), 30)

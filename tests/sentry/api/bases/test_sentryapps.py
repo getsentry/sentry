@@ -16,6 +16,7 @@ from sentry.testutils.helpers.faux import Mock
 from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class SentryAppPermissionTest(TestCase):
     def setUp(self):
         self.permission = SentryAppPermission()

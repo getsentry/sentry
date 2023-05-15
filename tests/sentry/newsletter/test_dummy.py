@@ -1,7 +1,9 @@
 from sentry.newsletter.dummy import DummyNewsletter
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class DummyNewsletterTest(TestCase):
     def setUp(self):
         self.newsletter = DummyNewsletter()

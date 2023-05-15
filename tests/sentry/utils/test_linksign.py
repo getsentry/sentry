@@ -2,9 +2,11 @@ from django.test import override_settings
 from django.test.client import RequestFactory
 
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import linksign
 
 
+@control_silo_test(stable=True)
 class LinkSignTestCase(TestCase):
     @override_settings(ALLOWED_HOSTS=["something-else", "testserver"])
     def test_link_signing(self):

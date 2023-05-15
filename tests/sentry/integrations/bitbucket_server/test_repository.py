@@ -20,8 +20,10 @@ from sentry.integrations.bitbucket_server.repository import BitbucketServerRepos
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class BitbucketServerRepositoryProviderTest(APITestCase):
     @cached_property
     def integration(self):

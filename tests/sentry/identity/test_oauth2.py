@@ -16,7 +16,7 @@ from sentry.testutils.silo import control_silo_test
 MockResponse = namedtuple("MockResponse", ["headers", "content"])
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class OAuth2CallbackViewTest(TestCase):
     def setUp(self):
         sentry.identity.register(DummyProvider)
@@ -126,7 +126,7 @@ class OAuth2CallbackViewTest(TestCase):
         assert "JSON" in result["error_description"]
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class OAuth2LoginViewTest(TestCase):
     def setUp(self):
         sentry.identity.register(DummyProvider)

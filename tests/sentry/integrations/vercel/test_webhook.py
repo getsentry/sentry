@@ -24,6 +24,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -47,6 +48,7 @@ class SignatureVercelTest(APITestCase):
             assert response.status_code == 401
 
 
+@control_silo_test
 class VercelReleasesTest(APITestCase):
     webhook_url = "/extensions/vercel/webhook/"
     header = "VERCEL"
