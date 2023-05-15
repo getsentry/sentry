@@ -394,9 +394,9 @@ function useFetchGroupDetails({
           // locked project.
           locationQuery.project = matchingProject.id;
         }
-        // // We delete _allp from the URL to keep the hack a bit cleaner, but
-        // // this is not an ideal solution and will ultimately be replaced with
-        // // something smarter.
+        // We delete _allp from the URL to keep the hack a bit cleaner, but
+        // this is not an ideal solution and will ultimately be replaced with
+        // something smarter.
         delete locationQuery._allp;
         browserHistory.replace({...window.location, query: locationQuery});
       }
