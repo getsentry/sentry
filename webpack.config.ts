@@ -4,6 +4,7 @@
 import fs from 'fs';
 import path from 'path';
 
+import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
 import CompressionPlugin from 'compression-webpack-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
 import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
@@ -407,6 +408,23 @@ const appConfig: Configuration = {
             ]
           : []),
       ],
+    }),
+
+    /**
+     * Uploads sourcemaps when Sentry is when sentry is built.
+     */
+    sentryWebpackPlugin({
+      org: env.SENTRY_ORG,
+      project: env.SENTRY_PROJECT,
+      authToken: env.SENTRY_AUTH_TOKEN,
+      url: env.SENTRY_ORG,
+      sourcemaps: {
+        assets: `${distPath}/**`,
+      },
+      release: {
+        inject: false,
+        create: false,
+      },
     }),
   ],
 
