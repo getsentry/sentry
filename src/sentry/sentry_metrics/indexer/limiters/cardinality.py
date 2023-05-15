@@ -41,17 +41,13 @@ def _build_quota_key(use_case_id: str, org_id: Optional[OrgId]) -> str:
 
 @metrics.wraps("sentry_metrics.indexer.construct_quotas")
 # this needs to now take in UseCaseID
-def _construct_quotas(use_case_str: str) -> Optional[Quota]:
+def _construct_quotas(use_case_id: UseCaseID) -> Optional[Quota]:
     """
     Construct write limit's quotas based on current sentry options.
 
     This value can potentially cached globally as long as it is invalidated
     when sentry.options are.
     """
-    if use_case_str in {id.value for id in UseCaseID}:
-        use_case_id = UseCaseID(use_case_str)
-    else:
-        raise ValueError(f"Passed invalid UseCaseID {use_case_str}")
 
     # This use case-quota configuration is still under construction
     # Likely, as we add new use cases, we will want to introduce a
@@ -75,6 +71,7 @@ class InboundMessage(TypedDict):
     org_id: int
     name: str
     tags: Dict[str, str]
+    use_case_id: UseCaseID
 
 
 class TimeseriesCardinalityLimiter:
