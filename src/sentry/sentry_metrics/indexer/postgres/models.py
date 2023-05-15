@@ -70,7 +70,7 @@ class StringIndexer(BaseIndexer):
 @region_silo_only_model
 class PerfStringIndexer(BaseIndexer):
     __include_in_export__ = False
-    use_case_id = models.CharField(default="performance", max_length=120)
+    use_case_id = models.CharField(max_length=120)
 
     class Meta:
         db_table = "sentry_perfstringindexer"
