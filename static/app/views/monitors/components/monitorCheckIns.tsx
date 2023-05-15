@@ -60,7 +60,7 @@ function MonitorCheckIns({monitor, monitorEnv, orgId}: Props) {
     getResponseHeader,
     isLoading,
     isError,
-  } = useApiQuery<CheckIn[]>(queryKey, {staleTime: 0, cacheTime: 0});
+  } = useApiQuery<CheckIn[]>(queryKey, {staleTime: 0});
 
   if (isLoading) {
     return <LoadingIndicator />;
