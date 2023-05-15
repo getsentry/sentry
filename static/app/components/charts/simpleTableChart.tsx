@@ -77,21 +77,19 @@ function SimpleTableChart({
       const unit = tableMeta.units?.[column.key];
       let cell = fieldRenderer(row, {organization, location, eventView, unit});
 
-      if (column.key === 'transaction') {
-        if (row.transaction) {
-          cell = (
-            <StyledLink
-              to={getTargetForTransactionSummaryLink(
-                row,
-                organization,
-                projects,
-                eventView
-              )}
-            >
-              {cell}
-            </StyledLink>
-          );
-        }
+      if (column.key === 'transaction' && row.transaction) {
+        cell = (
+          <StyledLink
+            to={getTargetForTransactionSummaryLink(
+              row,
+              organization,
+              projects,
+              eventView
+            )}
+          >
+            {cell}
+          </StyledLink>
+        );
       }
 
       return (

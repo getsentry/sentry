@@ -229,22 +229,20 @@ export const renderGridBodyCell = ({
         break;
     }
 
-    if (columnKey === 'transaction') {
-      if (dataRow.transaction) {
-        cell = (
-          <StyledLink
-            data-test-id="widget-viewer-transaction-link"
-            to={getTargetForTransactionSummaryLink(
-              dataRow,
-              organization,
-              projects,
-              eventView
-            )}
-          >
-            {cell}
-          </StyledLink>
-        );
-      }
+    if (columnKey === 'transaction' && dataRow.transaction) {
+      cell = (
+        <StyledLink
+          data-test-id="widget-viewer-transaction-link"
+          to={getTargetForTransactionSummaryLink(
+            dataRow,
+            organization,
+            projects,
+            eventView
+          )}
+        >
+          {cell}
+        </StyledLink>
+      );
     }
 
     const topResultsCount = tableData

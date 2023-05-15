@@ -321,22 +321,20 @@ function TableView(props: TableViewProps) {
           {idLink}
         </QuickContextHoverWrapper>
       );
-    } else if (columnKey === 'transaction') {
-      if (dataRow.transaction) {
-        cell = (
-          <StyledLink
-            data-test-id="tableView-transaction-link"
-            to={getTargetForTransactionSummaryLink(
-              dataRow,
-              organization,
-              projects,
-              eventView
-            )}
-          >
-            {cell}
-          </StyledLink>
-        );
-      }
+    } else if (columnKey === 'transaction' && dataRow.transaction) {
+      cell = (
+        <StyledLink
+          data-test-id="tableView-transaction-link"
+          to={getTargetForTransactionSummaryLink(
+            dataRow,
+            organization,
+            projects,
+            eventView
+          )}
+        >
+          {cell}
+        </StyledLink>
+      );
     } else if (columnKey === 'trace') {
       const dateSelection = eventView.normalizeDateSelection(location);
       if (dataRow.trace) {
