@@ -10,9 +10,11 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
+@control_silo_test
 class GetMostSpecificNotificationSettingValueTestCase(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()

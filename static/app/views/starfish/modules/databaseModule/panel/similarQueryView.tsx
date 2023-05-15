@@ -5,6 +5,7 @@ import GridEditable from 'sentry/components/gridEditable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   DataRow,
+  Keys,
   similarity,
   TableColumnHeader,
 } from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
@@ -25,8 +26,12 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     name: 'Tpm',
   },
   {
-    key: 'p75',
-    name: 'p75',
+    key: 'p50',
+    name: 'p50',
+  },
+  {
+    key: 'p95',
+    name: 'p95',
   },
   {
     key: 'total_time',
@@ -71,13 +76,14 @@ function SimilarQueryView(props: Props) {
       );
       renderedValue = diffQuery;
     }
-    if (key === 'epm' || key === 'p75' || key === 'total_time') {
+    const timeBasedKeys: Keys[] = ['p50', 'p95', 'total_time'];
+    if ((['epm', ...timeBasedKeys] as Keys[]).includes(key)) {
       const val = row[key];
       const sign = val > mainTableRow[key] ? '+' : '';
       const percentage = (val / mainTableRow[key] - 1) * 100;
 
       let unit = '';
-      if (key === 'p75' || key === 'total_time') {
+      if (timeBasedKeys.includes(key)) {
         unit = 'ms';
       }
 

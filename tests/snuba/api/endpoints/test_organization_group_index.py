@@ -49,6 +49,7 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
+from sentry.search.snuba.executors import PrioritySortWeights
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -112,6 +113,63 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_success_response(sort_by="date", query="is:archived")
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
+
+    @with_feature("organizations:issue-list-better-priority-sort")
+    def test_sort_by_better_priority(self):
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=10)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=10)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(hours=13)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        group_2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=5)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(hours=13)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        aggregate_kwargs: PrioritySortWeights = {
+            "log_level": 3,
+            "frequency": 5,
+            "has_stacktrace": 5,
+        }
+
+        response = self.get_success_response(
+            sort="better priority",
+            query="is:unresolved",
+            limit=25,
+            start=iso_format(before_now(days=1)),
+            end=iso_format(before_now(seconds=1)),
+            aggregate_kwargs={"better_priority": aggregate_kwargs},
+        )
+        assert len(response.data) == 2
+        assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
 
     def test_sort_by_trend(self):
         group = self.store_event(

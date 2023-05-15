@@ -15,6 +15,7 @@ import {
 } from 'sentry/utils/replays/replayDataUtils';
 import type {
   RecordingEvent,
+  RecordingOptions,
   ReplayError,
   ReplayRecord,
   ReplaySpan,
@@ -151,11 +152,26 @@ export default class ReplayReader {
 
   getMemorySpans = memoize(() => this.sortedSpans.filter(isMemorySpan));
 
-  isNetworkDetailsSetup = memoize(() =>
-    this.getNetworkSpans().some(
+  sdkConfig = memoize(() => {
+    const found = this.rrwebEvents.find(
+      event => event.type === 5 && event.data.tag === 'options'
+    ) as undefined | RecordingOptions;
+    return found?.data?.payload;
+  });
+
+  isNetworkDetailsSetup = memoize(() => {
+    const config = this.sdkConfig();
+    if (config) {
+      return this.sdkConfig()?.networkDetailHasUrls;
+    }
+
+    // Network data was added in JS SDK 7.50.0 while sdkConfig was added in v7.51.1
+    // So even if we don't have the config object, we should still fallback and
+    // look for spans with network data, as that means things are setup!
+    return this.getNetworkSpans().some(
       span =>
         Object.keys(span.data.request?.headers || {}).length ||
         Object.keys(span.data.response?.headers || {}).length
-    )
-  );
+    );
+  });
 }
