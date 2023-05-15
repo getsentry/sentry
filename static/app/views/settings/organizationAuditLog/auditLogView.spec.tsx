@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
@@ -59,5 +59,26 @@ describe('OrganizationAuditLog', function () {
 
     expect(await screen.findByText('Sentry Staff')).toBeInTheDocument();
     expect(screen.getAllByText('Foo Bar')).toHaveLength(2);
+  });
+
+  it('replaces rule and alertrule audit types in dropdown', async function () {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      body: {
+        rows: TestStubs.AuditLogs(),
+        options: ['rule.edit', 'alertrule.edit', 'member.add'],
+      },
+    });
+
+    render(<OrganizationAuditLog location={router.location} />, {
+      context: routerContext,
+    });
+
+    await userEvent.click(screen.getByText('Select Action:'));
+
+    expect(screen.getByText('issue-alert.edit')).toBeInTheDocument();
+    expect(screen.getByText('metric-alert.edit')).toBeInTheDocument();
+    expect(screen.getByText('member.add')).toBeInTheDocument();
   });
 });
