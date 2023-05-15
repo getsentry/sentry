@@ -1,26 +1,21 @@
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
+import TeamStore from 'sentry/stores/teamStore';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 
 jest.mock('sentry/actionCreators/modal');
 
 describe('CreateProject', function () {
+  const organization = TestStubs.Organization();
+
   const teamNoAccess = {slug: 'test', id: '1', name: 'test', hasAccess: false};
   const teamWithAccess = {...teamNoAccess, hasAccess: true};
 
-  const baseProps = {
-    api: new MockApiClient(),
-    location: {query: {}},
-    organization: TestStubs.Organization(),
-    teams: [teamNoAccess],
-    params: {
-      projectId: '',
-    },
-    setEventNames: jest.fn(),
-  };
-
   beforeEach(() => {
+    TeamStore.reset();
+    TeamStore.loadUserTeams([teamNoAccess]);
+
     MockApiClient.addMockResponse({
       url: `/projects/testOrg/rule-conditions/`,
       body: {},
@@ -34,7 +29,7 @@ describe('CreateProject', function () {
   });
 
   it('should block if you have access to no teams', function () {
-    const wrapper = render(<CreateProject {...baseProps} />, {
+    const wrapper = render(<CreateProject />, {
       context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
     });
 
@@ -42,7 +37,7 @@ describe('CreateProject', function () {
   });
 
   it('can create a new team', async function () {
-    render(<CreateProject {...baseProps} />, {
+    render(<CreateProject />, {
       context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
     });
 
@@ -51,10 +46,9 @@ describe('CreateProject', function () {
   });
 
   it('should fill in project name if its empty when platform is chosen', async function () {
-    const wrapper = render(<CreateProject {...baseProps} teams={[teamWithAccess]} />, {
-      context: TestStubs.routerContext([
-        {organization: {id: '1', slug: 'testOrg'}, location: {query: {}}},
-      ]),
+    const wrapper = render(<CreateProject />, {
+      router: {location: {query: {}}},
+      context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
     });
 
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
@@ -74,13 +68,9 @@ describe('CreateProject', function () {
   });
 
   it('should fill in platform name if its provided by url', function () {
-    const props = {
-      ...baseProps,
-      location: {query: {platform: 'ruby-rails'}},
-    };
-
-    const wrapper = render(<CreateProject {...props} teams={[teamWithAccess]} />, {
+    const wrapper = render(<CreateProject />, {
       context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
+      router: {location: {query: {platform: 'ruby-rails'}}},
     });
 
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('Rails');
@@ -89,13 +79,9 @@ describe('CreateProject', function () {
   });
 
   it('should fill in category name if its provided by url', function () {
-    const props = {
-      ...baseProps,
-      location: {query: {category: 'mobile'}},
-    };
-
-    render(<CreateProject {...props} teams={[teamWithAccess]} />, {
+    render(<CreateProject />, {
       context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
+      router: {location: {query: {category: 'mobile'}}},
     });
 
     expect(screen.getByTestId('platform-apple-ios')).toBeInTheDocument();
@@ -103,7 +89,7 @@ describe('CreateProject', function () {
   });
 
   it('should deal with incorrect platform name if its provided by url', function () {
-    const wrapper = render(<CreateProject {...baseProps} teams={[teamWithAccess]} />, {
+    const wrapper = render(<CreateProject />, {
       context: TestStubs.routerContext([
         {
           organization: {id: '1', slug: 'testOrg'},
@@ -118,13 +104,11 @@ describe('CreateProject', function () {
   });
 
   describe('Issue Alerts Options', () => {
-    const props = {
-      ...baseProps,
-      teams: [teamWithAccess],
-    };
     beforeEach(() => {
+      TeamStore.loadUserTeams([teamWithAccess]);
+
       MockApiClient.addMockResponse({
-        url: `/projects/${props.organization.slug}/rule-conditions/`,
+        url: `/projects/${organization.slug}/rule-conditions/`,
         body: TestStubs.MOCK_RESP_VERBOSE,
       });
     });
@@ -134,13 +118,7 @@ describe('CreateProject', function () {
     });
 
     it('should enabled the submit button if and only if all the required information has been filled', async () => {
-      render(<CreateProject {...props} />, {
-        context: TestStubs.routerContext([
-          {
-            location: {query: {}},
-          },
-        ]),
-      });
+      render(<CreateProject />);
 
       const createProjectButton = screen.getByRole('button', {name: 'Create Project'});
 
