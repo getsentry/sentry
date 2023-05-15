@@ -428,16 +428,6 @@ function useFetchGroupDetails({
     }
   }, [isGroupError, groupError, handleError]);
 
-  // Refetch when group is stale
-  useEffect(() => {
-    if (group) {
-      if ((group as Group & {stale?: boolean}).stale) {
-        refetchGroupCall();
-        return;
-      }
-    }
-  }, [refetchGroupCall, group]);
-
   useTrackView({group, event, project});
 
   const refetchData = useCallback(() => {
@@ -461,6 +451,16 @@ function useFetchGroupDetails({
 
     refetchGroupCall();
   }, [group, loadingGroup, loadingEvent, refetchGroupCall]);
+
+  // Refetch when group is stale
+  useEffect(() => {
+    if (group) {
+      if ((group as Group & {stale?: boolean}).stale) {
+        refetchGroup();
+        return;
+      }
+    }
+  }, [refetchGroup, group]);
 
   useFetchOnMount();
   useRefetchGroupForReprocessing({refetchGroup});
@@ -693,7 +693,7 @@ function GroupDetails(props: GroupDetailsProps) {
   const location = useLocation();
   const router = useRouter();
 
-  const {refetchData, project, group, ...fetchGroupDetailsProps} =
+  const {refetchGroup, project, group, ...fetchGroupDetailsProps} =
     useFetchGroupDetails(props);
 
   const previousPathname = usePrevious(location.pathname);
@@ -715,10 +715,10 @@ function GroupDetails(props: GroupDetailsProps) {
       previousIsGlobalSelectionReady !== props.isGlobalSelectionReady;
 
     if (globalSelectionReadyChanged || location.pathname !== previousPathname) {
-      refetchData();
+      refetchGroup();
     }
   }, [
-    refetchData,
+    refetchGroup,
     group,
     location.pathname,
     previousEventId,
@@ -759,7 +759,7 @@ function GroupDetails(props: GroupDetailsProps) {
             {...{
               group,
               project,
-              refetchData,
+              refetchGroup,
               ...fetchGroupDetailsProps,
             }}
           />
