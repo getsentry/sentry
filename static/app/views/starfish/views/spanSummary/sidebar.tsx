@@ -198,27 +198,27 @@ export default function Sidebar({
         />
       </FlexFullWidthItem>
       <FlexFullWidthItem>
-        <SidebarItemHeader>{t('Self Time Duration (P50)')}</SidebarItemHeader>
+        <SidebarItemHeader>{t('Duration P50 / P95')}</SidebarItemHeader>
         <SidebarItemValueContainer>
-          <Duration seconds={p50 / 1000} fixedDigits={2} abbreviation />
-        </SidebarItemValueContainer>
-        <SidebarChart
-          series={p50Series}
-          isLoading={isLoadingSeriesData}
-          chartColor={chartColors[1]}
-          sampledSpanDataSeries={sampledSpanDataSeries}
-        />
-      </FlexFullWidthItem>
-      <FlexFullWidthItem>
-        <SidebarItemHeader>{t('Self Time Duration (P95)')}</SidebarItemHeader>
-        <SidebarItemValueContainer>
+          <Duration seconds={p50 / 1000} fixedDigits={2} abbreviation /> /
           <Duration seconds={p95 / 1000} fixedDigits={2} abbreviation />
         </SidebarItemValueContainer>
-        <SidebarChart
-          series={p95Series}
-          isLoading={isLoadingSeriesData}
-          chartColor={chartColors[2]}
-          sampledSpanDataSeries={sampledSpanDataSeries}
+        <Chart
+          statsPeriod="24h"
+          height={140}
+          data={[p50Series ?? [], p95Series ?? []]}
+          start=""
+          end=""
+          loading={isLoadingSeriesData}
+          utc={false}
+          chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
+          scatterPlot={[
+            {data: sampledSpanDataSeries, seriesName: 'Sampled Span Duration'},
+          ]}
+          stacked
+          isLineChart
+          disableXAxis
+          hideYAxisSplitLine
         />
       </FlexFullWidthItem>
       {
