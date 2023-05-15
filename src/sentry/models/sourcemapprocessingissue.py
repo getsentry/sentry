@@ -14,6 +14,7 @@ class SourceMapProcessingIssue:
     PARTIAL_MATCH = "partial_match"
     DIST_MISMATCH = "dist_mismatch"
     SOURCEMAP_NOT_FOUND = "sourcemap_not_found"
+    SDK_OUT_OF_DATE = "sdk_out_of_date"
 
     _messages = {
         UNKNOWN_ERROR: "Unknown error",
@@ -25,6 +26,7 @@ class SourceMapProcessingIssue:
         PARTIAL_MATCH: "The absolute path url is a partial match",
         DIST_MISMATCH: "The dist values do not match",
         SOURCEMAP_NOT_FOUND: "The sourcemap could not be found",
+        SDK_OUT_OF_DATE: "The SDK is out of date",
     }
 
     @classmethod

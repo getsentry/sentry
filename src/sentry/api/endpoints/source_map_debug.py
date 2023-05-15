@@ -20,6 +20,10 @@ from sentry.models.releasefile import read_artifact_index
 from sentry.utils.javascript import find_sourcemap
 from sentry.utils.urls import non_standard_url_join
 
+# used to drive logic for when to show the "SDK out of date" error
+JS_VERSION_FOR_DEBUG_ID = "7.44.0"
+JS_VERSION_FOR_MIGRATION_CUTOFF = "7.0.0"
+
 
 class SourceMapProcessingIssueResponse(TypedDict):
     type: str
@@ -90,7 +94,24 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         frame, filename, abs_path = self._get_frame_filename_and_path(exception, frame_idx)
 
         if frame.context_line:
+            # the frame is already source mapped
             return self._create_response()
+
+        sdk_info = event.data.get("sdk")
+        if (
+            sdk_info
+            and sdk_info["version"] < JS_VERSION_FOR_DEBUG_ID
+            # need to ignore react native for now debug id is implemented there
+            and sdk_info["name"] != "sentry.javascript.react-native"
+        ):
+            return self._create_response(
+                issue=SourceMapProcessingIssue.SDK_OUT_OF_DATE,
+                data={
+                    "showMigrationGuide": sdk_info["version"] < JS_VERSION_FOR_MIGRATION_CUTOFF,
+                    "sdkName": sdk_info["name"],
+                    "sdkVersion": sdk_info["version"],
+                },
+            )
 
         try:
             release = self._extract_release(event, project)

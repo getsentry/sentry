@@ -670,3 +670,143 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
 
         assert resp.data["errors"] == []
+
+    def test_majorly_out_of_date_sdk(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "dist": "my-dist",
+                "sdk": {
+                    "name": "sentry.javascript.browser",
+                    "version": "6.1.0",
+                },
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://example.com/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        error = resp.data["errors"][0]
+        assert error["type"] == "sdk_out_of_date"
+        assert error["message"] == "The SDK is out of date"
+        assert error["data"] == {
+            "sdkName": "sentry.javascript.browser",
+            "sdkVersion": "6.1.0",
+            "showMigrationGuide": True,
+        }
+
+    def test_minorly_out_of_date_sdk(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "dist": "my-dist",
+                "sdk": {
+                    "name": "sentry.javascript.browser",
+                    "version": "7.1.0",
+                },
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://example.com/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        error = resp.data["errors"][0]
+        assert error["type"] == "sdk_out_of_date"
+        assert error["message"] == "The SDK is out of date"
+        assert error["data"] == {
+            "sdkName": "sentry.javascript.browser",
+            "sdkVersion": "7.1.0",
+            "showMigrationGuide": False,
+        }
+
+    def test_raw_stacktrace_found(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "dist": "my-dist",
+                "sdk": {
+                    "name": "sentry.javascript.browser",
+                    "version": "7.1.0",
+                },
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://example.com/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                            "raw_stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://example.com/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        assert resp.data["errors"] == []
