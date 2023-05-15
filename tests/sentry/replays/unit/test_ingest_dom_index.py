@@ -45,7 +45,7 @@ def test_get_user_actions():
         }
     ]
 
-    user_actions = get_user_actions(uuid.uuid4().hex, events)
+    user_actions = get_user_actions(1, uuid.uuid4().hex, events)
     assert len(user_actions) == 1
     assert user_actions[0]["node_id"] == 1
     assert user_actions[0]["tag"] == "div"
@@ -79,7 +79,7 @@ def test_get_user_actions_missing_node():
         }
     ]
 
-    user_actions = get_user_actions(uuid.uuid4().hex, events)
+    user_actions = get_user_actions(1, uuid.uuid4().hex, events)
     assert len(user_actions) == 0
 
 
