@@ -46,14 +46,14 @@ class OrganizationEventsStarfishEndpoint(OrganizationEventsV2EndpointBase):
                     referrer=referrer,
                 )
 
-                metrics_enhanced_performance.query(
-                    selected_columns=["title", "count_if(mechanism,equals,ANR)"],
-                    query="event.type:transaction",
-                    params=params,
-                    snuba_params=snuba_params,
-                    limit=10000,
-                    referrer=referrer,
-                )
+                # metrics_enhanced_performance.query(
+                #     selected_columns=["title", "count_if(mechanism,equals,ANR)"],
+                #     query="event.type:transaction",
+                #     params=params,
+                #     snuba_params=snuba_params,
+                #     limit=10000,
+                #     referrer=referrer,
+                # )
         except Exception:
             return Response(status=200)
 
