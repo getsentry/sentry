@@ -2434,10 +2434,10 @@
     lru_map "^0.3.3"
     tslib "^1.9.3"
 
-"@sentry/profiling-node@^1.0.0-alpha.5":
-  version "1.0.0-alpha.5"
-  resolved "https://registry.yarnpkg.com/@sentry/profiling-node/-/profiling-node-1.0.0-alpha.5.tgz#dc31c9cafaeecdd75031e5504731e7aadfbaa518"
-  integrity sha512-PPfnkWOJn+oZO0jo7vijy/jkmDbAyyhu0xxQC1U4k+a1xWREMpMJY3/TIu6B819OSv+U4dRG/ssp18cweAJwRQ==
+"@sentry/profiling-node@1.0.0-alpha.6":
+  version "1.0.0-alpha.6"
+  resolved "https://registry.yarnpkg.com/@sentry/profiling-node/-/profiling-node-1.0.0-alpha.6.tgz#1a8b7fafcefb67073534c3402020565611c736ee"
+  integrity sha512-x2aB/N59WVxC+ZhNz70cwsscrie1rFYqjJxGauhFqXTBvN9I6H85PW0OMxhWWtsdhkfFqOPMnSWqzZakH7fAww==
   dependencies:
     "@sentry/core" "^7.44.0"
     "@sentry/hub" "^7.44.1"
@@ -2448,7 +2448,6 @@
     app-root-path "^3.1.0"
     cross-env "^7.0.3"
     detect-libc "^2.0.1"
-    nan "^2.17.0"
     node-abi "^3.28.0"
     node-gyp "^9.3.0"
 
@@ -8220,11 +8219,6 @@ multicast-dns@^7.2.4:
   dependencies:
     dns-packet "^5.2.2"
     thunky "^1.0.2"
-
-nan@^2.17.0:
-  version "2.17.0"
-  resolved "https://registry.yarnpkg.com/nan/-/nan-2.17.0.tgz#c0150a2368a182f033e9aa5195ec76ea41a199cb"
-  integrity sha512-2ZTgtl0nJsO0KQCjEpxcIr5D+Yv90plTitZt9JBfQvVJDS5seMl3FOvsh3+9CoYWXf/1l5OaZzzF6nDm4cagaQ==
 
 nanoid@^3.3.4:
   version "3.3.4"
