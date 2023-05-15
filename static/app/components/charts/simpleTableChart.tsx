@@ -14,9 +14,14 @@ import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
+import {StyledLink} from 'sentry/views/discover/table/tableView';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
-import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {
+  decodeColumnOrder,
+  getTargetForTransactionSummaryLink,
+} from 'sentry/views/discover/utils';
 
 type Props = {
   eventView: EventView;
@@ -57,6 +62,7 @@ function SimpleTableChart({
   fieldAliases,
   loader,
 }: Props) {
+  const {projects} = useProjects();
   function renderRow(
     index: number,
     row: TableDataRow,
@@ -69,12 +75,29 @@ function SimpleTableChart({
         getFieldRenderer(column.key, tableMeta);
 
       const unit = tableMeta.units?.[column.key];
+      let cell = fieldRenderer(row, {organization, location, eventView, unit});
+
+      if (column.key === 'transaction' && row.transaction) {
+        cell = (
+          <StyledLink
+            to={getTargetForTransactionSummaryLink(
+              row,
+              organization,
+              projects,
+              eventView
+            )}
+          >
+            {cell}
+          </StyledLink>
+        );
+      }
+
       return (
         <TableCell key={`${index}-${columnIndex}:${column.name}`}>
           {topResultsIndicators && columnIndex === 0 && (
             <TopResultsIndicator count={topResultsIndicators} index={index} />
           )}
-          {fieldRenderer(row, {organization, location, eventView, unit})}
+          {cell}
         </TableCell>
       );
     });
