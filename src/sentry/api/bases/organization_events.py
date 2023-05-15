@@ -349,7 +349,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         # once those APIs are used across the application.
         if "transaction.status" in first_row:
             for row in results:
-                row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
+                if "transaction.status" in row:
+                    row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(
+                        row["transaction.status"]
+                    )
 
         fields = self.get_field_list(organization, request)
         if "issue" in fields:  # Look up the short ID and return that in the results
