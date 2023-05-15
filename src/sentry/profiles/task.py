@@ -275,18 +275,18 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
             else:
                 frames = profile["profile"]["frames"]
 
-            for stack in profile["profile"]["stacks"]:
-                if len(stack) > 0:
-                    # Make a deep copy of the leaf frame with adjust_instruction_addr = False
-                    # and append it to the list. This ensures correct behavior
-                    # if the leaf frame also shows up in the middle of another stack.
-                    first_frame_idx = stack[0]
-                    frame = deepcopy(frames[first_frame_idx])
-                    frame["adjust_instruction_addr"] = False
-                    frames.append(frame)
-                    stack[0] = len(frames) - 1
+                for stack in profile["profile"]["stacks"]:
+                    if len(stack) > 0:
+                        # Make a deep copy of the leaf frame with adjust_instruction_addr = False
+                        # and append it to the list. This ensures correct behavior
+                        # if the leaf frame also shows up in the middle of another stack.
+                        first_frame_idx = stack[0]
+                        frame = deepcopy(frames[first_frame_idx])
+                        frame["adjust_instruction_addr"] = False
+                        frames.append(frame)
+                        stack[0] = len(frames) - 1
 
-            stacktraces = [{"frames": frames}]
+            stacktraces = [{"frames": set(frames)}]
         # in the original format, we need to gather frames from all samples
         else:
             stacktraces = []
@@ -298,10 +298,10 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
 
                 stacktraces.append(
                     {
-                        "frames": frames,
+                        "frames": set(frames),
                     }
                 )
-        return (modules, stacktraces, frames_sent)
+        return (modules, stacktraces, set(frames_sent))
 
 
 def symbolicate(
@@ -388,7 +388,7 @@ def _process_symbolicator_results(
     profile: Profile,
     modules: List[Any],
     stacktraces: List[Any],
-    frames_sent: list[int],
+    frames_sent: List[int],
 ) -> None:
     with sentry_sdk.start_span(op="task.profiling.symbolicate.process_results"):
         # update images with status after symbolication
@@ -412,7 +412,7 @@ def _process_symbolicator_results(
 
 
 def _process_symbolicator_results_for_sample(
-    profile: Profile, stacktraces: List[Any], frames_sent: list[int]
+    profile: Profile, stacktraces: List[Any], frames_sent: List[int]
 ) -> None:
     if profile["platform"] == "rust":
 
@@ -449,16 +449,19 @@ def _process_symbolicator_results_for_sample(
     if len(frames_sent) > 0:
         raw_frames = profile["profile"]["frames"]
         new_frames = []
-        raw_frame_idx = 0
         frames_dict = get_frame_index_map(symbolicated_frames)
 
-        for idx in range(len(frames_sent)):
+        for idx in range(len(raw_frames)):
             if idx in set(frames_sent):
                 for frame_idx in frames_dict[idx]:
                     new_frames.append(symbolicated_frames[frame_idx])
             else:
-                new_frames.append(raw_frames[raw_frame_idx])
-            raw_frame_idx += 1
+                new_frames.append(raw_frames[idx])
+
+        new_frames_count = sum([len(frames) for frames in frames_dict.values()])
+
+        assert len(new_frames) == new_frames_count
+
         profile["profile"]["frames"] = new_frames
     else:
         profile["profile"]["frames"] = symbolicated_frames
