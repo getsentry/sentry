@@ -100,11 +100,11 @@ def _do_symbolicate_event(
         return
 
     data = CanonicalKeyDict(data)
-
-    project_id = data["project"]
-    set_current_event_project(project_id)
-
     event_id = data["event_id"]
+    project_id = data["project"]
+    has_changed = False
+
+    set_current_event_project(project_id)
 
     task_kind = get_kind_from_task(symbolicate_task)
 
@@ -159,8 +159,6 @@ def _do_symbolicate_event(
         },
     ):
         return _continue_to_process_event()
-
-    has_changed = False
 
     symbolication_start_time = time()
 

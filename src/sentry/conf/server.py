@@ -1013,13 +1013,13 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.schedule_auto_transition_new",
         # Run job once a day at 00:30
         "schedule": crontab(minute=30, hour="0"),
-        "options": {"expires": 3600},
+        "options": {"expires": 10 * 60},
     },
     "schedule_auto_transition_regressed": {
         "task": "sentry.tasks.schedule_auto_transition_regressed",
         # Run job once a day at 02:30
         "schedule": crontab(minute=30, hour="2"),
-        "options": {"expires": 3600},
+        "options": {"expires": 10 * 60},
     },
 }
 
@@ -1486,6 +1486,8 @@ SENTRY_FEATURES = {
     "organizations:team-insights": True,
     # Enable u2f verification on superuser form
     "organizations:u2f-superuser-form": False,
+    # Enable project creation for all
+    "organizations:team-project-creation-all": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
     # Enable team member role provisioning through scim
@@ -2094,14 +2096,14 @@ SENTRY_TEAM_ROLES = (
         "scopes": {
             "event:read",
             "event:write",
-            "event:admin",
+            # "event:admin",  # Scope granted/withdrawn by "sentry:events_member_admin" to org-level role
             "project:releases",
             "project:read",
             "org:read",
             "member:read",
             "team:read",
             "alerts:read",
-            "alerts:write",
+            # "alerts:write",  # Scope granted/withdrawn by "sentry:alerts_member_write" to org-level role
         },
     },
     {
@@ -2983,9 +2985,10 @@ SYMBOLICATOR_MAX_RETRY_AFTER = 2
 
 # The `url` of the different Symbolicator pools.
 # We want to route different workloads to a different set of Symbolicator pools.
-# This can be as fine-grained as using a different pool for `js` symbolication,
-# for the `lpq` (See `SENTRY_LPQ_OPTIONS` and related settings) and for normal
-# symbolication. The keys here should match the `SymbolicatorPools` enum
+# This can be as fine-grained as using a different pool for normal "native"
+# symbolication, `js` symbolication, and for `lpq` / `lpq-js`.
+# (See `SENTRY_LPQ_OPTIONS` and related settings)
+# The keys here should match the `SymbolicatorPools` enum
 # defined in `src/sentry/lang/native/symbolicator.py`.
 # If a specific setting does not exist, this will fall back to the `default` pool.
 # If that is not configured, it will fall back to the `url` configured in
@@ -2994,8 +2997,9 @@ SYMBOLICATOR_MAX_RETRY_AFTER = 2
 # `symbolicator.options` for backwards compatibility.
 SYMBOLICATOR_POOL_URLS = {
     # "js": "...",
-    # "lpq": "...",
     # "default": "...",
+    # "lpq": "...",
+    # "lpq_js": "...",
 }
 
 SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (

@@ -15,7 +15,7 @@ from sentry.models import (
     actor_type_to_string,
     fetch_actors_by_actor_ids,
 )
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 
 
 def _generate_rule_label(project, rule, data):
