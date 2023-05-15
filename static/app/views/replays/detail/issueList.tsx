@@ -1,5 +1,6 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -27,7 +28,12 @@ function IssueList({projectId, replayId}: Props) {
   const organization = useOrganization();
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
-  const {data: issues = [], isLoading} = useApiQuery<Group[], RequestError>(
+  const {
+    data: issues = [],
+    isLoading,
+    isError,
+    error,
+  } = useApiQuery<Group[], RequestError>(
     [
       `/organizations/${organization.slug}/issues/`,
       {
@@ -40,6 +46,13 @@ function IssueList({projectId, replayId}: Props) {
       staleTime: 0,
     }
   );
+
+  useEffect(() => {
+    if (!isError) {
+      return;
+    }
+    Sentry.captureException(error);
+  }, [isError, error]);
 
   const counts = useReplaysCount({
     groupIds: issues.map(issue => issue.id),
