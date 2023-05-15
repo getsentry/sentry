@@ -166,7 +166,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             "better_priority": {
                 "log_level": request.GET.get("logLevel", 5),
                 "frequency": request.GET.get("frequency", 5),
-                "has_stacktrace": request.GET.get("hasStacktrace", False),
+                "has_stacktrace": request.GET.get("hasStacktrace", 5),
             }
         }
 
