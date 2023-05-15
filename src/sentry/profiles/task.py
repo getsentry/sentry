@@ -453,8 +453,11 @@ def _process_symbolicator_results_for_sample(
 
         for idx in range(len(raw_frames)):
             if idx in frames_sent:
-                for frame_idx in symbolicated_frames_dict[idx]:
-                    new_frames.append(symbolicated_frames[frame_idx])
+                if idx in symbolicated_frames_dict:
+                    for frame_idx in symbolicated_frames_dict[idx]:
+                        new_frames.append(symbolicated_frames[frame_idx])
+                else:
+                    new_frames.append(symbolicated_frames[idx])
             else:
                 new_frames.append(raw_frames[idx])
 
