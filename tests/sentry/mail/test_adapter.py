@@ -1310,23 +1310,18 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
 
         assert notify.call_count == 0
         assert len(mail.outbox) == 2  # we send it to 2 users
-        message1 = mail.outbox[0]
-        message2 = mail.outbox[1]
+        messages = sorted(mail.outbox, key=lambda message: message.to[0])
 
-        # checking this way because the test was being flaky - sometimes self.user was message1 and sometimes message2
-        if message2.to[0] == self.user.email:
-            # self.user only receives a digest about one alert, since a rule was muted
-            assert "1 new alert since" in message2.subject
-        elif message2.to[0] == user2.email:
-            # user2 receives a digest about both alerts, since no rules were muted
-            assert "2 new alerts since" in message2.subject
+        message1 = messages[0]
+        message2 = messages[1]
 
-        if message1.to[0] == user2.email:
-            # user2 receives a digest about both alerts, since no rules were muted
-            assert "2 new alerts since" in message1.subject
-        elif message1.to[0] == self.user.email:
-            # self.user only receives a digest about one alert, since a rule was muted
-            assert "1 new alert since" in message1.subject
+        # self.user only receives a digest about one alert, since a rule was muted
+        assert message1.to[0] == self.user.email
+        assert "1 new alert since" in message1.subject
+
+        # user2 receives a digest about both alerts, since no rules were muted
+        assert message2.to[0] == user2.email
+        assert "2 new alerts since" in message2.subject
 
     @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
