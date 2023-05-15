@@ -17,7 +17,7 @@ from sentry.models import (
 )
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -164,7 +164,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             assert qs.exists()
 
         with outbox_runner():
-            member.outbox_for_update().save()
+            member.save_outbox_for_update()
 
         # ensure that even if the outbox sends a general, non delete update, it doesn't cascade
         # the delete to auth identity objects.

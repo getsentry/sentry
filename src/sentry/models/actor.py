@@ -10,7 +10,8 @@ from rest_framework import serializers
 from sentry.db.models import Model, region_silo_only_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.models import Team, User
@@ -186,6 +187,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
 
     def resolve_to_actor(self) -> Actor:
         obj = self.resolve()
+        # TODO(actorid) Remove this once user no longer has actor_id.
         if obj.actor_id is None or isinstance(obj, RpcUser):
             return get_actor_for_user(obj)
         # Team case

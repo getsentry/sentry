@@ -29,7 +29,7 @@ from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute

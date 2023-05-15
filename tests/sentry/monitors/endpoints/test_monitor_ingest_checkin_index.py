@@ -1,4 +1,3 @@
-from datetime import timedelta
 from unittest import mock
 from unittest.mock import patch
 from uuid import UUID
@@ -6,7 +5,6 @@ from uuid import UUID
 from django.conf import settings
 from django.test.utils import override_settings
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.http import urlquote
 from freezegun import freeze_time
 
@@ -126,7 +124,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             assert checkin.status == CheckInStatus.ERROR
 
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
-            assert monitor_environment.status == MonitorStatus.DISABLED
+
+            # The created monitor environment is active, but the parent monitor
+            # is disabled
+            assert monitor_environment.status == MonitorStatus.ACTIVE
             assert monitor_environment.last_checkin == checkin.date_added
             assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
                 checkin.date_added
@@ -314,7 +315,6 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
         monitor = Monitor.objects.create(
             organization_id=project2.organization_id,
             project_id=project2.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
         )
@@ -336,7 +336,6 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
         monitor = Monitor.objects.create(
             organization_id=org2.id,
             project_id=project2.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )

@@ -234,8 +234,7 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
 
         # Creation step of receiver
         org_member = OrganizationMember.objects.create(**fields)
-        region_outbox = org_member.outbox_for_create()
-        region_outbox.save()
+        region_outbox = org_member.save_outbox_for_create()
         region_outbox.drain_shard()
 
         with exempt_from_silo_limits():
@@ -247,8 +246,7 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
 
         # Update step of receiver
         org_member.update(role="owner")
-        region_outbox = org_member.outbox_for_update()
-        region_outbox.save()
+        region_outbox = org_member.save_outbox_for_update()
         region_outbox.drain_shard()
 
         with exempt_from_silo_limits():
@@ -269,8 +267,7 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
             "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
         }
         org_member = OrganizationMember.objects.create(**fields)
-        region_outbox = org_member.outbox_for_create()
-        region_outbox.save()
+        region_outbox = org_member.save_outbox_for_create()
         region_outbox.drain_shard()
 
         with exempt_from_silo_limits():
