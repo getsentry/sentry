@@ -55,6 +55,16 @@ const addUsernameDisplay = (logEntryUser: User | undefined) => {
   return null;
 };
 
+const getTypeDisplay = (event: string) => {
+  if (event.startsWith('rule.')) {
+    return event.replace('rule.', 'issue-alert.');
+  }
+  if (event.startsWith('alertrule.')) {
+    return event.replace('alertrule.', 'metric-alert.');
+  }
+  return event;
+};
+
 const getEventOptions = (eventTypes: string[] | null) =>
   eventTypes
     ?.map(type => {
@@ -90,6 +100,10 @@ function AuditNote({
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === String(entry.data.id));
+
+  if (entry.event.startsWith('rule.')) {
+    return <Note>{entry.note.replace('rule', 'issue alert rule')}</Note>;
+  }
 
   if (!project) {
     return <Note>{entry.note}</Note>;
@@ -239,7 +253,7 @@ function AuditLogList({
                 </NameContainer>
               </UserInfo>
               <FlexCenter>
-                <MonoDetail>{entry.event}</MonoDetail>
+                <MonoDetail>{getTypeDisplay(entry.event)}</MonoDetail>
               </FlexCenter>
               <FlexCenter>
                 {entry.ipAddress && (
