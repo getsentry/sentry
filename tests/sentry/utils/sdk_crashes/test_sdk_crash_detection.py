@@ -4,8 +4,10 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils import TestCase
 from sentry.testutils.cases import BaseTestCase
+from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
 from sentry.utils.sdk_crashes.sdk_crash_detection import (
@@ -27,11 +29,43 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
         pass
 
 
-class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
+class CococaSDKTestMixin(BaseSDKCrashDetectionMixin, PerfIssueTransactionTestMixin):
     @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-    def test_detect_sdk_crash_unhandled_is_detected(self, mock_sdk_crash_reporter):
+    def test_unhandled_is_detected(self, mock_sdk_crash_reporter):
+        self.execute_test(mock_sdk_crash_reporter, get_crash_event(), True)
 
-        event_data = get_crash_event()
+    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+    def test_handled_is_not_detected(self, mock_sdk_crash_reporter):
+        self.execute_test(mock_sdk_crash_reporter, get_crash_event(handled=True), False)
+
+    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+    def test_wrong_function_not_detected(self, mock_sdk_crash_reporter):
+        self.execute_test(mock_sdk_crash_reporter, get_crash_event(function="Senry"), False)
+
+    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+    def test_wrong_platform_not_detected(self, mock_sdk_crash_reporter):
+        self.execute_test(mock_sdk_crash_reporter, get_crash_event(platform="coco"), False)
+
+    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+    def test_no_exception_not_detected(self, mock_sdk_crash_reporter):
+        self.execute_test(mock_sdk_crash_reporter, get_crash_event(exception=[]), False)
+
+    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+    def test_performance_event_not_detected(self, mock_sdk_crash_reporter):
+
+        fingerprint = "some_group"
+        fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
+        event = self.store_transaction(
+            project_id=self.project.id,
+            user_id="hi",
+            fingerprint=[fingerprint],
+        )
+
+        sdk_crash_detection.detect_sdk_crash(event=event)
+
+        mock_sdk_crash_reporter.report.assert_not_called()
+
+    def execute_test(self, mock_sdk_crash_reporter, event_data, should_be_reported):
         event = self.create_event(
             data=event_data,
             project_id=self.project.id,
@@ -39,7 +73,10 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
 
         sdk_crash_detection.detect_sdk_crash(event=event)
 
-        mock_sdk_crash_reporter.report.assert_called_once()
+        if should_be_reported:
+            mock_sdk_crash_reporter.report.assert_called_once()
+        else:
+            mock_sdk_crash_reporter.report.assert_not_called()
 
 
 @region_silo_test
@@ -49,35 +86,6 @@ class SDKCrashDetectionTest(
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
-
-
-@pytest.mark.parametrize(
-    "event,should_be_reported",
-    [
-        (
-            get_crash_event(),
-            True,
-        ),
-        (
-            get_crash_event(handled=True),
-            False,
-        ),
-        (get_crash_event(function="Senry"), False),
-        (get_crash_event(platform="coco"), False),
-        (get_crash_event(type="erro"), False),
-        (get_crash_event(exception=[]), False),
-    ],
-    ids=[
-        "unhandled_is_detected",
-        "handled_not_detected",
-        "wrong_function_not_detected",
-        "wrong_platform_not_detected",
-        "wrong_type_not_detected",
-        "no_exception_not_detected",
-    ],
-)
-def test_detect_sdk_crash(event, should_be_reported):
-    _run_report_test_with_event(event, should_be_reported)
 
 
 @pytest.mark.parametrize(
