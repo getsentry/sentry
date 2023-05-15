@@ -73,8 +73,7 @@ describe('Group > AssignedTo', () => {
     MockApiClient.clearMockResponses();
     GroupStore.reset();
     TeamStore.reset();
-    MemberListStore.state = [];
-    MemberListStore.loaded = false;
+    MemberListStore.reset();
   });
 
   const openMenu = async () => {

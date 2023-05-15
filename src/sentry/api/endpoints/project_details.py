@@ -629,14 +629,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:performance_issue_send_to_issues_platform"] = result[
                     "performanceIssueSendToPlatform"
                 ]
-        if "performanceIssueCreationThroughPlatform" in result:
-            if project.update_option(
-                "sentry:performance_issue_create_issue_through_platform",
-                result["performanceIssueCreationThroughPlatform"],
-            ):
-                changed_proj_settings[
-                    "sentry:performance_issue_create_issue_through_platform"
-                ] = result["performanceIssueCreationThroughPlatform"]
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
             options = request.data.get("options", {})

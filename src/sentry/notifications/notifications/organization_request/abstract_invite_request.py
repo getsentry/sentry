@@ -12,7 +12,7 @@ from sentry.notifications.notifications.strategies.member_write_role_recipient_s
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:

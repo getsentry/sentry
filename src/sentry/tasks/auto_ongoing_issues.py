@@ -13,8 +13,6 @@ from sentry.tasks.base import instrumented_task
 @instrumented_task(
     name="sentry.tasks.schedule_auto_transition_new",
     queue="auto_transition_issue_states",
-    time_limit=75,
-    soft_time_limit=60,
 )  # type: ignore
 @monitor(monitor_slug="schedule_auto_transition_new")
 def schedule_auto_transition_new() -> None:
@@ -44,8 +42,8 @@ def schedule_auto_transition_new() -> None:
 @instrumented_task(
     name="sentry.tasks.auto_transition_issues_new_to_ongoing",
     queue="auto_transition_issue_states",
-    time_limit=75,
-    soft_time_limit=60,
+    time_limit=1.25 * 5 * 60,
+    soft_time_limit=5 * 60,
 )  # type: ignore
 def auto_transition_issues_new_to_ongoing(
     project_id: int,
@@ -82,8 +80,6 @@ def auto_transition_issues_new_to_ongoing(
 @instrumented_task(
     name="sentry.tasks.schedule_auto_transition_regressed",
     queue="auto_transition_issue_states",
-    time_limit=75,
-    soft_time_limit=60,
 )  # type: ignore
 @monitor(monitor_slug="schedule_auto_transition_regressed")
 def schedule_auto_transition_regressed() -> None:
@@ -113,8 +109,8 @@ def schedule_auto_transition_regressed() -> None:
 @instrumented_task(
     name="sentry.tasks.auto_transition_issues_regressed_to_ongoing",
     queue="auto_transition_issue_states",
-    time_limit=75,
-    soft_time_limit=60,
+    time_limit=1.25 * 5 * 60,
+    soft_time_limit=5 * 60,
 )  # type: ignore
 def auto_transition_issues_regressed_to_ongoing(
     project_id: int,

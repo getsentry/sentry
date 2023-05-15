@@ -15,7 +15,7 @@ from sentry.models import (
     actor_type_to_string,
     fetch_actors_by_actor_ids,
 )
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 
 
 def _generate_rule_label(project, rule, data):
@@ -100,6 +100,7 @@ class RuleSerializer(Serializer):
                 owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
 
         for k, v in ACTOR_TYPES.items():
+            # TODO(actorid) This relies on ducktyping. This needs to handle user + team separately.
             resolved_actors[k] = {
                 a.actor_id: a.id
                 for a in fetch_actors_by_actor_ids(actor_type_to_class(v), owners_by_type[k])
