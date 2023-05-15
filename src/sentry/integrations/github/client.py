@@ -104,9 +104,9 @@ class GithubProxyClient(IntegrationProxyClient):
         # Only certain routes are authenticated with JWTs....
         should_use_jwt = prepared_request.path_url.startswith("/app/installations")
         if should_use_jwt:
-            jwt_token = get_jwt()
+            jwt = get_jwt()
             logger.info("token.jwt", extra=logger_extra)
-            return jwt_token
+            return jwt
 
         # The rest should use access tokens...
         now = datetime.utcnow()
@@ -126,11 +126,11 @@ class GithubProxyClient(IntegrationProxyClient):
     @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         integration: RpcIntegration | Integration | None = None
-        if self.integration:
+        if hasattr(self, "integration"):
             integration = self.integration
-        elif self.integration_id:
+        elif hasattr(self, "org_integration_id"):
             integration = Integration.objects.filter(
-                id=self.integration_id,
+                organizationintegration__id=self.org_integration_id,
                 provider=EXTERNAL_PROVIDERS[ExternalProviders.GITHUB],
                 status=ObjectStatus.ACTIVE,
             ).first()
