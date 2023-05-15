@@ -61,7 +61,11 @@ class PGStringIndexerV2(StringIndexer):
         for use_case_id, organization_id, string in db_use_case_keys.as_tuples():
             if metric_path_key is UseCaseKey.PERFORMANCE:
                 conditions.append(
-                    Q(use_case_id=use_case_id, organization_id=int(organization_id), string=string)
+                    Q(
+                        use_case_id=use_case_id.value,
+                        organization_id=int(organization_id),
+                        string=string,
+                    )
                 )
             else:
                 conditions.append(Q(organization_id=int(organization_id), string=string))
