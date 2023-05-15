@@ -3,10 +3,9 @@ from __future__ import annotations
 from typing import Any, Mapping, MutableMapping, Sequence
 
 from sentry.integrations import IntegrationInstallation
-from sentry.integrations.github.client import GitHubAppsClient
-from sentry.integrations.github.integration import GitHubIntegration
-from sentry.models import Integration, Organization, PullRequest, Repository
+from sentry.models import Organization, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.json import JSONData
 
@@ -62,14 +61,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
     def compare_commits(
         self, repo: Repository, start_sha: str | None, end_sha: str
     ) -> Sequence[Mapping[str, Any]]:
-        integration_id = repo.integration_id
-        if integration_id is None:
-            raise NotImplementedError("GitHub apps requires an integration id to fetch commits")
-        integration = Integration.objects.get(id=integration_id)
-        installation: GitHubIntegration = integration.get_installation(repo.organization_id)
-        client: GitHubAppsClient = installation.get_client()
-
-        try:
+        def eval_commits(client: Any) -> Sequence[Mapping[str, Any]]:
             # use config name because that is kept in sync via webhooks
             name = repo.config["name"]
             if start_sha is None:
@@ -78,14 +70,28 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
             else:
                 res = client.compare_commits(name, start_sha, end_sha)
                 return self._format_commits(client, name, res["commits"])
+
+        integration_id = repo.integration_id
+        if integration_id is None:
+            raise NotImplementedError("GitHub apps requires an integration id to fetch commits")
+        integration = integration_service.get_integration(integration_id=integration_id)
+        installation = integration_service.get_installation(
+            integration=integration, organization_id=repo.organization_id
+        )
+        client = installation.get_client()
+
+        try:
+            return eval_commits(client)
         except Exception as e:
-            raise installation.raise_error(e)
+            installation.raise_error(e)
+            # Explicitly typing to satisfy mypy.
+            return []
 
     def _format_commits(
         self,
         client: Any,
         repo_name: str,
-        commit_list: Sequence[Mapping[str, Any]],
+        commit_list: JSONData,
     ) -> Sequence[Mapping[str, Any]]:
         """Convert GitHub commits into our internal format
 

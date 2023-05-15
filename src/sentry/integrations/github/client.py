@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Sequence
+from typing import Any, Dict, List, Mapping, Sequence, cast
 
 import sentry_sdk
 from requests import PreparedRequest
@@ -48,6 +48,7 @@ class GithubRateLimitInfo:
 
 class GithubProxyClient(IntegrationProxyClient):
     def _get_installation_id(self) -> str:
+        self.integration: RpcIntegration
         """
         Returns the Github App installation identifier.
         This is necessary since Github and Github Enterprise integrations store the
@@ -69,9 +70,9 @@ class GithubProxyClient(IntegrationProxyClient):
             },
         )
         data = self.post(f"/app/installations/{self._get_installation_id()}/access_tokens")
-        token = data["token"]
+        access_token = cast(str, data["token"])
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
-        integration.metadata.update({"access_token": token, "expires_at": expires_at})
+        integration.metadata.update({"access_token": access_token, "expires_at": expires_at})
         integration.save()
         logger.info(
             "token.refresh_end",
@@ -82,7 +83,7 @@ class GithubProxyClient(IntegrationProxyClient):
         )
 
         self.integration = integration
-        return token
+        return access_token
 
     @control_silo_function
     def _get_token(self, prepared_request: PreparedRequest) -> str | None:
@@ -91,7 +92,6 @@ class GithubProxyClient(IntegrationProxyClient):
         Should the token have expired, a new token will be generated and
         automatically persisted into the integration.
         """
-        self.integration: RpcIntegration
 
         if not self.integration:
             return None
@@ -104,26 +104,28 @@ class GithubProxyClient(IntegrationProxyClient):
         # Only certain routes are authenticated with JWTs....
         should_use_jwt = prepared_request.path_url.startswith("/app/installations")
         if should_use_jwt:
-            token = get_jwt()
+            jwt_token = get_jwt()
             logger.info("token.jwt", extra=logger_extra)
-            return token
+            return jwt_token
 
         # The rest should use access tokens...
         now = datetime.utcnow()
-        token: str | None = self.integration.metadata.get("access_token")
+        access_token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
-        is_expired = bool(expires_at) and datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%S") < now
-        should_refresh = not token or not expires_at or is_expired
+        is_expired = (
+            bool(expires_at) and datetime.strptime(cast(str, expires_at), "%Y-%m-%dT%H:%M:%S") < now
+        )
+        should_refresh = not access_token or not expires_at or is_expired
 
         if should_refresh:
-            token = self._refresh_access_token()
+            access_token = self._refresh_access_token()
 
         logger.info("token.access_token", extra=logger_extra)
-        return token
+        return access_token
 
     @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
-        integration = None
+        integration: RpcIntegration | Integration | None = None
         if self.integration:
             integration = self.integration
         elif self.integration_id:
@@ -151,7 +153,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return prepared_request
 
 
-class GitHubClientMixin(GithubProxyClient):  # type: ignore
+class GitHubClientMixin(GithubProxyClient):
     allow_redirects = True
 
     base_url = "https://api.github.com"
