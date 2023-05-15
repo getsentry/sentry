@@ -72,7 +72,7 @@ def test_writes_limiter_org_limit(set_sentry_option):
         use_case_keys = UseCaseKeyCollection({NEW_USE_CASE_ID: key_collection})
         with writes_limiter.check_write_limits(use_case_keys) as state:
             assert len(state.dropped_strings) == 2
-            assert sorted(ds.key_result.org_id for ds in state.dropped_strings) == [1, 2]
+            assert sorted(ds.use_case_key_result.org_id for ds in state.dropped_strings) == [1, 2]
             assert sorted(
                 org_id for use_case_id, org_id, string in state.accepted_keys.as_tuples()
             ) == [

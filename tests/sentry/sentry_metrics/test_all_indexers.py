@@ -104,34 +104,67 @@ def test_static_and_non_static_strings_release_health(indexer, use_case_id, use_
     assert_fetch_type_for_tag_string_set(meta[use_case_id][3], FetchType.FIRST_SEEN, {"2.0.0"})
 
 
-def test_static_and_non_static_strings_generic_metrics(indexer, use_case_id, use_case_key):
+def test_static_and_non_static_strings_generic_metrics(indexer):
     static_indexer = StaticStringIndexer(indexer)
     strings = {
-        use_case_id: {
-            2: {"release", "1.0.0"},
-            3: {"production", "environment", "release", "2.0.0"},
-        }
+        UseCaseID.SPANS: {
+            2: {"release", "AAA"},
+            3: {"production", "environment", "release", "AAA", "BBB"},
+        },
+        UseCaseID.TRANSACTIONS: {
+            1: {"production", "environment", "BBB", "CCC"},
+            2: {"AAA", "1.0.0"},
+        },
     }
-    results = static_indexer.bulk_record(strings=strings)
+    with override_options(
+        {
+            "sentry-metrics.writes-limiter.limits.spans.global": [],
+            "sentry-metrics.writes-limiter.limits.spans.per-org": [],
+        },
+    ):
+        results = static_indexer.bulk_record(strings=strings)
 
-    v1 = indexer.resolve(use_case_key, 2, "1.0.0")
-    v2 = indexer.resolve(use_case_key, 3, "2.0.0")
+    transac_1_bbb = indexer.resolve(UseCaseKey.PERFORMANCE, 1, "BBB")
+    transac_1_ccc = indexer.resolve(UseCaseKey.PERFORMANCE, 1, "CCC")
+    # Requires use case aware resolve
+    # transac_2_aaa = indexer.resolve(UseCaseKey.PERFORMANCE, 2, "AAA")
 
-    assert results[use_case_id][2]["release"] == SHARED_STRINGS["release"]
-    assert results[use_case_id][3]["production"] == SHARED_STRINGS["production"]
-    assert results[use_case_id][3]["environment"] == SHARED_STRINGS["environment"]
-    assert results[use_case_id][3]["release"] == SHARED_STRINGS["release"]
+    assert results[UseCaseID.SPANS][2]["release"] == SHARED_STRINGS["release"]
+    assert results[UseCaseID.SPANS][3]["production"] == SHARED_STRINGS["production"]
+    assert results[UseCaseID.SPANS][3]["environment"] == SHARED_STRINGS["environment"]
+    assert results[UseCaseID.SPANS][3]["release"] == SHARED_STRINGS["release"]
 
-    assert results[use_case_id][2]["1.0.0"] == v1
-    assert results[use_case_id][3]["2.0.0"] == v2
+    assert results[UseCaseID.TRANSACTIONS][1]["production"] == SHARED_STRINGS["production"]
+    assert results[UseCaseID.TRANSACTIONS][1]["environment"] == SHARED_STRINGS["environment"]
+
+    assert results[UseCaseID.TRANSACTIONS][1]["BBB"] == transac_1_bbb
+    assert results[UseCaseID.TRANSACTIONS][1]["CCC"] == transac_1_ccc
+    # Requires use case aware resolve
+    # assert results[UseCaseID.TRANSACTIONS][2]["AAA"] == transac_2_aaa
 
     meta = results.get_fetch_metadata()
-    assert_fetch_type_for_tag_string_set(meta[use_case_id][2], FetchType.HARDCODED, {"release"})
+    assert_fetch_type_for_tag_string_set(meta[UseCaseID.SPANS][2], FetchType.HARDCODED, {"release"})
     assert_fetch_type_for_tag_string_set(
-        meta[use_case_id][3], FetchType.HARDCODED, {"release", "production", "environment"}
+        meta[UseCaseID.SPANS][3], FetchType.HARDCODED, {"release", "production", "environment"}
     )
-    assert_fetch_type_for_tag_string_set(meta[use_case_id][2], FetchType.FIRST_SEEN, {"1.0.0"})
-    assert_fetch_type_for_tag_string_set(meta[use_case_id][3], FetchType.FIRST_SEEN, {"2.0.0"})
+    assert_fetch_type_for_tag_string_set(
+        meta[UseCaseID.TRANSACTIONS][1], FetchType.HARDCODED, {"production", "environment"}
+    )
+    assert_fetch_type_for_tag_string_set(
+        meta[UseCaseID.TRANSACTIONS][2],
+        FetchType.HARDCODED,
+        {},
+    )
+    assert_fetch_type_for_tag_string_set(meta[UseCaseID.SPANS][2], FetchType.FIRST_SEEN, {"AAA"})
+    assert_fetch_type_for_tag_string_set(
+        meta[UseCaseID.SPANS][3], FetchType.FIRST_SEEN, {"AAA", "BBB"}
+    )
+    assert_fetch_type_for_tag_string_set(
+        meta[UseCaseID.TRANSACTIONS][1], FetchType.FIRST_SEEN, {"BBB"}
+    )
+    assert_fetch_type_for_tag_string_set(
+        meta[UseCaseID.TRANSACTIONS][2], FetchType.FIRST_SEEN, {"AAA"}
+    )
 
 
 def test_indexer(indexer, indexer_cache, use_case_id, use_case_key):

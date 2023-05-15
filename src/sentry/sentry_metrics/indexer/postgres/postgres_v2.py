@@ -103,6 +103,8 @@ class PGStringIndexerV2(StringIndexer):
     def bulk_record(
         self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
     ) -> UseCaseKeyResults:
+        metric_path_key = self._get_metric_path_key(strings.keys())
+
         db_read_keys = UseCaseKeyCollection(strings)
 
         db_read_key_results = UseCaseKeyResults()
@@ -111,7 +113,7 @@ class PGStringIndexerV2(StringIndexer):
                 UseCaseKeyResult(
                     use_case_id=(
                         UseCaseID.TRANSACTIONS
-                        if self._get_metric_path_key(strings.keys()) is UseCaseKey.PERFORMANCE
+                        if metric_path_key is UseCaseKey.PERFORMANCE
                         else UseCaseID.SESSIONS
                     ),
                     org_id=db_obj.organization_id,
@@ -138,9 +140,7 @@ class PGStringIndexerV2(StringIndexer):
         if db_write_keys.size == 0:
             return db_read_key_results
 
-        config = get_ingest_config(
-            self._get_metric_path_key(strings.keys()), IndexerStorage.POSTGRES
-        )
+        config = get_ingest_config(metric_path_key, IndexerStorage.POSTGRES)
         writes_limiter = writes_limiter_factory.get_ratelimiter(config)
 
         """
@@ -161,48 +161,40 @@ class PGStringIndexerV2(StringIndexer):
             }
         }
         """
-        use_case_id = next(iter(strings.keys()))
-        use_case_path_key = self._get_metric_path_key(strings.keys())
         with writes_limiter.check_write_limits(db_write_keys) as writes_limiter_state:
-            # After the DB has successfully committed writes, we exit this
-            # context manager and consume quotas. If the DB crashes we
-            # shouldn't consume quota.
-            use_case_collection = writes_limiter_state.accepted_keys
-            # TODO: later we will use the whole use case collection instead
-            # of pulling out the key collection
-            filtered_db_write_keys = use_case_collection.mapping[use_case_id]
             del db_write_keys
 
             rate_limited_key_results = UseCaseKeyResults()
+            accepted_keys = writes_limiter_state.accepted_keys
+
             for dropped_string in writes_limiter_state.dropped_strings:
-                key_result = dropped_string.key_result
                 rate_limited_key_results.add_use_case_key_result(
-                    UseCaseKeyResult(
-                        use_case_id, key_result.org_id, key_result.string, key_result.id
-                    ),
+                    use_case_key_result=dropped_string.use_case_key_result,
                     fetch_type=dropped_string.fetch_type,
                     fetch_type_ext=dropped_string.fetch_type_ext,
                 )
 
-            if filtered_db_write_keys.size == 0:
+            if accepted_keys.size == 0:
                 return db_read_key_results.merge(rate_limited_key_results)
 
-            if use_case_path_key is UseCaseKey.PERFORMANCE:
+            table = self._get_table_from_metric_path_key(metric_path_key)
+
+            if metric_path_key is UseCaseKey.PERFORMANCE:
                 new_records = [
-                    self._get_table_from_use_case_ids(strings.keys())(
+                    table(
                         organization_id=int(organization_id),
                         string=string,
                         use_case_id=use_case_id.value,
                     )
-                    for organization_id, string in filtered_db_write_keys.as_tuples()
+                    for use_case_id, organization_id, string in accepted_keys.as_tuples()
                 ]
             else:
                 new_records = [
-                    self._get_table_from_use_case_ids(strings.keys())(
+                    table(
                         organization_id=int(organization_id),
                         string=string,
                     )
-                    for organization_id, string in filtered_db_write_keys.as_tuples()
+                    for _, organization_id, string in accepted_keys.as_tuples()
                 ]
 
             self._bulk_create_with_retry(
@@ -213,14 +205,16 @@ class PGStringIndexerV2(StringIndexer):
         db_write_key_results.add_use_case_key_results(
             [
                 UseCaseKeyResult(
-                    use_case_id,
+                    use_case_id=(
+                        UseCaseID.SESSIONS
+                        if metric_path_key is UseCaseKey.RELEASE_HEALTH
+                        else UseCaseID(db_obj.use_case_id)
+                    ),
                     org_id=db_obj.organization_id,
                     string=db_obj.string,
                     id=db_obj.id,
                 )
-                for db_obj in self._get_db_records(
-                    UseCaseKeyCollection({use_case_id: filtered_db_write_keys})
-                )
+                for db_obj in self._get_db_records(accepted_keys)
             ],
             fetch_type=FetchType.FIRST_SEEN,
         )
