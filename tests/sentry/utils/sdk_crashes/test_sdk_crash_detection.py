@@ -28,28 +28,102 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
     def create_event(self, data, project_id, assert_no_errors=True):
         pass
 
+    def execute_test(self, event_data, should_be_reported, mock_sdk_crash_reporter):
+        event = self.create_event(
+            data=event_data,
+            project_id=self.project.id,
+        )
 
-class CococaSDKTestMixin(BaseSDKCrashDetectionMixin, PerfIssueTransactionTestMixin):
-    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+        sdk_crash_detection.detect_sdk_crash(event=event)
+
+        if should_be_reported:
+            mock_sdk_crash_reporter.report.assert_called_once()
+        else:
+            mock_sdk_crash_reporter.report.assert_not_called()
+
+
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
     def test_unhandled_is_detected(self, mock_sdk_crash_reporter):
-        self.execute_test(mock_sdk_crash_reporter, get_crash_event(), True)
+        self.execute_test(get_crash_event(), True, mock_sdk_crash_reporter)
 
-    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
     def test_handled_is_not_detected(self, mock_sdk_crash_reporter):
-        self.execute_test(mock_sdk_crash_reporter, get_crash_event(handled=True), False)
+        self.execute_test(get_crash_event(handled=True), False, mock_sdk_crash_reporter)
 
-    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
     def test_wrong_function_not_detected(self, mock_sdk_crash_reporter):
-        self.execute_test(mock_sdk_crash_reporter, get_crash_event(function="Senry"), False)
+        self.execute_test(get_crash_event(function="Senry"), False, mock_sdk_crash_reporter)
 
-    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
     def test_wrong_platform_not_detected(self, mock_sdk_crash_reporter):
-        self.execute_test(mock_sdk_crash_reporter, get_crash_event(platform="coco"), False)
+        self.execute_test(get_crash_event(platform="coco"), False, mock_sdk_crash_reporter)
 
-    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
     def test_no_exception_not_detected(self, mock_sdk_crash_reporter):
-        self.execute_test(mock_sdk_crash_reporter, get_crash_event(exception=[]), False)
+        self.execute_test(get_crash_event(exception=[]), False, mock_sdk_crash_reporter)
 
+
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+class CococaSDKFunctionTestMixin(BaseSDKCrashDetectionMixin):
+    def test_hub_reported(self, mock_sdk_crash_reporter):
+        self.execute_test(
+            get_crash_event(function="-[SentryHub getScope]"), True, mock_sdk_crash_reporter
+        )
+
+    def test_sentrycrash_reported(self, mock_sdk_crash_reporter):
+        self.execute_test(
+            get_crash_event(function="sentrycrashdl_getBinaryImage"), True, mock_sdk_crash_reporter
+        )
+
+    def test_sentryisgreat_reported(self, mock_sdk_crash_reporter):
+        self.execute_test(
+            get_crash_event(function="-[sentryisgreat]"), True, mock_sdk_crash_reporter
+        )
+
+    def test_sentryswizzle_reported(self, mock_sdk_crash_reporter):
+        self.execute_test(
+            get_crash_event(
+                function="__47-[SentryBreadcrumbTracker swizzleViewDidAppear]_block_invoke_2"
+            ),
+            True,
+            mock_sdk_crash_reporter,
+        )
+
+    def test_sentrycrash_crash_reported(self, mock_sdk_crash_reporter):
+        self.execute_test(
+            get_crash_event(function="-[SentryCrash crash]"),
+            True,
+            mock_sdk_crash_reporter,
+        )
+
+    def test_senryhub_not_reported(self, mock_sdk_crash_reporter):
+        self.execute_test(
+            get_crash_event(function="-[SenryHub getScope]"),
+            False,
+            mock_sdk_crash_reporter,
+        )
+
+    def test_senryhub_no_brackets_not_reported(self, mock_sdk_crash_reporter):
+        self.execute_test(
+            get_crash_event(function="-SentryHub getScope]"),
+            False,
+            mock_sdk_crash_reporter,
+        )
+
+    def test_somesentryhub_not_reported(self, mock_sdk_crash_reporter):
+        self.execute_test(
+            get_crash_event(function="-[SomeSentryHub getScope]"),
+            False,
+            mock_sdk_crash_reporter,
+        )
+
+    # This method is used for testing, so we can ignore it.
+    def test_sentrycrash_not_reported(self, mock_sdk_crash_reporter):
+        self.execute_test(
+            get_crash_event(function="+[SentrySDK crash]"),
+            False,
+            mock_sdk_crash_reporter,
+        )
+
+
+class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, PerfIssueTransactionTestMixin):
     @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
     def test_performance_event_not_detected(self, mock_sdk_crash_reporter):
 
@@ -65,47 +139,16 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin, PerfIssueTransactionTestMix
 
         mock_sdk_crash_reporter.report.assert_not_called()
 
-    def execute_test(self, mock_sdk_crash_reporter, event_data, should_be_reported):
-        event = self.create_event(
-            data=event_data,
-            project_id=self.project.id,
-        )
-
-        sdk_crash_detection.detect_sdk_crash(event=event)
-
-        if should_be_reported:
-            mock_sdk_crash_reporter.report.assert_called_once()
-        else:
-            mock_sdk_crash_reporter.report.assert_not_called()
-
 
 @region_silo_test
 class SDKCrashDetectionTest(
     TestCase,
     CococaSDKTestMixin,
+    CococaSDKFunctionTestMixin,
+    PerformanceEventTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
-
-
-@pytest.mark.parametrize(
-    "function,should_be_reported",
-    [
-        ("-[SentryHub getScope]", True),
-        ("sentrycrashdl_getBinaryImage", True),
-        ("-[sentryisgreat]", True),
-        ("__47-[SentryBreadcrumbTracker swizzleViewDidAppear]_block_invoke_2", True),
-        ("-[SentryCrash crash]", True),
-        ("-[SenryHub getScope]", False),
-        ("-SentryHub getScope]", False),
-        ("-[SomeSentryHub getScope]", False),
-        ("+[SentrySDK crash]", False),
-    ],
-)
-def test_cocoa_sdk_crash_detection(function, should_be_reported):
-    event = get_crash_event(function=function)
-
-    _run_report_test_with_event(event, should_be_reported)
 
 
 @pytest.mark.parametrize(
