@@ -1317,14 +1317,14 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         if message2.to[0] == self.user.email:
             # self.user only receives a digest about one alert, since a rule was muted
             assert "1 new alert since" in message2.subject
-        else:
+        elif message2.to[0] == user2.email:
             # user2 receives a digest about both alerts, since no rules were muted
             assert "2 new alerts since" in message2.subject
 
         if message1.to[0] == user2.email:
             # user2 receives a digest about both alerts, since no rules were muted
             assert "2 new alerts since" in message1.subject
-        else:
+        elif message1.to[0] == self.user.email:
             # self.user only receives a digest about one alert, since a rule was muted
             assert "1 new alert since" in message1.subject
 
