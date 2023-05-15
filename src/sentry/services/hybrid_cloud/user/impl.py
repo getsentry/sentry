@@ -22,10 +22,10 @@ from sentry.services.hybrid_cloud.user import (
     RpcUser,
     UserFilterArgs,
     UserSerializeType,
-    UserService,
     UserUpdateArgs,
 )
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+from sentry.services.hybrid_cloud.user.service import UserService
 
 
 class DatabaseBackedUserService(UserService):

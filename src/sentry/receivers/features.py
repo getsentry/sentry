@@ -662,6 +662,7 @@ def record_issue_deleted(group, user, delete_type, **kwargs):
         default_user_id=default_user_id,
         organization_id=group.project.organization_id,
         group_id=group.id,
+        project_id=group.project_id,
         delete_type=delete_type,
     )
 

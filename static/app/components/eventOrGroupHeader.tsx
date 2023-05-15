@@ -72,11 +72,13 @@ function EventOrGroupHeader({
             <GroupLevel level={level} />
           </Tooltip>
         )}
-        {!hideIcons && status === 'ignored' && (
-          <IconWrapper>
-            <IconMute color="red400" />
-          </IconWrapper>
-        )}
+        {!hideIcons &&
+          status === 'ignored' &&
+          !organization.features.includes('escalating-issues-ui') && (
+            <IconWrapper>
+              <IconMute color="red400" />
+            </IconWrapper>
+          )}
         {!hideIcons && isBookmarked && (
           <IconWrapper>
             <IconStar isSolid color="yellow400" />
