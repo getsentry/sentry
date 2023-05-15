@@ -101,7 +101,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         if (
             sdk_info
             and sdk_info["version"] < JS_VERSION_FOR_DEBUG_ID
-            # need to ignore react native for now debug id is implemented there
+            # need to ignore react native for now until debug id is implemented there
             and sdk_info["name"] != "sentry.javascript.react-native"
         ):
             return self._create_response(
