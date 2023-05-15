@@ -38,12 +38,22 @@ class BackfillNotificationSettingTest(TestMigrations):
         # Generated mapping for invite record.
         mapping = OrganizationMemberMapping.objects.get(email=self.invite.email)
         assert mapping.inviter_id == self.invite.inviter_id
+        assert mapping.organizationmember_id == self.invite.id
+        assert mapping.organization_id == self.invite.organization_id
+        assert mapping.user_id is None
+        assert mapping.role == self.invite.role
 
         # Generated mapping for member record
         mapping = OrganizationMemberMapping.objects.get(organizationmember_id=self.member.id)
+        assert mapping.organizationmember_id == self.member.id
         assert mapping.organization_id == self.member.organization_id
         assert mapping.user_id == self.member.user_id
         assert mapping.role == self.member.role
 
         # No duplicates created
-        assert OrganizationMemberMapping.objects.filter(user_id=self.member.user_id).count() == 1
+        assert (
+            OrganizationMemberMapping.objects.filter(
+                user_id=self.member_with_mapping.user_id
+            ).count()
+            == 1
+        )
