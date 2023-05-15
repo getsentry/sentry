@@ -26,8 +26,12 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     name: 'Tpm',
   },
   {
-    key: 'p75',
-    name: 'p75',
+    key: 'p50',
+    name: 'p50',
+  },
+  {
+    key: 'p95',
+    name: 'p95',
   },
   {
     key: 'total_time',
