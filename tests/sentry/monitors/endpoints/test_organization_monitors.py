@@ -227,8 +227,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         }
         self.get_error_response(self.organization.slug, status_code=403, **data)
 
-    @patch("sentry.analytics.record")
-    def test_simple_with_alert_rule(self, mock_record):
+    def test_simple_with_alert_rule(self):
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
