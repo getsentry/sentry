@@ -63,7 +63,7 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 span.set_data("project_id", project.id)
                 tx_names = list(redis.get_transaction_names(project))
                 new_rules = []
-                if len(tx_names) >= redis.MAX_SET_SIZE:
+                if len(tx_names) >= MERGE_THRESHOLD:
                     clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
                     clusterer.add_input(tx_names)
                     new_rules = clusterer.get_rules()
