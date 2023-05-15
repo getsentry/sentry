@@ -4,8 +4,10 @@ from django.urls import reverse
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY
 from sentry.cache import default_cache
 from sentry.testutils import PermissionTestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class SetupWizard(PermissionTestCase):
     def test_redirect(self):
         user = self.create_user("foo@example.com", is_active=False)

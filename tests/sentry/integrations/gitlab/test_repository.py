@@ -9,9 +9,11 @@ from sentry.models import Identity, IdentityProvider, Integration, PullRequest, 
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationRepositoryTestCase
 from sentry.testutils.asserts import assert_commit_shape
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@control_silo_test
 class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = "integrations:gitlab"
 
