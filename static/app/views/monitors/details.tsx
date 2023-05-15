@@ -60,6 +60,9 @@ function MonitorDetails({params, location}: Props) {
   }
 
   const hasLastCheckIn = monitor.environments.some(e => e.lastCheckIn);
+  const envsSortedByLastCheck = monitor.environments.sort((a, b) =>
+    a.lastCheckIn.localeCompare(b.lastCheckIn)
+  );
 
   return (
     <SentryDocumentTitle title={`Crons - ${monitor.name}`}>
@@ -96,7 +99,10 @@ function MonitorDetails({params, location}: Props) {
             )}
           </Layout.Main>
           <Layout.Side>
-            <DetailsSidebar monitorEnv={monitor.environments[0]} monitor={monitor} />
+            <DetailsSidebar
+              monitorEnv={envsSortedByLastCheck[envsSortedByLastCheck.length - 1]}
+              monitor={monitor}
+            />
           </Layout.Side>
         </Layout.Body>
       </Layout.Page>
