@@ -45,7 +45,7 @@ export type DataRow = {
   transactions: number;
 };
 
-type Keys =
+export type Keys =
   | 'description'
   | 'domain'
   | 'throughput'
