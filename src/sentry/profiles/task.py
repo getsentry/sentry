@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
 from time import sleep, time
@@ -286,7 +285,7 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
                         frames.append(frame)
                         stack[0] = len(frames) - 1
 
-            stacktraces = [{"frames": set(frames)}]
+            stacktraces = [{"frames": frames}]
         # in the original format, we need to gather frames from all samples
         else:
             stacktraces = []
@@ -298,10 +297,10 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
 
                 stacktraces.append(
                     {
-                        "frames": set(frames),
+                        "frames": frames,
                     }
                 )
-        return (modules, stacktraces, set(frames_sent))
+        return (modules, stacktraces, frames_sent)
 
 
 def symbolicate(
@@ -445,20 +444,24 @@ def _process_symbolicator_results_for_sample(
             return stack
 
     symbolicated_frames = stacktraces[0]["frames"]
+    symbolicated_frames_dict = get_frame_index_map(symbolicated_frames)
 
     if len(frames_sent) > 0:
         raw_frames = profile["profile"]["frames"]
         new_frames = []
-        frames_dict = get_frame_index_map(symbolicated_frames)
 
         for idx in range(len(raw_frames)):
             if idx in set(frames_sent):
-                for frame_idx in frames_dict[idx]:
+                for frame_idx in symbolicated_frames_dict[idx]:
                     new_frames.append(symbolicated_frames[frame_idx])
             else:
                 new_frames.append(raw_frames[idx])
 
-        new_frames_count = sum([len(frames) for frames in frames_dict.values()])
+        new_frames_count = (
+            len(raw_frames)
+            - len(symbolicated_frames_dict)
+            + sum([len(frames) for frames in symbolicated_frames_dict.values()])
+        )
 
         assert len(new_frames) == new_frames_count
 
@@ -467,16 +470,18 @@ def _process_symbolicator_results_for_sample(
         profile["profile"]["frames"] = symbolicated_frames
 
     if profile["platform"] in SHOULD_SYMBOLICATE:
-        idx_map = get_frame_index_map(profile["profile"]["frames"])
 
         def get_stack(stack: List[int]) -> List[int]:
             new_stack: List[int] = []
             for index in stack:
-                # the new stack extends the older by replacing
-                # a specific frame index with the indices of
-                # the frames originated from the original frame
-                # should inlines be present
-                new_stack.extend(idx_map[index])
+                if index in symbolicated_frames_dict:
+                    # the new stack extends the older by replacing
+                    # a specific frame index with the indices of
+                    # the frames originated from the original frame
+                    # should inlines be present
+                    new_stack.extend(symbolicated_frames_dict[index])
+                else:
+                    new_stack.append(index)
             return new_stack
 
     else:
@@ -487,13 +492,13 @@ def _process_symbolicator_results_for_sample(
     stacks = []
 
     for stack in profile["profile"]["stacks"]:
-        stack = get_stack(stack)
+        new_stack = get_stack(stack)
 
-        if len(stack) >= 2:
+        if len(new_stack) >= 2:
             # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
-            stack = truncate_stack_needed(profile["profile"]["frames"], stack)
+            new_stack = truncate_stack_needed(profile["profile"]["frames"], new_stack)
 
-        stacks.append(stack)
+        stacks.append(new_stack)
 
     profile["profile"]["stacks"] = stacks
 
@@ -558,10 +563,10 @@ The sorting order is callee to caller (child to parent)
 
 
 def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
-    index_map: dict[int, List[int]] = defaultdict(list)
+    index_map: dict[int, List[int]] = {}
     for i, frame in enumerate(frames):
         if "original_index" in frame:
-            index_map[frame["original_index"]].append(i)
+            index_map.setdefault(frame["original_index"], []).append(i)
     return index_map
 
 
