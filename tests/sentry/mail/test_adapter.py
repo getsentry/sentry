@@ -1312,13 +1312,21 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         assert len(mail.outbox) == 2  # we send it to 2 users
         message1 = mail.outbox[0]
         message2 = mail.outbox[1]
-        # self.user only receives a digest about one alert, since a rule was muted
-        assert message2.to[0] == self.user.email
-        assert "1 new alert since" in message2.subject
 
-        # user2 receives a digest about both alerts, since no rules were muted
-        assert message1.to[0] == user2.email
-        assert "2 new alerts since" in message1.subject
+        # checking this way because the test was being flaky - sometimes self.user was message1 and sometimes message2
+        if message2.to[0] == self.user.email:
+            # self.user only receives a digest about one alert, since a rule was muted
+            assert "1 new alert since" in message2.subject
+        else:
+            # user2 receives a digest about both alerts, since no rules were muted
+            assert "2 new alerts since" in message2.subject
+
+        if message1.to[0] == user2.email:
+            # user2 receives a digest about both alerts, since no rules were muted
+            assert "2 new alerts since" in message1.subject
+        else:
+            # self.user only receives a digest about one alert, since a rule was muted
+            assert "1 new alert since" in message1.subject
 
     @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
