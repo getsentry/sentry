@@ -204,7 +204,7 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     project2 = Project(id=223, name="project2", organization_id=default_organization.id)
     for project in (project1, project2):
         project.save()
-        _add_mock_data(project, 10)
+        _add_mock_data(project, 4)
 
     spawn_clusterers()
 
