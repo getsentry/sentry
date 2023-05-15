@@ -98,7 +98,7 @@ class GithubProxyClient(IntegrationProxyClient):
 
         logger_extra = {
             "path_url": prepared_request.path_url,
-            "integration_id": self.integration.id,
+            "integration_id": getattr(self.integration, "id", "unknown"),
         }
 
         # Only certain routes are authenticated with JWTs....

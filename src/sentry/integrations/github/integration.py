@@ -276,12 +276,10 @@ class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
     setup_dialog_config = {"width": 1030, "height": 1000}
 
     def get_client(self) -> GitHubClientMixin:
-        org_integration_id = None
-        if self.integration_cls.org_integration is not None:
-            org_integration_id = self.integration_cls.org_integration.id
-        return GitHubAppsClient(
-            integration=self.integration_cls, org_integration_id=org_integration_id
-        )
+        # XXX: This is very awkward behaviour as we're not passing the client an Integration
+        # object it expects. Instead we're passing the Installation object and hoping the client
+        # doesn't try to invoke any bad fields/attributes on it.
+        return GitHubAppsClient(integration=self.integration_cls)
 
     def post_install(
         self,
