@@ -193,7 +193,7 @@ def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
 def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> int:
     """Write newly discovered rules to projection option and redis, and update last_used.
 
-    Returns the number of _new_ rules (that were not already present in project option).
+    Return the number of _new_ rules (that were not already present in project option).
     """
     # Run the updates even if there aren't any new rules, to get all the stores
     # up-to-date.
