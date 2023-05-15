@@ -20,7 +20,8 @@ from sentry.services.hybrid_cloud.organization import (
     RpcTeamMember,
     organization_service,
 )
-from sentry.services.hybrid_cloud.organization.serial import unescape_flag_name
+from sentry.services.hybrid_cloud.organization.serial import serialize_member, unescape_flag_name
+from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import use_real_service
 from sentry.testutils.silo import all_silo_test
@@ -229,3 +230,13 @@ def test_get_top_dog_team_member_ids(org_factory: Callable[[], Organization]):
     all_top_dogs = [members[1].id, members[2].id]
     service_top_dogs = organization_service.get_top_dog_team_member_ids(organization_id=orm_org)
     assert set(all_top_dogs) == set(service_top_dogs)
+
+
+class RpcOrganizationMemberTest(TestCase):
+    def test_get_audit_log_metadata(self):
+        org = self.create_organization(owner=self.user)
+        user = self.create_user(email="foobar@sentry.io")
+        member = self.create_member(user_id=user.id, role="owner", organization_id=org.id)
+        self.create_team(organization=org, slug="baz", members=[user])
+        rpc_member = serialize_member(member)
+        assert member.get_audit_log_data() == rpc_member.get_audit_log_metadata()
