@@ -51,7 +51,8 @@ type Keys =
   | 'throughput'
   | 'p75_trend'
   | 'epm'
-  | 'p75'
+  | 'p50'
+  | 'p95'
   | 'transactions'
   | 'total_time';
 export type TableColumnHeader = GridColumnHeader<Keys>;
@@ -83,8 +84,12 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     name: 'Tpm',
   },
   {
-    key: 'p75',
-    name: 'p75',
+    key: 'p50',
+    name: 'p50',
+  },
+  {
+    key: 'p95',
+    name: 'p95',
   },
   {
     key: 'transactions',
@@ -175,7 +180,14 @@ export default function DatabaseTableView({
   }
 
   function renderHeadCell(col: TableColumnHeader): React.ReactNode {
-    const sortableKeys: Keys[] = ['p75', 'epm', 'total_time', 'domain', 'transactions'];
+    const sortableKeys: Keys[] = [
+      'p50',
+      'p95',
+      'epm',
+      'total_time',
+      'domain',
+      'transactions',
+    ];
     if (sortableKeys.includes(col.key)) {
       const isBeingSorted = col.key === sort.sortHeader?.key;
       const direction = isBeingSorted ? sort.direction : undefined;
@@ -222,7 +234,8 @@ export default function DatabaseTableView({
       );
     }
 
-    if (key === 'p75' || key === 'total_time') {
+    const timeBasedKeys: Keys[] = ['p50', 'p95', 'total_time'];
+    if (timeBasedKeys.includes(key)) {
       return <span style={rowStyle}>{value.toFixed(2)}ms</span>;
     }
 
