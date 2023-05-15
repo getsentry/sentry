@@ -23,7 +23,6 @@ from sentry.ingest.transaction_clusterer.rules import (
 from sentry.ingest.transaction_clusterer.tasks import cluster_projects, spawn_clusterers
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 from sentry.models import Organization, Project
-from sentry.models.options.project_option import ProjectOption
 from sentry.relay.config import get_project_config
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
@@ -140,16 +139,8 @@ def test_sort_rules():
     ]
 
 
-@pytest.fixture(params=(True, False))
-def pickle_mode(request):
-    field = ProjectOption._meta.get_field("value")
-    with mock.patch.object(field, "write_json", request.param):
-        yield
-
-
 @mock.patch("sentry.ingest.transaction_clusterer.rules.CompositeRuleStore.MERGE_MAX_RULES", 2)
 @pytest.mark.django_db
-@pytest.mark.usefixtures("pickle_mode")
 def test_max_rule_threshold_merge_composite_store(default_project):
     assert len(get_sorted_rules(default_project)) == 0
 
