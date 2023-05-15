@@ -4,15 +4,21 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
 
+import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {INTERNAL_API_REGEX} from 'sentry/views/starfish/modules/APIModule/constants';
 import {HostDetails} from 'sentry/views/starfish/modules/APIModule/hostDetails';
+import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
@@ -25,6 +31,7 @@ import {
   getEndpointDomainsQuery,
   getEndpointGraphEventView,
   getEndpointGraphQuery,
+  useGetTransactionsForHosts,
 } from './queries';
 
 const HTTP_ACTION_OPTIONS = [
@@ -59,6 +66,7 @@ export default function APIModuleView({location, onSelect}: Props) {
     transaction: '',
   });
   const endpointTableRef = useRef<HTMLInputElement>(null);
+  const organization = useOrganization();
 
   const endpointsDomainEventView = getEndpointDomainsEventView({
     datetime: pageFilter.selection.datetime,
@@ -66,6 +74,27 @@ export default function APIModuleView({location, onSelect}: Props) {
   const endpointsDomainQuery = getEndpointDomainsQuery({
     datetime: pageFilter.selection.datetime,
   });
+
+  const {selection} = pageFilter;
+  const {projects, environments, datetime} = selection;
+
+  useApiQuery<null>(
+    [
+      `/organizations/${organization.slug}/events-starfish/`,
+      {
+        query: {
+          ...{
+            environment: environments,
+            project: projects.map(proj => String(proj)),
+          },
+          ...normalizeDateTimeParams(datetime),
+        },
+      },
+    ],
+    {
+      staleTime: 10,
+    }
+  );
 
   const {isLoading: _isDomainsLoading, data: domains} = useSpansQuery({
     eventView: endpointsDomainEventView,
@@ -164,6 +193,33 @@ export default function APIModuleView({location, onSelect}: Props) {
       })),
   ];
 
+  const interval = getInterval(pageFilter.selection.datetime, 'low');
+  const {isLoading: isTopTransactionDataLoading, data: topTransactionsData} =
+    useGetTransactionsForHosts(
+      domains
+        .map(({domain}) => domain)
+        .filter(domain => !domain.match(INTERNAL_API_REGEX)),
+      interval
+    );
+
+  const tpmTransactionSeries = queryToSeries(
+    topTransactionsData,
+    'group',
+    'epm()',
+    startTime,
+    endTime,
+    24
+  );
+
+  const p75TransactionSeries = queryToSeries(
+    topTransactionsData,
+    'group',
+    'p75(transaction.duration)',
+    startTime,
+    endTime,
+    24
+  );
+
   return (
     <Fragment>
       <FilterOptionsContainer>
@@ -192,6 +248,22 @@ export default function APIModuleView({location, onSelect}: Props) {
               data={zeroFilledFailureRate}
               loading={isGraphLoading}
               chartColors={[themes.charts.getColorPalette(2)[2]]}
+            />
+          </ChartPanel>
+        </ChartsContainerItem>
+        <ChartsContainerItem>
+          <ChartPanel title={t('Top Transactions Throughput')}>
+            <APIModuleChart
+              data={tpmTransactionSeries}
+              loading={isTopTransactionDataLoading}
+            />
+          </ChartPanel>
+        </ChartsContainerItem>
+        <ChartsContainerItem>
+          <ChartPanel title={t('Top Transactions p75')}>
+            <APIModuleChart
+              data={p75TransactionSeries}
+              loading={isTopTransactionDataLoading}
             />
           </ChartPanel>
         </ChartsContainerItem>
@@ -245,7 +317,6 @@ function APIModuleChart({
   loading: boolean;
   chartColors?: string[];
 }) {
-  const themes = useTheme();
   return (
     <Chart
       statsPeriod="24h"
@@ -264,7 +335,7 @@ function APIModuleChart({
       definedAxisTicks={4}
       stacked
       isLineChart
-      chartColors={chartColors ?? themes.charts.getColorPalette(2)}
+      chartColors={chartColors}
       disableXAxis
     />
   );

@@ -13,7 +13,7 @@ from sentry.snuba.dataset import EntityKey
 from sentry.snuba.sessions import _make_stats
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseMetricsTestCase
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.silo import region_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -1548,7 +1548,7 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
             assert set(actual) == {(p1.id, 4), (p2.id, 2)}
 
 
-@control_silo_test
+@region_silo_test(stable=True)
 @parametrize_backend
 class InitWithoutUserTestCase(TestCase, SnubaTestCase):
     def setUp(self):

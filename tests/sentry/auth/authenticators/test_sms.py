@@ -8,9 +8,11 @@ from freezegun import freeze_time
 from sentry.auth.authenticators import SmsInterface
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.sms import InvalidPhoneNumber, phone_number_as_e164
 
 
+@control_silo_test(stable=True)
 class SmsInterfaceTest(TestCase):
     def setUp(self):
         self.user = self.create_user(email="test@example.com", is_superuser=False)

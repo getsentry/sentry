@@ -13,7 +13,9 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
 )
 from sentry.ingest.transaction_clusterer.rules import (
     ProjectOptionRuleStore,
-    RuleSet,
+    RedisRuleStore,
+    bump_last_used,
+    get_redis_rules,
     get_rules,
     get_sorted_rules,
     update_rules,
@@ -21,9 +23,9 @@ from sentry.ingest.transaction_clusterer.rules import (
 from sentry.ingest.transaction_clusterer.tasks import cluster_projects, spawn_clusterers
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 from sentry.models import Organization, Project
-from sentry.models.options.project_option import ProjectOption
 from sentry.relay.config import get_project_config
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.options import override_options
 
 
 def test_multi_fanout():
@@ -137,16 +139,8 @@ def test_sort_rules():
     ]
 
 
-@pytest.fixture(params=(True, False))
-def pickle_mode(request):
-    field = ProjectOption._meta.get_field("value")
-    with mock.patch.object(field, "write_json", request.param):
-        yield
-
-
 @mock.patch("sentry.ingest.transaction_clusterer.rules.CompositeRuleStore.MERGE_MAX_RULES", 2)
 @pytest.mark.django_db
-@pytest.mark.usefixtures("pickle_mode")
 def test_max_rule_threshold_merge_composite_store(default_project):
     assert len(get_sorted_rules(default_project)) == 0
 
@@ -173,12 +167,12 @@ def test_save_rules(default_project):
     assert project_rules == {}
 
     with freeze_time("2012-01-14 12:00:01"):
-        update_rules(project, [ReplacementRule("foo"), ReplacementRule("bar")])
+        assert 2 == update_rules(project, [ReplacementRule("foo"), ReplacementRule("bar")])
     project_rules = get_rules(project)
     assert project_rules == {"foo": 1326542401, "bar": 1326542401}
 
     with freeze_time("2012-01-14 12:00:02"):
-        update_rules(project, [ReplacementRule("bar"), ReplacementRule("zap")])
+        assert 1 == update_rules(project, [ReplacementRule("bar"), ReplacementRule("zap")])
     project_rules = get_rules(project)
     assert {"bar": 1326542402, "foo": 1326542401, "zap": 1326542402}
 
@@ -201,7 +195,7 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     project2 = Project(id=223, name="project2", organization_id=default_organization.id)
     for project in (project1, project2):
         project.save()
-        _add_mock_data(project, 10)
+        _add_mock_data(project, 4)
 
     spawn_clusterers()
 
@@ -315,18 +309,10 @@ def test_transaction_clusterer_generates_rules(default_project):
 )
 @pytest.mark.django_db
 def test_transaction_clusterer_bumps_rules(_, default_organization):
-    tmp_redis_storage = {}
+    project1 = Project(id=123, name="project1", organization_id=default_organization.id)
+    project1.save()
 
-    class MockRedisRuleStore:
-        def read(self, project: Project) -> RuleSet:
-            return tmp_redis_storage.get(project, {})
-
-        def write(self, project: Project, rules) -> None:
-            tmp_redis_storage[project] = rules
-
-    with mock.patch("sentry.ingest.transaction_clusterer.rules.RedisRuleStore", MockRedisRuleStore):
-        project1 = Project(id=123, name="project1", organization_id=default_organization.id)
-        project1.save()
+    with override_options({"txnames.bump-lifetime-sample-rate": 1.0}):
         for i in range(10):
             _store_transaction_name(project1, f"/user/tx-{project1.name}-{i}/settings")
 
@@ -353,11 +339,13 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
             )
 
         # _get_rules fetches from project options, which arent updated yet.
+        assert get_redis_rules(project1) == {"/user/*/**": 2}
         assert get_rules(project1) == {"/user/*/**": 1}
         # Update rules to update the project option storage.
         with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 3):
-            update_rules(project1, [])
+            assert 0 == update_rules(project1, [])
         # After project options are updated, the last_seen should also be updated.
+        assert get_redis_rules(project1) == {"/user/*/**": 2}
         assert get_rules(project1) == {"/user/*/**": 2}
 
 
@@ -369,15 +357,6 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
 )
 @pytest.mark.django_db
 def test_dont_store_inexisting_rules(_, default_organization):
-    tmp_redis_storage = {}
-
-    class MockRedisRuleStore:
-        def read(self, project: Project) -> RuleSet:
-            return tmp_redis_storage.get(project, {})
-
-        def write(self, project: Project, rules) -> None:
-            tmp_redis_storage[project] = rules
-
     rogue_transaction = {
         "transaction": "/transaction/for/rogue/*/rule",
         "transaction_info": {"source": "sanitized"},
@@ -394,10 +373,9 @@ def test_dont_store_inexisting_rules(_, default_organization):
         },
     }
 
-    with mock.patch("sentry.ingest.transaction_clusterer.rules.RedisRuleStore", MockRedisRuleStore):
+    with override_options({"txnames.bump-lifetime-sample-rate": 1.0}):
         project1 = Project(id=234, name="project1", organization_id=default_organization.id)
         project1.save()
-
         for i in range(3):
             _store_transaction_name(project1, f"/user/tx-{project1.name}-{i}/settings")
 
@@ -427,3 +405,13 @@ def test_stale_rules_arent_saved(default_project):
     with freeze_time("2001-01-01 01:00:00"):
         update_rules(default_project, [ReplacementRule("baz/baz")])
     assert get_sorted_rules(default_project) == [("baz/baz", 978310800)]
+
+
+def test_bump_last_used():
+    """Redis update works and does not delete other keys in the set."""
+    project1 = Project(id=123, name="project1")
+    RedisRuleStore().write(project1, {"foo": 1, "bar": 2})
+    assert get_redis_rules(project1) == {"foo": 1, "bar": 2}
+    with freeze_time("2000-01-01 01:00:00"):
+        bump_last_used(project1, "bar")
+    assert get_redis_rules(project1) == {"foo": 1, "bar": 946688400}

@@ -32,7 +32,8 @@ from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color

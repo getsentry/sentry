@@ -10,7 +10,8 @@ from sentry.models import ExternalActor, OrganizationMember, User
 from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.team import Team
 from sentry.roles import organization_roles
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 
 from .response import OrganizationMemberResponse
 from .utils import get_organization_id
