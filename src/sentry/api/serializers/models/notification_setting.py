@@ -1,8 +1,6 @@
 from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
-import sentry_sdk
-
 from sentry.api.serializers import Serializer
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.team import Team
@@ -41,17 +39,8 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         """
         type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
 
-        team_map: Mapping[int, Union[Team, RpcTeam]] = {}
-        user_map: Mapping[int, Union[User, RpcUser]] = {}
-        for recipient in item_list:
-            if isinstance(recipient, (User, RpcUser)):
-                user_map[recipient.id] = recipient
-            elif isinstance(recipient, (Team, RpcTeam)):
-                team_map[recipient.id] = recipient
-            else:
-                sentry_sdk.capture_message(
-                    f"Expected User|RpcUser|Team|RpcTeam got {recipient.__class__.__name__}"
-                )
+        team_map = {t.id: t for t in item_list if isinstance(t, (Team, RpcTeam))}
+        user_map = {u.id: u for u in item_list if isinstance(u, (User, RpcUser))}
 
         notifications_settings = NotificationSetting.objects._filter(
             type=type_option,
