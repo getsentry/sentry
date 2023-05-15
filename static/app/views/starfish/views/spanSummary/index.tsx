@@ -25,6 +25,7 @@ import {
 import {useApiQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
+import {TextAlignRight} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {
   getSpanFacetBreakdownQuery,
   getSpanInTransactionQuery,
@@ -63,6 +64,11 @@ const COLUMN_ORDER = [
     width: 200,
   },
   {
+    key: 'p50_comparison',
+    name: 'Compared to P50',
+    width: 200,
+  },
+  {
     key: 'compare',
     name: '',
     width: 50,
@@ -71,6 +77,7 @@ const COLUMN_ORDER = [
 
 type SpanTableRow = {
   exclusive_time: number;
+  p50Comparison: number;
   'project.name': string;
   spanDuration: number;
   spanOp: string;
@@ -195,6 +202,78 @@ export default function SpanSummary({location, params}: Props) {
       transactionDuration: transaction?.['transaction.duration'],
     };
   });
+
+  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+    if (column.key === 'p50_comparison') {
+      return (
+        <TextAlignRight>
+          <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
+        </TextAlignRight>
+      );
+    }
+
+    return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
+  }
+
+  function renderBodyCell(
+    column: GridColumnHeader,
+    row: SpanTableRow,
+    setComparison: (eventId: string) => void
+  ): React.ReactNode {
+    if (column.key === 'transaction_id') {
+      return (
+        <Link
+          to={`/performance/${row['project.name']}:${
+            row.transaction_id
+          }#span-${row.span_id.slice(19).replace('-', '')}`}
+        >
+          {row.transaction_id.slice(0, 8)}
+        </Link>
+      );
+    }
+
+    if (column.key === 'duration') {
+      return (
+        <SpanDurationBar
+          spanOp={row.spanOp}
+          spanDuration={row.spanDuration}
+          transactionDuration={row.transactionDuration}
+        />
+      );
+    }
+
+    if (column.key === 'p50_comparison') {
+      const {p50} = data[0];
+      const diff = row.spanDuration - p50;
+
+      if (diff === p50) {
+        return 'At baseline';
+      }
+
+      const labelString =
+        diff > 0 ? `+${diff.toFixed(2)}ms above` : `${diff.toFixed(2)}ms below`;
+
+      return <ComparisonLabel value={diff}>{labelString}</ComparisonLabel>;
+    }
+
+    if (column.key === 'timestamp') {
+      return <DateTime date={row.timestamp} year timeZone seconds />;
+    }
+
+    if (column.key === 'compare') {
+      return (
+        <Button
+          onClick={() => {
+            setComparison(row.transaction_id);
+          }}
+        >
+          {t('View')}
+        </Button>
+      );
+    }
+
+    return <span>{row[column.key]}</span>;
+  }
 
   return (
     <Layout.Page>
@@ -358,10 +437,6 @@ export default function SpanSummary({location, params}: Props) {
   );
 }
 
-function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-  return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
-}
-
 export const OverflowEllipsisTextContainer = styled('span')`
   text-overflow: ellipsis;
   overflow: hidden;
@@ -404,51 +479,10 @@ const ToggleLabel = styled('span')<{active?: boolean}>`
   color: ${p => (p.active ? p.theme.purple300 : p.theme.gray300)};
 `;
 
-function renderBodyCell(
-  column: GridColumnHeader,
-  row: SpanTableRow,
-  setComparison: (eventId: string) => void
-): React.ReactNode {
-  if (column.key === 'transaction_id') {
-    return (
-      <Link
-        to={`/performance/${row['project.name']}:${row.transaction_id}#span-${row.span_id
-          .slice(19)
-          .replace('-', '')}`}
-      >
-        {row.transaction_id.slice(0, 8)}
-      </Link>
-    );
-  }
-
-  if (column.key === 'duration') {
-    return (
-      <SpanDurationBar
-        spanOp={row.spanOp}
-        spanDuration={row.spanDuration}
-        transactionDuration={row.transactionDuration}
-      />
-    );
-  }
-
-  if (column.key === 'timestamp') {
-    return <DateTime date={row.timestamp} year timeZone seconds />;
-  }
-
-  if (column.key === 'compare') {
-    return (
-      <Button
-        onClick={() => {
-          setComparison(row.transaction_id);
-        }}
-      >
-        {t('View')}
-      </Button>
-    );
-  }
-
-  return <span>{row[column.key]}</span>;
-}
+const ComparisonLabel = styled('div')<{value: number}>`
+  text-align: right;
+  color: ${p => (p.value < 0 ? p.theme.green400 : p.theme.red400)};
+`;
 
 function SpanGroupKeyValueList({
   spanDescription,
