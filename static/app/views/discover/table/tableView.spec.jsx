@@ -317,6 +317,24 @@ describe('TableView > CellActions', function () {
     });
   });
 
+  it('renders transaction summary link', function () {
+    rows.data[0].project = 'project-slug';
+
+    renderComponent(initialData, rows, eventView);
+
+    const firstRow = screen.getAllByRole('row')[1];
+    const link = within(firstRow).getByTestId('tableView-transaction-link');
+
+    expect(link).toHaveAttribute(
+      'href',
+      expect.stringMatching(
+        RegExp(
+          '/organizations/org-slug/performance/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
+        )
+      )
+    );
+  });
+
   it('handles go to release', async function () {
     renderComponent(initialData, rows, eventView);
     await openContextMenu(5);
