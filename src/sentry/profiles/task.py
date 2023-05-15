@@ -254,11 +254,11 @@ def _normalize(profile: Profile, organization: Organization) -> None:
             profile["device_classification"] = classification
 
 
-def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any], List[int]]:
+def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any], set[int]]:
     with sentry_sdk.start_span(op="task.profiling.symbolicate.prepare_frames"):
         modules = profile["debug_meta"]["images"]
         frames: List[Any] = []
-        frames_sent: List[int] = []
+        frames_sent: set[int] = set()
 
         # NOTE: the usage of `adjust_instruction_addr` assumes that all
         # the profilers on all the platforms are walking stacks right from a
@@ -269,8 +269,9 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
             if profile["platform"] in JS_PLATFORMS:
                 for idx, f in enumerate(profile["profile"]["frames"]):
                     if is_valid_javascript_frame(f):
-                        frames_sent.append(idx)
-                        frames.append(f)
+                        frames_sent.add(idx)
+
+                frames = [profile["profile"]["frames"][idx] for idx in frames_sent]
             else:
                 frames = profile["profile"]["frames"]
 
@@ -284,6 +285,7 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
                         frame["adjust_instruction_addr"] = False
                         frames.append(frame)
                         stack[0] = len(frames) - 1
+                        frames_sent.add(stack[0])
 
             stacktraces = [{"frames": frames}]
         # in the original format, we need to gather frames from all samples
@@ -387,7 +389,7 @@ def _process_symbolicator_results(
     profile: Profile,
     modules: List[Any],
     stacktraces: List[Any],
-    frames_sent: List[int],
+    frames_sent: set[int],
 ) -> None:
     with sentry_sdk.start_span(op="task.profiling.symbolicate.process_results"):
         # update images with status after symbolication
@@ -411,7 +413,7 @@ def _process_symbolicator_results(
 
 
 def _process_symbolicator_results_for_sample(
-    profile: Profile, stacktraces: List[Any], frames_sent: List[int]
+    profile: Profile, stacktraces: List[Any], frames_sent: set[int]
 ) -> None:
     if profile["platform"] == "rust":
 
@@ -451,7 +453,7 @@ def _process_symbolicator_results_for_sample(
         new_frames = []
 
         for idx in range(len(raw_frames)):
-            if idx in set(frames_sent):
+            if idx in frames_sent:
                 for frame_idx in symbolicated_frames_dict[idx]:
                     new_frames.append(symbolicated_frames[frame_idx])
             else:
