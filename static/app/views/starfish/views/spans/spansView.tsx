@@ -24,6 +24,7 @@ const LIMIT: number = 25;
 
 type Props = {
   location: Location;
+  onSelect: (row: SpanDataRow) => void;
 };
 
 type State = {
@@ -89,7 +90,7 @@ export default function SpansView(props: Props) {
           currentClusters.map(c => c.condition(c.name)),
           orderBy,
           LIMIT
-        )}`
+        )}&format=sql`
       ).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -211,6 +212,7 @@ export default function SpansView(props: Props) {
         orderBy={orderBy}
         onSetOrderBy={newOrderBy => setState({orderBy: newOrderBy})}
         spansTrendsData={spansTrendsData}
+        onSelect={props.onSelect}
       />
     </Fragment>
   );
