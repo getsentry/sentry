@@ -94,13 +94,16 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def remove_notification_settings(
-        self, *, team_id: Optional[int], user_id: Optional[int], provider: ExternalProviders
+    def remove_notification_settings_for_team(
+        self, *, team_id: int, provider: ExternalProviders
     ) -> None:
-        """
-        Delete notification settings based on an actor_id
-        There is no foreign key relationship so we have to manually cascade.
-        """
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def remove_notification_settings_for_user(
+        self, *, user_id: int, provider: ExternalProviders
+    ) -> None:
         pass
 
 

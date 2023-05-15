@@ -306,7 +306,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         if actor:
             (team_ids if actor.actor_type == ActorType.TEAM else user_ids).add(actor.id)
 
-        assert (team_ids and not user_ids) or (user_ids and not team_ids), "Can only get settings for team or user"
+        assert (team_ids and not user_ids) or (
+            user_ids and not team_ids
+        ), "Can only get settings for team or user"
 
         scope_type, scope_identifier = get_scope(
             actor=actor, team=team, user=user, project=project, organization=organization
@@ -515,7 +517,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
         assert key_field, "Could not resolve key_field"
 
-        # TODO(hybridcloud) This will need to filter on user_id or team_id
         # Explicitly typing to satisfy mypy.
         team_ids: Set[int] = set()
         user_ids: Set[int] = set()
