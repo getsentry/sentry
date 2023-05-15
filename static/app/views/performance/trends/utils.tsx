@@ -430,3 +430,9 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
     smoothedResults,
   };
 }
+
+export function modifyTransactionNameTrendsQuery(trendView: TrendView) {
+  const query = new MutableSearch(trendView.query);
+  query.setFilterValues('tpm()', ['>0.01']);
+  trendView.query = query.formatString();
+}
