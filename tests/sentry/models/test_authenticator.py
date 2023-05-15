@@ -39,8 +39,7 @@ class AuthenticatorTest(TestCase):
 
 
 def test_authenticator_config_compatibility():
-    field_pickle = AuthenticatorConfig(write_json=False)
-    field_json = AuthenticatorConfig(write_json=True)
+    field_json = AuthenticatorConfig()
 
     value = {
         "devices": [
@@ -71,9 +70,4 @@ def test_authenticator_config_compatibility():
         ]
     }
 
-    enc_pickle = field_pickle.get_db_prep_value(value)
-    enc_json = field_json.get_db_prep_value(value)
-
-    for field in (field_pickle, field_json):
-        for enc in (enc_pickle, enc_json):
-            assert value == field.to_python(enc)
+    assert field_json.to_python(field_json.get_db_prep_value(value)) == value
