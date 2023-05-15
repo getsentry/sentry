@@ -56,3 +56,4 @@ Brewfile.lock.json
 import-graph.txt
 import-graph.dot
 bin/rrweb-output
+model-manifest.json
