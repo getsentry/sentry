@@ -45,7 +45,7 @@ DATASET_OPTIONS = {
     "metrics": metrics_performance,
     "profiles": profiles,
     "issuePlatform": issue_platform,
-    "profile_functions": functions,
+    "profileFunctions": functions,
     "spansIndexed": spans_indexed,
 }
 
