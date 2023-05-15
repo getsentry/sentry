@@ -50,6 +50,7 @@ export interface Organization extends OrganizationSummary {
   eventsMemberAdmin: boolean;
   experiments: Partial<OrgExperiments>;
   isDefault: boolean;
+  isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];
   openMembership: boolean;
   orgRoleList: OrgRole[];

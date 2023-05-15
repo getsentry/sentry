@@ -127,9 +127,6 @@ class TeamStatus:
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
 
-    # Deprecated. Do not use
-    VISIBLE = 0
-
 
 @region_silo_only_model
 class Team(Model, SnowflakeIdMixin):

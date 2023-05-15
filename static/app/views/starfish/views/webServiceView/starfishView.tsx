@@ -17,7 +17,9 @@ const EventsRequest = withApi(_EventsRequest);
 import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
@@ -41,6 +43,26 @@ export function StarfishView(props: BasePerformanceViewProps) {
   const {organization, eventView, onSelect} = props;
   const theme = useTheme();
   const [selectedSpike, setSelectedSpike] = useState<FailureSpike>(null);
+
+  const pageFilters = usePageFilters();
+  const {selection} = pageFilters;
+  const {projects, environments} = selection;
+
+  useApiQuery<null>(
+    [
+      `/organizations/${organization.slug}/events-starfish/`,
+      {
+        query: {
+          environment: environments,
+          project: projects.map(proj => String(proj)),
+          statsPeriod: '7d',
+        },
+      },
+    ],
+    {
+      staleTime: 10,
+    }
+  );
 
   function renderFailureRateChart() {
     const query = new MutableSearch(['event.type:transaction']);
@@ -87,7 +109,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
               />
               <FailureRateChart
                 statsPeriod={eventView.statsPeriod}
-                height={120}
+                height={145}
                 data={transformedData}
                 start={eventView.start as string}
                 end={eventView.end as string}
@@ -155,7 +177,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           return (
             <Chart
               statsPeriod="24h"
-              height={120}
+              height={145}
               data={transformedData}
               start=""
               end=""

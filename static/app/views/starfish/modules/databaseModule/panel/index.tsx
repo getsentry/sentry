@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 import moment from 'moment';
@@ -7,10 +7,15 @@ import moment from 'moment';
 import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import MarkLine from 'sentry/components/charts/components/markLine';
+import TimeSince from 'sentry/components/timeSince';
+import Version from 'sentry/components/version';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Series} from 'sentry/types/echarts';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
@@ -20,8 +25,11 @@ import QueryTransactionTable, {
 } from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
 import SimilarQueryView from 'sentry/views/starfish/modules/databaseModule/panel/similarQueryView';
 import {
+  useQueryExampleTransaction,
+  useQueryGetEvent,
   useQueryPanelEventCount,
   useQueryPanelGraph,
+  useQueryPanelSparklines,
   useQueryPanelTable,
   useQueryTransactionByTPMAndP75,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
@@ -32,6 +40,7 @@ import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {DataRow, MainTableSort} from '../databaseTableView';
 
 const INTERVAL = 12;
+const SPARKLINE_INTERVAL = 24;
 
 type DbQueryDetailProps = {
   isDataLoading: boolean;
@@ -40,6 +49,7 @@ type DbQueryDetailProps = {
   row: DataRow;
   nextRow?: DataRow;
   prevRow?: DataRow;
+  transaction?: string;
 };
 
 export type TransactionListDataRow = {
@@ -59,6 +69,7 @@ export default function QueryDetail({
   onClose,
   onRowChange,
   mainTableSort,
+  transaction,
 }: Partial<DbQueryDetailProps> & {
   isDataLoading: boolean;
   mainTableSort: MainTableSort;
@@ -75,6 +86,7 @@ export default function QueryDetail({
           row={row}
           nextRow={nextRow}
           prevRow={prevRow}
+          transaction={transaction}
         />
       )}
     </Detail>
@@ -86,11 +98,15 @@ function QueryDetailBody({
   nextRow,
   prevRow,
   onRowChange,
+  transaction,
   isDataLoading: isRowLoading,
 }: DbQueryDetailProps) {
   const theme = useTheme();
   const pageFilter = usePageFilters();
+  const organization = useOrganization();
   const {startTime, endTime} = getDateFilters(pageFilter);
+  const isNew = row.newish === 1;
+  const isOld = row.retired === 1;
 
   const [sort, setSort] = useState<PanelSort>({
     direction: undefined,
@@ -102,27 +118,53 @@ function QueryDetailBody({
   const {isLoading: isTableLoading, data: tableData} = useQueryPanelTable(
     row,
     sort.sortHeader?.key,
-    sort.direction
+    sort.direction,
+    transaction
+  );
+
+  const {isLoading: isSparklinesLoading, data: sparklineData} = useQueryPanelSparklines(
+    row,
+    sort.sortHeader?.key,
+    sort.direction,
+    SPARKLINE_INTERVAL,
+    transaction
   );
 
   const {isLoading: isP75GraphLoading, data: transactionGraphData} =
-    useQueryTransactionByTPMAndP75(tableData.map(d => d.transaction).splice(0, 5));
+    useQueryTransactionByTPMAndP75(
+      tableData.map(d => d.transaction).splice(0, 5),
+      SPARKLINE_INTERVAL
+    );
 
   const {isLoading: isEventCountLoading, data: eventCountData} =
     useQueryPanelEventCount(row);
+
+  const {isLoading: isExampleLoading, data: exampleTransaction} =
+    useQueryExampleTransaction(row);
+
+  const {isLoading: isFirstExampleLoading, data: firstSeenExample} = useQueryGetEvent(
+    exampleTransaction?.[0]?.first
+  );
+  const {isLoading: isLastExampleLoading, data: lastSeenExample} = useQueryGetEvent(
+    exampleTransaction?.[0]?.latest
+  );
 
   const isDataLoading =
     isLoading ||
     isTableLoading ||
     isEventCountLoading ||
     isRowLoading ||
-    isP75GraphLoading;
+    isP75GraphLoading ||
+    isExampleLoading ||
+    isFirstExampleLoading ||
+    isLastExampleLoading ||
+    isSparklinesLoading;
 
   const eventCountMap = keyBy(eventCountData, 'transaction');
 
   const mergedTableData: TransactionListDataRow[] = tableData.map(data => {
-    const {transaction} = data;
-    const eventData = eventCountMap[transaction];
+    const tableTransaction = data.transaction;
+    const eventData = eventCountMap[tableTransaction];
     if (eventData?.uniqueEvents) {
       const frequency = data.count / eventData.uniqueEvents;
       return {...data, frequency, ...eventData} as TransactionListDataRow;
@@ -136,21 +178,50 @@ function QueryDetailBody({
     endTime
   );
 
+  const spmTransactionSeries = queryToSeries(
+    sparklineData,
+    'transaction',
+    'spm',
+    startTime,
+    endTime,
+    SPARKLINE_INTERVAL
+  );
+
+  const spanp50TransactionSeries = queryToSeries(
+    sparklineData,
+    'transaction',
+    'p50',
+    startTime,
+    endTime,
+    SPARKLINE_INTERVAL
+  );
+
   const tpmTransactionSeries = queryToSeries(
     transactionGraphData,
     'group',
-    'count()',
+    'epm()',
     startTime,
-    endTime
+    endTime,
+    SPARKLINE_INTERVAL
   );
 
-  const p75TransactionSeries = queryToSeries(
+  const p50TransactionSeries = queryToSeries(
     transactionGraphData,
     'group',
-    'p75(transaction.duration)',
+    'p50(transaction.duration)',
     startTime,
-    endTime
+    endTime,
+    SPARKLINE_INTERVAL
   );
+  const markLine =
+    spmTransactionSeries?.[0]?.data && (isNew || isOld)
+      ? generateMarkLine(
+          isNew ? 'First Seen' : 'Last Seen',
+          isNew ? row.firstSeen : row.lastSeen,
+          spmTransactionSeries[0].data,
+          theme
+        )
+      : undefined;
 
   return (
     <div>
@@ -174,14 +245,48 @@ function QueryDetailBody({
             {t('First Seen')}
             {row.newish === 1 && <Badge type="new" text="new" />}
           </SubHeader>
-          <SubSubHeader>{row.firstSeen}</SubSubHeader>
+          {Math.abs(moment(row.firstSeen).diff(startTime, 'minutes')) < 360 ? (
+            <SubSubHeader>
+              More than <TimeSince date={row.firstSeen} />{' '}
+            </SubSubHeader>
+          ) : (
+            <span>
+              <SubSubHeader>
+                <TimeSince date={row.firstSeen} />{' '}
+              </SubSubHeader>
+              {firstSeenExample?.release && (
+                <VersionHoverCard
+                  organization={organization}
+                  projectSlug="sentry"
+                  releaseVersion={firstSeenExample.release.version}
+                  showUnderline
+                  underlineColor="linkUnderline"
+                >
+                  <Version version={String(firstSeenExample.release.version)} truncate />
+                </VersionHoverCard>
+              )}
+            </span>
+          )}
         </FlexRowItem>
         <FlexRowItem>
           <SubHeader>
             {t('Last Seen')}
             {row.retired === 1 && <Badge type="warning" text="old" />}
           </SubHeader>
-          <SubSubHeader>{row.lastSeen}</SubSubHeader>
+          <SubSubHeader>
+            <TimeSince date={row.lastSeen} />
+          </SubSubHeader>
+          {lastSeenExample?.release && (
+            <VersionHoverCard
+              organization={organization}
+              projectSlug="sentry"
+              releaseVersion={lastSeenExample.release.version}
+              showUnderline
+              underlineColor="linkUnderline"
+            >
+              <Version version={String(lastSeenExample.release.version)} truncate />
+            </VersionHoverCard>
+          )}
         </FlexRowItem>
         <FlexRowItem>
           <SubHeader>{t('Total Time')}</SubHeader>
@@ -228,56 +333,17 @@ function QueryDetailBody({
           />
         </FlexRowItem>
       </FlexRowContainer>
-      <FlexRowContainer>
-        <FlexRowItem>
-          <SubHeader>{t('Top 5 Transactions by Throughput')}</SubHeader>
-          <Chart
-            statsPeriod="24h"
-            height={140}
-            data={tpmTransactionSeries}
-            start=""
-            end=""
-            loading={isDataLoading}
-            grid={{
-              left: '0',
-              right: '0',
-              top: '16px',
-              bottom: '8px',
-            }}
-            utc={false}
-            disableXAxis
-            isLineChart
-            hideYAxisSplitLine
-          />
-        </FlexRowItem>
-        <FlexRowItem>
-          <SubHeader>{t('Top 5 Transactions by P75')}</SubHeader>
-          <Chart
-            statsPeriod="24h"
-            height={140}
-            data={p75TransactionSeries}
-            start=""
-            end=""
-            loading={isP75GraphLoading}
-            grid={{
-              left: '0',
-              right: '0',
-              top: '16px',
-              bottom: '8px',
-            }}
-            utc={false}
-            disableXAxis
-            isLineChart
-            hideYAxisSplitLine
-          />
-        </FlexRowItem>
-      </FlexRowContainer>
       <QueryTransactionTable
         isDataLoading={isDataLoading}
         onClickSort={s => setSort(s)}
         row={row}
         sort={sort}
         tableData={mergedTableData}
+        spmData={spmTransactionSeries}
+        tpmData={tpmTransactionSeries}
+        spanP50Data={spanp50TransactionSeries}
+        txnP50Data={p50TransactionSeries}
+        markLine={markLine}
       />
       <FlexRowContainer>
         <FlexRowItem>
@@ -353,6 +419,41 @@ export const highlightSql = (description: string, queryDetail: DataRow) => {
     return null;
   });
 };
+
+function generateMarkLine(
+  title: string,
+  position: string,
+  data: SeriesDataUnit[],
+  theme: Theme
+) {
+  const index = data.findIndex(item => {
+    return (
+      Math.abs(moment.duration(moment(item.name).diff(moment(position))).asSeconds()) <
+      86400
+    );
+  });
+  return {
+    seriesName: title,
+    type: 'line',
+    color: theme.blue300,
+    data: [],
+    xAxisIndex: 0,
+    yAxisIndex: 0,
+    markLine: MarkLine({
+      silent: true,
+      animation: false,
+      lineStyle: {color: theme.blue300, type: 'dotted'},
+      data: [
+        {
+          xAxis: index,
+        },
+      ],
+      label: {
+        show: false,
+      },
+    }),
+  };
+}
 
 const throughputQueryToChartData = (
   data: any,
