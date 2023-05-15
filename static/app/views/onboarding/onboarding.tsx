@@ -135,6 +135,7 @@ function Onboarding(props: Props) {
     onboardingContext,
     onboardingSteps,
     organization.slug,
+    props.location.pathname,
   ]);
 
   const heartbeatFooter = !!organization?.features.includes(
