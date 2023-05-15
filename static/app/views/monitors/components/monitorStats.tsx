@@ -21,11 +21,11 @@ import {Monitor, MonitorEnvironment, MonitorStat} from '../types';
 
 type Props = {
   monitor: Monitor;
-  monitorEnv: MonitorEnvironment;
+  monitorEnvs: MonitorEnvironment[];
   orgId: string;
 };
 
-function MonitorStats({monitor, monitorEnv, orgId}: Props) {
+function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
 
@@ -46,7 +46,7 @@ function MonitorStats({monitor, monitorEnv, orgId}: Props) {
         since: since.toString(),
         until: until.toString(),
         resolution: '1d',
-        environment: monitorEnv.name,
+        environment: monitorEnvs.map(e => e.name),
       },
     },
   ] as const;
