@@ -136,7 +136,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         query_params = self.get_query_parameters(request)
 
         queryset = Team.objects.filter(
-            organization=organization, status=TeamStatus.VISIBLE
+            organization=organization, status=TeamStatus.ACTIVE
         ).order_by("slug")
         if query_params["filter"]:
             queryset = queryset.filter(slug__iexact=slugify(query_params["filter"]))
@@ -231,7 +231,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             .select_related("organization")
             .get()
         )
-        if team.status != TeamStatus.VISIBLE:
+        if team.status != TeamStatus.ACTIVE:
             raise Team.DoesNotExist
         return team
 

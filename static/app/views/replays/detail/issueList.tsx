@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -12,12 +12,11 @@ import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 import theme from 'sentry/utils/theme';
-import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
   projectId: string;
@@ -25,88 +24,62 @@ type Props = {
 };
 const columns = [t('Issue'), t('Graph'), t('Events'), t('Users')];
 
-type State = {
-  fetchError: undefined | RequestError;
-  fetching: boolean;
-  issues: Group[];
-};
-
 function IssueList({projectId, replayId}: Props) {
   const organization = useOrganization();
-  const api = useApi();
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.large})`);
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === projectId);
 
-  const [state, setState] = useState<State>({
-    fetchError: undefined,
-    fetching: true,
-    issues: [],
-  });
-
-  const fetchIssueData = useCallback(async () => {
-    setState(prev => ({
-      ...prev,
-      fetching: true,
-    }));
-    try {
-      const issues = await api.requestPromise(
-        `/organizations/${organization.slug}/issues/`,
-        {
-          query: {
-            // TODO(replays): What about backend issues?
-            project: projectId,
-            query: `replayId:${replayId}`,
-          },
-        }
-      );
-      setState({
-        fetchError: undefined,
-        fetching: false,
-        issues,
-      });
-    } catch (fetchError) {
-      Sentry.captureException(fetchError);
-      setState({
-        fetchError,
-        fetching: false,
-        issues: [],
-      });
+  const {
+    data: issues = [],
+    isLoading,
+    isError,
+    error,
+  } = useApiQuery<Group[], RequestError>(
+    [
+      `/organizations/${organization.slug}/issues/`,
+      {
+        query: {
+          query: `replayId:${replayId}`,
+        },
+      },
+    ],
+    {
+      staleTime: 0,
     }
-  }, [api, organization.slug, replayId, projectId]);
+  );
 
   useEffect(() => {
-    fetchIssueData();
-  }, [fetchIssueData]);
+    if (!isError) {
+      return;
+    }
+    Sentry.captureException(error);
+  }, [isError, error]);
 
-  const projectIds = useMemo(
-    () => (project?.id ? [Number(project.id)] : []),
-    [project?.id]
-  );
   const counts = useReplaysCount({
-    groupIds: state.issues.map(issue => issue.id),
+    groupIds: issues.map(issue => issue.id),
     organization,
-    projectIds,
   });
 
   return (
     <ReplayCountContext.Provider value={counts}>
       <StyledPanelTable
-        isEmpty={state.issues.length === 0}
+        isEmpty={issues.length === 0}
         emptyMessage={t('No Issues are related')}
-        isLoading={state.fetching}
+        isLoading={isLoading}
         headers={
           isScreenLarge ? columns : columns.filter(column => column !== t('Graph'))
         }
       >
-        {state.issues.map(issue => (
-          <TableRow
-            key={issue.id}
-            isScreenLarge={isScreenLarge}
-            issue={issue}
-            organization={organization}
-          />
-        )) || null}
+        {issues
+          // prioritize the replay issues first
+          .sort(a => (a.project.id === projectId ? -1 : 1))
+          .map(issue => (
+            <TableRow
+              key={issue.id}
+              isScreenLarge={isScreenLarge}
+              issue={issue}
+              organization={organization}
+            />
+          )) || null}
       </StyledPanelTable>
     </ReplayCountContext.Provider>
   );

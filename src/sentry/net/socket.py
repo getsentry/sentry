@@ -131,8 +131,8 @@ def safe_create_connection(
             # are safe, but if one record is straddling safe and unsafe IPs, it's
             # suspicious.
             if host == ip:
-                raise RestrictedIPAddress("(%s) matches the URL blacklist" % ip)
-            raise RestrictedIPAddress(f"({host}/{ip}) matches the URL blacklist")
+                raise RestrictedIPAddress(f"({ip}) matches the URL blocklist")
+            raise RestrictedIPAddress(f"({host}/{ip}) matches the URL blocklist")
         # End custom code.
 
         sock = None

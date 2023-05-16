@@ -2,9 +2,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as incidentActions from 'sentry/actionCreators/serviceIncidents';
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
-import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 
 jest.mock('sentry/actionCreators/serviceIncidents');
 
@@ -17,9 +17,9 @@ describe('Sidebar', function () {
   const location = {...router.location, ...{pathname: '/test/'}};
 
   const getElement = props => (
-    <PersistedStoreProvider>
+    <OnboardingContextProvider>
       <SidebarContainer organization={organization} location={location} {...props} />
-    </PersistedStoreProvider>
+    </OnboardingContextProvider>
   );
 
   const renderSidebar = props => render(getElement(props), {context: routerContext});
@@ -36,10 +36,6 @@ describe('Sidebar', function () {
     apiMocks.sdkUpdates = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sdk-updates/`,
       body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/client-state/`,
-      body: {},
     });
   });
 

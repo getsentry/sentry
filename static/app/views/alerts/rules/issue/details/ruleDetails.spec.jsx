@@ -19,9 +19,9 @@ describe('AlertRuleDetails', () => {
   });
   const member = TestStubs.Member();
 
-  const createWrapper = (props = {}, newContext) => {
+  const createWrapper = (props = {}, newContext, org = organization) => {
     const params = {
-      orgId: organization.slug,
+      orgId: org.slug,
       projectId: project.slug,
       ruleId: rule.id,
     };
@@ -38,7 +38,7 @@ describe('AlertRuleDetails', () => {
           {...props}
         />
       </RuleDetailsContainer>,
-      {context: routerContext, organization}
+      {context: routerContext, organization: org}
     );
   };
 
@@ -232,14 +232,16 @@ describe('AlertRuleDetails', () => {
   });
 
   it('mute button is disabled if no alerts:write permission', async () => {
+    const orgWithoutAccess = {
+      features: ['issue-alert-incompatible-rules', 'mute-alerts'],
+      access: [],
+    };
+
     const contextWithoutAccess = initializeOrg({
-      organization: {
-        features: ['issue-alert-incompatible-rules', 'mute-alerts'],
-        access: [],
-      },
+      organization: orgWithoutAccess,
     });
 
-    createWrapper({}, contextWithoutAccess);
+    createWrapper({}, contextWithoutAccess, orgWithoutAccess);
 
     expect(await screen.findByRole('button', {name: 'Mute'})).toBeDisabled();
   });

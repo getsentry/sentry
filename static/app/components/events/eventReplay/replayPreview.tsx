@@ -28,7 +28,7 @@ type Props = {
 
 function ReplayPreview({orgSlug, replaySlug, event}: Props) {
   const routes = useRoutes();
-  const {fetching, replay, fetchError} = useReplayData({
+  const {fetching, replay, fetchError, replayId} = useReplayData({
     orgSlug,
     replaySlug,
   });
@@ -87,7 +87,7 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
   }
 
   const fullReplayUrl = {
-    pathname: `/organizations/${orgSlug}/replays/${replaySlug}/`,
+    pathname: `/organizations/${orgSlug}/replays/${replayId}/`,
     query: {
       referrer: getRouteStringFromRoutes(routes),
       t_main: 'console',
@@ -99,7 +99,7 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
     <ReplayContextProvider
       isFetching={fetching}
       replay={replay}
-      initialTimeOffsetMs={initialTimeOffsetMs}
+      initialTimeOffsetMs={{offsetMs: initialTimeOffsetMs}}
     >
       <PlayerContainer data-test-id="player-container">
         <StaticPanel>

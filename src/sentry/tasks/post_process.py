@@ -638,7 +638,7 @@ def process_inbox_adds(job: PostProcessJob) -> None:
                 add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
             elif (
                 not is_reprocessed and not has_reappeared
-            ):  # If true, we added the .UNIGNORED reason already
+            ):  # If true, we added the .ONGOING reason already
                 if is_new:
                     add_group_to_inbox(event.group, GroupInboxReason.NEW)
                 elif is_regression:
@@ -655,18 +655,11 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
-    from sentry.issues.escalating import is_escalating
-    from sentry.models import (
-        Activity,
-        GroupInboxReason,
-        GroupSnooze,
-        GroupStatus,
-        GroupSubStatus,
-        add_group_to_inbox,
-    )
-    from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+    from sentry.issues.escalating import is_escalating, manage_snooze_states
+    from sentry.models import Activity, GroupInboxReason, GroupSnooze, GroupStatus, GroupSubStatus
 
-    group = job["event"].group
+    event = job["event"]
+    group = event.group
 
     # Check is group is escalating
     if (
@@ -674,10 +667,10 @@ def process_snoozes(job: PostProcessJob) -> None:
         and group.status == GroupStatus.IGNORED
         and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     ):
-        if not is_escalating(group):
+        if is_escalating(group):
+            manage_snooze_states(group, GroupInboxReason.ESCALATING, event)
+
             job["has_reappeared"] = True
-            return
-        job["has_reappeared"] = False
         return
 
     with metrics.timer("post_process.process_snoozes.duration"):
@@ -702,8 +695,16 @@ def process_snoozes(job: PostProcessJob) -> None:
                 "user_count": snooze.user_count,
                 "user_window": snooze.user_window,
             }
-            add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
-            record_group_history(group, GroupHistoryStatus.UNIGNORED)
+
+            if features.has("organizations:escalating-issues", group.organization):
+                manage_snooze_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
+
+            elif features.has("organizations:issue-states", group.organization):
+                manage_snooze_states(group, GroupInboxReason.ONGOING, event, snooze_details)
+
+            else:
+                manage_snooze_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
+
             Activity.objects.create(
                 project=group.project,
                 group=group,
@@ -713,7 +714,7 @@ def process_snoozes(job: PostProcessJob) -> None:
             )
 
             snooze.delete()
-            group.update(status=GroupStatus.UNRESOLVED)
+
             issue_unignored.send_robust(
                 project=group.project,
                 user_id=None,

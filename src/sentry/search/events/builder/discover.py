@@ -61,6 +61,7 @@ from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfi
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
+from sentry.search.events.datasets.spans_indexed import SpansIndexedDatasetConfig
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
@@ -346,6 +347,8 @@ class QueryBuilder(BaseQueryBuilder):
             self.config = ProfilesDatasetConfig(self)
         elif self.dataset == Dataset.Functions:
             self.config = ProfileFunctionsDatasetConfig(self)
+        elif self.dataset == Dataset.SpansIndexed:
+            self.config = SpansIndexedDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
@@ -1468,6 +1471,8 @@ class QueryBuilder(BaseQueryBuilder):
         return value
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        if not referrer:
+            InvalidSearchQuery("Query missing referrer.")
         return raw_snql_query(self.get_snql_query(), referrer, use_cache)
 
     def process_results(self, results: Any) -> EventsResponse:

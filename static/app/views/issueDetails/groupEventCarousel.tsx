@@ -4,7 +4,6 @@ import moment from 'moment-timezone';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button, ButtonProps} from 'sentry/components/button';
-import Clipboard from 'sentry/components/clipboard';
 import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -29,6 +28,7 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -124,6 +124,8 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   const hasPreviousEvent = defined(event.previousEventID);
   const hasNextEvent = defined(event.nextEventID);
 
+  const {onClick: onClickCopy} = useCopyToClipboard({text: event.id});
+
   const downloadJson = () => {
     const jsonUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
     window.open(jsonUrl);
@@ -149,22 +151,33 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
     <CarouselAndButtonsWrapper>
       <EventHeading>
         <EventIdLabel>Event ID:</EventIdLabel>{' '}
-        <Tooltip overlayStyle={{maxWidth: 'max-content'}} title={event.id}>
-          <Clipboard value={event.id}>
-            <EventId>
-              {getShortEventId(event.id)}
-              <CopyIconContainer>
-                <IconCopy size="xs" />
-              </CopyIconContainer>
-            </EventId>
-          </Clipboard>
-        </Tooltip>{' '}
+        <Button
+          aria-label={t('Copy')}
+          borderless
+          onClick={onClickCopy}
+          size="zero"
+          title={event.id}
+          tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
+          translucentBorder
+        >
+          <EventId>
+            {getShortEventId(event.id)}
+            <CopyIconContainer>
+              <IconCopy size="xs" />
+            </CopyIconContainer>
+          </EventId>
+        </Button>{' '}
         {(event.dateCreated ?? event.dateReceived) && (
           <EventTimeLabel>
             {getDynamicText({
               fixed: 'Jan 1, 12:00 AM',
               value: (
-                <Tooltip showUnderline title={<EventCreatedTooltip event={event} />}>
+                <Tooltip
+                  isHoverable
+                  showUnderline
+                  title={<EventCreatedTooltip event={event} />}
+                  overlayStyle={{maxWidth: 300}}
+                >
                   <DateTime date={event.dateCreated ?? event.dateReceived} />
                 </Tooltip>
               ),
@@ -363,8 +376,8 @@ const StyledIconWarning = styled(IconWarning)`
 
 const EventId = styled('span')`
   position: relative;
-  cursor: pointer;
-
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeLarge};
   &:hover {
     > span {
       display: flex;

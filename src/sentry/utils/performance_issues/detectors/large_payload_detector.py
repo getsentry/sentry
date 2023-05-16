@@ -4,7 +4,12 @@ from sentry import features
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
 from sentry.models import Organization, Project
 
-from ..base import DetectorType, PerformanceDetector, fingerprint_http_spans
+from ..base import (
+    DetectorType,
+    PerformanceDetector,
+    fingerprint_http_spans,
+    get_span_evidence_value,
+)
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
@@ -24,7 +29,11 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             return
 
         data = span.get("data", None)
-        encoded_body_size = data and data.get("Encoded Body Size", None)
+        # TODO(nar): `Encoded Body Size` can be removed once SDK adoption has increased and
+        # we are receiving `http.response_content_length` consistently, likely beyond October 2023
+        encoded_body_size = data and (
+            data.get("http.response_content_length", None) or data.get("Encoded Body Size")
+        )
         if not (encoded_body_size):
             return
 
@@ -34,7 +43,9 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
 
     def _store_performance_problem(self, span) -> None:
         fingerprint = self._fingerprint(span)
-        offender_span_ids = span.get("span_id", None)
+        offender_span_ids = []
+        if offender_span_id := span.get("span_id", None):
+            offender_span_ids.append(offender_span_id)
         desc: str = span.get("description", None)
 
         self.stored_problems[fingerprint] = PerformanceProblem(
@@ -51,6 +62,10 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
                 "cause_span_ids": [],
                 "offender_span_ids": offender_span_ids,
                 "op": "http",
+                "transaction_name": self._event.get("description", ""),
+                "repeating_spans": get_span_evidence_value(span),
+                "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
+                "num_repeating_spans": str(len(offender_span_ids)),
             },
         )
 

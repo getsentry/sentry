@@ -17,7 +17,7 @@ const LOADING_MESSAGES = [
   t('Installing dependencies'),
   t('Searching StackOverflow'),
   t('Googling for solutions'),
-  t('Runing spell checker'),
+  t('Running spell checker'),
   t('Searching for the perfect emoji'),
   t('Adding trace amounts of human touch'),
   t("Don't be like Sydney, don't be like Sydney"),

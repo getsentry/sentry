@@ -23,8 +23,10 @@ from sentry.signals import (
     integration_added,
     integration_issue_created,
     integration_issue_linked,
+    issue_archived,
     issue_assigned,
     issue_deleted,
+    issue_escalating,
     issue_ignored,
     issue_mark_reviewed,
     issue_resolved,
@@ -472,6 +474,36 @@ def record_issue_ignored(project, user, group_list, activity_data, **kwargs):
         )
 
 
+@issue_archived.connect(weak=False)
+def record_issue_archived(project, user, group_list, activity_data, **kwargs):
+    if user and user.is_authenticated:
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+
+    for group in group_list:
+        analytics.record(
+            "issue.archived",
+            user_id=user_id,
+            default_user_id=default_user_id,
+            organization_id=project.organization_id,
+            group_id=group.id,
+            until_escalating=activity_data.get("until_escalating"),
+        )
+
+
+@issue_escalating.connect(weak=False)
+def record_issue_escalating(project, group, event, **kwargs):
+    analytics.record(
+        "issue.escalating",
+        organization_id=project.organization_id,
+        project_id=project.id,
+        group_id=group.id,
+        event_id=event.event_id,
+    )
+
+
 @issue_unignored.connect(weak=False)
 def record_issue_unignored(project, user_id, group, transition_type, **kwargs):
     if user_id is not None:
@@ -630,6 +662,7 @@ def record_issue_deleted(group, user, delete_type, **kwargs):
         default_user_id=default_user_id,
         organization_id=group.project.organization_id,
         group_id=group.id,
+        project_id=group.project_id,
         delete_type=delete_type,
     )
 

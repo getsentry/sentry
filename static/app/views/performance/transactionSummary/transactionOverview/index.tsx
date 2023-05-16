@@ -11,6 +11,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import {Column, isAggregateField, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
 import {
+  getIsMetricsDataFromResults,
+  useMEPDataContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
+import {
   MEPSettingProvider,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -93,11 +97,8 @@ function OverviewContentWrapper(props: ChildProps) {
   } = props;
 
   const mepSetting = useMEPSettingContext();
-  const queryExtras = getTransactionMEPParamsIfApplicable(
-    mepSetting,
-    organization,
-    location
-  );
+  const mepContext = useMEPDataContext();
+  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, organization);
 
   const queryData = useDiscoverQuery({
     eventView: getTotalsEventView(organization, eventView),
@@ -130,6 +131,11 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThresholdMetric,
     referrer: 'api.performance.transaction-summary',
   });
+
+  useEffect(() => {
+    const isMetricsData = getIsMetricsDataFromResults(queryData.data);
+    mepContext.setIsMetricsData(isMetricsData);
+  }, [mepContext, queryData.data]);
 
   const {data: tableData, isLoading, error} = queryData;
   const {

@@ -6,6 +6,7 @@ from typing import Any, Mapping
 # XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
 import celery
 
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.tasks.sentry_functions import send_sentry_function_webhook
 
 if celery.version_info >= (5, 2):
@@ -205,9 +206,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     installations = filter(
         lambda i: event in i.sentry_app.events,
-        SentryAppInstallation.objects.get_installed_for_organization(org.id).select_related(
-            "sentry_app"
-        ),
+        app_service.get_installed_for_organization(organization_id=org.id),
     )
 
     for installation in installations:

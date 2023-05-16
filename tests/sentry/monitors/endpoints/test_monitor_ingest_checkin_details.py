@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models import Environment
 from sentry.monitors.models import (
     CheckInStatus,
@@ -44,7 +45,6 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             slug="my-monitor",
             organization_id=self.organization.id,
             project_id=self.project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
             date_added=timezone.now() - timedelta(minutes=1),
@@ -55,8 +55,6 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
 
         monitorenvironment_defaults = {
             "status": monitor.status,
-            "next_checkin": monitor.next_checkin,
-            "last_checkin": monitor.last_checkin,
         }
 
         return MonitorEnvironment.objects.create(
@@ -95,7 +93,13 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             )
 
             path = path_func(monitor.guid, checkin.guid)
-            resp = self.client.put(path, data={"status": "ok"}, **self.token_auth_headers)
+            resp = self.client.put(
+                path,
+                data={
+                    "status": "ok",
+                },
+                **self.token_auth_headers,
+            )
             assert resp.status_code == 200, resp.content
 
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
@@ -104,10 +108,39 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
                 checkin.monitor_environment.environment.name == monitor_environment.environment.name
             )
 
-            monitor = Monitor.objects.get(id=monitor.id)
-            assert monitor.next_checkin > checkin.date_added
-            assert monitor.status == MonitorStatus.OK
-            assert monitor.last_checkin > checkin.date_added
+            monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+            assert monitor_environment.next_checkin > checkin.date_added
+            assert monitor_environment.status == MonitorStatus.OK
+            assert monitor_environment.last_checkin > checkin.date_added
+
+    def test_passing_with_config(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor, name="dev")
+        for path_func in self._get_path_functions():
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                date_added=monitor.date_added,
+            )
+
+            path = path_func(monitor.guid, checkin.guid)
+            # include monitor_config to test check-in validation no error thrown, no-op on server side
+            resp = self.client.put(
+                path,
+                data={
+                    "status": "ok",
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "* * * * *"},
+                },
+                **self.token_auth_headers,
+            )
+            assert resp.status_code == 200, resp.content
+
+            checkin = MonitorCheckIn.objects.get(id=checkin.id)
+            assert checkin.status == CheckInStatus.OK
+            assert (
+                checkin.monitor_environment.environment.name == monitor_environment.environment.name
+            )
 
             monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
             assert monitor_environment.next_checkin > checkin.date_added
@@ -116,8 +149,12 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
 
     def test_passing_with_slug(self):
         monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor, project_id=self.project.id, date_added=monitor.date_added
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            date_added=monitor.date_added,
         )
 
         path = reverse(
@@ -147,15 +184,40 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
             assert checkin.status == CheckInStatus.ERROR
 
-            monitor = Monitor.objects.get(id=monitor.id)
-            assert monitor.next_checkin > checkin.date_added
-            assert monitor.status == MonitorStatus.ERROR
-            assert monitor.last_checkin > checkin.date_added
-
             monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
             assert monitor_environment.next_checkin > checkin.date_added
             assert monitor_environment.status == MonitorStatus.ERROR
             assert monitor_environment.last_checkin > checkin.date_added
+
+    def test_invalid_duration(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor, name="dev")
+        for path_func in self._get_path_functions():
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                date_added=monitor.date_added,
+            )
+
+            path = path_func(monitor.guid, checkin.guid)
+            resp = self.client.put(
+                path, data={"status": "ok", "duration": -1}, **self.token_auth_headers
+            )
+            assert resp.status_code == 400, resp.content
+            assert resp.data["duration"][0] == "Ensure this value is greater than or equal to 0."
+
+            resp = self.client.put(
+                path,
+                {"status": "ok", "duration": BoundedPositiveIntegerField.MAX_VALUE + 1},
+                **self.token_auth_headers,
+            )
+
+            assert resp.status_code == 400, resp.content
+            assert (
+                resp.data["duration"][0]
+                == f"Ensure this value is less than or equal to {BoundedPositiveIntegerField.MAX_VALUE}."
+            )
 
     def test_latest_returns_last_unfinished(self):
         monitor = self._create_monitor()
@@ -184,7 +246,15 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             )
 
             path = path_func(monitor.guid, self.latest.guid)
-            resp = self.client.put(path, data={"status": "ok"}, **self.token_auth_headers)
+            # include monitor_config to test check-in validation no error thrown, no-op on server side
+            resp = self.client.put(
+                path,
+                data={
+                    "status": "ok",
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "* * * * *"},
+                },
+                **self.token_auth_headers,
+            )
             assert resp.status_code == 200, resp.content
 
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
@@ -195,11 +265,6 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
 
             checkin3 = MonitorCheckIn.objects.get(id=checkin3.id)
             assert checkin3.status == CheckInStatus.OK
-
-            monitor = Monitor.objects.get(id=monitor.id)
-            assert monitor.next_checkin > checkin2.date_added
-            assert monitor.status == MonitorStatus.OK
-            assert monitor.last_checkin > checkin2.date_added
 
             monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
             assert monitor_environment.next_checkin > checkin2.date_added

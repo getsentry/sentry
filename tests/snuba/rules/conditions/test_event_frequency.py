@@ -72,23 +72,28 @@ class ErrorEventMixin:
         return event.for_group(event.group)
 
 
-class PerfEventMixin(PerfIssueTransactionTestMixin):
+class PerfIssuePlatformEventMixin(PerfIssueTransactionTestMixin):
     def add_event(self, data, project_id, timestamp):
-        fingerprint = data["fingerprint"][0]
-        fingerprint = (
-            fingerprint
-            if "-" in fingerprint
-            else f"{PerformanceNPlusOneGroupType.type_id}-{data['fingerprint'][0]}"
-        )
-        # Store a performance event
-        event = self.store_transaction(
-            environment=data.get("environment"),
-            project_id=project_id,
-            user_id=data.get("user", uuid4().hex),
-            fingerprint=[fingerprint],
-            timestamp=timestamp.replace(tzinfo=pytz.utc),
-        )
-        return event.for_group(event.groups[0])
+        with self.options({"performance.issues.send_to_issues_platform": True}):
+            fingerprint = data["fingerprint"][0]
+            fingerprint = (
+                fingerprint
+                if "-" in fingerprint
+                else f"{PerformanceNPlusOneGroupType.type_id}-{data['fingerprint'][0]}"
+            )
+            # Store a performance event
+            event = self.store_transaction(
+                environment=data.get("environment"),
+                project_id=project_id,
+                user_id=data.get("user", uuid4().hex),
+                fingerprint=[fingerprint],
+                timestamp=timestamp.replace(tzinfo=pytz.utc),
+            )
+            return event.for_group(event.groups[0])
+
+    def assertPasses(self, rule, event=None, **kwargs):
+        with self.options({"performance.issues.create_issues_through_platform": True}):
+            super().assertPasses(rule, event=event, **kwargs)
 
 
 class StandardIntervalMixin:
@@ -424,8 +429,10 @@ class ErrorIssueFrequencyConditionTestCase(
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
-class PerfIssueFrequencyConditionTestCase(
-    EventFrequencyConditionTestCase, RuleTestCase, PerfEventMixin
+class PerfIssuePlatformIssueFrequencyConditionTestCase(
+    PerfIssuePlatformEventMixin,
+    EventFrequencyConditionTestCase,
+    RuleTestCase,
 ):
     pass
 
@@ -440,8 +447,10 @@ class ErrorIssueUniqueUserFrequencyConditionTestCase(
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
-class PerfIssueUniqueUserFrequencyConditionTestCase(
-    EventUniqueUserFrequencyConditionTestCase, RuleTestCase, PerfEventMixin
+class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
+    PerfIssuePlatformEventMixin,
+    EventUniqueUserFrequencyConditionTestCase,
+    RuleTestCase,
 ):
     pass
 
@@ -456,7 +465,9 @@ class ErrorIssueEventFrequencyPercentConditionTestCase(
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
-class PerfIssueEventFrequencyPercentConditionTestCase(
-    EventFrequencyPercentConditionTestCase, RuleTestCase, PerfEventMixin
+class PerfIssuePlatformIssueEventFrequencyPercentConditionTestCase(
+    PerfIssuePlatformEventMixin,
+    EventFrequencyPercentConditionTestCase,
+    RuleTestCase,
 ):
     pass

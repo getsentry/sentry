@@ -87,7 +87,7 @@ class SpanChart {
     const queue: [SpanChartNode | null, SpanTreeNode][] =
       depthOffset === 0
         ? [[null, tree.root]]
-        : [...tree.root.children.map(child => [null, child] as [null, SpanTreeNode])];
+        : tree.root.children.map(child => [null, child] as [null, SpanTreeNode]);
 
     let depth = 0;
     while (queue.length) {
@@ -122,12 +122,9 @@ class SpanChart {
           this.root.children.push(spanChartNode);
         }
 
-        queue.push(
-          ...node.children.map(
-            // @todo use satisfies here when available
-            child => [spanChartNode, child] as [SpanChartNode, SpanTreeNode]
-          )
-        );
+        for (const child of node.children) {
+          queue.push([spanChartNode, child] as [SpanChartNode, SpanTreeNode]);
+        }
       }
       depth++;
     }

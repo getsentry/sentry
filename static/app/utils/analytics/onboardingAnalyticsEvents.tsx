@@ -3,6 +3,23 @@ export type OnboardingEventParameters = {
     from: string;
     to: string;
   };
+  'onboarding.data_removal_modal_confirm_button_clicked': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.data_removal_modal_dismissed': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.data_removal_modal_rendered': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.data_removed': {
+    date_created: string;
+    platform: string;
+    project_id: string;
+  };
   'onboarding.explore_sentry_button_clicked': {
     platform: string;
     project_id: string;
@@ -74,4 +91,9 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.select_framework_modal_rendered': 'Onboarding: Framework Modal Rendered',
   'onboarding.select_framework_modal_skip_button_clicked':
     'Onboarding: Framework Modal Skip Button Clicked',
+  'onboarding.data_removal_modal_dismissed': 'Onboarding: Data Removal Modal Dismissed',
+  'onboarding.data_removal_modal_confirm_button_clicked':
+    'Onboarding: Data Removal Modal Confirm Button Clicked',
+  'onboarding.data_removal_modal_rendered': 'Onboarding: Data Removal Modal Rendered',
+  'onboarding.data_removed': 'Onboarding: Data Removed',
 };

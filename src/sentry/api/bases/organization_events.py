@@ -29,6 +29,7 @@ from sentry.snuba import (
     metrics_enhanced_performance,
     metrics_performance,
     profiles,
+    spans_indexed,
 )
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
@@ -44,8 +45,11 @@ DATASET_OPTIONS = {
     "metrics": metrics_performance,
     "profiles": profiles,
     "issuePlatform": issue_platform,
-    "profile_functions": functions,
+    "profileFunctions": functions,
+    "spansIndexed": spans_indexed,
 }
+
+DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
 
 
 def resolve_axis_column(column: str, index: int = 0) -> str:
@@ -122,7 +126,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 has_global_views = features.has(
                     "organizations:global-views", organization, actor=request.user
                 )
-                if not has_global_views and len(params.projects) > 1:
+                fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+
+                if not has_global_views and len(params.projects) > 1 and not fetching_replay_data:
                     raise ParseError(detail="You cannot view events from multiple projects.")
 
             # Return both for now
@@ -150,7 +156,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 has_global_views = features.has(
                     "organizations:global-views", organization, actor=request.user
                 )
-                if not has_global_views and len(params.get("project_id", [])) > 1:
+                fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+
+                if (
+                    not has_global_views
+                    and len(params.get("project_id", [])) > 1
+                    and not fetching_replay_data
+                ):
                     raise ParseError(detail="You cannot view events from multiple projects.")
 
             return params
@@ -293,6 +305,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         project_ids: Sequence[int],
         results: Dict[str, Any],
         standard_meta: Optional[bool] = False,
+        dataset: Optional[Any] = None,
     ) -> Dict[str, Any]:
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
@@ -308,6 +321,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "isMetricsData": isMetricsData,
                     "tips": meta.get("tips", {}),
                 }
+                if dataset is not None:
+                    meta["dataset"] = DATASET_LABELS.get(dataset, "unknown")
             else:
                 meta = fields_meta
 
@@ -334,7 +349,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         # once those APIs are used across the application.
         if "transaction.status" in first_row:
             for row in results:
-                row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
+                if "transaction.status" in row:
+                    row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(
+                        row["transaction.status"]
+                    )
 
         fields = self.get_field_list(organization, request)
         if "issue" in fields:  # Look up the short ID and return that in the results
@@ -385,12 +403,20 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         allow_partial_buckets: bool = False,
         zerofill_results: bool = True,
         comparison_delta: Optional[timedelta] = None,
+        additional_query_column: Optional[str] = None,
+        dataset: Optional[Any] = None,
     ) -> Dict[str, Any]:
         with self.handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"
             ):
-                columns = request.GET.getlist("yAxis", [query_column])
+                _columns = [query_column]
+                # temporary change to make topN query work for multi-axes requests
+                if additional_query_column is not None:
+                    _columns.append(additional_query_column)
+
+                columns = request.GET.getlist("yAxis", _columns)
+
                 if query is None:
                     query = request.GET.get("query")
                 if params is None:
@@ -464,15 +490,24 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             query_columns,
                             allow_partial_buckets,
                             zerofill_results=zerofill_results,
+                            dataset=dataset,
                         )
                     else:
-                        # Need to get function alias if count is a field, but not the axis
                         results[key] = serializer.serialize(
                             event_result,
                             column=resolve_axis_column(query_columns[0]),
                             allow_partial_buckets=allow_partial_buckets,
                             zerofill_results=zerofill_results,
                         )
+                        results[key]["meta"] = self.handle_results_with_meta(
+                            request,
+                            organization,
+                            params.get("project_id", []),
+                            event_result.data,
+                            True,
+                            dataset=dataset,
+                        )["meta"]
+
                 serialized_result = results
             elif is_multiple_axis:
                 serialized_result = self.serialize_multiple_axis(
@@ -485,6 +520,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     query_columns,
                     allow_partial_buckets,
                     zerofill_results=zerofill_results,
+                    dataset=dataset,
                 )
                 if top_events > 0 and isinstance(result, SnubaTSResult):
                     serialized_result = {"": serialized_result}
@@ -500,7 +536,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     extra_columns=extra_columns,
                 )
                 serialized_result["meta"] = self.handle_results_with_meta(
-                    request, organization, params.get("project_id", []), result.data, True
+                    request,
+                    organization,
+                    params.get("project_id", []),
+                    result.data,
+                    True,
+                    dataset=dataset,
                 )["meta"]
 
             return serialized_result
@@ -516,12 +557,18 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         query_columns: Sequence[str],
         allow_partial_buckets: bool,
         zerofill_results: bool = True,
+        dataset: Optional[Any] = None,
     ) -> Dict[str, Any]:
         # Return with requested yAxis as the key
         result = {}
         equations = 0
         meta = self.handle_results_with_meta(
-            request, organization, params.get("project_id", []), event_result.data, True
+            request,
+            organization,
+            params.get("project_id", []),
+            event_result.data,
+            True,
+            dataset=dataset,
         )["meta"]
         for index, query_column in enumerate(query_columns):
             result[columns[index]] = serializer.serialize(

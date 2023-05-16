@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.db import transaction
 from django.http import Http404
+from django.views.decorators.cache import never_cache
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -25,6 +26,7 @@ class IntegrationSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
+    @never_cache
     def get(self, request: Request, organization, integration_id) -> Response:
         org_integration = self.get_organization_integration(organization.id, integration_id)
 
@@ -35,6 +37,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         )
 
     @requires_feature("organizations:integrations-custom-scm")
+    @never_cache
     def put(self, request: Request, organization, integration_id) -> Response:
         integration = self.get_integration(organization.id, integration_id)
 
@@ -66,6 +69,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
             )
         return self.respond(serializer.errors, status=400)
 
+    @never_cache
     def delete(self, request: Request, organization, integration_id) -> Response:
         # Removing the integration removes the organization
         # integrations and all linked issues.
@@ -84,7 +88,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
 
         with transaction.atomic():
             updated = OrganizationIntegration.objects.filter(
-                id=org_integration.id, status=ObjectStatus.VISIBLE
+                id=org_integration.id, status=ObjectStatus.ACTIVE
             ).update(status=ObjectStatus.PENDING_DELETION)
 
             if updated:
@@ -99,6 +103,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
 
         return self.respond(status=204)
 
+    @never_cache
     def post(self, request: Request, organization, integration_id) -> Response:
         integration = self.get_integration(organization.id, integration_id)
         installation = integration_service.get_installation(

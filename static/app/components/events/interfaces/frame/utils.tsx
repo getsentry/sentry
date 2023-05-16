@@ -1,12 +1,6 @@
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
-  Event,
-  EventOrGroupType,
-  Frame,
-  PlatformType,
-  StackTraceMechanism,
-} from 'sentry/types';
+import {Event, EventOrGroupType, Frame, PlatformType} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 
 import {SymbolicatorStatus} from '../types';
@@ -92,31 +86,17 @@ export function hasAssembly(frame: Frame, platform?: string) {
   );
 }
 
-export function hasExceptionGroupTree({
-  isNewestFrame,
-  mechanism,
-}: {
-  isNewestFrame?: boolean;
-  mechanism?: StackTraceMechanism | null;
-}) {
-  return Boolean(isNewestFrame && mechanism?.is_exception_group);
-}
-
 export function isExpandable({
   frame,
   registers,
   emptySourceNotation,
   platform,
   isOnlyFrame,
-  isNewestFrame,
-  mechanism,
 }: {
   frame: Frame;
   registers: Record<string, string>;
   emptySourceNotation?: boolean;
-  isNewestFrame?: boolean;
   isOnlyFrame?: boolean;
-  mechanism?: StackTraceMechanism | null;
   platform?: string;
 }) {
   return (
@@ -124,8 +104,7 @@ export function isExpandable({
     hasContextSource(frame) ||
     hasContextVars(frame) ||
     hasContextRegisters(registers) ||
-    hasAssembly(frame, platform) ||
-    hasExceptionGroupTree({isNewestFrame, mechanism})
+    hasAssembly(frame, platform)
   );
 }
 

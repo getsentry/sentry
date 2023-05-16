@@ -3,6 +3,7 @@ from hashlib import sha1
 import pytest
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db.models import F
 from django.urls import reverse
 
 from sentry import options
@@ -13,7 +14,7 @@ from sentry.api.endpoints.chunk import (
     MAX_CONCURRENCY,
     MAX_REQUEST_SIZE,
 )
-from sentry.models import MAX_FILE_SIZE, ApiToken, FileBlob
+from sentry.models import MAX_FILE_SIZE, ApiToken, FileBlob, Organization
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
@@ -52,13 +53,20 @@ class ChunkUploadTest(APITestCase):
         assert response.data["url"] == options.get("system.upload-url-prefix") + self.url
 
     def test_accept_with_feature_flag_enabled_and_disabled(self):
-        with self.feature({"organizations:artifact-bundles": False}):
+        with self.options({"sourcemaps.enable-artifact-bundles": 0.0}):
             response = self.client.get(
                 self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
             )
             assert "artifact_bundles" not in response.data["accept"]
 
-        with self.feature({"organizations:artifact-bundles": True}):
+        with self.options({"sourcemaps.enable-artifact-bundles": 1.0}):
+            response = self.client.get(
+                self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
+            )
+            assert "artifact_bundles" in response.data["accept"]
+
+        with self.options({"sourcemaps.enable-artifact-bundles": 0.0}):
+            self.organization.update(flags=F("flags").bitor(Organization.flags.early_adopter))
             response = self.client.get(
                 self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
             )

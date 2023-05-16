@@ -74,6 +74,8 @@ export type TeamInsightsEventParameters = {
       | 'open_in_discover'
       | 'assign'
       | ResolutionStatus;
+    action_status_details?: string;
+    action_substatus?: string;
     assigned_suggestion_reason?: string;
     assigned_type?: string;
   };

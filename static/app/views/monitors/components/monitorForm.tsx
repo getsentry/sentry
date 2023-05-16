@@ -1,12 +1,14 @@
-import {useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
+import AlertLink from 'sentry/components/alertLink';
 import {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
+import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form, {FormProps} from 'sentry/components/forms/form';
@@ -17,13 +19,14 @@ import ListItem from 'sentry/components/list/listItem';
 import Text from 'sentry/components/text';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {crontabAsText} from 'sentry/views/monitors/utils';
 
 import {
@@ -41,6 +44,8 @@ const SCHEDULE_OPTIONS: RadioOption<string>[] = [
 
 const DEFAULT_MONITOR_TYPE = 'cron_job';
 const DEFAULT_CRONTAB = '0 0 * * *';
+
+export const DEFAULT_MAX_RUNTIME = 30;
 
 const getIntervals = (n: number): SelectValue<string>[] => [
   {value: 'minute', label: tn('minute', 'minutes', n)},
@@ -68,6 +73,22 @@ type TransformedData = {
  */
 function transformData(_data: Record<string, any>, model: FormModel) {
   return model.fields.toJSON().reduce<TransformedData>((data, [k, v]) => {
+    if (k === 'alertRule') {
+      const alertTargets = (v as string[] | undefined)?.map(item => {
+        // See SentryMemberTeamSelectorField to understand why these are strings
+        const [type, id] = item.split(':');
+
+        // XXX(epurkhiser): For whateve reason the rules API wants the team and
+        // mebmer to be capitalized.
+        const targetType = {team: 'Team', member: 'Member'}[type];
+
+        return {targetType, targetIdentifier: id};
+      });
+
+      data[k] = {targets: alertTargets};
+      return data;
+    }
+
     // We're only concerned with transforming the config
     if (!k.startsWith('config.')) {
       data[k] = v;
@@ -336,11 +357,40 @@ function MonitorForm({
         <InputGroup>
           <StyledNumberField
             name="config.max_runtime"
-            placeholder="Defaults to 30 minutes"
+            placeholder={`Defaults to ${DEFAULT_MAX_RUNTIME} minutes`}
             stacked
             inline={false}
           />
         </InputGroup>
+        {(monitor === undefined || monitor.config.alert_rule_id) && (
+          <Fragment>
+            <StyledListItem>{t('Notify members')}</StyledListItem>
+            <ListItemSubText>
+              {t(
+                'Tell us who to notify when a check-in reaches the thresholds above or has an error. You can send notifications to members or teams.'
+              )}
+            </ListItemSubText>
+            <InputGroup>
+              {monitor === undefined ? (
+                <StyledSentryMemberTeamSelectorField
+                  name="alertRule"
+                  multiple
+                  stacked
+                  inline={false}
+                />
+              ) : (
+                <AlertLink
+                  priority="muted"
+                  to={normalizeUrl(
+                    `/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`
+                  )}
+                >
+                  {t('Customize this monitors notification configuration in Alerts')}
+                </AlertLink>
+              )}
+            </InputGroup>
+          </Fragment>
+        )}
       </StyledList>
     </Form>
   );
@@ -365,6 +415,10 @@ const StyledTextField = styled(TextField)`
 `;
 
 const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`
+  padding: 0;
+`;
+
+const StyledSentryMemberTeamSelectorField = styled(SentryMemberTeamSelectorField)`
   padding: 0;
 `;
 

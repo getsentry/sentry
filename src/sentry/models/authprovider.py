@@ -5,36 +5,37 @@ from django.utils import timezone
 
 from bitfield import BitField
 from sentry.db.models import (
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
-    FlexibleForeignKey,
     Model,
     control_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.models.organizationmember import OrganizationMember
+from sentry.services.hybrid_cloud.organization import organization_service
 
 logger = logging.getLogger("sentry.authprovider")
 
 SCIM_INTERNAL_INTEGRATION_OVERVIEW = (
     "This internal integration was auto-generated during the installation process of your SCIM "
-    "integration. It is needed to provide the token used provision members and teams. If this integration is "
+    "integration. It is needed to provide the token used to provision members and teams. If this integration is "
     "deleted, your SCIM integration will stop working!"
 )
 
 
 @control_silo_only_model
 class AuthProviderDefaultTeams(Model):
+    # Completely defunct model.
     __include_in_export__ = False
 
-    authprovider = FlexibleForeignKey("sentry.AuthProvider")
-    team = FlexibleForeignKey("sentry.Team")
+    authprovider_id = BoundedBigIntegerField()
+    team_id = BoundedBigIntegerField()
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_authprovider_default_teams"
-        unique_together = (("authprovider", "team"),)
+        unique_together = tuple()
 
 
 @control_silo_only_model
@@ -51,12 +52,6 @@ class AuthProvider(Model):
 
     default_role = BoundedPositiveIntegerField(default=50)
     default_global_access = models.BooleanField(default=True)
-    # TODO(dcramer): ManyToMany has the same issue as ForeignKey and we need
-    # to either write our own which works w/ BigAuto or switch this to use
-    # through.
-    default_teams = models.ManyToManyField(
-        "sentry.Team", blank=True, through=AuthProviderDefaultTeams
-    )
 
     flags = BitField(
         flags=(
@@ -146,16 +141,6 @@ class AuthProvider(Model):
         )
         self.flags.scim_enabled = True
 
-    def _reset_idp_flags(self):
-        OrganizationMember.objects.filter(
-            organization_id=self.organization_id,
-            flags=models.F("flags").bitor(OrganizationMember.flags["idp:provisioned"]),
-        ).update(
-            flags=models.F("flags")
-            .bitand(~OrganizationMember.flags["idp:provisioned"])
-            .bitand(~OrganizationMember.flags["idp:role-restricted"])
-        )
-
     def disable_scim(self, user):
         from sentry import deletions
         from sentry.models import SentryAppInstallationForProvider
@@ -167,7 +152,7 @@ class AuthProvider(Model):
             # Only one SCIM installation allowed per organization. So we can reset the idp flags for the orgs
             # We run this update before the app is uninstalled to avoid ending up in a situation where there are
             # members locked out because we failed to drop the IDP flag
-            self._reset_idp_flags()
+            organization_service.reset_idp_flags(organization_id=self.organization_id)
             sentry_app = install.sentry_app_installation.sentry_app
             assert (
                 sentry_app.is_internal

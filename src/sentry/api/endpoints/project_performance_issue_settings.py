@@ -23,6 +23,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
         required=False, min_value=0, max_value=1
     )
     uncompressed_assets_detection_enabled = serializers.BooleanField(required=False)
+    consecutive_http_spans_detection_enabled = serializers.BooleanField(required=False)
 
 
 @region_silo_endpoint

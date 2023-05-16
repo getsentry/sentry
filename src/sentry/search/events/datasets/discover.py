@@ -19,7 +19,6 @@ from snuba_sdk import (
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group, Project
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
@@ -1603,10 +1602,6 @@ class DiscoverDatasetConfig(DatasetConfig):
         # `unknown` is a special value for when there is no issue associated with the event
         group_short_ids = [v for v in value if v and v != "unknown"]
         general_group_filter_values = ["" for v in value if not v or v == "unknown"]
-        perf_group_filter_values = ["" for v in value if not v or v == "unknown"]
-
-        general_groups = []
-        performance_groups = []
 
         if group_short_ids and self.builder.params.organization is not None:
             try:
@@ -1617,18 +1612,8 @@ class DiscoverDatasetConfig(DatasetConfig):
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
-                for group in groups:
-                    if group.issue_category == GroupCategory.PERFORMANCE:
-                        performance_groups.append(group.id)
-                    else:
-                        general_groups.append(group.id)
-                general_groups = sorted(general_groups)
-                performance_groups = sorted(performance_groups)
+                general_group_filter_values.extend(sorted([group.id for group in groups]))
 
-                general_group_filter_values.extend(general_groups)
-                perf_group_filter_values.extend(performance_groups)
-
-        # TODO (udameli): if both groups present, return data for both
         if general_group_filter_values:
             return self.builder.convert_search_filter_to_condition(
                 SearchFilter(
@@ -1638,20 +1623,6 @@ class DiscoverDatasetConfig(DatasetConfig):
                         general_group_filter_values
                         if search_filter.is_in_filter
                         else general_group_filter_values[0]
-                    ),
-                )
-            )
-
-        # TODO (udameli): handle the has:issue case for transactions
-        if performance_groups:
-            return self.builder.convert_search_filter_to_condition(
-                SearchFilter(
-                    SearchKey("performance.issue_ids"),
-                    operator,
-                    SearchValue(
-                        perf_group_filter_values
-                        if search_filter.is_in_filter
-                        else perf_group_filter_values[0]
                     ),
                 )
             )

@@ -1,22 +1,38 @@
-import {ReactNode} from 'react';
+import {Fragment, ReactNode} from 'react';
 import queryString from 'query-string';
 
+import FeatureBadge from 'sentry/components/featureBadge';
 import ListLink from 'sentry/components/links/listLink';
 import ScrollableTabs from 'sentry/components/replays/scrollableTabs';
 import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const ReplayTabs: Record<TabKey, ReactNode> = {
-  [TabKey.console]: t('Console'),
-  [TabKey.network]: t('Network'),
-  [TabKey.dom]: t('DOM Events'),
-  [TabKey.issues]: t('Issues'),
-  [TabKey.memory]: t('Memory'),
-  [TabKey.trace]: t('Trace'),
-};
+function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
+  const hasReplayNetworkDetails = organization.features.includes(
+    'session-replay-network-details'
+  );
+
+  const networkLabel = hasReplayNetworkDetails ? (
+    <Fragment>
+      {t('Network')} <FeatureBadge type="new" />
+    </Fragment>
+  ) : (
+    t('Network')
+  );
+
+  return {
+    [TabKey.console]: t('Console'),
+    [TabKey.network]: networkLabel,
+    [TabKey.dom]: t('DOM Events'),
+    [TabKey.issues]: t('Issues'),
+    [TabKey.memory]: t('Memory'),
+    [TabKey.trace]: t('Trace'),
+  };
+}
 
 type Props = {
   className?: string;
@@ -30,7 +46,7 @@ function FocusTabs({className}: Props) {
 
   return (
     <ScrollableTabs className={className} underlined>
-      {Object.entries(ReplayTabs).map(([tab, label]) => (
+      {Object.entries(getReplayTabs(organization)).map(([tab, label]) => (
         <ListLink
           key={tab}
           isActive={() => tab === activeTab}

@@ -23,7 +23,7 @@ INTERNAL_TAG_KEYS = frozenset(("release", "dist", "user", "filename", "function"
 
 # TODO(dcramer): pull in enum library
 class TagKeyStatus:
-    VISIBLE = 0
+    ACTIVE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
 
@@ -52,7 +52,6 @@ class TagStorage(Service):
             "get_first_release",
             "get_last_release",
             "get_release_tags",
-            "get_group_ids_for_users",
             "get_group_tag_values_for_users",
             "get_group_tag_keys_and_top_values",
             "get_tag_value_paginator",
@@ -123,7 +122,7 @@ class TagStorage(Service):
 
     @raises([TagKeyNotFound])
     def get_tag_key(
-        self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE, tenant_ids=None
+        self, project_id, environment_id, key, status=TagKeyStatus.ACTIVE, tenant_ids=None
     ):
         """
         >>> get_tag_key(1, 2, "key1")
@@ -134,7 +133,7 @@ class TagStorage(Service):
         self,
         project_id,
         environment_id,
-        status=TagKeyStatus.VISIBLE,
+        status=TagKeyStatus.ACTIVE,
         include_values_seen=False,
         tenant_ids=None,
     ):
@@ -144,7 +143,7 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_tag_keys_for_projects(
-        self, projects, environments, start, end, status=TagKeyStatus.VISIBLE, tenant_ids=None
+        self, projects, environments, start, end, status=TagKeyStatus.ACTIVE, tenant_ids=None
     ):
         """
         >>> get_tag_key([1], [2])
@@ -314,12 +313,6 @@ class TagStorage(Service):
     def get_release_tags(self, organization_id, project_ids, environment_id, versions):
         """
         >>> get_release_tags([1, 2], 3, ["1", "2"])
-        """
-        raise NotImplementedError
-
-    def get_group_ids_for_users(self, project_ids, event_users, limit=100, tenant_ids=None):
-        """
-        >>> get_group_ids_for_users([1,2], [EventUser(1), EventUser(2)])
         """
         raise NotImplementedError
 

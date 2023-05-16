@@ -17,13 +17,15 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ObjectStatus
 from sentry.models import Project, ProjectKey
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
-    MonitorStatus,
+    MonitorEnvironmentLimitsExceeded,
+    MonitorLimitsExceeded,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created
@@ -97,8 +99,8 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         Note: If a DSN is utilized for authentication, the response will be limited in details.
         """
         if monitor and monitor.status in [
-            MonitorStatus.PENDING_DELETION,
-            MonitorStatus.DELETION_IN_PROGRESS,
+            ObjectStatus.PENDING_DELETION,
+            ObjectStatus.DELETION_IN_PROGRESS,
         ]:
             return self.respond(status=404)
 
@@ -147,21 +149,24 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
             # Create a new monitor during checkin. Uses update_or_create to
             # protect against races.
-            if create_monitor:
-                monitor, created = Monitor.objects.update_or_create(
-                    organization_id=project.organization_id,
-                    slug=monitor_data["slug"],
-                    defaults={
-                        "project_id": project.id,
-                        "name": monitor_data["name"],
-                        "status": monitor_data["status"],
-                        "type": monitor_data["type"],
-                        "config": monitor_data["config"],
-                    },
-                )
+            try:
+                if create_monitor:
+                    monitor, created = Monitor.objects.update_or_create(
+                        organization_id=project.organization_id,
+                        slug=monitor_data["slug"],
+                        defaults={
+                            "project_id": project.id,
+                            "name": monitor_data["name"],
+                            "status": monitor_data["status"],
+                            "type": monitor_data["type"],
+                            "config": monitor_data["config"],
+                        },
+                    )
 
-                if created:
-                    signal_first_monitor_created(project, request.user, True)
+                    if created:
+                        signal_first_monitor_created(project, request.user, True)
+            except MonitorLimitsExceeded as e:
+                return self.respond({type(e).__name__: str(e)}, status=403)
 
             # Monitor does not exist and we have not created one
             if not monitor:
@@ -169,11 +174,16 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
             # Update monitor configuration during checkin if config is changed
             if update_monitor and monitor_data["config"] != monitor.config:
-                monitor.update(config=monitor_data["config"])
+                monitor.update_config(
+                    request.data.get("monitor_config", {}), monitor_data["config"]
+                )
 
-            monitor_environment = MonitorEnvironment.objects.ensure_environment(
-                project, monitor, result.get("environment")
-            )
+            try:
+                monitor_environment = MonitorEnvironment.objects.ensure_environment(
+                    project, monitor, result.get("environment")
+                )
+            except MonitorEnvironmentLimitsExceeded as e:
+                return self.respond({type(e).__name__: str(e)}, status=403)
 
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
@@ -185,15 +195,13 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
             signal_first_checkin(project, monitor)
 
-            if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
-                monitor_failed = monitor.mark_failed(last_checkin=checkin.date_added)
-                monitor_environment.mark_failed(last_checkin=checkin.date_added)
+            if checkin.status == CheckInStatus.ERROR and monitor.status != ObjectStatus.DISABLED:
+                monitor_failed = monitor_environment.mark_failed(last_checkin=checkin.date_added)
                 if not monitor_failed:
                     if isinstance(request.auth, ProjectKey):
                         return self.respond(status=200)
                     return self.respond(serialize(checkin, request.user), status=200)
             else:
-                monitor.mark_ok(checkin, checkin.date_added)
                 monitor_environment.mark_ok(checkin, checkin.date_added)
 
         if isinstance(request.auth, ProjectKey):

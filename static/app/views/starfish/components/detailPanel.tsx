@@ -1,11 +1,12 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import useKeyPress from 'sentry/utils/useKeyPress';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import SlideOverPanel from 'sentry/views/starfish/components/slideOverPanel';
 
 type DetailProps = {
@@ -29,16 +30,26 @@ export default function Detail({children, detailKey, onClose}: DetailProps) {
     }
   }, [detailKey]);
 
-  useEffect(() => {
-    if (escapeKeyPressed) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(panelRef, () => {
+    if (!state.collapsed) {
       onClose?.();
       setState({collapsed: true});
+    }
+  });
+
+  useEffect(() => {
+    if (escapeKeyPressed) {
+      if (!state.collapsed) {
+        onClose?.();
+        setState({collapsed: true});
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [escapeKeyPressed]);
 
   return (
-    <SlideOverPanel collapsed={state.collapsed}>
+    <SlideOverPanel collapsed={state.collapsed} ref={panelRef}>
       <CloseButtonWrapper>
         <CloseButton
           priority="link"

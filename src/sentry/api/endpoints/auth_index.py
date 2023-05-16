@@ -70,7 +70,6 @@ class AuthIndexEndpoint(Endpoint):
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
-                metrics.incr("2fa.login_attempt", sample_rate=1.0, skip_internal=False)
                 interface = Authenticator.objects.get_interface(request.user, "u2f")
                 if not interface.is_enrolled():
                     raise LookupError()
@@ -82,6 +81,8 @@ class AuthIndexEndpoint(Endpoint):
                         "u2f_authentication.verification_failed",
                         extra={"user": request.user.id},
                     )
+                else:
+                    metrics.incr("auth.2fa.success", sample_rate=1.0, skip_internal=False)
                 return authenticated
             except ValueError as err:
                 logger.warning(
@@ -95,10 +96,11 @@ class AuthIndexEndpoint(Endpoint):
                 )
         # attempt password authentication
         elif "password" in validator.validated_data:
-            metrics.incr("password.login_attempt", sample_rate=1.0, skip_internal=False)
             authenticated = promote_request_rpc_user(request).check_password(
                 validator.validated_data["password"]
             )
+            if authenticated:
+                metrics.incr("auth.password.success", sample_rate=1.0, skip_internal=False)
             return authenticated
         return False
 

@@ -2,6 +2,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {SavedSearch} from 'sentry/types';
 import {
+  getApiQueryData,
   setApiQueryData,
   useMutation,
   UseMutationOptions,
@@ -47,7 +48,8 @@ export const useDeleteSavedSearchOptimistic = (
         makeFetchSavedSearchesForOrgQueryKey({orgSlug: variables.orgSlug})
       );
 
-      const previousSavedSearches = queryClient.getQueryData<SavedSearch[]>(
+      const previousSavedSearches = getApiQueryData<SavedSearch[]>(
+        queryClient,
         makeFetchSavedSearchesForOrgQueryKey({orgSlug: variables.orgSlug})
       );
 

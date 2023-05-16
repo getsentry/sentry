@@ -1,5 +1,5 @@
 import {barColors, pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 
 describe('pickBarColor()', function () {
   it('returns blue when undefined', function () {

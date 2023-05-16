@@ -7,7 +7,7 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 import {ApiSource} from 'sentry/components/search/sources/apiSource';
 
 describe('ApiSource', function () {
-  const {org, router} = initializeOrg();
+  const {organization, router} = initializeOrg();
   let orgsMock;
   let projectsMock;
   let teamsMock;
@@ -17,7 +17,7 @@ describe('ApiSource', function () {
 
   const defaultProps: ComponentProps<typeof ApiSource> = {
     query: '',
-    organization: org,
+    organization,
     router,
     location: router.location,
     routes: [],
@@ -207,7 +207,7 @@ describe('ApiSource', function () {
   it('render function is called with correct results', async function () {
     const mock = jest.fn().mockReturnValue(null);
     render(
-      <ApiSource {...defaultProps} organization={org} query="foo">
+      <ApiSource {...defaultProps} organization={organization} query="foo">
         {mock}
       </ApiSource>
     );

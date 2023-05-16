@@ -34,7 +34,6 @@ from sentry.db.models import (
 )
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
-from sentry.issues.query import apply_performance_conditions
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
@@ -168,6 +167,16 @@ QUERY_STATUS_LOOKUP = {
     status: query for query, status in STATUS_QUERY_CHOICES.items() if query != "muted"
 }
 
+GROUP_SUBSTATUS_TO_STATUS_MAP = {
+    GroupSubStatus.ESCALATING: GroupStatus.UNRESOLVED,
+    GroupSubStatus.REGRESSED: GroupStatus.UNRESOLVED,
+    GroupSubStatus.ONGOING: GroupStatus.UNRESOLVED,
+    GroupSubStatus.NEW: GroupStatus.UNRESOLVED,
+    GroupSubStatus.UNTIL_ESCALATING: GroupStatus.IGNORED,
+    GroupSubStatus.FOREVER: GroupStatus.IGNORED,
+    GroupSubStatus.UNTIL_CONDITION_MET: GroupStatus.IGNORED,
+}
+
 # Statuses that can be updated from the regular "update group" API
 #
 # Differences over STATUS_QUERY_CHOICES:
@@ -198,22 +207,14 @@ def get_oldest_or_latest_event_for_environments(
     if len(environments) > 0:
         conditions.append(["environment", "IN", environments])
 
-    if group.issue_category == GroupCategory.PERFORMANCE:
-        apply_performance_conditions(conditions, group)
-        _filter = eventstore.Filter(
-            conditions=conditions,
-            project_ids=[group.project_id],
-        )
-        dataset = Dataset.Transactions
+    if group.issue_category == GroupCategory.ERROR:
+        dataset = Dataset.Events
     else:
-        if group.issue_category == GroupCategory.ERROR:
-            dataset = Dataset.Events
-        else:
-            dataset = Dataset.IssuePlatform
+        dataset = Dataset.IssuePlatform
 
-        _filter = eventstore.Filter(
-            conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]
-        )
+    _filter = eventstore.Filter(
+        conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]
+    )
 
     events = eventstore.get_events(
         filter=_filter,

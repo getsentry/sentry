@@ -111,6 +111,7 @@ const Sentaur = styled('img')`
     right: 6.608rem;
     object-fit: cover;
     z-index: 1;
+    pointer-events: none;
   }
 `;
 

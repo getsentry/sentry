@@ -106,7 +106,7 @@ const SPAN_6_PUSH = {
   data: {},
 };
 
-const SPAN_7_FETCH = {
+const SPAN_7_FETCH_GET = {
   id: '7',
   timestamp: 1663131092471,
   op: 'resource.fetch',
@@ -119,7 +119,7 @@ const SPAN_7_FETCH = {
   },
 };
 
-const SPAN_8_FETCH = {
+const SPAN_8_FETCH_POST = {
   id: '8',
   timestamp: 1663131120198,
   op: 'resource.fetch',
@@ -127,7 +127,7 @@ const SPAN_8_FETCH = {
   startTimestamp: 1663131120.198,
   endTimestamp: 1663131122.693,
   data: {
-    method: 'GET',
+    method: 'POST',
     statusCode: 404,
   },
 };
@@ -141,8 +141,8 @@ describe('useSortNetwork', () => {
     SPAN_4_IMG,
     SPAN_5_CSS,
     SPAN_6_PUSH,
-    SPAN_7_FETCH,
-    SPAN_8_FETCH,
+    SPAN_7_FETCH_GET,
+    SPAN_8_FETCH_POST,
   ];
 
   it('should the list by timestamp by default', () => {
@@ -163,12 +163,12 @@ describe('useSortNetwork', () => {
       SPAN_4_IMG,
       SPAN_5_CSS,
       SPAN_6_PUSH,
-      SPAN_7_FETCH,
-      SPAN_8_FETCH,
+      SPAN_7_FETCH_GET,
+      SPAN_8_FETCH_POST,
     ]);
   });
 
-  it('should revese the sort order', () => {
+  it('should reverse the sort order', () => {
     const {result, rerender} = reactHooks.renderHook(useSortNetwork, {
       initialProps: {items},
     });
@@ -185,8 +185,8 @@ describe('useSortNetwork', () => {
       getValue: expect.any(Function),
     });
     expect(result.current.items).toStrictEqual([
-      SPAN_8_FETCH,
-      SPAN_7_FETCH,
+      SPAN_8_FETCH_POST,
+      SPAN_7_FETCH_GET,
       SPAN_6_PUSH,
       SPAN_5_CSS,
       SPAN_4_IMG,
@@ -221,8 +221,8 @@ describe('useSortNetwork', () => {
       SPAN_5_CSS,
       SPAN_4_IMG,
       SPAN_3_FETCH,
-      SPAN_8_FETCH,
-      SPAN_7_FETCH,
+      SPAN_8_FETCH_POST,
+      SPAN_7_FETCH_GET,
     ]);
   });
 
@@ -250,8 +250,49 @@ describe('useSortNetwork', () => {
       SPAN_0_NAVIGATE,
       SPAN_3_FETCH,
       SPAN_6_PUSH,
-      SPAN_7_FETCH,
-      SPAN_8_FETCH,
+      SPAN_7_FETCH_GET,
+      SPAN_8_FETCH_POST,
+    ]);
+  });
+
+  it('should sort by method, using GET as a default', () => {
+    const mixedItems = [SPAN_6_PUSH, SPAN_8_FETCH_POST, SPAN_7_FETCH_GET];
+    const {result, rerender} = reactHooks.renderHook(useSortNetwork, {
+      initialProps: {items: mixedItems},
+    });
+
+    act(() => {
+      result.current.handleSort('method');
+    });
+
+    rerender({items: mixedItems});
+
+    expect(result.current.sortConfig).toStrictEqual({
+      by: 'method',
+      asc: true,
+      getValue: expect.any(Function),
+    });
+    expect(result.current.items).toStrictEqual([
+      SPAN_6_PUSH,
+      SPAN_7_FETCH_GET,
+      SPAN_8_FETCH_POST,
+    ]);
+
+    act(() => {
+      result.current.handleSort('method');
+    });
+
+    rerender({items: mixedItems});
+
+    expect(result.current.sortConfig).toStrictEqual({
+      by: 'method',
+      asc: false,
+      getValue: expect.any(Function),
+    });
+    expect(result.current.items).toStrictEqual([
+      SPAN_8_FETCH_POST,
+      SPAN_6_PUSH,
+      SPAN_7_FETCH_GET,
     ]);
   });
 });

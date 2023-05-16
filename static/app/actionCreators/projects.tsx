@@ -306,14 +306,21 @@ export function sendSampleEvent(api: Client, orgSlug: string, projectSlug: strin
  * @param platform The platform key of the project
  * @param options Additional options such as creating default alert rules
  */
-export function createProject(
-  api: Client,
-  orgSlug: string,
-  team: string,
-  name: string,
-  platform: string,
-  options: {defaultRules?: boolean} = {}
-) {
+export function createProject({
+  api,
+  name,
+  options = {},
+  orgSlug,
+  platform,
+  team,
+}: {
+  api: Client;
+  name: string;
+  options: {defaultRules?: boolean};
+  orgSlug: string;
+  platform: string;
+  team: string;
+}) {
   return api.requestPromise(`/teams/${orgSlug}/${team}/projects/`, {
     method: 'POST',
     data: {name, platform, default_rules: options.defaultRules},
@@ -327,13 +334,20 @@ export function createProject(
  * @param orgSlug Organization Slug
  * @param projectSlug Project Slug
  */
-export function removeProject(
-  api: Client,
-  orgSlug: string,
-  projectSlug: Project['slug']
-) {
+export function removeProject({
+  api,
+  orgSlug,
+  projectSlug,
+  origin,
+}: {
+  api: Client;
+  orgSlug: string;
+  origin: 'onboarding' | 'settings';
+  projectSlug: Project['slug'];
+}) {
   return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
     method: 'DELETE',
+    data: {origin},
   });
 }
 

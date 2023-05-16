@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils.auth import EmailAuthBackend, SsoSession, get_login_redirect, login
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class EmailAuthBackendTest(TestCase):
     def setUp(self):
         self.user = User(username="foo", email="baz@example.com")
@@ -37,6 +37,7 @@ class EmailAuthBackendTest(TestCase):
         self.assertEqual(result, None)
 
 
+@control_silo_test(stable=True)
 class GetLoginRedirectTest(TestCase):
     def make_request(self, next=None):
         request = HttpRequest()
@@ -115,6 +116,7 @@ class GetLoginRedirectTest(TestCase):
         assert result == f"http://orgslug.testserver{reverse('sentry-login')}"
 
 
+@control_silo_test(stable=True)
 class LoginTest(TestCase):
     def make_request(self, next=None):
         request = HttpRequest()
@@ -151,7 +153,7 @@ class LoginTest(TestCase):
 def test_sso_expiry_default():
     value = sentry.utils.auth._sso_expiry_from_env(None)
     # make sure no accidental changes affect sso timeout
-    assert value == timedelta(hours=20)
+    assert value == timedelta(days=7)
 
 
 def test_sso_expiry_from_env():

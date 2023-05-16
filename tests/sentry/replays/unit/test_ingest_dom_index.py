@@ -1,13 +1,13 @@
 import uuid
 from unittest import mock
 
-from sentry.utils import json
-from src.sentry.replays.usecases.ingest.dom_index import (
+from sentry.replays.usecases.ingest.dom_index import (
     _get_testid,
     encode_as_uuid,
     get_user_actions,
     parse_replay_actions,
 )
+from sentry.utils import json
 
 
 def test_get_user_actions():
@@ -45,7 +45,7 @@ def test_get_user_actions():
         }
     ]
 
-    user_actions = get_user_actions(uuid.uuid4().hex, events)
+    user_actions = get_user_actions(1, uuid.uuid4().hex, events)
     assert len(user_actions) == 1
     assert user_actions[0]["node_id"] == 1
     assert user_actions[0]["tag"] == "div"
@@ -79,7 +79,7 @@ def test_get_user_actions_missing_node():
         }
     ]
 
-    user_actions = get_user_actions(uuid.uuid4().hex, events)
+    user_actions = get_user_actions(1, uuid.uuid4().hex, events)
     assert len(user_actions) == 0
 
 
@@ -307,13 +307,58 @@ def test_parse_request_response_old_format_request_and_response():
         ]
 
 
+def test_log_sdk_options():
+    events = [
+        {
+            "data": {
+                "payload": {
+                    "blockAllMedia": True,
+                    "errorSampleRate": 0,
+                    "maskAllInputs": True,
+                    "maskAllText": True,
+                    "networkCaptureBodies": True,
+                    "networkDetailHasUrls": False,
+                    "networkRequestHasHeaders": True,
+                    "networkResponseHasHeaders": True,
+                    "sessionSampleRate": 1,
+                    "useCompression": False,
+                    "useCompressionOption": True,
+                },
+                "tag": "options",
+            },
+            "timestamp": 1680009712.507,
+            "type": 5,
+        }
+    ]
+    log = events[0]["data"]["payload"].copy()
+    log["project_id"] = 1
+    log["replay_id"] = "1"
+
+    with mock.patch("sentry.replays.usecases.ingest.dom_index.logger") as logger, mock.patch(
+        "random.randint"
+    ) as randint:
+        randint.return_value = 0
+        parse_replay_actions(1, "1", 30, events)
+        assert logger.info.call_args_list == [mock.call("SDK Options:", extra=log)]
+
+
 def test_get_testid():
-    # data-testid takes precedence.
-    assert _get_testid({"data-testid": "123", "data-test-id": "456"}) == "123"
-    assert _get_testid({"data-testid": "123", "data-test-id": ""}) == "123"
+    # Assert each test-id permutation is extracted.
+    assert _get_testid({"testId": "123"}) == "123"
     assert _get_testid({"data-testid": "123"}) == "123"
+    assert _get_testid({"data-test-id": "123"}) == "123"
+
+    # Assert no test-id is parsed as empty string
+    assert _get_testid({}) == ""
+
+    # testId takes precedence.
+    assert _get_testid({"testId": "123", "data-testid": "456", "data-test-id": "456"}) == "123"
+
+    # data-testid takes precedence.
+    assert _get_testid({"data-testid": "123", "data-test-id": ""}) == "123"
 
     # data-test-id is the fallback case.
+    assert _get_testid({"testId": "", "data-testid": "", "data-test-id": "456"}) == "456"
     assert _get_testid({"data-testid": "", "data-test-id": "456"}) == "456"
     assert _get_testid({"data-test-id": "456"}) == "456"
 

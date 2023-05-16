@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Project, ProjectStatus
+from sentry.constants import ObjectStatus
+from sentry.models import Project
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -51,7 +52,7 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
             return Response({"error": "You need to specify at least one project"}, status=400)
 
         project_ids = Project.objects.filter(
-            organization=organization, status=ProjectStatus.VISIBLE, slug__in=projects
+            organization=organization, status=ObjectStatus.ACTIVE, slug__in=projects
         ).values_list("id", flat=True)
         if len(project_ids) != len(projects):
             return Response({"error": "One or more projects are invalid"}, status=400)

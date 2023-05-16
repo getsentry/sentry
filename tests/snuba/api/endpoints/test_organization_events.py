@@ -21,6 +21,7 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.search.events import constants
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -34,7 +35,9 @@ MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
 @region_silo_test
-class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
+class OrganizationEventsEndpointTest(
+    APITestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceIssueTestCase
+):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
@@ -57,13 +60,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             kwargs={"organization_slug": self.organization.slug},
         )
 
-    def do_request(self, query, features=None):
+    def do_request(self, query, features=None, **kwargs):
         if features is None:
             features = {"organizations:discover-basic": True}
         features.update(self.features)
         self.login_as(user=self.user)
         with self.feature(features):
-            return self.client_get(self.reverse_url(), query, format="json")
+            return self.client_get(self.reverse_url(), query, format="json", **kwargs)
 
     def load_data(self, platform="transaction", timestamp=None, duration=None, **kwargs):
         if timestamp is None:
@@ -178,6 +181,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         response = self.do_request(query)
         assert response.status_code == 400
         assert "events from multiple projects" in response.data["detail"]
+
+    def test_multi_project_feature_gate_replays(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+
+        project = self.create_project(organization=self.organization, teams=[team])
+        project2 = self.create_project(organization=self.organization, teams=[team])
+
+        query = {"field": ["id", "project.id"], "project": [project.id, project2.id]}
+        response = self.do_request(query, **{"HTTP_X-Sentry-Replay-Request": "1"})
+        assert response.status_code == 200
 
     def test_invalid_search_terms(self):
         self.create_project()
@@ -592,21 +605,17 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             {"project.name": self.project.slug, "id": "a" * 32, "count()": 1}
         ]
 
-    def test_performance_issue_ids_filter(self):
-        data = load_data(
-            platform="transaction",
-            timestamp=self.ten_mins_ago,
-            start_timestamp=self.eleven_mins_ago,
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        event = self.store_event(data=data, project_id=self.project.id)
+    def test_performance_issue_id_filter(self):
+        event = self.create_performance_issue()
 
         query = {
             "field": ["count()"],
             "statsPeriod": "2h",
-            "query": f"project:{self.project.slug} performance.issue_ids:{event.groups[0].id}",
+            "query": f"issue.id:{event.group.id}",
+            "dataset": "issuePlatform",
         }
-        response = self.do_request(query)
+        with self.options({"performance.issues.create_issues_through_platform": True}):
+            response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
@@ -710,42 +719,30 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.status_code == 400, response.content
 
     def test_performance_short_group_id(self):
-        project = self.create_project(name="foo bar")
-        data = load_data(
-            "transaction",
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        event = self.store_event(data=data, project_id=project.id)
-
+        event = self.create_performance_issue()
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": f"project:{project.slug} issue:{event.groups[0].qualified_short_id}",
+            "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
+            "dataset": "issuePlatform",
         }
-        response = self.do_request(query)
+        with self.options({"performance.issues.create_issues_through_platform": True}):
+            response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
     def test_multiple_performance_short_group_ids_filter(self):
-        project = self.create_project(name="foo bar")
-        data1 = load_data(
-            "transaction",
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        event1 = self.store_event(data=data1, project_id=project.id)
-
-        data2 = load_data(
-            "transaction",
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group2"],
-        )
-        event2 = self.store_event(data=data2, project_id=project.id)
+        event1 = self.create_performance_issue()
+        event2 = self.create_performance_issue()
 
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": f"project:{project.slug} issue:[{event1.groups[0].qualified_short_id},{event2.groups[0].qualified_short_id}]",
+            "query": f"project:{event1.group.project.slug} issue:[{event1.group.qualified_short_id},{event2.group.qualified_short_id}]",
+            "dataset": "issuePlatform",
         }
-        response = self.do_request(query)
+        with self.options({"performance.issues.create_issues_through_platform": True}):
+            response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 2
 
@@ -5679,36 +5676,33 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             {
                 "data": [
                     {
-                        "name": "foo_fn",
+                        "function": "foo_fn",
                         "transaction": "foo_tx",
                         "is_application": 1,
                         "project": "python",
                         "release": "backend@1",
                         "platform.name": "python",
-                        "os.name": "Darwin",
                         "retention_days": 90,
-                        "path": "/lib/foo",
                         "package": "lib_foo",
                         "environment": "development",
-                        "os.version": "22.3.0",
                         "p95()": 92592143.6,
                         "p50()": 34695708.0,
                         "p99()": 103764495.12000002,
                         "p75()": 45980969.0,
                         "examples()": [
-                            "b04bafc3-78ea-421b-83b8-680fd1caea52",
-                            "ceac40e4-0a0c-44ad-b7f7-b1e07f02586f",
-                            "6919e407-6b4a-46bb-af1f-3ef1f0666147",
-                            "68acd0a8-bdea-46a5-9ba2-3907152b1ce5",
-                            "8ad29465-8669-4c1b-83d8-17fab3bccbc1",
+                            "6919e4076b4a46bbaf1f3ef1f0666147",
+                            "b04bafc378ea421b83b8680fd1caea52",
+                            "ceac40e40a0c44adb7f7b1e07f02586f",
+                            "6919e4076b4a46bbaf1f3ef1f0666147",
+                            "68acd0a8bdea46a59ba23907152b1ce5",
+                            "8ad2946586694c1b83d817fab3bccbc1",
                         ],
-                        "worst()": "6919e407-6b4a-46bb-af1f-3ef1f0666147",
                         "count()": 12,
                     },
                 ],
                 "meta": [
                     {
-                        "name": "name",
+                        "name": "function",
                         "type": "String",
                     },
                     {
@@ -5732,16 +5726,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
                         "type": "String",
                     },
                     {
-                        "name": "os.name",
-                        "type": "String",
-                    },
-                    {
                         "name": "retention_days",
                         "type": "UInt16",
-                    },
-                    {
-                        "name": "path",
-                        "type": "String",
                     },
                     {
                         "name": "package",
@@ -5749,10 +5735,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
                     },
                     {
                         "name": "environment",
-                        "type": "String",
-                    },
-                    {
-                        "name": "os.version",
                         "type": "String",
                     },
                     {
@@ -5776,10 +5758,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
                         "type": "Array(String)",
                     },
                     {
-                        "name": "worst()",
-                        "type": "String",
-                    },
-                    {
                         "name": "count()",
                         "type": "UInt64",
                     },
@@ -5790,18 +5768,14 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         fields = [
             "transaction",
             "project",
-            "name",
+            "function",
             "package",
-            "path",
             "is_application",
             "platform.name",
             "environment",
             "release",
-            "os.name",
-            "os.version",
             "retention_days",
             "count()",
-            "worst()",
             "examples()",
             "p50()",
             "p75()",
@@ -5812,7 +5786,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         query = {
             "field": fields,
             "project": [self.project.id],
-            "dataset": "profile_functions",
+            "dataset": "profileFunctions",
         }
         response = self.do_request(query, features={"organizations:profiling": True})
         assert response.status_code == 200, response.content

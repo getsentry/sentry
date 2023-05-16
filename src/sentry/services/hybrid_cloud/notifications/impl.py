@@ -14,6 +14,7 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import NotificationsService, RpcNotificationSetting
+from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
@@ -75,19 +76,18 @@ class DatabaseBackedNotificationsService(NotificationsService):
         value: NotificationSettingOptionValues,
     ) -> List[RpcNotificationSetting]:
         settings = NotificationSetting.objects.filter(
-            target__in=[u.actor_id for u in users],
+            user_id__in=[u.id for u in users],
             type__in=types,
             value=value.value,
             scope_type=NotificationScopeType.USER.value,
         )
-        return [self.serialize_notification_setting(u) for u in settings]
+        return [serialize_notification_setting(u) for u in settings]
 
     def get_settings_for_recipient_by_parent(
         self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[RpcActor]
     ) -> List[RpcNotificationSetting]:
         team_ids = [r.id for r in recipients if r.actor_type == ActorType.TEAM]
         user_ids = [r.id for r in recipients if r.actor_type == ActorType.USER]
-        actor_ids: List[int] = [r.actor_id for r in recipients if r.actor_id is not None]
 
         parent_specific_scope_type = get_scope_type(type)
         notification_settings = NotificationSetting.objects.filter(
@@ -103,23 +103,23 @@ class DatabaseBackedNotificationsService(NotificationsService):
                 scope_type=NotificationScopeType.TEAM.value,
                 scope_identifier__in=team_ids,
             ),
+            (Q(team_id__in=team_ids) | Q(user_id__in=user_ids)),
             type=type.value,
-            target__in=actor_ids,
         )
 
-        return [self.serialize_notification_setting(s) for s in notification_settings]
+        return [serialize_notification_setting(s) for s in notification_settings]
 
     def get_settings_for_user_by_projects(
         self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
     ) -> List[RpcNotificationSetting]:
         try:
-            user = User.objects.get(id=user_id)
+            User.objects.get(id=user_id)
         except User.DoesNotExist:
             return []
 
         scope_type = get_scope_type(type)
         return [
-            self.serialize_notification_setting(s)
+            serialize_notification_setting(s)
             for s in NotificationSetting.objects.filter(
                 Q(
                     scope_type=scope_type.value,
@@ -130,16 +130,35 @@ class DatabaseBackedNotificationsService(NotificationsService):
                     scope_identifier=user_id,
                 ),
                 type=type.value,
-                target_id=user.actor_id,
+                user_id=user_id,
             )
         ]
 
-    def remove_notification_settings(self, *, actor_id: int, provider: ExternalProviders) -> None:
+    def remove_notification_settings(
+        self, *, team_id: Optional[int], user_id: Optional[int], provider: ExternalProviders
+    ) -> None:
         """
         Delete notification settings based on an actor_id
         There is no foreign key relationship so we have to manually cascade.
         """
-        NotificationSetting.objects._filter(target_ids=[actor_id], provider=provider).delete()
+        assert (team_id and not user_id) or (
+            user_id and not team_id
+        ), "Can only remove settings for team or user"
+        team_ids = [team_id] if team_id else None
+        user_ids = [user_id] if user_id else None
+        NotificationSetting.objects._filter(
+            team_ids=team_ids, user_ids=user_ids, provider=provider
+        ).delete()
+
+    def remove_notification_settings_for_team(
+        self, *, team_id: int, provider: ExternalProviders
+    ) -> None:
+        self.remove_notification_settings(team_id=team_id, user_id=None, provider=provider)
+
+    def remove_notification_settings_for_user(
+        self, *, user_id: int, provider: ExternalProviders
+    ) -> None:
+        self.remove_notification_settings(team_id=None, user_id=user_id, provider=provider)
 
     def close(self) -> None:
         pass

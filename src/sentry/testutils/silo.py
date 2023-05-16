@@ -66,7 +66,10 @@ class SiloModeTest:
         def method_for_mode(mode: SiloMode) -> Iterable[Tuple[str, TestMethod]]:
             def replacement_test_method(*args: Any, **kwargs: Any) -> None:
                 with override_settings(
-                    SILO_MODE=mode, SINGLE_SERVER_SILO_MODE=self._is_acceptance_test(test_class)
+                    SILO_MODE=mode,
+                    SINGLE_SERVER_SILO_MODE=self._is_acceptance_test(test_class),
+                    SENTRY_SUBNET_SECRET="secret",
+                    SENTRY_CONTROL_ADDRESS="http://controlserver/",
                 ):
                     with override_regions(region_map):
                         if mode == SiloMode.REGION:

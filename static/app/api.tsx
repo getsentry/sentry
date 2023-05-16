@@ -43,6 +43,12 @@ export class Request {
   }
 }
 
+export type ApiResult<Data = any> = [
+  data: Data,
+  statusText: string | undefined,
+  resp: ResponseMeta | undefined
+];
+
 export type ResponseMeta<R = any> = {
   /**
    * Get a header value from the response
@@ -211,6 +217,10 @@ export type RequestOptions = RequestCallbacks & {
    * Values to attach to the body of the request.
    */
   data?: any;
+  /**
+   * Headers add to the request.
+   */
+  headers?: Record<string, string>;
   /**
    * The HTTP method to use when making the API request
    */
@@ -424,6 +434,7 @@ export class Client {
     const headers = new Headers({
       Accept: 'application/json; charset=utf-8',
       'Content-Type': 'application/json',
+      ...options.headers,
     });
 
     // Do not set the X-CSRFToken header when making a request outside of the
@@ -456,11 +467,13 @@ export class Client {
         const {status, statusText} = response;
         let {ok} = response;
         let errorReason = 'Request not OK'; // the default error reason
+        let twoHundredErrorReason;
 
         // Try to get text out of the response no matter the status
         try {
           responseText = await response.text();
         } catch (error) {
+          twoHundredErrorReason = 'Failed awaiting response.text()';
           ok = false;
           if (error.name === 'AbortError') {
             errorReason = 'Request was aborted';
@@ -477,6 +490,7 @@ export class Client {
           try {
             responseJSON = JSON.parse(responseText);
           } catch (error) {
+            twoHundredErrorReason = 'Failed trying to parse responseText';
             if (error.name === 'AbortError') {
               ok = false;
               errorReason = 'Request was aborted';
@@ -503,6 +517,41 @@ export class Client {
         if (ok) {
           successHandler(responseMeta, statusText, responseData);
         } else {
+          // There's no reason we should be here with a 200 response, but we get
+          // tons of events from this codepath with a 200 status nonetheless.
+          // Until we know why, let's do what is essentially some very fancy print debugging.
+          if (status === 200) {
+            // Pass a scope object rather than using `withScope` to avoid even
+            // the possibility of scope bleed.
+            const scope = new Sentry.Scope();
+
+            // Grab everything that could conceivably be helpful to know
+            scope.setExtras({
+              twoHundredErrorReason,
+              path,
+              method,
+              status,
+              statusText,
+              responseJSON,
+              responseText,
+              responseContentType,
+              errorReason,
+            });
+
+            const responseTextUndefined = responseText === undefined;
+            const fingerprint = responseTextUndefined
+              ? '200 with undefined responseText'
+              : '200 as error';
+            const message = responseTextUndefined
+              ? '200 API response with undefined responseText'
+              : '200 treated as error';
+
+            // Make sure all of these errors group, so we don't produce a bunch of noise
+            scope.setFingerprint([fingerprint]);
+
+            Sentry.captureException(new Error(`${message}: ${method} ${path}`), scope);
+          }
+
           const shouldSkipErrorHandler =
             globalErrorHandlers.map(handler => handler(responseMeta)).filter(Boolean)
               .length > 0;
@@ -530,11 +579,7 @@ export class Client {
       includeAllArgs,
       ...options
     }: {includeAllArgs?: IncludeAllArgsType} & Readonly<RequestOptions> = {}
-  ): Promise<
-    IncludeAllArgsType extends true
-      ? [data: any, textStatus: string | undefined, response: ResponseMeta | undefined]
-      : any
-  > {
+  ): Promise<IncludeAllArgsType extends true ? ApiResult : any> {
     // Create an error object here before we make any async calls so that we
     // have a helpful stack trace if it errors
     //

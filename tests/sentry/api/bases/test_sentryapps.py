@@ -16,6 +16,7 @@ from sentry.testutils.helpers.faux import Mock
 from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class SentryAppPermissionTest(TestCase):
     def setUp(self):
         self.permission = SentryAppPermission()
@@ -114,7 +115,7 @@ class SentryAppInstallationBaseEndpointTest(TestCase):
 
     def test_retrieves_installation(self):
         args, kwargs = self.endpoint.convert_args(self.request, self.installation.uuid)
-        assert kwargs["installation"] == self.installation
+        assert kwargs["installation"].id == self.installation.id
 
     def test_raises_when_sentry_app_not_found(self):
         with pytest.raises(Http404):

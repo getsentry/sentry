@@ -69,8 +69,17 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
         if checkin.status in CheckInStatus.FINISHED_VALUES:
             return self.respond(status=400)
 
+        # Discard monitor config as it is not used
+        request_data = request.data.copy()
+        request_data.pop("monitor_config", None)
+
         serializer = MonitorCheckInValidator(
-            data=request.data, partial=True, context={"project": project, "request": request}
+            data=request_data,
+            partial=True,
+            context={
+                "project": project,
+                "request": request,
+            },
         )
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)
@@ -102,12 +111,10 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             checkin.update(**params)
 
             if checkin.status == CheckInStatus.ERROR:
-                monitor_failed = monitor.mark_failed(current_datetime)
-                monitor_environment.mark_failed(current_datetime)
+                monitor_failed = monitor_environment.mark_failed(current_datetime)
                 if not monitor_failed:
                     return self.respond(serialize(checkin, request.user), status=208)
             else:
-                monitor.mark_ok(checkin, current_datetime)
                 monitor_environment.mark_ok(checkin, current_datetime)
 
         return self.respond(serialize(checkin, request.user))

@@ -186,6 +186,7 @@ class Columns(Enum):
         event_name="transaction",
         transaction_name="transaction_name",
         discover_name="transaction",
+        issue_platform_name="transaction_name",
         alias="transaction",
     )
     USER = Column(
@@ -452,6 +453,14 @@ class Columns(Enum):
         issue_platform_name="contexts[geo.city]",
         alias="geo.city",
     )
+    GEO_SUBDIVISION = Column(
+        group_name="events.geo_subdivision",
+        event_name="geo_subdivision",
+        transaction_name="contexts[geo.subdivision]",
+        discover_name="geo_subdivision",
+        issue_platform_name="contexts[geo.subdivision]",
+        alias="geo.subdivision",
+    )
     ERROR_TYPE = Column(
         group_name="events.exception_stacks.type",
         event_name="exception_stacks.type",
@@ -596,6 +605,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="duration",
         discover_name="duration",
+        issue_platform_name="transaction_duration",
         alias="transaction.duration",
     )
     TRANSACTION_STATUS = Column(
@@ -667,7 +677,7 @@ class Columns(Enum):
         event_name="contexts[trace.trace_id]",
         transaction_name="trace_id",
         discover_name="contexts[trace.trace_id]",
-        issue_platform_name="contexts[trace.trace_id]",
+        issue_platform_name="trace_id",
         alias="trace",
     )
     SPAN_ID = Column(

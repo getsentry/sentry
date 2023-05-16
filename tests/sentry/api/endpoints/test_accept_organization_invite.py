@@ -14,11 +14,13 @@ from sentry.models import (
 )
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
 @region_silo_test
-class AcceptInviteTest(TestCase):
+class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
@@ -256,10 +258,13 @@ class AcceptInviteTest(TestCase):
                 token="abcd",
                 organization=self.organization,
             )
-            path = self._get_path(url, [om2.id, om2.token])
-            resp = self.client.post(path)
-            assert resp.status_code == 400
+            self.assert_org_member_mapping(org_member=om2)
+            with outbox_runner():
+                path = self._get_path(url, [om2.id, om2.token])
+                resp = self.client.post(path)
+                assert resp.status_code == 400
             assert not OrganizationMember.objects.filter(id=om2.id).exists()
+            self.assert_org_member_mapping_not_exists(org_member=om2)
 
     def test_can_accept_when_user_has_2fa(self):
         urls = self._get_urls()

@@ -1,6 +1,6 @@
 import type {PlatformKey} from 'sentry/data/platformCategories';
 
-import type {TimeseriesValue} from './core';
+import type {Scope, TimeseriesValue} from './core';
 import type {SDKUpdatesSuggestion} from './event';
 import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
@@ -15,6 +15,7 @@ export type AvatarProject = {
 };
 
 export type Project = {
+  access: Scope[];
   dateCreated: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
@@ -77,6 +78,11 @@ export type ProjectKey = {
     secret: string;
     security: string;
     unreal: string;
+  };
+  dynamicSdkLoaderOptions: {
+    hasDebug: boolean;
+    hasPerformance: boolean;
+    hasReplay: boolean;
   };
   id: string;
   isActive: boolean;

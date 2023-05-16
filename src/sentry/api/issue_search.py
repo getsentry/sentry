@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import partial
 from typing import Callable, Iterable, List, Mapping, Optional, Sequence, Set, Union
 
@@ -6,6 +8,7 @@ from sentry.api.event_search import (
     AggregateFilter,
     SearchConfig,
     SearchFilter,
+    SearchKey,
     SearchValue,
     default_config,
 )
@@ -17,16 +20,18 @@ from sentry.issues.grouptype import (
     get_group_types_by_category,
 )
 from sentry.models import Environment, Organization, Project, Team, User
-from sentry.models.group import STATUS_QUERY_CHOICES, GroupStatus
-from sentry.search.events.constants import EQUALITY_OPERATORS
+from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
+from sentry.search.events.constants import EQUALITY_OPERATORS, INEQUALITY_OPERATORS
 from sentry.search.events.filter import to_list
 from sentry.search.utils import (
     DEVICE_CLASS,
     parse_actor_or_none_value,
     parse_release,
     parse_status_value,
+    parse_substatus_value,
     parse_user_value,
 )
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 
 is_filter_translation = {
     "assigned": ("unassigned", False),
@@ -38,6 +43,8 @@ is_filter_translation = {
 for status_key, status_value in STATUS_QUERY_CHOICES.items():
     is_filter_translation[status_key] = ("status", status_value)
 
+for substatus_key, substatus_value in SUBSTATUS_UPDATE_CHOICES.items():
+    is_filter_translation[substatus_key] = ("substatus", substatus_value)
 
 issue_search_config = SearchConfig.create_from(
     default_config,
@@ -64,7 +71,7 @@ parse_search_query = partial(base_parse_query, config=issue_search_config)
 
 ValueConverter = Callable[
     [
-        Iterable[Union[User, Team, str, GroupStatus]],
+        Iterable[Union[User, Team, str, GroupStatus, GroupSubStatus]],
         Sequence[Project],
         User,
         Optional[Sequence[Environment]],
@@ -124,6 +131,21 @@ def convert_first_release_value(
     for version in value:
         releases.update(parse_release(version, projects, environments))
     return list(releases)
+
+
+def convert_substatus_value(
+    value: Iterable[str | int],
+    projects: Sequence[Project],
+    user: User,
+    environments: Sequence[Environment] | None,
+) -> list[int]:
+    parsed = []
+    for substatus in value:
+        try:
+            parsed.append(parse_substatus_value(substatus))
+        except ValueError:
+            raise InvalidSearchQuery(f"invalid substatus value of '{substatus}'")
+    return parsed
 
 
 def convert_status_value(
@@ -201,11 +223,12 @@ value_converters: Mapping[str, ValueConverter] = {
     "issue.category": convert_category_value,
     "issue.type": convert_type_value,
     "device.class": convert_device_class_value,
+    "substatus": convert_substatus_value,
 }
 
 
 def convert_query_values(
-    search_filters: Sequence[SearchFilter],
+    search_filters: list[SearchFilter],
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
@@ -240,6 +263,7 @@ def convert_query_values(
                 operator = "IN" if search_filter.operator in EQUALITY_OPERATORS else "NOT IN"
             else:
                 operator = "=" if search_filter.operator in EQUALITY_OPERATORS else "!="
+
             search_filter = search_filter._replace(
                 value=SearchValue(new_value),
                 operator=operator,
@@ -248,7 +272,54 @@ def convert_query_values(
             raise InvalidSearchQuery(
                 f"Aggregate filters ({search_filter.key.name}) are not supported in issue searches."
             )
+
         return search_filter
 
+    def expand_substatus_query_values(
+        search_filters: list[SearchFilter], org: Organization
+    ) -> list[SearchFilter]:
+        first_status_incl = None
+        first_status_excl = None
+        includes_status_filter = False
+        includes_substatus_filter = False
+        for search_filter in search_filters:
+            if search_filter.key.name == "substatus":
+                if not features.has("organizations:issue-states", org):
+                    raise InvalidSearchQuery(
+                        "The substatus filter is not supported for this organization"
+                    )
+
+                converted = convert_search_filter(search_filter, org)
+                new_value = converted.value.raw_value
+                status = GROUP_SUBSTATUS_TO_STATUS_MAP.get(
+                    new_value[0] if isinstance(new_value, list) else new_value
+                )
+                if first_status_incl is None and converted.operator in EQUALITY_OPERATORS:
+                    first_status_incl = SearchFilter(
+                        key=SearchKey(name="status"), operator="IN", value=SearchValue([status])
+                    )
+
+                if first_status_excl is None and converted.operator in INEQUALITY_OPERATORS:
+                    first_status_excl = SearchFilter(
+                        key=SearchKey(name="status"), operator="NOT IN", value=SearchValue([status])
+                    )
+
+                includes_substatus_filter = True
+
+            if search_filter.key.name == "status":
+                includes_status_filter = True
+
+        if includes_status_filter:
+            return search_filters
+
+        if includes_substatus_filter:
+            assert first_status_incl is not None or first_status_excl is not None
+            return search_filters + [first_status_incl or first_status_excl]
+
+        return search_filters
+
     organization = projects[0].organization
-    return [convert_search_filter(search_filter, organization) for search_filter in search_filters]
+
+    expanded_filters = expand_substatus_query_values(search_filters, organization)
+
+    return [convert_search_filter(filter, organization) for filter in expanded_filters]

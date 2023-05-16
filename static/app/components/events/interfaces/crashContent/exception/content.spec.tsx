@@ -161,38 +161,15 @@ describe('Exception Content', function () {
       projectSlug: project.slug,
     };
 
-    it('displays exception group tree in first frame', function () {
+    it('displays exception group tree under first exception', function () {
       render(<Content {...defaultProps} />);
 
       const exceptions = screen.getAllByTestId('exception-value');
 
-      // There are 4 exceptions in the exception group fixture
-      expect(exceptions).toHaveLength(4);
-
-      // First exception should be the parent ExceptionGroup and the tree should be visible
-      // in the top frame context
+      // First exception should be the parent ExceptionGroup
+      expect(within(exceptions[0]).getByText('ExceptionGroup 1')).toBeInTheDocument();
       expect(
         within(exceptions[0]).getByRole('heading', {name: 'ExceptionGroup 1'})
-      ).toBeInTheDocument();
-      const exception1FrameContext = within(exceptions[0]).getByTestId('frame-context');
-      expect(
-        within(exception1FrameContext).getByRole('cell', {name: 'Related Exceptions'})
-      ).toBeInTheDocument();
-    });
-
-    it('displays exception group tree in first frame when sorting by oldest', function () {
-      render(<Content {...defaultProps} newestFirst={false} />);
-
-      const exceptions = screen.getAllByTestId('exception-value');
-
-      // Last exception should be the parent ExceptionGroup and the tree should be visible
-      // in the top frame context
-      expect(
-        within(exceptions[3]).getByRole('heading', {name: 'ExceptionGroup 1'})
-      ).toBeInTheDocument();
-      const exception1FrameContext = within(exceptions[3]).getByTestId('frame-context');
-      expect(
-        within(exception1FrameContext).getByRole('cell', {name: 'Related Exceptions'})
       ).toBeInTheDocument();
     });
 
@@ -203,10 +180,43 @@ describe('Exception Content', function () {
 
       const exceptionGroupWithNoContext = exceptions[2];
       expect(
-        within(exceptionGroupWithNoContext).getByRole('cell', {
-          name: 'Related Exceptions',
-        })
+        within(exceptionGroupWithNoContext).getByText('Related Exceptions')
       ).toBeInTheDocument();
+    });
+
+    it('collapses sub-groups by default', async function () {
+      render(<Content {...defaultProps} />);
+
+      // There are 4 values, but 1 should be hidden
+      expect(screen.getAllByTestId('exception-value').length).toBe(3);
+      expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: /show 1 related exception/i})
+      );
+
+      // After expanding, ValueError should be visible
+      expect(screen.getAllByTestId('exception-value').length).toBe(4);
+      expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: /hide 1 related exception/i})
+      );
+
+      // After collapsing, ValueError should be gone again
+      expect(screen.getAllByTestId('exception-value').length).toBe(3);
+      expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
+    });
+
+    it('auto-opens sub-groups when clicking link in tree', async function () {
+      render(<Content {...defaultProps} />);
+
+      expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: /ValueError: test/i}));
+
+      // After expanding, ValueError should be visible
+      expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
     });
   });
 });

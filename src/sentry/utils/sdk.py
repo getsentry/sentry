@@ -1,23 +1,22 @@
+from __future__ import annotations
+
 import copy
 import inspect
 import logging
 import random
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
 import sentry_sdk
 from django.conf import settings
 from django.urls import resolve
+from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import (  # NOQA
-    Scope,
-    capture_exception,
-    capture_message,
-    configure_scope,
-    push_scope,
-)
+from sentry_sdk import push_scope  # NOQA
+from sentry_sdk import Scope, capture_exception, capture_message, configure_scope
 from sentry_sdk.client import get_options
+from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
 
@@ -25,6 +24,10 @@ from sentry import options
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
+
+# Can't import models in utils because utils should be the bottom of the food chain
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +100,7 @@ if settings.ADDITIONAL_SAMPLED_URLS:
     SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
 
 # Tasks not included here are not sampled
-# If a parent task schedules other tasks you should add it in here or the children
+# If a parent task schedules other tasks you should add it in here or the child
 # tasks will not be sampled
 SAMPLED_TASKS = {
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
@@ -412,8 +415,8 @@ def configure_sdk():
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),
-            DjangoIntegration(),
-            CeleryIntegration(),
+            DjangoIntegration(signals_spans=False),
+            CeleryIntegration(monitor_beat_tasks=True),
             # This makes it so all levels of logging are recorded as breadcrumbs,
             # but none are captured as events (that's handled by the `internal`
             # logger defined in `server.py`, which ignores the levels set
@@ -462,17 +465,112 @@ def check_tag(tag_key: str, expected_value: str) -> None:
     from what we want to set it to.
     """
     with configure_scope() as scope:
-        # First check that the tag exists, because though it's true that "no value yet" doesn't
-        # match "some new value," we don't want to flag that as a mismatch.
-        if tag_key in scope._tags and scope._tags[tag_key] != expected_value:
+        current_value = scope._tags.get(tag_key)
+
+        if not current_value:
+            return
+
+        # There are times where we can only narrow down the current org to a list, for example if
+        # we've derived it from an integration, since integrations can be shared across multiple orgs.
+        if tag_key == "organization.slug" and current_value == "[multiple orgs]":
+            # Currently, we don't have access in this function to the underlying slug list
+            # corresponding to an incoming "[multiple orgs]" tag, so we can't check it against the
+            # current list. Regardless of whether the lists would match, it's currently not flagged
+            # as scope bleed. (Fortunately, that version of scope bleed should be a pretty rare case,
+            # since only ~3% of integrations belong to multiple orgs, making the chance of it
+            # happening twice around 0.1%.) So for now, just skip that case.
+            if expected_value != "[multiple orgs]":
+                # If we've now figured out which of that list is correct, don't count it as a mismatch.
+                # But if it currently is a list and `expected_value` is something *not* in that list,
+                # we're almost certainly dealing with scope bleed, so we should continue with our check.
+                current_org_list = scope._contexts.get("organization", {}).get(
+                    "multiple possible", []
+                )
+                if current_org_list and expected_value in current_org_list:
+                    return
+
+        if current_value != expected_value:
             scope.set_tag("possible_mistag", True)
             scope.set_tag(f"scope_bleed.{tag_key}", True)
             extra = {
-                f"previous_{tag_key}_tag": scope._tags[tag_key],
+                f"previous_{tag_key}_tag": current_value,
                 f"new_{tag_key}_tag": expected_value,
             }
             merge_context_into_scope("scope_bleed", extra, scope)
             logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
+
+
+def get_transaction_name_from_request(request: Request) -> str:
+    """
+    Given an incoming request, derive a parameterized transaction name, if possible. Based on the
+    implementation in `_set_transaction_name_and_source` in the SDK, which is what it uses to label
+    request transactions. See https://github.com/getsentry/sentry-python/blob/6c68cf4742e6f65da431210085ee095ba6535cee/sentry_sdk/integrations/django/__init__.py#L333.
+
+    If parameterization isn't possible, use the request's path.
+    """
+
+    transaction_name = request.path_info
+    try:
+        # Note: In spite of the name, the legacy resolver is still what's used in the python SDK
+        transaction_name = LEGACY_RESOLVER.resolve(
+            request.path_info, urlconf=getattr(request, "urlconf", None)
+        )
+    except Exception:
+        pass
+
+    return transaction_name
+
+
+def check_current_scope_transaction(
+    request: Request,
+) -> dict[str, str] | None:
+    """
+    Check whether the name of the transaction on the current scope matches what we'd expect, given
+    the request being handled.
+
+    If the transaction values match, return None. If they don't, return a dictionary including both
+    values.
+
+    Note: Ignores scope `transaction` values with `source = "custom"`, indicating a value which has
+    been set maunually. (See the `transaction_start` decorator, for example.)
+    """
+
+    with configure_scope() as scope:
+        transaction_from_request = get_transaction_name_from_request(request)
+
+        if (
+            scope._transaction != transaction_from_request
+            and scope._transaction_info.get("source") != "custom"
+        ):
+            return {
+                "scope_transaction": scope._transaction,
+                "request_transaction": transaction_from_request,
+            }
+
+
+def capture_exception_with_scope_check(
+    error, scope: Scope | None = None, request: Request | None = None, **scope_args
+):
+    """
+    A wrapper around `sentry_sdk.capture_exception` which checks scope `transaction` against the
+    given Request object, to help debug scope bleed problems.
+    """
+
+    # The SDK's version of `capture_exception` accepts either a `Scope` object or scope kwargs.
+    # Regardless of which one the caller passed, convert the data into a `Scope` object
+    extra_scope = scope or Scope()
+    extra_scope.update_from_kwargs(**scope_args)
+
+    # We've got a weird scope bleed problem, where, among other things, errors are getting tagged
+    # with the wrong transaction value, so record any possible mismatch.
+    transaction_mismatch = check_current_scope_transaction(request) if request else None
+    if transaction_mismatch:
+        # TODO: We probably should add this data to the scope in `check_current_scope_transaction`
+        # instead, but the whole point is that right now it's unclear how trustworthy ambient scope is
+        extra_scope.set_tag("scope_bleed.transaction", True)
+        merge_context_into_scope("scope_bleed", transaction_mismatch, extra_scope)
+
+    return sentry_sdk.capture_exception(error, scope=extra_scope)
 
 
 def bind_organization_context(organization):
@@ -480,7 +578,7 @@ def bind_organization_context(organization):
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with sentry_sdk.configure_scope() as scope, sentry_sdk.start_span(
+    with configure_scope() as scope, sentry_sdk.start_span(
         op="other", description="bind_organization_context"
     ):
         # This can be used to find errors that may have been mistagged
@@ -497,6 +595,43 @@ def bind_organization_context(organization):
                     "internal-error.organization-context",
                     extra={"organization_id": organization.id},
                 )
+
+
+def bind_ambiguous_org_context(orgs: list[Organization], source: str | None = None) -> None:
+    """
+    Add org context information to the scope in the case where the current org might be one of a
+    number of known orgs (for example, if we've attempted to derive the current org from an
+    Integration instance, which can be shared by multiple orgs).
+    """
+
+    MULTIPLE_ORGS_TAG = "[multiple orgs]"
+
+    org_slugs = [org.slug for org in orgs]
+
+    # Right now there is exactly one Integration instance shared by more than 30 orgs (the generic
+    # GitLab integration, at the moment shared by ~500 orgs), so 50 should be plenty for all but
+    # that one instance
+    if len(orgs) > 50:
+        org_slugs = org_slugs[:49] + [f"... ({len(orgs) - 49} more)"]
+
+    with configure_scope() as scope:
+        # It's possible we've already set the org context with one of the orgs in our list,
+        # somewhere we could narrow it down to one org. In that case, we don't want to overwrite
+        # that specific data with this ambiguous data.
+        current_org_slug_tag = scope._tags.get("organization.slug")
+        if current_org_slug_tag and current_org_slug_tag in org_slugs:
+            return
+
+        # It's also possible that the org seems already to be set but it's just a case of scope
+        # bleed. In that case, we want to test for that and proceed.
+        check_tag("organization.slug", MULTIPLE_ORGS_TAG)
+
+        scope.set_tag("organization", MULTIPLE_ORGS_TAG)
+        scope.set_tag("organization.slug", MULTIPLE_ORGS_TAG)
+
+        scope.set_context(
+            "organization", {"multiple possible": org_slugs, "source": source or "unknown"}
+        )
 
 
 def set_measurement(measurement_name, value, unit=None):

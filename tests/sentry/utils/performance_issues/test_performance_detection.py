@@ -392,11 +392,6 @@ class PerformanceDetectionTest(TestCase):
                 instance="True",
                 tags={
                     "sdk_name": "sentry.javascript.react",
-                    "integration_django": False,
-                    "integration_flask": False,
-                    "integration_sqlalchemy": False,
-                    "integration_mongo": False,
-                    "integration_postgres": False,
                     "consecutive_db": False,
                     "large_http_payload": False,
                     "consecutive_http": False,
@@ -410,6 +405,7 @@ class PerformanceDetectionTest(TestCase):
                     "m_n_plus_one_db": False,
                     "uncompressed_assets": True,
                     "browser_name": "Chrome",
+                    "is_early_adopter": False,
                 },
             )
             in incr_mock.mock_calls

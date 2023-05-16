@@ -1,26 +1,38 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import moment from 'moment';
 
+import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {INTERNAL_API_REGEX} from 'sentry/views/starfish/modules/APIModule/constants';
+import {HostDetails} from 'sentry/views/starfish/modules/APIModule/hostDetails';
+import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
+import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
 import EndpointTable from './endpointTable';
 import HostTable from './hostTable';
-import {getEndpointDomainsQuery, getEndpointGraphQuery, PERIOD_REGEX} from './queries';
-
-export const HOST = 'http://localhost:8080';
+import {
+  getEndpointDomainsEventView,
+  getEndpointDomainsQuery,
+  getEndpointGraphEventView,
+  getEndpointGraphQuery,
+  useGetTransactionsForHosts,
+} from './queries';
 
 const HTTP_ACTION_OPTIONS = [
   {value: '', label: 'All'},
@@ -44,32 +56,70 @@ export type DataRow = {
 export default function APIModuleView({location, onSelect}: Props) {
   const themes = useTheme();
   const pageFilter = usePageFilters();
-  const [state, setState] = useState<{action: string; domain: string}>({
+  const [state, setState] = useState<{
+    action: string;
+    domain: string;
+    transaction: string;
+  }>({
     action: '',
     domain: '',
+    transaction: '',
+  });
+  const endpointTableRef = useRef<HTMLInputElement>(null);
+  const organization = useOrganization();
+
+  const endpointsDomainEventView = getEndpointDomainsEventView({
+    datetime: pageFilter.selection.datetime,
+  });
+  const endpointsDomainQuery = getEndpointDomainsQuery({
+    datetime: pageFilter.selection.datetime,
   });
 
-  const {isLoading: _isDomainsLoading, data: domains} = useQuery({
-    queryKey: ['domains'],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getEndpointDomainsQuery()}`).then(res => res.json()),
-    retry: false,
+  const {selection} = pageFilter;
+  const {projects, environments, datetime} = selection;
+
+  useApiQuery<null>(
+    [
+      `/organizations/${organization.slug}/events-starfish/`,
+      {
+        query: {
+          ...{
+            environment: environments,
+            project: projects.map(proj => String(proj)),
+          },
+          ...normalizeDateTimeParams(datetime),
+        },
+      },
+    ],
+    {
+      staleTime: 10,
+    }
+  );
+
+  const {isLoading: _isDomainsLoading, data: domains} = useSpansQuery({
+    eventView: endpointsDomainEventView,
+    queryString: endpointsDomainQuery,
     initialData: [],
   });
 
-  const {isLoading: isGraphLoading, data: graphData} = useQuery({
-    queryKey: ['graph', pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getEndpointGraphQuery({
-          datetime: pageFilter.selection.datetime,
-        })}`
-      ).then(res => res.json()),
-    retry: false,
+  const endpointsGraphEventView = getEndpointGraphEventView({
+    datetime: pageFilter.selection.datetime,
+  });
+
+  const {isLoading: isGraphLoading, data: graphData} = useSpansQuery({
+    eventView: endpointsGraphEventView,
+    queryString: getEndpointGraphQuery({
+      datetime: pageFilter.selection.datetime,
+    }),
     initialData: [],
   });
 
-  const quantiles = ['p50', 'p75', 'p95', 'p99'];
+  const quantiles = [
+    'p50(span.self_time)',
+    'p75(span.self_time)',
+    'p95(span.self_time)',
+    'p99(span.self_time)',
+  ];
 
   const seriesByQuantile: {[quantile: string]: Series} = {};
   quantiles.forEach(quantile => {
@@ -95,16 +145,15 @@ export default function APIModuleView({location, onSelect}: Props) {
       });
     });
     countSeries.data.push({
-      value: datum.count,
+      value: datum['count()'],
       name: datum.interval,
     });
     failureRateSeries.data.push({
-      value: datum.failure_rate,
+      value: datum['failure_rate()'],
       name: datum.interval,
     });
   });
 
-  // TODO: Some duplicate code here with queries.js
   const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
   const startTime =
     num && unit
@@ -144,6 +193,33 @@ export default function APIModuleView({location, onSelect}: Props) {
       })),
   ];
 
+  const interval = getInterval(pageFilter.selection.datetime, 'low');
+  const {isLoading: isTopTransactionDataLoading, data: topTransactionsData} =
+    useGetTransactionsForHosts(
+      domains
+        .map(({domain}) => domain)
+        .filter(domain => !domain.match(INTERNAL_API_REGEX)),
+      interval
+    );
+
+  const tpmTransactionSeries = queryToSeries(
+    topTransactionsData,
+    'group',
+    'epm()',
+    startTime,
+    endTime,
+    24
+  );
+
+  const p75TransactionSeries = queryToSeries(
+    topTransactionsData,
+    'group',
+    'p75(transaction.duration)',
+    startTime,
+    endTime,
+    24
+  );
+
   return (
     <Fragment>
       <FilterOptionsContainer>
@@ -175,7 +251,36 @@ export default function APIModuleView({location, onSelect}: Props) {
             />
           </ChartPanel>
         </ChartsContainerItem>
+        <ChartsContainerItem>
+          <ChartPanel title={t('Top Transactions Throughput')}>
+            <APIModuleChart
+              data={tpmTransactionSeries}
+              loading={isTopTransactionDataLoading}
+            />
+          </ChartPanel>
+        </ChartsContainerItem>
+        <ChartsContainerItem>
+          <ChartPanel title={t('Top Transactions p75')}>
+            <APIModuleChart
+              data={p75TransactionSeries}
+              loading={isTopTransactionDataLoading}
+            />
+          </ChartPanel>
+        </ChartsContainerItem>
       </ChartsContainer>
+      <HostTable
+        location={location}
+        setDomainFilter={domain => {
+          setDomain(domain);
+          // TODO: Cheap way to scroll to the endpoints table without waiting for async request
+          setTimeout(() => {
+            endpointTableRef.current?.scrollIntoView({
+              behavior: 'smooth',
+              inline: 'start',
+            });
+          }, 200);
+        }}
+      />
       <FilterOptionsContainer>
         <CompactSelect
           triggerProps={{prefix: t('Operation')}}
@@ -191,13 +296,14 @@ export default function APIModuleView({location, onSelect}: Props) {
         />
       </FilterOptionsContainer>
 
-      <EndpointTable
-        location={location}
-        onSelect={onSelect}
-        filterOptions={{...state, datetime: pageFilter.selection.datetime}}
-      />
-
-      <HostTable location={location} />
+      <div ref={endpointTableRef}>
+        {state.domain && <HostDetails host={state.domain} />}
+        <EndpointTable
+          location={location}
+          onSelect={onSelect}
+          filterOptions={{...state, datetime: pageFilter.selection.datetime}}
+        />
+      </div>
     </Fragment>
   );
 }
@@ -211,7 +317,6 @@ function APIModuleChart({
   loading: boolean;
   chartColors?: string[];
 }) {
-  const themes = useTheme();
   return (
     <Chart
       statsPeriod="24h"
@@ -227,11 +332,10 @@ function APIModuleChart({
         top: '8px',
         bottom: '0',
       }}
-      disableMultiAxis
       definedAxisTicks={4}
       stacked
       isLineChart
-      chartColors={chartColors ?? themes.charts.getColorPalette(2)}
+      chartColors={chartColors}
       disableXAxis
     />
   );

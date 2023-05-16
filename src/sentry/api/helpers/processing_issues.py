@@ -4,7 +4,6 @@ from django.db.models import Count, Max
 
 from sentry.api.serializers import serialize
 from sentry.models import ProcessingIssue, ReprocessingReport
-from sentry.utils.linksign import generate_signed_link
 
 
 def get_processing_issues(user, projects, include_detailed_issues=False):
@@ -22,8 +21,6 @@ def get_processing_issues(user, projects, include_detailed_issues=False):
         - 'hasMoreResolveableIssues': Whether there are any Raw Events that
         have no remaining issues and can be resolved automatically
         'issuesProcessing': How many ReprocessingReports exist for this Project
-        'signedLink': Signed link that takes the user to the reprocessing page
-        for this project
         'project': Slug for the project
 
     """
@@ -46,8 +43,8 @@ def get_processing_issues(user, projects, include_detailed_issues=False):
         for result in resolved_qs.values("project").annotate(count=Count("id"))
     }
 
+    project_issues = defaultdict(list)
     if include_detailed_issues:
-        project_issues = defaultdict(list)
         for proc_issue in (
             ProcessingIssue.objects.with_num_events()
             .filter(project__in=projects)
@@ -60,17 +57,6 @@ def get_processing_issues(user, projects, include_detailed_issues=False):
         agg_results = project_agg_results.get(project.id, {})
         num_issues = agg_results.get("num_issues", 0)
 
-        signed_link = None
-        if num_issues > 0:
-            signed_link = generate_signed_link(
-                user,
-                "sentry-api-0-project-fix-processing-issues",
-                kwargs={
-                    "project_slug": project.slug,
-                    "organization_slug": project.organization.slug,
-                },
-            )
-
         last_seen = agg_results.get("last_seen")
         data = {
             "hasIssues": num_issues > 0,
@@ -82,7 +68,6 @@ def get_processing_issues(user, projects, include_detailed_issues=False):
             # so that we don't break any other consumers that expect this value.
             "hasMoreResolveableIssues": False,
             "issuesProcessing": project_reprocessing_issues.get(project.id, 0),
-            "signedLink": signed_link,
             "project": project.slug,
         }
         if include_detailed_issues:

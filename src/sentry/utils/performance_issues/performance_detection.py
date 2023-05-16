@@ -12,6 +12,7 @@ from sentry.eventstore.models import Event
 from sentry.models import Organization, Project, ProjectOption
 from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
 from sentry.utils import metrics
+from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
 
@@ -39,6 +40,12 @@ INTEGRATIONS_OF_INTEREST = [
     "sqlalchemy",
     "Mongo",  # Node
     "Postgres",  # Node
+    "Mysql",  # Node
+    "Prisma",  # Node
+    "GraphQL",  # Node
+]
+SDKS_OF_INTEREST = [
+    "sentry.javascript.node",
 ]
 
 
@@ -138,6 +145,18 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         "render_blocking_bytes_min": options.get(
             "performance.issues.render_blocking_assets.size_threshold"
         ),
+        "consecutive_http_spans_max_duration_between_spans": options.get(
+            "performance.issues.consecutive_http.max_duration_between_spans"
+        ),
+        "consecutive_http_spans_count_threshold": options.get(
+            "performance.issues.consecutive_http.consecutive_count_threshold"
+        ),
+        "consecutive_http_spans_span_duration_threshold": options.get(
+            "performance.issues.consecutive_http.span_duration_threshold"
+        ),
+        "large_http_payload_size_threshold": options.get(
+            "performance.issues.large_http_payload.size_threshold"
+        ),
     }
 
     default_project_settings = (
@@ -228,11 +247,18 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "detection_enabled": settings["uncompressed_assets_detection_enabled"],
         },
         DetectorType.CONSECUTIVE_HTTP_OP: {
-            "span_duration_threshold": 1000,  # ms
-            "consecutive_count_threshold": 3,
-            "max_duration_between_spans": 10000,  # ms
+            "span_duration_threshold": settings[
+                "consecutive_http_spans_span_duration_threshold"
+            ],  # ms
+            "consecutive_count_threshold": settings["consecutive_http_spans_count_threshold"],
+            "max_duration_between_spans": settings[
+                "consecutive_http_spans_max_duration_between_spans"
+            ],  # ms
+            "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
         },
-        DetectorType.LARGE_HTTP_PAYLOAD: {"payload_size_threshold": 10000000},  # 10mb
+        DetectorType.LARGE_HTTP_PAYLOAD: {
+            "payload_size_threshold": settings["large_http_payload_size_threshold"]
+        },
     }
 
 
@@ -262,7 +288,7 @@ def _detect_performance_problems(
         run_detector_on_data(detector, data)
 
     # Metrics reporting only for detection, not created issues.
-    report_metrics_for_detectors(data, event_id, detectors, sdk_span)
+    report_metrics_for_detectors(data, event_id, detectors, sdk_span, project.organization)
 
     organization = cast(Organization, project.organization)
     if project is None or organization is None:
@@ -313,7 +339,11 @@ def run_detector_on_data(detector, data):
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
-    event: Event, event_id: Optional[str], detectors: Sequence[PerformanceDetector], sdk_span: Any
+    event: Event,
+    event_id: Optional[str],
+    detectors: Sequence[PerformanceDetector],
+    sdk_span: Any,
+    organization: Organization,
 ):
     all_detected_problems = [i for d in detectors for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
@@ -359,13 +389,19 @@ def report_metrics_for_detectors(
         # Reduce cardinality in case there are custom browser name tags.
         allowed_browser_name = browser_name
 
-    detected_tags = {"sdk_name": sdk_name}
+    detected_tags = {
+        "sdk_name": sdk_name,
+        "is_early_adopter": organization.flags.early_adopter.is_set,
+    }
     event_integrations = event.get("sdk", {}).get("integrations", []) or []
 
     for integration_name in INTEGRATIONS_OF_INTEREST:
-        detected_tags["integration_" + integration_name.lower()] = (
-            integration_name in event_integrations
-        )
+        if integration_name in event_integrations:
+            detected_tags["integration_" + integration_name.lower()] = True
+
+    for allowed_sdk_name in SDKS_OF_INTEREST:
+        if allowed_sdk_name == sdk_name:
+            detected_tags["sdk_" + allowed_sdk_name.lower()] = True
 
     for detector in detectors:
         detector_key = detector.type.value
@@ -378,6 +414,9 @@ def report_metrics_for_detectors(
 
         if detector.type in [DetectorType.UNCOMPRESSED_ASSETS]:
             detected_tags["browser_name"] = allowed_browser_name
+
+        if detector.type in [DetectorType.CONSECUTIVE_HTTP_OP]:
+            detected_tags["is_frontend"] = is_event_from_browser_javascript_sdk(event)
 
         first_problem = detected_problems[detected_problem_keys[0]]
         if first_problem.fingerprint:

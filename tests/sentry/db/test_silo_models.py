@@ -1,22 +1,5 @@
 from sentry.api.serializers.base import registry
-from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.models import (
-    Actor,
-    AuthProviderDefaultTeams,
-    NotificationSetting,
-    OrganizationMember,
-    SentryApp,
-    Team,
-    User,
-)
-from sentry.models.integrations import (
-    ExternalActor,
-    ExternalIssue,
-    Integration,
-    OrganizationIntegration,
-    PagerDutyService,
-    RepositoryProjectPathConfig,
-)
+from sentry.models import Actor, OrganizationMember, User
 from sentry.testutils.silo import (
     validate_models_have_silos,
     validate_no_cross_silo_deletions,
@@ -26,15 +9,7 @@ from sentry.testutils.silo import (
 decorator_exemptions = set()
 fk_exemptions = {
     (OrganizationMember, User),
-    (AuthProviderDefaultTeams, Team),
-    (Integration, AlertRuleTriggerAction),
-    (Integration, ExternalActor),
-    (Integration, ExternalIssue),
-    (OrganizationIntegration, PagerDutyService),
-    (OrganizationIntegration, RepositoryProjectPathConfig),
-    (NotificationSetting, Actor),
     (User, Actor),
-    (AlertRuleTriggerAction, SentryApp),
 }
 
 
