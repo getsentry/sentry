@@ -39,6 +39,7 @@ interface BaseConfig {
   checkin_margin: number;
   max_runtime: number;
   timezone: string;
+  alert_rule_id?: number;
 }
 
 /**
