@@ -1,4 +1,5 @@
 from sentry.api.serializers import OrganizationMemberWithProjectsSerializer, serialize
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -13,7 +14,8 @@ class OrganizationMemberListTest(APITestCase):
         self.user_3 = self.create_user("unrelated@localhost", username="unrelated")
 
         self.org = self.create_organization(owner=self.owner_user)
-        self.org.member_set.create(user=self.user_2)
+        with in_test_psql_role_override("postgres"):
+            self.org.member_set.create(user=self.user_2)
         self.team_1 = self.create_team(
             organization=self.org, members=[self.owner_user, self.user_2]
         )
