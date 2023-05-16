@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry import roles
 from sentry.auth import manager
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models import (
     INVITE_DAYS_VALID,
@@ -95,18 +96,20 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert "set_password_url" in context
 
     def test_token_expires_at_set_on_save(self):
-        member = OrganizationMember(organization=self.organization, email="foo@example.com")
-        member.token = member.generate_token()
-        member.save()
+        with in_test_psql_role_override("postgres"):
+            member = OrganizationMember(organization=self.organization, email="foo@example.com")
+            member.token = member.generate_token()
+            member.save()
 
         expires_at = timezone.now() + timedelta(days=INVITE_DAYS_VALID)
         assert member.token_expires_at
         assert member.token_expires_at.date() == expires_at.date()
 
     def test_token_expiration(self):
-        member = OrganizationMember(organization=self.organization, email="foo@example.com")
-        member.token = member.generate_token()
-        member.save()
+        with in_test_psql_role_override("postgres"):
+            member = OrganizationMember(organization=self.organization, email="foo@example.com")
+            member.token = member.generate_token()
+            member.save()
 
         assert member.is_pending
         assert member.token_expired is False
@@ -115,9 +118,10 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert member.token_expired
 
     def test_set_user(self):
-        member = OrganizationMember(organization=self.organization, email="foo@example.com")
-        member.token = member.generate_token()
-        member.save()
+        with in_test_psql_role_override("postgres"):
+            member = OrganizationMember(organization=self.organization, email="foo@example.com")
+            member.token = member.generate_token()
+            member.save()
 
         user = self.create_user(email="foo@example.com")
         member.set_user(user.id)
@@ -271,7 +275,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         self.assert_org_member_mapping(org_member=member)
 
     def test_scopes_with_member_admin_config(self):
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=self.organization,
             role="member",
             email="test@example.com",
@@ -288,12 +292,12 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert "event:admin" not in member.get_scopes()
 
     def test_scopes_with_member_alert_write(self):
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=self.organization,
             role="member",
             email="test@example.com",
         )
-        admin = OrganizationMember.objects.create(
+        admin = self.create_member(
             organization=self.organization,
             role="admin",
             email="admin@example.com",
@@ -313,12 +317,12 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert "alerts:write" in admin.get_scopes()
 
     def test_scopes_with_team_org_role(self):
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=self.organization,
             role="member",
             email="test@example.com",
         )
-        owner = OrganizationMember.objects.create(
+        owner = self.create_member(
             organization=self.organization,
             role="owner",
             email="owner@example.com",
@@ -462,8 +466,9 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert OrganizationMember.objects.filter(id=member.id).exists()
 
     def test_get_allowed_org_roles_to_invite(self):
-        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
-        member.update(role="manager")
+        with in_test_psql_role_override("postgres"):
+            member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+            member.update(role="manager")
         assert member.get_allowed_org_roles_to_invite() == [
             roles.get("member"),
             roles.get("admin"),
