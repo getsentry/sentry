@@ -472,14 +472,15 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
     def test_approve_join_request(self):
         other_user = self.create_user()
-        member = self.create_member(
-            organization=self.organization,
-            email="hello@sentry.io",
-            role="member",
-            inviter_id=other_user.id,
-            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
-        )
-        self.assert_org_member_mapping(org_member=member)
+        with in_test_psql_role_override("postgres"):
+            member = self.create_member(
+                organization=self.organization,
+                email="hello@sentry.io",
+                role="member",
+                inviter_id=other_user.id,
+                invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+            )
+            self.assert_org_member_mapping(org_member=member)
 
         callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
 

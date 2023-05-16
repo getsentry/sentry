@@ -301,7 +301,7 @@ class OrganizationMember(Model):
 
     def approve_invite(self):
         region_outbox = None
-        with transaction.atomic():
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
             self.invite_status = InviteStatus.APPROVED.value
             self.regenerate_token()
             self.save()
