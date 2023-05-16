@@ -125,7 +125,7 @@ def has_releases(project: Project) -> bool:
 
 
 def get_action_text(
-    text: str, actions: Sequence[Any], identity: RpcIdentity, has_escalating=False
+    text: str, actions: Sequence[Any], identity: RpcIdentity, has_escalating: bool = False
 ) -> str:
     return (
         text
