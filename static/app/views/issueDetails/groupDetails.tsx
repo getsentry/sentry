@@ -23,6 +23,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
@@ -32,6 +33,7 @@ import {
   getTitle,
 } from 'sentry/utils/events';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -49,10 +51,10 @@ import GroupHeader from './header';
 import SampleEventAlert from './sampleEventAlert';
 import {Tab, TabPaths} from './types';
 import {
-  fetchGroupEvent,
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
+  useFetchIssueTagsForDetailsPage,
 } from './utils';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
@@ -74,9 +76,7 @@ type FetchGroupDetailsState = {
   event: Event | null;
   eventError: boolean;
   fetchData: () => Promise<void>;
-  fetchEvent: () => void;
   group: Group | null;
-  loading: boolean;
   loadingEvent: boolean;
   loadingGroup: boolean;
   project: Project | null;
@@ -96,7 +96,7 @@ function getGroupQuery({
   const query: Record<string, string | string[]> = {
     ...(environments ? {environment: environments} : {}),
     expand: ['inbox', 'owners'],
-    collapse: 'release',
+    collapse: ['release', 'tags'],
   };
 
   return query;
@@ -253,6 +253,26 @@ function useFetchOnMount({fetchData}: Pick<FetchGroupDetailsState, 'fetchData'>)
   }, []);
 }
 
+function useEventApiQuery(
+  eventID: string,
+  queryKey: [string, {query: {environment?: string[]}}]
+) {
+  const isLatest = eventID === 'latest';
+  const latestEventQuery = useApiQuery<Event>(queryKey, {
+    staleTime: 30000,
+    cacheTime: 30000,
+    enabled: isLatest,
+    retry: (_, error) => error.status !== 404,
+  });
+  const otherEventQuery = useApiQuery<Event>(queryKey, {
+    staleTime: Infinity,
+    enabled: !isLatest,
+    retry: (_, error) => error.status !== 404,
+  });
+
+  return isLatest ? latestEventQuery : otherEventQuery;
+}
+
 function useFetchGroupDetails({
   isGlobalSelectionReady,
   environments,
@@ -269,14 +289,34 @@ function useFetchGroupDetails({
   const allGroups = useLegacyStore(GroupStore);
   const group = allGroups.find(({id}) => id === params.groupId) as Group;
 
-  const [loading, setLoading] = useState<boolean>(false);
   const [project, setProject] = useState<Project | null>(null);
-  const [event, setEvent] = useState<Event | null>(null);
   const [loadingGroup, setLoadingGroup] = useState<boolean>(false);
-  const [loadingEvent, setLoadingEvent] = useState<boolean>(false);
   const [error, setError] = useState<boolean>(false);
   const [errorType, setErrorType] = useState<Error | null>(null);
-  const [eventError, setEventError] = useState<boolean>(false);
+  const [event, setEvent] = useState<Event | null>(null);
+
+  const groupId = params.groupId;
+  const eventId = params.eventId ?? 'latest';
+
+  const eventUrl = `/issues/${groupId}/events/${eventId}/`;
+
+  const eventQuery: {environment?: string[]} = {};
+  if (environments.length !== 0) {
+    eventQuery.environment = environments;
+  }
+
+  const {
+    data: eventData,
+    isLoading: loadingEvent,
+    isError,
+    refetch: refetchEvent,
+  } = useEventApiQuery(eventId, [eventUrl, {query: eventQuery}]);
+
+  useEffect(() => {
+    if (eventData) {
+      setEvent(eventData);
+    }
+  }, [eventData]);
 
   const fetchGroupReleases = useCallback(async () => {
     const releases = await api.requestPromise(
@@ -289,36 +329,9 @@ function useFetchGroupDetails({
     Sentry.captureException(e);
 
     setLoadingGroup(false);
-    setLoading(false);
     setErrorType(getFetchDataRequestErrorType(e?.status));
     setError(true);
   }, []);
-
-  const fetchEvent = useCallback(async () => {
-    setLoadingEvent(true);
-    setEventError(false);
-
-    const groupId = params.groupId;
-    const eventId = params.eventId ?? 'latest';
-    try {
-      const data = await fetchGroupEvent(api, groupId, eventId, environments);
-
-      setEvent(data);
-      setLoadingEvent(false);
-      setEventError(false);
-      setLoading(false);
-
-      return data;
-    } catch (err) {
-      // This is an expected error, capture to Sentry so that it is not considered as an unhandled error
-      Sentry.captureException(err);
-      setEventError(true);
-      setLoadingEvent(false);
-      setLoading(false);
-
-      return null;
-    }
-  }, [api, environments, params.eventId, params.groupId]);
 
   const fetchData = useCallback(async () => {
     // Need to wait for global selection store to be ready before making request
@@ -327,13 +340,9 @@ function useFetchGroupDetails({
     }
 
     try {
-      const eventPromise = fetchEvent();
-
-      const groupPromise = api.requestPromise(`/issues/${params.groupId}/`, {
+      const groupResponse = await api.requestPromise(`/issues/${params.groupId}/`, {
         query: getGroupQuery({environments}),
       });
-
-      const [groupResponse] = await Promise.all([groupPromise, eventPromise]);
       fetchGroupReleases();
 
       const reprocessingNewRoute = getReprocessingNewRoute({
@@ -394,15 +403,14 @@ function useFetchGroupDetails({
   }, [
     api,
     environments,
-    event,
     fetchGroupReleases,
-    fetchEvent,
     handleError,
     isGlobalSelectionReady,
     location,
     organization,
     params,
     projects,
+    event,
     router,
   ]);
 
@@ -422,21 +430,19 @@ function useFetchGroupDetails({
 
   const refetchData = useCallback(() => {
     // Set initial state
-    setLoading(true);
-    setLoadingEvent(true);
     setLoadingGroup(true);
     setError(false);
-    setEventError(false);
     setErrorType(null);
 
+    // refetchEvent comes from useApiQuery since event and group data are separately fetched
+    refetchEvent();
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, refetchEvent]);
 
   const refetchGroup = useCallback(async () => {
     if (
       group?.status !== ReprocessingStatus.REPROCESSING ||
       loadingGroup ||
-      loading ||
       loadingEvent
     ) {
       return;
@@ -469,14 +475,13 @@ function useFetchGroupDetails({
   }, [
     api,
     environments,
-    event,
     group?.status,
     handleError,
-    loading,
     loadingEvent,
     loadingGroup,
-    organization,
     params.groupId,
+    event,
+    organization,
     router,
   ]);
 
@@ -491,18 +496,16 @@ function useFetchGroupDetails({
 
   return {
     project,
-    loading,
     loadingGroup,
     loadingEvent,
-    eventError,
     fetchData,
     group,
     event,
     errorType,
     error,
+    eventError: isError,
     refetchData,
     refetchGroup,
-    fetchEvent,
   };
 }
 
@@ -536,6 +539,8 @@ function useTrackView({
     stacktrace_link_viewed: false,
     // Will be updated by IssueQuickTrace if there is a trace
     trace_status: 'none',
+    // Will be updated in GroupDetailsHeader if there are replays
+    group_has_replay: false,
   });
 }
 
@@ -683,7 +688,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     projects,
     initiallyLoaded: projectsLoaded,
     fetchError: errorFetchingProjects,
-  } = useProjects({slugs: [props.project?.slug ?? '']});
+  } = useProjects({slugs: props.project?.slug ? [props.project.slug] : []});
 
   const project =
     (props.project?.slug
@@ -700,17 +705,11 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     return <StyledLoadingError message={t('Error loading the specified project')} />;
   }
 
-  if (props.loading || !projectsLoaded || !project || !props.group) {
+  if (!projectsLoaded || !project || !props.group) {
     return <LoadingIndicator />;
   }
 
-  return (
-    // TODO(ts): Update renderContent function to deal with empty group
-    // Search for the slug in the projects list if possible. This is because projects
-    // is just a complete list of stored projects and the first element may not be
-    // the expected project.
-    <GroupDetailsContent {...props} project={project} group={props.group} />
-  );
+  return <GroupDetailsContent {...props} project={project} group={props.group} />;
 }
 
 function GroupDetails(props: GroupDetailsProps) {
@@ -718,14 +717,22 @@ function GroupDetails(props: GroupDetailsProps) {
   const location = useLocation();
   const router = useRouter();
 
-  const {fetchData, project, group, fetchEvent, ...fetchGroupDetailsProps} =
+  const {fetchData, project, group, ...fetchGroupDetailsProps} =
     useFetchGroupDetails(props);
 
   const previousPathname = usePrevious(location.pathname);
   const previousEventId = usePrevious(router.params.eventId);
   const previousIsGlobalSelectionReady = usePrevious(props.isGlobalSelectionReady);
 
-  const isSampleError = group?.tags?.some(tag => tag.key === 'sample_event');
+  const {data} = useFetchIssueTagsForDetailsPage(
+    {
+      groupId: router.params.groupId,
+      environment: props.environments,
+    },
+    // Don't want this query to take precedence over the main requests
+    {enabled: props.isGlobalSelectionReady && defined(group)}
+  );
+  const isSampleError = data?.some(tag => tag.key === 'sample_event') ?? false;
 
   useEffect(() => {
     const globalSelectionReadyChanged =
@@ -736,7 +743,6 @@ function GroupDetails(props: GroupDetailsProps) {
     }
   }, [
     fetchData,
-    fetchEvent,
     group,
     location.pathname,
     previousEventId,
@@ -778,7 +784,6 @@ function GroupDetails(props: GroupDetailsProps) {
               group,
               project,
               fetchData,
-              fetchEvent,
               ...fetchGroupDetailsProps,
             }}
           />

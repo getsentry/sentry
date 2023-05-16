@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
@@ -11,20 +12,23 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {
-  useQueryDbOperations,
+  useGetTransactionsForTables,
   useQueryDbTables,
   useQueryTopDbOperationsChart,
   useQueryTopTablesChart,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
-import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
+import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
+import {
+  datetimeToClickhouseFilterTimestamps,
+  getDateFilters,
+} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 const INTERVAL = 12;
 
 type Props = {
-  action: string;
   location: Location;
-  onChange: (action: string, value: string) => void;
+  onChange: (value: string) => void;
   table: string;
 };
 
@@ -47,20 +51,19 @@ function parseOptions(options, label) {
   ];
 }
 
-export default function DatabaseChartView({action, table, onChange}: Props) {
+export default function DatabaseChartView({table, onChange}: Props) {
   const pageFilter = usePageFilters();
+  const theme = useTheme();
+  const {startTime, endTime} = getDateFilters(pageFilter);
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
     pageFilter.selection.datetime
   );
 
-  const {data: operationData} = useQueryDbOperations();
-  const {data: tableData} = useQueryDbTables(action);
+  const {data: tableData} = useQueryDbTables();
   const {isLoading: isTopGraphLoading, data: topGraphData} =
     useQueryTopDbOperationsChart(INTERVAL);
-  const {isLoading: tableGraphLoading, data: tableGraphData} = useQueryTopTablesChart(
-    action,
-    INTERVAL
-  );
+  const {isLoading: tableGraphLoading, data: tableGraphData} =
+    useQueryTopTablesChart(INTERVAL);
 
   const seriesByDomain: {[action: string]: Series} = {};
   const tpmByDomain: {[action: string]: Series} = {};
@@ -87,6 +90,28 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
       });
     });
   }
+
+  const tableNames = [...new Set(tableGraphData.map(d => d.domain))];
+  const {isLoading: isTopTransactionDataLoading, data: topTransactionsData} =
+    useGetTransactionsForTables(tableNames, INTERVAL);
+
+  const tpmTransactionSeries = queryToSeries(
+    topTransactionsData,
+    'transaction',
+    'epm',
+    startTime,
+    endTime,
+    INTERVAL
+  );
+
+  const p75TransactionSeries = queryToSeries(
+    topTransactionsData,
+    'transaction',
+    'p75',
+    startTime,
+    endTime,
+    INTERVAL
+  );
 
   const topDomains = Object.values(seriesByDomain).map(series =>
     zeroFillSeries(
@@ -132,35 +157,20 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
     });
   }
 
-  const tpmData = Object.values(tpmByQuery).map(series =>
-    zeroFillSeries(
-      series,
-      moment.duration(INTERVAL, 'hours'),
-      moment(start_timestamp),
-      moment(end_timestamp)
-    )
-  );
-  const topData = Object.values(seriesByQuery).map(series =>
-    zeroFillSeries(
-      series,
-      moment.duration(INTERVAL, 'hours'),
-      moment(start_timestamp),
-      moment(end_timestamp)
-    )
-  );
+  const chartColors = [...theme.charts.getColorPalette(6).slice(2, 7), theme.gray300];
 
   return (
     <Fragment>
       <ChartsContainer>
         <ChartsContainerItem>
-          <ChartPanel title={t('Slowest Operations P75')}>
+          <ChartPanel title={t('Top Transactions P75')}>
             <Chart
               statsPeriod="24h"
               height={180}
-              data={topData}
+              data={p75TransactionSeries}
               start=""
               end=""
-              loading={isTopGraphLoading}
+              loading={isTopTransactionDataLoading}
               utc={false}
               grid={{
                 left: '0',
@@ -175,14 +185,14 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
           </ChartPanel>
         </ChartsContainerItem>
         <ChartsContainerItem>
-          <ChartPanel title={t('Operation Throughput')}>
+          <ChartPanel title={t('Top Transactions Throughput')}>
             <Chart
               statsPeriod="24h"
               height={180}
-              data={tpmData}
+              data={tpmTransactionSeries}
               start=""
               end=""
-              loading={isTopGraphLoading}
+              loading={isTopTransactionDataLoading}
               utc={false}
               grid={{
                 left: '0',
@@ -197,15 +207,6 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
           </ChartPanel>
         </ChartsContainerItem>
       </ChartsContainer>
-      <Selectors>
-        <CompactSelect
-          value={action}
-          triggerProps={{prefix: t('Operation')}}
-          options={parseOptions(operationData, 'query')}
-          menuTitle="Operation"
-          onChange={opt => onChange('action', opt.value)}
-        />
-      </Selectors>
       {tableData.length === 1 && tableData[0].key === '' ? (
         <Fragment />
       ) : (
@@ -219,6 +220,7 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
                   data={topDomains}
                   start=""
                   end=""
+                  chartColors={chartColors}
                   loading={tableGraphLoading}
                   utc={false}
                   grid={{
@@ -241,6 +243,7 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
                   data={tpmDomains}
                   start=""
                   end=""
+                  chartColors={chartColors}
                   loading={isTopGraphLoading}
                   utc={false}
                   grid={{
@@ -262,7 +265,7 @@ export default function DatabaseChartView({action, table, onChange}: Props) {
               triggerProps={{prefix: t('Table')}}
               options={parseOptions(tableData, 'p75')}
               menuTitle="Table"
-              onChange={opt => onChange('table', opt.value)}
+              onChange={opt => onChange(opt.value)}
             />
           </Selectors>
         </Fragment>

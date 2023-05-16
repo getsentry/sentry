@@ -246,22 +246,15 @@ def _query_params_for_generic(
     return None
 
 
-def get_search_strategies(
-    organization: Organization, actor: Optional[Any]
-) -> Mapping[int, GroupSearchStrategy]:
+def get_search_strategies() -> Mapping[int, GroupSearchStrategy]:
     strategies = {}
     for group_category in GroupCategory:
         if group_category == GroupCategory.ERROR:
             strategy = _query_params_for_error
         elif group_category == GroupCategory.PERFORMANCE:
-            if not features.has(
-                "organizations:issue-platform-search-perf-issues", organization, actor=actor
-            ):
-                strategy = _query_params_for_perf
-            else:
-                strategy = functools.partial(
-                    _query_params_for_generic, categories=[GroupCategory.PERFORMANCE]
-                )
+            strategy = functools.partial(
+                _query_params_for_generic, categories=[GroupCategory.PERFORMANCE]
+            )
         else:
             strategy = functools.partial(
                 _query_params_for_generic, categories=[GroupCategory.PROFILE]
@@ -292,7 +285,7 @@ SEARCH_FILTER_UPDATERS: Mapping[int, GroupSearchFilterUpdater] = {
     GroupCategory.PERFORMANCE.value: lambda search_filters: [
         # need to remove this search filter, so we don't constrain the returned transactions
         sf
-        for sf in search_filters
+        for sf in _update_profiling_search_filters(search_filters)
         if sf.key.name != "message"
     ],
     GroupCategory.PROFILE.value: _update_profiling_search_filters,

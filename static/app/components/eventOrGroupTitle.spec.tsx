@@ -68,7 +68,7 @@ describe('EventOrGroupTitle', function () {
 
   it('renders with title override', function () {
     const routerContext = TestStubs.routerContext([
-      {organization: TestStubs.Organization({features: ['custom-event-title']})},
+      {organization: TestStubs.Organization()},
     ]);
 
     render(
@@ -119,7 +119,7 @@ describe('EventOrGroupTitle', function () {
 
     it('should correctly render title', () => {
       const routerContext = TestStubs.routerContext([
-        {organization: TestStubs.Organization({features: ['custom-event-title']})},
+        {organization: TestStubs.Organization()},
       ]);
 
       render(<EventOrGroupTitle data={perfData} />, {context: routerContext});

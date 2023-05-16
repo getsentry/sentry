@@ -1,6 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -35,7 +36,7 @@ describe('DatePageFilter', function () {
           utc: false,
         },
       },
-      new Set()
+      new Set(['datetime'])
     );
   });
 
@@ -57,8 +58,9 @@ describe('DatePageFilter', function () {
     );
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      shouldPersist: true,
       desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
+      pinnedFilters: new Set(['datetime']),
       selection: {
         datetime: {
           period: '30d',
@@ -99,8 +101,9 @@ describe('DatePageFilter', function () {
     );
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      shouldPersist: true,
       desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
+      pinnedFilters: new Set(['datetime']),
       selection: {
         datetime: {
           period: null,
@@ -121,5 +124,47 @@ describe('DatePageFilter', function () {
       'aria-selected',
       'true'
     );
+  });
+
+  it('displays a desynced state message', async function () {
+    const {
+      organization: desyncOrganization,
+      router: desyncRouter,
+      routerContext: desyncRouterContext,
+    } = initializeOrg({
+      organization: {},
+      project: undefined,
+      projects: undefined,
+      router: {
+        location: {
+          // the datetime parameters need to be non-null for desync detection to work
+          query: {statsPeriod: '7d'},
+          pathname: '/test',
+        },
+        params: {},
+      },
+    });
+
+    // Manually mark the date filter as desynced
+    act(() =>
+      updateDateTime({period: '14d', start: null, end: null, utc: false}, desyncRouter, {
+        save: false,
+      })
+    );
+
+    render(<DatePageFilter />, {
+      context: desyncRouterContext,
+      organization: desyncOrganization,
+    });
+
+    // Open menu
+    await userEvent.click(screen.getByRole('button', {name: '14D', expanded: false}));
+
+    // Desync message is inside the menu
+    expect(screen.getByText('Filters Updated')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Restore Previous Values'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Got It'})).toBeInTheDocument();
   });
 });

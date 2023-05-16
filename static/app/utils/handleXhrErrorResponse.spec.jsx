@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 
 describe('handleXhrErrorResponse', function () {
   const stringError = {responseJSON: {detail: 'Error'}, status: 400};
@@ -13,23 +13,23 @@ describe('handleXhrErrorResponse', function () {
   });
 
   it('does nothing if we have invalid response', function () {
-    handleXhrErrorResponse('')(null);
+    handleXhrErrorResponse('', null);
     expect(Sentry.captureException).not.toHaveBeenCalled();
-    handleXhrErrorResponse('')({});
+    handleXhrErrorResponse('', {});
     expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
   it('captures an exception to sdk when `resp.detail` is a string', function () {
-    handleXhrErrorResponse('String error')(stringError);
+    handleXhrErrorResponse('String error', stringError);
     expect(Sentry.captureException).toHaveBeenCalledWith(new Error('String error'));
   });
 
   it('captures an exception to sdk when `resp.detail` is an object', function () {
-    handleXhrErrorResponse('Object error')(objError);
+    handleXhrErrorResponse('Object error', objError);
     expect(Sentry.captureException).toHaveBeenCalledWith(new Error('Object error'));
   });
   it('ignores `sudo-required` errors', function () {
-    handleXhrErrorResponse('Sudo required error')({
+    handleXhrErrorResponse('Sudo required error', {
       status: 401,
       responseJSON: {
         detail: {
