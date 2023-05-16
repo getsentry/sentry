@@ -5,12 +5,14 @@ export const getSpanSamplesQuery = ({
   groupId,
   transactionName,
   user,
+  sortBy,
   datetime,
 }: {
   groupId;
   transactionName;
   user;
   datetime?: DateTimeObject;
+  sortBy?: string;
 }) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `
@@ -22,7 +24,7 @@ export const getSpanSamplesQuery = ({
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     GROUP BY transaction_id, transaction, description, user, domain, span_id
-    ORDER BY exclusive_time desc
+    ORDER BY exclusive_time ${sortBy === 'slowest_samples' || !sortBy ? 'desc' : 'asc'}
     LIMIT 10
  `;
 };

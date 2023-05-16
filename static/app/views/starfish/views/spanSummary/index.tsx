@@ -161,6 +161,7 @@ export default function SpanSummary({location, params}: Props) {
     transactionName,
     user,
     datetime: pageFilter.selection.datetime,
+    sortBy: state.selectedOption.value,
   });
 
   const {isLoading: areSpanSamplesLoading, data: spanSampleData} = useQuery({
@@ -170,6 +171,7 @@ export default function SpanSummary({location, params}: Props) {
       transactionName,
       user,
       pageFilter.selection.datetime,
+      state.selectedOption,
     ],
     queryFn: () => fetch(`${HOST}/?query=${spanSamplesQuery}`).then(res => res.json()),
     retry: false,
