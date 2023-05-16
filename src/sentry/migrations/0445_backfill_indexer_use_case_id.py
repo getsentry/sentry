@@ -41,7 +41,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0428_backfill_denormalize_notification_actor"),
+        ("sentry", "0444_remove_next_checkin_last_checkin_from_monitor"),
     ]
 
     operations = [
