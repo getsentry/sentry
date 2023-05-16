@@ -80,7 +80,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
       acc.push(
         ...externalUsers
           .filter(externalUser => externalUser.provider === integration.provider.key)
-          .map(externalUser => ({...externalUser, sentryName: user.name}))
+          .map(externalUser => ({...externalUser, sentryName: user?.name ?? member.name}))
       );
       return acc;
     }, [] as ExternalActorMapping[]);
@@ -105,9 +105,9 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
   sentryNamesMapper(members: Member[]) {
     return members
       .filter(member => member.user)
-      .map(({user: {id}, email, name}) => {
+      .map(({user, email, name}) => {
         const label = email !== name ? `${name} - ${email}` : `${email}`;
-        return {id, name: label};
+        return {id: user?.id!, name: label};
       });
   }
 
