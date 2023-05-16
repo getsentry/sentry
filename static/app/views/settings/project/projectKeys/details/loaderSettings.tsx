@@ -70,18 +70,34 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
       });
       addLoadingMessage();
 
+      const browserSdkVersion = changes.browserSdkVersion ?? data.browserSdkVersion;
+
+      let payload: any;
+      if (sdkVersionSupportsPerformanceAndReplay(browserSdkVersion)) {
+        payload = {
+          browserSdkVersion,
+          dynamicSdkLoaderOptions: {
+            hasDebug: changes.hasDebug ?? data.dynamicSdkLoaderOptions.hasDebug,
+            hasPerformance:
+              changes.hasPerformance ?? data.dynamicSdkLoaderOptions.hasPerformance,
+            hasReplay: changes.hasReplay ?? data.dynamicSdkLoaderOptions.hasReplay,
+          },
+        };
+      } else {
+        payload = {
+          browserSdkVersion,
+          dynamicSdkLoaderOptions: {
+            hasDebug: changes.hasDebug ?? data.dynamicSdkLoaderOptions.hasDebug,
+            hasPerformance: false,
+            hasReplay: false,
+          },
+        };
+      }
+
       try {
         const response = await api.requestPromise(apiEndpoint, {
           method: 'PUT',
-          data: {
-            browserSdkVersion: changes.browserSdkVersion ?? data.browserSdkVersion,
-            dynamicSdkLoaderOptions: {
-              hasDebug: changes.hasDebug ?? data.dynamicSdkLoaderOptions.hasDebug,
-              hasPerformance:
-                changes.hasPerformance ?? data.dynamicSdkLoaderOptions.hasPerformance,
-              hasReplay: changes.hasReplay ?? data.dynamicSdkLoaderOptions.hasReplay,
-            },
-          },
+          data: payload,
         });
 
         updateData(response);
