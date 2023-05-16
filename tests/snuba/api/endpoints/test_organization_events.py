@@ -679,7 +679,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 2
 
->>>>>>> f5d29b86fc (chore(issue-platform): Remove `can_create_group` and related options, and `_save_aggregate_performance` and related)
     def test_event_id_with_in_search(self):
         self.store_event(
             data={
