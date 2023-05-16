@@ -64,6 +64,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+from tests.sentry.utils.sdk_crashes.test_fixture import get_crash_event
 
 
 class EventMatcher:
@@ -1436,15 +1437,11 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         assert GroupSnooze.objects.filter(id=snooze.id).exists()
 
 
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
-    # @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
-    def test_sdk_crash_monitoring_is_called_with_event(self):
+    def test_sdk_crash_monitoring_is_called_with_event(self, mock_sdk_crash_reporter):
         event = self.create_event(
-            data={
-                "message": "oh no",
-                "platform": "cocoa",
-                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
-            },
+            data=get_crash_event(),
             project_id=self.project.id,
         )
 
@@ -1455,7 +1452,7 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
-        # mock_sdk_crash_detection.detect_sdk_crash.assert_called_once()
+        mock_sdk_crash_reporter.report.assert_called_once()
 
 
 @region_silo_test
