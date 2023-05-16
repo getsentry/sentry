@@ -2,6 +2,7 @@ from rest_framework import status
 
 from sentry.models import ProjectTeam, Rule
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -40,6 +41,7 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
+    @with_feature("organizations:team-roles")
     def test_add_team_with_team_role(self):
         user = self.create_user(username="foo")
         team_to_add = self.create_team(organization=self.organization)
@@ -136,6 +138,7 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
+    @with_feature("organizations:team-roles")
     def test_remove_team_with_team_role(self):
         user = self.create_user(username="foo")
         team_to_remove = self.create_team(organization=self.organization)
