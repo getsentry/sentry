@@ -5,6 +5,7 @@ import responses
 from django.urls import reverse
 from freezegun import freeze_time
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.integrations.slack.webhooks.action import LINK_IDENTITY_MESSAGE, UNLINK_IDENTITY_MESSAGE
@@ -408,9 +409,10 @@ class StatusActionTest(BaseEventTest):
         )
 
         # Remove the user from the organization.
-        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
-        member.remove_user()
-        member.save()
+        with in_test_psql_role_override("postgres"):
+            member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+            member.remove_user()
+            member.save()
 
         response = self.post_webhook(
             type="dialog_submission",
@@ -469,13 +471,14 @@ class StatusActionTest(BaseEventTest):
 
     def test_approve_join_request(self):
         other_user = self.create_user()
-        member = OrganizationMember.objects.create(
-            organization=self.organization,
-            email="hello@sentry.io",
-            role="member",
-            inviter_id=other_user.id,
-            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
-        )
+        with in_test_psql_role_override("postgres"):
+            member = OrganizationMember.objects.create(
+                organization=self.organization,
+                email="hello@sentry.io",
+                role="member",
+                inviter_id=other_user.id,
+                invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+            )
 
         callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
 
@@ -496,13 +499,14 @@ class StatusActionTest(BaseEventTest):
 
     def test_rejected_invite_request(self):
         other_user = self.create_user()
-        member = OrganizationMember.objects.create(
-            organization=self.organization,
-            email="hello@sentry.io",
-            role="member",
-            inviter_id=other_user.id,
-            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
-        )
+        with in_test_psql_role_override("postgres"):
+            member = OrganizationMember.objects.create(
+                organization=self.organization,
+                email="hello@sentry.io",
+                role="member",
+                inviter_id=other_user.id,
+                invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            )
 
         callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
 
@@ -521,15 +525,16 @@ class StatusActionTest(BaseEventTest):
 
     def test_invitation_removed(self):
         other_user = self.create_user()
-        member = OrganizationMember.objects.create(
-            organization=self.organization,
-            email="hello@sentry.io",
-            role="member",
-            inviter_id=other_user.id,
-            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
-        )
-        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
-        member.delete()
+        with in_test_psql_role_override("postgres"):
+            member = OrganizationMember.objects.create(
+                organization=self.organization,
+                email="hello@sentry.io",
+                role="member",
+                inviter_id=other_user.id,
+                invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            )
+            callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+            member.delete()
 
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
 
@@ -538,13 +543,14 @@ class StatusActionTest(BaseEventTest):
 
     def test_invitation_already_accepted(self):
         other_user = self.create_user()
-        member = OrganizationMember.objects.create(
-            organization=self.organization,
-            email="hello@sentry.io",
-            role="member",
-            inviter_id=other_user.id,
-            invite_status=InviteStatus.APPROVED.value,
-        )
+        with in_test_psql_role_override("postgres"):
+            member = OrganizationMember.objects.create(
+                organization=self.organization,
+                email="hello@sentry.io",
+                role="member",
+                inviter_id=other_user.id,
+                invite_status=InviteStatus.APPROVED.value,
+            )
         callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
 
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
@@ -553,15 +559,16 @@ class StatusActionTest(BaseEventTest):
         assert resp.data["text"] == "Member invitation for hello@sentry.io no longer exists."
 
     def test_invitation_validation_error(self):
-        OrganizationMember.objects.filter(user=self.user).update(role="manager")
-        other_user = self.create_user()
-        member = OrganizationMember.objects.create(
-            organization=self.organization,
-            email="hello@sentry.io",
-            role="owner",
-            inviter_id=other_user.id,
-            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
-        )
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(user=self.user).update(role="manager")
+            other_user = self.create_user()
+            member = OrganizationMember.objects.create(
+                organization=self.organization,
+                email="hello@sentry.io",
+                role="owner",
+                inviter_id=other_user.id,
+                invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            )
         callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
 
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
@@ -583,13 +590,14 @@ class StatusActionTest(BaseEventTest):
     def test_wrong_organization(self):
         other_user = self.create_user()
         another_org = self.create_organization()
-        member = OrganizationMember.objects.create(
-            organization=another_org,
-            email="hello@sentry.io",
-            role="member",
-            inviter_id=other_user.id,
-            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
-        )
+        with in_test_psql_role_override("postgres"):
+            member = OrganizationMember.objects.create(
+                organization=another_org,
+                email="hello@sentry.io",
+                role="member",
+                inviter_id=other_user.id,
+                invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            )
         callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
 
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
@@ -598,15 +606,16 @@ class StatusActionTest(BaseEventTest):
         assert resp.data["text"] == "You do not have access to the organization for the invitation."
 
     def test_no_member_admin(self):
-        OrganizationMember.objects.filter(user=self.user).update(role="admin")
-        other_user = self.create_user()
-        member = OrganizationMember.objects.create(
-            organization=self.organization,
-            email="hello@sentry.io",
-            role="member",
-            inviter_id=other_user.id,
-            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
-        )
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(user=self.user).update(role="admin")
+            other_user = self.create_user()
+            member = OrganizationMember.objects.create(
+                organization=self.organization,
+                email="hello@sentry.io",
+                role="member",
+                inviter_id=other_user.id,
+                invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            )
         callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
 
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
