@@ -14,6 +14,7 @@ from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
 from sentry.issues.grouptype import (
@@ -1611,7 +1612,8 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             data={"text": "sup guise"},
         )
 
-        self.project.teams.first().organization.member_set.create(user=user_foo)
+        with in_test_psql_role_override("postgres"):
+            self.project.teams.first().organization.member_set.create(user=user_foo)
 
         with self.tasks():
             self.adapter.notify_about_activity(activity)
@@ -1627,7 +1629,8 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 class MailAdapterHandleSignalTest(BaseMailAdapterTest):
     def create_report(self):
         user_foo = self.create_user("foo@example.com")
-        self.project.teams.first().organization.member_set.create(user=user_foo)
+        with in_test_psql_role_override("postgres"):
+            self.project.teams.first().organization.member_set.create(user=user_foo)
 
         return UserReport.objects.create(
             project_id=self.project.id,
