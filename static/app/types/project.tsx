@@ -79,6 +79,11 @@ export type ProjectKey = {
     security: string;
     unreal: string;
   };
+  dynamicSdkLoaderOptions: {
+    hasDebug: boolean;
+    hasPerformance: boolean;
+    hasReplay: boolean;
+  };
   id: string;
   isActive: boolean;
   label: string;
