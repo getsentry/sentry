@@ -47,7 +47,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: {
     resources: {
       description: t(
-        'A Consecutive HTTP issue occurs when X number of consecutive HTTP calls occur sequentially, each taking Y amount of time'
+        'A Consecutive HTTP issue occurs when at least 3 consecutive HTTP calls occur sequentially, each taking over 1000ms of time.'
       ),
       links: [
         {
@@ -63,7 +63,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
       description: t('File IO operations on your main thread may lead to app hangs.'),
       links: [
         {
-          text: t('Sentry Docs: file IO on the Main Thread'),
+          text: t('Sentry Docs: File IO on the Main Thread'),
           link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/file-main-thread-io/',
         },
       ],
@@ -75,7 +75,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
       description: t('Database operations on your main thread may lead to app hangs.'),
       links: [
         {
-          text: t('Sentry Docs: database on the Main Thread'),
+          text: t('Sentry Docs: Database on the Main Thread'),
           link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/db-main-thread-io/',
         },
       ],
