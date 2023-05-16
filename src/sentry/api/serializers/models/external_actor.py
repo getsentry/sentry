@@ -52,7 +52,7 @@ class ExternalActorSerializer(Serializer):  # type: ignore
             if type_str == "team":
                 actors = Actor.objects.filter(type=type_id, id__in=actor_ids_by_type[type_str])
                 for actor in actors:
-                    resolved_actors[actor.id] = {type_str: actor.user_id}
+                    resolved_actors[actor.id] = {type_str: actor.team_id}
 
         # create a mapping of external actor to a set of attributes. Those attributes are either {"user": User} or {"team": Team}.
         return {
