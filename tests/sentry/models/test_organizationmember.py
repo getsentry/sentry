@@ -98,6 +98,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         member = OrganizationMember(organization=self.organization, email="foo@example.com")
         member.token = member.generate_token()
         member.save()
+        self.assert_org_member_mapping(org_member=member)
 
         expires_at = timezone.now() + timedelta(days=INVITE_DAYS_VALID)
         assert member.token_expires_at
@@ -107,6 +108,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         member = OrganizationMember(organization=self.organization, email="foo@example.com")
         member.token = member.generate_token()
         member.save()
+        self.assert_org_member_mapping(org_member=member)
 
         assert member.is_pending
         assert member.token_expired is False
@@ -118,14 +120,18 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         member = OrganizationMember(organization=self.organization, email="foo@example.com")
         member.token = member.generate_token()
         member.save()
+        self.assert_org_member_mapping(org_member=member)
 
         user = self.create_user(email="foo@example.com")
         member.set_user(user)
+        member.save()
 
         assert member.is_pending is False
         assert member.token_expires_at is None
         assert member.token is None
         assert member.email is None
+        member.refresh_from_db()
+        self.assert_org_member_mapping(org_member=member)
 
     def test_regenerate_token(self):
         member = OrganizationMember(organization=self.organization, email="foo@example.com")
