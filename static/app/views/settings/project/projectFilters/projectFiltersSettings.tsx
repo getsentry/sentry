@@ -198,7 +198,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
 function CustomFilters({project, disabled}: {disabled: boolean; project: Project}) {
   return (
     <Feature
-      features={['projects:custom-inbound-filters']}
+      features={['projects:custom-inbound-filtersTESSSSTTT']}
       hookName="feature-disabled:custom-inbound-filters"
       project={project}
       renderDisabled={({children, ...props}) => {
@@ -370,6 +370,38 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   </PanelItem>
                 );
               })}
+              <PanelItem noPadding>
+                <Feature
+                  features={['organizations:inbound-filters-health-check']}
+                  hookName="feature-disabled:health-check-filter"
+                  organization={organization}
+                >
+                  <NestedForm
+                    apiMethod="PUT"
+                    apiEndpoint={projectEndpoint}
+                    initialData={{
+                      'filters:health-check': project.options?.['filters:health-check'],
+                    }}
+                    saveOnBlur
+                    onSubmitSuccess={(
+                      response // This will update our project context
+                    ) => ProjectsStore.onUpdateSuccess(response)}
+                  >
+                    <FieldFromConfig
+                      getData={getOptionsData}
+                      field={{
+                        type: 'boolean',
+                        name: 'filters:health-check',
+                        label: t('Filter out health check transactions'),
+                        help: t(
+                          'Filter transactions that match most common naming patterns for health checks'
+                        ),
+                        disabled: !hasAccess,
+                      }}
+                    />
+                  </NestedForm>
+                </Feature>
+              </PanelItem>
               <PanelItem noPadding>
                 <NestedForm
                   apiMethod="PUT"
