@@ -7,17 +7,13 @@ from sentry.api.serializers.models.event import (
     SqlFormatEventSerializer,
 )
 from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
-from sentry.event_manager import EventManager
 from sentry.models import EventError
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
 from sentry.utils.samples import load_data
-from tests.sentry.event_manager.test_event_manager import make_event
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -399,84 +395,6 @@ class IssueEventSerializerTest(TestCase):
 
         result = serialize(event, None, IssueEventSerializer())
         assert result["sdkUpdates"] == []
-
-    @override_options({"performance.issues.all.problem-detection": 1.0})
-    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    def test_performance_problem(self):
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
-            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
-            manager.normalize()
-            event = manager.save(self.project.id)
-        group_event = event.for_group(event.groups[0])
-
-        result = json.loads(json.dumps(serialize(group_event, None, IssueEventSerializer())))
-        assert result["perfProblem"] == {
-            "causeSpanIds": ["9179e43ae844b174"],
-            "desc": "SELECT `books_author`.`id`, `books_author`.`name` FROM "
-            "`books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-            "fingerprint": "e714d718cb4e7d3ce1ad800f7f33d223",
-            "offenderSpanIds": [
-                "b8be6138369491dd",
-                "b2d4826e7b618f1b",
-                "b3fdeea42536dbf1",
-                "b409e78a092e642f",
-                "86d2ede57bbf48d4",
-                "8e554c84cdc9731e",
-                "94d6230f3f910e12",
-                "a210b87a2191ceb6",
-                "88a5ccaf25b9bd8f",
-                "bb32cf50fc56b296",
-            ],
-            "op": "db",
-            "parentSpanIds": ["8dd7a5869a4f4583"],
-            "issueType": "performance_n_plus_one_db_queries",
-            "type": 1006,
-            "evidenceData": {
-                "op": "db",
-                "causeSpanIds": ["9179e43ae844b174"],
-                "offenderSpanIds": [
-                    "b8be6138369491dd",
-                    "b2d4826e7b618f1b",
-                    "b3fdeea42536dbf1",
-                    "b409e78a092e642f",
-                    "86d2ede57bbf48d4",
-                    "8e554c84cdc9731e",
-                    "94d6230f3f910e12",
-                    "a210b87a2191ceb6",
-                    "88a5ccaf25b9bd8f",
-                    "bb32cf50fc56b296",
-                ],
-                "parentSpanIds": ["8dd7a5869a4f4583"],
-                "parentSpan": "django.view - index",
-                "repeatingSpans": "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                "repeatingSpansCompact": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                "transactionName": "/books/",
-                "numRepeatingSpans": "10",
-            },
-            "evidenceDisplay": [
-                {
-                    "important": True,
-                    "name": "Offending Spans",
-                    "value": "db - SELECT `books_author`.`id`, "
-                    "`books_author`.`name` FROM `books_author` "
-                    "WHERE `books_author`.`id` = %s LIMIT 21",
-                }
-            ],
-        }
-
-    @override_options({"performance.issues.all.problem-detection": 1.0})
-    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    def test_performance_problem_no_stored_data(self):
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), mock.patch(
-            "sentry.event_manager.EventPerformanceProblem"
-        ):
-            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
-            manager.normalize()
-            event = manager.save(self.project.id)
-        group_event = event.for_group(event.groups[0])
-
-        result = json.loads(json.dumps(serialize(group_event, None, IssueEventSerializer())))
-        assert result["perfProblem"] is None
 
 
 @region_silo_test

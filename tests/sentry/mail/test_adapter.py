@@ -15,7 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
@@ -50,7 +50,8 @@ from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import override_options, with_feature
+from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
@@ -58,12 +59,11 @@ from sentry.types.integrations import ExternalProviders
 from sentry.types.rules import RuleFuture
 from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
-from sentry.utils.samples import load_data
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, send_notification
 
 
-class BaseMailAdapterTest(TestCase):
+class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
     @cached_property
     def adapter(self):
         return mail_adapter
@@ -354,26 +354,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert "Issue Data" not in msg.alternatives[0][0]
 
     def test_simple_notification_perf(self):
-        event_data = load_data(
-            "transaction-n-plus-one",
-            timestamp=before_now(minutes=10),
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        perf_event_manager = EventManager(event_data)
-        perf_event_manager.normalize()
-        with override_options(
-            {
-                "performance.issues.all.problem-detection": 1.0,
-                "performance.issues.n_plus_one_db.problem-creation": 1.0,
-            }
-        ), self.feature(
-            [
-                "projects:performance-suspect-spans-ingestion",
-            ]
-        ):
-            event = perf_event_manager.save(self.project.id)
-        event = event.for_group(event.groups[0])
-
+        event = self.create_performance_issue()
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
@@ -1440,14 +1421,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
     @mock.patch("sentry.mail.adapter.digests")
     def test_digest_with_perf_issue(self, digests):
         digests.enabled.return_value = True
-        event = self.store_event(
-            data=load_data(
-                "transaction",
-                fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-            ),
-            project_id=self.project.id,
-        )
-        event = event.for_group(event.groups[0])
+        event = self.create_performance_issue()
         rule = self.create_project_rule(project=self.project)
 
         futures = [RuleFuture(rule, {})]

@@ -13,7 +13,7 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
@@ -653,43 +653,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase):
         response = self.do_request(query)
         assert response.status_code == 400, response.content
 
-    def test_has_performance_issue_ids(self):
-        data = load_data(
-            platform="transaction",
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        self.store_event(data=data, project_id=self.project.id)
-
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "1h",
-            "query": "has:performance.issue_ids",
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 1
-
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "1h",
-            "query": "!has:performance.issue_ids",
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 0
-
-    def test_performance_issue_ids_array_with_undefined(self):
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "2h",
-            "query": "performance.issue_ids:[1,2,3,undefined]",
-            "project": [self.project.id],
-        }
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
-
-<<<<<<< HEAD
-=======
     def test_performance_short_group_id(self):
         event = self.create_performance_issue()
         query = {
