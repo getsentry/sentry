@@ -16,14 +16,12 @@ import {
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-import type {Cluster} from './clusters';
-
 type Props = {
-  clusters: Cluster[];
   descriptionFilter: string;
+  queryConditions: string[];
 };
 
-export function SpanTimeCharts({descriptionFilter, clusters}: Props) {
+export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
   const themes = useTheme();
 
   const pageFilter = usePageFilters();
@@ -34,21 +32,14 @@ export function SpanTimeCharts({descriptionFilter, clusters}: Props) {
       : moment(pageFilter.selection.datetime.start);
   const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
 
-  const lastCluster = clusters.at(-1);
-
   const {isLoading, data} = useSpansQuery({
     queryString: `${getSpanTotalTimeChartQuery(
       pageFilter.selection.datetime,
       descriptionFilter,
-      lastCluster?.grouping_column || '',
-      clusters.map(c => c.condition(c.name))
+      queryConditions
     )}&referrer=span-time-charts`,
     initialData: [],
   });
-
-  if (!lastCluster) {
-    return null;
-  }
 
   const dataByGroup = groupBy(data, 'primary_group');
 
@@ -185,14 +176,12 @@ export function SpanTimeCharts({descriptionFilter, clusters}: Props) {
 export const getSpanTotalTimeChartQuery = (
   datetime: DateTimeObject,
   descriptionFilter: string | undefined,
-  groupingColumn: string,
   conditions: string[] = []
 ) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   const validConditions = conditions.filter(Boolean);
 
   return `SELECT
-    ${groupingColumn ? `${groupingColumn} AS primary_group,` : ''}
     count() AS throughput,
     sum(exclusive_time) AS total_time,
     quantile(0.50)(exclusive_time) AS p50,
@@ -203,7 +192,7 @@ export const getSpanTotalTimeChartQuery = (
     ${validConditions.length > 0 ? 'AND' : ''}
     ${validConditions.join(' AND ')}
     ${descriptionFilter ? `AND match(lower(description), '${descriptionFilter}')` : ''}
-    GROUP BY ${groupingColumn ? 'primary_group, ' : ''} interval
+    GROUP BY interval
     ORDER BY interval ASC
   `;
 };

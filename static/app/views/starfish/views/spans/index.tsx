@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {t} from 'sentry/locale';
 import {
   PageErrorAlert,
@@ -38,8 +39,10 @@ export default function Spans(props: Props) {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <SpansView location={props.location} onSelect={setSelectedRow} />
-            <SpanDetail row={selectedRow} onClose={unsetSelectedSpanGroup} />
+            <PageFiltersContainer>
+              <SpansView location={props.location} onSelect={setSelectedRow} />
+              <SpanDetail row={selectedRow} onClose={unsetSelectedSpanGroup} />
+            </PageFiltersContainer>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
