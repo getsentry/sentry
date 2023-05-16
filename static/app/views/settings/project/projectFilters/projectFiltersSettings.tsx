@@ -14,6 +14,7 @@ import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
@@ -28,7 +29,7 @@ import filterGroups, {
   customFilterFields,
   getOptionsData,
 } from 'sentry/data/forms/inboundFilters';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
@@ -198,7 +199,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
 function CustomFilters({project, disabled}: {disabled: boolean; project: Project}) {
   return (
     <Feature
-      features={['projects:custom-inbound-filtersTESSSSTTT']}
+      features={['projects:custom-inbound-filters']}
       hookName="feature-disabled:custom-inbound-filters"
       project={project}
       renderDisabled={({children, ...props}) => {
@@ -393,8 +394,13 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                         type: 'boolean',
                         name: 'filters:health-check',
                         label: t('Filter out health check transactions'),
-                        help: t(
-                          'Filter transactions that match most common naming patterns for health checks'
+                        help: tct(
+                          'Filter transactions that match most common [link:naming patterns] for health checks',
+                          {
+                            link: (
+                              <ExternalLink href="https://docs.sentry.io/product/data-management-settings/filtering/#inbound-data-filters" />
+                            ),
+                          }
                         ),
                         disabled: !hasAccess,
                       }}
