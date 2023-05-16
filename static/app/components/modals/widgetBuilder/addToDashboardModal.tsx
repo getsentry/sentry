@@ -9,7 +9,7 @@ import {
   fetchDashboards,
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -17,7 +17,6 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
-import getXhrErrorResponseHandler from 'sentry/utils/handleXhrErrorResponse';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
@@ -160,21 +159,15 @@ function AddToDashboardModal({
       queries: [{...query, orderby}],
     };
 
-    try {
-      const newDashboard = {
-        ...selectedDashboard,
-        widgets: [...selectedDashboard.widgets, newWidget],
-      };
+    const newDashboard = {
+      ...selectedDashboard,
+      widgets: [...selectedDashboard.widgets, newWidget],
+    };
 
-      await updateDashboard(api, organization.slug, newDashboard);
+    await updateDashboard(api, organization.slug, newDashboard);
 
-      closeModal();
-      addSuccessMessage(t('Successfully added widget to dashboard'));
-    } catch (e) {
-      const errorMessage = t('Unable to add widget to dashboard');
-      getXhrErrorResponseHandler(errorMessage)(e);
-      addErrorMessage(errorMessage);
-    }
+    closeModal();
+    addSuccessMessage(t('Successfully added widget to dashboard'));
   }
 
   const canSubmit = selectedDashboardId !== null;

@@ -458,6 +458,7 @@ class DashboardDetail extends Component<Props, State> {
           return;
         }
       },
+      // `updateDashboard` does its own error handling
       () => undefined
     );
   };
@@ -578,6 +579,7 @@ class DashboardDetail extends Component<Props, State> {
                 return;
               }
             },
+            // `updateDashboard` does its own error handling
             () => undefined
           );
 
@@ -885,6 +887,7 @@ class DashboardDetail extends Component<Props, State> {
                                     })
                                   );
                                 },
+                                // `updateDashboard` does its own error handling
                                 () => undefined
                               );
                             }}
