@@ -402,6 +402,36 @@ class DeleteMonitorTest(MonitorTestCase):
             object_id=monitor_environment.id, model_name="MonitorEnvironment"
         ).exists()
 
+    def test_multiple_environments(self):
+        monitor = self._create_monitor()
+        monitor_environment_a = self._create_monitor_environment(monitor, name="alpha")
+        monitor_environment_b = self._create_monitor_environment(monitor, name="beta")
+
+        self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="DELETE",
+            status_code=202,
+            qs_params={"environment": ["alpha", "beta"]},
+        )
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == ObjectStatus.ACTIVE
+
+        monitor_environment_a = MonitorEnvironment.objects.get(id=monitor_environment_a.id)
+        assert monitor_environment_a.status == ObjectStatus.PENDING_DELETION
+        # ScheduledDeletion only available in control silo
+        assert ScheduledDeletion.objects.filter(
+            object_id=monitor_environment_a.id, model_name="MonitorEnvironment"
+        ).exists()
+
+        monitor_environment_b = MonitorEnvironment.objects.get(id=monitor_environment_b.id)
+        assert monitor_environment_b.status == ObjectStatus.PENDING_DELETION
+        # ScheduledDeletion only available in control silo
+        assert ScheduledDeletion.objects.filter(
+            object_id=monitor_environment_b.id, model_name="MonitorEnvironment"
+        ).exists()
+
     def test_bad_environment(self):
         monitor = self._create_monitor()
         self._create_monitor_environment(monitor)

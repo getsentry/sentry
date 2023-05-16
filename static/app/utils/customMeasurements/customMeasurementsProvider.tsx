@@ -2,13 +2,13 @@ import {useEffect, useState} from 'react';
 import {Query} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {getFieldTypeFromUnit} from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import getXhrErrorResponseHandler from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 
 import {
@@ -83,15 +83,14 @@ export function CustomMeasurementsProvider({
 
           setState({customMeasurements: newCustomMeasurements});
         })
-        .catch(e => {
+        .catch((e: ResponseMeta) => {
           if (shouldCancelRequest) {
             return;
           }
 
-          const errorResponse =
-            e?.responseJSON ?? t('Unable to fetch custom performance metrics');
+          const errorResponse = t('Unable to fetch custom performance metrics');
           addErrorMessage(errorResponse);
-          getXhrErrorResponseHandler(errorResponse)(e);
+          handleXhrErrorResponse(errorResponse, e);
         });
     }
 

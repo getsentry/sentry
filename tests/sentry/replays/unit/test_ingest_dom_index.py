@@ -1,13 +1,13 @@
 import uuid
 from unittest import mock
 
-from sentry.utils import json
-from src.sentry.replays.usecases.ingest.dom_index import (
+from sentry.replays.usecases.ingest.dom_index import (
     _get_testid,
     encode_as_uuid,
     get_user_actions,
     parse_replay_actions,
 )
+from sentry.utils import json
 
 
 def test_get_user_actions():
@@ -305,6 +305,41 @@ def test_parse_request_response_old_format_request_and_response():
             mock.call("replays.usecases.ingest.request_body_size", 1002),
             mock.call("replays.usecases.ingest.response_body_size", 8001),
         ]
+
+
+def test_log_sdk_options():
+    events = [
+        {
+            "data": {
+                "payload": {
+                    "blockAllMedia": True,
+                    "errorSampleRate": 0,
+                    "maskAllInputs": True,
+                    "maskAllText": True,
+                    "networkCaptureBodies": True,
+                    "networkDetailHasUrls": False,
+                    "networkRequestHasHeaders": True,
+                    "networkResponseHasHeaders": True,
+                    "sessionSampleRate": 1,
+                    "useCompression": False,
+                    "useCompressionOption": True,
+                },
+                "tag": "options",
+            },
+            "timestamp": 1680009712.507,
+            "type": 5,
+        }
+    ]
+    log = events[0]["data"]["payload"].copy()
+    log["project_id"] = 1
+    log["replay_id"] = "1"
+
+    with mock.patch("sentry.replays.usecases.ingest.dom_index.logger") as logger, mock.patch(
+        "random.randint"
+    ) as randint:
+        randint.return_value = 0
+        parse_replay_actions(1, "1", 30, events)
+        assert logger.info.call_args_list == [mock.call("SDK Options:", extra=log)]
 
 
 def test_get_testid():

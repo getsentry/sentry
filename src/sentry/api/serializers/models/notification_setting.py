@@ -1,13 +1,15 @@
 from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
-import sentry_sdk
-
 from sentry.api.serializers import Serializer
-from sentry.models import NotificationSetting, Team, User
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.helpers import get_fallback_settings
 from sentry.notifications.types import VALID_VALUES_FOR_KEY, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.organization import RpcTeam
+from sentry.services.hybrid_cloud.user import RpcUser
 
 
 class NotificationSettingsSerializer(Serializer):  # type: ignore
@@ -37,15 +39,8 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         """
         type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
 
-        team_map = {}
-        user_map = {}
-        for recipient in item_list:
-            if isinstance(recipient, User):
-                user_map[recipient.id] = recipient
-            elif isinstance(recipient, Team):
-                team_map[recipient.id] = recipient
-            else:
-                sentry_sdk.capture_message(f"Expected User|Team got {recipient.__class__.__name__}")
+        team_map = {t.id: t for t in item_list if isinstance(t, (Team, RpcTeam))}
+        user_map = {u.id: u for u in item_list if isinstance(u, (User, RpcUser))}
 
         notifications_settings = NotificationSetting.objects._filter(
             type=type_option,
@@ -65,6 +60,10 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
                 target = team_map[notifications_setting.team_id]
             if target:
                 results[target]["settings"].add(notifications_setting)
+            else:
+                raise ValueError(
+                    f"NotificationSetting {notifications_setting.id} has neither team_id nor user_id"
+                )
 
         for recipient in item_list:
             # This works because both User and Team models implement `get_projects`.
