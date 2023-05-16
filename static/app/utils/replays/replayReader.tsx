@@ -188,5 +188,5 @@ const isMemorySpan = (span: ReplaySpan): span is MemorySpan => {
 };
 
 const isNetworkSpan = (span: ReplaySpan): span is NetworkSpan => {
-  return span.op.startsWith('navigation.') || span.op.startsWith('resource.');
+  return span.op?.startsWith('navigation.') || span.op?.startsWith('resource.');
 };
