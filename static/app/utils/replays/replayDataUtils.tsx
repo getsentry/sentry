@@ -205,13 +205,11 @@ export function breadcrumbFactory(
 }
 
 export function spansFactory(spans: ReplaySpan[]) {
-  return spans
-    .sort((a, b) => a.startTimestamp - b.startTimestamp)
-    .map(span => ({
-      ...span,
-      id: `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`,
-      timestamp: span.startTimestamp * 1000,
-    }));
+  return spans.map(span => ({
+    ...span,
+    id: `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`,
+    timestamp: span.startTimestamp * 1000,
+  }));
 }
 
 /**
@@ -222,39 +220,58 @@ export function spansFactory(spans: ReplaySpan[]) {
  */
 export function replayTimestamps(
   replayRecord: ReplayRecord,
-  rrwebEvents: RecordingEvent[],
-  rawCrumbs: ReplayCrumb[],
-  rawSpanData: ReplaySpan[]
+  rawErrors: any[],
+  {
+    rawRRWebEvents,
+    rawBreadcrumbs,
+    rawNetworkSpans,
+    rawMemorySpans,
+  }: {
+    rawBreadcrumbs: any[];
+    rawMemorySpans: any[];
+    rawNetworkSpans: any[];
+    rawRRWebEvents: any[];
+  }
 ) {
-  const rrwebTimestamps = rrwebEvents.map(event => event.timestamp).filter(Boolean);
-  const breadcrumbTimestamps = rawCrumbs
-    .map(rawCrumb => rawCrumb.timestamp)
+  const errorTimestamps = rawErrors
+    .map(error => new Date(error?.timestamp).getTime())
     .filter(Boolean);
-  const rawSpanDataFiltered = rawSpanData.filter(
-    ({op}) => op !== 'largest-contentful-paint'
-  );
-  const spanStartTimestamps = rawSpanDataFiltered.map(span => span.startTimestamp);
-  const spanEndTimestamps = rawSpanDataFiltered.map(span => span.endTimestamp);
+  const rrwebTimestamps = rawRRWebEvents.map(event => event?.timestamp).filter(Boolean);
+  const breadcrumbTimestamps = rawBreadcrumbs
+    .map(rawCrumb => rawCrumb?.timestamp)
+    .filter(Boolean);
+
+  const networkStartTimestamps = rawNetworkSpans.map(span => span?.startTimestamp);
+  const networkEndTimestamps = rawNetworkSpans.map(span => span?.endTimestamp);
+  const memoryStartTimestamps = rawMemorySpans.map(span => span?.startTimestamp);
+  const memoryEndTimestamps = rawMemorySpans.map(span => span?.endTimestamp);
 
   // Calculate min/max of each array individually, to prevent extra allocations.
-  // Also using `getMinMax()` so we can handle any huge arrays.
+  // Also using `arrayMinAndMax()` so we can handle any huge arrays.
+  const {min: minError, max: maxError} = getMinMax(errorTimestamps);
   const {min: minRRWeb, max: maxRRWeb} = getMinMax(rrwebTimestamps);
   const {min: minCrumbs, max: maxCrumbs} = getMinMax(breadcrumbTimestamps);
-  const {min: minSpanStarts} = getMinMax(spanStartTimestamps);
-  const {max: maxSpanEnds} = getMinMax(spanEndTimestamps);
+  const {min: minNetworkStarts} = getMinMax(networkStartTimestamps);
+  const {max: maxNetworkEnds} = getMinMax(networkEndTimestamps);
+  const {min: minMemoryStarts} = getMinMax(memoryStartTimestamps);
+  const {max: maxMemoryEnds} = getMinMax(memoryEndTimestamps);
 
   return {
     startTimestampMs: Math.min(
       replayRecord.started_at.getTime(),
+      minError,
       minRRWeb,
       minCrumbs * 1000,
-      minSpanStarts * 1000
+      minNetworkStarts * 1000,
+      minMemoryStarts * 1000
     ),
     endTimestampMs: Math.max(
       replayRecord.finished_at.getTime(),
+      maxError,
       maxRRWeb,
       maxCrumbs * 1000,
-      maxSpanEnds * 1000
+      maxNetworkEnds * 1000,
+      maxMemoryEnds * 1000
     ),
   };
 }

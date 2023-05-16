@@ -4,6 +4,7 @@ import {duration} from 'moment';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import {
   breadcrumbFactory,
   replayTimestamps,
@@ -70,44 +71,47 @@ export default class ReplayReader {
     replayRecord,
     errors,
   }: RequiredNotNull<ReplayReaderParams>) {
+    this.replayRecord = replayRecord;
+
+    const attachmentsByType = splitAttachmentsByType(attachments);
+
+    if (localStorageWrapper.getItem('REPLAY-BACKEND-TIMESTAMPS') !== '1') {
+      // TODO(replays): We should get correct timestamps from the backend instead
+      // of having to fix them up here.
+      const {startTimestampMs, endTimestampMs} = replayTimestamps(
+        replayRecord,
+        errors,
+        attachmentsByType
+      );
+      replayRecord.started_at = new Date(startTimestampMs);
+      replayRecord.finished_at = new Date(endTimestampMs);
+      replayRecord.duration = duration(
+        replayRecord.finished_at.getTime() - replayRecord.started_at.getTime()
+      );
+    }
+
     const {rawBreadcrumbs, rawRRWebEvents, rawNetworkSpans, rawMemorySpans} =
-      splitAttachmentsByType(attachments);
+      attachmentsByType;
 
-    const spans = [...rawMemorySpans, rawNetworkSpans] as ReplaySpan[];
-
-    // TODO(replays): We should get correct timestamps from the backend instead
-    // of having to fix them up here.
-    const {startTimestampMs, endTimestampMs} = replayTimestamps(
-      replayRecord,
-      rawRRWebEvents as RecordingEvent[],
-      rawBreadcrumbs as ReplayCrumb[],
-      spans
-    );
-    replayRecord.started_at = new Date(startTimestampMs);
-    replayRecord.finished_at = new Date(endTimestampMs);
-    replayRecord.duration = duration(
-      replayRecord.finished_at.getTime() - replayRecord.started_at.getTime()
-    );
-
-    this.sortedSpans = spansFactory(spans);
     this.breadcrumbs = breadcrumbFactory(
       replayRecord,
       errors,
       rawBreadcrumbs as ReplayCrumb[],
-      this.sortedSpans
+      [...rawMemorySpans, rawNetworkSpans] as ReplaySpan[]
     );
+    this.memorySpans = spansFactory(rawMemorySpans as ReplaySpan[]) as MemorySpan[];
+    this.networkSpans = spansFactory(rawNetworkSpans as ReplaySpan[]) as NetworkSpan[];
     this.rrwebEvents = rrwebEventListFactory(
       replayRecord,
       rawRRWebEvents as RecordingEvent[]
     );
-
-    this.replayRecord = replayRecord;
   }
 
-  private sortedSpans: ReplaySpan[];
+  private breadcrumbs: Crumb[];
+  private memorySpans: MemorySpan[];
+  private networkSpans: NetworkSpan[];
   private replayRecord: ReplayRecord;
   private rrwebEvents: RecordingEvent[];
-  private breadcrumbs: Crumb[];
 
   /**
    * @returns Duration of Replay (milliseonds)
@@ -155,9 +159,11 @@ export default class ReplayReader {
     )
   );
 
-  getNetworkSpans = memoize(() => this.sortedSpans.filter(isNetworkSpan));
+  getNetworkSpans = () => this.networkSpans;
 
-  getMemorySpans = memoize(() => this.sortedSpans.filter(isMemorySpan));
+  getMemorySpans = memoize(() =>
+    this.memorySpans.sort((a, b) => a.startTimestamp - b.startTimestamp)
+  );
 
   sdkConfig = memoize(() => {
     const found = this.rrwebEvents.find(
@@ -182,11 +188,3 @@ export default class ReplayReader {
     );
   });
 }
-
-const isMemorySpan = (span: ReplaySpan): span is MemorySpan => {
-  return span.op === 'memory';
-};
-
-const isNetworkSpan = (span: ReplaySpan): span is NetworkSpan => {
-  return span.op?.startsWith('navigation.') || span.op?.startsWith('resource.');
-};
