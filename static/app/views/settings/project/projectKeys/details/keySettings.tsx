@@ -31,9 +31,17 @@ type Props = {
     projectId: string;
   };
   project: Project;
+  updateData: (data: ProjectKey) => void;
 };
 
-export function KeySettings({onRemove, organization, project, params, data}: Props) {
+export function KeySettings({
+  onRemove,
+  organization,
+  project,
+  params,
+  data,
+  updateData,
+}: Props) {
   const api = useApi();
 
   const {keyId, projectId} = params;
@@ -116,7 +124,8 @@ export function KeySettings({onRemove, organization, project, params, data}: Pro
                   orgSlug={organization.slug}
                   keyId={params.keyId}
                   project={project}
-                  projectKey={data}
+                  data={data}
+                  updateData={updateData}
                 />
               </PanelBody>
             </Panel>

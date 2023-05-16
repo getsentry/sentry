@@ -44,6 +44,12 @@ export default class ProjectKeyDetails extends AsyncView<Props, State> {
     );
   };
 
+  updateData = (data: ProjectKey) => {
+    this.setState(state => {
+      return {...state, data};
+    });
+  };
+
   renderBody() {
     const {organization, project, params} = this.props;
     const {data} = this.state;
@@ -57,6 +63,7 @@ export default class ProjectKeyDetails extends AsyncView<Props, State> {
 
         <KeySettings
           data={data}
+          updateData={this.updateData}
           onRemove={this.handleRemove}
           organization={organization}
           project={project}
