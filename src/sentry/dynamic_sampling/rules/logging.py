@@ -113,7 +113,7 @@ def _extract_info_from_rule(
         return {"transactions": rule["condition"]["inner"][0]["value"]}  # type:ignore
     elif rule_type == RuleType.BOOST_LOW_VOLUME_TRANSACTIONS:
         inner_condition = rule["condition"]["inner"]
-        if len(inner_condition):
+        if isinstance(inner_condition, list) and len(inner_condition) > 0:
             return {"transaction": rule["condition"]["inner"][0]["value"]}  # type:ignore
         else:
             return {}
