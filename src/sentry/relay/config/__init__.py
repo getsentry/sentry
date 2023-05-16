@@ -482,11 +482,7 @@ def _load_filter_settings(flt: _FilterSpec, project: Project) -> Mapping[str, An
     filter_id = flt.id
     filter_key = f"filters:{filter_id}"
 
-    if not features.has("organizations:health-check-filter", project.organization):
-        # disable filter if org doesn't have it
-        setting = 0
-    else:
-        setting = project.get_option(filter_key)
+    setting = project.get_option(filter_key)
 
     return _filter_option_to_config_setting(flt, setting)
 
