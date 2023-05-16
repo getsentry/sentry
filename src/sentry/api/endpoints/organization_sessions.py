@@ -39,6 +39,11 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
                 {"detail": "This organization does not have the ANR rate feature"}, status=400
             )
 
+        # Compute a dummy query to get the number of intervals:
+        dummy_query = self.build_sessions_query(request, organization, None, None)
+        num_intervals = (dummy_query.end - dummy_query.start).total_seconds() // dummy_query.rollup
+        max_num_groups = 1 + SNUBA_LIMIT // num_intervals
+
         def data_fn(offset: int, limit: int):
             with self.handle_query_errors():
                 with sentry_sdk.start_span(
@@ -62,8 +67,8 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
         return self.paginate(
             request,
             paginator=SessionsDataSeriesPaginator(data_fn=data_fn),
-            default_per_page=SNUBA_LIMIT,
-            max_per_page=SNUBA_LIMIT,
+            default_per_page=max_num_groups,
+            max_per_page=max_num_groups,
         )
 
     def build_sessions_query(
