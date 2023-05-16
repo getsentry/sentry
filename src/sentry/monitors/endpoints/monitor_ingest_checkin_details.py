@@ -70,10 +70,11 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             return self.respond(status=400)
 
         # Discard monitor config as it is not used
-        request.data.pop("monitor_config", None)
+        request_data = request.data.copy()
+        request_data.pop("monitor_config", None)
 
         serializer = MonitorCheckInValidator(
-            data=request.data,
+            data=request_data,
             partial=True,
             context={
                 "project": project,
