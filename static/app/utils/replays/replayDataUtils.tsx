@@ -247,7 +247,7 @@ export function replayTimestamps(
   const memoryEndTimestamps = rawMemorySpans.map(span => span?.endTimestamp);
 
   // Calculate min/max of each array individually, to prevent extra allocations.
-  // Also using `arrayMinAndMax()` so we can handle any huge arrays.
+  // Also using `getMinMax()` so we can handle any huge arrays.
   const {min: minError, max: maxError} = getMinMax(errorTimestamps);
   const {min: minRRWeb, max: maxRRWeb} = getMinMax(rrwebTimestamps);
   const {min: minCrumbs, max: maxCrumbs} = getMinMax(breadcrumbTimestamps);
