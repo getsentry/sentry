@@ -93,6 +93,38 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             )
 
             path = path_func(monitor.guid, checkin.guid)
+            resp = self.client.put(
+                path,
+                data={
+                    "status": "ok",
+                },
+                **self.token_auth_headers,
+            )
+            assert resp.status_code == 200, resp.content
+
+            checkin = MonitorCheckIn.objects.get(id=checkin.id)
+            assert checkin.status == CheckInStatus.OK
+            assert (
+                checkin.monitor_environment.environment.name == monitor_environment.environment.name
+            )
+
+            monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+            assert monitor_environment.next_checkin > checkin.date_added
+            assert monitor_environment.status == MonitorStatus.OK
+            assert monitor_environment.last_checkin > checkin.date_added
+
+    def test_passing_with_config(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor, name="dev")
+        for path_func in self._get_path_functions():
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                date_added=monitor.date_added,
+            )
+
+            path = path_func(monitor.guid, checkin.guid)
             # include monitor_config to test check-in validation no error thrown, no-op on server side
             resp = self.client.put(
                 path,
