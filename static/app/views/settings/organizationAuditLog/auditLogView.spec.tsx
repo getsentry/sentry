@@ -87,7 +87,7 @@ describe('OrganizationAuditLog', function () {
     expect(screen.getByText('member.add')).toBeInTheDocument();
   });
 
-  it('Replaces text in rule and alertrule entries', async function () {
+  it('replaces text in rule and alertrule entries', async function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/audit-logs/`,
