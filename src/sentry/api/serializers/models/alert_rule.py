@@ -14,8 +14,8 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     Incident,
 )
-from sentry.models import ACTOR_TYPES, Rule, actor_type_to_string
-from sentry.models.actor import Actor
+from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
+from sentry.models.rule import Rule
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service

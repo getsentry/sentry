@@ -4,8 +4,9 @@ from typing import Any, List, Mapping, MutableMapping, Optional
 from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import ACTOR_TYPES, ExternalActor, User, actor_type_to_string
-from sentry.models.actor import Actor
+from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.user import User
 from sentry.types.integrations import get_provider_string
 
 
