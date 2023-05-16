@@ -11,6 +11,7 @@ from sentry.models import (
 )
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
 
@@ -82,7 +83,7 @@ class UserDetailsTest(TestCase):
 
 
 @control_silo_test
-class UserMergeToTest(TestCase):
+class UserMergeToTest(TestCase, HybridCloudTestMixin):
     def test_simple(self):
         from_user = self.create_user("foo@example.com")
         UserEmail.objects.create_or_update(
@@ -125,10 +126,11 @@ class UserMergeToTest(TestCase):
 
         from_user.merge_to(to_user)
 
-        member = OrganizationMember.objects.get(user=to_user)
+        member = OrganizationMember.objects.get(user_id=to_user.id)
 
         assert member.role == "owner"
         assert list(member.teams.all().order_by("pk")) == [team_1, team_2, team_3]
+        self.assert_org_member_mapping(org_member=member)
 
 
 class GetUsersFromTeamsTest(TestCase):

@@ -244,16 +244,17 @@ class OrganizationMember(Model):
         ), "Must set either user or email"
 
         region_outbox = None
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
-            if self.token and not self.token_expires_at:
-                self.refresh_expires_at()
-            is_new = bool(self.id)
-            super().save(*args, **kwargs)
-            if is_new:
-                region_outbox = self.save_outbox_for_create()
-            else:
-                region_outbox = self.save_outbox_for_update()
-            self.__org_roles_from_teams = None
+        with in_test_psql_role_override("postgres"):
+            with transaction.atomic():
+                if self.token and not self.token_expires_at:
+                    self.refresh_expires_at()
+                is_new = bool(self.id)
+                super().save(*args, **kwargs)
+                if is_new:
+                    region_outbox = self.save_outbox_for_create()
+                else:
+                    region_outbox = self.save_outbox_for_update()
+                self.__org_roles_from_teams = None
         if region_outbox:
             region_outbox.drain_shard(max_updates_to_drain=10)
 
