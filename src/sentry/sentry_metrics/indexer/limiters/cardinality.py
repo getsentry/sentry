@@ -79,20 +79,20 @@ class TimeseriesCardinalityLimiter:
         self.namespace = namespace
         self.backend: CardinalityLimiter = rate_limiter
 
-    # one cardinality limiter per namespace (aka metric path key)
     def check_cardinality_limits(
-        self, use_case_id: UseCaseKey, messages: Mapping[PartitionIdxOffset, InboundMessage]
+        self, metric_path_key: UseCaseKey, messages: Mapping[PartitionIdxOffset, InboundMessage]
     ) -> CardinalityLimiterState:
         request_hashes = defaultdict(set)
         hash_to_offset = {}
 
-        # use case-specific rollout rates of the cardinality limiter
-        if use_case_id == UseCaseKey.PERFORMANCE:
+        # this works by applying one rollout option for each metric path
+        # ultimately, this can be moved into the loop below to
+        # make rollout options occur on a per use case-basis
+        if metric_path_key == UseCaseKey.PERFORMANCE:
             rollout_option = "sentry-metrics.cardinality-limiter.orgs-rollout-rate"
-        elif use_case_id == UseCaseKey.RELEASE_HEALTH:
+        elif metric_path_key == UseCaseKey.RELEASE_HEALTH:
             rollout_option = "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate"
 
-        # creates the message hash for encountered strings, for each metric message
         for key, message in messages.items():
             org_id = message["org_id"]
             if not sample_modulo(rollout_option, org_id):
@@ -147,7 +147,7 @@ class TimeseriesCardinalityLimiter:
 
         return CardinalityLimiterState(
             _cardinality_limiter=self.backend,
-            _use_case_id=use_case_id,
+            _use_case_id=metric_path_key,
             _grants=grants,
             _timestamp=timestamp,
             keys_to_remove=list(keys_to_remove.values()),
