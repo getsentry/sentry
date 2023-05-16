@@ -7,6 +7,7 @@ import {
   removeProject,
   transferProject,
 } from 'sentry/actionCreators/projects';
+import {ResponseMeta} from 'sentry/api';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -88,10 +89,13 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           throw err;
         }
       )
-      .then(() => {
-        // Need to hard reload because lots of components do not listen to Projects Store
-        window.location.assign('/');
-      }, getXhrErrorResponseHandler('Unable to remove project'));
+      .then(
+        () => {
+          // Need to hard reload because lots of components do not listen to Projects Store
+          window.location.assign('/');
+        },
+        (err: ResponseMeta) => handleXhrErrorResponse('Unable to remove project', err)
+      );
   };
 
   handleTransferProject = async () => {
