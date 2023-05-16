@@ -185,7 +185,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     data=monitor_object.get_audit_log_data(),
                     transaction_id=schedule.guid,
                 )
-            
+
                 if type(monitor_object) == Monitor:
                     alert_rule_id = monitor_object.config.get("alert_rule_id")
                     if alert_rule_id:
