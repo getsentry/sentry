@@ -7,6 +7,7 @@ import {
   removeProject,
   transferProject,
 } from 'sentry/actionCreators/projects';
+import {ResponseMeta} from 'sentry/api';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -23,7 +24,7 @@ import {fields} from 'sentry/data/forms/projectGeneralSettings';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
-import getXhrErrorResponseHandler from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -88,10 +89,13 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           throw err;
         }
       )
-      .then(() => {
-        // Need to hard reload because lots of components do not listen to Projects Store
-        window.location.assign('/');
-      }, getXhrErrorResponseHandler('Unable to remove project'));
+      .then(
+        () => {
+          // Need to hard reload because lots of components do not listen to Projects Store
+          window.location.assign('/');
+        },
+        (err: ResponseMeta) => handleXhrErrorResponse('Unable to remove project', err)
+      );
   };
 
   handleTransferProject = async () => {
@@ -110,7 +114,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       window.location.assign('/');
     } catch (err) {
       if (err.status >= 500) {
-        getXhrErrorResponseHandler('Unable to transfer project')(err);
+        handleXhrErrorResponse('Unable to transfer project', err);
       }
     }
   };
