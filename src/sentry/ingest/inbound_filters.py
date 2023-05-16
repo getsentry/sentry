@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from sentry import tsdb
+from sentry import features, tsdb
 from sentry.api.fields.multiplechoice import MultipleChoiceField
 from sentry.models import ProjectOption
 from sentry.relay.utils import to_camel_case_name
@@ -24,6 +24,7 @@ class FilterStatKeys:
     CORS = "cors"
     DISCARDED_HASH = "discarded-hash"  # Not replicated in Relay
     CRASH_REPORT_LIMIT = "crash-report-limit"  # Not replicated in Relay
+    HEALTH_CHECK = "health-check"  # Ignore health-check transactions
 
 
 FILTER_STAT_KEYS_TO_VALUES = {
@@ -37,6 +38,7 @@ FILTER_STAT_KEYS_TO_VALUES = {
     FilterStatKeys.INVALID_CSP: tsdb.models.project_total_received_invalid_csp,
     FilterStatKeys.CORS: tsdb.models.project_total_received_cors,
     FilterStatKeys.DISCARDED_HASH: tsdb.models.project_total_received_discarded,
+    FilterStatKeys.HEALTH_CHECK: tsdb.models.project_total_healthcheck,
 }
 
 
@@ -49,7 +51,7 @@ def get_filter_key(flt):
     return to_camel_case_name(flt.id.replace("-", "_"))
 
 
-def get_all_filter_specs():
+def get_all_filter_specs(project):
     """
     Return metadata about the filters known by Sentry.
 
@@ -58,16 +60,21 @@ def get_all_filter_specs():
 
     :return: list of registered event filters
     """
-    return (
+    filters = [
         _localhost_filter,
         _browser_extensions_filter,
         _legacy_browsers_filter,
         _web_crawlers_filter,
-    )
+    ]
+
+    if features.has("organizations:health-check-filter", project.organization):
+        filters.append(_healthcheck_filter)
+
+    return tuple(filters)  # returning tuple for backwards compatibility
 
 
 def set_filter_state(filter_id, project, state):
-    flt = _filter_from_filter_id(filter_id)
+    flt = _filter_from_filter_id(filter_id, project)
     if flt is None:
         raise FilterNotRegistered(filter_id)
 
@@ -116,7 +123,7 @@ def get_filter_state(filter_id, project):
     :return: True if the filter is enabled False otherwise
     :raises: ValueError if filter id not registered
     """
-    flt = _filter_from_filter_id(filter_id)
+    flt = _filter_from_filter_id(filter_id, project)
     if flt is None:
         raise FilterNotRegistered(filter_id)
 
@@ -145,11 +152,11 @@ class FilterNotRegistered(Exception):
     pass
 
 
-def _filter_from_filter_id(filter_id):
+def _filter_from_filter_id(filter_id, project):
     """
     Returns the corresponding filter for a filter id or None if no filter with the given id found
     """
-    for flt in get_all_filter_specs():
+    for flt in get_all_filter_specs(project):
         if flt.id == filter_id:
             return flt
     return None
@@ -230,4 +237,11 @@ _web_crawlers_filter = _FilterSpec(
     name="Filter out known web crawlers",
     description="Some crawlers may execute pages in incompatible ways which then cause errors that"
     " are unlikely to be seen by a normal user.",
+)
+
+
+_healthcheck_filter = _FilterSpec(
+    id=FilterStatKeys.HEALTH_CHECK,
+    name="Filter out requests to healthcheck endpoints",
+    description="Filters out transactions for healthcheck endpoints, in order to conserve transaction quotas",
 )

@@ -110,7 +110,7 @@ def get_public_key_configs(
 def get_filter_settings(project: Project) -> Mapping[str, Any]:
     filter_settings = {}
 
-    for flt in get_all_filter_specs():
+    for flt in get_all_filter_specs(project):
         filter_id = get_filter_key(flt)
         settings = _load_filter_settings(flt, project)
         if settings["isEnabled"]:
@@ -481,7 +481,12 @@ def _load_filter_settings(flt: _FilterSpec, project: Project) -> Mapping[str, An
     """
     filter_id = flt.id
     filter_key = f"filters:{filter_id}"
-    setting = project.get_option(filter_key)
+
+    if not features.has("organizations:health-check-filter", project.organization):
+        # disable filter if org doesn't have it
+        setting = 0
+    else:
+        setting = project.get_option(filter_key)
 
     return _filter_option_to_config_setting(flt, setting)
 

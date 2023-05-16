@@ -347,3 +347,27 @@ def test_relay_disabled_project(
     assert http_cfg == {"disabled": True}
 
     assert projectconfig_cache_set == [{str(wrong_id): http_cfg}]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("is_business", [True, False], ids=["business_plan", "free_plan"])
+def test_health_check_filters(call_endpoint, add_org_key, relay, default_project, is_business):
+    """
+    Test that only business plans contain healthcheck filters
+    """
+    relay.save()
+
+    default_project.update_option("filters:health-check", "1")
+    with Feature({"organizations:health-check-filter": is_business}):
+        result, status_code = call_endpoint(full_config=True)
+
+    assert status_code < 400
+
+    filter_settings = safe.get_path(
+        result, "configs", str(default_project.id), "config", "filterSettings"
+    )
+    assert filter_settings is not None
+
+    has_health_check = "healthCheck" in filter_settings
+
+    assert has_health_check == is_business

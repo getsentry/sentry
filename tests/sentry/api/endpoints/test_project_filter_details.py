@@ -1,4 +1,5 @@
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -22,6 +23,50 @@ class ProjectFilterDetailsTest(APITestCase):
         )
 
         assert project.get_option("filters:browser-extensions") == "1"
+
+    def test_put_health_check_filter_business(self):
+        """
+        Tests that it accepts to set the health-check filter on plans with that
+        allow it ( business plan)
+        """
+        org = self.create_organization(name="baz", slug="1", owner=self.user)
+        team = self.create_team(organization=org, name="foo", slug="foo")
+        project = self.create_project(name="Bar", slug="bar", teams=[team])
+
+        project.update_option("filters:health-check", "0")
+        with Feature("organizations:health-check-filter"):
+            self.get_success_response(
+                org.slug, project.slug, "health-check", active=True, status_code=201
+            )
+
+        assert project.get_option("filters:health-check") == "1"
+
+        project.update_option("filters:health-check", "1")
+        with Feature("organizations:health-check-filter"):
+            self.get_success_response(
+                org.slug, project.slug, "health-check", active=False, status_code=201
+            )
+
+        assert project.get_option("filters:health-check") == "0"
+
+    def test_put_health_check_filter_free_plan(self):
+        """
+        Tests that it does not accept to set the health-check filter on plans with that
+        do not allow it ( free plans)
+        """
+        org = self.create_organization(name="baz", slug="1", owner=self.user)
+        team = self.create_team(organization=org, name="foo", slug="foo")
+        project = self.create_project(name="Bar", slug="bar", teams=[team])
+
+        project.update_option("filters:health-check", "0")
+        with Feature({"organizations:health-check-filter": False}):
+            resp = self.get_response(
+                org.slug, project.slug, "health-check", active=True, status_code=201
+            )
+        # check we return error
+        assert resp.status_code == 404
+        # check we did not touch the option
+        assert project.get_option("filters:health-check") == "0"
 
     def test_put_legacy_browsers(self):
         org = self.create_organization(name="baz", slug="1", owner=self.user)
