@@ -73,7 +73,7 @@ export default class ReplayReader {
     const {rawBreadcrumbs, rawRRWebEvents, rawNetworkSpans, rawMemorySpans} =
       splitAttachmentsByType(attachments);
 
-    const spans = [...rawMemorySpans, rawNetworkSpans] as ReplaySpan[];
+    const spans = [...rawMemorySpans, ...rawNetworkSpans] as ReplaySpan[];
 
     // TODO(replays): We should get correct timestamps from the backend instead
     // of having to fix them up here.
