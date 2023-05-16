@@ -258,6 +258,7 @@ class FormModel {
   removeField(id: string) {
     this.fieldDescriptor.delete(id);
     this.errors.delete(id);
+    delete this.initialData[id];
   }
 
   /**
