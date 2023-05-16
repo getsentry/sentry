@@ -244,7 +244,7 @@ class OrganizationMember(Model):
         ), "Must set either user or email"
 
         region_outbox = None
-        with transaction.atomic():
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
             if self.token and not self.token_expires_at:
                 self.refresh_expires_at()
             is_new = bool(self.id)
