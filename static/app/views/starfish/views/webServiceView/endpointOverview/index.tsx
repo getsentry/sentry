@@ -161,7 +161,7 @@ export default function EndpointOverview() {
     id: undefined,
     name: t('Endpoint Overview'),
     query: query.formatString(),
-    projects: [],
+    projects: [1],
     fields: [],
     version: 2,
   };
