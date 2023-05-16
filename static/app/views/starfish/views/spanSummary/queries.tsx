@@ -15,6 +15,20 @@ export const getSpanSamplesQuery = ({
   sortBy?: string;
 }) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
+
+  if (sortBy === 'median_samples') {
+    return `
+      SELECT transaction_id, transaction, description, user, domain, span_id, sum(exclusive_time) as exclusive_time, abs(minus(exclusive_time, 13.76)) as diff
+        FROM spans_experimental_starfish
+        WHERE group_id = '00000000-0000-0000-0a28-ea17e56d7361'
+        AND transaction = '/api/0/customers/'
+        GROUP BY transaction_id, transaction, description, user, domain, span_id
+        HAVING lessOrEquals(divide(diff, 13.76), 0.05)
+        ORDER BY diff desc
+        LIMIT 10 \G
+    `;
+  }
+
   return `
     SELECT transaction_id, transaction, description, user, domain, span_id, sum(exclusive_time) as exclusive_time
     FROM spans_experimental_starfish
