@@ -37,6 +37,7 @@ export default function SpansView(props: Props) {
 
   const descriptionFilter = didConfirmSearch && searchTerm ? `${searchTerm}` : undefined;
   const queryConditions = buildQueryFilterFromLocation(location);
+
   const {isLoading: areSpansLoading, data: spansData} = useQuery<SpanDataRow[]>({
     queryKey: ['spans', descriptionFilter, orderBy, pageFilter.selection.datetime],
     queryFn: () =>
@@ -128,7 +129,12 @@ const FilterOptionsContainer = styled(PaddedContainer)`
   margin-bottom: ${space(2)};
 `;
 
-const SPAN_FILTER_KEYS = ['action', 'span_operation', 'domain'];
+export const SPAN_FILTER_KEYS = ['action', 'span_operation', 'domain'];
+export const SPAN_FILTER_KEY_LABELS = {
+  action: 'Action',
+  span_operation: 'Operation',
+  domain: 'Domain',
+};
 
 const buildQueryFilterFromLocation = (location: Location) => {
   const {query} = location;
