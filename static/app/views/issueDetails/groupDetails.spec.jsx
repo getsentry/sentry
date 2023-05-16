@@ -4,6 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GroupStore from 'sentry/stores/groupStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types';
@@ -73,11 +74,12 @@ describe('groupDetails', () => {
       >
         <MockComponent />
       </GroupDetails>,
-      {context: routerContext}
+      {context: routerContext, organization, router}
     );
   };
 
   beforeEach(() => {
+    OrganizationStore.onUpdate(organization);
     act(() => ProjectsStore.loadInitialData(organization.projects));
 
     MockApiClient.addMockResponse({
@@ -120,6 +122,10 @@ describe('groupDetails', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/environments/`,
       body: TestStubs.Environments(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/tags/`,
+      body: [],
     });
   });
 
@@ -251,8 +257,8 @@ describe('groupDetails', () => {
     const sampleGroup = TestStubs.Group({issueCategory: IssueCategory.ERROR});
     sampleGroup.tags.push({key: 'sample_event'});
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
-      body: {...sampleGroup},
+      url: `/issues/${group.id}/tags/`,
+      body: [{key: 'sample_event'}],
     });
 
     createWrapper();

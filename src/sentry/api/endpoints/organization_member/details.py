@@ -181,15 +181,20 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
                 if result.get("regenerate"):
                     if request.access.has_scope("member:admin"):
-                        member.regenerate_token()
-                        member.save()
+                        region_outbox = None
+                        with transaction.atomic():
+                            member.regenerate_token()
+                            member.save()
+                            region_outbox = member.save_outbox_for_update()
+                        if region_outbox:
+                            region_outbox.drain_shard(max_updates_to_drain=10)
                     else:
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
                 if member.token_expired:
                     return Response({"detail": ERR_EXPIRED}, status=400)
                 member.send_invite_email()
             elif auth_provider and not getattr(member.flags, "sso:linked"):
-                member.send_sso_link_email(request.user, auth_provider)
+                member.send_sso_link_email(request.user.id, auth_provider)
             else:
                 # TODO(dcramer): proper error message
                 return Response({"detail": ERR_UNINVITABLE}, status=400)
@@ -212,15 +217,19 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 return Response({"teams": "Invalid team"}, status=400)
 
         assigned_org_role = result.get("orgRole") or result.get("role")
-        if assigned_org_role and getattr(member.flags, "idp:role-restricted"):
-            return Response(
-                {
-                    "role": "This user's org-role is managed through your organization's identity provider."
-                },
-                status=403,
-            )
-        elif assigned_org_role:
+        is_update_org_role = assigned_org_role and assigned_org_role != member.role
+
+        if is_update_org_role:
+            if getattr(member.flags, "idp:role-restricted"):
+                return Response(
+                    {
+                        "role": "This user's org-role is managed through your organization's identity provider."
+                    },
+                    status=403,
+                )
+
             allowed_role_ids = {r.id for r in allowed_roles}
+
             # A user cannot promote others above themselves
             if assigned_org_role not in allowed_role_ids:
                 return Response(
@@ -275,6 +284,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             r.id for r in team_roles.get_all() if r.priority <= new_minimum_team_role.priority
         ]
 
+        region_outbox = None
         with transaction.atomic():
             # If the member has any existing team roles that are less than or equal
             # to their new minimum role, overwrite the redundant team roles with
@@ -286,7 +296,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             ).update(role=None)
 
             member.update(role=role)
-
+            region_outbox = member.save_outbox_for_update()
+        if region_outbox:
+            region_outbox.drain_shard(max_updates_to_drain=10)
         if omt_update_count > 0:
             metrics.incr(
                 "team_roles.update_to_minimum",

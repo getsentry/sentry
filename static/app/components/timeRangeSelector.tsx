@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -49,10 +49,21 @@ const SelectorItemsHook = HookOrDefault({
   defaultComponent: SelectorItems,
 });
 
-interface TimeRangeSelectorProps
+export interface TimeRangeSelectorProps
   extends Omit<
     SingleSelectProps<string>,
-    'options' | 'onChange' | 'closeOnSelect' | 'value' | 'defaultValue' | 'multiple'
+    | 'multiple'
+    | 'searchable'
+    | 'disableSearchFilter'
+    | 'options'
+    | 'hideOptions'
+    | 'value'
+    | 'defaultValue'
+    | 'onChange'
+    | 'onInteractOutside'
+    | 'closeOnSelect'
+    | 'menuFooter'
+    | 'onKeyDown'
   > {
   /**
    * Set an optional default value to prefill absolute date with
@@ -109,12 +120,18 @@ export function TimeRangeSelector({
   relative,
   relativeOptions,
   onChange,
+  onSearch,
+  onClose,
+  searchPlaceholder,
   showAbsolute = true,
   showRelative = true,
   defaultAbsolute,
   defaultPeriod = DEFAULT_STATS_PERIOD,
   maxPickableDays = 90,
   disallowArbitraryRelativeRanges = false,
+  trigger,
+  menuWidth,
+  menuBody,
   ...selectProps
 }: TimeRangeSelectorProps) {
   const router = useRouter();
@@ -241,11 +258,15 @@ export function TimeRangeSelector({
     >
       {items => (
         <CompactSelect
+          {...selectProps}
           searchable={!showAbsoluteSelector}
           disableSearchFilter
-          onSearch={setSearch}
+          onSearch={s => {
+            onSearch?.(s);
+            setSearch(s);
+          }}
           searchPlaceholder={
-            disallowArbitraryRelativeRanges
+            searchPlaceholder ?? disallowArbitraryRelativeRanges
               ? t('Search…')
               : t('Custom range: 2h, 4d, 8w…')
           }
@@ -256,73 +277,84 @@ export function TimeRangeSelector({
           // Keep menu open when clicking on absolute range option
           closeOnSelect={opt => opt.value !== ABSOLUTE_OPTION_VALUE}
           onClose={() => {
+            onClose?.();
             setHasChanges(false);
             setSearch('');
           }}
           onInteractOutside={commitChanges}
           onKeyDown={e => e.key === 'Escape' && commitChanges()}
-          trigger={triggerProps => {
-            const relativeSummary =
-              items.findIndex(item => item.value === relative) > -1
-                ? relative?.toUpperCase()
-                : t('Invalid Period');
-            const defaultLabel =
-              start && end ? getAbsoluteSummary(start, end, utc) : relativeSummary;
+          trigger={
+            trigger ??
+            (triggerProps => {
+              const relativeSummary =
+                items.findIndex(item => item.value === relative) > -1
+                  ? relative?.toUpperCase()
+                  : t('Invalid Period');
+              const defaultLabel =
+                start && end ? getAbsoluteSummary(start, end, utc) : relativeSummary;
 
-            return (
-              <DropdownButton {...triggerProps} icon={<IconCalendar />}>
-                <TriggerLabel>{selectProps.triggerLabel ?? defaultLabel}</TriggerLabel>
-              </DropdownButton>
-            );
-          }}
-          menuWidth={showAbsoluteSelector ? undefined : '16em'}
+              return (
+                <DropdownButton icon={<IconCalendar />} {...triggerProps}>
+                  <TriggerLabel>{selectProps.triggerLabel ?? defaultLabel}</TriggerLabel>
+                </DropdownButton>
+              );
+            })
+          }
+          menuWidth={showAbsoluteSelector ? undefined : menuWidth ?? '16rem'}
           menuBody={
-            showAbsoluteSelector && (
-              <AbsoluteDateRangeWrap>
-                <StyledDateRangeHook
-                  start={internalValue.start ?? null}
-                  end={internalValue.end ?? null}
-                  utc={internalValue.utc}
-                  organization={organization}
-                  showTimePicker
-                  onChange={val => {
-                    val.hasDateRangeErrors && setHasDateRangeErrors(true);
-                    setInternalValue(cur => ({
-                      ...cur,
-                      relative: null,
-                      start: val.start,
-                      end: val.end,
-                    }));
-                    setHasChanges(true);
-                  }}
-                  onChangeUtc={() => {
-                    setHasChanges(true);
-                    setInternalValue(current => {
-                      const newUtc = !current.utc;
-                      const newStart =
-                        start ?? getDateWithTimezoneInUtc(current.start, current.utc);
-                      const newEnd =
-                        end ?? getDateWithTimezoneInUtc(current.end, current.utc);
+            (showAbsoluteSelector || menuBody) && (
+              <Fragment>
+                {!showAbsoluteSelector && menuBody}
+                {showAbsoluteSelector && (
+                  <AbsoluteDateRangeWrap>
+                    <StyledDateRangeHook
+                      start={internalValue.start ?? null}
+                      end={internalValue.end ?? null}
+                      utc={internalValue.utc}
+                      organization={organization}
+                      showTimePicker
+                      onChange={val => {
+                        val.hasDateRangeErrors && setHasDateRangeErrors(true);
+                        setInternalValue(cur => ({
+                          ...cur,
+                          relative: null,
+                          start: val.start,
+                          end: val.end,
+                        }));
+                        setHasChanges(true);
+                      }}
+                      onChangeUtc={() => {
+                        setHasChanges(true);
+                        setInternalValue(current => {
+                          const newUtc = !current.utc;
+                          const newStart =
+                            start ?? getDateWithTimezoneInUtc(current.start, current.utc);
+                          const newEnd =
+                            end ?? getDateWithTimezoneInUtc(current.end, current.utc);
 
-                      trackAnalytics('dateselector.utc_changed', {
-                        utc: newUtc,
-                        path: getRouteStringFromRoutes(router.routes),
-                        organization,
-                      });
+                          trackAnalytics('dateselector.utc_changed', {
+                            utc: newUtc,
+                            path: getRouteStringFromRoutes(router.routes),
+                            organization,
+                          });
 
-                      return {
-                        relative: null,
-                        start: newUtc
-                          ? getLocalToSystem(newStart)
-                          : getUtcToSystem(newStart),
-                        end: newUtc ? getLocalToSystem(newEnd) : getUtcToSystem(newEnd),
-                        utc: newUtc,
-                      };
-                    });
-                  }}
-                  maxPickableDays={maxPickableDays}
-                />
-              </AbsoluteDateRangeWrap>
+                          return {
+                            relative: null,
+                            start: newUtc
+                              ? getLocalToSystem(newStart)
+                              : getUtcToSystem(newStart),
+                            end: newUtc
+                              ? getLocalToSystem(newEnd)
+                              : getUtcToSystem(newEnd),
+                            utc: newUtc,
+                          };
+                        });
+                      }}
+                      maxPickableDays={maxPickableDays}
+                    />
+                  </AbsoluteDateRangeWrap>
+                )}
+              </Fragment>
             )
           }
           menuFooter={
@@ -353,7 +385,6 @@ export function TimeRangeSelector({
               </AbsoluteSelectorFooter>
             ))
           }
-          {...selectProps}
         />
       )}
     </SelectorItemsHook>

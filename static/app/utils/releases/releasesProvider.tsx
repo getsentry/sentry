@@ -5,7 +5,7 @@ import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Release} from 'sentry/types';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import getXhrErrorResponseHandler from 'sentry/utils/handleXhrErrorResponse';
 
 import useApi from '../useApi';
 
@@ -75,10 +75,10 @@ function ReleasesProvider({
           return;
         }
 
-        const errorResponse = e?.responseJSON ?? t('Unable to fetch releases');
+        const errorResponse = t('Unable to fetch releases');
         addErrorMessage(errorResponse);
         setLoading(false);
-        handleXhrErrorResponse(errorResponse)(e);
+        getXhrErrorResponseHandler(errorResponse)(e);
       });
     return () => {
       shouldCancelRequest = true;

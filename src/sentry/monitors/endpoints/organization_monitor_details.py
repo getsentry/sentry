@@ -20,7 +20,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.models import ScheduledDeletion
+from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, ScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.validators import MonitorValidator
@@ -38,6 +38,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
             MONITOR_PARAMS.MONITOR_SLUG,
+            GLOBAL_PARAMS.ENVIRONMENT,
         ],
         responses={
             200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
@@ -146,8 +147,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     )
                     .exclude(
                         monitor__status__in=[
-                            MonitorStatus.PENDING_DELETION,
-                            MonitorStatus.DELETION_IN_PROGRESS,
+                            ObjectStatus.PENDING_DELETION,
+                            ObjectStatus.DELETION_IN_PROGRESS,
                         ]
                     )
                     .exclude(
@@ -184,5 +185,16 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     data=monitor_object.get_audit_log_data(),
                     transaction_id=schedule.guid,
                 )
+            
+                if type(monitor_object) == Monitor:
+                    alert_rule_id = monitor_object.config.get("alert_rule_id")
+                    if alert_rule_id:
+                        rule = Rule.objects.filter(
+                            project_id=monitor.project_id, id=alert_rule_id
+                        ).first()
+                        rule.update(status=RuleStatus.PENDING_DELETION)
+                        RuleActivity.objects.create(
+                            rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+                        )
 
         return self.respond(status=202)

@@ -2,7 +2,6 @@ import {useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
-import moment from 'moment';
 
 import {removeProject} from 'sentry/actionCreators/projects';
 import {Button, ButtonProps} from 'sentry/components/button';
@@ -11,19 +10,21 @@ import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import categoryList from 'sentry/data/platformCategories';
+import platforms from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OnboardingSelectedSDK} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import getXhrErrorResponseHandler from 'sentry/utils/handleXhrErrorResponse';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
@@ -67,7 +68,6 @@ function getOrganizationOnboardingSteps(): StepDescriptor[] {
 function Onboarding(props: Props) {
   const api = useApi();
   const organization = useOrganization();
-  const projects = useProjects();
   const onboardingContext = useContext(OnboardingContext);
   const selectedSDK = onboardingContext.data.selectedSDK;
   const selectedProjectSlug = selectedSDK?.key;
@@ -75,6 +75,16 @@ function Onboarding(props: Props) {
   const {
     params: {step: stepId},
   } = props;
+
+  const onboardingSteps = getOrganizationOnboardingSteps();
+  const stepObj = onboardingSteps.find(({id}) => stepId === id);
+  const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
+
+  const recentCreatedProject = useRecentCreatedProject({
+    orgSlug: organization.slug,
+    projectSlug:
+      onboardingSteps[stepIndex].id === 'setup-docs' ? selectedProjectSlug : undefined,
+  });
 
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
 
@@ -84,6 +94,50 @@ function Onboarding(props: Props) {
     };
   }, []);
 
+  useEffect(() => {
+    if (
+      props.location.pathname === `/onboarding/${onboardingSteps[2].id}/` &&
+      props.location.query?.platform &&
+      onboardingContext.data.selectedSDK === undefined
+    ) {
+      const platformKey = Object.keys(platforms).find(
+        key => platforms[key].id === props.location.query.platform
+      );
+
+      const platform = platformKey ? platforms[platformKey] : undefined;
+
+      // if no platform found, we redirect the user to the platform select page
+      if (!platform) {
+        props.router.push(
+          normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[1].id}/`)
+        );
+        return;
+      }
+
+      const frameworkCategory =
+        categoryList.find(category => {
+          return category.platforms.includes(platform.id as never);
+        })?.id ?? 'all';
+
+      onboardingContext.setData({
+        ...onboardingContext.data,
+        selectedSDK: {
+          key: props.location.query.platform,
+          category: frameworkCategory,
+          language: platform.language,
+          type: platform.type,
+        },
+      });
+    }
+  }, [
+    props.location.query,
+    props.router,
+    onboardingContext,
+    onboardingSteps,
+    organization.slug,
+    props.location.pathname,
+  ]);
+
   const heartbeatFooter = !!organization?.features.includes(
     'onboarding-heartbeat-footer'
   );
@@ -92,41 +146,20 @@ function Onboarding(props: Props) {
     'onboarding-project-deletion-on-back-click'
   );
 
-  const onboardingSteps = getOrganizationOnboardingSteps();
-  const stepObj = onboardingSteps.find(({id}) => stepId === id);
-  const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
-
-  const loadingProjects = !projects.initiallyLoaded;
-
-  const createdProjectId = Object.keys(onboardingContext.data.projects).find(
-    key =>
-      onboardingContext.data.projects[key].slug ===
-      onboardingContext.data.selectedSDK?.key
-  );
-
-  const recentCreatedProject =
-    !loadingProjects && createdProjectId
-      ? projects.projects.find(p => p.id === createdProjectId)
-      : undefined;
-
-  const recentCreatedProjectOlderThanOneHour = recentCreatedProject
-    ? moment.duration(moment().diff(recentCreatedProject.dateCreated)).asHours() > 1
-    : false;
-
   const shallProjectBeDeleted =
     projectDeletionOnBackClick &&
     onboardingSteps[stepIndex].id === 'setup-docs' &&
     recentCreatedProject &&
     // if the project has received a first error, we don't delete it
-    Boolean(recentCreatedProject.firstEvent) === false &&
+    recentCreatedProject.firstError === false &&
     // if the project has received a first transaction, we don't delete it
-    Boolean(recentCreatedProject.firstTransactionEvent) === false &&
+    recentCreatedProject.firstTransaction === false &&
     // if the project has replays, we don't delete it
-    Boolean(recentCreatedProject.hasReplays) === false &&
+    recentCreatedProject.hasReplays === false &&
     // if the project has sessions, we don't delete it
-    Boolean(recentCreatedProject.hasSessions) === false &&
+    recentCreatedProject.hasSessions === false &&
     // if the project is older than one hour, we don't delete it
-    recentCreatedProjectOlderThanOneHour === false;
+    recentCreatedProject.olderThanOneHour === false;
 
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
@@ -216,7 +249,7 @@ function Onboarding(props: Props) {
         project_id: recentCreatedProject.id,
       });
     } catch (error) {
-      handleXhrErrorResponse(t('Unable to delete project in onboarding'))(error);
+      getXhrErrorResponseHandler(t('Unable to delete project in onboarding'))(error);
       // we don't give the user any feedback regarding this error as this shall be silent
     }
   }, [api, organization, recentCreatedProject, onboardingContext]);
@@ -392,7 +425,7 @@ function Onboarding(props: Props) {
                 route={props.route}
                 router={props.router}
                 location={props.location}
-                selectedProjectSlug={selectedProjectSlug}
+                recentCreatedProject={recentCreatedProject}
                 {...{
                   genSkipOnboardingLink,
                 }}

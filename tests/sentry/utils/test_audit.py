@@ -89,7 +89,7 @@ class CreateAuditEntryTest(TestCase):
         org2 = Organization.objects.get(id=self.organization.id)
 
         Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.VISIBLE
+            status=OrganizationStatus.ACTIVE
         )
 
         org3 = Organization.objects.get(id=self.organization.id)
@@ -119,13 +119,13 @@ class CreateAuditEntryTest(TestCase):
                 i.status == OrganizationStatus.PENDING_DELETION
                 or i.status == OrganizationStatus.DELETION_IN_PROGRESS
             ):
-                assert i.status != OrganizationStatus.VISIBLE
+                assert i.status != OrganizationStatus.ACTIVE
                 assert ("restored") in audit_log_event.render(entry)
                 assert entry.actor == self.user
                 assert entry.target_object == self.org.id
                 assert entry.event == audit_log.get_event_id("ORG_RESTORE")
             else:
-                assert i.status == OrganizationStatus.VISIBLE
+                assert i.status == OrganizationStatus.ACTIVE
                 assert ("edited") in audit_log_event2.render(entry2)
                 assert entry2.actor == self.user
                 assert entry2.target_object == self.org.id

@@ -30,4 +30,5 @@ def is_event_from_browser_javascript_sdk(event):
         "sentry.javascript.electron",
         "sentry.javascript.remix",
         "sentry.javascript.svelte",
+        "sentry.javascript.sveltekit",
     ]

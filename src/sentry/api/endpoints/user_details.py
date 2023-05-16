@@ -230,7 +230,7 @@ class UserDetailsEndpoint(UserEndpoint):
         org_list = Organization.objects.filter(
             member_set__role__in=[x.id for x in roles.with_scope("org:admin")],
             member_set__user=user,
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
         )
 
         org_results = []
@@ -255,7 +255,7 @@ class UserDetailsEndpoint(UserEndpoint):
 
         if remaining_org_ids:
             OrganizationMember.objects.filter(
-                organization__in=remaining_org_ids, user=user
+                organization__in=remaining_org_ids, user_id=user.id
             ).delete()
 
         logging_data = {

@@ -27,7 +27,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
-import useTeams from 'sentry/utils/useTeams';
+import {useTeams} from 'sentry/utils/useTeams';
 
 import GenericFooter from './genericFooter';
 
@@ -169,6 +169,10 @@ export function CreateProjectsFooter({
           organization={organization}
           selectedPlatform={selectedPlatform}
           onConfigure={selectedFramework => {
+            onboardingContext.setData({
+              ...onboardingContext.data,
+              selectedSDK: selectedFramework,
+            });
             createPlatformProject(selectedFramework);
           }}
           onSkip={createPlatformProject}
@@ -184,7 +188,7 @@ export function CreateProjectsFooter({
         },
       }
     );
-  }, [selectedPlatform, createPlatformProject, organization]);
+  }, [selectedPlatform, createPlatformProject, onboardingContext, organization]);
 
   return (
     <GenericFooter>
@@ -199,7 +203,7 @@ export function CreateProjectsFooter({
               />
             </div>
             <PlatformsSelected>
-              {t('1 platform selected')}
+              {t('platform selected')}
               <ClearButton priority="link" onClick={clearPlatform} size="zero">
                 {t('Clear')}
               </ClearButton>

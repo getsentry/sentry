@@ -5,6 +5,7 @@ import sentry_sdk
 
 from sentry.ingest.transaction_clusterer.datasource.redis import get_redis_client
 from sentry.models import Project
+from sentry.utils import metrics
 
 from .base import ReplacementRule
 
@@ -58,6 +59,19 @@ class RedisRuleStore:
             p.delete(key)
             if len(rules) > 0:
                 p.hmset(key, rules)
+            p.execute()
+
+    def update_rule(self, project: Project, rule: str, last_used: int) -> None:
+        """Overwrite a rule's last_used timestamp.
+
+        This function does not create the rule if it does not exist.
+        """
+        client = get_redis_client()
+        key = self._get_rules_key(project)
+        # There is no atomic "overwrite if exists" for hashes, so fetch keys first:
+        existing_rules = client.hkeys(key)
+        if rule in existing_rules:
+            client.hset(key, rule, last_used)
 
 
 class ProjectOptionRuleStore:
@@ -65,11 +79,13 @@ class ProjectOptionRuleStore:
 
     def read_sorted(self, project: Project) -> List[Tuple[ReplacementRule, int]]:
         ret = project.get_option(self._option_name, default=[])
-        # normalize tuple vs. list (write_pickle vs. write_json)
+        # normalize tuple vs. list for json writing
         return [tuple(lst) for lst in ret]  # type: ignore[misc]
 
     def read(self, project: Project) -> RuleSet:
-        return {rule: last_seen for rule, last_seen in self.read_sorted(project)}
+        rules = {rule: last_seen for rule, last_seen in self.read_sorted(project)}
+        self.last_read = rules
+        return rules
 
     def _sort(self, rules: RuleSet) -> List[Tuple[ReplacementRule, int]]:
         """Sort rules by number of slashes, i.e. depth of the rule"""
@@ -79,6 +95,10 @@ class ProjectOptionRuleStore:
         """Writes the rules to project options, sorted by depth."""
         # we make sure the database stores lists such that they are json round trippable
         converted_rules = [list(tup) for tup in self._sort(rules)]
+
+        # Track the number of rules per project.
+        metrics.timing("txcluster.rules_per_project", len(converted_rules))
+
         project.update_option(self._option_name, converted_rules)
 
 
@@ -148,11 +168,13 @@ def _now() -> int:
     return int(datetime.now(timezone.utc).timestamp())
 
 
-def _get_rules(project: Project) -> RuleSet:
+def get_rules(project: Project) -> RuleSet:
+    """Get rules from project options."""
     return ProjectOptionRuleStore().read(project)
 
 
 def get_redis_rules(project: Project) -> RuleSet:
+    """Get rules from Redis."""
     return RedisRuleStore().read(project)
 
 
@@ -168,7 +190,11 @@ def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
     return ProjectOptionRuleStore().read_sorted(project)
 
 
-def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
+def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> int:
+    """Write newly discovered rules to projection option and redis, and update last_used.
+
+    Return the number of _new_ rules (that were not already present in project option).
+    """
     # Run the updates even if there aren't any new rules, to get all the stores
     # up-to-date.
     # NOTE: keep in mind this function writes to Postgres, so it shouldn't be
@@ -176,26 +202,26 @@ def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None
 
     last_seen = _now()
     new_rule_set = {rule: last_seen for rule in new_rules}
+    project_option = ProjectOptionRuleStore()
     rule_store = CompositeRuleStore(
         [
             RedisRuleStore(),
-            ProjectOptionRuleStore(),
+            project_option,
             LocalRuleStore(new_rule_set),
         ]
     )
+
     rule_store.merge(project)
 
+    num_rules_added = len(new_rule_set.keys() - project_option.last_read.keys())
 
-def update_redis_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
-    if not new_rules:
-        return
+    return num_rules_added
 
-    last_seen = _now()
-    new_rule_set = {rule: last_seen for rule in new_rules}
-    rule_store = CompositeRuleStore(
-        [
-            RedisRuleStore(),
-            LocalRuleStore(new_rule_set),
-        ]
-    )
-    rule_store.merge(project)
+
+def bump_last_used(project: Project, pattern: str) -> None:
+    """If an entry for `pattern` exists, bump its last_used timestamp in redis.
+
+    The updated last_used timestamps are transferred from redis to project options
+    in the `cluster_projects` task.
+    """
+    RedisRuleStore().update_rule(project, pattern, _now())

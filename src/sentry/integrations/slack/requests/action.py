@@ -24,7 +24,7 @@ class SlackActionRequest(SlackRequest):
     def type(self) -> str:
         return str(self.data.get("type"))
 
-    @memoize  # type: ignore
+    @memoize
     def callback_data(self) -> JSONData:
         """
         We store certain data in ``callback_id`` as JSON. It's a bit hacky, but

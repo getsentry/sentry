@@ -78,7 +78,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         return ExternalActor.objects.filter(
             actor_id__in=actor_ids,
             organization=organization,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name=self.channel_name,
             external_id=self.channel_id,

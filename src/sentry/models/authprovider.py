@@ -13,7 +13,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.models.organizationmember import OrganizationMember
+from sentry.services.hybrid_cloud.organization import organization_service
 
 logger = logging.getLogger("sentry.authprovider")
 
@@ -141,16 +141,6 @@ class AuthProvider(Model):
         )
         self.flags.scim_enabled = True
 
-    def _reset_idp_flags(self):
-        OrganizationMember.objects.filter(
-            organization_id=self.organization_id,
-            flags=models.F("flags").bitor(OrganizationMember.flags["idp:provisioned"]),
-        ).update(
-            flags=models.F("flags")
-            .bitand(~OrganizationMember.flags["idp:provisioned"])
-            .bitand(~OrganizationMember.flags["idp:role-restricted"])
-        )
-
     def disable_scim(self, user):
         from sentry import deletions
         from sentry.models import SentryAppInstallationForProvider
@@ -162,7 +152,7 @@ class AuthProvider(Model):
             # Only one SCIM installation allowed per organization. So we can reset the idp flags for the orgs
             # We run this update before the app is uninstalled to avoid ending up in a situation where there are
             # members locked out because we failed to drop the IDP flag
-            self._reset_idp_flags()
+            organization_service.reset_idp_flags(organization_id=self.organization_id)
             sentry_app = install.sentry_app_installation.sentry_app
             assert (
                 sentry_app.is_internal

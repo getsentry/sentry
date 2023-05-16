@@ -10,11 +10,8 @@ import type {
   Crumb,
   RawCrumb,
 } from 'sentry/types/breadcrumbs';
-import {
-  BreadcrumbLevelType,
-  BreadcrumbType,
-  isBreadcrumbTypeDefault,
-} from 'sentry/types/breadcrumbs';
+import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import getMinMax from 'sentry/utils/getMinMax';
 import type {
   MemorySpanType,
   RecordingEvent,
@@ -64,12 +61,6 @@ export const isMemorySpan = (span: ReplaySpan): span is MemorySpanType => {
 
 export const isNetworkSpan = (span: ReplaySpan) => {
   return span.op.startsWith('navigation.') || span.op.startsWith('resource.');
-};
-
-export const getBreadcrumbsByCategory = (breadcrumbs: Crumb[], categories: string[]) => {
-  return breadcrumbs
-    .filter(isBreadcrumbTypeDefault)
-    .filter(breadcrumb => categories.includes(breadcrumb.category || ''));
 };
 
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
@@ -264,30 +255,6 @@ export function spansFactory(spans: ReplaySpan[]) {
       id: `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`,
       timestamp: span.startTimestamp * 1000,
     }));
-}
-
-/**
- * Calculate min/max of an array simultaneously.
- * This prevents two things:
- * - Avoid extra allocations and iterations, just loop through once.
- * - Avoid `Maximum call stack size exceeded` when the array is too large
- *   `Math.min()` & `Math.max()` will throw after about ~10⁷ which is A LOT of items.
- *   See: https://stackoverflow.com/a/52613386
- *
- * `lodash.min()` & `lodash.max()` are also options, they use a while-loop as here,
- * but that also includes a comparator function
- */
-function getMinMax(arr) {
-  let len = arr.length;
-  let min = Infinity;
-  let max = -Infinity;
-
-  while (len--) {
-    min = arr[len] < min ? arr[len] : min;
-    max = arr[len] > max ? arr[len] : max;
-  }
-
-  return {min, max};
 }
 
 /**

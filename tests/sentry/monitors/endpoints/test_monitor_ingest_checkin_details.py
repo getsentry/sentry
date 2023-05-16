@@ -44,7 +44,6 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             slug="my-monitor",
             organization_id=self.organization.id,
             project_id=self.project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
             date_added=timezone.now() - timedelta(minutes=1),
@@ -55,8 +54,6 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
 
         monitorenvironment_defaults = {
             "status": monitor.status,
-            "next_checkin": monitor.next_checkin,
-            "last_checkin": monitor.last_checkin,
         }
 
         return MonitorEnvironment.objects.create(

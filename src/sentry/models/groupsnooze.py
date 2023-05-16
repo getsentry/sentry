@@ -96,7 +96,7 @@ class GroupSnooze(Model):
         start = end - timedelta(minutes=self.window)
 
         rate = tsdb.get_sums(
-            model=get_issue_tsdb_group_model(self.group.issue_category, self.group.project),
+            model=get_issue_tsdb_group_model(self.group.issue_category),
             keys=[self.group_id],
             start=start,
             end=end,
@@ -118,7 +118,7 @@ class GroupSnooze(Model):
         start = end - timedelta(minutes=self.user_window)
 
         rate = tsdb.get_distinct_counts_totals(
-            model=get_issue_tsdb_user_group_model(self.group.issue_category, self.group.project),
+            model=get_issue_tsdb_user_group_model(self.group.issue_category),
             keys=[self.group_id],
             start=start,
             end=end,

@@ -1,6 +1,6 @@
 import typing
 from enum import IntEnum, unique
-from typing import Optional
+from typing import Optional, Tuple
 
 from django.conf import settings
 from django.core.cache import cache
@@ -215,6 +215,7 @@ class Quota(Service):
         "get_event_retention",
         "get_quotas",
         "get_blended_sample_rate",
+        "get_transaction_sampling_tier_for_volume",
     )
 
     def __init__(self, **options):
@@ -463,7 +464,7 @@ class Quota(Service):
         return (_limit_from_settings(options.get("system.rate-limit")), 60)
 
     def get_blended_sample_rate(
-        self, project: Optional["Project"], organization_id: Optional[int] = None
+        self, project: Optional["Project"] = None, organization_id: Optional[int] = None
     ) -> Optional[float]:
         """
         Returns the blended sample rate for an org based on the package that they are currently on. Returns ``None``
@@ -475,4 +476,17 @@ class Quota(Service):
 
         :param project: The project model.
         :param organization_id: The organization id.
+        """
+
+    def get_transaction_sampling_tier_for_volume(
+        self, organization_id: int, volume: int
+    ) -> Optional[Tuple[int, float]]:
+        """
+        Returns the transaction sampling tier closest to a specific volume.
+
+        The organization_id is required because the tier is based on the organization's plan, and we have to check
+        whether the organization has dynamic sampling.
+
+        :param organization_id: The organization id.
+        :param volume: The volume of transaction of the given project.
         """

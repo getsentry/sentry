@@ -7,8 +7,10 @@ from sentry.integrations.vercel import VercelClient
 from sentry.models import OrganizationMember
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class VercelExtensionConfigurationTest(TestCase):
     path = "/extensions/vercel/configure/"
 

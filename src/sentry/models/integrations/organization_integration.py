@@ -26,7 +26,7 @@ class OrganizationIntegration(DefaultFieldsModel):
 
     default_auth_id = BoundedPositiveIntegerField(db_index=True, null=True)
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices()
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )
     # After the grace period, we will mark the status as disabled.
     grace_period_end = models.DateTimeField(null=True, blank=True, db_index=True)

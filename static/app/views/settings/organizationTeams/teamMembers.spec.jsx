@@ -288,8 +288,8 @@ describe('TeamMembers', function () {
     );
 
     // Can only remove self
-    expect(screen.getByRole('button', {name: 'Remove'})).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+    expect(screen.getByRole('button', {name: 'Leave'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Leave'}));
     expect(deleteMock).toHaveBeenCalled();
   });
 
