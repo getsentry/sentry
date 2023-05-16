@@ -785,6 +785,8 @@ def filter_exceptions_for_exception_groups(
         return exceptions_children_by_id.get(exception_id, None)
 
     # This recursive generator gets the "top-level exceptions", and is used below.
+    # "Top-level exceptions are those that are the first descendants of the root that are not exception groups.
+    # For examples, see https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
     def get_top_level_exceptions(
         exception: SingleException,
     ) -> Generator[SingleException, None, None]:
@@ -797,6 +799,7 @@ def filter_exceptions_for_exception_groups(
             yield exception
 
     # This recursive generator gets the "first-path" of exceptions, and is used below.
+    # The first path follows from the root to a leaf node, but only following the first child of each node.
     def get_first_path(exception: SingleException) -> Generator[SingleException, None, None]:
         yield exception
         children = get_child_exceptions(exception)
