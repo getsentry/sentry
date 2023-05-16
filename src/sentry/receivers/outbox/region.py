@@ -23,8 +23,8 @@ from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent
 from sentry.services.hybrid_cloud.log.impl import DatabaseBackedLogService
-from sentry.services.hybrid_cloud.organization_mapping import (
-    organization_mapping_service,
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+from sentry.services.hybrid_cloud.organization_mapping.serial import (
     update_organization_mapping_from_instance,
 )
 from sentry.services.hybrid_cloud.organizationmember_mapping import (

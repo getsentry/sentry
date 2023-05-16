@@ -69,8 +69,17 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
         if checkin.status in CheckInStatus.FINISHED_VALUES:
             return self.respond(status=400)
 
+        # Discard monitor config as it is not used
+        request_data = request.data.copy()
+        request_data.pop("monitor_config", None)
+
         serializer = MonitorCheckInValidator(
-            data=request.data, partial=True, context={"project": project, "request": request}
+            data=request_data,
+            partial=True,
+            context={
+                "project": project,
+                "request": request,
+            },
         )
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)

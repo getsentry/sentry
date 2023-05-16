@@ -22,7 +22,7 @@ class SentryInternalAppTokenTest(APITestCase):
         )
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
     def test_create_token(self):
         self.login_as(user=self.user)
@@ -64,7 +64,7 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         assert response.data == "Cannot generate more than 20 tokens for a single integration"
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
     def test_get_tokens(self):
         self.login_as(self.user)

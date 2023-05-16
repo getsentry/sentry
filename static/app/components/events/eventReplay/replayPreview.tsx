@@ -99,7 +99,7 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
     <ReplayContextProvider
       isFetching={fetching}
       replay={replay}
-      initialTimeOffsetMs={initialTimeOffsetMs}
+      initialTimeOffsetMs={{offsetMs: initialTimeOffsetMs}}
     >
       <PlayerContainer data-test-id="player-container">
         <StaticPanel>

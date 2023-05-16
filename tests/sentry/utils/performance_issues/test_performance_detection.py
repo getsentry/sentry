@@ -405,6 +405,7 @@ class PerformanceDetectionTest(TestCase):
                     "m_n_plus_one_db": False,
                     "uncompressed_assets": True,
                     "browser_name": "Chrome",
+                    "is_early_adopter": False,
                 },
             )
             in incr_mock.mock_calls

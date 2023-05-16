@@ -1,5 +1,6 @@
 from sentry.constants import ObjectStatus
-from sentry.models import ScheduledDeletion
+from sentry.mediators.project_rules import Creator
+from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, ScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -31,6 +32,19 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
         self.get_error_response(
             self.organization.slug, monitor.slug, environment="jungle", status_code=404
         )
+
+    def test_filtering_monitor_environment(self):
+        monitor = self._create_monitor()
+        self._create_monitor_environment(monitor, name="production")
+        self._create_monitor_environment(monitor, name="jungle")
+
+        response = self.get_success_response(self.organization.slug, monitor.slug)
+        assert len(response.data["environments"]) == 2
+
+        response = self.get_success_response(
+            self.organization.slug, monitor.slug, environment="production"
+        )
+        assert len(response.data["environments"]) == 1
 
 
 @region_silo_test(stable=True)
@@ -130,6 +144,14 @@ class UpdateMonitorTest(MonitorTestCase):
     def test_checkin_margin(self):
         monitor = self._create_monitor()
 
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"config": {"checkin_margin": -1}},
+        )
+
         resp = self.get_success_response(
             self.organization.slug,
             monitor.slug,
@@ -143,6 +165,14 @@ class UpdateMonitorTest(MonitorTestCase):
 
     def test_max_runtime(self):
         monitor = self._create_monitor()
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"config": {"max_runtime": -1}},
+        )
 
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"config": {"max_runtime": 30}}
@@ -287,6 +317,14 @@ class UpdateMonitorTest(MonitorTestCase):
             monitor.slug,
             method="PUT",
             status_code=400,
+            **{"config": {"schedule_type": "interval", "schedule": [-1, "day"]}},
+        )
+
+        self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
             **{"config": {"schedule_type": "interval", "schedule": "bar"}},
         )
 
@@ -364,6 +402,36 @@ class DeleteMonitorTest(MonitorTestCase):
             object_id=monitor_environment.id, model_name="MonitorEnvironment"
         ).exists()
 
+    def test_multiple_environments(self):
+        monitor = self._create_monitor()
+        monitor_environment_a = self._create_monitor_environment(monitor, name="alpha")
+        monitor_environment_b = self._create_monitor_environment(monitor, name="beta")
+
+        self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="DELETE",
+            status_code=202,
+            qs_params={"environment": ["alpha", "beta"]},
+        )
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == ObjectStatus.ACTIVE
+
+        monitor_environment_a = MonitorEnvironment.objects.get(id=monitor_environment_a.id)
+        assert monitor_environment_a.status == ObjectStatus.PENDING_DELETION
+        # ScheduledDeletion only available in control silo
+        assert ScheduledDeletion.objects.filter(
+            object_id=monitor_environment_a.id, model_name="MonitorEnvironment"
+        ).exists()
+
+        monitor_environment_b = MonitorEnvironment.objects.get(id=monitor_environment_b.id)
+        assert monitor_environment_b.status == ObjectStatus.PENDING_DELETION
+        # ScheduledDeletion only available in control silo
+        assert ScheduledDeletion.objects.filter(
+            object_id=monitor_environment_b.id, model_name="MonitorEnvironment"
+        ).exists()
+
     def test_bad_environment(self):
         monitor = self._create_monitor()
         self._create_monitor_environment(monitor)
@@ -374,3 +442,28 @@ class DeleteMonitorTest(MonitorTestCase):
             status_code=404,
             qs_params={"environment": "jungle"},
         )
+
+    def test_simple_with_alert_rule(self):
+        monitor = self._create_monitor()
+        rule = Creator(
+            name="New Cool Rule",
+            owner=None,
+            project=self.project,
+            action_match="all",
+            filter_match="any",
+            conditions=[],
+            actions=[],
+            frequency=5,
+        ).call()
+        config = monitor.config
+        config["alert_rule_id"] = rule.id
+        monitor.config = config
+        monitor.save()
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="DELETE", status_code=202
+        )
+
+        rule = Rule.objects.get(project_id=monitor.project_id, id=monitor.config["alert_rule_id"])
+        assert rule.status == RuleStatus.PENDING_DELETION
+        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.DELETED.value).exists()

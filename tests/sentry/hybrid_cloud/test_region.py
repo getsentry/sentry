@@ -12,9 +12,11 @@ from sentry.services.hybrid_cloud.region import (
 from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
+from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 
+@control_silo_test
 class RegionResolutionTest(TestCase):
     def setUp(self):
         self.regions = [

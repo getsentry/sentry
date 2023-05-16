@@ -7,9 +7,11 @@ from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.role import OrganizationRoleSerializer
 from sentry.models import ExternalActor, OrganizationMember, User
+from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.team import Team
 from sentry.roles import organization_roles
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 
 from .response import OrganizationMemberResponse
 from .utils import get_organization_id
@@ -55,7 +57,6 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         prefetch_related_objects(
             item_list,
             "user",
-            "inviter",
             Prefetch(
                 "teams",
                 queryset=Team.objects.all().exclude(org_role=None),
@@ -72,7 +73,19 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         users_by_id: Mapping[str, Any] = {
             u["id"]: u for u in user_service.serialize_many(filter={"user_ids": users_set})
         }
-        actor_ids = [u.actor_id for u in user_service.get_many(filter={"user_ids": users_set})]
+        actor_ids = Actor.objects.filter(
+            user_id__in=users_set, type=ACTOR_TYPES["user"]
+        ).values_list("id", flat=True)
+        inviters_set = sorted(
+            {
+                organization_member.inviter_id
+                for organization_member in item_list
+                if organization_member.inviter_id
+            }
+        )
+        inviters_by_id: Mapping[int, RpcUser] = {
+            u.id: u for u in user_service.get_many(filter={"user_ids": inviters_set})
+        }
         external_users_map = defaultdict(list)
 
         if "externalUsers" in self.expand:
@@ -92,11 +105,13 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         for item in item_list:
             user = users_by_id.get(str(item.user_id), None)
             user_id = user["id"] if user else ""
+            inviter = inviters_by_id.get(item.inviter_id, None)
             external_users = external_users_map.get(user_id, [])
             attrs[item] = {
                 "user": user,
                 "externalUsers": external_users,
                 "orgRolesFromTeams": self.__sorted_org_roles_for_user(item),
+                "inviter": inviter,
             }
         return attrs
 
@@ -105,7 +120,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
     ) -> OrganizationMemberResponse:
         inviter_name = None
         if obj.inviter_id:
-            inviter = user_service.get_user(user_id=obj.inviter_id)
+            inviter = attrs["inviter"]
             if inviter:
                 inviter_name = inviter.get_display_name()
         d: OrganizationMemberResponse = {

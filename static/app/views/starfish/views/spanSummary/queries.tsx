@@ -80,7 +80,7 @@ export const getSidebarAggregatesQuery = ({
 }) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `
-    SELECT transaction,
+    SELECT
     count() AS count,
     quantile(0.5)(exclusive_time) as p50,
     quantile(0.95)(exclusive_time) as p95,
@@ -88,17 +88,32 @@ export const getSidebarAggregatesQuery = ({
     failure_count / count() as failure_rate,
     sum(exclusive_time) as total_exclusive_time,
     count(DISTINCT transaction_id) as count_unique_transaction_id,
+    count(DISTINCT transaction) as count_unique_transaction,
     min(timestamp) as first_seen,
     max(timestamp) as last_seen
     FROM spans_experimental_starfish
-     WHERE module = '${module}'
+    WHERE 1 == 1
+    ${module ? `AND module = '${module}'` : ''}
     ${description ? `AND description = '${description}'` : ''}
     ${groupId ? `AND group_id = '${groupId}'` : ''}
     ${transactionName ? `AND transaction = '${transactionName}'` : ''}
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    GROUP BY transaction
     ORDER BY count DESC
     LIMIT 5
  `;
 };
+
+export function getOverallAggregatesQuery(datetime) {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
+
+  return `
+    SELECT
+    count(DISTINCT transaction) AS count_overall_unique_transactions,
+    sum(exclusive_time) AS overall_total_exclusive_time
+    FROM spans_experimental_starfish
+    WHERE 1 == 1
+    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
+  `;
+}

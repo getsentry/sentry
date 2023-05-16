@@ -329,7 +329,6 @@ describe('Dashboards > Dashboard', () => {
 
     it('opens the widget builder when editing with the modal access flag', async function () {
       const testData = initializeOrg({
-        ...initializeOrg(),
         organization: {
           features: ['dashboards-basic', 'dashboards-edit'],
         },

@@ -13,18 +13,21 @@ import {
   timestampWithMs,
 } from '@sentry/utils';
 
-import getCurrentSentryReactTransaction from './getCurrentSentryReactTransaction';
+import {useLocation} from 'sentry/utils/useLocation';
+import usePrevious from 'sentry/utils/usePrevious';
 
 const MIN_UPDATE_SPAN_TIME = 16; // Frame boundary @ 60fps
 const WAIT_POST_INTERACTION = 50; // Leave a small amount of time for observers and onRenderCallback to log since they come in after they occur and not during.
 const INTERACTION_TIMEOUT = 2 * 60_000; // 2min. Wrap interactions up after this time since we don't want transactions sticking around forever.
+const MEASUREMENT_OUTLIER_VALUE = 5 * 60_000; // Measurements over 5 minutes don't get recorded as a metric and are tagged instead.
+const ASSET_OUTLIER_VALUE = 1_000_000_000; // Assets over 1GB are ignored since they are likely a reporting error.
 
 /**
  * It depends on where it is called but the way we fetch transactions can be empty despite an ongoing transaction existing.
  * This will return an interaction-type transaction held onto by a class static if one exists.
  */
 export function getPerformanceTransaction(): IdleTransaction | Transaction | undefined {
-  return PerformanceInteraction.getTransaction() ?? getCurrentSentryReactTransaction();
+  return PerformanceInteraction.getTransaction() ?? Sentry.getActiveTransaction();
 }
 
 /**
@@ -61,7 +64,7 @@ export class PerformanceInteraction {
 
   static startInteraction(name: string, timeout = INTERACTION_TIMEOUT, immediate = true) {
     try {
-      const currentIdleTransaction = getCurrentSentryReactTransaction();
+      const currentIdleTransaction = Sentry.getActiveTransaction();
       if (currentIdleTransaction) {
         // If interaction is started while idle still exists.
         currentIdleTransaction.setTag('finishReason', 'sentry.interactionStarted'); // Override finish reason so we can capture if this has effects on idle timeout.
@@ -137,12 +140,20 @@ export function VisuallyCompleteWithData({
   hasData,
   children,
   disabled,
+  isLoading,
 }: {
   children: ReactNode;
   hasData: boolean;
   id: string;
   disabled?: boolean;
+  /**
+   * Add isLoading to also collect navigation timings, since the data state is sometimes constant before the reload occurs.
+   */
+  isLoading?: boolean;
 }) {
+  const location = useLocation();
+  const previousLocation = usePrevious(location);
+
   const isDataCompleteSet = useRef(false);
 
   const num = useRef(1);
@@ -154,17 +165,31 @@ export function VisuallyCompleteWithData({
     isVCDSet.current = true;
   }
 
+  const _hasData = isLoading === undefined ? hasData : hasData && !isLoading;
+
+  useEffect(() => {
+    // Capture changes in location to reset VCD as it's likely indicative of a route change.
+    if (location !== previousLocation) {
+      isDataCompleteSet.current = false;
+      performance
+        .getEntriesByType('mark')
+        .map(m => m.name)
+        .filter(n => n.includes('vcsd'))
+        .forEach(n => performance.clearMarks(n));
+    }
+  }, [location, previousLocation]);
+
   useEffect(() => {
     if (disabled) {
       return;
     }
     try {
-      const transaction: any = getCurrentSentryReactTransaction(); // Using any to override types for private api.
+      const transaction: any = Sentry.getActiveTransaction(); // Using any to override types for private api.
       if (!transaction) {
         return;
       }
 
-      if (!isDataCompleteSet.current && hasData) {
+      if (!isDataCompleteSet.current && _hasData) {
         isDataCompleteSet.current = true;
 
         performance.mark(`${id}-vcsd-end-pre-timeout`);
@@ -174,6 +199,17 @@ export function VisuallyCompleteWithData({
             return;
           }
           performance.mark(`${id}-vcsd-end`);
+          const startMarks = performance.getEntriesByName(`${id}-vcds-start`);
+          const endMarks = performance.getEntriesByName(`${id}-vcds-end`);
+          if (startMarks.length > 1 || endMarks.length > 1) {
+            transaction.setTag('vcd_extra_recorded_marks', true);
+          }
+
+          const startMark = startMarks.at(-1);
+          const endMark = endMarks.at(-1);
+          if (!startMark || !endMark) {
+            return;
+          }
           performance.measure(
             `VCD [${id}] #${num.current}`,
             `${id}-vcsd-start`,
@@ -185,7 +221,7 @@ export function VisuallyCompleteWithData({
     } catch (_) {
       // Defensive catch since this code is auxiliary.
     }
-  }, [hasData, disabled, id]);
+  }, [_hasData, disabled, id]);
 
   if (disabled) {
     return <Fragment>{children}</Fragment>;
@@ -224,29 +260,49 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
   let allTransfered = 0;
   let allEncoded = 0;
   let hasAssetTimings = false;
+  const getOperation = data => data.operation ?? '';
+  const getTransferSize = data =>
+    data['http.response_transfer_size'] ?? data['Transfer Size'] ?? 0;
+  const getEncodedSize = data =>
+    data['http.response_content_length'] ?? data['Encoded Body Size'] ?? 0;
+  const getDecodedSize = data =>
+    data['http.decoded_response_content_length'] ?? data['Decoded Body Size'] ?? 0;
+  const getFields = data => ({
+    operation: getOperation(data),
+    transferSize: getTransferSize(data),
+    encodedSize: getEncodedSize(data),
+    decodedSize: getDecodedSize(data),
+  });
 
   for (const [op, _] of Object.entries(OP_ASSET_MEASUREMENT_MAP)) {
     const filtered = spans.filter(
       s =>
         s.op === op &&
-        SENTRY_ASSET_DOMAINS.every(
-          domain => !s.description || s.description.includes(domain)
+        SENTRY_ASSET_DOMAINS.some(
+          domain =>
+            !s.description ||
+            s.description.includes(domain) ||
+            s.description.startsWith('/')
         )
     );
-    const transfered = filtered.reduce(
-      (acc, curr) =>
-        acc +
-        (curr.data['http.response_transfer_size'] ?? curr.data['Transfer Size'] ?? 0),
-      0
-    );
-    const encoded = filtered.reduce(
-      (acc, curr) =>
-        acc +
-        (curr.data['http.response_content_length'] ??
-          curr.data['Encoded Body Size'] ??
-          0),
-      0
-    );
+    const transfered = filtered.reduce((acc, curr) => {
+      const fields = getFields(curr.data);
+      if (fields.transferSize > ASSET_OUTLIER_VALUE) {
+        return acc;
+      }
+      return acc + fields.transferSize;
+    }, 0);
+    const encoded = filtered.reduce((acc, curr) => {
+      const fields = getFields(curr.data);
+      if (
+        fields.encodedSize > ASSET_OUTLIER_VALUE ||
+        (fields.encodedSize > 0 && fields.decodedSize === 0)
+      ) {
+        // There appears to be a bug where we have massive encoded sizes w/o a decode size, we'll ignore these assets for now.
+        return acc;
+      }
+      return acc + fields.encodedSize;
+    }, 0);
 
     if (encoded > 0) {
       hasAssetTimings = true;
@@ -272,34 +328,44 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
 };
 
 const addCustomMeasurements = (transaction: TransactionEvent) => {
-  if (
-    !transaction.measurements ||
-    !browserPerformanceTimeOrigin ||
-    !transaction.start_timestamp
-  ) {
+  if (!browserPerformanceTimeOrigin || !transaction.start_timestamp) {
     return;
   }
 
-  const ttfb = Object.entries(transaction.measurements).find(([key]) =>
+  const measurements: Record<string, Measurement> = {...transaction.measurements};
+
+  const ttfb = Object.entries(measurements).find(([key]) =>
     key.toLowerCase().includes('ttfb')
   );
 
-  if (!ttfb || !ttfb[1]) {
-    return;
-  }
+  const ttfbValue = ttfb?.[1]?.value;
 
   const context: MeasurementContext = {
     transaction,
-    ttfb: ttfb[1].value,
+    ttfb: ttfbValue,
     browserTimeOrigin: browserPerformanceTimeOrigin,
     transactionStart: transaction.start_timestamp,
+    transactionOp: (transaction.contexts?.trace?.op as string) ?? 'pageload',
   };
+
   for (const [name, fn] of Object.entries(customMeasurements)) {
     const measurement = fn(context);
     if (measurement) {
-      transaction.measurements[name] = measurement;
+      if (
+        measurement.unit === 'millisecond' &&
+        measurement.value > MEASUREMENT_OUTLIER_VALUE
+      ) {
+        // exclude outlier measurements and don't add any of the custom measurements in case something is wrong.
+        if (transaction.tags) {
+          transaction.tags.outlier_vcd = name;
+        }
+        return;
+      }
+      measurements[name] = measurement;
     }
   }
+
+  transaction.measurements = measurements;
 };
 
 interface Measurement {
@@ -309,8 +375,9 @@ interface Measurement {
 interface MeasurementContext {
   browserTimeOrigin: number;
   transaction: TransactionEvent;
+  transactionOp: string;
   transactionStart: number;
-  ttfb: number;
+  ttfb?: number;
 }
 
 const getVCDSpan = (transaction: TransactionEvent) =>
@@ -333,7 +400,7 @@ const customMeasurements: Record<
   pre_bundle_load: ({ttfb, browserTimeOrigin, transactionStart}) => {
     const headMark = performance.getEntriesByName('head-start')[0];
 
-    if (!headMark) {
+    if (!headMark || !ttfb) {
       return undefined;
     }
 
@@ -351,9 +418,9 @@ const customMeasurements: Record<
    * Performance budget: **__** ms
    *
    */
-  bundle_load: ({transaction}) => {
+  bundle_load: ({transaction, ttfb}) => {
     const span = getBundleLoadSpan(transaction);
-    if (!span?.endTimestamp || !span?.startTimestamp) {
+    if (!span?.endTimestamp || !span?.startTimestamp || !ttfb) {
       return undefined;
     }
     return {
@@ -366,12 +433,13 @@ const customMeasurements: Record<
    * - Provided by the {@link VisuallyCompleteWithData} wrapper component.
    * - This only fires when it receives a non-empty data set for that component. Which won't capture onboarding or empty states,
    *   but most 'happy path' performance for using any product occurs only in views with data.
+   * - Only record for pageload transactions
    *
    * This should replace LCP as a 'load' metric when it's present, since it also works on navigations.
    */
-  visually_complete_with_data: ({transaction, transactionStart}) => {
+  visually_complete_with_data: ({transaction, ttfb, transactionStart}) => {
     const vcdSpan = getVCDSpan(transaction);
-    if (!vcdSpan?.endTimestamp) {
+    if (!vcdSpan?.endTimestamp || !ttfb) {
       return undefined;
     }
     const value = (vcdSpan?.endTimestamp - transactionStart) * 1000;
@@ -384,20 +452,27 @@ const customMeasurements: Record<
   /**
    * Budget measurement for the time between loading the bundle and a visually complete component finishing it's render.
    *
+   * Fires for navigation components as well using the beginning of the navigation as 'init'
+   *
    * For now this is a quite broad measurement but can be roughly be broken down into:
    * - Post bundle load application initialization
    * - Http waterfalls for data
    * - Rendering of components, including the VCD component.
    */
-  init_to_vcd: ({transaction}) => {
+  init_to_vcd: ({transaction, transactionOp, transactionStart}) => {
     const bundleSpan = getBundleLoadSpan(transaction);
     const vcdSpan = getVCDSpan(transaction);
-    if (!vcdSpan?.endTimestamp) {
+    if (!vcdSpan?.endTimestamp || !['navigation', 'pageload'].includes(transactionOp)) {
       return undefined;
     }
-    const timestamp = bundleSpan?.endTimestamp || 0; // Default to 0 so this works for navigations.
+
+    const startTimestamp =
+      transactionOp === 'navigation' ? transactionStart : bundleSpan?.endTimestamp;
+    if (!startTimestamp) {
+      return undefined;
+    }
     return {
-      value: (vcdSpan.endTimestamp - timestamp) * 1000,
+      value: (vcdSpan.endTimestamp - startTimestamp) * 1000,
       unit: 'millisecond',
     };
   },

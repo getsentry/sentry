@@ -248,4 +248,43 @@ describe('Performance Transaction Events Content', function () {
       .map(elem => elem.textContent);
     expect(columnTitles).toStrictEqual(expect.arrayContaining([t('measurements.lcp')]));
   });
+
+  it('rendering with http.method', function () {
+    const _eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: 'transactionName',
+        fields,
+        query,
+        projects: [1],
+        orderby: '-timestamp',
+      },
+      initialData.router.location
+    );
+    render(
+      <OrganizationContext.Provider value={initialData.organization}>
+        <EventsPageContent
+          eventView={_eventView}
+          organization={initialData.organization}
+          location={initialData.router.location}
+          transactionName={transactionName}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          onChangeSpanOperationBreakdownFilter={() => {}}
+          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          onChangeEventsDisplayFilter={() => {}}
+          webVital={WebVital.LCP}
+          setError={() => {}}
+          projectId="1"
+          projects={[TestStubs.Project({id: 1, platform: 'python'})]}
+        />
+      </OrganizationContext.Provider>,
+      {context: initialData.routerContext}
+    );
+
+    const columnTitles = screen
+      .getAllByRole('columnheader')
+      .map(elem => elem.textContent);
+    expect(columnTitles).toStrictEqual(expect.arrayContaining([t('http.method')]));
+  });
 });
