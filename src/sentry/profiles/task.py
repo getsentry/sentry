@@ -453,11 +453,8 @@ def _process_symbolicator_results_for_sample(
 
         for idx in range(len(raw_frames)):
             if idx in frames_sent:
-                if idx in symbolicated_frames_dict:
-                    for frame_idx in symbolicated_frames_dict[idx]:
-                        new_frames.append(symbolicated_frames[frame_idx])
-                else:
-                    new_frames.append(symbolicated_frames[idx])
+                for frame_idx in symbolicated_frames_dict[idx]:
+                    new_frames.append(symbolicated_frames[frame_idx])
             else:
                 new_frames.append(raw_frames[idx])
 
@@ -569,8 +566,7 @@ The sorting order is callee to caller (child to parent)
 def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
     index_map: dict[int, List[int]] = {}
     for i, frame in enumerate(frames):
-        if "original_index" in frame:
-            index_map.setdefault(frame["original_index"], []).append(i)
+        index_map.setdefault(frame.get("original_index", i), []).append(i)
     return index_map
 
 
