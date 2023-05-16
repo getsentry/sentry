@@ -12,7 +12,7 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
-from sentry.utils.snuba import Dataset, SnubaTSResult
+from sentry.utils.snuba import Dataset, SnubaTSResult, bulk_snql_query
 
 
 def query(
@@ -64,6 +64,104 @@ def query(
         return results
 
 
+def bulk_timeseries_query(
+    selected_columns: Sequence[str],
+    queries: List[str],
+    params: Dict[str, str],
+    rollup: int,
+    referrer: str,
+    zerofill_results: bool = True,
+    allow_metric_aggregates=True,
+    comparison_delta: Optional[timedelta] = None,
+    functions_acl: Optional[List[str]] = None,
+    has_metrics: bool = True,
+    use_metrics_layer: bool = False,
+    groupby: Optional[Column] = None,
+    apply_formatting: Optional[bool] = True,
+) -> SnubaTSResult:
+    """
+    High-level API for doing *bulk* arbitrary user timeseries queries against events.
+    this API should match that of sentry.snuba.discover.timeseries_query
+    """
+    metrics_compatible = False
+    equations, columns = categorize_columns(selected_columns)
+    if comparison_delta is None and not equations:
+        metrics_compatible = True
+
+    if metrics_compatible:
+        with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
+            metrics_queries = []
+            metrics_query = None
+            for query in queries:
+                metrics_query = TimeseriesMetricQueryBuilder(
+                    params,
+                    rollup,
+                    dataset=Dataset.PerformanceMetrics,
+                    query=query,
+                    selected_columns=columns,
+                    functions_acl=functions_acl,
+                    allow_metric_aggregates=allow_metric_aggregates,
+                    use_metrics_layer=use_metrics_layer,
+                    groupby=groupby,
+                )
+                snql_query = metrics_query.get_snql_query()
+                metrics_queries.append(snql_query[0])
+
+            metrics_referrer = referrer + ".metrics-enhanced"
+            bulk_result = bulk_snql_query(metrics_queries, metrics_referrer)
+            result = {"data": []}
+            for br in bulk_result:
+                result["data"] = [*result["data"], *br["data"]]
+                result["meta"] = br["meta"]
+        with sentry_sdk.start_span(op="mep", description="query.transform_results"):
+            result = metrics_query.process_results(result)
+            sentry_sdk.set_tag("performance.dataset", "metrics")
+            result["meta"]["isMetricsData"] = True
+
+            # Sometimes additional formatting needs to be done downstream
+            if not apply_formatting:
+                return result
+
+            result["data"] = (
+                discover.zerofill(
+                    result["data"],
+                    params["start"],
+                    params["end"],
+                    rollup,
+                    "time",
+                )
+                if zerofill_results
+                else discover.format_time(
+                    result["data"],
+                    params["start"],
+                    params["end"],
+                    rollup,
+                    "time",
+                )
+            )
+
+            return SnubaTSResult(
+                {
+                    "data": result["data"],
+                    "isMetricsData": True,
+                    "meta": result["meta"],
+                },
+                params["start"],
+                params["end"],
+                rollup,
+            )
+    return SnubaTSResult(
+        {
+            "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
+            if zerofill_results
+            else [],
+        },
+        params["start"],
+        params["end"],
+        rollup,
+    )
+
+
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
@@ -77,7 +175,6 @@ def timeseries_query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     groupby: Optional[Column] = None,
-    apply_formatting: Optional[bool] = True,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -118,10 +215,6 @@ def timeseries_query(
             )
             sentry_sdk.set_tag("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
-
-            # Sometimes additional formatting needs to be done downstream
-            if not apply_formatting:
-                return result
 
             return SnubaTSResult(
                 {
