@@ -528,10 +528,6 @@ export class Client {
             // Grab everything that could conceivably be helpful to know
             scope.setExtras({
               twoHundredErrorReason,
-              path,
-              method,
-              status,
-              statusText,
               responseJSON,
               responseText,
               responseContentType,
