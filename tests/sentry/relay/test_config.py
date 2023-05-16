@@ -23,7 +23,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
+from sentry.utils import json, safe
 from sentry.utils.safe import get_path
 
 PII_CONFIG = """
@@ -601,3 +601,22 @@ def test_project_config_get_at_path(default_project):
     assert project_cfg.get_at_path("bb") is None
     assert project_cfg.get_at_path("b", "c") is None
     assert project_cfg.get_at_path() == project_cfg
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "has_health_check", [True, False], ids=["with_healthcheck", "without_healthcheck"]
+)
+def test_healthcheck_filter(default_project, has_health_check):
+    """
+    Tests that the project config properly returns healthcheck status when enabled by the correct flag
+    """
+
+    default_project.update_option("filters:health-check", "1")
+    with Feature({"organizations:health-check-filter": has_health_check}):
+        config = get_project_config(default_project).to_dict()["config"]
+
+    _validate_project_config(config)
+    filter_settings = safe.get_path(config, "filterSettings")
+    config_has_health_check = "healthCheck" in filter_settings
+    assert config_has_health_check == has_health_check

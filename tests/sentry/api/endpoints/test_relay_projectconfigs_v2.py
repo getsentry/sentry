@@ -404,28 +404,3 @@ def test_session_metrics_abnormal_mechanism_tag_extraction(
                     "version": 2 if abnormal_mechanism_rollout else 1,
                     "drop": False,
                 }
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize("is_business", [True, False], ids=["business_plan", "free_plan"])
-def test_health_check_filters(call_endpoint, add_org_key, relay, default_project, is_business):
-    """
-    Test that only business plans contain healthcheck filters
-    """
-    relay.save()
-
-    default_project.update_option("filters:health-check", "1")
-    with Feature({"organizations:health-check-filter": is_business}):
-        result, status_code = call_endpoint(full_config=True, version=2)
-
-    assert status_code < 400
-
-    configs = safe.get_path(result, "configs")
-
-    (project_key,) = configs.keys()
-    filter_settings = safe.get_path(configs, project_key, "config", "filterSettings")
-    assert filter_settings is not None
-
-    has_health_check = "healthCheck" in filter_settings
-
-    assert has_health_check == is_business
