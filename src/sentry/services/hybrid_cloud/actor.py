@@ -40,7 +40,7 @@ class RpcActor(RpcModel):
             raise ValueError("Slugs are expected for teams only")
 
     def __hash__(self) -> int:
-        return hash((self.id, self.actor_id, self.actor_type))
+        return hash((self.id, self.actor_type))
 
     @classmethod
     def from_object(

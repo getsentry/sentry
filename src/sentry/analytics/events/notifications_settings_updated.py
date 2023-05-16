@@ -6,7 +6,8 @@ class NotificationSettingsUpdated(analytics.Event):
 
     attributes = (
         analytics.Attribute("target_type"),
-        analytics.Attribute("actor_id"),
+        analytics.Attribute("actor_id", required=False),
+        analytics.Attribute("id"),
     )
 
 

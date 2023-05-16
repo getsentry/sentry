@@ -16,6 +16,8 @@ class RpcNotificationSetting(RpcModel):
     scope_type: NotificationScopeType = NotificationScopeType.USER
     scope_identifier: int = -1
     target_id: int = -1
+    team_id: int = -1
+    user_id: int = -1
     provider: ExternalProviders = ExternalProviders.EMAIL
     type: NotificationSettingTypes = NotificationSettingTypes.WORKFLOW
     value: NotificationSettingOptionValues = NotificationSettingOptionValues.DEFAULT
