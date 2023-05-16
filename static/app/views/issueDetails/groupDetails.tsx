@@ -42,7 +42,6 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -430,16 +429,6 @@ function useFetchGroupDetails({
 
   useTrackView({group, event, project});
 
-  const refetchData = useCallback(() => {
-    // Set initial state
-    setError(false);
-    setErrorType(null);
-
-    // refetchEvent comes from useApiQuery since event and group data are separately fetched
-    refetchEvent();
-    refetchGroupCall();
-  }, [refetchGroupCall, refetchEvent]);
-
   const refetchGroup = useCallback(() => {
     if (
       group?.status !== ReprocessingStatus.REPROCESSING ||
@@ -451,6 +440,16 @@ function useFetchGroupDetails({
 
     refetchGroupCall();
   }, [group, loadingGroup, loadingEvent, refetchGroupCall]);
+
+  const refetchData = useCallback(() => {
+    // Set initial state
+    setError(false);
+    setErrorType(null);
+
+    // refetchEvent comes from useApiQuery since event and group data are separately fetched
+    refetchEvent();
+    refetchGroup();
+  }, [refetchGroup, refetchEvent]);
 
   // Refetch when group is stale
   useEffect(() => {
@@ -690,15 +689,9 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
 
 function GroupDetails(props: GroupDetailsProps) {
   const organization = useOrganization();
-  const location = useLocation();
   const router = useRouter();
 
-  const {refetchGroup, project, group, ...fetchGroupDetailsProps} =
-    useFetchGroupDetails(props);
-
-  const previousPathname = usePrevious(location.pathname);
-  const previousEventId = usePrevious(router.params.eventId);
-  const previousIsGlobalSelectionReady = usePrevious(props.isGlobalSelectionReady);
+  const {project, group, ...fetchGroupDetailsProps} = useFetchGroupDetails(props);
 
   const {data} = useFetchIssueTagsForDetailsPage(
     {
@@ -709,24 +702,6 @@ function GroupDetails(props: GroupDetailsProps) {
     {enabled: props.isGlobalSelectionReady && defined(group)}
   );
   const isSampleError = data?.some(tag => tag.key === 'sample_event') ?? false;
-
-  useEffect(() => {
-    const globalSelectionReadyChanged =
-      previousIsGlobalSelectionReady !== props.isGlobalSelectionReady;
-
-    if (globalSelectionReadyChanged || location.pathname !== previousPathname) {
-      refetchGroup();
-    }
-  }, [
-    refetchGroup,
-    group,
-    location.pathname,
-    previousEventId,
-    previousIsGlobalSelectionReady,
-    previousPathname,
-    props.isGlobalSelectionReady,
-    router.params.eventId,
-  ]);
 
   const getGroupDetailsTitle = () => {
     const defaultTitle = 'Sentry';
@@ -759,7 +734,6 @@ function GroupDetails(props: GroupDetailsProps) {
             {...{
               group,
               project,
-              refetchGroup,
               ...fetchGroupDetailsProps,
             }}
           />
