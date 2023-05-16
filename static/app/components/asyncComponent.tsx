@@ -436,7 +436,7 @@ class AsyncComponent<
     return this.shouldRenderLoading
       ? this.renderLoading()
       : this.state.error
-      ? this.renderError(new Error('Unable to load all required endpoints'))
+      ? this.renderError()
       : this.renderBody();
   }
 

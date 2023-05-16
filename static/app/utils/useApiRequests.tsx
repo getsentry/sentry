@@ -396,11 +396,7 @@ function useApiRequests<T extends Record<string, any>>({
 
   const renderComponent = useCallback(
     (children: React.ReactElement) =>
-      shouldRenderLoading
-        ? renderLoading()
-        : state.hasError
-        ? renderError(new Error('Unable to load all required endpoints'))
-        : children,
+      shouldRenderLoading ? renderLoading() : state.hasError ? renderError() : children,
     [shouldRenderLoading, state.hasError, renderError]
   );
 
