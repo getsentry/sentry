@@ -164,7 +164,7 @@ function renderBodyCell(
               {(row as unknown as DataRow).formatted_desc}
             </StyledFormattedCode>
           ) : (
-            row.description
+            row.description || '<null>'
           )}
         </Link>
       </OverflowEllipsisTextContainer>
