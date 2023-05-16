@@ -149,26 +149,15 @@ def delete(key: str, dryrun: bool = False) -> bool:
 
 def _delete(key: str, dryrun: bool = False) -> bool:
     from sentry import options
-    from sentry.options.manager import UnknownOption
 
-    try:
-        options.lookup_key(key)
+    options.lookup_key(key)
 
-        if not drift(key):
-            raise click.ClickException(f"Option {key} cannot be changed.")
-
-        if not dryrun:
-            options.delete(key)
-        click.echo(f"Deleted key: {key}")
-        return options.get(key)
-    except UnknownOption:
-        raise click.ClickException("unknown option: %s" % key)
-    except TypeError as e:
-        raise click.ClickException(str(e))
-
-
-def create_key_value_generator(data: str, newline_separator: str, kv_separator: str):
-    return (line.split(kv_separator) for line in data.split(newline_separator) if line)
+    if not drift(key):
+        raise click.ClickException(f"Option {key} cannot be changed.")
+    if not dryrun:
+        options.delete(key)
+    click.echo(f"Deleted key: {key}")
+    return options.get(key)
 
 
 def drift(key: str) -> bool:
