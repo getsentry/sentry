@@ -1,7 +1,7 @@
 import {createContext, useContext, useEffect, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Release} from 'sentry/types';
@@ -69,7 +69,7 @@ function ReleasesProvider({
         setLoading(false);
         setReleases(response);
       })
-      .catch(e => {
+      .catch((e: ResponseMeta) => {
         if (shouldCancelRequest) {
           setLoading(false);
           return;
