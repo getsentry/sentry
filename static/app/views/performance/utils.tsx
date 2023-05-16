@@ -232,16 +232,19 @@ export function trendsTargetRoute({
   } else {
     modifiedConditions.setFilterValues('tpm()', ['>0.01']);
   }
-  if (conditions.hasFilter('transaction.duration')) {
-    modifiedConditions.setFilterValues(
-      'transaction.duration',
-      conditions.getFilterValues('transaction.duration')
-    );
-  } else {
-    modifiedConditions.setFilterValues('transaction.duration', [
-      '>0',
-      `<${DEFAULT_MAX_DURATION}`,
-    ]);
+  // Metrics don't support duration filters
+  if (!organization.features.includes('performance-new-trends')) {
+    if (conditions.hasFilter('transaction.duration')) {
+      modifiedConditions.setFilterValues(
+        'transaction.duration',
+        conditions.getFilterValues('transaction.duration')
+      );
+    } else {
+      modifiedConditions.setFilterValues('transaction.duration', [
+        '>0',
+        `<${DEFAULT_MAX_DURATION}`,
+      ]);
+    }
   }
   newQuery.query = modifiedConditions.formatString();
 
