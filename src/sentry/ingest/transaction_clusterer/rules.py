@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Dict, List, Mapping, Optional, Protocol, Sequence, Tuple, TypedDict
+from typing import Dict, List, Mapping, Protocol, Sequence, Tuple
 
 import sentry_sdk
 
@@ -74,15 +74,8 @@ class RedisRuleStore:
             client.hset(key, rule, last_used)
 
 
-class ClustererMeta(TypedDict):
-    writes: int
-    first_write: int
-    last_write: int
-
-
 class ProjectOptionRuleStore:
     _option_name = "sentry:transaction_name_cluster_rules"
-    _option_name_meta = "sentry:transaction_name_cluster_meta"
 
     def read_sorted(self, project: Project) -> List[Tuple[ReplacementRule, int]]:
         ret = project.get_option(self._option_name, default=[])
@@ -107,20 +100,6 @@ class ProjectOptionRuleStore:
         metrics.timing("txcluster.rules_per_project", len(converted_rules))
 
         project.update_option(self._option_name, converted_rules)
-        meta = self.get_meta(project)
-        meta["writes"] = min(meta["writes"] + 1, 999)  # don't keep bumping forever
-        meta["last_write"] = now = _now()
-        if meta["first_write"] == 0:
-            meta["first_write"] = now
-        project.update_option(self._option_name_meta, meta)
-
-    def get_meta(self, project: Project) -> ClustererMeta:
-        meta: Optional[ClustererMeta] = project.get_option(self._option_name_meta)
-        return meta or {
-            "writes": 0,
-            "first_write": 0,
-            "last_write": 0,
-        }
 
 
 class CompositeRuleStore:

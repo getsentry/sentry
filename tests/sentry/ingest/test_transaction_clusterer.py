@@ -11,6 +11,7 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
     get_transaction_names,
     record_transaction_name,
 )
+from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
 from sentry.ingest.transaction_clusterer.rules import (
     ProjectOptionRuleStore,
     RedisRuleStore,
@@ -207,6 +208,12 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
         project.save()
         _add_mock_data(project, 4)
 
+    assert (
+        get_clusterer_meta(project1)
+        == get_clusterer_meta(project2)
+        == {"first_run": 0, "last_run": 0, "runs": 0}
+    )
+
     spawn_clusterers()
 
     assert cluster_projects_delay.call_count == 1
@@ -215,6 +222,12 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     # Not stored enough transactions yet
     assert get_rules(project1) == {}
     assert get_rules(project2) == {}
+
+    assert (
+        get_clusterer_meta(project1)
+        == get_clusterer_meta(project2)
+        == {"first_run": 946688400, "last_run": 946688400, "runs": 1}
+    )
 
     # Clear transactions if batch minimum is not met
     assert list(get_transaction_names(project1)) == []
@@ -248,9 +261,9 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     }
 
     assert (
-        ProjectOptionRuleStore().get_meta(project1)
-        == ProjectOptionRuleStore().get_meta(project2)
-        == {"first_write": 946688400, "last_write": 946688401, "writes": 2}
+        get_clusterer_meta(project1)
+        == get_clusterer_meta(project2)
+        == {"first_run": 946688400, "last_run": 946688401, "runs": 2}
     )
 
 

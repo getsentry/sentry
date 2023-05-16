@@ -31,9 +31,9 @@ from sentry.ingest.inbound_filters import (
     get_all_filter_specs,
     get_filter_key,
 )
+from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
 from sentry.ingest.transaction_clusterer.rules import (
     TRANSACTION_NAME_RULE_TTL_SECS,
-    ProjectOptionRuleStore,
     get_sorted_rules,
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
@@ -60,6 +60,8 @@ EXPOSABLE_FEATURES = [
 EXTRACT_METRICS_VERSION = 1
 EXTRACT_ABNORMAL_MECHANISM_VERSION = 2
 
+#: How often the transaction clusterer should run before we trust its output as "complete",
+#: and start marking all URL transactions as sanitized.
 MIN_CLUSTERER_RUNS = 10
 
 logger = logging.getLogger(__name__)
@@ -316,9 +318,7 @@ def _get_project_config(
 
     # Mark the project as ready if it has seen >= 10 clusterer runs.
     # This prevents projects from prematurely marking all URL transactions as sanitized.
-    config["txNameReady"] = (
-        ProjectOptionRuleStore().get_meta(project)["writes"] > MIN_CLUSTERER_RUNS
-    )
+    config["txNameReady"] = get_clusterer_meta(project)["runs"] >= MIN_CLUSTERER_RUNS
 
     if not full_config:
         # This is all we need for external Relay processors
