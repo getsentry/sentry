@@ -139,7 +139,7 @@ def get_user_actions(
             if category == "ui.slowClickDetected":
                 payload["project_id"] = project_id
                 payload["replay_id"] = replay_id
-                logger.info("Slow click detected", extra=payload)
+                logger.info(f"Slow click detected: {json.dumps(payload)}")
             elif category == "ui.click":
                 node = payload.get("data", {}).get("node")
                 if node is None:
