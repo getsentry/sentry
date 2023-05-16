@@ -181,7 +181,7 @@ export interface ReplaySpan<T = Record<string, any>> {
   description?: string;
 }
 
-export type MemorySpanType = ReplaySpan<{
+export type MemorySpan = ReplaySpan<{
   memory: {
     jsHeapSizeLimit: number;
     totalJSHeapSize: number;
