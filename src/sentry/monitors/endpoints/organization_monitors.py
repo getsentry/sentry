@@ -51,8 +51,8 @@ from rest_framework.response import Response
 
 DEFAULT_ORDERING = [
     MonitorStatus.ERROR,
-    MonitorStatus.MISSED_CHECKIN,
     MonitorStatus.TIMEOUT,
+    MonitorStatus.MISSED_CHECKIN,
     MonitorStatus.OK,
     MonitorStatus.ACTIVE,
     MonitorStatus.DISABLED,
