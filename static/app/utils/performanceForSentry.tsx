@@ -16,8 +16,6 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import usePrevious from 'sentry/utils/usePrevious';
 
-import getCurrentSentryReactTransaction from './getCurrentSentryReactTransaction';
-
 const MIN_UPDATE_SPAN_TIME = 16; // Frame boundary @ 60fps
 const WAIT_POST_INTERACTION = 50; // Leave a small amount of time for observers and onRenderCallback to log since they come in after they occur and not during.
 const INTERACTION_TIMEOUT = 2 * 60_000; // 2min. Wrap interactions up after this time since we don't want transactions sticking around forever.
@@ -29,7 +27,7 @@ const ASSET_OUTLIER_VALUE = 1_000_000_000; // Assets over 1GB are ignored since 
  * This will return an interaction-type transaction held onto by a class static if one exists.
  */
 export function getPerformanceTransaction(): IdleTransaction | Transaction | undefined {
-  return PerformanceInteraction.getTransaction() ?? getCurrentSentryReactTransaction();
+  return PerformanceInteraction.getTransaction() ?? Sentry.getActiveTransaction();
 }
 
 /**
@@ -66,7 +64,7 @@ export class PerformanceInteraction {
 
   static startInteraction(name: string, timeout = INTERACTION_TIMEOUT, immediate = true) {
     try {
-      const currentIdleTransaction = getCurrentSentryReactTransaction();
+      const currentIdleTransaction = Sentry.getActiveTransaction();
       if (currentIdleTransaction) {
         // If interaction is started while idle still exists.
         currentIdleTransaction.setTag('finishReason', 'sentry.interactionStarted'); // Override finish reason so we can capture if this has effects on idle timeout.
@@ -186,7 +184,7 @@ export function VisuallyCompleteWithData({
       return;
     }
     try {
-      const transaction: any = getCurrentSentryReactTransaction(); // Using any to override types for private api.
+      const transaction: any = Sentry.getActiveTransaction(); // Using any to override types for private api.
       if (!transaction) {
         return;
       }
@@ -200,12 +198,18 @@ export function VisuallyCompleteWithData({
           if (!browserPerformanceTimeOrigin) {
             return;
           }
-          const startMark = performance.getEntriesByName(`${id}-vcds-start`)[0];
-          const endMark = performance.getEntriesByName(`${id}-vcds-end`)[0];
+          performance.mark(`${id}-vcsd-end`);
+          const startMarks = performance.getEntriesByName(`${id}-vcds-start`);
+          const endMarks = performance.getEntriesByName(`${id}-vcds-end`);
+          if (startMarks.length > 1 || endMarks.length > 1) {
+            transaction.setTag('vcd_extra_recorded_marks', true);
+          }
+
+          const startMark = startMarks.at(-1);
+          const endMark = endMarks.at(-1);
           if (!startMark || !endMark) {
             return;
           }
-          performance.mark(`${id}-vcsd-end`);
           performance.measure(
             `VCD [${id}] #${num.current}`,
             `${id}-vcsd-start`,
@@ -262,7 +266,7 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
   const getEncodedSize = data =>
     data['http.response_content_length'] ?? data['Encoded Body Size'] ?? 0;
   const getDecodedSize = data =>
-    data['http.decoded_request_body_length'] ?? data['Decoded Body Size'] ?? 0;
+    data['http.decoded_response_content_length'] ?? data['Decoded Body Size'] ?? 0;
   const getFields = data => ({
     operation: getOperation(data),
     transferSize: getTransferSize(data),
@@ -274,8 +278,11 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
     const filtered = spans.filter(
       s =>
         s.op === op &&
-        SENTRY_ASSET_DOMAINS.every(
-          domain => !s.description || s.description.includes(domain)
+        SENTRY_ASSET_DOMAINS.some(
+          domain =>
+            !s.description ||
+            s.description.includes(domain) ||
+            s.description.startsWith('/')
         )
     );
     const transfered = filtered.reduce((acc, curr) => {
