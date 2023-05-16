@@ -72,7 +72,7 @@ function disableSortOptions(_widgetQuery: WidgetQuery) {
   };
 }
 
-function getTableSortOptions(_widgetQuery: WidgetQuery) {
+function getTableSortOptions(_organization: Organization, _widgetQuery: WidgetQuery) {
   const sortOptions = [...ISSUE_WIDGET_SORT_OPTIONS];
   return sortOptions.map(sortOption => ({
     label: getSortLabel(sortOption),
