@@ -373,7 +373,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
               })}
               <PanelItem noPadding>
                 <Feature
-                  features={['organizations:inbound-filters-health-check']}
+                  features={['organizations:health-check-filter']}
                   hookName="feature-disabled:health-check-filter"
                   organization={organization}
                 >
