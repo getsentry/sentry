@@ -71,6 +71,7 @@ backend_all: &backend_all
   - *backend_src
   - '**/*.py'
   - '**/*.pyi'
+  - '.github/workflows/backend.yml'
 
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
