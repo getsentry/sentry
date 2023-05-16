@@ -127,7 +127,6 @@ class ProjectTeams extends AsyncView<Props, State> {
 
     const canCreateTeam = this.canCreateTeam();
     const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
-    const isTeamAdmin = hasWriteAccess && !organization.access.includes('project:write');
 
     return (
       <div>
@@ -138,10 +137,9 @@ class ProjectTeams extends AsyncView<Props, State> {
           )}
         </TextBlock>
         <TextBlock>
-          {isTeamAdmin &&
-            t(
-              'Team Admins can grant other teams access to this project. However, they cannot revoke access unless they are admins for the other teams too.'
-            )}
+          {t(
+            'Team Admins can grant other teams access to this project. However, they cannot revoke access unless they are admins for the other teams too.'
+          )}
         </TextBlock>
         <PermissionAlert project={project} />
 
