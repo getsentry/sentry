@@ -25,71 +25,6 @@ from sentry.utils import metrics
 OrgId = int
 
 
-def _build_quota_key(namespace: str, org_id: Optional[OrgId] = None) -> str:
-    if org_id is not None:
-        return f"metrics-indexer-{namespace}-org-{org_id}"
-    else:
-        return f"metrics-indexer-{namespace}-global"
-
-
-@metrics.wraps("sentry_metrics.indexer.construct_quotas")
-def _construct_quotas(use_case_id: UseCaseID, namespace: str) -> Sequence[Quota]:
-    """
-    Construct write limit's quotas based on current sentry options.
-
-    This value can potentially cached globally as long as it is invalidated
-    when sentry.options are.
-    """
-    if use_case_id is UseCaseID.TRANSACTIONS:
-        return [
-            Quota(prefix_override=_build_quota_key(namespace, None), **args)
-            for args in options.get("sentry-metrics.writes-limiter.limits.performance.global")
-        ] + [
-            Quota(prefix_override=None, **args)
-            for args in options.get("sentry-metrics.writes-limiter.limits.performance.per-org")
-        ]
-    elif use_case_id is UseCaseID.SPANS:
-        return [
-            Quota(prefix_override=_build_quota_key(namespace, None), **args)
-            for args in options.get("sentry-metrics.writes-limiter.limits.spans.global")
-        ] + [
-            Quota(prefix_override=None, **args)
-            for args in options.get("sentry-metrics.writes-limiter.limits.spans.per-org")
-        ]
-    elif use_case_id is UseCaseID.SESSIONS:
-        return [
-            Quota(prefix_override=_build_quota_key(namespace, None), **args)
-            for args in options.get("sentry-metrics.writes-limiter.limits.releasehealth.global")
-        ] + [
-            Quota(prefix_override=None, **args)
-            for args in options.get("sentry-metrics.writes-limiter.limits.releasehealth.per-org")
-        ]
-    else:
-        raise ValueError(use_case_id)
-
-
-@metrics.wraps("sentry_metrics.indexer.construct_quota_requests")
-def _construct_quota_requests(
-    use_case_id: UseCaseID, namespace: str, keys: KeyCollection
-) -> Tuple[Sequence[OrgId], Sequence[RequestedQuota]]:
-    org_ids = []
-    requests = []
-    quotas = _construct_quotas(use_case_id, namespace)
-
-    if quotas:
-        for org_id, strings in keys.mapping.items():
-            org_ids.append(org_id)
-            requests.append(
-                RequestedQuota(
-                    prefix=_build_quota_key(namespace, org_id),
-                    requested=len(strings),
-                    quotas=quotas,
-                )
-            )
-
-    return org_ids, requests
-
-
 @dataclasses.dataclass(frozen=True)
 class DroppedString:
     use_case_key_result: UseCaseKeyResult
@@ -127,6 +62,70 @@ class WritesLimiter:
         self.namespace = namespace
         self.rate_limiter: RedisSlidingWindowRateLimiter = RedisSlidingWindowRateLimiter(**options)
 
+    def _build_quota_key(self, org_id: Optional[OrgId] = None) -> str:
+        if org_id is not None:
+            return f"metrics-indexer-{self.namespace}-org-{org_id}"
+        else:
+            return f"metrics-indexer-{self.namespace}-global"
+
+    @metrics.wraps("sentry_metrics.indexer.construct_quotas")
+    def _construct_quotas(self, use_case_id: UseCaseID) -> Sequence[Quota]:
+        """
+        Construct write limit's quotas based on current sentry options.
+
+        This value can potentially cached globally as long as it is invalidated
+        when sentry.options are.
+        """
+        if use_case_id is UseCaseID.TRANSACTIONS:
+            return [
+                Quota(prefix_override=self._build_quota_key(), **args)
+                for args in options.get("sentry-metrics.writes-limiter.limits.performance.global")
+            ] + [
+                Quota(prefix_override=None, **args)
+                for args in options.get("sentry-metrics.writes-limiter.limits.performance.per-org")
+            ]
+        elif use_case_id is UseCaseID.SPANS:
+            return [
+                Quota(prefix_override=self._build_quota_key(), **args)
+                for args in options.get("sentry-metrics.writes-limiter.limits.spans.global")
+            ] + [
+                Quota(prefix_override=None, **args)
+                for args in options.get("sentry-metrics.writes-limiter.limits.spans.per-org")
+            ]
+        elif use_case_id is UseCaseID.SESSIONS:
+            return [
+                Quota(prefix_override=self._build_quota_key(), **args)
+                for args in options.get("sentry-metrics.writes-limiter.limits.releasehealth.global")
+            ] + [
+                Quota(prefix_override=None, **args)
+                for args in options.get(
+                    "sentry-metrics.writes-limiter.limits.releasehealth.per-org"
+                )
+            ]
+        else:
+            raise ValueError(use_case_id)
+
+    @metrics.wraps("sentry_metrics.indexer.construct_quota_requests")
+    def _construct_quota_requests(
+        self, use_case_id: UseCaseID, keys: KeyCollection
+    ) -> Tuple[Sequence[OrgId], Sequence[RequestedQuota]]:
+        org_ids = []
+        requests = []
+        quotas = self._construct_quotas(use_case_id)
+
+        if quotas:
+            for org_id, strings in keys.mapping.items():
+                org_ids.append(org_id)
+                requests.append(
+                    RequestedQuota(
+                        prefix=self._build_quota_key(org_id),
+                        requested=len(strings),
+                        quotas=quotas,
+                    )
+                )
+
+        return org_ids, requests
+
     def _check_use_case_writes_limits(
         self, use_case_id: UseCaseID, key_collection: KeyCollection
     ) -> Tuple[
@@ -136,9 +135,8 @@ class WritesLimiter:
         Sequence[DroppedString],
         dict[OrgId, Set[str]],
     ]:
-        org_ids, requests = _construct_quota_requests(
+        org_ids, requests = self._construct_quota_requests(
             use_case_id,
-            self.namespace,
             key_collection,
         )
         timestamp, grants = self.rate_limiter.check_within_quotas(requests)
@@ -147,28 +145,28 @@ class WritesLimiter:
         dropped_strings = []
 
         for org_id, grant in zip(org_ids, grants):
-            allowed_strings = accepted_keys[org_id]
-            if len(allowed_strings) > grant.granted:
-                allowed_strings = set(allowed_strings)
+            if len(accepted_keys[org_id]) <= grant.granted:
+                continue
 
-                while len(allowed_strings) > grant.granted:
-                    dropped_strings.append(
-                        DroppedString(
-                            use_case_key_result=UseCaseKeyResult(
-                                use_case_id=use_case_id,
-                                org_id=org_id,
-                                string=allowed_strings.pop(),
-                                id=None,
+            allowed_strings = set(accepted_keys[org_id])
+
+            while len(allowed_strings) > grant.granted:
+                dropped_strings.append(
+                    DroppedString(
+                        use_case_key_result=UseCaseKeyResult(
+                            use_case_id=use_case_id,
+                            org_id=org_id,
+                            string=allowed_strings.pop(),
+                            id=None,
+                        ),
+                        fetch_type=FetchType.RATE_LIMITED,
+                        fetch_type_ext=FetchTypeExt(
+                            is_global=any(
+                                quota.prefix_override is not None for quota in grant.reached_quotas
                             ),
-                            fetch_type=FetchType.RATE_LIMITED,
-                            fetch_type_ext=FetchTypeExt(
-                                is_global=any(
-                                    quota.prefix_override is not None
-                                    for quota in grant.reached_quotas
-                                ),
-                            ),
-                        )
+                        ),
                     )
+                )
 
             accepted_keys[org_id] = allowed_strings
 
@@ -180,11 +178,11 @@ class WritesLimiter:
         use_case_keys: UseCaseKeyCollection,
     ) -> RateLimitState:
         """
-        Takes a KeyCollection and applies DB write limits as configured via sentry.options.
+        Takes a UseCaseKeyCollection and applies DB write limits as configured via sentry.options.
 
         Returns a context manager that, upon entering, returns a tuple of:
 
-        1. A key collection containing all unmapped keys that passed through the
+        1. A UseCaseKeyCollection containing all unmapped keys that passed through the
           rate limiter.
 
         2. All unmapped keys that did not pass through the rate limiter.
