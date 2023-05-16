@@ -12,8 +12,8 @@ from sentry.sentry_metrics.indexer.base import (
     UseCaseKeyCollection,
     UseCaseKeyResult,
     UseCaseKeyResults,
-    _metric_path_key_compatible_resolve,
-    _metric_path_key_compatible_rev_resolve,
+    metric_path_key_compatible_resolve,
+    metric_path_key_compatible_rev_resolve,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import metrics
@@ -156,7 +156,7 @@ class CachingIndexer(StringIndexer):
         result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
         return result[use_case_id][org_id][string]
 
-    @_metric_path_key_compatible_resolve
+    @metric_path_key_compatible_resolve
     def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         key = f"{use_case_id.value}:{org_id}:{string}"
         result = self.cache.get(key)
@@ -173,7 +173,7 @@ class CachingIndexer(StringIndexer):
 
         return id
 
-    @_metric_path_key_compatible_rev_resolve
+    @metric_path_key_compatible_rev_resolve
     def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         return self.indexer.reverse_resolve(use_case_id, org_id, id)
 

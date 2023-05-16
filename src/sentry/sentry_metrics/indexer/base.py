@@ -398,7 +398,7 @@ class UseCaseKeyResults:
         return self.results[use_case_id]
 
 
-def _metric_path_key_compatible_resolve(
+def metric_path_key_compatible_resolve(
     resolve_func: Callable[[Any, UseCaseID, int, str], Optional[int]]
 ) -> Callable[[Any, Union[UseCaseID, UseCaseKey], int, str], Optional[int]]:
     @wraps(resolve_func)
@@ -413,7 +413,7 @@ def _metric_path_key_compatible_resolve(
     return wrapper
 
 
-def _metric_path_key_compatible_rev_resolve(
+def metric_path_key_compatible_rev_resolve(
     rev_resolve_func: Callable[[Any, UseCaseID, int, int], Optional[str]]
 ) -> Callable[[Any, Union[UseCaseID, UseCaseKey], int, int], Optional[str]]:
     @wraps(rev_resolve_func)
@@ -482,25 +482,25 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    @_metric_path_key_compatible_resolve
+    @metric_path_key_compatible_resolve
     def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
 
-        Callers should not rely on the default use_case_id -- it exists only
-        as a temporary workaround.
+        This function is backwards compatible with UseCaseKey while call sites that still uses
+        UseCaseKey are being cleaned up, but callers should always use UseCaseID from now on.
 
         Returns None if the entry cannot be found.
         """
         raise NotImplementedError()
 
-    @_metric_path_key_compatible_rev_resolve
+    @metric_path_key_compatible_rev_resolve
     def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
-        Callers should not rely on the default use_case_id -- it exists only
-        as a temporary workaround.
+        This function is backwards compatible with UseCaseKey while call sites that still uses
+        UseCaseKey are being cleaned up, but callers should always use UseCaseID from now on.
 
         Returns None if the entry cannot be found.
         """

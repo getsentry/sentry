@@ -17,8 +17,8 @@ from sentry.sentry_metrics.indexer.base import (
     UseCaseKeyCollection,
     UseCaseKeyResult,
     UseCaseKeyResults,
-    _metric_path_key_compatible_resolve,
-    _metric_path_key_compatible_rev_resolve,
+    metric_path_key_compatible_resolve,
+    metric_path_key_compatible_rev_resolve,
 )
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
 from sentry.sentry_metrics.indexer.limiters.writes import writes_limiter_factory
@@ -234,7 +234,7 @@ class PGStringIndexerV2(StringIndexer):
         result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
         return result[use_case_id][org_id][string]
 
-    @_metric_path_key_compatible_resolve
+    @metric_path_key_compatible_resolve
     def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
@@ -254,7 +254,7 @@ class PGStringIndexerV2(StringIndexer):
         except table.DoesNotExist:
             return None
 
-    @_metric_path_key_compatible_rev_resolve
+    @metric_path_key_compatible_rev_resolve
     def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
