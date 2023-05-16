@@ -1,9 +1,8 @@
 import dataclasses
 import logging
 import random
-from typing import Any, Dict, Mapping, cast
+from typing import Any, Mapping
 
-import msgpack
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import RunTaskInThreads, TransformStep
@@ -11,16 +10,20 @@ from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
+from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk.tracing import Span
 
-from sentry.replays.usecases.ingest import RecordingMessage, ingest_recording
+from sentry.replays.usecases.ingest import ingest_recording
 
 logger = logging.getLogger(__name__)
+
+RECORDINGS_CODEC = get_codec("ingest-replay-recordings")
 
 
 @dataclasses.dataclass
 class MessageContext:
-    message: Dict[str, Any]
+    message: ReplayRecording
     transaction: Span
     current_hub: sentry_sdk.Hub
 
@@ -63,7 +66,7 @@ def initialize_message_context(message: Message[KafkaPayload]) -> MessageContext
         < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
     )
     current_hub = sentry_sdk.Hub(sentry_sdk.Hub.current)
-    message_dict = msgpack.unpackb(message.payload.value)
+    message_dict = RECORDINGS_CODEC.decode(message.payload.value)
     return MessageContext(message_dict, transaction, current_hub)
 
 
@@ -71,11 +74,5 @@ def move_replay_to_permanent_storage(message: Message[MessageContext]) -> Any:
     """Move the replay payload to permanent storage."""
     context: MessageContext = message.payload
     message_dict = context.message
-    message_type = message_dict["type"]
 
-    if message_type == "replay_recording_not_chunked":
-        ingest_recording(
-            cast(RecordingMessage, message_dict), context.transaction, context.current_hub
-        )
-    else:
-        raise ValueError(f"Invalid replays recording message type specified: {message_type}")
+    ingest_recording(message_dict, context.transaction, context.current_hub)
