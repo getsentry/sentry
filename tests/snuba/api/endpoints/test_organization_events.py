@@ -1,4 +1,5 @@
 import math
+import uuid
 from base64 import b64encode
 from datetime import timedelta
 from unittest import mock
@@ -6169,3 +6170,66 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
         assert len(data) == 1
         result = {r["user.display"] for r in data}
         assert result == {user_data["email"]}
+
+    def test_all_events_fields(self):
+        # user_data = {
+        #     "id": self.user.id,
+        #     "username": "user",
+        #     "email": "hellboy@bar.com",
+        #     "ip_address": "127.0.0.1",
+        # }
+        event = self.create_performance_issue(
+            # tags={},
+            contexts={
+                "trace": {
+                    "trace_id": str(uuid.uuid4().hex),
+                    "span_id": "933e5c9a8e464da9",
+                    "type": "trace",
+                }
+            },
+        )
+
+        query = {
+            "field": [
+                "id",
+                "transaction",
+                "title",
+                "release",
+                "environment",
+                "user.display",
+                "device",
+                "os",
+                "url",
+                "runtime",
+                # "replayId",
+                # "profile.id",
+                "transaction.duration",
+                "timestamp",
+            ],
+            # "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
+            # "query": f"issue:{event.group.qualified_short_id}",
+            "dataset": "issuePlatform",
+        }
+
+        with self.options({"performance.issues.create_issues_through_platform": True}):
+            response = self.do_request(query)
+        assert response.status_code == 200, response.content
+
+        assert response.data["data"][0] == {
+            "id": event.event_id,
+            "transaction": event.transaction,
+            "title": event.group.title,
+            "release": event.release,
+            "environment": event.get_environment().name,
+            "user.display": "",
+            "device": "Mac",
+            "os": "",
+            "url": "",
+            "runtime": event.get_raw_data()[0]["tags"]["runtime"],
+            "replayId": "",
+            "profile.id": "",
+            "transaction.duration": 3000,
+            "timestamp": event.datetime.replace(microsecond=0).isoformat(),
+        }
