@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any, Dict, List
 
 from sentry.models import AuthIdentity
 from sentry.services.hybrid_cloud.identity import IdentityService, RpcIdentity, RpcIdentityProvider
@@ -37,18 +37,31 @@ class DatabaseBackedIdentityService(IdentityService):
     def get_identity(
         self,
         *,
-        provider_id: int,
         user_id: int | None = None,
         identity_ext_id: str | None = None,
+        provider_id: int | None = None,
+        provider_ext_id: str | None = None,
+        provider_type: str | None = None,
     ) -> RpcIdentity | None:
         from sentry.models.identity import Identity
 
-        # If an user_id is provided, use that -- otherwise, use the external_id
-        identity_kwargs: Any = {"user_id": user_id} if user_id else {"external_id": identity_ext_id}
+        identity_kwargs: Dict[str, Any] = {}
+        if user_id is not None:
+            identity_kwargs["user_id"] = user_id
+        if identity_ext_id is not None:
+            identity_kwargs["external_id"] = identity_ext_id
+        if provider_id is not None:
+            identity_kwargs["idp_id"] = provider_id
+        if provider_ext_id is not None:
+            identity_kwargs["idp__external_id"] = provider_ext_id
+        if provider_type is not None:
+            identity_kwargs["idp__type"] = provider_type
 
-        identity = Identity.objects.filter(**identity_kwargs, idp_id=provider_id).first()
-
-        return serialize_identity(identity) if identity else None
+        try:
+            identity = Identity.objects.get(**identity_kwargs)
+        except Identity.DoesNotExist:
+            return None
+        return serialize_identity(identity)
 
     def get_user_identities_by_provider_type(
         self,

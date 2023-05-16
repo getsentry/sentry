@@ -22,17 +22,19 @@ from sentry.models import (
     Commit,
     CommitAuthor,
     CommitFileChange,
-    Identity,
     Integration,
     Organization,
     PullRequest,
     Repository,
 )
+from sentry.services.hybrid_cloud.identity.service import identity_service
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.services.hybrid_cloud.integration.service import integration_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.json import JSONData
 
-from ...services.hybrid_cloud.integration import RpcIntegration, integration_service
 from .repository import GitHubRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
@@ -173,19 +175,6 @@ class InstallationEventWebhook(Webhook):
         ).update(status=ObjectStatus.DISABLED)
 
 
-class InstallationRepositoryEventWebhook(Webhook):
-    # https://developer.github.com/v3/activity/events/types/#installationrepositoriesevent
-    def _handle(
-        self,
-        integration: Integration,
-        event: Mapping[str, Any],
-        organization: Organization,
-        repo: Repository,
-        host: str | None = None,
-    ) -> None:
-        pass
-
-
 class PushEventWebhook(Webhook):
     """https://developer.github.com/v3/activity/events/types/#pushevent"""
 
@@ -259,18 +248,16 @@ class PushEventWebhook(Webhook):
                                 # even if we can't find a user, set to none so we
                                 # don't re-query
                                 gh_username_cache[gh_username] = None
-                                try:
-                                    identity = Identity.objects.get(
-                                        external_id=gh_user["id"],
-                                        idp__type=self.provider,
-                                        idp__external_id=self.get_idp_external_id(
-                                            integration, host
-                                        ),
-                                    )
-                                except Identity.DoesNotExist:
-                                    pass
-                                else:
-                                    author_email = identity.user.email
+                                identity_user = None
+                                identity = identity_service.get_identity(
+                                    identity_ext_id=gh_user["id"],
+                                    provider_type=self.provider,
+                                    provider_ext_id=self.get_idp_external_id(integration, host),
+                                )
+                                if identity is not None:
+                                    identity_user = user_service.get_user(user_id=identity.user_id)
+                                if identity_user is not None:
+                                    author_email = identity_user.email
                                     gh_username_cache[gh_username] = author_email
                                     if commit_author is not None:
                                         try:
@@ -395,16 +382,16 @@ class PullRequestEventWebhook(Webhook):
             )
             author_email = commit_author.email
         except CommitAuthor.DoesNotExist:
-            try:
-                identity = Identity.objects.get(
-                    external_id=user["id"],
-                    idp__type=self.provider,
-                    idp__external_id=self.get_idp_external_id(integration, host),
-                )
-            except Identity.DoesNotExist:
-                pass
-            else:
-                author_email = identity.user.email
+            identity_user = None
+            identity = identity_service.get_identity(
+                identity_ext_id=user["id"],
+                provider_type=self.provider,
+                provider_ext_id=self.get_idp_external_id(integration, host),
+            )
+            if identity is not None:
+                identity_user = user_service.get_user(user_id=identity.user_id)
+            if identity_user is not None:
+                author_email = identity_user.email
 
         try:
             author = CommitAuthor.objects.get(
@@ -521,7 +508,6 @@ class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
         "push": PushEventWebhook,
         "pull_request": PullRequestEventWebhook,
         "installation": InstallationEventWebhook,
-        "installation_repositories": InstallationRepositoryEventWebhook,
     }
 
     @method_decorator(csrf_exempt)  # type: ignore
