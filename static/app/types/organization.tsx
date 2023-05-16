@@ -61,7 +61,7 @@ export interface Organization extends OrganizationSummary {
     maxRateInterval: number | null;
     projectLimit: number | null;
   };
-  relayPiiConfig: string;
+  relayPiiConfig: string | null;
   safeFields: string[];
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
