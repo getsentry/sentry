@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime, timedelta
 from random import Random
 from typing import Any, MutableMapping
+from unittest import mock
 from urllib.parse import urlencode
 
 import pytz
@@ -28,6 +29,7 @@ from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
+from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.mail.notifications import get_builder_args
 from sentry.models import (
@@ -47,6 +49,7 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import SAMPLE_TO_OCCURRENCE_MAP, TEST_ISSUE_OCCURRENCE
 from sentry.utils import json, loremipsum
@@ -194,14 +197,17 @@ def make_performance_event(project, sample_name: str):
     event_id = "44f1419e73884cd2b45c79918f4b6dc4"
     occurrence_data = SAMPLE_TO_OCCURRENCE_MAP[sample_name].to_dict()
     occurrence_data["event_id"] = event_id
-    occurrence, group_info = process_event_and_issue_occurrence(
-        occurrence_data,
-        {
-            "event_id": event_id,
-            "project_id": project.id,
-            "timestamp": before_now(minutes=1).isoformat(),
-        },
-    )
+    perf_data = dict(load_data(sample_name, start_timestamp=start_timestamp, timestamp=timestamp))
+    perf_data["event_id"] = event_id
+    perf_data["project_id"] = project.id
+
+    with override_options({"performance.issues.send_to_issues_platform": True}), mock.patch.object(
+        PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
+    ):
+        occurrence, group_info = process_event_and_issue_occurrence(
+            occurrence_data,
+            perf_data,
+        )
     generic_group = group_info.group
     group_event = generic_group.get_latest_event()
     # Prevent CI screenshot from constantly changing
