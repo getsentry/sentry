@@ -2,7 +2,6 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {Group, Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -35,7 +34,7 @@ function useReplayFromIssue({
             returnIds: true,
             query: `issue.id:[${group.id}]`,
             statsPeriod: '14d',
-            project: ALL_ACCESS_PROJECTS,
+            project: -1,
           },
         }
       );

@@ -132,7 +132,7 @@ describe('GroupReplays', () => {
                 'user',
               ],
               per_page: 50,
-              project: -1,
+              project: [],
               queryReferrer: 'issueReplays',
               query: `id:[${REPLAY_ID_1},${REPLAY_ID_2}]`,
               sort: '-started_at',
