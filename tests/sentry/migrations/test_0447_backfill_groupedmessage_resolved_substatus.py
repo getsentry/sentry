@@ -3,8 +3,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class PerfIndexerUseCaseIdBackfillTest(TestMigrations):
-    migrate_from = "0445_drop_deprecated_monitor_next_last_checkin_db_op"
-    migrate_to = "0446_backfill_indexer_use_case_id"
+    migrate_from = "0446_backfill_groupedmessage_resolved_substatus"
+    migrate_to = "0447_backfill_groupedmessage_resolved_substatus"
 
     def setup_before_migration(self, apps):
         PerfStringIndexer = apps.get_model("sentry", "PerfStringIndexer")
