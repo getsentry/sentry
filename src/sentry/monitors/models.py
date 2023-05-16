@@ -147,8 +147,8 @@ class CheckInStatus:
     TIMEOUT = 5
     """Checkin was left in-progress past max_runtime"""
 
-    FINISHED_VALUES = (OK, ERROR, TIMEOUT)
-    """Sentient values used to indicate a monitor is finished running"""
+    FINISHED_VALUES = (OK, ERROR, MISSED, TIMEOUT)
+    """Terminal values used to indicate a monitor is finished running"""
 
     @classmethod
     def as_choices(cls):
