@@ -3,7 +3,7 @@ import {Link} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-import qs from 'qs';
+import * as qs from 'query-string';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
