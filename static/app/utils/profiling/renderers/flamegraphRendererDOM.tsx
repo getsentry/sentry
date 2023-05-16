@@ -29,7 +29,6 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
   ) {
     super(canvas, flamegraph, theme, options);
 
-    // console.log(new Error().stack?.split('\n')[2]);
     const newContainer = document.createElement('div');
     canvas.parentElement?.appendChild(newContainer);
     this.container = newContainer;
