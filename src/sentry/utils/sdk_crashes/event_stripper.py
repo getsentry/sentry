@@ -27,22 +27,25 @@ class EventStripper:
     }
 
     def strip_event_data(self, event: Event) -> Event:
-        new_event = dict(filter(self._filter_event, event.data.items()))
-        new_event["contexts"] = dict(filter(self._filter_contexts, new_event["contexts"].items()))
+        new_event_data = dict(filter(self._filter_event, event.data.items()))
+        new_event_data["contexts"] = dict(
+            filter(self._filter_contexts, new_event_data["contexts"].items())
+        )
 
         stripped_frames = []
-        frames = get_path(event, "exception", "values", -1, "stacktrace", "frames")
+        frames = get_path(new_event_data, "exception", "values", -1, "stacktrace", "frames")
 
         if frames is not None:
             stripped_frames = self._strip_frames(frames)
-            new_event["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
+            new_event_data["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
 
-        debug_meta_images = get_path(event, "debug_meta", "images")
+        debug_meta_images = get_path(new_event_data, "debug_meta", "images")
         if debug_meta_images is not None:
             stripped_debug_meta_images = self._strip_debug_meta(debug_meta_images, stripped_frames)
-            new_event["debug_meta"]["images"] = stripped_debug_meta_images
+            new_event_data["debug_meta"]["images"] = stripped_debug_meta_images
 
-        return new_event
+        event.data = new_event_data
+        return event
 
     def _filter_event(self, pair):
         key, _ = pair
@@ -74,5 +77,5 @@ class EventStripper:
         return [
             frame
             for frame in frames
-            if self.sdk_crash_detector.is_sdk_frame(frame) or frame.get("in_app", True) is False
+            if self.sdk_crash_detector.is_sdk_frame(frame) or frame.get("in_app", None) is False
         ]

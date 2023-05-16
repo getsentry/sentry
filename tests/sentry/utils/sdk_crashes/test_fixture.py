@@ -31,6 +31,7 @@ def get_frames(function: str, sentry_frame_in_app: bool = False) -> Sequence[Map
             "function": "LoginViewController.viewDidAppear",
             "symbol": "$s8Sentry9LoginViewControllerC13viewDidAppearyySbF",
             "package": "SentryApp",
+            "in_app": True,
             "filename": "LoginViewController.swift",
             "image_addr": "0x100260000",
         },
