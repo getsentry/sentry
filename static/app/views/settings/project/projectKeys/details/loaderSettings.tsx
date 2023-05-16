@@ -61,11 +61,12 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
       hasReplay?: boolean;
     }) => {
       setRequestPending(true);
-      setOptimisticState(s => {
-        return {
-          ...s,
-          ...changes,
-        };
+      setOptimisticState({
+        browserSdkVersion: data.browserSdkVersion,
+        hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
+        hasPerformance: data.dynamicSdkLoaderOptions.hasPerformance,
+        hasReplay: data.dynamicSdkLoaderOptions.hasReplay,
+        ...changes,
       });
       addLoadingMessage();
 
