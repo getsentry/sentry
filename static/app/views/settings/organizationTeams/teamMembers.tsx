@@ -47,7 +47,6 @@ type Props = {
 
 type State = {
   dropdownBusy: boolean;
-  dropdownOpen: boolean;
   error: boolean;
   orgMembers: Member[];
   teamMembers: TeamMember[];
@@ -59,7 +58,6 @@ class TeamMembers extends AsyncView<Props, State> {
       ...super.getDefaultState(),
       error: false,
       dropdownBusy: false,
-      dropdownOpen: false,
       teamMembers: [],
       orgMembers: [],
     };
@@ -118,8 +116,6 @@ class TeamMembers extends AsyncView<Props, State> {
     const {organization, params} = this.props;
     const {orgMembers, teamMembers} = this.state;
 
-    this.setState({dropdownOpen: true});
-
     // Reset members list after adding member to team
     this.debouncedFetchMembersRequest('');
 
@@ -143,7 +139,6 @@ class TeamMembers extends AsyncView<Props, State> {
           addSuccessMessage(t('Successfully added member to team.'));
         },
         error: () => {
-          this.setState({dropdownOpen: false});
           addErrorMessage(t('Unable to add team member.'));
         },
       }
@@ -251,7 +246,6 @@ class TeamMembers extends AsyncView<Props, State> {
 
     return (
       <DropdownAutoComplete
-        isOpen={this.state.dropdownOpen}
         closeOnSelect={false}
         items={items}
         alignMenu="right"
@@ -269,16 +263,13 @@ class TeamMembers extends AsyncView<Props, State> {
         emptyMessage={t('No members')}
         onChange={this.handleMemberFilterChange}
         busy={this.state.dropdownBusy}
-        onClose={() => {
-          this.setState({dropdownOpen: false});
-          this.debouncedFetchMembersRequest('');
-        }}
+        onClose={() => this.debouncedFetchMembersRequest('')}
         disabled={isDropdownDisabled}
+        data-test-id="add-member-menu"
       >
         {({isOpen}) => (
           <DropdownButton
             isOpen={isOpen}
-            onClick={() => this.setState({dropdownOpen: true})}
             size="xs"
             data-test-id="add-member"
             disabled={isDropdownDisabled}
