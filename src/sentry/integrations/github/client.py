@@ -56,6 +56,14 @@ class GithubProxyClient(IntegrationProxyClient):
         """
         return self.integration.external_id
 
+    def _get_jwt(self) -> str:
+        """
+        Returns the JSON Web Token for authorized GitHub requests.
+        This is necessary since Github and Github Enterprise create do not create the JWTs in the
+        same pattern.
+        """
+        return get_jwt()
+
     @control_silo_function
     def _refresh_access_token(self) -> str | None:
         integration = Integration.objects.filter(id=self.integration.id).first()
@@ -102,9 +110,12 @@ class GithubProxyClient(IntegrationProxyClient):
         }
 
         # Only certain routes are authenticated with JWTs....
-        should_use_jwt = prepared_request.path_url.startswith("/app/installations")
+        should_use_jwt = (
+            "/app/installations" in prepared_request.path_url
+            or "access_tokens" in prepared_request.path_url
+        )
         if should_use_jwt:
-            jwt = get_jwt()
+            jwt = self._get_jwt()
             logger.info("token.jwt", extra=logger_extra)
             return jwt
 

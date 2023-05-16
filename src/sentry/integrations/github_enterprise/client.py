@@ -13,8 +13,8 @@ class GitHubEnterpriseAppsClient(GitHubClientMixin):
         self.private_key = private_key
         super().__init__(verify_ssl=verify_ssl)
 
-    def get_jwt(self):
-        return get_jwt(github_id=self.app_id, github_private_key=self.private_key)
-
     def _get_installation_id(self) -> str:
         return self.integration.metadata["installation_id"]
+
+    def _get_jwt(self):
+        return get_jwt(github_id=self.app_id, github_private_key=self.private_key)
