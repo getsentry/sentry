@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from sentry import deletions
 from sentry.constants import SentryAppStatus
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     ApiToken,
     Organization,
@@ -585,16 +586,22 @@ class PostSentryAppsTest(SentryAppsTest):
         self.assert_sentry_app_status_code(sentry_app, status_code=400)
 
     def test_members_cant_create(self):
-        member_om = OrganizationMember.objects.get(user=self.user, organization=self.organization)
-        member_om.role = "member"
-        member_om.save()
+        with in_test_psql_role_override("postgres"):
+            member_om = OrganizationMember.objects.get(
+                user=self.user, organization=self.organization
+            )
+            member_om.role = "member"
+            member_om.save()
 
         self.get_error_response(**self.get_data(), status_code=403)
 
     def test_create_integration_exceeding_scopes(self):
-        member_om = OrganizationMember.objects.get(user=self.user, organization=self.organization)
-        member_om.role = "manager"
-        member_om.save()
+        with in_test_psql_role_override("postgres"):
+            member_om = OrganizationMember.objects.get(
+                user=self.user, organization=self.organization
+            )
+            member_om.role = "manager"
+            member_om.save()
 
         data = self.get_data(events=(), scopes=("org:read", "org:write", "org:admin"))
         response = self.get_error_response(**data, status_code=400)
