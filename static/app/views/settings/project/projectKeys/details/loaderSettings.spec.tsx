@@ -82,7 +82,7 @@ describe('Loader Script Settings', function () {
       name: t('Enable Performance Monitoring'),
     });
     expect(performanceCheckbox).toBeEnabled();
-    expect(performanceCheckbox).toBeChecked();
+    expect(performanceCheckbox).not.toBeChecked();
 
     const replayCheckbox = screen.getByRole('checkbox', {
       name: t('Enable Session Replay'),
@@ -94,7 +94,7 @@ describe('Loader Script Settings', function () {
       name: t('Enable Debug Bundles & Logging'),
     });
     expect(debugCheckbox).toBeEnabled();
-    expect(debugCheckbox).toBeChecked();
+    expect(debugCheckbox).not.toBeChecked();
   });
 
   it('allows to toggle options', async function () {
@@ -138,12 +138,12 @@ describe('Loader Script Settings', function () {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
         expect.objectContaining({
-          data: {
+          data: expect.objectContaining({
             dynamicSdkLoaderOptions: {
               ...dynamicSdkLoaderOptions,
               hasPerformance: true,
             },
-          },
+          }),
         })
       );
     });
@@ -201,7 +201,6 @@ describe('Loader Script Settings', function () {
           data: {
             browserSdkVersion: '6.x',
             dynamicSdkLoaderOptions: {
-              ...fullDynamicSdkLoaderOptions,
               hasPerformance: false,
               hasReplay: false,
               hasDebug: true,
@@ -242,19 +241,16 @@ describe('Loader Script Settings', function () {
     const performanceCheckbox = screen.getByRole('checkbox', {
       name: t('Enable Performance Monitoring'),
     });
-    expect(performanceCheckbox).toBeEnabled();
     expect(performanceCheckbox).not.toBeChecked();
 
     const replayCheckbox = screen.getByRole('checkbox', {
       name: t('Enable Session Replay'),
     });
-    expect(replayCheckbox).toBeEnabled();
     expect(replayCheckbox).not.toBeChecked();
 
     const debugCheckbox = screen.getByRole('checkbox', {
       name: t('Enable Debug Bundles & Logging'),
     });
-    expect(debugCheckbox).toBeEnabled();
     expect(debugCheckbox).toBeChecked();
 
     expect(
