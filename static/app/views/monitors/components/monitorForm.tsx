@@ -114,7 +114,7 @@ function transformData(_data: Record<string, any>, model: FormModel) {
       return data;
     }
 
-    data.config[k.substr(7)] = v;
+    data.config[k.substring(7)] = v;
     return data;
   }, {});
 }
