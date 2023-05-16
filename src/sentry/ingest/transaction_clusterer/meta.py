@@ -1,7 +1,7 @@
 """ Track metadata about clusterer runs """
 
 from datetime import datetime, timezone
-from typing import TypedDict
+from typing import Optional, TypedDict
 
 from sentry.models import Project
 
@@ -15,7 +15,8 @@ class ClustererMeta(TypedDict):
 
 
 def get_clusterer_meta(project: Project) -> ClustererMeta:
-    return project.get_option(OPTION_NAME) or {
+    meta: Optional[ClustererMeta] = project.get_option(OPTION_NAME)
+    return meta or {
         "runs": 0,
         "first_run": 0,
         "last_run": 0,
