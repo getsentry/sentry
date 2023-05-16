@@ -536,15 +536,12 @@ export class Client {
             });
 
             const responseTextUndefined = responseText === undefined;
-            const fingerprint = responseTextUndefined
-              ? '200 with undefined responseText'
-              : '200 as error';
             const message = responseTextUndefined
               ? '200 API response with undefined responseText'
               : '200 treated as error';
 
             // Make sure all of these errors group, so we don't produce a bunch of noise
-            scope.setFingerprint([fingerprint]);
+            scope.setFingerprint([message]);
 
             Sentry.captureException(new Error(`${message}: ${method} ${path}`), scope);
           }
