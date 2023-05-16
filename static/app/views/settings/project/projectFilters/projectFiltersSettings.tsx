@@ -398,6 +398,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                           'Filter transactions that match most common [link:naming patterns] for health checks',
                           {
                             link: (
+                              // TODO(Priscila): Update the link once the Github Issue https://github.com/getsentry/sentry/issues/49089 is complete
                               <ExternalLink href="https://docs.sentry.io/product/data-management-settings/filtering/#inbound-data-filters" />
                             ),
                           }
