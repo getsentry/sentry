@@ -399,6 +399,7 @@ function RuleNode({
           trailingItems={
             <Button
               href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
+              external
               size="xs"
             >
               {t('Learn More')}
