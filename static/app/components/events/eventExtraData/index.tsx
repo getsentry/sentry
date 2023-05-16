@@ -57,5 +57,5 @@ export const EventExtraData = memo(
       </EventDataSection>
     );
   },
-  (prevProps: Props, nextProps: Props) => prevProps.event.id !== nextProps.event.id
+  (prevProps: Props, nextProps: Props) => prevProps.event.id === nextProps.event.id
 );
