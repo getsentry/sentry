@@ -615,6 +615,31 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase):
         response = self.do_request(query)
         assert response.status_code == 400, response.content
 
+    def test_has_performance_issue_ids(self):
+        data = load_data(
+            platform="transaction",
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
+        )
+        self.store_event(data=data, project_id=self.project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": "has:performance.issue_ids",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": "!has:performance.issue_ids",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 0
+
     def test_performance_issue_ids_array_with_undefined(self):
         query = {
             "field": ["count()"],
@@ -5857,6 +5882,9 @@ class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTe
         assert set(fields) == field_keys
         assert set(fields) == unit_keys
 
+
+@region_silo_test
+class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEndpointTestBase):
     @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
     def test_functions_dataset_simple(self, mock_snql_query):
         mock_snql_query.side_effect = [
@@ -6058,31 +6086,6 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
         assert response.data["data"][0]["environment"] == "prod"
         assert response.data["data"][0]["user.display"] == user_data["email"]
         assert response.data["data"][0]["timestamp"] == event.timestamp
-
-    def test_has_performance_issue_ids(self):
-        data = load_data(
-            platform="transaction",
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        self.store_event(data=data, project_id=self.project.id)
-
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "1h",
-            "query": "has:performance.issue_ids",
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 1
-
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "1h",
-            "query": "!has:performance.issue_ids",
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 0
 
     def test_performance_short_group_id(self):
         event = self.create_performance_issue()
