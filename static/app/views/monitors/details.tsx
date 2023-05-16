@@ -46,6 +46,7 @@ function MonitorDetails({params, location}: Props) {
 
   const {data: monitor} = useApiQuery<Monitor>(queryKey, {
     staleTime: 0,
+    // Refetches while we are waiting for the user to send their first check-in
     refetchInterval: data => {
       if (!data) {
         return false;
