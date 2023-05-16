@@ -565,25 +565,32 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     organization=organization, email=result["email"], role=result["role"]
                 )
 
+                region_outbox = None
                 if member_query.exists():
                     member = member_query.first()
                     if member.token_expired:
-                        member.regenerate_token()
-
+                        with transaction.atomic():
+                            member.regenerate_token()
+                            member.save()
+                            region_outbox = member.save_outbox_for_update()
                 else:
-                    member = OrganizationMember(
-                        organization=organization,
-                        email=result["email"],
-                        role=result["role"],
-                        inviter_id=request.user.id,
-                    )
+                    with transaction.atomic():
+                        member = OrganizationMember(
+                            organization=organization,
+                            email=result["email"],
+                            role=result["role"],
+                            inviter_id=request.user.id,
+                        )
 
-                    # TODO: are invite tokens needed for SAML orgs?
-                    member.flags["idp:provisioned"] = True
-                    member.flags["idp:role-restricted"] = idp_role_restricted
-                    if settings.SENTRY_ENABLE_INVITES:
-                        member.token = member.generate_token()
-                    member.save()
+                        # TODO: are invite tokens needed for SAML orgs?
+                        member.flags["idp:provisioned"] = True
+                        member.flags["idp:role-restricted"] = idp_role_restricted
+                        if settings.SENTRY_ENABLE_INVITES:
+                            member.token = member.generate_token()
+                        member.save()
+                        region_outbox = member.save_outbox_for_create()
+                if region_outbox:
+                    region_outbox.drain_shard(max_updates_to_drain=10)
 
             self.create_audit_entry(
                 request=request,
