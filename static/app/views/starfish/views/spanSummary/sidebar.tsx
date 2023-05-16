@@ -97,7 +97,14 @@ export default function Sidebar({
 
   // Also a metrics span query that fetches series data
   const {isLoading: isLoadingSeriesData, data: seriesData} = useQuery({
-    queryKey: ['seriesdata'],
+    enabled: !!module && !!transactionName && !!groupId,
+    queryKey: [
+      'seriesdata',
+      transactionName,
+      module,
+      pageFilter.selection.datetime,
+      groupId,
+    ],
     queryFn: () => fetch(`${HOST}/?query=${seriesQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
