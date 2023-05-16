@@ -139,7 +139,7 @@ def get_user_actions(
             if category == "ui.slowClickDetected":
                 payload["project_id"] = project_id
                 payload["replay_id"] = replay_id
-                payload["msg"] = payload.pop("message")
+                payload["dom_tree"] = payload.pop("message")
                 logger.info("sentry.replays.slow_click", extra=payload)
             elif category == "ui.click":
                 node = payload.get("data", {}).get("node")
