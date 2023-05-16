@@ -9,6 +9,7 @@ from django.utils.http import urlquote
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
+from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -141,6 +142,27 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             resp = self.client.post(path, {"status": "error"}, **self.token_auth_headers)
             assert resp.status_code == 404
+
+    def test_invalid_duration(self):
+        monitor = self._create_monitor(slug="my-monitor")
+
+        path = reverse(self.endpoint_with_org, args=[self.organization.slug, monitor.slug])
+        resp = self.client.post(path, {"status": "ok", "duration": -1}, **self.token_auth_headers)
+
+        assert resp.status_code == 400, resp.content
+        assert resp.data["duration"][0] == "Ensure this value is greater than or equal to 0."
+
+        resp = self.client.post(
+            path,
+            {"status": "ok", "duration": BoundedPositiveIntegerField.MAX_VALUE + 1},
+            **self.token_auth_headers,
+        )
+
+        assert resp.status_code == 400, resp.content
+        assert (
+            resp.data["duration"][0]
+            == f"Ensure this value is less than or equal to {BoundedPositiveIntegerField.MAX_VALUE}."
+        )
 
     def test_deletion_in_progress(self):
         monitor = self._create_monitor(status=ObjectStatus.DELETION_IN_PROGRESS)

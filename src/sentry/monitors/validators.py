@@ -10,6 +10,7 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
+from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorType, ScheduleType
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
@@ -223,7 +224,12 @@ class MonitorCheckInValidator(serializers.Serializer):
             ("in_progress", CheckInStatus.IN_PROGRESS),
         )
     )
-    duration = EmptyIntegerField(required=False, allow_null=True)
+    duration = EmptyIntegerField(
+        required=False,
+        allow_null=True,
+        max_value=BoundedPositiveIntegerField.MAX_VALUE,
+        min_value=0,
+    )
     environment = serializers.CharField(required=False, allow_null=True)
     monitor_config = ConfigValidator(required=False)
 
