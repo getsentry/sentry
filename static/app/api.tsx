@@ -521,21 +521,24 @@ export class Client {
           // tons of events from this codepath with a 200 status nonetheless.
           // Until we know why, let's do what is essentially some very fancy print debugging.
           if (status === 200) {
+            const responseTextUndefined = responseText === undefined;
+
             // Pass a scope object rather than using `withScope` to avoid even
             // the possibility of scope bleed.
             const scope = new Sentry.Scope();
-
-            // Grab everything that could conceivably be helpful to know
             scope.setTags({errorReason});
-            scope.setExtras({
-              twoHundredErrorReason,
-              responseJSON,
-              responseText,
-              responseContentType,
-              errorReason,
-            });
 
-            const responseTextUndefined = responseText === undefined;
+            if (!responseTextUndefined) {
+              // Grab everything that could conceivably be helpful to know
+              scope.setExtras({
+                twoHundredErrorReason,
+                responseJSON,
+                responseText,
+                responseContentType,
+                errorReason,
+              });
+            }
+
             const message = responseTextUndefined
               ? '200 API response with undefined responseText'
               : '200 treated as error';
