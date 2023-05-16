@@ -300,8 +300,14 @@ class OrganizationMember(Model):
         self.token_expires_at = now + timedelta(days=INVITE_DAYS_VALID)
 
     def approve_invite(self):
-        self.invite_status = InviteStatus.APPROVED.value
-        self.regenerate_token()
+        region_outbox = None
+        with transaction.atomic():
+            self.invite_status = InviteStatus.APPROVED.value
+            self.regenerate_token()
+            self.save()
+            region_outbox = self.save_outbox_for_update()
+        if region_outbox:
+            region_outbox.drain_shard(max_updates_to_drain=10)
 
     def get_invite_status_name(self):
         if self.invite_status is None:
@@ -578,7 +584,6 @@ class OrganizationMember(Model):
         from sentry.utils.audit import create_audit_entry_from_user
 
         self.approve_invite()
-        self.save()
 
         if settings.SENTRY_ENABLE_INVITES:
             self.send_invite_email()
