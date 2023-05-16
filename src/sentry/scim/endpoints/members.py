@@ -37,6 +37,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuthIdentity, AuthProvider, InviteStatus, OrganizationMember
 from sentry.signals import member_invited
 from sentry.utils import json
@@ -565,25 +566,32 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     organization=organization, email=result["email"], role=result["role"]
                 )
 
+                region_outbox = None
                 if member_query.exists():
                     member = member_query.first()
                     if member.token_expired:
-                        member.regenerate_token()
-
+                        with transaction.atomic(), in_test_psql_role_override("postgres"):
+                            member.regenerate_token()
+                            member.save()
+                            region_outbox = member.save_outbox_for_update()
                 else:
-                    member = OrganizationMember(
-                        organization=organization,
-                        email=result["email"],
-                        role=result["role"],
-                        inviter_id=request.user.id,
-                    )
+                    with transaction.atomic(), in_test_psql_role_override("postgres"):
+                        member = OrganizationMember(
+                            organization=organization,
+                            email=result["email"],
+                            role=result["role"],
+                            inviter_id=request.user.id,
+                        )
 
-                    # TODO: are invite tokens needed for SAML orgs?
-                    member.flags["idp:provisioned"] = True
-                    member.flags["idp:role-restricted"] = idp_role_restricted
-                    if settings.SENTRY_ENABLE_INVITES:
-                        member.token = member.generate_token()
-                    member.save()
+                        # TODO: are invite tokens needed for SAML orgs?
+                        member.flags["idp:provisioned"] = True
+                        member.flags["idp:role-restricted"] = idp_role_restricted
+                        if settings.SENTRY_ENABLE_INVITES:
+                            member.token = member.generate_token()
+                        member.save()
+                        region_outbox = member.save_outbox_for_create()
+                if region_outbox:
+                    region_outbox.drain_shard(max_updates_to_drain=10)
 
             self.create_audit_entry(
                 request=request,
