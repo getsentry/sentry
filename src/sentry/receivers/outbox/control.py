@@ -62,3 +62,11 @@ def process_organization_integration_update(object_identifier: int, **kwds: Any)
     ) is None:
         return
     organization_integration  # Currently we do not sync any other organization integration changes, but if we did, you can use this variable.
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.WEBHOOK_PROXY)
+def process_async_webhooks(payload: Any, **kwds: Any):
+    # 1. Parse the payload into an python friendly format
+    # 2. Send the request along using the SiloClient
+    # 3. Log the response
+    pass

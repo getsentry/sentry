@@ -7,9 +7,11 @@ from typing import Callable, Mapping, Sequence
 
 from django.http import HttpRequest, HttpResponse
 from django.urls import ResolverMatch, resolve
+from rest_framework import status
 
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.outbox import ControlOutbox
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
 from sentry.silo import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient
@@ -63,7 +65,6 @@ class BaseRequestParser(abc.ABC):
         """
         Used to handle the requests on a given list of regions (synchronously).
         Returns a mapping of region name to response/exception.
-        If multiple regions are provided, only the latest response is returned to the requestor.
         """
         self._ensure_control_silo()
 
@@ -93,6 +94,19 @@ class BaseRequestParser(abc.ABC):
             return self.response_handler(self.request)
 
         return region_to_response_map
+
+    def get_response_from_outbox_creation(self, regions: Sequence[Region]):
+        """
+        Used to create outboxes for provided regions to handle the webhooks asynchronously.
+        Responds to the webhook provider with a 202 Accepted status.
+        """
+        for outbox in ControlOutbox.for_webhook_update(
+            webhook_identifier=self.webhook_identifier,
+            region_names=[region.name for region in regions],
+            payload=self.request.__dict__,
+        ):
+            outbox.save()
+        return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
     def get_response(self):
         """

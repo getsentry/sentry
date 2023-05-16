@@ -4,6 +4,7 @@ import logging
 
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations.integration import Integration
+from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json
@@ -13,9 +14,9 @@ logger = logging.getLogger(__name__)
 
 class GithubRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.GITHUB]
+    webook_provider = WebhookProviderIdentifier.GITHUB
 
     control_events = ["installation"]
-    region_events = ["push", "pull_request"]
 
     def get_event(self):
         try:
@@ -44,4 +45,4 @@ class GithubRequestParser(BaseRequestParser):
             logger.error("no_regions", extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
-        # TODO(Leander): Kick off tasks on all region silos
+        return self.get_response_from_outbox_creation()
