@@ -256,41 +256,43 @@ export default function Sidebar({
         </FlexRowContainer>
       </FlexFullWidthItem>
 
-      <FlexRowContainer>
-        <FlexRowItem>
-          <SidebarItemHeader>{t('Transaction Throughput')}</SidebarItemHeader>
-          <Chart
-            statsPeriod="24h"
-            height={140}
-            data={[throughputTransactionSeries ?? []]}
-            start=""
-            end=""
-            loading={isTransactionDataLoading}
-            utc={false}
-            stacked
-            isLineChart
-            disableXAxis
-            hideYAxisSplitLine
-          />
-        </FlexRowItem>
-        <FlexRowItem>
-          <SidebarItemHeader>{t('Transaction Duration P50 / P95')}</SidebarItemHeader>
-          <Chart
-            statsPeriod="24h"
-            height={140}
-            data={[p50TransactionSeries ?? [], p95TransactionSeries ?? []]}
-            start=""
-            end=""
-            loading={isTransactionDataLoading}
-            utc={false}
-            chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
-            stacked
-            isLineChart
-            disableXAxis
-            hideYAxisSplitLine
-          />
-        </FlexRowItem>
-      </FlexRowContainer>
+      <FlexFullWidthItem>
+        <FlexRowContainer>
+          <FlexRowItem>
+            <SidebarItemHeader>{t('Transaction Throughput')}</SidebarItemHeader>
+            <Chart
+              statsPeriod="24h"
+              height={140}
+              data={[throughputTransactionSeries ?? []]}
+              start=""
+              end=""
+              loading={isTransactionDataLoading}
+              utc={false}
+              stacked
+              isLineChart
+              disableXAxis
+              hideYAxisSplitLine
+            />
+          </FlexRowItem>
+          <FlexRowItem>
+            <SidebarItemHeader>{t('Transaction Duration P50 / P95')}</SidebarItemHeader>
+            <Chart
+              statsPeriod="24h"
+              height={140}
+              data={[p50TransactionSeries ?? [], p95TransactionSeries ?? []]}
+              start=""
+              end=""
+              loading={isTransactionDataLoading}
+              utc={false}
+              chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
+              stacked
+              isLineChart
+              disableXAxis
+              hideYAxisSplitLine
+            />
+          </FlexRowItem>
+        </FlexRowContainer>
+      </FlexFullWidthItem>
 
       {
         // This could be better. Improve later.
