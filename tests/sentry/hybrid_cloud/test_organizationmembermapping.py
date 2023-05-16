@@ -1,3 +1,4 @@
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
@@ -60,7 +61,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             "inviter_id": inviter.id,
             "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
         }
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
             org_member = OrganizationMember.objects.create(**fields)
         rpc_orgmember_mapping = organizationmember_mapping_service.create_with_organization_member(
             org_member=org_member
@@ -90,7 +91,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
         )
 
     def test_create_is_idempotent(self):
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
             inviter = self.create_user("foo@example.com")
             fields = {
                 "organization_id": self.organization.id,
@@ -167,7 +168,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             "inviter_id": None,
             "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
         }
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
             org_member = OrganizationMember.objects.create(**fields)
         rpc_orgmember_mapping = organizationmember_mapping_service.create_with_organization_member(
             org_member=org_member
@@ -198,7 +199,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
         self.assert_org_member_mapping(org_member=org_member)
 
     def test_create_mapping_on_update(self):
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
             inviter = self.create_user("bob@example.com")
             org_member = OrganizationMember.objects.create(
                 organization_id=self.organization.id,
@@ -233,7 +234,8 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
         }
 
         # Creation step of receiver
-        org_member = OrganizationMember.objects.create(**fields)
+        with in_test_psql_role_override("postgres"):
+            org_member = OrganizationMember.objects.create(**fields)
         region_outbox = org_member.save_outbox_for_create()
         region_outbox.drain_shard()
 
@@ -245,7 +247,8 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
                 self.assert_org_member_mapping(org_member=org_member)
 
         # Update step of receiver
-        org_member.update(role="owner")
+        with in_test_psql_role_override("postgres"):
+            org_member.update(role="owner")
         region_outbox = org_member.save_outbox_for_update()
         region_outbox.drain_shard()
 
@@ -266,7 +269,8 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
             "inviter_id": inviter.id,
             "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
         }
-        org_member = OrganizationMember.objects.create(**fields)
+        with in_test_psql_role_override("postgres"):
+            org_member = OrganizationMember.objects.create(**fields)
         region_outbox = org_member.save_outbox_for_create()
         region_outbox.drain_shard()
 
