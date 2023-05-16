@@ -18,7 +18,6 @@ function initializeData({query} = {query: {}}) {
   });
 
   const initialData = initializeOrg({
-    ...initializeOrg(),
     organization,
     router: {
       location: {
