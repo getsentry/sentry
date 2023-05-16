@@ -21,6 +21,8 @@ const WAIT_POST_INTERACTION = 50; // Leave a small amount of time for observers 
 const INTERACTION_TIMEOUT = 2 * 60_000; // 2min. Wrap interactions up after this time since we don't want transactions sticking around forever.
 const MEASUREMENT_OUTLIER_VALUE = 5 * 60_000; // Measurements over 5 minutes don't get recorded as a metric and are tagged instead.
 const ASSET_OUTLIER_VALUE = 1_000_000_000; // Assets over 1GB are ignored since they are likely a reporting error.
+const VCD_START = 'vcd-start';
+const VCD_END = 'vcd-end';
 
 /**
  * It depends on where it is called but the way we fetch transactions can be empty despite an ongoing transaction existing.
@@ -161,7 +163,7 @@ export function VisuallyCompleteWithData({
   const isVCDSet = useRef(false);
 
   if (isVCDSet && hasData && performance && performance.mark && !disabled) {
-    performance.mark(`${id}-vcsd-start`);
+    performance.mark(`${id}-${VCD_START}`);
     isVCDSet.current = true;
   }
 
@@ -174,7 +176,7 @@ export function VisuallyCompleteWithData({
       performance
         .getEntriesByType('mark')
         .map(m => m.name)
-        .filter(n => n.includes('vcsd'))
+        .filter(n => n.includes('vcd'))
         .forEach(n => performance.clearMarks(n));
     }
   }, [location, previousLocation]);
@@ -192,15 +194,15 @@ export function VisuallyCompleteWithData({
       if (!isDataCompleteSet.current && _hasData) {
         isDataCompleteSet.current = true;
 
-        performance.mark(`${id}-vcsd-end-pre-timeout`);
+        performance.mark(`${id}-${VCD_END}-pretimeout`);
 
         window.setTimeout(() => {
           if (!browserPerformanceTimeOrigin) {
             return;
           }
-          performance.mark(`${id}-vcsd-end`);
-          const startMarks = performance.getEntriesByName(`${id}-vcds-start`);
-          const endMarks = performance.getEntriesByName(`${id}-vcds-end`);
+          performance.mark(`${id}-${VCD_END}`);
+          const startMarks = performance.getEntriesByName(`${id}-${VCD_START}`);
+          const endMarks = performance.getEntriesByName(`${id}-${VCD_END}`);
           if (startMarks.length > 1 || endMarks.length > 1) {
             transaction.setTag('vcd_extra_recorded_marks', true);
           }
@@ -212,8 +214,8 @@ export function VisuallyCompleteWithData({
           }
           performance.measure(
             `VCD [${id}] #${num.current}`,
-            `${id}-vcsd-start`,
-            `${id}-vcsd-end`
+            `${id}-${VCD_START}`,
+            `${id}-${VCD_END}`
           );
           num.current = num.current++;
         }, 0);
