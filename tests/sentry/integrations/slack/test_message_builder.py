@@ -66,7 +66,7 @@ def build_test_message(
         "color": "#E03E2F",  # red for error level
         "actions": [
             {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
-            {"name": "status", "text": "Ignore", "type": "button", "value": "ignored"},
+            {"name": "status", "text": "Ignore", "type": "button", "value": "ignored:forever"},
             {
                 "option_groups": [
                     {
@@ -136,6 +136,26 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             event=event,
             link_to_event=True,
         )
+
+        with self.feature("organizations:escalating-issues"):
+            test_message = build_test_message(
+                teams={self.team},
+                users={self.user},
+                timestamp=group.last_seen,
+                group=group,
+            )
+            test_message["actions"] = [
+                action
+                if action["text"] != "Ignore"
+                else {
+                    "name": "status",
+                    "text": "Archive",
+                    "type": "button",
+                    "value": "ignored:until_escalating",
+                }
+                for action in test_message["actions"]
+            ]
+            assert SlackIssuesMessageBuilder(group).build() == test_message
 
     @patch(
         "sentry.integrations.slack.message_builder.issues.get_option_groups",
