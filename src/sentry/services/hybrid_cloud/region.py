@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Collection
 
 from sentry.services.hybrid_cloud import ArgumentDict
 from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
@@ -14,10 +14,10 @@ if TYPE_CHECKING:
 
 
 class RegionResolution(ABC):
-    """Interface for directing a service call to a remote region."""
+    """Interface for directing a service call to one or more remote regions."""
 
     @abstractmethod
-    def resolve(self, arguments: ArgumentDict) -> Region:
+    def resolve(self, arguments: ArgumentDict) -> Collection[Region]:
         """Return the region determined by a service call's arguments."""
         raise NotImplementedError
 
@@ -33,57 +33,68 @@ class RegionResolution(ABC):
         return OrganizationMapping.objects
 
 
+class SingleRegionResolution(RegionResolution):
+    """Resolve to only a single region."""
+
+    def resolve(self, arguments: ArgumentDict) -> Collection[Region]:
+        return (self.resolve_single(arguments),)
+
+    @abstractmethod
+    def resolve_single(self, arguments: ArgumentDict) -> Region:
+        raise NotImplementedError
+
+
 @dataclass(frozen=True)
-class ByOrganizationObject(RegionResolution):
+class ByOrganizationObject(SingleRegionResolution):
     """Resolve from a parameter representing an organization object."""
 
     parameter_name: str = "organization"
 
-    def resolve(self, arguments: ArgumentDict) -> Region:
+    def resolve_single(self, arguments: ArgumentDict) -> Region:
         value = arguments[self.parameter_name]
         mapping = self.organization_mapping_manager.get(organization_id=value.id)
         return self._resolve_from_mapping(mapping)
 
 
 @dataclass(frozen=True)
-class ByOrganizationId(RegionResolution):
+class ByOrganizationId(SingleRegionResolution):
     """Resolve from an `int` parameter representing an organization ID."""
 
     parameter_name: str = "organization_id"
 
-    def resolve(self, arguments: ArgumentDict) -> Region:
+    def resolve_single(self, arguments: ArgumentDict) -> Region:
         organization_id = arguments[self.parameter_name]
         mapping = self.organization_mapping_manager.get(organization_id=organization_id)
         return self._resolve_from_mapping(mapping)
 
 
 @dataclass(frozen=True)
-class ByOrganizationSlug(RegionResolution):
+class ByOrganizationSlug(SingleRegionResolution):
     """Resolve from a `str` parameter representing an organization slug."""
 
     parameter_name: str = "slug"
 
-    def resolve(self, arguments: ArgumentDict) -> Region:
+    def resolve_single(self, arguments: ArgumentDict) -> Region:
         slug = arguments[self.parameter_name]
         mapping = self.organization_mapping_manager.get(slug=slug)
         return self._resolve_from_mapping(mapping)
 
 
 @dataclass(frozen=True)
-class ByOrganizationIdAttribute(RegionResolution):
+class ByOrganizationIdAttribute(SingleRegionResolution):
     """Resolve from an object with an organization ID as one of its attributes."""
 
     parameter_name: str
     attribute_name: str = "organization_id"
 
-    def resolve(self, arguments: ArgumentDict) -> Region:
+    def resolve_single(self, arguments: ArgumentDict) -> Region:
         argument = arguments[self.parameter_name]
         organization_id = getattr(argument, self.attribute_name)
         mapping = self.organization_mapping_manager.get(organization_id=organization_id)
         return self._resolve_from_mapping(mapping)
 
 
-class UnimplementedRegionResolution(RegionResolution):
+class UnimplementedRegionResolution(SingleRegionResolution):
     """Indicate that a method's region resolution logic has not been implemented yet.
 
     A remote call to the method will be interrupted and will default to the
@@ -91,5 +102,5 @@ class UnimplementedRegionResolution(RegionResolution):
     documentation for details.
     """
 
-    def resolve(self, arguments: ArgumentDict) -> Region:
+    def resolve_single(self, arguments: ArgumentDict) -> Region:
         raise RpcServiceUnimplementedException("Need to resolve to remote region silo")

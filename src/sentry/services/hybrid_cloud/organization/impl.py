@@ -17,6 +17,7 @@ from sentry.models.organizationmember import InviteStatus
 from sentry.services.hybrid_cloud import logger
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
+    RpcOrganization,
     RpcOrganizationInvite,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
@@ -105,6 +106,20 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def close(self) -> None:
         pass
+
+    def get_organization_metadata_for_user(
+        self, *, user_id: int, scope: Optional[str], only_visible: bool
+    ) -> List[RpcOrganization]:
+        organizations = self._query_organizations(user_id, scope, only_visible)
+        return [serialize_organization(o) for o in organizations]
+
+    def get_organization_metadata_by_id(
+        self, *, organization_ids: List[int], only_visible: bool
+    ) -> List[RpcOrganization]:
+        qs = Organization.objects.filter(id__in=organization_ids)
+        if only_visible:
+            qs = qs.filter(status=OrganizationStatus.ACTIVE)
+        return [serialize_organization(o) for o in qs]
 
     def get_organizations(
         self,

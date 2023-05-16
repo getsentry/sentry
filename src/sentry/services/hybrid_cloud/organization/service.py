@@ -4,9 +4,11 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Iterable, List, Optional, cast
+from typing import Collection, Iterable, List, Optional, cast
 
+from sentry.services.hybrid_cloud import ArgumentDict
 from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSummary,
@@ -16,10 +18,30 @@ from sentry.services.hybrid_cloud.region import (
     ByOrganizationId,
     ByOrganizationIdAttribute,
     ByOrganizationSlug,
+    RegionResolution,
     UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.silo import SiloMode
+from sentry.types.region import Region
+
+
+class ByOrganizationMembership(RegionResolution):
+    def resolve(self, arguments: ArgumentDict) -> Collection[Region]:
+        from sentry.models import OrganizationMemberMapping
+
+        user_id: int = arguments["user_id"]
+        member_mappings = OrganizationMemberMapping.objects.filter(user_id=user_id)
+        organization_ids = member_mappings.values_list("organization_id", flat=True)
+        mappings = self.organization_mapping_manager.filter(organization_id__in=organization_ids)
+        return [self._resolve_from_mapping(mapping) for mapping in mappings]
+
+
+class ByMultipleOrganizationIds(RegionResolution):
+    def resolve(self, arguments: ArgumentDict) -> Collection[Region]:
+        organization_ids: List[int] = arguments["organization_ids"]
+        mappings = self.organization_mapping_manager.filter(organization_id__in=organization_ids)
+        return [self._resolve_from_mapping(mapping) for mapping in mappings]
 
 
 class OrganizationService(RpcService):
@@ -57,6 +79,20 @@ class OrganizationService(RpcService):
         rules. This method is differentiated from get_organization_by_slug by not being cached and returning
         RpcOrganizationSummary instead of org contexts
         """
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationMembership())
+    @abstractmethod
+    def get_organization_metadata_for_user(
+        self, *, user_id: int, scope: Optional[str], only_visible: bool
+    ) -> List[RpcOrganization]:
+        pass
+
+    @regional_rpc_method(resolve=ByMultipleOrganizationIds())
+    @abstractmethod
+    def get_organization_metadata_by_id(
+        self, *, organization_ids: List[int], only_visible: bool
+    ) -> List[RpcOrganization]:
         pass
 
     # TODO: This should return RpcOrganizationSummary objects, since we cannot realistically span out requests and

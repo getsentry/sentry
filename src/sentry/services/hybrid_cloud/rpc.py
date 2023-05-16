@@ -5,7 +5,23 @@ import logging
 import urllib.response
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, Mapping, Tuple, Type, TypeVar, cast
+from queue import Queue
+from threading import Thread
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Collection,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    Tuple,
+    Type,
+    TypeVar,
+    cast,
+)
 from urllib.request import Request, urlopen
 
 import django.urls
@@ -165,7 +181,7 @@ class RpcMethodSignature:
         parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})
         return getattr(parsed, self._RETURN_MODEL_ATTR)
 
-    def resolve_to_region(self, arguments: ArgumentDict) -> Region:
+    def resolve_to_regions(self, arguments: ArgumentDict) -> Collection[Region]:
         if self._region_resolution is None:
             raise RpcServiceSetupException(f"{self.service_name} does not run on the region silo")
 
@@ -330,9 +346,9 @@ class RpcService(InterfaceWithLifecycle):
                     )
 
                 if cls.local_mode == SiloMode.REGION:
-                    region = signature.resolve_to_region(kwargs)
+                    regions = signature.resolve_to_regions(kwargs)
                 else:
-                    region = None
+                    regions = None
 
                 try:
                     serial_arguments = signature.serialize_arguments(kwargs)
@@ -341,7 +357,7 @@ class RpcService(InterfaceWithLifecycle):
                         f"Could not serialize arguments for {cls.__name__}.{method_name}"
                     ) from e
 
-                return dispatch_remote_call(region, cls.key, method_name, serial_arguments)
+                return RemoteCall(cls.key, method_name, serial_arguments).dispatch(regions)
 
             def remote_method_with_fallback(service_obj: RpcService, **kwargs: Any) -> Any:
                 # See RpcServiceUnimplementedException documentation
@@ -427,42 +443,77 @@ def dispatch_to_local_service(
 _RPC_CONTENT_CHARSET = "utf-8"
 
 
-def dispatch_remote_call(
-    region: Region | None, service_name: str, method_name: str, serial_arguments: ArgumentDict
-) -> Any:
-    service, _ = _look_up_service_method(service_name, method_name)
+@dataclass(frozen=True)
+class RemoteCall:
+    service_name: str
+    method_name: str
+    serial_arguments: ArgumentDict
 
-    creds = RpcSenderCredentials.read_from_settings()
-    if not creds.is_allowed:
-        raise RpcSendException("RPC calls are not globally enabled")
+    def dispatch(self, regions: Collection[Region] | None) -> Any:
+        if regions is None:
+            return self._dispatch_single_remote_call(None)
+        if len(regions) == 0:
+            raise RpcSendException("Received an empty set of regions")
+        if len(regions) == 1:
+            (region,) = regions
+            return self._dispatch_single_remote_call(region)
+        return self._dispatch_parallel_remote_calls(regions)
 
-    if region is None:
-        address = creds.control_silo_address
-        api_token = creds.control_silo_api_token
-        if not (address and api_token):
-            raise RpcSendException("Not configured to remotely access control silo")
-    else:
-        address = region.address
-        api_token = region.api_token
-        if not (address and api_token):
-            raise RpcSendException(f"Not configured to remotely access region: {region.name}")
+    def _dispatch_parallel_remote_calls(self, regions: Collection[Region]) -> List[Any]:
+        results: Queue[Iterable[Any]] = Queue()
 
-    path = django.urls.reverse(
-        "sentry-api-0-rpc-service",
-        kwargs={"service_name": service_name, "method_name": method_name},
-    )
-    url = address + path
+        def create_thread_target(region: Region) -> Callable[[], None]:
+            def run() -> None:
+                result = self._dispatch_single_remote_call(region)
+                results.put(result)
 
-    request_body = {
-        "meta": {},  # reserved for future use
-        "args": serial_arguments,
-    }
+            return run
 
-    with _fire_request(url, request_body, api_token) as response:
-        charset = response.headers.get_content_charset() or _RPC_CONTENT_CHARSET
-        response_body = response.read().decode(charset)
-    serial_response = json.loads(response_body)
-    return service.deserialize_rpc_response(method_name, serial_response)
+        threads = [Thread(target=create_thread_target(region)) for region in regions]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        response_objects = []
+        while results:
+            response_objects += list(results.get())
+        return response_objects
+
+    def _dispatch_single_remote_call(self, region: Region | None) -> Any:
+        service, _ = _look_up_service_method(self.service_name, self.method_name)
+
+        creds = RpcSenderCredentials.read_from_settings()
+        if not creds.is_allowed:
+            raise RpcSendException("RPC calls are not globally enabled")
+
+        if region is None:
+            address = creds.control_silo_address
+            api_token = creds.control_silo_api_token
+            if not (address and api_token):
+                raise RpcSendException("Not configured to remotely access control silo")
+        else:
+            address = region.address
+            api_token = region.api_token
+            if not (address and api_token):
+                raise RpcSendException(f"Not configured to remotely access region: {region.name}")
+
+        path = django.urls.reverse(
+            "sentry-api-0-rpc-service",
+            kwargs={"service_name": self.service_name, "method_name": self.method_name},
+        )
+        url = address + path
+
+        request_body = {
+            "meta": {},  # reserved for future use
+            "args": self.serial_arguments,
+        }
+
+        with _fire_request(url, request_body, api_token) as response:
+            charset = response.headers.get_content_charset() or _RPC_CONTENT_CHARSET
+            response_body = response.read().decode(charset)
+        serial_response = json.loads(response_body)
+        return service.deserialize_rpc_response(self.method_name, serial_response)
 
 
 def _fire_request(url: str, body: Any, api_token: str) -> urllib.response.addinfourl:
