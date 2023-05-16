@@ -40,7 +40,6 @@ def _build_quota_key(use_case_id: UseCaseID, org_id: Optional[OrgId]) -> str:
 
 
 @metrics.wraps("sentry_metrics.indexer.construct_quotas")
-# this needs to now take in UseCaseID
 def _construct_quotas(use_case_id: UseCaseID) -> Optional[Quota]:
     """
     Construct write limit's quotas based on current sentry options.
@@ -71,6 +70,8 @@ class InboundMessage(TypedDict):
     org_id: int
     name: str
     tags: Dict[str, str]
+    # now that all messages are getting a use_case_id
+    # field via message processing, we can add it here
     use_case_id: UseCaseID
 
 
