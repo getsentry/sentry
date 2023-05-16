@@ -51,8 +51,10 @@ async function fetchReplayList({
       query: {
         ...payload,
         cursor: location.query.cursor,
+        // when queryReferrer === 'issueReplays' we override the global view check on the backend
+        // we also require a project param otherwise we won't yield results
         queryReferrer,
-        project: ALL_ACCESS_PROJECTS,
+        project: queryReferrer === 'issueReplays' ? ALL_ACCESS_PROJECTS : payload.project,
       },
     });
 
