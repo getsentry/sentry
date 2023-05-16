@@ -156,9 +156,9 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     const {organization, router} = this.props;
     const {user} = this.state.member!;
 
-    const requests = user.authenticators.map(auth =>
-      removeAuthenticator(this.api, user.id, auth.id)
-    );
+    const requests =
+      user?.authenticators.map(auth => removeAuthenticator(this.api, user.id, auth.id)) ??
+      [];
 
     try {
       await Promise.all(requests);

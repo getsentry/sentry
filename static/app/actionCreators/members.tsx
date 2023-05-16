@@ -4,7 +4,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {Member} from 'sentry/types';
+import {Member, User} from 'sentry/types';
 
 function getMemberUser(member: Member) {
   return {
@@ -53,19 +53,21 @@ export async function fetchOrgMembers(
   return [];
 }
 
-export type IndexedMembersByProject = Record<string, Member['user'][]>;
+export type IndexedMembersByProject = Record<string, User[]>;
 
 /**
  * Convert a list of members with user & project data
  * into a object that maps project slugs : users in that project.
  */
 export function indexMembersByProject(members: Member[]): IndexedMembersByProject {
-  return members.reduce((acc, member) => {
+  return members.reduce<IndexedMembersByProject>((acc, member) => {
     for (const project of member.projects) {
       if (!acc.hasOwnProperty(project)) {
         acc[project] = [];
       }
-      acc[project].push(member.user);
+      if (member.user) {
+        acc[project].push(member.user);
+      }
     }
     return acc;
   }, {});
