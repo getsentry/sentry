@@ -40,6 +40,35 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
+    def test_add_team_with_team_role(self):
+        user = self.create_user(username="foo")
+        team_to_add = self.create_team(organization=self.organization)
+        team_1 = self.create_team(organization=self.organization, slug="admin-team")
+        team_2 = self.create_team(organization=self.organization, slug="contri-team")
+        project_1 = self.create_project(organization=self.organization, teams=[team_1])
+        project_2 = self.create_project(organization=self.organization, teams=[team_2])
+
+        self.create_member(user=user, organization=self.organization, role="member")
+        self.create_team_membership(user=user, team=team_1, role="admin")
+        self.create_team_membership(user=user, team=team_2)
+        self.login_as(user=user)
+
+        # Team Admin grant access to other teams
+        self.get_success_response(
+            self.organization.slug,
+            project_1.slug,
+            team_to_add.slug,
+            status_code=status.HTTP_201_CREATED,
+        )
+
+        # Team Contributor cannot grant access to other teams
+        self.get_error_response(
+            self.organization.slug,
+            project_2.slug,
+            team_to_add.slug,
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
 
 @region_silo_test
 class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
@@ -105,4 +134,45 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
             project.slug,
             "not-a-team",
             status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+    def test_remove_team_with_team_role(self):
+        user = self.create_user(username="foo")
+        team_to_remove = self.create_team(organization=self.organization)
+        team_1 = self.create_team(organization=self.organization, slug="admin-team")
+        team_2 = self.create_team(organization=self.organization, slug="contri-team")
+        project_1 = self.create_project(
+            organization=self.organization, teams=[team_1, team_to_remove]
+        )
+        project_2 = self.create_project(
+            organization=self.organization, teams=[team_2, team_to_remove]
+        )
+
+        self.create_member(user=user, organization=self.organization, role="member")
+        self.create_team_membership(user=user, team=team_1, role="admin")
+        self.create_team_membership(user=user, team=team_2)
+        self.login_as(user=user)
+
+        # Cannot revoke access for other team if you are not their admin
+        self.get_error_response(
+            self.organization.slug,
+            project_1.slug,
+            team_to_remove.slug,
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+        # Can revoke access for your own team
+        self.get_success_response(
+            self.organization.slug,
+            project_1.slug,
+            team_1.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        # Cannot revoke access as a team contributor
+        self.get_error_response(
+            self.organization.slug,
+            project_2.slug,
+            team_to_remove.slug,
+            status_code=status.HTTP_403_FORBIDDEN,
         )
