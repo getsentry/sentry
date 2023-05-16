@@ -268,7 +268,7 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
         if "version" in profile:
             if profile["platform"] in JS_PLATFORMS:
                 for idx, f in enumerate(profile["profile"]["frames"]):
-                    if is_valid_javascript_frame(f):
+                    if is_valid_javascript_frame(f, profile):
                         frames_sent.add(idx)
 
                 frames = [profile["profile"]["frames"][idx] for idx in frames_sent]
