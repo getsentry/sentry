@@ -33,7 +33,6 @@ function initializeData({
     apdexThreshold: 400,
   });
   const initialData = initializeOrg({
-    ...initializeOrg(),
     organization,
     router: {
       location: {

@@ -13,7 +13,6 @@ describe('Breadcrumb Data Default', function () {
   });
 
   const {organization, router} = initializeOrg({
-    ...initializeOrg(),
     router: {
       location: {query: {project: '0'}},
     },

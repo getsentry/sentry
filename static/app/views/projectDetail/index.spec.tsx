@@ -8,7 +8,7 @@ import ProjectDetails from 'sentry/views/projectDetail/projectDetail';
 
 describe('ProjectDetail', function () {
   const {routerContext, organization, project, router} = initializeOrg();
-  const params = {...router.params, projectId: project.slug};
+  const params = {...router.params, projectId: project.slug} as any;
 
   beforeEach(() => {
     PageFiltersStore.reset();
@@ -51,10 +51,21 @@ describe('ProjectDetail', function () {
 
       ProjectsStore.loadInitialData(projects);
 
-      render(<ProjectDetails organization={organization} {...router} params={params} />, {
-        context: routerContext,
-        organization,
-      });
+      render(
+        <ProjectDetails
+          organization={organization}
+          router={router}
+          location={router.location}
+          params={params}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+        />,
+        {
+          context: routerContext,
+          organization,
+        }
+      );
 
       expect(
         screen.queryByText(
@@ -86,10 +97,21 @@ describe('ProjectDetail', function () {
         body: projects[0],
       });
 
-      render(<ProjectDetails organization={organization} {...router} params={params} />, {
-        context: routerContext,
-        organization,
-      });
+      render(
+        <ProjectDetails
+          organization={organization}
+          router={router}
+          location={router.location}
+          params={params}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+        />,
+        {
+          context: routerContext,
+          organization,
+        }
+      );
 
       expect(
         await screen.findByText(

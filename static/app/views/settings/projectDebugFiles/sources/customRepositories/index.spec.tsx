@@ -63,7 +63,6 @@ function TestComponent({
 
 function getProps(props?: {router: InjectedRouter}) {
   const {organization, router, project, routerContext} = initializeOrg({
-    ...initializeOrg(),
     router: props?.router,
   });
 

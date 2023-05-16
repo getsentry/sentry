@@ -90,7 +90,6 @@ describe('PluginDetailedView', function () {
 
   it('view configurations', function () {
     const {route, router, organization} = initializeOrg({
-      ...initializeOrg(),
       router: {location: {query: {tab: 'configurations'}}},
     });
 

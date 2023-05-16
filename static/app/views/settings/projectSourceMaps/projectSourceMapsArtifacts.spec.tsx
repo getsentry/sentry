@@ -57,7 +57,6 @@ describe('ProjectSourceMapsArtifacts', function () {
   describe('Release Bundles', function () {
     it('renders default state', async function () {
       const {organization, route, project, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {},
@@ -121,7 +120,6 @@ describe('ProjectSourceMapsArtifacts', function () {
 
     it('renders empty state', async function () {
       const {organization, route, project, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {},
@@ -162,7 +160,6 @@ describe('ProjectSourceMapsArtifacts', function () {
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
       const {organization, route, project, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
@@ -237,7 +234,6 @@ describe('ProjectSourceMapsArtifacts', function () {
 
     it('renders empty state', async function () {
       const {organization, route, project, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${

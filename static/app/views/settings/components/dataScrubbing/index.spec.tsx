@@ -122,9 +122,7 @@ describe('Data Scrubbing', function () {
 
     it('OrganizationRules has content', function () {
       const {organization, project} = initializeOrg({
-        ...initializeOrg(),
         organization: {
-          ...initializeOrg().organization,
           relayPiiConfig,
         },
       });

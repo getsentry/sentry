@@ -15,7 +15,6 @@ describe('Exception Content', function () {
     });
 
     const {organization, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
       router: {
         location: {query: {project: '0'}},
       },

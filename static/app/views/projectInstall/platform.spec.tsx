@@ -10,7 +10,6 @@ describe('ProjectInstallPlatform', function () {
       platform: 'lua',
     };
     const {organization, router, route, project, routerContext} = initializeOrg({
-      ...initializeOrg(),
       router: {
         location: {
           query: {},
@@ -50,7 +49,6 @@ describe('ProjectInstallPlatform', function () {
     };
 
     const {organization, router, route, project, routerContext} = initializeOrg({
-      ...initializeOrg(),
       router: {
         location: {
           query: {},

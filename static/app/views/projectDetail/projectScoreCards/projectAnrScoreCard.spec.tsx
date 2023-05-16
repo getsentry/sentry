@@ -8,11 +8,9 @@ describe('ProjectDetail > ProjectAnr', function () {
   let endpointMock, endpointMockPreviousPeriod;
 
   const {organization, router, routerContext} = initializeOrg({
-    ...initializeOrg(),
     router: {
       ...initializeOrg().router,
       location: {
-        ...initializeOrg().router.location,
         query: {project: '1', statsPeriod: '7d'},
       },
     },

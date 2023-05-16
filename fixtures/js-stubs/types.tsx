@@ -88,6 +88,7 @@ type TestStubFixtures = {
   MetricsSessionUserCountByStatusByRelease: SimpleStub;
   MetricsTotalCountByReleaseIn24h: SimpleStub;
   OrgOwnedApps: SimpleStub;
+  OrgRoleList: OverridableStub;
   Organization: OverridableStub;
   OrganizationEvent: OverridableStub;
   OrganizationIntegrations: OverridableStub;
@@ -169,6 +170,7 @@ type TestStubFixtures = {
   TeamIssuesBreakdown: SimpleStub;
   TeamIssuesReviewed: SimpleStub;
   TeamResolutionTime: SimpleStub;
+  TeamRoleList: OverridableStub;
   Tombstones: OverridableStubList;
   TraceError: OverridableStub;
   UpdateSdkAndEnableIntegrationSuggestion: SimpleStub;

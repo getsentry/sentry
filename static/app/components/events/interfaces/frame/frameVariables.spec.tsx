@@ -13,7 +13,6 @@ describe('Frame Variables', function () {
     });
 
     const {organization, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
       router: {
         location: {query: {project: '0'}},
       },

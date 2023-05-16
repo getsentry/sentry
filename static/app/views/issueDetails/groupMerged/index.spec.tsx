@@ -36,13 +36,10 @@ describe('Issues -> Merged View', function () {
 
   it('renders initially with loading component', function () {
     const {organization, project, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
       project: {
-        ...initializeOrg().project,
         slug: 'projectId',
       },
       router: {
-        ...initializeOrg().router,
         location: {
           query: {},
         },
@@ -68,13 +65,10 @@ describe('Issues -> Merged View', function () {
 
   it('renders with mocked data', async function () {
     const {organization, project, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
       project: {
-        ...initializeOrg().project,
         slug: 'projectId',
       },
       router: {
-        ...initializeOrg().router,
         location: {
           query: {},
         },
