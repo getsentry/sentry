@@ -469,6 +469,26 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             == f"Invite request for hello@sentry.io has been rejected. <{manage_url}|See Members and Requests>."
         )
 
+    def test_invalid_rejected_invite_request(self):
+        user = self.create_user(email="hello@sentry.io")
+        member = self.create_member(
+            organization=self.organization,
+            role="member",
+            user=user,
+            invite_status=InviteStatus.APPROVED.value,
+        )
+
+        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+
+        resp = self.post_webhook(action_data=[{"value": "reject_member"}], callback_id=callback_id)
+
+        assert resp.status_code == 200, resp.content
+        assert OrganizationMember.objects.filter(id=member.id).exists()
+        member.refresh_from_db()
+        self.assert_org_member_mapping(org_member=member)
+
+        assert resp.data["text"] == "Member invitation for hello@sentry.io no longer exists."
+
     def test_invitation_removed(self):
         other_user = self.create_user()
         member = OrganizationMember.objects.create(

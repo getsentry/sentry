@@ -612,6 +612,9 @@ class OrganizationMember(Model):
         from sentry import audit_log
         from sentry.utils.audit import create_audit_entry_from_user
 
+        if self.invite_status == InviteStatus.APPROVED.value:
+            return
+
         self.delete()
 
         create_audit_entry_from_user(
