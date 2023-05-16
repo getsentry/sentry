@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.db import transaction
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -104,10 +105,15 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
 
         result = serializer.validated_data
 
-        if result.get("orgRole"):
-            member.update(role=result["orgRole"])
-        elif result.get("role"):
-            member.update(role=result["role"])
+        region_outbox = None
+        with transaction.atomic():
+            if result.get("orgRole"):
+                member.update(role=result["orgRole"])
+            elif result.get("role"):
+                member.update(role=result["role"])
+            region_outbox = member.save_outbox_for_update()
+        if region_outbox:
+            region_outbox.drain_shard(max_updates_to_drain=10)
 
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:
