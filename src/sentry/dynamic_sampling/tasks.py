@@ -3,11 +3,10 @@ from datetime import timedelta
 from typing import Dict, Optional, Sequence, Tuple
 
 import sentry_sdk
-from django.core.exceptions import ObjectDoesNotExist
 
 from sentry import features, options, quotas
+from sentry.dynamic_sampling.models import utils
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
-from sentry.dynamic_sampling.models.transaction_adjustment_model import adjust_sample_rate
 from sentry.dynamic_sampling.models.utils import DSElement
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
 from sentry.dynamic_sampling.prioritise_transactions import (
@@ -124,22 +123,10 @@ def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
 
     redis_client = get_redis_client_for_ds()
     factor_key = generate_cache_key_rebalance_factor(org_volume.org_id)
-    # we need a project from the current org... unfortunately get_blended_sample_rate
-    # takes a project (not an org)
-    # TODO RaduW is there a better way to get an org Project than filtering ?
-    org_projects = Project.objects.filter(organization__id=org_volume.org_id)
 
-    desired_sample_rate = None
-    for project in org_projects:
-        desired_sample_rate = quotas.get_blended_sample_rate(project)
-        break
-    else:
-        redis_client.delete(factor_key)  # cleanup just to be sure
-        # org with no project this shouldn't happen
-        return "no project found"
-
+    desired_sample_rate = quotas.get_blended_sample_rate(organization_id=org_volume.org_id)
     if desired_sample_rate is None:
-        return f"project with desired_sample_rate==None for {org_volume.org_id}"
+        return f"Organisation with desired_sample_rate==None org_id={org_volume.org_id}"
 
     if org_volume.total == 0 or org_volume.indexed == 0:
         # not enough info to make adjustments ( we don't consider this an error)
@@ -212,8 +199,26 @@ def adjust_sample_rates(
     if sample_rate is None:
         return
 
+    projects_with_counts = {
+        project_id: count_per_root for project_id, count_per_root, _, _ in projects_with_tx_count
+    }
+    # Since we don't mind about strong consistency, we query a replica of the main database with the possibility of
+    # having out of date information. This is a trade-off we accept, since we work under the assumption that eventually
+    # the projects of an org will be replicated consistently across replicas, because no org should continue to create
+    # new projects.
+    all_projects_ids = (
+        Project.objects.using_replica()
+        .filter(organization=organization)
+        .values_list("id", flat=True)
+    )
+    for project_id in all_projects_ids:
+        # In case a specific project has not been considered in the count query, it means that no metrics were extracted
+        # for it, thus we consider it as having 0 transactions for the query's time window.
+        if project_id not in projects_with_counts:
+            projects_with_counts[project_id] = 0
+
     projects = []
-    for project_id, count_per_root, count_keep, count_drop in projects_with_tx_count:
+    for project_id, count_per_root in projects_with_counts.items():
         projects.append(
             DSElement(
                 id=project_id,
@@ -299,25 +304,25 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
 
     org_id = project_transactions["org_id"]
     project_id = project_transactions["project_id"]
-    transactions = project_transactions["transaction_counts"]
     total_num_transactions = project_transactions.get("total_num_transactions")
     total_num_classes = project_transactions.get("total_num_classes")
-    try:
-        project = Project.objects.get_from_cache(id=project_id)
-    except ObjectDoesNotExist:
-        return  # project has probably been deleted no need to continue
+    transactions = [
+        DSElement(id=id, count=count) for id, count in project_transactions["transaction_counts"]
+    ]
 
-    sample_rate = quotas.get_blended_sample_rate(project)
+    sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
 
     if sample_rate is None or sample_rate == 1.0:
         # no sampling => no rebalancing
         return
 
-    named_rates, implicit_rate = adjust_sample_rate(
+    intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)
+    named_rates, implicit_rate = utils.adjust_sample_rates(
         classes=transactions,
         rate=sample_rate,
         total_num_classes=total_num_classes,
         total=total_num_transactions,
+        intensity=intensity,
     )
 
     set_transactions_resampling_rates(

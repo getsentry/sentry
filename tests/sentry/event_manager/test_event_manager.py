@@ -1238,7 +1238,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         event = manager.save(project.id)
 
         def query(model, key, **kwargs):
-            return tsdb.get_sums(model, [key], event.datetime, event.datetime, **kwargs)[key]
+            return tsdb.get_sums(
+                model,
+                [key],
+                event.datetime,
+                event.datetime,
+                tenant_ids={"organization_id": 123, "referrer": "r"},
+                **kwargs,
+            )[key]
 
         assert query(tsdb.models.project, project.id) == 1
         assert query(tsdb.models.group, event.group.id) == 1
@@ -1274,7 +1281,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         ).id
 
         assert tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_group, (event.group.id,), event.datetime, event.datetime
+            tsdb.models.users_affected_by_group,
+            (event.group.id,),
+            event.datetime,
+            event.datetime,
+            tenant_ids={"referrer": "r", "organization_id": 123},
         ) == {event.group.id: 1}
 
         assert tsdb.get_distinct_counts_totals(
@@ -1282,6 +1293,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             (event.project.id,),
             event.datetime,
             event.datetime,
+            tenant_ids={"organization_id": 123, "referrer": "r"},
         ) == {event.project.id: 1}
 
         assert tsdb.get_distinct_counts_totals(
@@ -1290,6 +1302,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             event.datetime,
             event.datetime,
             environment_id=environment_id,
+            tenant_ids={"organization_id": 123, "referrer": "r"},
         ) == {event.group.id: 1}
 
         assert tsdb.get_distinct_counts_totals(
@@ -1298,6 +1311,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             event.datetime,
             event.datetime,
             environment_id=environment_id,
+            tenant_ids={"organization_id": 123, "referrer": "r"},
         ) == {event.project.id: 1}
 
         euser = EventUser.objects.get(project_id=self.project.id, ident="1")
@@ -2014,9 +2028,13 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
         assert event.group is None
         assert (
-            tsdb.get_sums(tsdb.models.project, [self.project.id], event.datetime, event.datetime)[
-                self.project.id
-            ]
+            tsdb.get_sums(
+                tsdb.models.project,
+                [self.project.id],
+                event.datetime,
+                event.datetime,
+                tenant_ids={"organization_id": 123, "referrer": "r"},
+            )[self.project.id]
             == 0
         )
 
@@ -2050,16 +2068,24 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         assert event1.group is not None
         assert event2.group is None
         assert (
-            tsdb.get_sums(tsdb.models.project, [self.project.id], event1.datetime, event1.datetime)[
-                self.project.id
-            ]
+            tsdb.get_sums(
+                tsdb.models.project,
+                [self.project.id],
+                event1.datetime,
+                event1.datetime,
+                tenant_ids={"organization_id": 123, "referrer": "r"},
+            )[self.project.id]
             == 1
         )
 
         assert (
-            tsdb.get_sums(tsdb.models.group, [event1.group.id], event1.datetime, event1.datetime)[
-                event1.group.id
-            ]
+            tsdb.get_sums(
+                tsdb.models.group,
+                [event1.group.id],
+                event1.datetime,
+                event1.datetime,
+                tenant_ids={"organization_id": 123, "referrer": "r"},
+            )[event1.group.id]
             == 1
         )
 

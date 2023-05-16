@@ -494,6 +494,102 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
+    def test_sourcemap_webpack(self, process_with_symbolicator):
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
+        )
+        release.add_project(self.project)
+
+        for file in [
+            "webpack1.min.js",
+            "webpack2.min.js",
+            "webpack1.min.js.map",
+            "webpack2.min.js.map",
+        ]:
+            with open(get_fixture_path(file), "rb") as f:
+                f1 = File.objects.create(
+                    name=file,
+                    type="release.file",
+                    headers={},
+                )
+                f1.putfile(f)
+
+            ReleaseFile.objects.create(
+                name=f"http://example.com/{f1.name}",
+                release_id=release.id,
+                organization_id=self.project.organization_id,
+                file=f1,
+            )
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/webpack1.min.js",
+                                    "filename": "webpack1.min.js",
+                                    "lineno": 1,
+                                    "colno": 183,
+                                    "function": "i",
+                                },
+                                {
+                                    "abs_path": "http://example.com/webpack2.min.js",
+                                    "filename": "webpack2.min.js",
+                                    "lineno": 1,
+                                    "colno": 183,
+                                    "function": "i",
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        # The first frame should be in_app.
+        first_frame = frame_list[0]
+        assert first_frame.in_app
+        assert first_frame.function == "test"
+        assert first_frame.pre_context == [
+            "    cb(data);",
+            "  }",
+            "",
+            "  function test() {",
+            "    var data = {failed: true, value: 42};",
+        ]
+        assert first_frame.context_line == "    invoke(data);"
+        if process_with_symbolicator:
+            assert first_frame.post_context == [
+                "  }",
+                "",
+                "  return test;",
+                "})();",
+            ]
+        else:
+            assert first_frame.post_context == ["  }", "", "  return test;", "})();", ""]
+
+        # The second frame should be identical to the first, except not in_app.
+        second_frame = frame_list[1]
+        assert not second_frame.in_app
+        assert second_frame.function == first_frame.function
+        assert second_frame.context_line == first_frame.context_line
+        assert second_frame.pre_context == first_frame.pre_context
+        assert second_frame.post_context == first_frame.post_context
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_sourcemap_source_expansion_ab_test(self, process_with_symbolicator):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(

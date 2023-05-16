@@ -106,8 +106,7 @@ describe('AssigneeSelector', () => {
       },
     });
 
-    MemberListStore.state = [];
-    MemberListStore.loaded = false;
+    MemberListStore.reset();
   });
 
   // Doesn't need to always be async, but it was easier to prevent flakes this way

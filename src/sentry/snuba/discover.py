@@ -4,7 +4,7 @@ import random
 from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
@@ -1333,3 +1333,39 @@ def check_multihistogram_fields(fields):
         elif histogram_type == "span_op_breakdowns" and not is_span_op_breakdown(field):
             return False
     return histogram_type
+
+
+def corr_snuba_timeseries(
+    x: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
+    y: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
+):
+    """
+    Returns the Pearson's coefficient of two snuba timeseries.
+    """
+    if len(x) != len(y):
+        return
+
+    n = len(x)
+    sum_x, sum_y, sum_xy, sum_x_squared, sum_y_squared = 0, 0, 0, 0, 0
+    for i in range(n):
+        x_datum = x[i]
+        y_datum = y[i]
+
+        x_ = x_datum[1][0]["count"]
+        y_ = y_datum[1][0]["count"]
+
+        sum_x += x_
+        sum_y += y_
+        sum_xy += x_ * y_
+        sum_x_squared += x_ * x_
+        sum_y_squared += y_ * y_
+
+    denominator = math.sqrt(
+        (n * sum_x_squared - sum_x * sum_x) * (n * sum_y_squared - sum_y * sum_y)
+    )
+    if denominator == 0:
+        return
+
+    pearsons_corr_coeff = ((n * sum_xy) - (sum_x * sum_y)) / denominator
+
+    return pearsons_corr_coeff

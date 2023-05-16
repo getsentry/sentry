@@ -5,9 +5,11 @@ import boto3
 from sentry.integrations.aws_lambda.client import gen_aws_client
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import Mock
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@control_silo_test(stable=True)
 class AwsLambdaClientTest(TestCase):
     @patch.object(boto3, "Session")
     @patch.object(boto3, "client")

@@ -13,6 +13,7 @@ from typing import (
     Union,
 )
 
+import sentry_sdk
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
@@ -216,6 +217,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         scope_type: NotificationScopeType | None = None,
         scope_identifier: int | None = None,
         target_ids: Iterable[int] | None = None,
+        user_ids: Iterable[int] | None = None,
+        team_ids: Iterable[int] | None = None,
     ) -> QuerySet:
         """Wrapper for .filter that translates types to actual attributes to column types."""
         filters: MutableMapping[str, int | Iterable[int]] = {}
@@ -233,6 +236,17 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
         if target_ids:
             filters["target_id__in"] = target_ids
+
+        if user_ids:
+            filters["user_id__in"] = user_ids
+
+        if team_ids:
+            filters["team_id__in"] = team_ids
+
+        try:
+            assert user_ids or team_ids, "Must have user_id or team_id when reading settings"
+        except AssertionError as err:
+            sentry_sdk.capture_exception(err)
 
         return self.filter(**filters)
 
@@ -289,7 +303,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 actor = RpcActor.from_object(team)
         assert actor
 
-        # TODO(hybridcloud) This will need to use team/user
+        # TODO(actorid) This will need to use team/user. This method also needs to handle RpcUser
         scope_type, scope_identifier = get_scope(actor, project=project, organization=organization)
         target_id = actor.actor_id
         assert target_id, "Cannot find settings for None actor_id"
@@ -316,6 +330,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 team_ids.add(recipient.id)
             if recipient.actor_type == ActorType.USER:
                 user_ids.add(recipient.id)
+            # TODO(actorid) Remove this once actor writes are removed..
             if recipient.actor_id is not None:
                 actor_ids.add(recipient.actor_id)
 
@@ -467,19 +482,31 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def has_any_provider_settings(
         self, recipient: RpcActor | Team | User, provider: ExternalProviders
     ) -> bool:
-        if recipient.actor_id is None:
-            return False
+        from sentry.models.team import Team
+        from sentry.models.user import User
+        from sentry.services.hybrid_cloud.user import RpcUser
+
+        key_field = None
+        if isinstance(recipient, RpcActor):
+            key_field = "user_id" if recipient.actor_type == ActorType.USER else "team_id"
+        if isinstance(recipient, (RpcUser, User)):
+            key_field = "user_id"
+        if isinstance(recipient, Team):
+            key_field = "team_id"
+
+        assert key_field, "Could not resolve key_field"
 
         # TODO(hybridcloud) This will need to filter on user_id or team_id
         # Explicitly typing to satisfy mypy.
         has_settings: bool = (
-            self._filter(provider=provider, target_ids={recipient.actor_id})
+            self._filter(provider=provider)
             .filter(
                 value__in={
                     NotificationSettingOptionValues.ALWAYS.value,
                     NotificationSettingOptionValues.COMMITTED_ONLY.value,
                     NotificationSettingOptionValues.SUBSCRIBE_ONLY.value,
-                }
+                },
+                **{key_field: recipient.id},
             )
             .exists()
         )

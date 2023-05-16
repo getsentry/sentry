@@ -14,7 +14,7 @@ import textStyles from 'sentry/styles/text';
 import {NoteType} from 'sentry/types/alerts';
 import domId from 'sentry/utils/domId';
 import marked from 'sentry/utils/marked';
-import useTeams from 'sentry/utils/useTeams';
+import {useTeams} from 'sentry/utils/useTeams';
 
 import mentionStyle from './mentionStyle';
 import {CreateError, MentionChangeEvent, Mentioned} from './types';
@@ -63,7 +63,7 @@ function NoteInput({
 }: Props) {
   const theme = useTheme();
 
-  const members = useLegacyStore(MemberListStore).map(member => ({
+  const members = useLegacyStore(MemberListStore).members.map(member => ({
     id: `user:${member.id}`,
     display: member.name,
     email: member.email,

@@ -39,7 +39,8 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
@@ -100,12 +101,14 @@ class ParticipantMap:
 
     def split_participants_and_context(
         self,
-    ) -> Iterable[Tuple[ExternalProviders, Iterable[RpcActor], Mapping[int, Mapping[str, Any]]]]:
+    ) -> Iterable[
+        Tuple[ExternalProviders, Iterable[RpcActor], Mapping[RpcActor, Mapping[str, Any]]]
+    ]:
         for provider, participants_with_reasons in self._dict.items():
             extra_context = {
-                participant.actor_id: {"reason": reason}
+                participant: {"reason": reason}
                 for participant, reason in participants_with_reasons.items()
-                if participant.actor_id is not None
+                if participant is not None
             }
             yield provider, participants_with_reasons.keys(), extra_context
 

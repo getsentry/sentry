@@ -7,10 +7,12 @@ from django.urls.base import reverse
 from sentry.charts import generate_chart, is_enabled
 from sentry.charts.types import ChartType
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 
+@control_silo_test(stable=True)
 class ChartcuterieTest(TestCase):
     def test_enabled(self):
         assert not is_enabled()
