@@ -18,9 +18,8 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0444_remove_next_checkin_last_checkin_from_monitor'),
+        ("sentry", "0444_remove_next_checkin_last_checkin_from_monitor"),
     ]
 
     operations = [
