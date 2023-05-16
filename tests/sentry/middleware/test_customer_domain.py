@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
 from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.web.frontend.auth_logout import AuthLogoutView
 
 
@@ -184,6 +185,7 @@ def provision_middleware():
     SENTRY_SELF_HOSTED=False,
     SENTRY_USE_CUSTOMER_DOMAINS=True,
 )
+@control_silo_test(stable=True)
 class End2EndTest(APITestCase):
     def setUp(self):
         super().setUp()

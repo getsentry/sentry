@@ -44,7 +44,10 @@
       "request": "launch",
       "module": "pytest",
       "args": ["${file}"],
-      "django": true
+      "django": true,
+      "env": {
+        "SENTRY_MODEL_MANIFEST_FILE_PATH": "./model-manifest.json"
+      }
     }
   ]
 }

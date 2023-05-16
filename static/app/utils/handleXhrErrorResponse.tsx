@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 
 import {ResponseMeta} from 'sentry/api';
 
-export default function handleXhrErrorResponse(message: string) {
+export default function getXhrErrorResponseHandler(message: string) {
   return (resp: ResponseMeta) => {
     if (!resp) {
       return;
@@ -38,4 +38,9 @@ export default function handleXhrErrorResponse(message: string) {
       return;
     }
   };
+}
+
+export function handleXhrErrorResponse(message: string, resp: ResponseMeta): void {
+  const handler = getXhrErrorResponseHandler(message);
+  return handler(resp);
 }
