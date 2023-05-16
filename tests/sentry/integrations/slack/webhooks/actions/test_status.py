@@ -19,6 +19,7 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -27,7 +28,7 @@ from . import BaseEventTest
 
 
 @region_silo_test(stable=True)
-class StatusActionTest(BaseEventTest):
+class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_ask_linking(self):
         """Freezing time to prevent flakiness from timestamp mismatch."""
@@ -416,13 +417,14 @@ class StatusActionTest(BaseEventTest):
 
     def test_approve_join_request(self):
         other_user = self.create_user()
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=self.organization,
             email="hello@sentry.io",
             role="member",
             inviter_id=other_user.id,
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
+        self.assert_org_member_mapping(org_member=member)
 
         callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
 
@@ -432,6 +434,7 @@ class StatusActionTest(BaseEventTest):
 
         member.refresh_from_db()
         assert member.invite_status == InviteStatus.APPROVED.value
+        self.assert_org_member_mapping(org_member=member)
 
         manage_url = absolute_uri(
             reverse("sentry-organization-members", args=[self.organization.slug])
