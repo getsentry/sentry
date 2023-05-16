@@ -101,7 +101,7 @@ class UserService(RpcService):
         :return:
         """
         if not filter:
-            filter: UserFilterArgs = dict()
+            filter = dict()
         filter["user_ids"] = [user_id]
         users = self.get_many(filter=filter)
         if len(users) > 0:
