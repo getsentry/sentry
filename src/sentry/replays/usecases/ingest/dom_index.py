@@ -1,4 +1,5 @@
 import logging
+import random
 import time
 import uuid
 from hashlib import md5
@@ -139,7 +140,8 @@ def get_user_actions(
             if category == "ui.slowClickDetected":
                 payload["project_id"] = project_id
                 payload["replay_id"] = replay_id
-                logger.info("Slow click detected", extra=payload)
+                payload["dom_tree"] = payload.pop("message")
+                logger.info("sentry.replays.slow_click", extra=payload)
             elif category == "ui.click":
                 node = payload.get("data", {}).get("node")
                 if node is None:
@@ -193,6 +195,16 @@ def get_user_actions(
                         "replays.usecases.ingest.response_body_size",
                         event_payload_data["response"]["size"],
                     )
+        # log the SDK options sent from the SDK 1/500 times
+        if (
+            event.get("type") == 5
+            and event.get("data", {}).get("tag") == "options"
+            and random.randint(0, 499) < 1
+        ):
+            log = event["data"].get("payload", {}).copy()
+            log["project_id"] = project_id
+            log["replay_id"] = replay_id
+            logger.info("SDK Options:", extra=log)
 
     return result
 

@@ -21,7 +21,8 @@ import getCurrentSentryReactTransaction from './getCurrentSentryReactTransaction
 const MIN_UPDATE_SPAN_TIME = 16; // Frame boundary @ 60fps
 const WAIT_POST_INTERACTION = 50; // Leave a small amount of time for observers and onRenderCallback to log since they come in after they occur and not during.
 const INTERACTION_TIMEOUT = 2 * 60_000; // 2min. Wrap interactions up after this time since we don't want transactions sticking around forever.
-const MEASUREMENT_OUTLIER_VALUE = 5 * 60_000;
+const MEASUREMENT_OUTLIER_VALUE = 5 * 60_000; // Measurements over 5 minutes don't get recorded as a metric and are tagged instead.
+const ASSET_OUTLIER_VALUE = 1_000_000_000; // Assets over 1GB are ignored since they are likely a reporting error.
 
 /**
  * It depends on where it is called but the way we fetch transactions can be empty despite an ongoing transaction existing.
@@ -255,6 +256,19 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
   let allTransfered = 0;
   let allEncoded = 0;
   let hasAssetTimings = false;
+  const getOperation = data => data.operation ?? '';
+  const getTransferSize = data =>
+    data['http.response_transfer_size'] ?? data['Transfer Size'] ?? 0;
+  const getEncodedSize = data =>
+    data['http.response_content_length'] ?? data['Encoded Body Size'] ?? 0;
+  const getDecodedSize = data =>
+    data['http.decoded_request_body_length'] ?? data['Decoded Body Size'] ?? 0;
+  const getFields = data => ({
+    operation: getOperation(data),
+    transferSize: getTransferSize(data),
+    encodedSize: getEncodedSize(data),
+    decodedSize: getDecodedSize(data),
+  });
 
   for (const [op, _] of Object.entries(OP_ASSET_MEASUREMENT_MAP)) {
     const filtered = spans.filter(
@@ -264,20 +278,24 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
           domain => !s.description || s.description.includes(domain)
         )
     );
-    const transfered = filtered.reduce(
-      (acc, curr) =>
-        acc +
-        (curr.data['http.response_transfer_size'] ?? curr.data['Transfer Size'] ?? 0),
-      0
-    );
-    const encoded = filtered.reduce(
-      (acc, curr) =>
-        acc +
-        (curr.data['http.response_content_length'] ??
-          curr.data['Encoded Body Size'] ??
-          0),
-      0
-    );
+    const transfered = filtered.reduce((acc, curr) => {
+      const fields = getFields(curr.data);
+      if (fields.transferSize > ASSET_OUTLIER_VALUE) {
+        return acc;
+      }
+      return acc + fields.transferSize;
+    }, 0);
+    const encoded = filtered.reduce((acc, curr) => {
+      const fields = getFields(curr.data);
+      if (
+        fields.encodedSize > ASSET_OUTLIER_VALUE ||
+        (fields.encodedSize > 0 && fields.decodedSize === 0)
+      ) {
+        // There appears to be a bug where we have massive encoded sizes w/o a decode size, we'll ignore these assets for now.
+        return acc;
+      }
+      return acc + fields.encodedSize;
+    }, 0);
 
     if (encoded > 0) {
       hasAssetTimings = true;
