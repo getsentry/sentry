@@ -23,6 +23,7 @@ import withApi from 'sentry/utils/withApi';
 import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
+import {SampleEvents} from 'sentry/views/starfish/components/sampleEvents';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import DatabaseTableView, {
   DataRow,
@@ -262,6 +263,8 @@ export default function EndpointOverview() {
             title={t('Where is time spent in this endpoint?')}
             transaction={transaction as string}
           />
+          <SubHeader>{t('Sample Events')}</SubHeader>
+          <SampleEvents eventView={eventView} />
           <SubHeader>{t('Correlations')}</SubHeader>
           <FacetInsights eventView={eventView} />
           <SubHeader>{t('HTTP Spans')}</SubHeader>
