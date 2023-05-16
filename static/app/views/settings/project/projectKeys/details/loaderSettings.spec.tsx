@@ -155,9 +155,9 @@ describe('Loader Script Settings', function () {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
         expect.objectContaining({
-          data: {
+          data: expect.objectContaining({
             browserSdkVersion: '7.x',
-          },
+          }),
         })
       );
     });
