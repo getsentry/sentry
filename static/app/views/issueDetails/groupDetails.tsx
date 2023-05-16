@@ -22,7 +22,7 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Group, IssueCategory, Organization, Project} from 'sentry/types';
+import {Group, GroupRelease, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -329,6 +329,18 @@ function useFetchGroupDetails({
     {staleTime: 30000, cacheTime: 30000, enabled: isGlobalSelectionReady}
   );
 
+  const {data: groupReleaseData, isLoading: groupReleaseLoading} =
+    useApiQuery<GroupRelease>([`/issues/${params.groupId}/first-last-release/`], {
+      staleTime: 60000,
+      cacheTime: 60000,
+    });
+
+  useEffect(() => {
+    if (!groupReleaseLoading && groupReleaseData) {
+      GroupStore.onPopulateReleases(params.groupId, groupReleaseData);
+    }
+  }, [groupReleaseData, groupReleaseLoading, params.groupId]);
+
   const group = groupData ?? null;
 
   useSyncGroupStore();
@@ -402,17 +414,6 @@ function useFetchGroupDetails({
       setProject(matchingProject || group.project);
     }
   }, [group, loadingGroup, projects, api, organization.slug, params.groupId]);
-
-  const fetchGroupReleases = useCallback(async () => {
-    const releases = await api.requestPromise(
-      `/issues/${params.groupId}/first-last-release/`
-    );
-    GroupStore.onPopulateReleases(params.groupId, releases);
-  }, [api, params.groupId]);
-
-  useEffect(() => {
-    fetchGroupReleases();
-  }, [params.groupId, fetchGroupReleases]);
 
   const handleError = useCallback((e: RequestError) => {
     Sentry.captureException(e);
