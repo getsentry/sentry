@@ -283,8 +283,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             if settings.SENTRY_ENABLE_INVITES:
                 om.token = om.generate_token()
             om.save()
-            region_outbox = om.outbox_for_create()
-            region_outbox.save()
+            region_outbox = om.save_outbox_for_create()
         if region_outbox:
             region_outbox.drain_shard(max_updates_to_drain=10)
 

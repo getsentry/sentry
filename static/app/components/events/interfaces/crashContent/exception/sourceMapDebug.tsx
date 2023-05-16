@@ -54,6 +54,12 @@ function getErrorMessage(
     }
     return `${baseSourceMapDocsLink}troubleshooting_js/` + (section ? `#${section}` : '');
   }
+  function getMigrationGuide() {
+    if (docPlatform === 'react-native') {
+      return 'https://docs.sentry.io/platforms/react-native/migration/';
+    }
+    return 'https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md#upgrading-from-6x-to-7x';
+  }
 
   const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps-to-sentry`;
 
@@ -166,6 +172,18 @@ function getErrorMessage(
             "Sentry couldn't fetch the source map file for this event. Read our docs for troubleshooting help."
           ),
           docsLink: getTroubleshootingLink(),
+        },
+      ];
+    case SourceMapProcessingIssueType.SDK_OUT_OF_DATE:
+      return [
+        {
+          title: t('SDK Out of Date'),
+          desc: t(
+            "We're not able to un-minify your application's source code, because your SDK %s is out of date with version %s. Please update it to the latest version.",
+            error.data.sdkName,
+            error.data.sdkVersion
+          ),
+          docsLink: error.data.showMigrationGuide ? getMigrationGuide() : undefined,
         },
       ];
     case SourceMapProcessingIssueType.UNKNOWN_ERROR:
@@ -301,12 +319,14 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
                 key={idx}
                 title={message.title}
                 docsLink={
-                  <DocsExternalLink
-                    href={message.docsLink}
-                    onClick={() => handleDocsClick(message.type)}
-                  >
-                    {t('Read Guide')}
-                  </DocsExternalLink>
+                  message.docsLink ? (
+                    <DocsExternalLink
+                      href={message.docsLink}
+                      onClick={() => handleDocsClick(message.type)}
+                    >
+                      {t('Read Guide')}
+                    </DocsExternalLink>
+                  ) : null
                 }
                 onExpandClick={() => handleExpandClick(message.type)}
               >
