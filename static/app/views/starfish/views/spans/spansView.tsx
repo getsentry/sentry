@@ -76,44 +76,52 @@ export default function SpansView(props: Props) {
 
   return (
     <Fragment>
-      <div>
-        <FilterOptionsContainer>
-          <DatePageFilter alignDropdown="left" />
-        </FilterOptionsContainer>
-      </div>
+      <FilterOptionsContainer>
+        <DatePageFilter alignDropdown="left" />
+      </FilterOptionsContainer>
 
-      <SearchBar
-        onChange={value => {
-          setSearchTerm(value);
-          setDidConfirmSearch(false);
-        }}
-        placeholder="Search Spans"
-        query={searchTerm}
-        onSearch={() => {
-          setDidConfirmSearch(true);
-        }}
-      />
+      <PaddedContainer>
+        <SearchBar
+          onChange={value => {
+            setSearchTerm(value);
+            setDidConfirmSearch(false);
+          }}
+          placeholder="Search Spans"
+          query={searchTerm}
+          onSearch={() => {
+            setDidConfirmSearch(true);
+          }}
+        />
+      </PaddedContainer>
 
-      <SpanTimeCharts
-        descriptionFilter={descriptionFilter || ''}
-        queryConditions={queryConditions}
-      />
+      <PaddedContainer>
+        <SpanTimeCharts
+          descriptionFilter={descriptionFilter || ''}
+          queryConditions={queryConditions}
+        />
+      </PaddedContainer>
 
-      <SpansTable
-        location={props.location}
-        queryConditions={queryConditions}
-        isLoading={areSpansLoading || areSpansTrendsLoading}
-        spansData={spansData}
-        orderBy={orderBy}
-        onSetOrderBy={newOrderBy => setState({orderBy: newOrderBy})}
-        spansTrendsData={spansTrendsData}
-        onSelect={props.onSelect}
-      />
+      <PaddedContainer>
+        <SpansTable
+          location={props.location}
+          queryConditions={queryConditions}
+          isLoading={areSpansLoading || areSpansTrendsLoading}
+          spansData={spansData}
+          orderBy={orderBy}
+          onSetOrderBy={newOrderBy => setState({orderBy: newOrderBy})}
+          spansTrendsData={spansTrendsData}
+          onSelect={props.onSelect}
+        />
+      </PaddedContainer>
     </Fragment>
   );
 }
 
-const FilterOptionsContainer = styled('div')`
+const PaddedContainer = styled('div')`
+  margin: ${space(2)};
+`;
+
+const FilterOptionsContainer = styled(PaddedContainer)`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
