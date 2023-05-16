@@ -1805,7 +1805,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
     post_save.send(
         sender=Group,
         instance=group,
-        create=False,
+        created=False,
         update_fields=["last_seen", "active_at", "status", "substatus"],
     )
 
