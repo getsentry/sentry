@@ -1,13 +1,17 @@
 import {Fragment, useState} from 'react';
+import {Link} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
+import qs from 'qs';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {useQuery} from 'sentry/utils/queryClient';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   getOtherDomainsActionsAndOpTimeseries,
   getTopDomainsActionsAndOp,
@@ -43,6 +47,7 @@ export function getSegmentLabel(span_operation, action, domain) {
 }
 
 function FacetBreakdownBar({title, transaction: maybeTransaction}: Props) {
+  const {selection} = usePageFilters();
   const [hoveredValue, setHoveredValue] = useState<ModuleSegment | null>(null);
 
   const transaction = maybeTransaction ?? '';
@@ -219,20 +224,34 @@ function FacetBreakdownBar({title, transaction: maybeTransaction}: Props) {
               segment.action,
               segment.domain
             );
+            const {start, end, utc, period} = selection.datetime;
+            const spansLinkQueryParams =
+              start && end
+                ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+                : {statsPeriod: period};
+            ['span_operation', 'action', 'domain'].forEach(key => {
+              if (segment[key] !== undefined && segment[key] !== null) {
+                spansLinkQueryParams[key] = segment[key];
+              }
+            });
+
+            const spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
 
             return (
               <li key={`segment-${label}-${index}`}>
-                <LegendRow
-                  onMouseOver={() => setHoveredValue(segment)}
-                  onMouseLeave={() => setHoveredValue(null)}
-                  onClick={() => {}}
-                >
-                  <LegendDot color={COLORS[index]} focus={focus} />
-                  <LegendText unfocus={unfocus}>
-                    {label ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
-                  </LegendText>
-                  {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
-                </LegendRow>
+                <Link to={spansLink}>
+                  <LegendRow
+                    onMouseOver={() => setHoveredValue(segment)}
+                    onMouseLeave={() => setHoveredValue(null)}
+                    onClick={() => {}}
+                  >
+                    <LegendDot color={COLORS[index]} focus={focus} />
+                    <LegendText unfocus={unfocus}>
+                      {label ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
+                    </LegendText>
+                    {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
+                  </LegendRow>
+                </Link>
               </li>
             );
           })}
