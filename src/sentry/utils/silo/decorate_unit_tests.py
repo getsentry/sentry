@@ -1,37 +1,47 @@
 from __future__ import annotations
 
+import logging
 import os
 import re
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Callable, Dict, Iterable, List, Mapping, Set, Tuple
+from typing import Callable, Iterable, List, Mapping, Set, Tuple
 
-from sentry.utils.silo.common import Keywords, has_control_name, has_region_name
+from sentry.silo.base import SiloMode
+from sentry.testutils.modelmanifest import ModelManifest
+
+logger = logging.getLogger()
 
 
-def decorate_unit_tests(silo_keywords: Dict[str, Keywords]):
+def decorate_unit_tests(model_manifest: ModelManifest):
     pytest_collection = sys.stdin.read()
 
     case_map = TestCaseMap(TestCaseFunction.parse(pytest_collection))
 
     for (decorator, count) in case_map.report(
-        "control_silo_test", "region_silo_test", classes_only=True
+        "control_silo_test(stable=True)", "region_silo_test(stable=True)", classes_only=True
     ):
-        print(f"{decorator or 'None'}: {count}")  # noqa
+        logger.info(f"{decorator or 'None'}: {count}")  # noqa
 
     def condition(match: TestCaseMatch) -> str | None:
         if not match.case.is_class:
             return None
 
-        if has_control_name(match.case.name, silo_keywords):
-            return "control_silo_test"
-        elif has_region_name(match.case.name, silo_keywords):
-            return "region_silo_test"
+        test_name = match.path + "::" + match.case.name
+        test = model_manifest.test_names.get(test_name, None)
+        if test and not test["annotated"]:
+            mode = model_manifest.determine_silo_based_on_connections(test_name)
+            if mode == SiloMode.REGION:
+                return "region_silo_test"
+            elif mode == SiloMode.CONTROL:
+                return "control_silo_test"
+
+        return None
 
     count = case_map.add_decorators(condition)
-    print(f"Decorated {count} case{'' if count == 1 else 's'}")  # noqa
+    logger.info(f"Decorated {count} case{'' if count == 1 else 's'}")  # noqa
 
 
 @dataclass(frozen=True, eq=True)
@@ -175,9 +185,10 @@ class TestCaseMap:
         count = 0
         for match in self.case_matches:
             decorator = condition(match)
-            if decorator:
+            if decorator == "control_silo_test":
                 result = match.add_decorator(decorator)
-                count += int(result)
+                if result:
+                    count += int(result)
         return count
 
 
@@ -188,6 +199,9 @@ class TestCaseMatch:
     decorators: Tuple[str]
 
     def add_decorator(self, decorator: str) -> bool:
+        logger.info(
+            f"Decorator: {decorator}. IN: {self.decorators} - {decorator in self.decorators}"
+        )
         if decorator in self.decorators:
             return False
         with open(self.path) as f:
@@ -198,4 +212,5 @@ class TestCaseMatch:
         new_code = f"from sentry.testutils.silo import {decorator}\n{new_code}"
         with open(self.path, mode="w") as f:
             f.write(new_code)
+        logger.info(f"!!! Updating {self.path}")
         return True

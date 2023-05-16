@@ -1347,6 +1347,8 @@ SENTRY_FEATURES = {
     "organizations:sql-format": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
+    # Enable better priority sort algorithm.
+    "organizations:issue-list-better-priority-sort": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1382,6 +1384,8 @@ SENTRY_FEATURES = {
     "organizations:performance-metrics-backed-transaction-summary": False,
     # Enable new trends
     "organizations:performance-new-trends": False,
+    # Enable debug views for trendsv2 to be used internally
+    "organizations:performance-trendsv2-dev-only": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
@@ -2985,9 +2989,10 @@ SYMBOLICATOR_MAX_RETRY_AFTER = 2
 
 # The `url` of the different Symbolicator pools.
 # We want to route different workloads to a different set of Symbolicator pools.
-# This can be as fine-grained as using a different pool for `js` symbolication,
-# for the `lpq` (See `SENTRY_LPQ_OPTIONS` and related settings) and for normal
-# symbolication. The keys here should match the `SymbolicatorPools` enum
+# This can be as fine-grained as using a different pool for normal "native"
+# symbolication, `js` symbolication, and for `lpq` / `lpq-js`.
+# (See `SENTRY_LPQ_OPTIONS` and related settings)
+# The keys here should match the `SymbolicatorPools` enum
 # defined in `src/sentry/lang/native/symbolicator.py`.
 # If a specific setting does not exist, this will fall back to the `default` pool.
 # If that is not configured, it will fall back to the `url` configured in
@@ -2996,8 +3001,9 @@ SYMBOLICATOR_MAX_RETRY_AFTER = 2
 # `symbolicator.options` for backwards compatibility.
 SYMBOLICATOR_POOL_URLS = {
     # "js": "...",
-    # "lpq": "...",
     # "default": "...",
+    # "lpq": "...",
+    # "lpq_js": "...",
 }
 
 SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (

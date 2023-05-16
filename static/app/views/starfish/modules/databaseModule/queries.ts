@@ -354,6 +354,32 @@ export const useQueryPanelTable = (
   });
 };
 
+export const useQueryExampleTransaction = (
+  row: DataRow
+): DefinedUseQueryResult<{first: string; latest: string}[]> => {
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+  const query = `
+    SELECT
+      minIf(transaction_id, equals(timestamp, '${row.lastSeen}')) as latest,
+      minIf(transaction_id, equals(timestamp, '${row.firstSeen}')) as first
+    FROM spans_experimental_starfish
+    WHERE
+      ${DEFAULT_WHERE}
+      ${dateFilters} AND
+      group_id = '${row.group_id}'
+    HAVING latest > 0 and first > 0
+    LIMIT 10
+  `;
+  return useQuery({
+    queryKey: ['getExampleTransaction', row.group_id],
+    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    retry: true,
+    initialData: [],
+  });
+};
+
 export const useQueryPanelSparklines = (
   row: DataRow,
   sortKey: string | undefined,
@@ -414,7 +440,8 @@ export const useQueryPanelGraph = (row: DataRow, interval: number) => {
   const query = `
     SELECT
       toStartOfInterval(start_timestamp, INTERVAL ${interval} HOUR) as interval,
-      quantile(0.75)(exclusive_time) as p75,
+      quantile(0.95)(exclusive_time) as p95,
+      quantile(0.50)(exclusive_time) as p50,
       count() as count
     FROM spans_experimental_starfish
     WHERE
@@ -502,6 +529,8 @@ export const useQueryMainTable = (options: {
     group_id, count() as count,
     (divide(count, ${(endTime.unix() - startTime.unix()) / 60}) AS epm),
     quantile(0.75)(exclusive_time) as p75,
+    quantile(0.50)(exclusive_time) as p50,
+    quantile(0.95)(exclusive_time) as p95,
     uniq(transaction) as transactions,
     sum(exclusive_time) as total_time,
     domain,
@@ -560,8 +589,8 @@ export const useQueryTransactionByTPMAndP75 = (
   const {
     selection: {datetime},
   } = usePageFilters();
-  return useWrappedDiscoverTimeseriesQuery(
-    EventView.fromSavedQuery({
+  return useWrappedDiscoverTimeseriesQuery({
+    eventView: EventView.fromSavedQuery({
       name: '',
       fields: ['transaction', 'epm()', 'p50(transaction.duration)'],
       yAxis: ['epm()', 'p50(transaction.duration)'],
@@ -576,8 +605,8 @@ export const useQueryTransactionByTPMAndP75 = (
       projects: [1],
       version: 2,
     }),
-    []
-  );
+    initialData: [],
+  });
 };
 
 export const useQueryGetProfileIds = (transactionNames: string[]) => {
