@@ -13,6 +13,7 @@ from sentry.ratelimits.cardinality import (
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.batch import PartitionIdxOffset
 from sentry.sentry_metrics.indexer.limiters.cardinality import TimeseriesCardinalityLimiter
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 
 @pytest.fixture(autouse=True)
@@ -78,8 +79,18 @@ def test_reject_all(set_sentry_option):
         result = limiter.check_cardinality_limits(
             UseCaseKey.RELEASE_HEALTH,
             {
-                PartitionIdxOffset(0, 0): {"org_id": 1, "name": "foo", "tags": {}},
-                PartitionIdxOffset(0, 1): {"org_id": 1, "name": "bar", "tags": {}},
+                PartitionIdxOffset(0, 0): {
+                    "org_id": 1,
+                    "name": "foo",
+                    "tags": {},
+                    "use_case_id": UseCaseID.SESSIONS,
+                },
+                PartitionIdxOffset(0, 1): {
+                    "org_id": 1,
+                    "name": "bar",
+                    "tags": {},
+                    "use_case_id": UseCaseID.SESSIONS,
+                },
             },
         )
 
@@ -99,9 +110,24 @@ def test_reject_partial(set_sentry_option):
         result = limiter.check_cardinality_limits(
             UseCaseKey.RELEASE_HEALTH,
             {
-                PartitionIdxOffset(0, 0): {"org_id": 1, "name": "foo", "tags": {}},
-                PartitionIdxOffset(0, 1): {"org_id": 1, "name": "bar", "tags": {}},
-                PartitionIdxOffset(0, 2): {"org_id": 1, "name": "baz", "tags": {}},
+                PartitionIdxOffset(0, 0): {
+                    "org_id": 1,
+                    "name": "foo",
+                    "tags": {},
+                    "use_case_id": UseCaseID.SESSIONS,
+                },
+                PartitionIdxOffset(0, 1): {
+                    "org_id": 1,
+                    "name": "bar",
+                    "tags": {},
+                    "use_case_id": UseCaseID.SESSIONS,
+                },
+                PartitionIdxOffset(0, 2): {
+                    "org_id": 1,
+                    "name": "baz",
+                    "tags": {},
+                    "use_case_id": UseCaseID.SESSIONS,
+                },
             },
         )
 
@@ -117,9 +143,24 @@ def test_accept_all(set_sentry_option):
         result = limiter.check_cardinality_limits(
             UseCaseKey.RELEASE_HEALTH,
             {
-                PartitionIdxOffset(0, 0): {"org_id": 1, "name": "foo", "tags": {}},
-                PartitionIdxOffset(0, 1): {"org_id": 1, "name": "bar", "tags": {}},
-                PartitionIdxOffset(0, 2): {"org_id": 1, "name": "baz", "tags": {}},
+                PartitionIdxOffset(0, 0): {
+                    "org_id": 1,
+                    "name": "foo",
+                    "tags": {},
+                    "use_case_id": UseCaseID.SESSIONS,
+                },
+                PartitionIdxOffset(0, 1): {
+                    "org_id": 1,
+                    "name": "bar",
+                    "tags": {},
+                    "use_case_id": UseCaseID.SESSIONS,
+                },
+                PartitionIdxOffset(0, 2): {
+                    "org_id": 1,
+                    "name": "baz",
+                    "tags": {},
+                    "use_case_id": UseCaseID.SESSIONS,
+                },
             },
         )
 
@@ -143,9 +184,24 @@ def test_sample_rate_zero(set_sentry_option):
         result = limiter.check_cardinality_limits(
             UseCaseKey.RELEASE_HEALTH,
             {
-                PartitionIdxOffset(0, 0): {"org_id": 1, "name": "foo", "tags": {}},
-                PartitionIdxOffset(0, 1): {"org_id": 1, "name": "bar", "tags": {}},
-                PartitionIdxOffset(0, 2): {"org_id": 1, "name": "baz", "tags": {}},
+                PartitionIdxOffset(0, 0): {
+                    "org_id": 1,
+                    "name": "foo",
+                    "tags": {},
+                    "use_case_id": UseCaseID.SESSIONS,
+                },
+                PartitionIdxOffset(0, 1): {
+                    "org_id": 1,
+                    "name": "bar",
+                    "tags": {},
+                    "use_case_id": UseCaseID.SESSIONS,
+                },
+                PartitionIdxOffset(0, 2): {
+                    "org_id": 1,
+                    "name": "baz",
+                    "tags": {},
+                    "use_case_id": UseCaseID.SESSIONS,
+                },
             },
         )
 
@@ -157,7 +213,7 @@ def test_sample_rate_zero(set_sentry_option):
         # Right now we do call the limiter with an empty list of requests. If
         # we didn't, `_grants` would be `None` instead of `[]`. Either behavior
         # would be fine, in neither case we are hitting redis.
-        assert result._grants == []
+        assert result._grants is None
 
 
 def test_sample_rate_half(set_sentry_option):
@@ -174,8 +230,18 @@ def test_sample_rate_half(set_sentry_option):
         result = limiter.check_cardinality_limits(
             UseCaseKey.RELEASE_HEALTH,
             {
-                PartitionIdxOffset(0, 0): {"org_id": 1, "name": "foo", "tags": {}},
-                PartitionIdxOffset(0, 1): {"org_id": 99, "name": "bar", "tags": {}},
+                PartitionIdxOffset(0, 0): {
+                    "org_id": 1,
+                    "name": "foo",
+                    "tags": {},
+                    "use_case_id": UseCaseID.SESSIONS,
+                },
+                PartitionIdxOffset(0, 1): {
+                    "org_id": 99,
+                    "name": "bar",
+                    "tags": {},
+                    "use_case_id": UseCaseID.SESSIONS,
+                },
             },
         )
 
