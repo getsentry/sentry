@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import AuthProviderTestCase
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
@@ -16,8 +17,9 @@ class AuthenticationTest(AuthProviderTestCase):
 
         member = self.create_member(user=self.user, organization=self.organization, teams=[team])
 
-        setattr(member.flags, "sso:linked", True)
-        member.save()
+        with in_test_psql_role_override("postgres"):
+            setattr(member.flags, "sso:linked", True)
+            member.save()
         event = self.store_event(data={}, project_id=self.project.id)
         group_id = event.group_id
         auth_provider = AuthProvider.objects.create(
