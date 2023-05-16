@@ -406,13 +406,16 @@ export default function SpanSummary({location, params}: Props) {
                 ) : (
                   <div>
                     <h3>{t('Samples')}</h3>
-                    <CompactSelect
-                      options={options}
-                      value={state.selectedOption.value}
-                      onChange={handleDropdownChange}
-                      menuWidth={250}
-                      size="md"
-                    />
+                    <DropdownContainer>
+                      <CompactSelect
+                        options={options}
+                        value={state.selectedOption.value}
+                        onChange={handleDropdownChange}
+                        menuWidth={250}
+                        size="md"
+                      />
+                    </DropdownContainer>
+
                     <GridEditable
                       isLoading={isLoading || isTransactionDataLoading}
                       data={sampledSpanData}
@@ -502,6 +505,10 @@ const ToggleLabel = styled('span')<{active?: boolean}>`
 const ComparisonLabel = styled('div')<{value: number}>`
   text-align: right;
   color: ${p => (p.value < 0 ? p.theme.green400 : p.theme.red400)};
+`;
+
+const DropdownContainer = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 function SpanGroupKeyValueList({
