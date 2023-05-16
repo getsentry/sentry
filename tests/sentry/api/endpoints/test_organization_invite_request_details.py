@@ -2,6 +2,7 @@ from functools import cached_property
 from unittest.mock import patch
 
 from sentry import audit_log
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     InviteStatus,
@@ -195,8 +196,9 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMix
         assert audit_log_entry.data == member.get_audit_log_data()
 
     def test_member_cannot_approve_invite_request(self):
-        self.invite_request.inviter_id = self.member.user.id
-        self.invite_request.save()
+        with in_test_psql_role_override("postgres"):
+            self.invite_request.inviter_id = self.member.user.id
+            self.invite_request.save()
 
         self.login_as(user=self.member.user)
         resp = self.get_response(self.org.slug, self.invite_request.id, approve=1)

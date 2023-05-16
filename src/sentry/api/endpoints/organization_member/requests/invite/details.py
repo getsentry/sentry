@@ -11,6 +11,7 @@ from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models import InviteStatus, Organization, OrganizationMember
 from sentry.utils.audit import get_api_key_for_audit_log
@@ -106,7 +107,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
         result = serializer.validated_data
 
         region_outbox = None
-        with transaction.atomic():
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
             if result.get("orgRole"):
                 member.update(role=result["orgRole"])
             elif result.get("role"):
