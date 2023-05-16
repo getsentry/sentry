@@ -41,7 +41,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0444_remove_next_checkin_last_checkin_from_monitor"),
+        ("sentry", "0445_drop_deprecated_monitor_next_last_checkin_db_op"),
     ]
 
     operations = [
