@@ -3,6 +3,7 @@ import unittest
 import pytest
 from django.urls import reverse
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.models.authidentity import AuthIdentity
 from sentry.scim.endpoints.utils import SCIMFilterError, parse_filter_conditions
@@ -51,22 +52,23 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
 
     def setUp(self, provider="dummy"):
         super().setUp(provider=provider)
-        self.unrestricted_default_role_member = self.create_member(
-            user=self.create_user(), organization=self.organization
-        )
-        self.unrestricted_custom_role_member = self.create_member(
-            user=self.create_user(), organization=self.organization, role="manager"
-        )
-        self.restricted_default_role_member = self.create_member(
-            user=self.create_user(), organization=self.organization
-        )
-        self.restricted_default_role_member.flags["idp:role-restricted"] = True
-        self.restricted_default_role_member.save()
-        self.restricted_custom_role_member = self.create_member(
-            user=self.create_user(), organization=self.organization, role="manager"
-        )
-        self.restricted_custom_role_member.flags["idp:role-restricted"] = True
-        self.restricted_custom_role_member.save()
+        with in_test_psql_role_override("postgres"):
+            self.unrestricted_default_role_member = self.create_member(
+                user=self.create_user(), organization=self.organization
+            )
+            self.unrestricted_custom_role_member = self.create_member(
+                user=self.create_user(), organization=self.organization, role="manager"
+            )
+            self.restricted_default_role_member = self.create_member(
+                user=self.create_user(), organization=self.organization
+            )
+            self.restricted_default_role_member.flags["idp:role-restricted"] = True
+            self.restricted_default_role_member.save()
+            self.restricted_custom_role_member = self.create_member(
+                user=self.create_user(), organization=self.organization, role="manager"
+            )
+            self.restricted_custom_role_member.flags["idp:role-restricted"] = True
+            self.restricted_custom_role_member.save()
 
     def test_invalid_role(self):
         self.get_error_response(
