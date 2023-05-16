@@ -6,16 +6,17 @@ import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {
   breadcrumbFactory,
-  isMemorySpan,
-  isNetworkSpan,
-  mapRRWebAttachments,
   replayTimestamps,
   rrwebEventListFactory,
   spansFactory,
 } from 'sentry/utils/replays/replayDataUtils';
+import splitAttachmentsByType from 'sentry/utils/replays/splitAttachmentsByType';
 import type {
+  MemorySpan,
+  NetworkSpan,
   RecordingEvent,
   RecordingOptions,
+  ReplayCrumb,
   ReplayError,
   ReplayRecord,
   ReplaySpan,
@@ -69,14 +70,17 @@ export default class ReplayReader {
     replayRecord,
     errors,
   }: RequiredNotNull<ReplayReaderParams>) {
-    const {breadcrumbs, rrwebEvents, spans} = mapRRWebAttachments(attachments);
+    const {rawBreadcrumbs, rawRRWebEvents, rawNetworkSpans, rawMemorySpans} =
+      splitAttachmentsByType(attachments);
+
+    const spans = [...rawMemorySpans, rawNetworkSpans] as ReplaySpan[];
 
     // TODO(replays): We should get correct timestamps from the backend instead
     // of having to fix them up here.
     const {startTimestampMs, endTimestampMs} = replayTimestamps(
       replayRecord,
-      rrwebEvents,
-      breadcrumbs,
+      rawRRWebEvents as RecordingEvent[],
+      rawBreadcrumbs as ReplayCrumb[],
       spans
     );
     replayRecord.started_at = new Date(startTimestampMs);
@@ -89,10 +93,13 @@ export default class ReplayReader {
     this.breadcrumbs = breadcrumbFactory(
       replayRecord,
       errors,
-      breadcrumbs,
+      rawBreadcrumbs as ReplayCrumb[],
       this.sortedSpans
     );
-    this.rrwebEvents = rrwebEventListFactory(replayRecord, rrwebEvents);
+    this.rrwebEvents = rrwebEventListFactory(
+      replayRecord,
+      rawRRWebEvents as RecordingEvent[]
+    );
 
     this.replayRecord = replayRecord;
   }
@@ -175,3 +182,11 @@ export default class ReplayReader {
     );
   });
 }
+
+const isMemorySpan = (span: ReplaySpan): span is MemorySpan => {
+  return span.op === 'memory';
+};
+
+const isNetworkSpan = (span: ReplaySpan): span is NetworkSpan => {
+  return span.op.startsWith('navigation.') || span.op.startsWith('resource.');
+};
