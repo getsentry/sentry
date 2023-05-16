@@ -29,13 +29,11 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
-from sentry.utils import jwt
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient, GitHubClientMixin
 from .issues import GitHubIssueBasic
 from .repository import GitHubRepositoryProvider
-from .utils import get_jwt
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -109,7 +107,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self) -> GitHubClientMixin:
-        return GitHubAppsClient(integration=self.model)
+        return GitHubAppsClient(integration=self.model, org_integration_id=self.org_integration.id)
 
     def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:
         trees: Dict[str, RepoTree] = {}
@@ -278,6 +276,9 @@ class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
     setup_dialog_config = {"width": 1030, "height": 1000}
 
     def get_client(self) -> GitHubClientMixin:
+        # XXX: This is very awkward behaviour as we're not passing the client an Integration
+        # object it expects. Instead we're passing the Installation object and hoping the client
+        # doesn't try to invoke any bad fields/attributes on it.
         return GitHubAppsClient(integration=self.integration_cls)
 
     def post_install(
@@ -306,15 +307,7 @@ class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
         client = self.get_client()
-        headers = {
-            # TODO(jess): remove this whenever it's out of preview
-            "Accept": "application/vnd.github.machine-man-preview+json",
-        }
-        headers.update(jwt.authorization_header(get_jwt()))
-
-        resp: Mapping[str, Any] = client.get(
-            f"/app/installations/{installation_id}", headers=headers
-        )
+        resp: Mapping[str, Any] = client.get(f"/app/installations/{installation_id}")
         return resp
 
     def build_integration(self, state: Mapping[str, str]) -> Mapping[str, Any]:

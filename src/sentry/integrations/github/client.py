@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Sequence
+from typing import Any, Dict, List, Mapping, Sequence, cast
 
 import sentry_sdk
+from requests import PreparedRequest
 
-from sentry.integrations.client import ApiClient
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.utils.code_mapping import (
     MAX_CONNECTION_ERRORS,
@@ -15,9 +16,11 @@ from sentry.integrations.utils.code_mapping import (
     filter_source_code_files,
 )
 from sentry.models import Integration, Repository
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions.base import ApiError
-from sentry.utils import jwt
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 
@@ -43,16 +46,131 @@ class GithubRateLimitInfo:
         return f"GithubRateLimit(limit={self.limit},rem={self.remaining},reset={self.reset})"
 
 
-class GitHubClientMixin(ApiClient):  # type: ignore
+class GithubProxyClient(IntegrationProxyClient):
+    def _get_installation_id(self) -> str:
+        self.integration: RpcIntegration
+        """
+        Returns the Github App installation identifier.
+        This is necessary since Github and Github Enterprise integrations store the
+        identifier in different places on their database records.
+        """
+        return self.integration.external_id
+
+    def _get_jwt(self) -> str:
+        """
+        Returns the JSON Web Token for authorized GitHub requests.
+        This is necessary since Github and Github Enterprise create do not create the JWTs in the
+        same pattern.
+        """
+        return get_jwt()
+
+    @control_silo_function
+    def _refresh_access_token(self) -> str | None:
+        integration = Integration.objects.filter(id=self.integration.id).first()
+        if not integration:
+            return None
+
+        logger.info(
+            "token.refresh_start",
+            extra={
+                "old_expires_at": self.integration.metadata.get("expires_at"),
+                "integration_id": self.integration.id,
+            },
+        )
+        data = self.post(f"/app/installations/{self._get_installation_id()}/access_tokens")
+        access_token = cast(str, data["token"])
+        expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
+        integration.metadata.update({"access_token": access_token, "expires_at": expires_at})
+        integration.save()
+        logger.info(
+            "token.refresh_end",
+            extra={
+                "new_expires_at": integration.metadata.get("expires_at"),
+                "integration_id": integration.id,
+            },
+        )
+
+        self.integration = integration
+        return access_token
+
+    @control_silo_function
+    def _get_token(self, prepared_request: PreparedRequest) -> str | None:
+        """
+        Get token retrieves the active access token from the integration model.
+        Should the token have expired, a new token will be generated and
+        automatically persisted into the integration.
+        """
+
+        if not self.integration:
+            return None
+
+        logger_extra = {
+            "path_url": prepared_request.path_url,
+            "integration_id": getattr(self.integration, "id", "unknown"),
+        }
+
+        # Only certain routes are authenticated with JWTs....
+        should_use_jwt = (
+            "/app/installations" in prepared_request.path_url
+            or "access_tokens" in prepared_request.path_url
+        )
+        if should_use_jwt:
+            jwt = self._get_jwt()
+            logger.info("token.jwt", extra=logger_extra)
+            return jwt
+
+        # The rest should use access tokens...
+        now = datetime.utcnow()
+        access_token: str | None = self.integration.metadata.get("access_token")
+        expires_at: str | None = self.integration.metadata.get("expires_at")
+        is_expired = (
+            bool(expires_at) and datetime.strptime(cast(str, expires_at), "%Y-%m-%dT%H:%M:%S") < now
+        )
+        should_refresh = not access_token or not expires_at or is_expired
+
+        if should_refresh:
+            access_token = self._refresh_access_token()
+
+        logger.info("token.access_token", extra=logger_extra)
+        return access_token
+
+    @control_silo_function
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        integration: RpcIntegration | Integration | None = None
+        if hasattr(self, "integration"):
+            integration = self.integration
+        elif hasattr(self, "org_integration_id"):
+            integration = Integration.objects.filter(
+                organizationintegration__id=self.org_integration_id,
+                provider=EXTERNAL_PROVIDERS[ExternalProviders.GITHUB],
+                status=ObjectStatus.ACTIVE,
+            ).first()
+
+        if not integration:
+            logger.info("no_integration", extra={"path_url": prepared_request.path_url})
+            return prepared_request
+
+        token = self._get_token(prepared_request=prepared_request)
+        if not token:
+            logger.info(
+                "no_token",
+                extra={"path_url": prepared_request.path_url, "integration_id": integration.id},
+            )
+            return prepared_request
+
+        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        prepared_request.headers["Authorization"] = f"Bearer {token}"
+
+        return prepared_request
+
+
+class GitHubClientMixin(GithubProxyClient):
     allow_redirects = True
 
     base_url = "https://api.github.com"
     integration_name = "github"
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
     page_number_limit = 50  # With a default of 100 per page -> 5,000 items
-
-    def get_jwt(self) -> str:
-        return get_jwt()
 
     def get_last_commits(self, repo: str, end_sha: str) -> Sequence[JSONData]:
         """
@@ -461,70 +579,6 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         """
         return self.get(f"/users/{gh_username}")
 
-    # subclassing BaseApiClient request method
-    def request(
-        self,
-        method: str,
-        path: str,
-        headers: Mapping[str, Any] | None = None,
-        data: Mapping[str, Any] | None = None,
-        params: Mapping[str, Any] | None = None,
-    ) -> JSONData:
-        if headers is None:
-            headers = {
-                "Authorization": f"token {self.get_token()}",
-                # TODO(jess): remove this whenever it's out of preview
-                "Accept": "application/vnd.github.machine-man-preview+json",
-            }
-        return self._request(method, path, headers=headers, data=data, params=params)
-
-    def get_token(self, force_refresh: bool = False) -> str:
-        """
-        Get token retrieves the active access token from the integration model.
-        Should the token have expired, a new token will be generated and
-        automatically persisted into the integration.
-        """
-        self.integration: RpcIntegration
-
-        token: str | None = self.integration.metadata.get("access_token")
-        expires_at: str | None = self.integration.metadata.get("expires_at")
-        now = datetime.utcnow()
-
-        if (
-            not token
-            or not expires_at
-            or (datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%S") < now)
-            or force_refresh
-        ):
-            logger.info(f"Token to be refreshed (expires: {expires_at}, now: {now}).")
-            from copy import deepcopy
-
-            res = self.create_token()
-            token = res["token"]
-            expires_at = datetime.strptime(res["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
-            new_metadata = deepcopy(self.integration.metadata)
-            new_metadata.update({"access_token": token, "expires_at": expires_at})
-            self.integration = integration_service.update_integration(  # type: ignore
-                integration_id=self.integration.id, metadata=new_metadata
-            )
-            logger.info("The token has been refreshed.")
-
-        if expires_at:
-            logger.info(f"The token will expire at {expires_at} (now: {now}).")
-
-        return token or ""
-
-    def create_token(self) -> JSONData:
-        headers = {
-            # TODO(jess): remove this whenever it's out of preview
-            "Accept": "application/vnd.github.machine-man-preview+json",
-        }
-        headers.update(jwt.authorization_header(self.get_jwt()))
-        return self.post(
-            f"/app/installations/{self.integration.external_id}/access_tokens",
-            headers=headers,
-        )
-
     def check_file(self, repo: Repository, path: str, version: str) -> str | None:
         file: str = self.head_cached(
             path=f"/repos/{repo.name}/contents/{path}", params={"ref": version}
@@ -604,6 +658,16 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
 
 class GitHubAppsClient(GitHubClientMixin):
-    def __init__(self, integration: Integration) -> None:
+    def __init__(
+        self,
+        integration: Integration,
+        org_integration_id: int | None = None,
+        verify_ssl: bool = True,
+        logging_context: Mapping[str, Any] | None = None,
+    ) -> None:
         self.integration = integration
-        super().__init__()
+        super().__init__(
+            org_integration_id=org_integration_id,
+            verify_ssl=verify_ssl,
+            logging_context=logging_context,
+        )

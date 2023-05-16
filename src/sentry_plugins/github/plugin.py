@@ -19,7 +19,7 @@ from sentry.utils.http import absolute_uri
 from sentry_plugins.base import CorePluginMixin
 from social_auth.models import UserSocialAuth
 
-from .client import GitHubAppsClient, GitHubClient
+from .client import GithubPluginAppsClient, GithubPluginClient
 
 API_ERRORS = {
     404: "GitHub returned a 404 Not Found error. If this repository exists, ensure"
@@ -52,7 +52,7 @@ class GitHubMixin(CorePluginMixin):
         auth = self.get_auth(user=user)
         if auth is None:
             raise PluginError(API_ERRORS[401])
-        return GitHubClient(auth=auth)
+        return GithubPluginClient(auth=auth)
 
 
 # TODO(dcramer): half of this plugin is for the issue tracking integration
@@ -512,7 +512,7 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
         if integration_id is None:
             raise NotImplementedError("GitHub apps requires an integration id to fetch commits")
 
-        client = GitHubAppsClient(Integration.objects.get(id=integration_id))
+        client = GithubPluginAppsClient(Integration.objects.get(id=integration_id))
 
         # use config name because that is kept in sync via webhooks
         name = repo.config["name"]
@@ -541,13 +541,13 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
             self.logger.warning("get_installations.no-linked-auth")
             return []
 
-        with GitHubClient(auth=auth) as client:
+        with GithubPluginClient(auth=auth) as client:
             res = client.get_installations()
 
         return [install["id"] for install in res["installations"]]
 
     def get_repositories(self, integration):
-        client = GitHubAppsClient(integration)
+        client = GithubPluginAppsClient(integration)
 
         res = client.get_repositories()
         return [

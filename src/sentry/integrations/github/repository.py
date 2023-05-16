@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import Any, Mapping, MutableMapping, Sequence
 
 from sentry.integrations import IntegrationInstallation
-from sentry.models import Integration, Organization, PullRequest, Repository
+from sentry.models import Organization, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.json import JSONData
 
@@ -73,28 +74,24 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
         integration_id = repo.integration_id
         if integration_id is None:
             raise NotImplementedError("GitHub apps requires an integration id to fetch commits")
-        integration = Integration.objects.get(id=integration_id)
-        installation = integration.get_installation(repo.organization_id)
+        integration = integration_service.get_integration(integration_id=integration_id)
+        installation = integration_service.get_installation(
+            integration=integration, organization_id=repo.organization_id
+        )
         client = installation.get_client()
 
         try:
             return eval_commits(client)
-        except ApiError as e:
-            if e.code == 404:
-                try:
-                    client.get_token(force_refresh=True)
-                    return eval_commits(client)
-                except Exception as e:
-                    raise installation.raise_error(e)
-            raise installation.raise_error(e)
         except Exception as e:
-            raise installation.raise_error(e)
+            installation.raise_error(e)
+            # Explicitly typing to satisfy mypy.
+            return []
 
     def _format_commits(
         self,
         client: Any,
         repo_name: str,
-        commit_list: Sequence[Mapping[str, Any]],
+        commit_list: JSONData,
     ) -> Sequence[Mapping[str, Any]]:
         """Convert GitHub commits into our internal format
 
