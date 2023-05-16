@@ -69,7 +69,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
         if checkin.status in CheckInStatus.FINISHED_VALUES:
             return self.respond(status=400)
 
-        # Discard monitor config so as it is not used
+        # Discard monitor config as it is not used
         request.data.pop("monitor_config", None)
 
         serializer = MonitorCheckInValidator(
