@@ -383,7 +383,7 @@ function useFetchGroupDetails({
   }, [group, loadingGroup]);
 
   useEffect(() => {
-    if (group) {
+    if (group && event) {
       const reprocessingNewRoute = getReprocessingNewRoute({
         group,
         event,
