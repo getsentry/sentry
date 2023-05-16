@@ -33,7 +33,7 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
             mock_sdk_crash_reporter.report.assert_called_once()
 
             reported_event = mock_sdk_crash_reporter.report.call_args.args[0]
-            assert reported_event["contexts"]["sdk_crash_detection"]["detected"] is True
+            assert reported_event.data["contexts"]["sdk_crash_detection"]["detected"] is True
         else:
             mock_sdk_crash_reporter.report.assert_not_called()
 

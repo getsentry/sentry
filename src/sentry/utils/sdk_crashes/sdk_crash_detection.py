@@ -55,7 +55,9 @@ class SDKCrashDetection:
         if self.cocoa_sdk_crash_detector.is_sdk_crash(frames):
             sdk_crash_event = self.event_stripper.strip_event_data(event)
 
-            set_path(sdk_crash_event, "contexts", "sdk_crash_detection", value={"detected": True})
+            set_path(
+                sdk_crash_event.data, "contexts", "sdk_crash_detection", value={"detected": True}
+            )
             self.sdk_crash_reporter.report(sdk_crash_event)
 
 
