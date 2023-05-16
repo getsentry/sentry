@@ -15,7 +15,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project, ProjectKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getXhrErrorResponseHandler from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {DynamicSDKLoaderOption} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
@@ -103,7 +103,7 @@ export function SetupDocsLoader({
       setProjectKeyUpdateError(false);
     } catch (error) {
       const message = t('Unable to updated dynamic SDK loader configuration');
-      getXhrErrorResponseHandler(message)(error);
+      handleXhrErrorResponse(message, error);
       setProjectKeyUpdateError(true);
     }
   }, [api, location.query.product, organization.slug, project.slug, projectKey?.id]);
