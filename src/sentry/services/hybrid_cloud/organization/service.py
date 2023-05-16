@@ -15,7 +15,6 @@ from sentry.services.hybrid_cloud.organization import (
 from sentry.services.hybrid_cloud.region import (
     ByOrganizationId,
     ByOrganizationIdAttribute,
-    ByOrganizationMemberId,
     ByOrganizationSlug,
     UnimplementedRegionResolution,
 )
@@ -116,29 +115,32 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationMemberId())
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_organization_member(
-        self, *, organization_member_id: int
+        self, *, organization_id: int, organization_member_id: int
     ) -> Optional[RpcOrganizationMember]:
         """
         Query for an organization member by its id.
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationMemberId())
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def delete_organization_member(self, *, organization_member_id: int) -> bool:
+    def delete_organization_member(
+        self, *, organization_id: int, organization_member_id: int
+    ) -> bool:
         """
         Delete an organization member by its id.
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationMemberId())
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def set_user_for_organization_member(
         self,
         *,
+        organization_id: int,
         organization_member_id: int,
         user_id: int,
     ) -> Optional[RpcOrganizationMember]:

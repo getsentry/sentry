@@ -134,7 +134,9 @@ class ApiInviteHelper:
     def handle_invite_not_approved(self) -> None:
         if not self.invite_approved:
             assert self.om
-            organization_service.delete_organization_member(organization_member_id=self.om.id)
+            organization_service.delete_organization_member(
+                organization_id=self.organization_id, organization_member_id=self.om.id
+            )
 
     @property
     def member_pending(self) -> bool:
@@ -188,7 +190,9 @@ class ApiInviteHelper:
 
         if self.member_already_exists:
             self.handle_member_already_exists()
-            organization_service.delete_organization_member(organization_member_id=self.om.id)
+            organization_service.delete_organization_member(
+                organization_id=self.organization_id, organization_member_id=self.om.id
+            )
             return None
 
         try:
@@ -204,7 +208,7 @@ class ApiInviteHelper:
                 return None
 
         new_om = organization_service.set_user_for_organization_member(
-            organization_member_id=self.om.id, user_id=user.id
+            organization_id=om.organization_id, organization_member_id=self.om.id, user_id=user.id
         )
         if new_om:
             self.om = om = new_om

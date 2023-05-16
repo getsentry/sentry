@@ -105,19 +105,25 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return serialize_member(member)
 
     def get_organization_member(
-        self, *, organization_member_id: int
+        self, *, organization_id: int, organization_member_id: int
     ) -> Optional[RpcOrganizationMember]:
         try:
-            member = OrganizationMember.objects.get(id=organization_member_id)
+            member = OrganizationMember.objects.get(
+                organization_id=organization_id, id=organization_member_id
+            )
         except OrganizationMember.DoesNotExist:
             return None
 
         return serialize_member(member)
 
-    def delete_organization_member(self, *, organization_member_id: int) -> bool:
+    def delete_organization_member(
+        self, *, organization_id: int, organization_member_id: int
+    ) -> bool:
         with in_test_psql_role_override("postgres"):
             try:
-                member = OrganizationMember.objects.get(id=organization_member_id)
+                member = OrganizationMember.objects.get(
+                    organization_id=organization_id, id=organization_member_id
+                )
             except OrganizationMember.DoesNotExist:
                 return False
             num_deleted, _deleted = member.delete()
@@ -126,13 +132,16 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def set_user_for_organization_member(
         self,
         *,
+        organization_id: int,
         organization_member_id: int,
         user_id: int,
     ) -> Optional[RpcOrganizationMember]:
         region_outbox = None
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             try:
-                org_member = OrganizationMember.objects.get(id=organization_member_id)
+                org_member = OrganizationMember.objects.get(
+                    organization_id=organization_id, id=organization_member_id
+                )
                 org_member.set_user(user_id)
                 org_member.save()
                 region_outbox = org_member.outbox_for_update()
