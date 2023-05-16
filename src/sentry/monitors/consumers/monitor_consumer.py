@@ -12,6 +12,7 @@ from django.db import transaction
 
 from sentry import ratelimits
 from sentry.constants import ObjectStatus
+from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models import Project
 from sentry.monitors.models import (
     CheckInStatus,
@@ -20,7 +21,6 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
     MonitorLimitsExceeded,
-    MonitorStatus,
     MonitorType,
 )
 from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created
@@ -80,6 +80,14 @@ def _ensure_monitor_with_config(
         monitor.update_config(config, validated_config)
 
     return monitor
+
+
+# TODO(rjo100): Move check-in logic through the validator
+def valid_duration(duration: Optional[int]) -> bool:
+    if duration and (duration < 0 or duration > BoundedPositiveIntegerField.MAX_VALUE):
+        return False
+
+    return True
 
 
 def _process_message(wrapper: Dict) -> None:
@@ -166,6 +174,14 @@ def _process_message(wrapper: Dict) -> None:
                 if duration is None:
                     duration = int((start_time - check_in.date_added).total_seconds() * 1000)
 
+                if not valid_duration(duration):
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={**metric_kwargs, "status": "failed_duration_check"},
+                    )
+                    logger.debug("check-in duration is invalid: %s", project.organization_id)
+                    return
+
                 check_in.update(status=status, duration=duration)
 
             except MonitorCheckIn.DoesNotExist:
@@ -174,6 +190,14 @@ def _process_message(wrapper: Dict) -> None:
                 date_added = start_time
                 if duration is not None:
                     date_added -= datetime.timedelta(milliseconds=duration)
+
+                if not valid_duration(duration):
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={**metric_kwargs, "status": "failed_duration_check"},
+                    )
+                    logger.debug("check-in duration is invalid: %s", project.organization_id)
+                    return
 
                 check_in = MonitorCheckIn.objects.create(
                     project_id=project_id,
@@ -188,7 +212,7 @@ def _process_message(wrapper: Dict) -> None:
 
                 signal_first_checkin(project, monitor)
 
-            if check_in.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
+            if check_in.status == CheckInStatus.ERROR and monitor.status != ObjectStatus.DISABLED:
                 monitor_environment.mark_failed(start_time)
             else:
                 monitor_environment.mark_ok(check_in, start_time)

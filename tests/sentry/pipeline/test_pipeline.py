@@ -2,6 +2,7 @@ from django.http import HttpRequest
 
 from sentry.pipeline import Pipeline, PipelineProvider, PipelineView
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
 class PipelineStep(PipelineView):
@@ -29,6 +30,7 @@ class DummyPipeline(Pipeline):
         self.finished = True
 
 
+@control_silo_test
 class PipelineTestCase(TestCase):
     def test_simple_pipeline(self):
         org = self.create_organization()

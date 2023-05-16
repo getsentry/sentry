@@ -688,7 +688,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     projects,
     initiallyLoaded: projectsLoaded,
     fetchError: errorFetchingProjects,
-  } = useProjects({slugs: [props.project?.slug ?? '']});
+  } = useProjects({slugs: props.project?.slug ? [props.project.slug] : []});
 
   const project =
     (props.project?.slug
@@ -709,13 +709,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     return <LoadingIndicator />;
   }
 
-  return (
-    // TODO(ts): Update renderContent function to deal with empty group
-    // Search for the slug in the projects list if possible. This is because projects
-    // is just a complete list of stored projects and the first element may not be
-    // the expected project.
-    <GroupDetailsContent {...props} project={project} group={props.group} />
-  );
+  return <GroupDetailsContent {...props} project={project} group={props.group} />;
 }
 
 function GroupDetails(props: GroupDetailsProps) {

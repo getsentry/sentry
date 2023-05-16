@@ -415,7 +415,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
-        self.project.update_option("sentry:performance_issue_create_issue_through_platform", True)
 
         with override_options(
             {

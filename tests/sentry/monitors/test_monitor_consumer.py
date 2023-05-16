@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict
 from unittest import mock
 
@@ -9,9 +9,9 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.conf import settings
 from django.test.utils import override_settings
-from django.utils import timezone
 
 from sentry.constants import ObjectStatus
+from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.consumers.monitor_consumer import (
     StoreMonitorCheckInStrategyFactory,
     _process_message,
@@ -54,7 +54,6 @@ class MonitorConsumerTest(TestCase):
         return Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            next_checkin=timezone.now() + timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={
                 "schedule": "* * * * *",
@@ -153,7 +152,10 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.ERROR
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
-        assert monitor_environment.status == MonitorStatus.DISABLED
+
+        # The created monitor environment is active, but the parent monitor is
+        # disabled
+        assert monitor_environment.status == MonitorStatus.ACTIVE
         assert monitor_environment.last_checkin == checkin.date_added
         assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
             checkin.date_added
@@ -248,6 +250,39 @@ class MonitorConsumerTest(TestCase):
 
             checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
             assert len(checkins) == 2
+
+    def test_invalid_duration(self):
+        monitor = self._create_monitor(slug="my-monitor")
+
+        # Try to ingest two the second will be rate limited
+        message = self.get_message("my-monitor", status="in_progress")
+        check_in_id = message.get("check_in_id")
+        _process_message(message)
+
+        # Invalid check-in updates
+        _process_message(
+            self.get_message("my-monitor", check_in_id=check_in_id, duration=-(1.0 / 1000))
+        )
+        _process_message(
+            self.get_message(
+                "my-monitor",
+                check_in_id=check_in_id,
+                duration=((BoundedPositiveIntegerField.MAX_VALUE + 1.0) / 1000),
+            )
+        )
+
+        # Invalid check-in creations
+        _process_message(self.get_message("my-monitor", duration=-(1.0 / 1000)))
+        _process_message(
+            self.get_message(
+                "my-monitor", duration=(BoundedPositiveIntegerField.MAX_VALUE + 1.0) / 1000
+            )
+        )
+
+        # Only one check-in should be processed and it should still be IN_PROGRESS
+        checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+        assert len(checkins) == 1
+        assert checkins[0].status == CheckInStatus.IN_PROGRESS
 
     @pytest.mark.django_db
     def test_monitor_upsert(self):

@@ -42,9 +42,10 @@ class SymbolicatorTaskKind:
 
 
 class SymbolicatorPools(Enum):
+    default = "default"
     js = "js"
     lpq = "lpq"
-    default = "default"
+    lpq_js = "lpq_js"
 
 
 class Symbolicator:
@@ -52,7 +53,10 @@ class Symbolicator:
         URLS = settings.SYMBOLICATOR_POOL_URLS
         pool = SymbolicatorPools.default.value
         if task_kind.is_low_priority:
-            pool = SymbolicatorPools.lpq.value
+            if task_kind.is_js:
+                pool = SymbolicatorPools.lpq_js.value
+            else:
+                pool = SymbolicatorPools.lpq.value
         elif task_kind.is_js:
             pool = SymbolicatorPools.js.value
 
@@ -161,13 +165,16 @@ class Symbolicator:
         res = self._process("symbolicate_stacktraces", "symbolicate", json=json)
         return process_response(res)
 
-    def process_js(self, stacktraces, modules, release, dist, scraping_config=None):
+    def process_js(
+        self, stacktraces, modules, release, dist, scraping_config=None, apply_source_context=True
+    ):
         source = get_internal_artifact_lookup_source(self.project)
 
         json = {
             "source": source,
             "stacktraces": stacktraces,
             "modules": modules,
+            "options": {"apply_source_context": apply_source_context},
         }
 
         if release is not None:

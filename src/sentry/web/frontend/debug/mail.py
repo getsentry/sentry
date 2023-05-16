@@ -193,9 +193,7 @@ def make_performance_event(project, sample_name: str):
     timestamp = datetime(2017, 9, 6, 0, 0)
     start_timestamp = timestamp - timedelta(seconds=3)
 
-    if options.get(
-        "performance.issues.create_issues_through_platform", True
-    ) and project.get_option("sentry:performance_issue_create_issue_through_platform", True):
+    if options.get("performance.issues.create_issues_through_platform", True):
         event_id = "44f1419e73884cd2b45c79918f4b6dc4"
         occurrence_data = SAMPLE_TO_OCCURRENCE_MAP[sample_name].to_dict()
         occurrence_data["event_id"] = event_id
