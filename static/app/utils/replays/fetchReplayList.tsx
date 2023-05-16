@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {Organization} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
@@ -51,6 +52,7 @@ async function fetchReplayList({
         ...payload,
         cursor: location.query.cursor,
         queryReferrer,
+        project: ALL_ACCESS_PROJECTS,
       },
     });
 
