@@ -35,7 +35,9 @@ function HighlightComponent({className, children, disabled, text}: Props) {
   return (
     <Fragment>
       {children.substring(0, idx)}
-      <span className={className}>{children.substr(idx, highlightText.length)}</span>
+      <span className={className}>
+        {children.substring(idx, idx + highlightText.length)}
+      </span>
       {children.substring(idx + highlightText.length)}
     </Fragment>
   );
