@@ -96,20 +96,20 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert "set_password_url" in context
 
     def test_token_expires_at_set_on_save(self):
-        with in_test_psql_role_override("postgres"):
-            member = OrganizationMember(organization=self.organization, email="foo@example.com")
-            member.token = member.generate_token()
-            member.save()
+        member = OrganizationMember(organization=self.organization, email="foo@example.com")
+        member.token = member.generate_token()
+        member.save()
+        self.assert_org_member_mapping(org_member=member)
 
         expires_at = timezone.now() + timedelta(days=INVITE_DAYS_VALID)
         assert member.token_expires_at
         assert member.token_expires_at.date() == expires_at.date()
 
     def test_token_expiration(self):
-        with in_test_psql_role_override("postgres"):
-            member = OrganizationMember(organization=self.organization, email="foo@example.com")
-            member.token = member.generate_token()
-            member.save()
+        member = OrganizationMember(organization=self.organization, email="foo@example.com")
+        member.token = member.generate_token()
+        member.save()
+        self.assert_org_member_mapping(org_member=member)
 
         assert member.is_pending
         assert member.token_expired is False
@@ -118,18 +118,21 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert member.token_expired
 
     def test_set_user(self):
-        with in_test_psql_role_override("postgres"):
-            member = OrganizationMember(organization=self.organization, email="foo@example.com")
-            member.token = member.generate_token()
-            member.save()
+        member = OrganizationMember(organization=self.organization, email="foo@example.com")
+        member.token = member.generate_token()
+        member.save()
+        self.assert_org_member_mapping(org_member=member)
 
         user = self.create_user(email="foo@example.com")
         member.set_user(user.id)
+        member.save()
 
         assert member.is_pending is False
         assert member.token_expires_at is None
         assert member.token is None
         assert member.email is None
+        member.refresh_from_db()
+        self.assert_org_member_mapping(org_member=member)
 
     def test_regenerate_token(self):
         member = OrganizationMember(organization=self.organization, email="foo@example.com")

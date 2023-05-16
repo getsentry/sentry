@@ -235,18 +235,27 @@ class OrganizationMember(Model):
 
     def delete(self, *args, **kwds):
         with transaction.atomic(), in_test_psql_role_override("postgres"):
-            self.outbox_for_update().save()
+            self.save_outbox_for_update()
             return super().delete(*args, **kwds)
 
-    @transaction.atomic
     def save(self, *args, **kwargs):
         assert (self.user_id is None and self.email) or (
             self.user_id and self.email is None
         ), "Must set either user or email"
-        if self.token and not self.token_expires_at:
-            self.refresh_expires_at()
-        super().save(*args, **kwargs)
-        self.__org_roles_from_teams = None
+
+        region_outbox = None
+        with transaction.atomic():
+            if self.token and not self.token_expires_at:
+                self.refresh_expires_at()
+            is_new = bool(self.id)
+            super().save(*args, **kwargs)
+            if is_new:
+                region_outbox = self.save_outbox_for_create()
+            else:
+                region_outbox = self.save_outbox_for_update()
+            self.__org_roles_from_teams = None
+        if region_outbox:
+            region_outbox.drain_shard(max_updates_to_drain=10)
 
     def refresh_from_db(self, *args, **kwargs):
         super().refresh_from_db(*args, **kwargs)
