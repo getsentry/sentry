@@ -188,7 +188,7 @@ def build_actions(
     if status == GroupStatus.IGNORED:
         ignore_button = MessageAction(
             name="status",
-            label="Stop Archive" if has_escalating else "Stop Ignoring",
+            label="Mark as Ongoing" if has_escalating else "Stop Ignoring",
             value="unresolved:ongoing",
         )
 
