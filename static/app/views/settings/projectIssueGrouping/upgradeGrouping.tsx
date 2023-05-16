@@ -11,7 +11,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventGroupingConfig, Organization, Project} from 'sentry/types';
-import getXhrErrorResponseHandler from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import marked from 'sentry/utils/marked';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -88,8 +88,8 @@ function UpgradeGrouping({
       clearIndicators();
       ProjectsStore.onUpdateSuccess(response);
       onUpgrade();
-    } catch {
-      getXhrErrorResponseHandler(t('Unable to upgrade config'));
+    } catch (err) {
+      handleXhrErrorResponse(t('Unable to upgrade config'), err);
     }
   }
 

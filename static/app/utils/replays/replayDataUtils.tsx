@@ -13,55 +13,12 @@ import type {
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import getMinMax from 'sentry/utils/getMinMax';
 import type {
-  MemorySpanType,
   RecordingEvent,
   ReplayCrumb,
   ReplayError,
   ReplayRecord,
   ReplaySpan,
 } from 'sentry/views/replays/types';
-
-// Errors if it is an interface
-// See https://github.com/microsoft/TypeScript/issues/15300
-type ReplayAttachmentsByTypeMap = {
-  breadcrumbs: ReplayCrumb[];
-
-  /**
-   * The flattened list of rrweb events. These are stored as multiple attachments on the root replay object: the `event` prop.
-   */
-  rrwebEvents: RecordingEvent[];
-  spans: ReplaySpan[];
-};
-
-export function mapRRWebAttachments(
-  unsortedReplayAttachments: any[]
-): ReplayAttachmentsByTypeMap {
-  const replayAttachments: ReplayAttachmentsByTypeMap = {
-    breadcrumbs: [],
-    rrwebEvents: [],
-    spans: [],
-  };
-
-  unsortedReplayAttachments.forEach(attachment => {
-    if (attachment.data?.tag === 'performanceSpan') {
-      replayAttachments.spans.push(attachment.data.payload);
-    } else if (attachment?.data?.tag === 'breadcrumb') {
-      replayAttachments.breadcrumbs.push(attachment.data.payload);
-    } else {
-      replayAttachments.rrwebEvents.push(attachment);
-    }
-  });
-
-  return replayAttachments;
-}
-
-export const isMemorySpan = (span: ReplaySpan): span is MemorySpanType => {
-  return span.op === 'memory';
-};
-
-export const isNetworkSpan = (span: ReplaySpan) => {
-  return span.op.startsWith('navigation.') || span.op.startsWith('resource.');
-};
 
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
   // Marshal special fields into tags

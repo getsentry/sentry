@@ -71,6 +71,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         monitor_error_older_checkin = add_status_monitor("ERROR", last_checkin_older)
         monitor_error = add_status_monitor("ERROR")
         monitor_missed_checkin = add_status_monitor("MISSED_CHECKIN")
+        monitor_timed_out = add_status_monitor("TIMEOUT")
 
         response = self.get_success_response(
             self.organization.slug, params={"environment": "jungle"}
@@ -81,6 +82,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
                 monitor_error,
                 monitor_error_older_checkin,
                 monitor_missed_checkin,
+                monitor_timed_out,
                 monitor_ok,
                 monitor_active,
                 monitor_disabled,

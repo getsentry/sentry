@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 
 import {
   addErrorMessage,
@@ -14,148 +14,112 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import getXhrErrorResponseHandler from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
+  data: ProjectKey;
   keyId: string;
   orgSlug: string;
   project: Project;
-  projectKey: ProjectKey;
+  updateData: (data: ProjectKey) => void;
 };
 
-export enum DynamicSDKLoaderOption {
-  HAS_DEBUG = 'hasDebug',
-  HAS_PERFORMANCE = 'hasPerformance',
-  HAS_REPLAY = 'hasReplay',
-}
-
-export const sdkLoaderOptions = {
-  [DynamicSDKLoaderOption.HAS_PERFORMANCE]: {
-    label: t('Enable Performance Monitoring'),
-    requiresV7: true,
-  },
-  [DynamicSDKLoaderOption.HAS_REPLAY]: {
-    label: t('Enable Session Replay'),
-    requiresV7: true,
-  },
-  [DynamicSDKLoaderOption.HAS_DEBUG]: {
-    label: t('Enable Debug Bundles & Logging'),
-    requiresV7: false,
-  },
-};
-
-export function LoaderSettings({keyId, orgSlug, project, projectKey}: Props) {
+export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Props) {
   const api = useApi();
-  const [browserSdkVersion, setBrowserSdkVersion] = useState(
-    projectKey.browserSdkVersion
-  );
-  const [dynamicSDKLoaderOptions, setDynamicSDKLoaderOptions] = useState(
-    projectKey.dynamicSdkLoaderOptions
-  );
 
-  useEffect(() => {
-    setBrowserSdkVersion(projectKey.browserSdkVersion);
-  }, [projectKey.browserSdkVersion]);
+  const [requestPending, setRequestPending] = useState(false);
 
-  useEffect(() => {
-    setDynamicSDKLoaderOptions(projectKey.dynamicSdkLoaderOptions);
-  }, [projectKey.dynamicSdkLoaderOptions]);
+  const [optimisticState, setOptimisticState] = useState({
+    browserSdkVersion: data.browserSdkVersion,
+    hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
+    hasPerformance: data.dynamicSdkLoaderOptions.hasPerformance,
+    hasReplay: data.dynamicSdkLoaderOptions.hasReplay,
+  });
+
+  const values = requestPending
+    ? optimisticState
+    : {
+        browserSdkVersion: data.browserSdkVersion,
+        hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
+        hasPerformance: data.dynamicSdkLoaderOptions.hasPerformance,
+        hasReplay: data.dynamicSdkLoaderOptions.hasReplay,
+      };
 
   const apiEndpoint = `/projects/${orgSlug}/${project.slug}/keys/${keyId}/`;
   const loaderLink = getDynamicText({
-    value: projectKey.dsn.cdn,
+    value: data.dsn.cdn,
     fixed: '__JS_SDK_LOADER_URL__',
   });
 
-  const handleToggleDynamicSDKLoaderOption = useCallback(
-    async <T extends typeof dynamicSDKLoaderOptions, K extends keyof T>(
-      dynamicSdkLoaderOption: K,
-      value: T[K]
-    ) => {
-      const newDynamicSdkLoaderOptions = Object.keys(dynamicSDKLoaderOptions).reduce(
-        (acc, key) => {
-          if (key === dynamicSdkLoaderOption) {
-            return {...acc, [key]: value};
-          }
-          return {...acc, [key]: dynamicSDKLoaderOptions[key]};
-        },
-        {}
-      );
-
+  const updateLoaderOption = useCallback(
+    async (changes: {
+      browserSdkVersion?: string;
+      hasDebug?: boolean;
+      hasPerformance?: boolean;
+      hasReplay?: boolean;
+    }) => {
+      setRequestPending(true);
+      setOptimisticState({
+        browserSdkVersion: data.browserSdkVersion,
+        hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
+        hasPerformance: data.dynamicSdkLoaderOptions.hasPerformance,
+        hasReplay: data.dynamicSdkLoaderOptions.hasReplay,
+        ...changes,
+      });
       addLoadingMessage();
+
+      const browserSdkVersion = changes.browserSdkVersion ?? data.browserSdkVersion;
+
+      let payload: any;
+      if (sdkVersionSupportsPerformanceAndReplay(browserSdkVersion)) {
+        payload = {
+          browserSdkVersion,
+          dynamicSdkLoaderOptions: {
+            hasDebug: changes.hasDebug ?? data.dynamicSdkLoaderOptions.hasDebug,
+            hasPerformance:
+              changes.hasPerformance ?? data.dynamicSdkLoaderOptions.hasPerformance,
+            hasReplay: changes.hasReplay ?? data.dynamicSdkLoaderOptions.hasReplay,
+          },
+        };
+      } else {
+        payload = {
+          browserSdkVersion,
+          dynamicSdkLoaderOptions: {
+            hasDebug: changes.hasDebug ?? data.dynamicSdkLoaderOptions.hasDebug,
+            hasPerformance: false,
+            hasReplay: false,
+          },
+        };
+      }
 
       try {
         const response = await api.requestPromise(apiEndpoint, {
           method: 'PUT',
-          data: {
-            dynamicSdkLoaderOptions: newDynamicSdkLoaderOptions,
-          },
+          data: payload,
         });
 
-        setDynamicSDKLoaderOptions(response.dynamicSdkLoaderOptions);
+        updateData(response);
 
         addSuccessMessage(t('Successfully updated dynamic SDK loader configuration'));
       } catch (error) {
         const message = t('Unable to updated dynamic SDK loader configuration');
-        getXhrErrorResponseHandler(message)(error);
+        handleXhrErrorResponse(message, error);
         addErrorMessage(message);
-      }
-    },
-    [api, apiEndpoint, dynamicSDKLoaderOptions, setDynamicSDKLoaderOptions]
-  );
-
-  const handleUpdateBrowserSDKVersion = useCallback(
-    async (newBrowserSDKVersion: typeof browserSdkVersion) => {
-      addLoadingMessage();
-
-      const apiData: {
-        browserSdkVersion: typeof browserSdkVersion;
-        dynamicSdkLoaderOptions?: Partial<Record<DynamicSDKLoaderOption, boolean>>;
-      } = {
-        browserSdkVersion: newBrowserSDKVersion,
-      };
-
-      const shouldRestrictDynamicSdkLoaderOptions =
-        !sdkVersionSupportsPerformanceAndReplay(newBrowserSDKVersion);
-
-      if (shouldRestrictDynamicSdkLoaderOptions) {
-        // Performance & Replay are not supported before 7.x
-        const newDynamicSdkLoaderOptions = {
-          ...dynamicSDKLoaderOptions,
-          hasPerformance: false,
-          hasReplay: false,
-        };
-
-        apiData.dynamicSdkLoaderOptions = newDynamicSdkLoaderOptions;
-      }
-
-      try {
-        const response = await api.requestPromise(apiEndpoint, {
-          method: 'PUT',
-          data: apiData,
-        });
-
-        setBrowserSdkVersion(response.browserSdkVersion);
-
-        if (shouldRestrictDynamicSdkLoaderOptions) {
-          setDynamicSDKLoaderOptions(response.dynamicSdkLoaderOptions);
-        }
-
-        addSuccessMessage(t('Successfully updated SDK version'));
-      } catch (error) {
-        const message = t('Unable to updated SDK version');
-        getXhrErrorResponseHandler(message)(error);
-        addErrorMessage(message);
+      } finally {
+        setRequestPending(false);
       }
     },
     [
       api,
       apiEndpoint,
-      setBrowserSdkVersion,
-      setDynamicSDKLoaderOptions,
-      dynamicSDKLoaderOptions,
+      data.browserSdkVersion,
+      data.dynamicSdkLoaderOptions.hasDebug,
+      data.dynamicSdkLoaderOptions.hasPerformance,
+      data.dynamicSdkLoaderOptions.hasReplay,
+      setRequestPending,
+      updateData,
     ]
   );
 
@@ -186,70 +150,96 @@ export function LoaderSettings({keyId, orgSlug, project, projectKey}: Props) {
             name="browserSdkVersion"
             label={t('SDK Version')}
             options={
-              projectKey.browserSdk
-                ? projectKey.browserSdk.choices.map(([value, label]) => ({
+              data.browserSdk
+                ? data.browserSdk.choices.map(([value, label]) => ({
                     value,
                     label,
                   }))
                 : []
             }
-            value={browserSdkVersion}
-            onChange={handleUpdateBrowserSDKVersion}
+            value={values.browserSdkVersion}
+            onChange={value => {
+              updateLoaderOption({browserSdkVersion: value});
+            }}
             placeholder="7.x"
             allowClear={false}
-            disabled={!hasAccess}
+            disabled={!hasAccess || requestPending}
           />
 
-          {Object.entries(sdkLoaderOptions).map(([key, value]) => {
-            const sdkLoaderOption = Object.keys(dynamicSDKLoaderOptions).find(
-              dynamicSdkLoaderOption => dynamicSdkLoaderOption === key
-            );
-
-            if (!sdkLoaderOption) {
-              return null;
+          <BooleanField
+            label={t('Enable Performance Monitoring')}
+            name="has-performance"
+            value={
+              sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
+                ? values.hasPerformance
+                : false
             }
+            onChange={value => {
+              updateLoaderOption({hasPerformance: value});
+            }}
+            disabled={
+              !hasAccess ||
+              requestPending ||
+              !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
+            }
+            help={
+              !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
+                ? t('Only available in SDK version 7.x and above')
+                : undefined
+            }
+            disabledReason={
+              !hasAccess
+                ? t('You do not have permission to edit this setting')
+                : undefined
+            }
+          />
 
-            return (
-              <BooleanField
-                label={value.label}
-                key={key}
-                name={key}
-                value={
-                  value.requiresV7 &&
-                  !sdkVersionSupportsPerformanceAndReplay(browserSdkVersion)
-                    ? false
-                    : dynamicSDKLoaderOptions[sdkLoaderOption]
-                }
-                onChange={() =>
-                  handleToggleDynamicSDKLoaderOption(
-                    sdkLoaderOption as DynamicSDKLoaderOption,
-                    !dynamicSDKLoaderOptions[sdkLoaderOption]
+          <BooleanField
+            label={t('Enable Session Replay')}
+            name="has-replay"
+            value={
+              sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
+                ? values.hasReplay
+                : false
+            }
+            onChange={value => {
+              updateLoaderOption({hasReplay: value});
+            }}
+            disabled={
+              !hasAccess ||
+              requestPending ||
+              !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
+            }
+            help={
+              !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
+                ? t('Only available in SDK version 7.x and above')
+                : data.dynamicSdkLoaderOptions.hasReplay
+                ? t(
+                    'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
                   )
-                }
-                disabled={
-                  !hasAccess ||
-                  (value.requiresV7 &&
-                    !sdkVersionSupportsPerformanceAndReplay(browserSdkVersion))
-                }
-                help={
-                  value.requiresV7 &&
-                  !sdkVersionSupportsPerformanceAndReplay(browserSdkVersion)
-                    ? t('Only available in SDK version 7.x and above')
-                    : key === DynamicSDKLoaderOption.HAS_REPLAY &&
-                      dynamicSDKLoaderOptions[sdkLoaderOption]
-                    ? t(
-                        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
-                      )
-                    : undefined
-                }
-                disabledReason={
-                  !hasAccess
-                    ? t('You do not have permission to edit this setting')
-                    : undefined
-                }
-              />
-            );
-          })}
+                : undefined
+            }
+            disabledReason={
+              !hasAccess
+                ? t('You do not have permission to edit this setting')
+                : undefined
+            }
+          />
+
+          <BooleanField
+            label={t('Enable Debug Bundles & Logging')}
+            name="has-logging"
+            value={values.hasDebug}
+            onChange={value => {
+              updateLoaderOption({hasDebug: value});
+            }}
+            disabled={!hasAccess || requestPending}
+            disabledReason={
+              !hasAccess
+                ? t('You do not have permission to edit this setting')
+                : undefined
+            }
+          />
         </Fragment>
       )}
     </Access>
