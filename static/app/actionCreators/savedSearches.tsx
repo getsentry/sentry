@@ -1,4 +1,4 @@
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'sentry/constants';
 import {RecentSearch, SavedSearch, SavedSearchType} from 'sentry/types';
 import getXhrErrorResponseHandler from 'sentry/utils/handleXhrErrorResponse';
@@ -59,7 +59,7 @@ export function fetchRecentSearches(
     },
   });
 
-  promise.catch(resp => {
+  promise.catch((resp: ResponseMeta) => {
     if (resp.status !== 401 && resp.status !== 403) {
       getXhrErrorResponseHandler('Unable to fetch recent searches')(resp);
     }
