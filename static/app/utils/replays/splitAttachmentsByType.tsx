@@ -10,7 +10,7 @@ export default function splitAttachmentsByType(attachments: any[]) {
       if (span.op === 'memory') {
         rawMemorySpans.push(span);
       }
-      if (span.op.startsWith('navigation.') || span.op.startsWith('resource.')) {
+      if (span.op?.startsWith('navigation.') || span.op?.startsWith('resource.')) {
         rawNetworkSpans.push(span);
       }
     } else if (attachment.data?.tag === 'breadcrumb') {
