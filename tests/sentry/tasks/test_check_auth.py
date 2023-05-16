@@ -5,9 +5,11 @@ from django.utils import timezone
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.dummy import DummyProvider
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
 from sentry.tasks.check_auth import AUTH_CHECK_INTERVAL, check_auth, check_auth_identity
 from sentry.testutils import TestCase
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import control_silo_test
 
 
@@ -20,9 +22,10 @@ class CheckAuthTest(TestCase):
         auth_provider = AuthProvider.objects.create(
             organization_id=organization.id, provider="dummy"
         )
-        OrganizationMember.objects.create(
-            user=user, organization=organization, flags=OrganizationMember.flags["sso:linked"]
-        )
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.create(
+                user=user, organization=organization, flags=OrganizationMember.flags["sso:linked"]
+            )
 
         ai = AuthIdentity.objects.create(
             auth_provider=auth_provider, user=user, last_synced=timezone.now() - timedelta(days=1)
@@ -40,7 +43,7 @@ class CheckAuthTest(TestCase):
 
 
 @control_silo_test
-class CheckAuthIdentityTest(TestCase):
+class CheckAuthIdentityTest(TestCase, HybridCloudTestMixin):
     @patch("sentry.tasks.check_auth.check_auth_identity")
     def test_simple(self, mock_check_auth_identity):
         organization = self.create_organization(name="Test")
@@ -48,9 +51,10 @@ class CheckAuthIdentityTest(TestCase):
         auth_provider = AuthProvider.objects.create(
             organization_id=organization.id, provider="dummy"
         )
-        om = OrganizationMember.objects.create(
-            user=user, organization=organization, flags=OrganizationMember.flags["sso:linked"]
-        )
+        with in_test_psql_role_override("postgres"):
+            om = OrganizationMember.objects.create(
+                user=user, organization=organization, flags=OrganizationMember.flags["sso:linked"]
+            )
 
         ai = AuthIdentity.objects.create(
             auth_provider=auth_provider, user=user, last_verified=timezone.now() - timedelta(days=1)
@@ -66,6 +70,7 @@ class CheckAuthIdentityTest(TestCase):
         om = OrganizationMember.objects.get(id=om.id)
         assert not om.flags["sso:linked"]
         assert om.flags["sso:invalid"]
+        self.assert_org_member_mapping(org_member=om)
 
         updated_ai = AuthIdentity.objects.get(id=ai.id)
         assert updated_ai.last_synced != ai.last_synced

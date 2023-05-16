@@ -1,9 +1,11 @@
 import logging
 from datetime import timedelta
 
+from django.db import transaction
 from django.utils import timezone
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuthIdentity, OrganizationMember
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -91,9 +93,14 @@ def check_auth_identity(auth_identity_id, **kwargs):
         is_valid = True
 
     if getattr(om.flags, "sso:linked") != is_linked:
-        setattr(om.flags, "sso:linked", is_linked)
-        setattr(om.flags, "sso:invalid", not is_valid)
-        om.update(flags=om.flags)
+        region_outbox = None
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            setattr(om.flags, "sso:linked", is_linked)
+            setattr(om.flags, "sso:invalid", not is_valid)
+            om.update(flags=om.flags)
+            region_outbox = om.save_outbox_for_update()
+        if region_outbox:
+            region_outbox.drain_shard(max_updates_to_drain=10)
 
     now = timezone.now()
     auth_identity.update(last_verified=now, last_synced=now)
