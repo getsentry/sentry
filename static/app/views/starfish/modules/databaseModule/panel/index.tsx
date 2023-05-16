@@ -32,7 +32,7 @@ import {
   useQueryPanelGraph,
   useQueryPanelSparklines,
   useQueryPanelTable,
-  useQueryTransactionByTPMAndP75,
+  useQueryTransactionByTPMAndDuration,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
 import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
@@ -132,7 +132,7 @@ function QueryDetailBody({
   );
 
   const {isLoading: isP75GraphLoading, data: transactionGraphData} =
-    useQueryTransactionByTPMAndP75(
+    useQueryTransactionByTPMAndDuration(
       tableData.map(d => d.transaction).splice(0, 5),
       SPARKLINE_INTERVAL
     );
@@ -393,7 +393,10 @@ function SimplePagination(props: SimplePaginationProps) {
   );
 }
 
-export const highlightSql = (description: string, queryDetail: DataRow) => {
+export const highlightSql = (
+  description: string,
+  queryDetail: {action: string; domain: string}
+) => {
   let acc = '';
   return description.split('').map((token, i) => {
     acc += token;
@@ -488,7 +491,7 @@ const SubSubHeader = styled('h4')`
   font-weight: normal;
 `;
 
-const FlexRowContainer = styled('div')`
+export const FlexRowContainer = styled('div')`
   display: flex;
   & > div:last-child {
     padding-right: ${space(1)};
@@ -496,7 +499,7 @@ const FlexRowContainer = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-const FlexRowItem = styled('div')`
+export const FlexRowItem = styled('div')`
   padding-right: ${space(4)};
   flex: 1;
 `;
