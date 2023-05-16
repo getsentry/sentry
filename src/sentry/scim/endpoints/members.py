@@ -39,6 +39,7 @@ from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuthIdentity, AuthProvider, InviteStatus, OrganizationMember
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import member_invited
 from sentry.utils import json
 from sentry.utils.cursors import SCIMCursor
@@ -169,12 +170,14 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             raise PermissionDenied(detail=ERR_ONLY_OWNER)
         with transaction.atomic():
             AuthIdentity.objects.filter(
-                user=member.user, auth_provider__organization_id=organization.id
+                user_id=member.user_id, auth_provider__organization_id=organization.id
             ).delete()
-            member.delete()
+            organization_service.delete_organization_member(
+                organization_id=organization.id, organization_member_id=member.id
+            )
             self.create_audit_entry(
                 request=request,
-                organization=organization,
+                organization_id=organization.id,
                 target_object=member.id,
                 target_user=member.user,
                 event=audit_log.get_event_id("MEMBER_REMOVE"),
