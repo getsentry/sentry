@@ -8,6 +8,7 @@ import orderBy from 'lodash/orderBy';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import DateTime from 'sentry/components/dateTime';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
@@ -100,11 +101,18 @@ type Props = {
 } & RouteComponentProps<{groupId: string}, {}>;
 
 type State = {
+  selectedOption: SelectOption<string>;
   leftComparisonEventId?: string;
   megaChart?: boolean;
   plotSamples?: boolean;
   rightComparisonEventId?: string;
 };
+
+const options = [
+  {label: 'Slowest Samples', value: 'slowest_samples'},
+  {label: 'Fastest Samples', value: 'fastest_samples'},
+  {label: 'Median Samples', value: 'median_samples'},
+];
 
 export default function SpanSummary({location, params}: Props) {
   const [state, setState] = useState<State>({
@@ -112,8 +120,13 @@ export default function SpanSummary({location, params}: Props) {
     megaChart: false,
     leftComparisonEventId: undefined,
     rightComparisonEventId: undefined,
+    selectedOption: options[0],
   });
   const pageFilter = usePageFilters();
+
+  const handleDropdownChange = (option: SelectOption<string>) => {
+    setState({...state, selectedOption: option});
+  };
 
   const groupId = params.groupId;
   const transactionName = location.query.transaction;
@@ -393,6 +406,13 @@ export default function SpanSummary({location, params}: Props) {
                 ) : (
                   <div>
                     <h3>{t('Samples')}</h3>
+                    <CompactSelect
+                      options={options}
+                      value={state.selectedOption.value}
+                      onChange={handleDropdownChange}
+                      menuWidth={250}
+                      size="md"
+                    />
                     <GridEditable
                       isLoading={isLoading || isTransactionDataLoading}
                       data={sampledSpanData}
