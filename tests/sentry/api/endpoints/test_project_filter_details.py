@@ -26,8 +26,7 @@ class ProjectFilterDetailsTest(APITestCase):
 
     def test_put_health_check_filter_business(self):
         """
-        Tests that it accepts to set the health-check filter on plans with that
-        allow it ( business plan)
+        Tests that it accepts to set the health-check filter when the feature flag is enabled
         """
         org = self.create_organization(name="baz", slug="1", owner=self.user)
         team = self.create_team(organization=org, name="foo", slug="foo")
