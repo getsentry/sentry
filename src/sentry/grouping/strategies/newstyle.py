@@ -716,8 +716,16 @@ def chained_exception(
     # Filter them according to rules for handling exception groups.
     with sentry_sdk.start_span(
         op="grouping.strategies.newstyle.filter_exceptions_for_exception_groups"
-    ):
-        exceptions = filter_exceptions_for_exception_groups(all_exceptions, context, event, **meta)
+    ) as span:
+        try:
+            exceptions = filter_exceptions_for_exception_groups(
+                all_exceptions, context, event, **meta
+            )
+        except Exception:
+            # We shouldn't have exceptions here. But if we do, just record it and continue with the original list.
+            sentry_sdk.capture_exception()
+            span.set_status("internal_error")
+            exceptions = all_exceptions
 
     # Case 1: we have a single exception, use the single exception
     # component directly to avoid a level of nesting
@@ -756,30 +764,46 @@ def filter_exceptions_for_exception_groups(
 
     # Reconstruct the tree of exceptions if the required data is present.
     exceptions_by_id = {}
-    exceptions_children = {}
+    exceptions_children_by_id = {}
     for exception in reversed(exceptions):
-        exceptions_children[id(exception)] = []
         mechanism: Mechanism = exception.mechanism
         if mechanism and mechanism.exception_id is not None:
             exceptions_by_id[mechanism.exception_id] = exception
             if mechanism.parent_id is not None:
-                parent = exceptions_by_id[mechanism.parent_id]
-                exceptions_children[id(parent)].append(exception)
+                exceptions_children_by_id.setdefault(mechanism.parent_id, []).append(exception)
         else:
             # At least one exception is missing mechanism ids, so we can't continue with the filter.
             # Exit early to not waste perf.
             return exceptions
 
-    # Traverse the tree recursively from the root node to get all "top-level exceptions"
-    # and sort for consistency.
-    def get_top_level_exceptions(node: SingleException) -> Generator[SingleException, None, None]:
-        if node.mechanism.is_exception_group:
+    # define some inner functions that will use the dictionaries created above.
+
+    # This gets the child exceptions for an exception using the exception_id from the mechanism.
+    # That data is guaranteed to exist at this point.
+    def get_child_exceptions(exception):
+        exception_id = exception.mechanism.exception_id
+        return exceptions_children_by_id.get(exception_id, None)
+
+    # This recursive generator gets the "top-level exceptions", and is used below.
+    def get_top_level_exceptions(
+        exception: SingleException,
+    ) -> Generator[SingleException, None, None]:
+        if exception.mechanism.is_exception_group:
+            children = get_child_exceptions(exception)
             yield from itertools.chain.from_iterable(
-                get_top_level_exceptions(child) for child in exceptions_children[id(node)]
+                get_top_level_exceptions(child) for child in children
             )
         else:
-            yield node
+            yield exception
 
+    # This recursive generator gets the "first-path" of exceptions, and is used below.
+    def get_first_path(exception: SingleException) -> Generator[SingleException, None, None]:
+        yield exception
+        children = get_child_exceptions(exception)
+        if children:
+            yield from get_first_path(children[0])
+
+    # Traverse the tree recursively from the root exception to get all "top-level exceptions" and sort for consistency.
     top_level_exceptions = sorted(
         get_top_level_exceptions(exceptions_by_id[0]),
         key=lambda exception: str(exception.type),
@@ -806,12 +830,6 @@ def filter_exceptions_for_exception_groups(
     # We'll also set the main_exception_id, which is used in the extract_metadata function
     # in src/sentry/eventtypes/error.py - which will ensure the issue is titled by this
     # item rather than the exception group.
-    def get_first_path(node: SingleException) -> Generator[SingleException, None, None]:
-        yield node
-        child_nodes = exceptions_children[id(node)]
-        if len(child_nodes) > 0:
-            yield from get_first_path(child_nodes[0])
-
     if len(distinct_exceptions) == 1:
         event.data["main_exception_id"] = distinct_exceptions[0].mechanism.exception_id
         return list(get_first_path(distinct_exceptions[0]))
