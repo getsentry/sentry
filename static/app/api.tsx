@@ -526,6 +526,7 @@ export class Client {
             const scope = new Sentry.Scope();
 
             // Grab everything that could conceivably be helpful to know
+            scope.setTags({errorReason});
             scope.setExtras({
               twoHundredErrorReason,
               responseJSON,
