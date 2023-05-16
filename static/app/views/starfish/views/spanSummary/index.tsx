@@ -144,6 +144,7 @@ export default function SpanSummary({location, params}: Props) {
     initialData: [],
   });
 
+  const p50 = data[0]?.p50 ?? 0;
   const facetBreakdownQuery = getSpanFacetBreakdownQuery({
     groupId,
     datetime: pageFilter.selection.datetime,
@@ -162,6 +163,7 @@ export default function SpanSummary({location, params}: Props) {
     user,
     datetime: pageFilter.selection.datetime,
     sortBy: state.selectedOption.value,
+    p50,
   });
 
   const {isLoading: areSpanSamplesLoading, data: spanSampleData} = useQuery({
@@ -258,7 +260,6 @@ export default function SpanSummary({location, params}: Props) {
     }
 
     if (column.key === 'p50_comparison') {
-      const {p50} = data[0];
       const diff = row.spanDuration - p50;
 
       if (diff === p50) {
