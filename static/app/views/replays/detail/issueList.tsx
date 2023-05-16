@@ -12,9 +12,10 @@ import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 import theme from 'sentry/utils/theme';
+import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -25,27 +26,30 @@ type Props = {
 const columns = [t('Issue'), t('Graph'), t('Events'), t('Users')];
 
 function IssueList({projectId, replayId}: Props) {
+  const api = useApi();
   const organization = useOrganization();
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.large})`);
+
+  const url = `/organizations/${organization.slug}/issues/`;
+  const query = {
+    query: `replayId:${replayId}`,
+  };
 
   const {
     data: issues = [],
     isLoading,
     isError,
     error,
-  } = useApiQuery<Group[], RequestError>(
-    [
-      `/organizations/${organization.slug}/issues/`,
-      {
-        query: {
-          query: `replayId:${replayId}`,
+  } = useQuery<Group[], RequestError>({
+    queryKey: [url, query],
+    queryFn: () =>
+      api.requestPromise(url, {
+        query,
+        headers: {
+          'x-sentry-replay-request': '1',
         },
-      },
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+      }),
+  });
 
   useEffect(() => {
     if (!isError) {
