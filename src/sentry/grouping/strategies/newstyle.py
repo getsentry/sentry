@@ -782,7 +782,7 @@ def filter_exceptions_for_exception_groups(
     # That data is guaranteed to exist at this point.
     def get_child_exceptions(exception):
         exception_id = exception.mechanism.exception_id
-        return exceptions_children_by_id.get(exception_id, None)
+        return exceptions_children_by_id.get(exception_id, [])
 
     # This recursive generator gets the "top-level exceptions", and is used below.
     # "Top-level exceptions are those that are the first descendants of the root that are not exception groups.
