@@ -27,6 +27,8 @@ class ProjectFilterDetailsTest(APITestCase):
     def test_put_health_check_filter_business(self):
         """
         Tests that it accepts to set the health-check filter when the feature flag is enabled
+        Tests that it accepts to set the health-check filter on plans that
+        allow it ( business plan)
         """
         org = self.create_organization(name="baz", slug="1", owner=self.user)
         team = self.create_team(organization=org, name="foo", slug="foo")
@@ -37,7 +39,7 @@ class ProjectFilterDetailsTest(APITestCase):
             self.get_success_response(
                 org.slug, project.slug, "health-check", active=True, status_code=201
             )
-
+        # option was changed by the request
         assert project.get_option("filters:health-check") == "1"
 
         project.update_option("filters:health-check", "1")
@@ -45,12 +47,12 @@ class ProjectFilterDetailsTest(APITestCase):
             self.get_success_response(
                 org.slug, project.slug, "health-check", active=False, status_code=201
             )
-
+        # option was changed by the request
         assert project.get_option("filters:health-check") == "0"
 
     def test_put_health_check_filter_free_plan(self):
         """
-        Tests that it does not accept to set the health-check filter on plans with that
+        Tests that it does not accept to set the health-check filter on plans that
         do not allow it ( free plans)
         """
         org = self.create_organization(name="baz", slug="1", owner=self.user)
@@ -64,7 +66,7 @@ class ProjectFilterDetailsTest(APITestCase):
             )
         # check we return error
         assert resp.status_code == 404
-        # check we did not touch the option
+        # check we did not touch the option (the request did not change anything)
         assert project.get_option("filters:health-check") == "0"
 
     def test_put_legacy_browsers(self):
