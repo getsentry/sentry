@@ -93,14 +93,17 @@ class UserService(RpcService):
         pass
 
     @rpc_method
-    def get_user(self, user_id: int) -> Optional[RpcUser]:
+    def get_user(self, user_id: int, filter: Optional[UserFilterArgs] = None) -> Optional[RpcUser]:
         """
         This method returns a User object given an ID
         :param user_id:
         A user ID to fetch
         :return:
         """
-        users = self.get_many(filter=dict(user_ids=[user_id]))
+        if not filter:
+            filter: UserFilterArgs = dict()
+        filter["user_ids"] = [user_id]
+        users = self.get_many(filter=filter)
         if len(users) > 0:
             return users[0]
         else:
