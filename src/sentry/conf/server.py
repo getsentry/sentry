@@ -1347,6 +1347,8 @@ SENTRY_FEATURES = {
     "organizations:sql-format": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
+    # Enable better priority sort algorithm.
+    "organizations:issue-list-better-priority-sort": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1382,6 +1384,8 @@ SENTRY_FEATURES = {
     "organizations:performance-metrics-backed-transaction-summary": False,
     # Enable new trends
     "organizations:performance-new-trends": False,
+    # Enable debug views for trendsv2 to be used internally
+    "organizations:performance-trendsv2-dev-only": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type

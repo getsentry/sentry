@@ -62,7 +62,7 @@ _DEFAULT_DAEMONS = {
         "sentry",
         "run",
         "query-subscription-consumer",
-        "--force-offset-reset",
+        "--no-strict-offset-reset",
         "latest",
     ],
     "metrics-rh": [
