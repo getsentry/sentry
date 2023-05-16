@@ -45,7 +45,9 @@ function MonitorIssues({orgId, monitor, monitorEnvs}: Props) {
       orgId={orgId}
       endpointPath={`/organizations/${orgId}/issues/`}
       queryParams={{
-        query: `monitor.slug:"${monitor.slug}" enviroment:[${monitorEnvs.join(',')}]`,
+        query: `monitor.slug:"${monitor.slug}" environment:[${monitorEnvs
+          .map(e => e.name)
+          .join(',')}]`,
         project: monitor.project.id,
         limit: 5,
         ...timeProps,
