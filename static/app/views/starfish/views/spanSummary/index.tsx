@@ -7,7 +7,6 @@ import keyBy from 'lodash/keyBy';
 import orderBy from 'lodash/orderBy';
 import * as qs from 'query-string';
 
-import {Button} from 'sentry/components/button';
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import DateTime from 'sentry/components/dateTime';
@@ -32,7 +31,6 @@ import {
   getSpanInTransactionQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {EventComparisonView} from 'sentry/views/starfish/views/spanSummary/eventComparisonView';
 import MegaChart from 'sentry/views/starfish/views/spanSummary/megaChart';
 import Sidebar from 'sentry/views/starfish/views/spanSummary/sidebar';
 
@@ -69,11 +67,6 @@ const COLUMN_ORDER = [
     name: 'Compared to P50',
     width: 200,
   },
-  {
-    key: 'compare',
-    name: '',
-    width: 50,
-  },
 ];
 
 type SpanTableRow = {
@@ -102,10 +95,8 @@ type Props = {
 
 type State = {
   selectedOption: SelectOption<string>;
-  leftComparisonEventId?: string;
   megaChart?: boolean;
   plotSamples?: boolean;
-  rightComparisonEventId?: string;
 };
 
 const options = [
@@ -118,8 +109,6 @@ export default function SpanSummary({location, params}: Props) {
   const [state, setState] = useState<State>({
     plotSamples: false,
     megaChart: false,
-    leftComparisonEventId: undefined,
-    rightComparisonEventId: undefined,
     selectedOption: options[0],
   });
   const pageFilter = usePageFilters();
@@ -232,11 +221,7 @@ export default function SpanSummary({location, params}: Props) {
     return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
   }
 
-  function renderBodyCell(
-    column: GridColumnHeader,
-    row: SpanTableRow,
-    setComparison: (eventId: string) => void
-  ): React.ReactNode {
+  function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
     if (column.key === 'transaction_id') {
       return (
         <Link
@@ -274,18 +259,6 @@ export default function SpanSummary({location, params}: Props) {
 
     if (column.key === 'timestamp') {
       return <DateTime date={row.timestamp} year timeZone seconds />;
-    }
-
-    if (column.key === 'compare') {
-      return (
-        <Button
-          onClick={() => {
-            setComparison(row.transaction_id);
-          }}
-        >
-          {t('View')}
-        </Button>
-      );
     }
 
     return <span>{row[column.key]}</span>;
@@ -391,19 +364,6 @@ export default function SpanSummary({location, params}: Props) {
                   </div>
                 )}
 
-                {(state.leftComparisonEventId || state.rightComparisonEventId) && (
-                  <EventComparisonView
-                    left={state.leftComparisonEventId}
-                    right={state.rightComparisonEventId}
-                    clearLeft={() => {
-                      setState({...state, leftComparisonEventId: undefined});
-                    }}
-                    clearRight={() => {
-                      setState({...state, rightComparisonEventId: undefined});
-                    }}
-                  />
-                )}
-
                 {areSpanSamplesLoading ? (
                   <span>LOADING SAMPLE LIST</span>
                 ) : (
@@ -426,20 +386,7 @@ export default function SpanSummary({location, params}: Props) {
                       columnSortBy={[]}
                       grid={{
                         renderHeadCell,
-                        renderBodyCell: (column: GridColumnHeader, row: SpanTableRow) =>
-                          renderBodyCell(column, row, eventId => {
-                            if (state.leftComparisonEventId) {
-                              setState({
-                                ...state,
-                                rightComparisonEventId: eventId,
-                              });
-                            } else {
-                              setState({
-                                ...state,
-                                leftComparisonEventId: eventId,
-                              });
-                            }
-                          }),
+                        renderBodyCell,
                       }}
                       location={location}
                     />
