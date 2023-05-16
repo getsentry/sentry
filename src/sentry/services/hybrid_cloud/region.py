@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud import ArgumentDict
 from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
 from sentry.types.region import Region, get_region_by_name
@@ -91,6 +90,8 @@ class ByOrganizationMemberId(RegionResolution):
     parameter_name: str = "organization_member_id"
 
     def resolve(self, arguments: ArgumentDict) -> Region:
+        from sentry.models.organizationmembermapping import OrganizationMemberMapping
+
         organization_member_id = arguments[self.parameter_name]
         org_member_map = OrganizationMemberMapping.objects.filter(
             organizationmember_id=organization_member_id
