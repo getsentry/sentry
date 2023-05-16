@@ -258,7 +258,7 @@ function ChangedTransactions(props: Props) {
       location={location}
       trendChangeType={trendChangeType}
       cursor={cursor}
-      limit={8}
+      limit={5}
       setError={error => setError(error?.message)}
       withBreakpoint={withBreakpoint}
     >
