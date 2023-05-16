@@ -34,7 +34,12 @@ import {
   getTitle,
 } from 'sentry/utils/events';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {
+  ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -270,7 +275,19 @@ function useEventApiQuery(
   return isLatest ? latestEventQuery : otherEventQuery;
 }
 
-function useSyncGroupStore() {
+type FetchGroupQueryParameters = {
+  environments: string[];
+  groupId: string;
+};
+
+function makeFetchGroupQueryKey({
+  groupId,
+  environments,
+}: FetchGroupQueryParameters): ApiQueryKey {
+  return [`/issues/${groupId}/`, {query: getGroupQuery({environments})}];
+}
+
+function useSyncGroupStore(environments: string[]) {
   const queryClient = useQueryClient();
   const router = useRouter();
   const allGroups = useLegacyStore(GroupStore);
@@ -279,8 +296,14 @@ function useSyncGroupStore() {
   const group = allGroups.find(({id}) => id === params.groupId) as Group;
 
   useEffect(() => {
-    setApiQueryData(queryClient, [`/issues/${params.groupId}/`], group);
-  }, [group, queryClient, params.groupId]);
+    if (defined(group)) {
+      setApiQueryData(
+        queryClient,
+        makeFetchGroupQueryKey({groupId: group.id, environments}),
+        group
+      );
+    }
+  }, [group, queryClient, environments]);
 }
 
 function useFetchGroupDetails({
@@ -324,26 +347,28 @@ function useFetchGroupDetails({
     isError: isGroupError,
     error: groupError,
     refetch: refetchGroupCall,
-  } = useApiQuery<Group>(
-    [`/issues/${params.groupId}/`, {query: getGroupQuery({environments})}],
-    {staleTime: 30000, cacheTime: 30000, enabled: isGlobalSelectionReady}
-  );
+  } = useApiQuery<Group>(makeFetchGroupQueryKey({groupId, environments}), {
+    staleTime: 30000,
+    cacheTime: 30000,
+    enabled: isGlobalSelectionReady,
+  });
 
   const {data: groupReleaseData, isLoading: groupReleaseLoading} =
-    useApiQuery<GroupRelease>([`/issues/${params.groupId}/first-last-release/`], {
+    useApiQuery<GroupRelease>([`/issues/${groupId}/first-last-release/`], {
       staleTime: 60000,
       cacheTime: 60000,
+      enabled: !!groupData,
     });
 
   useEffect(() => {
     if (!groupReleaseLoading && groupReleaseData) {
-      GroupStore.onPopulateReleases(params.groupId, groupReleaseData);
+      GroupStore.onPopulateReleases(groupId, groupReleaseData);
     }
-  }, [groupReleaseData, groupReleaseLoading, params.groupId]);
+  }, [groupReleaseData, groupReleaseLoading, groupId]);
 
   const group = groupData ?? null;
 
-  useSyncGroupStore();
+  useSyncGroupStore(environments);
 
   useEffect(() => {
     if (eventData) {
@@ -353,7 +378,7 @@ function useFetchGroupDetails({
 
   useEffect(() => {
     if (!loadingGroup && group) {
-      GroupStore.add([group]);
+      GroupStore.loadInitialData([group]);
     }
   }, [group, loadingGroup]);
 
