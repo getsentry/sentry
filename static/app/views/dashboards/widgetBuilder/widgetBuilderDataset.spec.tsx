@@ -60,7 +60,6 @@ function renderTestComponent({
   query?: Record<string, any>;
 } = {}) {
   const {organization, router, routerContext} = initializeOrg({
-    ...initializeOrg(),
     organization: {
       features: orgFeatures ?? defaultOrgFeatures,
     },

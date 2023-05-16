@@ -10,7 +10,7 @@ export function initializeOrg({
   project: additionalProject,
   projects: additionalProjects,
   router: additionalRouter,
-} = {}) {
+}: {organization?: any; project?: any; projects?: any[]; router?: any} = {}) {
   const projects = (
     additionalProjects ||
     (additionalProject && [additionalProject]) || [{}]
@@ -30,7 +30,7 @@ export function initializeOrg({
     },
   });
 
-  const routerContext = TestStubs.routerContext([
+  const routerContext: any = TestStubs.routerContext([
     {
       organization,
       project,
@@ -45,5 +45,7 @@ export function initializeOrg({
     projects,
     router,
     routerContext,
+    // not sure what purpose this serves
+    route: {},
   };
 }
