@@ -63,7 +63,7 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 span.set_data("project_id", project.id)
                 tx_names = list(redis.get_transaction_names(project))
                 new_rules = []
-                if len(tx_names) >= redis.MAX_SET_SIZE:
+                if len(tx_names) >= MERGE_THRESHOLD:
                     clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
                     clusterer.add_input(tx_names)
                     new_rules = clusterer.get_rules()
@@ -71,7 +71,10 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 # The Redis store may have more up-to-date last_seen values,
                 # so we must update the stores to bring these values to
                 # project options, even if there aren't any new rules.
-                rules.update_rules(project, new_rules)
+                num_rules_added = rules.update_rules(project, new_rules)
+
+                # Track a global counter of new rules:
+                metrics.incr("txcluster.new_rules_discovered", num_rules_added)
 
                 # Clear transaction names to prevent the set from picking up
                 # noise over a long time range.

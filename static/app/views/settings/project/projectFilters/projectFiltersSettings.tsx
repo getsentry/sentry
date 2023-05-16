@@ -272,19 +272,21 @@ type Filter = {
 
 export function ProjectFiltersSettings({project, params, features}: Props) {
   const organization = useOrganization();
-  const {projectId} = params;
+  const {projectId: projectSlug} = params;
 
-  const projectEndpoint = `/projects/${organization.slug}/${projectId}/`;
+  const projectEndpoint = `/projects/${organization.slug}/${projectSlug}/`;
   const filtersEndpoint = `${projectEndpoint}filters/`;
 
   const {
-    data: filterList = [],
+    data: filterListData,
     isLoading,
     isError,
     refetch,
-  } = useApiQuery<Filter[]>([`/projects/${organization.slug}/${projectId}/filters/`], {
+  } = useApiQuery<Filter[]>([`/projects/${organization.slug}/${projectSlug}/filters/`], {
     staleTime: Infinity,
   });
+
+  const filterList = filterListData ?? [];
 
   const handleLegacyChange = useCallback(
     ({

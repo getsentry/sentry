@@ -35,7 +35,7 @@ from sentry.search.snuba.backend import (
     CdcEventsDatasetSnubaSearchBackend,
     EventsDatasetSnubaSearchBackend,
 )
-from sentry.search.snuba.executors import InvalidQueryForExecutor
+from sentry.search.snuba.executors import InvalidQueryForExecutor, PrioritySortWeights
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -65,6 +65,7 @@ class SharedSnubaTest(TestCase, SnubaTestCase):
         date_from=None,
         date_to=None,
         cursor=None,
+        aggregate_kwargs=None,
     ):
         search_filters = []
         projects = projects if projects is not None else [self.project]
@@ -76,6 +77,8 @@ class SharedSnubaTest(TestCase, SnubaTestCase):
         kwargs = {}
         if limit is not None:
             kwargs["limit"] = limit
+        if aggregate_kwargs:
+            kwargs["aggregate_kwargs"] = {"better_priority": {**aggregate_kwargs}}
 
         return self.backend.query(
             projects,
@@ -353,6 +356,56 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         results = self.make_query(sort_by="user")
         assert list(results) == [self.group1, self.group2]
+
+    def test_better_priority_sort(self):
+        with self.feature("organizations:issue-list-better-priority-sort"):
+            weights: PrioritySortWeights = {"log_level": 5, "frequency": 5, "has_stacktrace": 5}
+            results = self.make_query(
+                sort_by="better priority",
+                aggregate_kwargs=weights,
+            )
+        assert list(results) == [self.group2, self.group1]
+
+    def test_better_priority_sort_old_and_new_events(self):
+        """Test that an issue with only one old event is ranked lower than an issue with only one new event"""
+        new_project = self.create_project(organization=self.project.organization)
+
+        recent_event = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-recent-group"],
+                "event_id": "c" * 32,
+                "message": "group1",
+                "environment": "production",
+                "tags": {"server": "example.com", "sentry:user": "event3@example.com"},
+                "timestamp": iso_format(self.base_datetime),
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=new_project.id,
+        )
+        old_event = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-old-group"],
+                "event_id": "a" * 32,
+                "message": "foo. Also, this message is intended to be greater than 256 characters so that we can put some unique string identifier after that point in the string. The purpose of this is in order to verify we are using snuba to search messages instead of Postgres (postgres truncates at 256 characters and clickhouse does not). santryrox.",
+                "environment": "production",
+                "tags": {"server": "example.com", "sentry:user": "old_event@example.com"},
+                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=new_project.id,
+        )
+        old_event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+
+        with self.feature("organizations:issue-list-better-priority-sort"):
+            weights: PrioritySortWeights = {"log_level": 5, "frequency": 5, "has_stacktrace": 5}
+            results = self.make_query(
+                sort_by="better priority",
+                projects=[new_project],
+                aggregate_kwargs=weights,
+            )
+        recent_group = Group.objects.get(id=recent_event.group.id)
+        old_group = Group.objects.get(id=old_event.group.id)
+        assert list(results) == [recent_group, old_group]
 
     def test_sort_with_environment(self):
         for dt in [

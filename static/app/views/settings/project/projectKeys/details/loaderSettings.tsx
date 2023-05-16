@@ -14,7 +14,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
@@ -99,7 +99,7 @@ export function LoaderSettings({keyId, orgSlug, project, projectKey}: Props) {
         addSuccessMessage(t('Successfully updated dynamic SDK loader configuration'));
       } catch (error) {
         const message = t('Unable to updated dynamic SDK loader configuration');
-        handleXhrErrorResponse(message)(error);
+        handleXhrErrorResponse(message, error);
         addErrorMessage(message);
       }
     },
@@ -146,7 +146,7 @@ export function LoaderSettings({keyId, orgSlug, project, projectKey}: Props) {
         addSuccessMessage(t('Successfully updated SDK version'));
       } catch (error) {
         const message = t('Unable to updated SDK version');
-        handleXhrErrorResponse(message)(error);
+        handleXhrErrorResponse(message, error);
         addErrorMessage(message);
       }
     },
