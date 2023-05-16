@@ -39,3 +39,8 @@ export default function getXhrErrorResponseHandler(message: string) {
     }
   };
 }
+
+export function handleXhrErrorResponse(message: string, resp: ResponseMeta): void {
+  const handler = getXhrErrorResponseHandler(message);
+  return handler(resp);
+}

@@ -9,7 +9,7 @@ import {Monitor, MonitorEnvironment} from '../types';
 
 type Props = {
   monitor: Monitor;
-  monitorEnv: MonitorEnvironment;
+  monitorEnvs: MonitorEnvironment[];
   orgId: string;
 };
 
@@ -25,7 +25,7 @@ function MonitorIssuesEmptyMessage() {
   );
 }
 
-function MonitorIssues({orgId, monitor}: Props) {
+function MonitorIssues({orgId, monitor, monitorEnvs}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
   const timeProps =
@@ -45,7 +45,7 @@ function MonitorIssues({orgId, monitor}: Props) {
       orgId={orgId}
       endpointPath={`/organizations/${orgId}/issues/`}
       queryParams={{
-        query: `monitor.slug:"${monitor.slug}"`,
+        query: `monitor.slug:"${monitor.slug}" enviroment:[${monitorEnvs.join(',')}]`,
         project: monitor.project.id,
         limit: 5,
         ...timeProps,

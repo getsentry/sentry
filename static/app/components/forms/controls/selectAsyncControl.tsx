@@ -3,9 +3,9 @@ import ReactSelect from 'react-select';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
-import getXhrErrorResponseHandler from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 
 import SelectControl, {ControlProps, GeneralSelectValue} from './selectControl';
 
@@ -91,9 +91,9 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
         const {onResults} = this.props;
         return typeof onResults === 'function' ? onResults(resp) : resp;
       },
-      err => {
+      (err: ResponseMeta) => {
         addErrorMessage(t('There was a problem with the request.'));
-        getXhrErrorResponseHandler('SelectAsync failed')(err);
+        handleXhrErrorResponse('SelectAsync failed', err);
         // eslint-disable-next-line no-console
         console.error(err);
       }

@@ -11,6 +11,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 
 from sentry.constants import ObjectStatus
+from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.consumers.monitor_consumer import (
     StoreMonitorCheckInStrategyFactory,
     _process_message,
@@ -249,6 +250,39 @@ class MonitorConsumerTest(TestCase):
 
             checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
             assert len(checkins) == 2
+
+    def test_invalid_duration(self):
+        monitor = self._create_monitor(slug="my-monitor")
+
+        # Try to ingest two the second will be rate limited
+        message = self.get_message("my-monitor", status="in_progress")
+        check_in_id = message.get("check_in_id")
+        _process_message(message)
+
+        # Invalid check-in updates
+        _process_message(
+            self.get_message("my-monitor", check_in_id=check_in_id, duration=-(1.0 / 1000))
+        )
+        _process_message(
+            self.get_message(
+                "my-monitor",
+                check_in_id=check_in_id,
+                duration=((BoundedPositiveIntegerField.MAX_VALUE + 1.0) / 1000),
+            )
+        )
+
+        # Invalid check-in creations
+        _process_message(self.get_message("my-monitor", duration=-(1.0 / 1000)))
+        _process_message(
+            self.get_message(
+                "my-monitor", duration=(BoundedPositiveIntegerField.MAX_VALUE + 1.0) / 1000
+            )
+        )
+
+        # Only one check-in should be processed and it should still be IN_PROGRESS
+        checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+        assert len(checkins) == 1
+        assert checkins[0].status == CheckInStatus.IN_PROGRESS
 
     @pytest.mark.django_db
     def test_monitor_upsert(self):
