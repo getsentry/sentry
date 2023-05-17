@@ -72,11 +72,8 @@ function disableSortOptions(_widgetQuery: WidgetQuery) {
   };
 }
 
-function getTableSortOptions(organization: Organization, _widgetQuery: WidgetQuery) {
+function getTableSortOptions(_organization: Organization, _widgetQuery: WidgetQuery) {
   const sortOptions = [...ISSUE_WIDGET_SORT_OPTIONS];
-  if (organization.features.includes('issue-list-trend-sort')) {
-    sortOptions.push(IssueSortOptions.TREND);
-  }
   return sortOptions.map(sortOption => ({
     label: getSortLabel(sortOption),
     value: sortOption,
