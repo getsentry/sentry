@@ -1,9 +1,10 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PlatformList from 'sentry/components/platformList';
+import {PlatformKey} from 'sentry/data/platformCategories';
 
 describe('PlatformList', function () {
-  const platforms = ['java', 'php', 'javascript', 'cocoa', 'ruby'];
+  const platforms: PlatformKey[] = ['java', 'php', 'javascript', 'cocoa-swift', 'ruby'];
 
   it('renders max of three icons from platforms', function () {
     render(<PlatformList platforms={platforms} />);

@@ -13,7 +13,7 @@ type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
 type Options = {
   append?: boolean;
   disableDismiss?: boolean;
-  duration?: number;
+  duration?: number | null;
   modelArg?: {
     id: string;
     model: FormModel;
