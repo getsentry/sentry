@@ -321,7 +321,7 @@ class MonitorCheckIn(Model):
     )
     config = JSONField(default=dict)
     duration = BoundedPositiveIntegerField(null=True)
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
     date_updated = models.DateTimeField(default=timezone.now)
     attachment_id = BoundedBigIntegerField(null=True)
     # Holds the time we expected to receive this check-in without factoring in margin
