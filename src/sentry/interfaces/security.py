@@ -40,7 +40,6 @@ DEFAULT_DISALLOWED_SOURCES = (
     "xls.searchfun.in",
     "istatic.datafastguru.info",
     "v.zilionfast.in",
-    "localhost",
     "resultshub-a.akamaihd.net",
     "pulseadnetwork.com",
     "gateway.zscalertwo.net",
