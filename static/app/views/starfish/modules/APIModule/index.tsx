@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {t} from 'sentry/locale';
 import {
   PageErrorAlert,
@@ -38,8 +39,10 @@ export default function APIModule(props: Props) {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <APIModuleView {...props} onSelect={setSelectedRow} />
-            <EndpointDetail row={selectedRow} onClose={unsetSelectedSpanGroup} />
+            <PageFiltersContainer>
+              <APIModuleView {...props} onSelect={setSelectedRow} />
+              <EndpointDetail row={selectedRow} onClose={unsetSelectedSpanGroup} />
+            </PageFiltersContainer>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
