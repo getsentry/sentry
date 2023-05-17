@@ -53,7 +53,6 @@ class RuleProcessorTest(TestCase):
             project=self.group_event.project,
             data={"conditions": [EVERY_EVENT_COND_DATA], "actions": [EMAIL_ACTION_DATA]},
         )
-        self.integration = install_slack(self.organization)
 
     # this test relies on a few other tests passing
     def test_integrated(self):
@@ -124,15 +123,16 @@ class RuleProcessorTest(TestCase):
         results = list(rp.apply())
         assert len(results) == 0
 
-    def test_muted_rule(self):
+    def test_muted_slack_rule(self):
         """Test that we don't sent a notification for a muted Slack rule"""
+        integration = install_slack(self.organization)
         action_data = [
             {
                 "channel": "#my-channel",
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
                 "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
                 "tags": "",
-                "workspace": self.integration.id,
+                "workspace": integration.id,
             },
         ]
         slack_rule = self.create_project_rule(self.project, action_data)
