@@ -1,3 +1,5 @@
+import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
+
 export const getModuleBreakdown = ({transaction}) => {
   return `SELECT
   sum(exclusive_time) as sum, module
@@ -9,38 +11,53 @@ export const getModuleBreakdown = ({transaction}) => {
  `;
 };
 
-export const getTopDomainsActionsAndOp = ({transaction}) => {
+export const getTopDomainsActionsAndOp = ({transaction, datetime}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT domain, action, span_operation, module, sum(exclusive_time) as sum, uniq(description) as num_spans
    FROM spans_experimental_starfish
    WHERE span_operation NOT IN ['base.dispatch.execute', 'middleware.django', 'base.dispatch.request']
    ${transaction ? `AND transaction = '${transaction}'` : ''}
+   ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
+   ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
    GROUP BY domain, action, span_operation, module
    ORDER BY -sum(exclusive_time)
    LIMIT 5
  `;
 };
 
-export const getTopDomainsActionsAndOpTimeseries = ({transaction, topConditions}) => {
+export const getTopDomainsActionsAndOpTimeseries = ({
+  transaction,
+  topConditions,
+  datetime,
+}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
  quantile(0.75)(exclusive_time) as p75, domain, action, span_operation, module,
  toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
  FROM default.spans_experimental_starfish
- ${topConditions ? `WHERE (${topConditions})` : ''}
- ${topConditions && transaction ? `AND transaction = '${transaction}'` : ''}
- ${!topConditions && transaction ? `WHERE transaction = '${transaction}'` : ''}
+ WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
+ ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
+ ${topConditions ? `AND (${topConditions})` : ''}
+ ${transaction ? `AND transaction = '${transaction}'` : ''}
  GROUP BY interval, domain, action, span_operation, module
  ORDER BY interval, domain, action, span_operation, module
  `;
 };
 
-export const getOtherDomainsActionsAndOpTimeseries = ({transaction, topConditions}) => {
+export const getOtherDomainsActionsAndOpTimeseries = ({
+  transaction,
+  topConditions,
+  datetime,
+}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
  quantile(0.75)(exclusive_time) as p75,
  toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
  FROM default.spans_experimental_starfish
- ${topConditions ? `WHERE NOT (${topConditions})` : ''}
- ${topConditions && transaction ? `AND transaction = '${transaction}'` : ''}
- ${!topConditions && transaction ? `WHERE transaction = '${transaction}'` : ''}
+ WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
+ ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
+ ${topConditions ? `AND NOT (${topConditions})` : ''}
+ ${transaction ? `AND transaction = '${transaction}'` : ''}
  GROUP BY interval
  ORDER BY interval
  `;
@@ -57,10 +74,13 @@ export const spanThroughput = ({transaction}) => {
   `;
 };
 
-export const totalCumulativeTime = ({transaction}) => {
+export const totalCumulativeTime = ({transaction, datetime}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT sum(exclusive_time) as sum
    FROM spans_experimental_starfish
-   ${transaction ? `WHERE transaction = '${transaction}'` : ''}
+   WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
+   ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
+   ${transaction ? `AND transaction = '${transaction}'` : ''}
  `;
 };
 
