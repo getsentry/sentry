@@ -120,7 +120,7 @@ function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
     <React.Fragment>
       <Panel>
         <PanelBody withPadding>
-          <StyledHeaderTitle>{t('Recent Check-Ins')}</StyledHeaderTitle>
+          <StyledHeaderTitle>{t('Check-Ins')}</StyledHeaderTitle>
           <BarChart
             isGroupedByDate
             showTimeInTooltip
