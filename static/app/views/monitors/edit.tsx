@@ -1,11 +1,14 @@
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -66,10 +69,26 @@ export default function EditMonitor() {
               crumbs={[
                 {
                   label: t('Crons'),
-                  to: `/organizations/${organization.slug}/crons/`,
+                  to: normalizeUrl(`/organizations/${organization.slug}/crons/`),
                 },
                 {
-                  label: t('Editing %s', monitor.name),
+                  label: (
+                    <MonitorBreadcrumb>
+                      <IdBadge
+                        project={monitor.project}
+                        avatarSize={16}
+                        hideName
+                        avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
+                      />
+                      {monitor.name}
+                    </MonitorBreadcrumb>
+                  ),
+                  to: normalizeUrl(
+                    `/organizations/${organization.slug}/crons/${monitor.slug}/`
+                  ),
+                },
+                {
+                  label: t('Edit'),
                 },
               ]}
             />
@@ -90,3 +109,9 @@ export default function EditMonitor() {
     </SentryDocumentTitle>
   );
 }
+
+const MonitorBreadcrumb = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;

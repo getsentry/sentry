@@ -147,8 +147,8 @@ class CheckInStatus:
     TIMEOUT = 5
     """Checkin was left in-progress past max_runtime"""
 
-    FINISHED_VALUES = (OK, ERROR, TIMEOUT)
-    """Sentient values used to indicate a monitor is finished running"""
+    FINISHED_VALUES = (OK, ERROR, MISSED, TIMEOUT)
+    """Terminal values used to indicate a monitor is finished running"""
 
     @classmethod
     def as_choices(cls):
@@ -217,14 +217,11 @@ class Monitor(Model):
         choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
     )
     config = JSONField(default=dict)
-    next_checkin = models.DateTimeField(null=True)
-    last_checkin = models.DateTimeField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitor"
-        index_together = (("type", "next_checkin"),)
         unique_together = (("organization_id", "slug"),)
 
     __repr__ = sane_repr("guid", "project_id", "name")
