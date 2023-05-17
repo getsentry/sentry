@@ -58,7 +58,7 @@ describe('Dashboards > Dashboard', () => {
   let initialData, tagsMock;
 
   beforeEach(() => {
-    initialData = initializeOrg({organization, router: {}, project: 1, projects: []});
+    initialData = initializeOrg({organization, router: {}, projects: []});
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/dashboards/widgets/`,
       method: 'POST',
@@ -329,7 +329,6 @@ describe('Dashboards > Dashboard', () => {
 
     it('opens the widget builder when editing with the modal access flag', async function () {
       const testData = initializeOrg({
-        ...initializeOrg(),
         organization: {
           features: ['dashboards-basic', 'dashboards-edit'],
         },
