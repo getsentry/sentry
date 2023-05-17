@@ -31,7 +31,9 @@ export function handleXhrErrorResponse(message: string, err: RequestError): void
     Sentry.withScope(scope => {
       scope.setExtra('status', err.status);
       scope.setExtra('detail', responseJSON.detail);
-      scope.setExtra('code', responseJSON.detail.code);
+      // @ts-ignore Property 'code' does not exist on type 'string' (god knows why
+      // it's not mad at the other places in this function we do this, but ¯\_(ツ)_/¯)
+      scope.setExtra('code', responseJSON.detail?.code);
       Sentry.captureException(new Error(message));
     });
     return;

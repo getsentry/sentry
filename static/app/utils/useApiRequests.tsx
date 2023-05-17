@@ -374,7 +374,7 @@ function useApiRequests<T extends Record<string, any>>({
       if (shouldRenderBadRequests) {
         const badRequests = Object.values(errors)
           .filter(resp => resp?.status === 400 && resp?.responseJSON?.detail)
-          .map(resp => resp.responseJSON.detail);
+          .map(resp => resp.responseJSON?.detail);
 
         if (badRequests.length) {
           return <LoadingError message={[...new Set(badRequests)].join('\n')} />;
