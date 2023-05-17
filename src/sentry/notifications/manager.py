@@ -96,7 +96,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         value: NotificationSettingOptionValues,
         scope_type: NotificationScopeType,
         scope_identifier: int,
-        target_id: int,
+        target_id: Optional[int] = None,
         user_id: Optional[int] = None,
         team_id: Optional[int] = None,
     ) -> None:
