@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Mapping, Optional, Sequence
+from typing import Iterable, List, Mapping, Optional, Sequence
 
 from django.db import transaction
 from django.db.models import Q
@@ -162,3 +162,25 @@ class DatabaseBackedNotificationsService(NotificationsService):
 
     def close(self) -> None:
         pass
+
+    def filter(
+        self,
+        *,
+        provider: Optional[ExternalProviders] = None,
+        type: Optional[NotificationSettingTypes] = None,
+        scope_type: Optional[NotificationScopeType] = None,
+        scope_identifier: Optional[int] = None,
+        user_ids: Optional[Iterable[int]] = None,
+        team_ids: Optional[Iterable[int]] = None,
+    ) -> Iterable[RpcNotificationSetting]:
+        return [
+            serialize_notification_setting(n)
+            for n in NotificationSetting.objects._filter(
+                provider=provider,
+                type=type,
+                scope_type=scope_type,
+                scope_identifier=scope_identifier,
+                user_ids=user_ids,
+                team_ids=team_ids,
+            )
+        ]

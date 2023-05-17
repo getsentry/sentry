@@ -146,13 +146,12 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
         if actor is None:
             if user is not None:
-                actor = RpcActor.from_object(user)
+                actor = RpcActor.from_object(user, fetch_actor=False)
             if team is not None:
                 actor = RpcActor.from_object(team)
-        assert actor
+        assert actor, "None actor cannot have settings updated"
 
         target_id = actor.actor_id
-        assert target_id, "None actor_id cannot have settings updated"
         analytics.record(
             "notifications.settings_updated",
             target_type="user" if actor.actor_type == ActorType.USER else "team",
@@ -423,7 +422,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             if user is not None:
                 # TODO(hybridcloud): set fetch_actor=False for method call below
                 # when it is no longer necessary to persist NotificationSetting.target_id
-                actor = RpcActor.from_object(user)
+                actor = RpcActor.from_object(user, fetch_actor=False)
             if team is not None:
                 actor = RpcActor.from_object(team)
         assert actor

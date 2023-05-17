@@ -26,6 +26,7 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
@@ -61,6 +62,7 @@ def analytics_called_with_args(fn, name, **kwargs):
     return False
 
 
+@control_silo_test(stable=True)
 class ActivityNotificationTest(APITestCase):
     """
     Enable Slack AND email notification settings for a user

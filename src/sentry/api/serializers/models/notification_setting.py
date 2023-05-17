@@ -2,12 +2,12 @@ from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
 from sentry.api.serializers import Serializer
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.helpers import get_fallback_settings
 from sentry.notifications.types import VALID_VALUES_FOR_KEY, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -42,7 +42,7 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         team_map = {t.id: t for t in item_list if isinstance(t, (Team, RpcTeam))}
         user_map = {u.id: u for u in item_list if isinstance(u, (User, RpcUser))}
 
-        notifications_settings = NotificationSetting.objects._filter(
+        notifications_settings = notifications_service.filter(
             type=type_option,
             team_ids=list(team_map.keys()),
             user_ids=list(user_map.keys()),
