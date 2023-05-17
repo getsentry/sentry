@@ -1,18 +1,18 @@
 import {CSSProperties, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Badge from 'sentry/components/badge';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
-import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
+import {getDuration} from 'sentry/utils/formatters';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
 import {Sort} from 'sentry/views/starfish/modules/databaseModule';
 import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
-
-import {highlightSql} from './panel';
+import {generateHorizontalLine} from 'sentry/views/starfish/modules/databaseModule/utils';
 
 type Props = {
   isDataLoading: boolean;
@@ -49,7 +49,8 @@ export type Keys =
   | 'description'
   | 'domain'
   | 'throughput'
-  | 'p75_trend'
+  | 'p50_trend'
+  | 'p95_trend'
   | 'epm'
   | 'p50'
   | 'p95'
@@ -62,7 +63,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'description',
     name: 'Query',
-    width: 600,
+    width: 550,
   },
   {
     key: 'domain',
@@ -71,25 +72,18 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   },
   {
     key: 'throughput',
-    name: 'Throughput',
-    width: 200,
+    name: 'Throughput (SPM)',
+    width: 175,
   },
   {
-    key: 'p75_trend',
-    name: 'P75 Trend',
-    width: 200,
+    key: 'p50_trend',
+    name: 'P50 Trend',
+    width: 175,
   },
   {
-    key: 'epm',
-    name: 'Tpm',
-  },
-  {
-    key: 'p50',
-    name: 'p50',
-  },
-  {
-    key: 'p95',
-    name: 'p95',
+    key: 'p95_trend',
+    name: 'P95 trend',
+    width: 175,
   },
   {
     key: 'transactions',
@@ -165,6 +159,7 @@ export default function DatabaseTableView({
     direction: 'desc' | 'asc' | undefined;
     sortHeader: TableColumnHeader | undefined;
   }>({direction: undefined, sortHeader: undefined});
+  const theme = useTheme();
 
   function onSortClick(col: TableColumnHeader) {
     let direction: 'desc' | 'asc' | undefined = undefined;
@@ -216,44 +211,64 @@ export default function DatabaseTableView({
     const value = row[key];
 
     if (key === 'description') {
-      let headerExtra = '';
-      if (row.newish === 1) {
-        headerExtra = `Query (First seen ${row.firstSeen})`;
-      } else if (row.retired === 1) {
-        headerExtra = `Query (Last seen ${row.lastSeen})`;
-      }
       return (
-        <Hovercard header={headerExtra} body={highlightSql(row.formatted_desc, row)}>
-          <Link onClick={() => onSelect(row, rowIndex)} to="" style={rowStyle}>
-            {value.substring(0, 30)}
-            {value.length > 30 ? '...' : ''}
-            {value.length > 30 ? value.substring(value.length - 30) : ''}
-          </Link>
+        <Link onClick={() => onSelect(row, rowIndex)} to="" style={rowStyle}>
+          {value.substring(0, 30)}
+          {value.length > 30 ? '...' : ''}
+          {value.length > 30 ? value.substring(value.length - 30) : ''}
           {renderBadge(row, selectedRow)}
-        </Hovercard>
+        </Link>
       );
     }
 
-    const timeBasedKeys: Keys[] = ['p50', 'p95', 'total_time'];
+    const timeBasedKeys: Keys[] = ['total_time'];
     if (timeBasedKeys.includes(key)) {
-      return <span style={rowStyle}>{value.toFixed(2)}ms</span>;
+      return <span style={rowStyle}>{getDuration(value / 1000, 2, true)}</span>;
     }
 
     if (key === 'throughput') {
+      const horizontalLine = generateHorizontalLine(
+        `${row.epm.toFixed(2)}`,
+        row.epm,
+        theme
+      );
       return (
         <Sparkline
           color={CHART_PALETTE[3][0]}
           series={value}
+          markLine={horizontalLine}
           width={column.width ? column.width - column.width / 5 : undefined}
         />
       );
     }
 
-    if (key === 'p75_trend') {
+    if (key === 'p50_trend') {
+      const horizontalLine = generateHorizontalLine(
+        `${getDuration(row.p50 / 1000, 2, true)}`,
+        row.p50,
+        theme
+      );
       return (
         <Sparkline
-          color={CHART_PALETTE[3][3]}
+          color={CHART_PALETTE[3][1]}
           series={value}
+          markLine={horizontalLine}
+          width={column.width ? column.width - column.width / 5 : undefined}
+        />
+      );
+    }
+
+    if (key === 'p95_trend') {
+      const horizontalLine = generateHorizontalLine(
+        `${getDuration(row.p95 / 1000, 2, true)}`,
+        row.p95,
+        theme
+      );
+      return (
+        <Sparkline
+          color={CHART_PALETTE[3][2]}
+          series={value}
+          markLine={horizontalLine}
           width={column.width ? column.width - column.width / 5 : undefined}
         />
       );
