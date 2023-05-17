@@ -105,12 +105,12 @@ function transformData(_data: Record<string, any>, model: FormModel) {
     }
 
     if (Array.isArray(data.config.schedule) && k === 'config.schedule.frequency') {
-      data.config.schedule![0] = parseInt(v as string, 10);
+      data.config.schedule[0] = parseInt(v as string, 10);
       return data;
     }
 
     if (Array.isArray(data.config.schedule) && k === 'config.schedule.interval') {
-      data.config.schedule![1] = v as IntervalConfig['schedule'][1];
+      data.config.schedule[1] = v as IntervalConfig['schedule'][1];
       return data;
     }
 
