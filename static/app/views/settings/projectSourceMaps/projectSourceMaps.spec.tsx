@@ -65,6 +65,9 @@ describe('ProjectSourceMaps', function () {
         router: {
           location: {
             query: {},
+            pathname: `/settings/${initializeOrg().organization.slug}/projects/${
+              initializeOrg().project.slug
+            }/source-maps/release-bundles/`,
           },
           params: {},
         },
@@ -96,12 +99,12 @@ describe('ProjectSourceMaps', function () {
       expect(tabs).toHaveLength(2);
 
       // Tab 1
-      expect(tabs[0]).toHaveTextContent('Release Bundles');
-      expect(tabs[0]).toHaveClass('active');
+      expect(tabs[0]).toHaveTextContent('Artifact Bundles');
+      expect(tabs[0]).not.toHaveClass('active');
 
       // Tab 2
-      expect(tabs[1]).toHaveTextContent('Artifact Bundles');
-      expect(tabs[1]).not.toHaveClass('active');
+      expect(tabs[1]).toHaveTextContent('Release Bundles');
+      expect(tabs[1]).toHaveClass('active');
 
       // Search bar
       expect(screen.getByPlaceholderText('Filter by Name')).toBeInTheDocument();
@@ -122,7 +125,7 @@ describe('ProjectSourceMaps', function () {
       });
 
       // Active tab contains correct link
-      expect(screen.getByRole('link', {name: 'Release Bundles'})).toHaveAttribute(
+      expect(screen.getByRole('link', {name: /Release Bundles/})).toHaveAttribute(
         'href',
         '/settings/org-slug/projects/project-slug/source-maps/release-bundles/'
       );
@@ -169,6 +172,9 @@ describe('ProjectSourceMaps', function () {
         router: {
           location: {
             query: {},
+            pathname: `/settings/${initializeOrg().organization.slug}/projects/${
+              initializeOrg().project.slug
+            }/source-maps/release-bundles/`,
           },
           params: {},
         },
@@ -239,12 +245,12 @@ describe('ProjectSourceMaps', function () {
       expect(tabs).toHaveLength(2);
 
       // Tab 1
-      expect(tabs[0]).toHaveTextContent('Release Bundles');
-      expect(tabs[0]).not.toHaveClass('active');
+      expect(tabs[0]).toHaveTextContent('Artifact Bundles');
+      expect(tabs[0]).toHaveClass('active');
 
       // Tab 2
-      expect(tabs[1]).toHaveTextContent('Artifact Bundles');
-      expect(tabs[1]).toHaveClass('active');
+      expect(tabs[1]).toHaveTextContent('Release Bundles');
+      expect(tabs[1]).not.toHaveClass('active');
 
       // Search bar
       expect(screen.getByPlaceholderText('Filter by Bundle ID')).toBeInTheDocument();
@@ -306,7 +312,7 @@ describe('ProjectSourceMaps', function () {
       });
 
       // Switch tab
-      await userEvent.click(screen.getByRole('link', {name: 'Release Bundles'}));
+      await userEvent.click(screen.getByRole('link', {name: /Release Bundles/}));
       expect(router.push).toHaveBeenCalledWith({
         pathname: '/settings/org-slug/projects/project-slug/source-maps/release-bundles/',
         query: undefined,
