@@ -63,6 +63,7 @@ def get_sliding_window_size() -> Optional[int]:
         # We want to explicitly handle the None case, which will signal that the system should be stopped.
         return None if size is None else int(size)
     except ValueError:
+        # In case the value set is invalid, we will fallback to a default value, to keep the system up and running.
         return FALLBACK_SLIDING_WINDOW_SIZE
 
 

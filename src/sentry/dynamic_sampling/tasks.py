@@ -413,6 +413,10 @@ def process_sliding_window(
 def adjust_base_sample_rate_per_project(
     org_id: int, projects_with_total_root_count: Sequence[Tuple[ProjectId, int]], window_size: int
 ) -> None:
+    """
+    Adjusts the base sample rate per project by computing the sliding window sample rate, considering the total
+    volume of root transactions started from each project in the org.
+    """
     projects_with_rebalanced_sample_rate = []
 
     for project_id, total_root_count in augment_with_empty_projects(
@@ -455,6 +459,10 @@ def adjust_base_sample_rate_per_project(
 def augment_with_empty_projects(
     org_id: int, projects_with_total_root_count: Sequence[Tuple[ProjectId, int]]
 ) -> Mapping[ProjectId, int]:
+    """
+    Augments the incoming sequence of projects and counts with all the projects that are not in the list. This projects
+    will be added with count 0, to mark that they didn't have any metrics.
+    """
     projects_with_counts = {
         project_id: count_per_root for project_id, count_per_root in projects_with_total_root_count
     }
