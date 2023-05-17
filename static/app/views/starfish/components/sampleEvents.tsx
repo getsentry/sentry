@@ -19,7 +19,9 @@ type DataRow = {
   'transaction.duration': number;
 };
 
-const COLUMN_ORDER = [
+type Keys = 'id' | 'transaction.duration';
+type TableColumnHeader = GridColumnHeader<Keys>;
+const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'id',
     name: 'Event ID',
@@ -51,7 +53,7 @@ export function SampleEvents({eventView}: Props) {
       },
     ]);
 
-  function renderBodyCell(column: GridColumnHeader, row: DataRow): React.ReactNode {
+  function renderBodyCell(column: TableColumnHeader, row: DataRow): React.ReactNode {
     if (column.key === 'id') {
       return (
         <Link to={`/performance/${row['project.name']}:${row.id}`}>
