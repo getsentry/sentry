@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/react';
 
-import {ResponseMeta} from 'sentry/api';
+import RequestError from 'sentry/utils/requestError/requestError';
 
-export function handleXhrErrorResponse(message: string, resp: ResponseMeta): void {
+export function handleXhrErrorResponse(message: string, resp: RequestError): void {
   if (!resp) {
     return;
   }
