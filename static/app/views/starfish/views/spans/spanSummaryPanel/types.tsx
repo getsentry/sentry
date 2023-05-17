@@ -6,9 +6,3 @@ export type Span = {
   domain?: string;
   formatted_desc?: string;
 };
-
-export type SpanMetrics = {
-  first_seen: string;
-  last_seen: string;
-  total_time: number;
-};

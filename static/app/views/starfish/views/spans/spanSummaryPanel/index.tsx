@@ -1,13 +1,16 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Duration from 'sentry/components/duration';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
 import {SpanDescription} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanDescription';
 import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
 import {useSpanMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetrics';
+import {useSpanMetricSeries} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetricSeries';
 
 type Props = {
   onClose: () => void;
@@ -15,7 +18,10 @@ type Props = {
 };
 
 export function SpanSummaryPanel({span, onClose}: Props) {
+  const theme = useTheme();
+
   const {data: spanMetrics} = useSpanMetrics(span);
+  const {data: spanMetricSeries} = useSpanMetricSeries(span);
 
   return (
     <Detail detailKey={span?.group_id} onClose={onClose}>
@@ -45,6 +51,41 @@ export function SpanSummaryPanel({span, onClose}: Props) {
             <SpanDescription span={span} />
           </Block>
         )}
+      </FlexRowContainer>
+
+      <FlexRowContainer>
+        <Block title={t('SPM')}>
+          <Chart
+            statsPeriod="24h"
+            height={140}
+            data={[spanMetricSeries.spm]}
+            start=""
+            end=""
+            loading={false}
+            utc={false}
+            stacked
+            isLineChart
+            disableXAxis
+            hideYAxisSplitLine
+          />
+        </Block>
+
+        <Block title={t('Duration')}>
+          <Chart
+            statsPeriod="24h"
+            height={140}
+            data={[spanMetricSeries.p50, spanMetricSeries.p95]}
+            start=""
+            end=""
+            loading={false}
+            chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
+            utc={false}
+            stacked
+            isLineChart
+            disableXAxis
+            hideYAxisSplitLine
+          />
+        </Block>
       </FlexRowContainer>
     </Detail>
   );
