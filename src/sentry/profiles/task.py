@@ -450,11 +450,13 @@ def _process_symbolicator_results_for_sample(
     if len(frames_sent) > 0:
         raw_frames = profile["profile"]["frames"]
         new_frames = []
+        symbolicated_frame_idx = 0
 
         for idx in range(len(raw_frames)):
             if idx in frames_sent:
-                for frame_idx in symbolicated_frames_dict[idx]:
+                for frame_idx in symbolicated_frames_dict[symbolicated_frame_idx]:
                     new_frames.append(symbolicated_frames[frame_idx])
+                symbolicated_frame_idx += 1
             else:
                 new_frames.append(raw_frames[idx])
 
