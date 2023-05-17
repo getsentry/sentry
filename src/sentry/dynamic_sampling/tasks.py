@@ -418,8 +418,19 @@ def adjust_base_sample_rate_per_project(
     for project_id, total_root_count in augment_with_empty_projects(
         org_id, projects_with_total_root_count
     ).items():
-        # We want to compute the sliding window sample rate by considering a window of time.
-        sample_rate = compute_sliding_window_sample_rate(org_id, total_root_count, window_size)
+        try:
+            # We want to compute the sliding window sample rate by considering a window of time.
+            # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
+            sample_rate = compute_sliding_window_sample_rate(org_id, total_root_count, window_size)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            sample_rate = None
+
+        # If the sample rate is None, we want to add a sentinel value into Redis, the goal being that when generating
+        # rules we can distinguish between:
+        # 1. Value in the cache
+        # 2. No value in the cache
+        # 3. Error happened
         projects_with_rebalanced_sample_rate.append(
             (
                 project_id,
@@ -520,6 +531,7 @@ def compute_sliding_window_sample_rate(
             scope.set_extra("org_id", org_id)
             scope.set_extra("window_size", window_size)
             sentry_sdk.capture_message("The volume of the current month can't be extrapolated.")
+
         return None
 
     sampling_tier = quotas.get_transaction_sampling_tier_for_volume(org_id, extrapolated_volume)
