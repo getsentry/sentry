@@ -283,7 +283,7 @@ def adjust_sample_rates(
 
     # We get the sample rate either directly from quotas or from the new sliding window org mechanism.
     if features.has("organizations:ds-sliding-window-org", organization, actor=None):
-        sample_rate = get_adjusted_base_rate_from_cache_or(org_id)
+        sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_id)
     else:
         sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
 
@@ -339,7 +339,7 @@ def adjust_sample_rates(
         pipeline.execute()
 
 
-def get_adjusted_base_rate_from_cache_or(org_id: int) -> Optional[float]:
+def get_adjusted_base_rate_from_cache_or_compute(org_id: int) -> Optional[float]:
     """
     Gets the adjusted base sample rate from the sliding window directly from the Redis cache or tries to compute
     it synchronously.

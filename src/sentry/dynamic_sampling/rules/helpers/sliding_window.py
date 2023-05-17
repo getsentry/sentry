@@ -23,7 +23,7 @@ def generate_sliding_window_cache_key(org_id: int) -> str:
 
 
 def get_sliding_window_sample_rate(
-    project: "Project", if_error_sample_rate: float, if_absent_sample_rate: float
+    project: "Project", error_sample_rate_fallback: float
 ) -> Optional[float]:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_sliding_window_cache_key(project.organization.id)
@@ -32,13 +32,13 @@ def get_sliding_window_sample_rate(
         value = redis_client.hget(cache_key, project.id)
         # In case we had an explicit error, we want to fetch the blended sample rate to avoid oversampling.
         if value == SLIDING_WINDOW_CALCULATION_ERROR:
-            return if_error_sample_rate
+            return error_sample_rate_fallback
 
         return float(value)
     except (TypeError, ValueError):
         # In case we couldn't convert the value to float, that is, it is a string or the value is not there, we want
-        # to fall back to a default sample rate. This case is different from the sentinel value because it's generic.
-        return if_absent_sample_rate
+        # to fall back to 100%. This case is different from the sentinel value because it's generic.
+        return 1.0
 
 
 def generate_sliding_window_org_cache_key(org_id: int) -> str:

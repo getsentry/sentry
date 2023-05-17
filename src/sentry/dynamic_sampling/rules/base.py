@@ -43,7 +43,7 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
         # whereas if we don't find a value in cache, we just sample at 100% under the assumption that the project
         # has just been created.
         sample_rate = get_sliding_window_sample_rate(
-            project=project, if_error_sample_rate=sample_rate, if_absent_sample_rate=1.0
+            project=project, error_sample_rate_fallback=sample_rate
         )
     else:
         # In case we use the prioritise by project, we want to fall back to the original sample rate in case there are
