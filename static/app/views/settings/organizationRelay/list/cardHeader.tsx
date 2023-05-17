@@ -80,9 +80,10 @@ export default CardHeader;
 
 const KeyName = styled('div')`
   grid-row: 1/2;
-  display: grid;
   grid-template-columns: repeat(2, max-content);
-  grid-column-gap: ${space(0.5)};
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
 `;
 
 const DateCreated = styled('div')`
@@ -99,7 +100,7 @@ const StyledButtonBar = styled(ButtonBar)`
 
 const Header = styled('div')`
   display: grid;
-  grid-row-gap: ${space(1)};
+  grid-row-gap: ${space(0.25)};
   margin-bottom: ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
