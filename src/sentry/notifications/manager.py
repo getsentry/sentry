@@ -547,12 +547,12 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         provider: ExternalProviders,
         types: set[NotificationSettingTypes] | None = None,
     ) -> None:
+        actor = RpcActor.from_object(recipient)
         for type_ in types or NOTIFICATION_SETTINGS_ALL_SOMETIMES.keys():
             self.update_settings(
                 provider=provider,
                 type=type_,
                 value=NOTIFICATION_SETTINGS_ALL_SOMETIMES[type_],
-                # TODO(hybridcloud) This is doing N queries.
-                actor=RpcActor.from_object(recipient),
+                actor=actor,
                 user=recipient,
             )

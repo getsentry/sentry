@@ -5,7 +5,7 @@
 
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Collection, List, MutableMapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Iterable, List, MutableMapping, Optional, Union
 
 from sentry.models.actor import ACTOR_TYPES, get_actor_for_user, get_actor_id_for_user
 from sentry.services.hybrid_cloud import RpcModel
@@ -47,7 +47,7 @@ class RpcActor(RpcModel):
         return hash((self.id, self.actor_type))
 
     @classmethod
-    def many_from_object(cls, objects: Collection[ActorTarget]) -> Collection["RpcActor"]:
+    def many_from_object(cls, objects: Iterable[ActorTarget]) -> List["RpcActor"]:
         """
         Create a list of RpcActor instaces based on a collection of 'objects'
 
