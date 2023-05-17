@@ -41,7 +41,7 @@ export const getSpanListQuery = (
     quantile(0.50)(exclusive_time) as p50,
     count() as count,
     (divide(count, ${
-      (moment(end_timestamp).unix() - moment(start_timestamp).unix()) / 60
+      (moment(end_timestamp ?? undefined).unix() - moment(start_timestamp).unix()) / 60
     }) AS epm)
     FROM spans_experimental_starfish
     WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
