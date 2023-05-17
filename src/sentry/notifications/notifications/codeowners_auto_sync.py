@@ -17,6 +17,7 @@ class AutoSyncNotification(ProjectNotification):
     template_path = "sentry/emails/codeowners-auto-sync-failure"
 
     def determine_recipients(self) -> Iterable[RpcActor]:
+        # TODO(hybridcloud) This is doing n queries.
         return [RpcActor.from_rpc_user(owner) for owner in self.organization.get_owners()]
 
     @property

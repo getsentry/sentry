@@ -552,6 +552,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 provider=provider,
                 type=type_,
                 value=NOTIFICATION_SETTINGS_ALL_SOMETIMES[type_],
+                # TODO(hybridcloud) This is doing N queries.
                 actor=RpcActor.from_object(recipient),
                 user=recipient,
             )

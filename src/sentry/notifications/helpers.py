@@ -377,6 +377,7 @@ def get_user_subscriptions_for_groups(
     for project_id, groups in groups_by_project.items():
         notification_settings_by_provider = get_values_by_provider(
             notification_settings_by_scope,
+            # TODO(hybridcloud) this is doing n queries.
             recipient=RpcActor.from_orm_user(user),
             parent_id=project_id,
             type=NotificationSettingTypes.WORKFLOW,
