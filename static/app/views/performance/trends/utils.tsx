@@ -301,7 +301,7 @@ function getQueryInterval(location: Location, eventView: TrendView) {
     period: statsPeriod,
   };
 
-  const intervalFromSmoothing = getInterval(datetimeSelection, 'high');
+  const intervalFromSmoothing = getInterval(datetimeSelection, 'medium');
 
   return intervalFromQueryParam || intervalFromSmoothing;
 }

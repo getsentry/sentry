@@ -18,15 +18,13 @@ import Sparkline from 'sentry/views/starfish/components/sparkline';
 import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-import type {Cluster} from './clusters';
-
 type Props = {
-  clusters: Cluster[];
   isLoading: boolean;
   location: Location;
   onSelect: (row: SpanDataRow) => void;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
+  queryConditions: string[];
   spansData: SpanDataRow[];
   spansTrendsData: SpanTrendDataRow[];
 };
@@ -54,7 +52,7 @@ export default function SpansTable({
   spansData,
   orderBy,
   onSetOrderBy,
-  clusters,
+  queryConditions,
   spansTrendsData,
   isLoading,
   onSelect,
@@ -96,7 +94,7 @@ export default function SpansTable({
     <GridEditable
       isLoading={isLoading}
       data={combinedSpansData}
-      columnOrder={getColumns(clusters)}
+      columnOrder={getColumns(queryConditions)}
       columnSortBy={
         orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<string>]
       }
@@ -203,17 +201,32 @@ const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
   }
 };
 
-function getColumns(clusters: Cluster[]): GridColumnOrder[] {
-  const secondCluster = clusters.at(1);
-  const description =
-    clusters.findLast(cluster => Boolean(cluster.description_label))?.description_label ||
-    'Description';
+function getDomainHeader(queryConditions: string[]) {
+  if (queryConditions.includes("span_operation = 'db'")) {
+    return 'Table';
+  }
+  if (queryConditions.includes("span_operation = 'http.client'")) {
+    return 'Host';
+  }
+  return 'Domain';
+}
+function getDescriptionHeader(queryConditions: string[]) {
+  if (queryConditions.includes("span_operation = 'db'")) {
+    return 'Query';
+  }
+  if (queryConditions.includes("span_operation = 'http.client'")) {
+    return 'URL';
+  }
+  return 'Description';
+}
 
-  const domain =
-    clusters.findLast(cluster => Boolean(cluster.domain_label))?.domain_label || 'Domain';
+function getColumns(queryConditions: string[]): GridColumnOrder[] {
+  const description = getDescriptionHeader(queryConditions);
+
+  const domain = getDomainHeader(queryConditions);
 
   const order: Array<GridColumnOrder | false> = [
-    !secondCluster && {
+    {
       key: 'span_operation',
       name: 'Operation',
       width: COL_WIDTH_UNDEFINED,
@@ -223,7 +236,7 @@ function getColumns(clusters: Cluster[]): GridColumnOrder[] {
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    !!secondCluster && {
+    {
       key: 'domain',
       name: domain,
       width: COL_WIDTH_UNDEFINED,

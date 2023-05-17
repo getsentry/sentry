@@ -81,8 +81,8 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             [
                 monitor_error,
                 monitor_error_older_checkin,
-                monitor_missed_checkin,
                 monitor_timed_out,
+                monitor_missed_checkin,
                 monitor_ok,
                 monitor_active,
                 monitor_disabled,
