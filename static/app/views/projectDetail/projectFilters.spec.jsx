@@ -35,7 +35,7 @@ describe('ProjectDetail > ProjectFilters', () => {
     expect(screen.getByText('.stage')).toBeInTheDocument();
     expect(screen.getByText('.version')).toBeInTheDocument();
 
-    await userEvent.type(screen.getByRole('textbox'), 'release.version:');
+    await userEvent.paste('release.version:');
 
     await screen.findByText('sentry@0.5.3');
   });
