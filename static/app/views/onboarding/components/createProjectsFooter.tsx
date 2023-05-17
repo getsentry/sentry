@@ -176,6 +176,7 @@ export function CreateProjectsFooter({
             createPlatformProject(selectedFramework);
           }}
           onSkip={createPlatformProject}
+          newOrg
         />
       ),
       {

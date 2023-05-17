@@ -177,12 +177,6 @@ function CreateProject() {
       ),
       {
         modalCss,
-        onClose: () => {
-          trackAnalytics('onboarding.select_framework_modal_close_button_clicked', {
-            platform: selectedPlatform.key,
-            organization,
-          });
-        },
       }
     );
   }, [platform, createProject, organization]);
