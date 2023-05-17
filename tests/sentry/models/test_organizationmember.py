@@ -257,7 +257,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         self.assert_org_member_mapping(org_member=member)
 
     def test_approve_invite(self):
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=self.organization,
             role="member",
             email="test@example.com",
@@ -266,6 +266,9 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert not member.invite_approved
 
         member.approve_invite()
+        member.save()
+
+        member = OrganizationMember.objects.get(id=member.id)
         assert member.invite_approved
         assert member.invite_status == InviteStatus.APPROVED.value
 
@@ -444,6 +447,20 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         user = self.create_user()
         member.reject_member_invitation(user)
         assert not OrganizationMember.objects.filter(id=member.id).exists()
+        self.assert_org_member_mapping_not_exists(org_member=member)
+
+    def test_invalid_reject_member_invitation(self):
+        user = self.create_user(email="hello@sentry.io")
+        member = self.create_member(
+            organization=self.organization,
+            invite_status=InviteStatus.APPROVED.value,
+            user=user,
+            role="member",
+        )
+        user = self.create_user()
+        member.reject_member_invitation(user)
+        self.assert_org_member_mapping(org_member=member)
+        assert OrganizationMember.objects.filter(id=member.id).exists()
 
     def test_get_allowed_org_roles_to_invite(self):
         member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
