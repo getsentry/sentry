@@ -54,7 +54,6 @@ config:
       - xls.searchfun.in
       - istatic.datafastguru.info
       - v.zilionfast.in
-      - localhost
       - resultshub-a.akamaihd.net
       - pulseadnetwork.com
       - gateway.zscalertwo.net
