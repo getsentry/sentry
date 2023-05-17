@@ -1791,23 +1791,24 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             substatus=GroupSubStatus.REGRESSED,
         )
     )
-    issue_unresolved.send_robust(
-        project=group.project,
-        user=None,
-        group=group,
-        transition_type="automatic",
-        sender="handle_regression",
-    )
-    group.active_at = date
-    group.status = GroupStatus.UNRESOLVED
-    group.substatus = GroupSubStatus.REGRESSED
-    # intentionally fire the signal to update the cached Group
-    post_save.send(
-        sender=Group,
-        instance=group,
-        created=False,
-        update_fields=["last_seen", "active_at", "status", "substatus"],
-    )
+    if is_regression:
+        issue_unresolved.send_robust(
+            project=group.project,
+            user=None,
+            group=group,
+            transition_type="automatic",
+            sender="handle_regression",
+        )
+        group.active_at = date
+        group.status = GroupStatus.UNRESOLVED
+        group.substatus = GroupSubStatus.REGRESSED
+        # intentionally fire the signal to update the cached Group
+        post_save.send(
+            sender=Group,
+            instance=group,
+            created=False,
+            update_fields=["last_seen", "active_at", "status", "substatus"],
+        )
 
     if is_regression and release:
         resolution = None
