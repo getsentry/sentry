@@ -1725,7 +1725,6 @@ function buildRoutes() {
       />
     </Fragment>
   );
-
   const starfishRoutes = (
     <Fragment>
       {usingCustomerDomain && (
