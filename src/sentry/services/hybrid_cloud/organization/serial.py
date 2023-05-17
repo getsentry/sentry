@@ -53,7 +53,7 @@ def serialize_member(member: OrganizationMember) -> RpcOrganizationMember:
         scopes=list(member.get_scopes()),
         flags=_serialize_member_flags(member),
         invite_status=member.invite_status,
-        token=member.token,
+        token=member.token or "",
         is_pending=member.is_pending,
         invite_approved=member.invite_approved,
         token_expired=member.token_expired,

@@ -16,10 +16,10 @@ from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
-@region_silo_test
+@control_silo_test(stable=True)
 class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()

@@ -1,23 +1,29 @@
 from __future__ import annotations
 
 from logging import Logger
-from typing import Any, Dict, Tuple
+from typing import Dict, Tuple
 
 from django.utils.crypto import constant_time_compare
 from rest_framework.request import Request
 
 from sentry import audit_log, features
 from sentry.models import AuthIdentity, AuthProvider, User, UserEmail
-from sentry.services.hybrid_cloud.organization import RpcOrganizationMember, organization_service
-from sentry.signals import member_joined
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganizationMember,
+    RpcUserOrganizationContext,
+    organization_service,
+)
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 
 
-def add_invite_details_to_session(request: Request, member_id: int, token: str) -> None:
+def add_invite_details_to_session(
+    request: Request, member_id: int, token: str, organization_id: int
+) -> None:
     """Add member ID and token to the request session"""
     request.session["invite_token"] = token
     request.session["invite_member_id"] = member_id
+    request.session["invite_organization_id"] = organization_id
 
 
 def remove_invite_details_from_session(request: Request) -> None:
@@ -38,7 +44,6 @@ class ApiInviteHelper:
         request: Request,
         organization_id: int,
         email: str,
-        instance: Any | None = None,
         logger: Logger | None = None,
     ) -> ApiInviteHelper | None:
         """
@@ -68,7 +73,6 @@ class ApiInviteHelper:
             request=request,
             rpc_org_member=rpc_org_member,
             token=rpc_org_member.token,
-            instance=instance,
             logger=logger,
         )
 
@@ -76,7 +80,6 @@ class ApiInviteHelper:
     def from_session(
         cls,
         request: Request,
-        instance: Any | None = None,
         logger: Logger | None = None,
     ) -> ApiInviteHelper | None:
         invite_token, invite_member_id = get_invite_details(request)
@@ -96,7 +99,6 @@ class ApiInviteHelper:
             request=request,
             rpc_org_member=rpc_org_member,
             token=invite_token,
-            instance=instance,
             logger=logger,
         )
 
@@ -105,63 +107,63 @@ class ApiInviteHelper:
     def __init__(
         self,
         request: Request,
-        rpc_org_member: RpcOrganizationMember,
+        organization_context: RpcUserOrganizationContext,
         token: str | None,
-        instance: Any | None = None,
         logger: Logger | None = None,
     ) -> None:
         self.request = request
-        self.member_id = rpc_org_member.id
         self.token = token
-        self.instance = instance
         self.logger = logger
-        self.om = rpc_org_member
-        self.organization_id = self.om.organization_id if self.om else None
-
-    def handle_success(self) -> None:
-        member_joined.send_robust(
-            member=self.om,
-            organization_id=self.organization_id,
-            sender=self.instance if self.instance else self,
-        )
+        self.organization_context = organization_context
 
     def handle_member_already_exists(self) -> None:
         if self.logger:
             self.logger.info(
                 "Pending org invite not accepted - User already org member",
-                extra={"organization_id": self.organization_id, "user_id": self.request.user.id},
+                extra={
+                    "organization_id": self.organization_context.organization.id,
+                    "user_id": self.request.user.id,
+                },
             )
 
     def handle_member_has_no_sso(self) -> None:
         if self.logger:
             self.logger.info(
                 "Pending org invite not accepted - User did not have SSO",
-                extra={"organization_id": self.organization_id, "user_id": self.request.user.id},
+                extra={
+                    "organization_id": self.organization_context.organization.id,
+                    "user_id": self.request.user.id,
+                },
             )
 
     def handle_invite_not_approved(self) -> None:
         if not self.invite_approved:
-            assert self.om
-            organization_service.delete_organization_member(organization_member_id=self.om.id)
+            assert self.organization_context.member
+            organization_service.delete_organization_member(
+                organization_member_id=self.organization_context.member.id
+            )
 
     @property
     def member_pending(self) -> bool:
-        assert self.om
-        return self.om.is_pending
+        assert self.organization_context.member
+        return self.organization_context.member.is_pending
 
     @property
     def invite_approved(self) -> bool:
-        assert self.om
-        return self.om.invite_approved
+        assert self.organization_context.member
+        return self.organization_context.member.invite_approved
 
     @property
     def valid_token(self) -> bool:
         if self.token is None:
             return False
-        assert self.om
-        if self.om.token_expired:
+        assert self.organization_context.member
+        if self.organization_context.member.token_expired:
             return False
-        tokens_are_equal = constant_time_compare(self.om.token or self.om.legacy_token, self.token)
+        tokens_are_equal = constant_time_compare(
+            self.organization_context.member.token or self.organization_context.member.legacy_token,
+            self.token,
+        )
         return tokens_are_equal  # type: ignore[no-any-return]
 
     @property
@@ -172,10 +174,7 @@ class ApiInviteHelper:
     def member_already_exists(self) -> bool:
         if not self.user_authenticated:
             return False
-        rpc_org_member = organization_service.check_membership_by_id(
-            organization_id=self.organization_id, user_id=self.request.user.id
-        )
-        return rpc_org_member is not None
+        return self.organization_context.user_id is not None
 
     @property
     def valid_request(self) -> bool:
@@ -188,19 +187,21 @@ class ApiInviteHelper:
         )
 
     def accept_invite(self, user: User | None = None) -> RpcOrganizationMember | None:
-        assert self.om
-        om = self.om
+        member = self.organization_context.member
+        assert member
 
         if user is None:
             user = self.request.user
 
         if self.member_already_exists:
             self.handle_member_already_exists()
-            organization_service.delete_organization_member(organization_member_id=self.om.id)
+            organization_service.delete_organization_member(organization_member_id=member.id)
             return None
 
         try:
-            provider = AuthProvider.objects.get(organization_id=om.organization_id)
+            provider = AuthProvider.objects.get(
+                organization_id=self.organization_context.organization.id
+            )
         except AuthProvider.DoesNotExist:
             provider = None
 
@@ -212,38 +213,33 @@ class ApiInviteHelper:
                 return None
 
         new_om = organization_service.set_user_for_organization_member(
-            organization_member_id=self.om.id, user_id=user.id
+            organization_member_id=member.id, user_id=user.id
         )
         if new_om:
-            self.om = om = new_om
+            self.organization_context.member = member = new_om
 
         create_audit_entry(
             self.request,
             actor=user,
-            organization_id=self.organization_id,
-            target_object=om.id,
+            organization_id=self.organization_context.organization.id,
+            target_object=member.id,
             target_user=user,
             event=audit_log.get_event_id("MEMBER_ACCEPT"),
-            data=om.get_audit_log_metadata(),
+            data=member.get_audit_log_metadata(),
         )
 
-        self.handle_success()
         metrics.incr("organization.invite-accepted", sample_rate=1.0)
 
-        return om
+        return member
 
     def _needs_2fa(self) -> bool:
-        rpc_user_org = organization_service.get_organization_by_id(id=self.organization_id)
-        assert rpc_user_org
-        org_requires_2fa = rpc_user_org.organization.flags.require_2fa
+        org_requires_2fa = self.organization_context.organization.flags.require_2fa
         return org_requires_2fa and (
             not self.request.user.is_authenticated or not self.request.user.has_2fa()
         )
 
     def _needs_email_verification(self) -> bool:
-        rpc_user_org = organization_service.get_organization_by_id(id=self.organization_id)
-        assert rpc_user_org
-        organization = rpc_user_org.organization
+        organization = self.organization_context.organization
         if not (
             features.has("organizations:required-email-verification", organization)
             and organization.flags.require_email_verification

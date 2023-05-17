@@ -31,6 +31,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
+from sentry.signals import member_joined
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.VERIFY_ORGANIZATION_MAPPING)
@@ -63,6 +64,10 @@ def process_organization_member_create(
         return
 
     organizationmember_mapping_service.create_with_organization_member(org_member=org_member)
+    member_joined.send_robust(
+        member=org_member,
+        organization_id=org_member.organization_id,
+    )
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_UPDATE)

@@ -104,6 +104,39 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return serialize_member(member)
 
+    def get_invite(
+        self,
+        *,
+        organization_member_id: int,
+        organization_id: Optional[int] = None,
+        slug: Optional[str] = None,
+    ) -> Optional[RpcUserOrganizationContext]:
+        """
+        Query for an organization member by its id and organization
+        """
+        if organization_id is not None:
+            query = Organization.objects.filter(id=organization_id)
+        else:
+            query = Organization.objects.filter(slug=slug)
+
+        try:
+            org = query.get()
+        except Organization.DoesNotExist:
+            return None
+
+        try:
+            member = OrganizationMember.objects.get(
+                id=organization_member_id, organization_id=org.id
+            )
+        except OrganizationMember.DoesNotExist:
+            return None
+
+        return RpcUserOrganizationContext(
+            user_id=member.user_id,
+            organization=serialize_organization(org),
+            member=serialize_member(member),
+        )
+
     def get_organization_member(
         self, *, organization_member_id: int
     ) -> Optional[RpcOrganizationMember]:
