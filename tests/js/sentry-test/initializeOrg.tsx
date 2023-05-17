@@ -33,7 +33,7 @@ export function initializeOrg({
     ...additionalRouter,
     params: {
       orgId: organization.slug,
-      projectId: project.slug,
+      projectId: projects[0]?.slug,
       ...additionalRouter?.params,
     },
   });
