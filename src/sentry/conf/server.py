@@ -2451,10 +2451,10 @@ SENTRY_DEVSERVICES = {
             "pull": True,
             "volumes": {"profiles": {"bind": "/var/lib/sentry-profiles"}},
             "environment": {
-                "SENTRY_SNUBA_HOST": SENTRY_SNUBA,
+                "SENTRY_SNUBA_HOST": "http://{containers[snuba][name]}:1218",
             },
             "ports": {"8085/tcp": 8085},
-            "only_if": bool(os.environ.get("SENTRY_USE_PROFILING", settings.SENTRY_USE_PROFILING)),
+            "only_if": settings.SENTRY_USE_PROFILING,
         }
     ),
 }
