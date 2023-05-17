@@ -96,13 +96,6 @@ const Project = PropTypes.shape({
   status: PropTypes.string,
 });
 
-/**
- * @deprecated
- */
-const Organization = PropTypes.shape({
-  id: PropTypes.string.isRequired,
-});
-
-const SentryTypes = {Group, Organization, Project};
+const SentryTypes = {Group, Project};
 
 export default SentryTypes;

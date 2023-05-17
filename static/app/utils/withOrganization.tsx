@@ -1,8 +1,6 @@
-import {Component} from 'react';
-
-import SentryTypes from 'sentry/sentryTypes';
 import {Organization} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type InjectedOrganizationProps = {
   organization?: Organization;
@@ -10,26 +8,19 @@ type InjectedOrganizationProps = {
 
 const withOrganization = <P extends InjectedOrganizationProps>(
   WrappedComponent: React.ComponentType<P>
-) =>
-  class extends Component<
-    Omit<P, keyof InjectedOrganizationProps> & InjectedOrganizationProps
-  > {
-    static displayName = `withOrganization(${getDisplayName(WrappedComponent)})`;
-    static contextTypes = {
-      organization: SentryTypes.Organization,
-    };
+) => {
+  function WithOrganization({
+    organization,
+    ...props
+  }: Omit<P, keyof InjectedOrganizationProps> & InjectedOrganizationProps) {
+    const org = useOrganization();
 
-    render() {
-      const {organization, ...props} = this.props;
-      return (
-        <WrappedComponent
-          {...({
-            organization: organization ?? this.context.organization,
-            ...props,
-          } as P)}
-        />
-      );
-    }
-  };
+    return <WrappedComponent {...(props as P)} organization={organization ?? org} />;
+  }
+
+  WithOrganization.displayNae = `withOrganization(${getDisplayName(WrappedComponent)})`;
+
+  return WithOrganization;
+};
 
 export default withOrganization;

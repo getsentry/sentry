@@ -13,7 +13,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import SentryTypes from 'sentry/sentryTypes';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -146,19 +145,9 @@ class OrganizationContextContainer extends Component<Props, State> {
     return !dirty && organization && !OrganizationContextContainer.isOrgChanging(props);
   }
 
-  static childContextTypes = {
-    organization: SentryTypes.Organization,
-  };
-
   constructor(props: Props) {
     super(props);
     this.state = OrganizationContextContainer.getDefaultState(props);
-  }
-
-  getChildContext() {
-    return {
-      organization: this.state.organization,
-    };
   }
 
   componentDidMount() {

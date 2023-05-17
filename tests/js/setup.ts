@@ -183,14 +183,12 @@ const routerFixtures = {
     context: {
       location: TestStubs.location(),
       router: TestStubs.router(),
-      organization: TestStubs.Organization(),
       project: TestStubs.Project(),
       ...context,
     },
     childContextTypes: {
       router: propTypesObject,
       location: propTypesObject,
-      organization: propTypesObject,
       project: propTypesObject,
       ...childContextTypes,
     },
