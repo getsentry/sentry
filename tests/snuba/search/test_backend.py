@@ -361,7 +361,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         with self.feature("organizations:issue-list-better-priority-sort"):
             weights: PrioritySortWeights = {"log_level": 5, "frequency": 5, "has_stacktrace": 5}
             results = self.make_query(
-                sort_by="better priority",
+                sort_by="betterPriority",
                 aggregate_kwargs=weights,
             )
         assert list(results) == [self.group2, self.group1]
@@ -399,7 +399,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         with self.feature("organizations:issue-list-better-priority-sort"):
             weights: PrioritySortWeights = {"log_level": 5, "frequency": 5, "has_stacktrace": 5}
             results = self.make_query(
-                sort_by="better priority",
+                sort_by="betterPriority",
                 projects=[new_project],
                 aggregate_kwargs=weights,
             )
