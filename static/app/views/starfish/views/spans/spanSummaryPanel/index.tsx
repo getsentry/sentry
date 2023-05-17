@@ -2,6 +2,8 @@ import styled from '@emotion/styled';
 
 import Duration from 'sentry/components/duration';
 import TimeSince from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import Detail from 'sentry/views/starfish/components/detailPanel';
 import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
 import {useSpanMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetrics';
@@ -10,9 +12,6 @@ type Props = {
   onClose: () => void;
   span?: Span;
 };
-
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export function SpanSummaryPanel({span, onClose}: Props) {
   const {data: spanMetrics} = useSpanMetrics(span);
