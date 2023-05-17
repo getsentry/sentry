@@ -89,7 +89,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
 
 
 @region_silo_test
-class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase):
+class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
     def test_no_projects(self):
         response = self.do_request({})
 
