@@ -11,10 +11,9 @@ from sentry.models import (
     RuleActivity,
     RuleActivityType,
     RuleFireHistory,
-    actor_type_to_class,
     actor_type_to_string,
-    fetch_actors_by_actor_ids,
 )
+from sentry.models.actor import Actor
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
@@ -100,11 +99,11 @@ class RuleSerializer(Serializer):
                 owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
 
         for k, v in ACTOR_TYPES.items():
-            # TODO(actorid) This relies on ducktyping. This needs to handle user + team separately.
-            resolved_actors[k] = {
-                a.actor_id: a.id
-                for a in fetch_actors_by_actor_ids(actor_type_to_class(v), owners_by_type[k])
-            }
+            actors = Actor.objects.filter(type=v, id__in=owners_by_type[k])
+            if k == "team":
+                resolved_actors[k] = {actor.id: actor.team_id for actor in actors}
+            if k == "user":
+                resolved_actors[k] = {actor.id: actor.user_id for actor in actors}
 
         for rule in rules.values():
             if rule.owner_id:

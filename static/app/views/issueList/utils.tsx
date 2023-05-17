@@ -59,7 +59,7 @@ export function getTabs(organization: Organization) {
         name: t('For Review'),
         analyticsName: 'needs_review',
         count: true,
-        enabled: !hasEscalatingIssuesUi,
+        enabled: true,
         tooltipTitle:
           t(`Issues are marked for review when they are created, unresolved, or unignored.
           Mark an issue reviewed to move it out of this list.

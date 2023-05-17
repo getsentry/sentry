@@ -222,7 +222,12 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if not len(status_data):
             return
 
-        status: MutableMapping[str, Any] = {"status": status_data[0]}
+        status: MutableMapping[str, Any] = {
+            "status": status_data[0],
+        }
+
+        if len(status_data) > 1:
+            status["substatus"] = status_data[1]
 
         resolve_type = status_data[-1]
 
