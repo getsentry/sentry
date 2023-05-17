@@ -33,13 +33,9 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
     if sample_rate is None:
         raise Exception("get_blended_sample_rate returns none")
 
-    # We want to make sure the sample rate is a float, otherwise an exception will be thrown and rules will not be
-    # generated.
-    sample_rate = float(sample_rate)
-
     # If the sample rate is 100%, we don't want to use any special dynamic sample rate, we will just sample at 100%.
     if sample_rate == 1.0:
-        return sample_rate
+        return float(sample_rate)
 
     # We want to use the normal sliding window only if the sliding window at the org level is disabled.
     if is_sliding_window_enabled(organization):
@@ -56,7 +52,7 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
             project=project, default_sample_rate=sample_rate
         )
 
-    return sample_rate
+    return float(sample_rate)
 
 
 def _get_rules_of_enabled_biases(

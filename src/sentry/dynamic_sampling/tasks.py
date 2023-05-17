@@ -398,7 +398,7 @@ def sliding_window() -> None:
     max_retries=5,
     soft_time_limit=25 * 60,  # 25 mins
     time_limit=2 * 60 + 5,
-)
+)  # type: ignore
 def process_sliding_window(
     org_id: OrganizationId,
     projects_with_total_root_count: Sequence[Tuple[ProjectId, int]],
@@ -434,13 +434,13 @@ def adjust_base_sample_rate_per_project(
         projects_with_rebalanced_sample_rate.append(
             (
                 project_id,
-                sample_rate if sample_rate is not None else SLIDING_WINDOW_CALCULATION_ERROR,
+                str(sample_rate) if sample_rate is not None else SLIDING_WINDOW_CALCULATION_ERROR,
             )
         )
 
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:
-        for project_id, sample_rate in projects_with_rebalanced_sample_rate:
+        for project_id, sample_rate in projects_with_rebalanced_sample_rate:  # type:ignore
             cache_key = generate_sliding_window_cache_key(org_id=org_id)
             pipeline.hset(cache_key, project_id, sample_rate)
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
