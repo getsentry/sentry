@@ -90,7 +90,13 @@ class WritesLimiter:
                     f"{USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME[use_case_id]}.per-org"
                 )
             ]
-        raise ValueError(use_case_id)
+        return [
+            Quota(prefix_override=self._build_quota_key(use_case_id), **args)
+            for args in options.get("sentry-metrics.writes-limiter.limits.generic-metrics.global")
+        ] + [
+            Quota(prefix_override=None, **args)
+            for args in options.get("sentry-metrics.writes-limiter.limits.generic-metrics..per-org")
+        ]
 
     @metrics.wraps("sentry_metrics.indexer.construct_quota_requests")
     def _construct_quota_requests(
