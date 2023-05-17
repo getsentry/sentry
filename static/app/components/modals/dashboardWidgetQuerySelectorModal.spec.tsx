@@ -30,10 +30,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   const initialData = initializeOrg({
     organization: {
       features: ['performance-view', 'discover-query'],
-      apdexThreshold: 400,
     },
     router: {},
-    project: 1,
     projects: [],
   });
   let mockQuery;

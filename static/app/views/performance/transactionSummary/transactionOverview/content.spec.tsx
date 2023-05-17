@@ -16,17 +16,15 @@ function initialize(project, query, additionalFeatures: string[] = []) {
     features,
     projects: [project],
   });
-  const initialOrgData = {
+  const initialData = initializeOrg({
     organization,
     router: {
       location: {
         query: {...query},
       },
     },
-    project: parseInt(project.id, 10),
     projects: [],
-  };
-  const initialData = initializeOrg(initialOrgData);
+  });
   const eventView = EventView.fromNewQueryWithLocation(
     {
       id: undefined,

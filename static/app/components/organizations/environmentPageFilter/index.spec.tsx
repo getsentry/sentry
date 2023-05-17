@@ -11,8 +11,8 @@ const {organization, router, routerContext} = initializeOrg({
   organization: {features: ['global-views', 'open-membership']},
   project: undefined,
   projects: [
-    {id: 1, slug: 'project-1', environments: ['prod', 'staging']},
-    {id: 2, slug: 'project-2', environments: ['prod', 'stage']},
+    {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
+    {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
   ],
   router: {
     location: {
@@ -144,8 +144,8 @@ describe('EnvironmentPageFilter', function () {
       organization: {features: ['global-views', 'open-membership']},
       project: undefined,
       projects: [
-        {id: 1, slug: 'project-1', environments: ['prod', 'staging']},
-        {id: 2, slug: 'project-2', environments: ['prod', 'stage']},
+        {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
+        {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
       ],
       router: {
         location: {

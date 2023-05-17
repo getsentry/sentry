@@ -17,7 +17,6 @@ describe('OrgDashboards', () => {
   beforeEach(() => {
     initialData = initializeOrg({
       organization,
-      project: 1,
       projects: [],
       router: {
         location: TestStubs.location(),
@@ -177,7 +176,6 @@ describe('OrgDashboards', () => {
   it('does not add query params for page filters if one of the filters is defined', () => {
     initialData = initializeOrg({
       organization,
-      project: 1,
       projects: [],
       router: {
         location: {

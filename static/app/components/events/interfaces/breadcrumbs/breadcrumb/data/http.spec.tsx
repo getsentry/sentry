@@ -16,7 +16,6 @@ describe('Breadcrumb Data Http', function () {
     router: {
       location: {query: {project: '0'}},
     },
-    project: '0',
     projects: [project],
   });
 
