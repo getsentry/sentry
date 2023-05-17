@@ -7,6 +7,7 @@ import keyBy from 'lodash/keyBy';
 import orderBy from 'lodash/orderBy';
 import * as qs from 'query-string';
 
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import DateTime from 'sentry/components/dateTime';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
@@ -93,16 +94,28 @@ type Props = {
 } & RouteComponentProps<{groupId: string}, {}>;
 
 type State = {
+  selectedOption: SelectOption<string>;
   megaChart?: boolean;
   plotSamples?: boolean;
 };
+
+const options = [
+  {label: 'Slowest Samples', value: 'slowest_samples'},
+  {label: 'Fastest Samples', value: 'fastest_samples'},
+  {label: 'Median Samples', value: 'median_samples'},
+];
 
 export default function SpanSummary({location, params}: Props) {
   const [state, setState] = useState<State>({
     plotSamples: false,
     megaChart: false,
+    selectedOption: options[0],
   });
   const pageFilter = usePageFilters();
+
+  const handleDropdownChange = (option: SelectOption<string>) => {
+    setState({...state, selectedOption: option});
+  };
 
   const groupId = params.groupId;
   const transactionName = location.query.transaction;
@@ -120,6 +133,7 @@ export default function SpanSummary({location, params}: Props) {
     initialData: [],
   });
 
+  const p50 = data[0]?.p50 ?? 0;
   const facetBreakdownQuery = getSpanFacetBreakdownQuery({
     groupId,
     datetime: pageFilter.selection.datetime,
@@ -137,6 +151,8 @@ export default function SpanSummary({location, params}: Props) {
     transactionName,
     user,
     datetime: pageFilter.selection.datetime,
+    sortBy: state.selectedOption.value,
+    p50,
   });
 
   const {isLoading: areSpanSamplesLoading, data: spanSampleData} = useQuery({
@@ -146,6 +162,7 @@ export default function SpanSummary({location, params}: Props) {
       transactionName,
       user,
       pageFilter.selection.datetime,
+      state.selectedOption,
     ],
     queryFn: () => fetch(`${HOST}/?query=${spanSamplesQuery}`).then(res => res.json()),
     retry: false,
@@ -228,7 +245,6 @@ export default function SpanSummary({location, params}: Props) {
     }
 
     if (column.key === 'p50_comparison') {
-      const {p50} = data[0];
       const diff = row.spanDuration - p50;
 
       if (diff === p50) {
@@ -353,6 +369,16 @@ export default function SpanSummary({location, params}: Props) {
                 ) : (
                   <div>
                     <h3>{t('Samples')}</h3>
+                    <DropdownContainer>
+                      <CompactSelect
+                        options={options}
+                        value={state.selectedOption.value}
+                        onChange={handleDropdownChange}
+                        menuWidth={250}
+                        size="md"
+                      />
+                    </DropdownContainer>
+
                     <GridEditable
                       isLoading={isLoading || isTransactionDataLoading}
                       data={sampledSpanData}
@@ -429,6 +455,10 @@ const ToggleLabel = styled('span')<{active?: boolean}>`
 const ComparisonLabel = styled('div')<{value: number}>`
   text-align: right;
   color: ${p => (p.value < 0 ? p.theme.green400 : p.theme.red400)};
+`;
+
+const DropdownContainer = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 function SpanGroupKeyValueList({

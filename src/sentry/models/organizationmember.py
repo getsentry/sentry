@@ -91,9 +91,15 @@ class OrganizationMemberManager(BaseManager):
         from sentry.services.hybrid_cloud.auth import auth_service
 
         orgs_with_scim = auth_service.get_org_ids_with_scim()
-        self.filter(token_expires_at__lt=threshold, user_id__exact=None,).exclude(
-            email__exact=None
-        ).exclude(organization_id__in=orgs_with_scim).delete()
+        for member in (
+            self.filter(
+                token_expires_at__lt=threshold,
+                user_id__exact=None,
+            )
+            .exclude(email__exact=None)
+            .exclude(organization_id__in=orgs_with_scim)
+        ):
+            member.delete()
 
     def get_for_integration(
         self, integration: RpcIntegration | int, user: RpcUser, organization_id: int | None = None

@@ -428,8 +428,6 @@ def main(
                     defaults={
                         "status": ObjectStatus.DISABLED,
                         "config": {"schedule": next(MONITOR_SCHEDULES)},
-                        "next_checkin": timezone.now() + timedelta(minutes=60),
-                        "last_checkin": timezone.now(),
                     },
                 )
 

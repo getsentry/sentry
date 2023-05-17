@@ -260,6 +260,7 @@ class FormModel {
     this.fieldState.delete(id);
     this.fieldDescriptor.delete(id);
     this.errors.delete(id);
+    delete this.initialData[id];
   }
 
   /**
