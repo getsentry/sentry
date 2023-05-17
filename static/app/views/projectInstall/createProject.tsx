@@ -194,7 +194,7 @@ function CreateProject() {
       return;
     }
 
-    const userModifiedName = projectName && projectName !== selectedPlatform.id;
+    const userModifiedName = !!projectName && projectName !== platform?.key;
     const newName = userModifiedName ? projectName : selectedPlatform.id;
 
     setPlatform({
