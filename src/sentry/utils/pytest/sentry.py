@@ -238,6 +238,14 @@ def pytest_configure(config):
 
     freezegun.configure(extend_ignore_list=["sentry.utils.retries"])
 
+    # Create default topics
+    if settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
+        from sentry.utils.batching_kafka_consumer import create_topics
+
+        for (topic_name, topic_data) in settings.KAFKA_TOPICS.items():
+            if topic_data is not None:
+                create_topics(topic_data["cluster"], [topic_name], force=True)
+
 
 def register_extensions():
     from sentry.plugins.base import plugins
