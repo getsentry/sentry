@@ -19,6 +19,8 @@ MAX_CODE_MAPPINGS_USED = 3
 
 class StacktraceLinksSerializer(serializers.Serializer):  # type: ignore
     file = serializers.ListField(child=serializers.CharField())
+
+    # falls back to the default branch
     commit_id = serializers.CharField(required=False)
 
 
@@ -45,39 +47,51 @@ class ProjectStacktraceLinksEndpoint(ProjectEndpoint):  # type: ignore
 
         data = serializer.validated_data
 
-        result = {"files": [{"file": file, "sourceUrl": None} for file in data["file"]]}
-
-        configs = get_code_mapping_configs(project)
+        result = {"files": [{"file": file} for file in data["file"]]}
 
         mappings_used = 0
 
-        default_error = "stack_root_mismatch"
+        configs = get_code_mapping_configs(project)
+
+        default_error = "stack_root_mismatch" if configs else "no_code_mappings"
 
         for config in configs:
-            if mappings_used >= MAX_CODE_MAPPINGS_USED:
-                # safety to ensure that a maximum number of mappings are used to avoid
-                # reaching API rate limits
-                default_error = "max_code_mappings_applied"
-                break
-
-            # find all the files that match the current code mapping's stack_root and have not
-            # already been resolved by another code mapping
+            # find all the files that match the current code mapping's stack_root
+            # and have not already been resolved by another code mapping
+            #
+            # if the's an error from a previous code mapping attempted, but this
+            # current code mapping can be used, we should try again
             files = [
                 file
                 for file in result["files"]
-                if file["sourceUrl"] is None and file["file"].startswith(config.stack_root)
+                if file.get("sourceUrl") is None and file["file"].startswith(config.stack_root)
             ]
             if not files:
+                continue
+
+            # safety to limit the maximum number of mappings used
+            # to avoid reaching API rate limits
+            if mappings_used >= MAX_CODE_MAPPINGS_USED:
+                for file in result["files"]:
+                    if not file.get("error") and file.get("sourceUrl") is None:
+                        file["error"] = "max_code_mappings_applied"
                 continue
 
             mappings_used += 1
 
             install = get_installation(config)
-            version = data.get("commit_id", config.default_branch)
+
+            # should always be overwritten
+            error: str | None = "file_not_checked"
 
             # since the same code mapping stack root matches all these files, we only check the
             # first file and we will assume the other matching files will resolve the same way
-            error = check_file(install, config, files[0]["file"], version)
+            version = data.get("commit_id")
+            if version:
+                error = check_file(install, config, files[0]["file"], version)
+            if not version or error:
+                version = config.default_branch
+                error = check_file(install, config, files[0]["file"], version)
 
             for file in files:
                 formatted_path = file["file"].replace(config.stack_root, config.source_root, 1)
@@ -88,8 +102,14 @@ class ProjectStacktraceLinksEndpoint(ProjectEndpoint):  # type: ignore
                 else:
                     file["sourceUrl"] = url
 
+                    # there may be an error from an previous code mapping, clear it
+                    if "error" in file:
+                        del file["error"]
+                    if "attemptedUrl" in file:
+                        del file["attemptedUrl"]
+
         for file in result["files"]:
-            if not file.get("error") and file["sourceUrl"] is None:
+            if not file.get("error") and file.get("sourceUrl") is None:
                 file["error"] = default_error
 
         return Response(result, status=200)
@@ -115,7 +135,7 @@ def check_file(
     link = None
     try:
         if isinstance(install, RepositoryMixin):
-            # TODO: do we want to fall back to the default branch here?
+            # the logic to fall back to the default branch is handled from the caller
             link = install.get_stacktrace_link(config.repository, formatted_path, version, "")
     except ApiError as e:
         if e.code != 403:
