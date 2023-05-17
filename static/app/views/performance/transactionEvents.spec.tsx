@@ -19,7 +19,6 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
   const organization = TestStubs.Organization({
     features,
     projects: [TestStubs.Project()],
-    apdexThreshold: 400,
   });
   return initializeOrg({
     organization,
@@ -33,7 +32,6 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
         },
       },
     },
-    project: 1,
     projects: [],
   });
 }

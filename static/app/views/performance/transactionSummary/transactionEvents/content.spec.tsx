@@ -19,7 +19,6 @@ function initializeData() {
   const organization = TestStubs.Organization({
     features: ['discover-basic', 'performance-view'],
     projects: [TestStubs.Project()],
-    apdexThreshold: 400,
   });
   const initialData = initializeOrg({
     organization,
@@ -32,7 +31,6 @@ function initializeData() {
         },
       },
     },
-    project: 1,
     projects: [],
   });
   act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));

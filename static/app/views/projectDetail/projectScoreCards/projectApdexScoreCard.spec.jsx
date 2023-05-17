@@ -4,7 +4,7 @@ import ProjectApdexScoreCard from 'sentry/views/projectDetail/projectScoreCards/
 
 describe('ProjectDetail > ProjectApdex', function () {
   let endpointMock;
-  const organization = TestStubs.Organization({apdexThreshold: 500});
+  const organization = TestStubs.Organization();
 
   const selection = {
     projects: [1],

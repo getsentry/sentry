@@ -20,7 +20,6 @@ describe('OrganizationApiKeysList', function () {
     ];
 
     const {organization, router, route} = initializeOrg({
-      ...initializeOrg(),
       router: {routes},
     });
 

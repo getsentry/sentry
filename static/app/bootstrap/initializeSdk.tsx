@@ -176,6 +176,8 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
 
   const {type = '', value = ''} = mainError;
 
+  const is200 =
+    ['RequestError'].includes(type) && !!value.match('(GET|POST|PUT|DELETE) .* 200');
   const is401 =
     ['UnauthorizedError', 'RequestError'].includes(type) &&
     !!value.match('(GET|POST|PUT|DELETE) .* 401');
@@ -186,5 +188,5 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
     ['NotFoundError', 'RequestError'].includes(type) &&
     !!value.match('(GET|POST|PUT|DELETE) .* 404');
 
-  return is401 || is403 || is404;
+  return is200 || is401 || is403 || is404;
 }
