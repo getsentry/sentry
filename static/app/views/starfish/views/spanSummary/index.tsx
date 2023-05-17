@@ -7,7 +7,6 @@ import keyBy from 'lodash/keyBy';
 import orderBy from 'lodash/orderBy';
 import * as qs from 'query-string';
 
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import DateTime from 'sentry/components/dateTime';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
@@ -22,7 +21,7 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {TextAlignRight} from 'sentry/views/starfish/modules/APIModule/endpointTable';
@@ -34,7 +33,7 @@ import {HOST} from 'sentry/views/starfish/utils/constants';
 import MegaChart from 'sentry/views/starfish/views/spanSummary/megaChart';
 import Sidebar from 'sentry/views/starfish/views/spanSummary/sidebar';
 
-import {getSpanSamplesQuery} from './queries';
+import {getSpanSamplesQuery, SamplePopulationType} from './queries';
 
 const COLUMN_ORDER = [
   {
@@ -94,28 +93,16 @@ type Props = {
 } & RouteComponentProps<{groupId: string}, {}>;
 
 type State = {
-  selectedOption: SelectOption<string>;
   megaChart?: boolean;
   plotSamples?: boolean;
 };
-
-const options = [
-  {label: 'Slowest Samples', value: 'slowest_samples'},
-  {label: 'Fastest Samples', value: 'fastest_samples'},
-  {label: 'Median Samples', value: 'median_samples'},
-];
 
 export default function SpanSummary({location, params}: Props) {
   const [state, setState] = useState<State>({
     plotSamples: false,
     megaChart: false,
-    selectedOption: options[0],
   });
   const pageFilter = usePageFilters();
-
-  const handleDropdownChange = (option: SelectOption<string>) => {
-    setState({...state, selectedOption: option});
-  };
 
   const groupId = params.groupId;
   const transactionName = location.query.transaction;
@@ -146,28 +133,83 @@ export default function SpanSummary({location, params}: Props) {
     initialData: [],
   });
 
-  const spanSamplesQuery = getSpanSamplesQuery({
+  const commonSamplesQueryOptions = {
     groupId,
     transactionName,
     user,
     datetime: pageFilter.selection.datetime,
-    sortBy: state.selectedOption.value,
     p50,
-  });
+  };
 
-  const {isLoading: areSpanSamplesLoading, data: spanSampleData} = useQuery({
+  const commonQueryOptions = {
     queryKey: [
-      'spanSamples',
       groupId,
       transactionName,
       user,
       pageFilter.selection.datetime,
-      state.selectedOption,
+      'spanSamples',
     ],
-    queryFn: () => fetch(`${HOST}/?query=${spanSamplesQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
+  };
+
+  const results = useQueries({
+    queries: [
+      {
+        ...commonQueryOptions,
+        queryKey: [...commonQueryOptions.queryKey, 'spanSamplesSlowest'],
+        queryFn: () =>
+          fetch(
+            `${HOST}/?query=${getSpanSamplesQuery({
+              ...commonSamplesQueryOptions,
+              populationType: SamplePopulationType.SLOWEST,
+            })}`
+          ).then(res => res.json()),
+      },
+      {
+        ...commonQueryOptions,
+        queryKey: [...commonQueryOptions.queryKey, 'spanSamplesMedian'],
+        queryFn: () =>
+          fetch(
+            `${HOST}/?query=${getSpanSamplesQuery({
+              ...commonSamplesQueryOptions,
+              populationType: SamplePopulationType.MEDIAN,
+            })}`
+          ).then(res => res.json()),
+      },
+      {
+        ...commonQueryOptions,
+        queryKey: [...commonQueryOptions.queryKey, 'spanSamplesFastest'],
+        queryFn: () =>
+          fetch(
+            `${HOST}/?query=${getSpanSamplesQuery({
+              ...commonSamplesQueryOptions,
+              populationType: SamplePopulationType.FASTEST,
+            })}`
+          ).then(res => res.json()),
+      },
+    ],
   });
+
+  const {isLoading: areSpanSamplesLoading, data: spanSampleData} = results.reduce(
+    (acc: {data: any[]; isLoading: boolean; spanIds: Set<string>}, result) => {
+      if (result.isLoading) {
+        acc.isLoading = true;
+        return acc;
+      }
+
+      // Ensures that the same span is not added twice, since there could be overlap in the case of sparse data
+      result.data.forEach(datum => {
+        if (!acc.spanIds.has(datum.span_id)) {
+          acc.spanIds.add(datum.span_id);
+          acc.data.push(datum);
+        }
+      });
+
+      return acc;
+    },
+    {isLoading: false, data: [], spanIds: new Set<string>()}
+  );
 
   const {data: transactionData, isLoading: isTransactionDataLoading} = useApiQuery<{
     data: {data: Transaction[]};
@@ -194,7 +236,7 @@ export default function SpanSummary({location, params}: Props) {
 
   const spanGroupOperation = data?.[0]?.span_operation;
 
-  const sampledSpanData = spanSampleData.map(datum => {
+  const sampledSpanData: SpanTableRow[] = spanSampleData.map(datum => {
     const transaction = transactionDataById[datum.transaction_id.replaceAll('-', '')];
 
     return {
@@ -206,6 +248,9 @@ export default function SpanSummary({location, params}: Props) {
       spanOp: datum.span_operation,
       spanDuration: datum.exclusive_time,
       transactionDuration: transaction?.['transaction.duration'],
+      exclusive_time: datum.exclusive_time,
+      p50Comparison: datum.p50_comparison,
+      user: datum.user,
     };
   });
 
@@ -369,16 +414,6 @@ export default function SpanSummary({location, params}: Props) {
                 ) : (
                   <div>
                     <h3>{t('Samples')}</h3>
-                    <DropdownContainer>
-                      <CompactSelect
-                        options={options}
-                        value={state.selectedOption.value}
-                        onChange={handleDropdownChange}
-                        menuWidth={250}
-                        size="md"
-                      />
-                    </DropdownContainer>
-
                     <GridEditable
                       isLoading={isLoading || isTransactionDataLoading}
                       data={sampledSpanData}
@@ -455,10 +490,6 @@ const ToggleLabel = styled('span')<{active?: boolean}>`
 const ComparisonLabel = styled('div')<{value: number}>`
   text-align: right;
   color: ${p => (p.value < 0 ? p.theme.green400 : p.theme.red400)};
-`;
-
-const DropdownContainer = styled('div')`
-  margin-bottom: ${space(2)};
 `;
 
 function SpanGroupKeyValueList({
