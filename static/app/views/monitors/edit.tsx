@@ -69,7 +69,7 @@ export default function EditMonitor() {
               crumbs={[
                 {
                   label: t('Crons'),
-                  to: `/organizations/${organization.slug}/crons/`,
+                  to: normalizeUrl(`/organizations/${organization.slug}/crons/`),
                 },
                 {
                   label: (
@@ -83,7 +83,9 @@ export default function EditMonitor() {
                       {monitor.name}
                     </MonitorBreadcrumb>
                   ),
-                  to: `/organizations/${organization.slug}/crons/${monitor.slug}/`,
+                  to: normalizeUrl(
+                    `/organizations/${organization.slug}/crons/${monitor.slug}/`
+                  ),
                 },
                 {
                   label: t('Edit'),
