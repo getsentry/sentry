@@ -166,7 +166,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             "better_priority": {
                 "log_level": request.GET.get("logLevel", 5),
                 "frequency": request.GET.get("frequency", 5),
-                "has_stacktrace": request.GET.get("hasStacktrace", False),
+                "has_stacktrace": request.GET.get("hasStacktrace", 5),
             }
         }
 
@@ -291,6 +291,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             expand=expand,
             collapse=collapse,
             project_ids=project_ids,
+            organization_id=organization.id,
         )
 
         # we ignore date range for both short id and event ids

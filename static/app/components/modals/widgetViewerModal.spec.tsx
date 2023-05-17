@@ -7,6 +7,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
 import MemberListStore from 'sentry/stores/memberListStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -85,13 +86,11 @@ describe('Modals -> WidgetViewerModal', function () {
     initialData = initializeOrg({
       organization: {
         features: ['discover-query'],
-        apdexThreshold: 400,
       },
       router: {
         location: {query: {}},
       },
-      project: 1,
-      projects: [],
+      projects: [TestStubs.Project()],
     });
 
     initialDataWithFlag = {
@@ -130,6 +129,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    ProjectsStore.reset();
   });
 
   describe('Discover Widgets', function () {
@@ -524,6 +524,58 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(initialData.router.push).not.toHaveBeenCalledWith({
           query: {sort: ['-title']},
         });
+      });
+
+      it('renders transaction summary link', async function () {
+        ProjectsStore.loadInitialData(initialData.organization.projects);
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          body: {
+            data: [
+              {
+                title: '/organizations/:orgId/dashboards/',
+                transaction: '/discover/homepage/',
+                project: 'project-slug',
+                id: '1',
+              },
+            ],
+            meta: {
+              fields: {
+                title: 'string',
+                transaction: 'string',
+                project: 'string',
+                id: 'string',
+              },
+              isMetricsData: true,
+            },
+          },
+        });
+        mockWidget.queries = [
+          {
+            conditions: 'title:/organizations/:orgId/performance/summary/',
+            fields: [''],
+            aggregates: [''],
+            columns: ['transaction'],
+            name: 'Query Name',
+            orderby: '',
+          },
+        ];
+        await renderModal({
+          initialData: initialDataWithFlag,
+          widget: mockWidget,
+          seriesData: [],
+          seriesResultsType: {'count()': 'duration'},
+        });
+
+        const link = screen.getByTestId('widget-viewer-transaction-link');
+        expect(link).toHaveAttribute(
+          'href',
+          expect.stringMatching(
+            RegExp(
+              '/organizations/org-slug/performance/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
+            )
+          )
+        );
       });
     });
 

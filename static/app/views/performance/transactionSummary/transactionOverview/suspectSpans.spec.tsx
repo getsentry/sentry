@@ -30,7 +30,6 @@ function initializeData({query} = {query: {}}) {
         },
       },
     },
-    project: 1,
     projects: [],
   });
 

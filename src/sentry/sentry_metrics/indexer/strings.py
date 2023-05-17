@@ -136,6 +136,8 @@ SHARED_TAG_STRINGS = {
     "span.status_code": PREFIX + 247,
     "span.domain": PREFIX + 248,
     "span.description": PREFIX + 249,
+    "http.status_code": PREFIX + 250,
+    "geo.country_code": PREFIX + 251,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }

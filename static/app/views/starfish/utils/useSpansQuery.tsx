@@ -22,7 +22,9 @@ export function useSpansQuery<T = any[]>({
   queryString,
   initialData,
   forceUseDiscover,
+  enabled,
 }: {
+  enabled?: boolean;
   eventView?: EventView;
   forceUseDiscover?: boolean;
   initialData?: any;
@@ -36,7 +38,7 @@ export function useSpansQuery<T = any[]>({
   });
   if (isDiscoverFunction(queryFunction) || isDiscoverTimeseriesFunction(queryFunction)) {
     if (eventView) {
-      return queryFunction(eventView, initialData);
+      return queryFunction({eventView, initialData, enabled});
     }
     throw new Error(
       'eventView argument must be defined when Starfish useDiscover is true'
@@ -44,7 +46,7 @@ export function useSpansQuery<T = any[]>({
   }
 
   if (queryString) {
-    return queryFunction(queryString, initialData);
+    return queryFunction({queryString, initialData, enabled});
   }
   throw new Error(
     'queryString argument must be defined when Starfish useDiscover is false, ie when using scraped data via fetch API'
@@ -63,20 +65,35 @@ function isDiscoverTimeseriesFunction(
   return queryFunction === useWrappedDiscoverTimeseriesQuery;
 }
 
-export function useWrappedQuery(queryString: string, initialData?: any) {
+export function useWrappedQuery({
+  queryString,
+  initialData,
+  enabled,
+}: {
+  queryString: string;
+  enabled?: boolean;
+  initialData?: any;
+}) {
   const {isLoading, data} = useQuery({
     queryKey: [queryString],
     queryFn: () => fetch(`${HOST}/?query=${queryString}`).then(res => res.json()),
     retry: false,
     initialData,
+    enabled,
+    refetchOnWindowFocus: false,
   });
   return {isLoading, data};
 }
 
-export function useWrappedDiscoverTimeseriesQuery(
-  eventView: EventView,
-  initialData?: any
-) {
+export function useWrappedDiscoverTimeseriesQuery({
+  eventView,
+  enabled,
+  initialData,
+}: {
+  eventView: EventView;
+  enabled?: boolean;
+  initialData?: any;
+}) {
   const location = useLocation();
   const organization = useOrganization();
   const {isLoading, data} = useGenericDiscoverQuery<
@@ -98,6 +115,10 @@ export function useWrappedDiscoverTimeseriesQuery(
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
     }),
+    options: {
+      enabled,
+      refetchOnWindowFocus: false,
+    },
   });
   return {
     isLoading,
@@ -108,7 +129,13 @@ export function useWrappedDiscoverTimeseriesQuery(
   };
 }
 
-export function useWrappedDiscoverQuery(eventView: EventView, initialData?: any) {
+export function useWrappedDiscoverQuery({
+  eventView,
+  initialData,
+}: {
+  eventView: EventView;
+  initialData?: any;
+}) {
   const location = useLocation();
   const organization = useOrganization();
   const {isLoading, data} = useDiscoverQuery({

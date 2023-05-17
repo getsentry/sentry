@@ -144,6 +144,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "legal",
         "login",
         "logout",
+        "lp",
         "mail",
         "manage",
         "my",
