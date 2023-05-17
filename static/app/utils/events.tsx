@@ -261,7 +261,8 @@ function getInAppFrames(event: Event) {
 }
 
 function getExceptionEntries(event: Event) {
-  return event.entries?.filter(entry => entry.type === 'exception') as EntryException[];
+  return (event.entries?.filter(entry => entry.type === 'exception') ||
+    []) as EntryException[];
 }
 
 function getNumberOfStackFrames(event: Event) {
