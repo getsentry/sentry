@@ -81,7 +81,9 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         if hasattr(event, "for_group") and event.group:
             event = event.for_group(event.group)
 
-        data = wrap_event_response(request.user, event, environments)
+        data = wrap_event_response(
+            request.user, event, environments, include_full_release_data=True
+        )
         return Response(data)
 
 
