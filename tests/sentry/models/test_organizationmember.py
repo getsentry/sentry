@@ -140,15 +140,17 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
     def test_delete_expired_clear(self):
         ninety_one_days = timezone.now() - timedelta(days=1)
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=self.organization,
             role="member",
             email="test@example.com",
             token="abc-def",
             token_expires_at=ninety_one_days,
         )
-        OrganizationMember.objects.delete_expired(timezone.now())
+        with outbox_runner():
+            OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.filter(id=member.id).first() is None
+        self.assert_org_member_mapping_not_exists(org_member=member)
 
     def test_delete_identities(self):
         org = self.create_organization()
@@ -193,58 +195,66 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
                 flags=AuthProvider.flags["allow_unlinked"],
             )
         ninety_one_days = timezone.now() - timedelta(days=91)
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=organization,
             role="member",
             email="test@example.com",
             token="abc-def",
             token_expires_at=ninety_one_days,
         )
-        member2 = OrganizationMember.objects.create(
+        member2 = self.create_member(
             organization=org3,
             role="member",
             email="test2@example.com",
             token="abc-defg",
             token_expires_at=ninety_one_days,
         )
-        OrganizationMember.objects.delete_expired(timezone.now())
+        with outbox_runner():
+            OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.filter(id=member.id).exists()
         assert not OrganizationMember.objects.filter(id=member2.id).exists()
+        self.assert_org_member_mapping_not_exists(org_member=member2)
 
     def test_delete_expired_miss(self):
         tomorrow = timezone.now() + timedelta(days=1)
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=self.organization,
             role="member",
             email="test@example.com",
             token="abc-def",
             token_expires_at=tomorrow,
         )
-        OrganizationMember.objects.delete_expired(timezone.now())
-        assert OrganizationMember.objects.get(id=member.id)
+        with outbox_runner():
+            OrganizationMember.objects.delete_expired(timezone.now())
+        assert OrganizationMember.objects.filter(id=member.id).exists()
+        self.assert_org_member_mapping(org_member=member)
 
     def test_delete_expired_leave_claimed(self):
         user = self.create_user()
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=self.organization,
             role="member",
             user=user,
             token="abc-def",
             token_expires_at="2018-01-01 10:00:00",
         )
-        OrganizationMember.objects.delete_expired(timezone.now())
-        assert OrganizationMember.objects.get(id=member.id)
+        with outbox_runner():
+            OrganizationMember.objects.delete_expired(timezone.now())
+        assert OrganizationMember.objects.filter(id=member.id).exists()
+        self.assert_org_member_mapping(org_member=member)
 
     def test_delete_expired_leave_null_expires(self):
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=self.organization,
             role="member",
             email="test@example.com",
             token="abc-def",
             token_expires_at=None,
         )
-        OrganizationMember.objects.delete_expired(timezone.now())
+        with outbox_runner():
+            OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.get(id=member.id)
+        self.assert_org_member_mapping(org_member=member)
 
     def test_approve_invite(self):
         member = OrganizationMember.objects.create(
