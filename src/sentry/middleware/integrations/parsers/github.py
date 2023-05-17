@@ -18,13 +18,6 @@ class GithubRequestParser(BaseRequestParser):
 
     control_events = ["installation"]
 
-    def get_event(self):
-        try:
-            event = json.loads(self.request.body.decode("utf-8"))
-        except json.JSONDecodeError:
-            return None
-        return event
-
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
         try:
