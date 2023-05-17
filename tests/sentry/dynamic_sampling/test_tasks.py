@@ -170,7 +170,7 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
     ):
         extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
         get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
-        get_blended_sample_rate.return_value = 1.0
+        get_blended_sample_rate.return_value = 0.8
         # Create a org
         test_org = self.create_organization(name="sample-org")
 
@@ -213,7 +213,7 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
     ):
         extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
         get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
-        get_blended_sample_rate.return_value = 1.0
+        get_blended_sample_rate.return_value = 0.8
         # Create a org
         test_org = self.create_organization(name="sample-org")
 
@@ -578,7 +578,6 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     ):
         extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
         get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
-        get_blended_sample_rate.return_value = 1.0
 
         org = self.create_organization(name="sample-org")
 
@@ -586,6 +585,8 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         project_b = self.create_project_and_add_metrics("b", 10, org)
         project_c = self.create_project_and_add_metrics("c", 100, org)
 
+        # We try with a `get_blended_sample_rate` < 100%.
+        get_blended_sample_rate.return_value = 0.5
         with self.tasks():
             sliding_window()
 
@@ -601,6 +602,25 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
             assert generate_rules(project_c)[0]["samplingValue"] == {
                 "type": "sampleRate",
                 "value": 0.2,
+            }
+
+        # We try again but with the `get_blended_sample_rate` equal to 100%.
+        get_blended_sample_rate.return_value = 1.0
+        with self.tasks():
+            sliding_window()
+
+        with self.feature("organizations:ds-sliding-window"):
+            assert generate_rules(project_a)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": 1.0,
+            }
+            assert generate_rules(project_b)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": 1.0,
+            }
+            assert generate_rules(project_c)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": 1.0,
             }
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
@@ -619,9 +639,6 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         org = self.create_organization(name="sample-org")
 
         project_a = self.create_project_and_add_metrics("a", 1, org)
-        # In this case we expect that the base sample rate will be used from `get_blended_sample_rate` since we
-        # mocked the sampling tier function to return None when -1 is provided, however this doesn't depict the real
-        # implementation.
         project_b = self.create_project_and_add_metrics("b", -1, org)
 
         with self.tasks():
@@ -632,6 +649,9 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
                 "type": "sampleRate",
                 "value": 0.8,
             }
+            # In this case we expect that the base sample rate will be used from `get_blended_sample_rate` since we
+            # mocked the sampling tier function to return None when -1 is provided, however this doesn't depict the real
+            # implementation.
             assert generate_rules(project_b)[0]["samplingValue"] == {
                 "type": "sampleRate",
                 "value": 0.5,
@@ -665,6 +685,7 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     def test_sliding_window_with_sample_rate_computation_error(
         self, compute_sliding_window_sample_rate, get_blended_sample_rate
     ):
+        # We want to make the entire sliding window sample rate fail.
         compute_sliding_window_sample_rate.side_effect = Exception()
         get_blended_sample_rate.return_value = 0.9
 
