@@ -136,6 +136,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
        * This is usually because of a browser extension or chrome translate page
        */
       "NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.",
+      "NotFoundError: Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node.",
     ],
 
     // Temporary fix while `ignoreErrors` bug is fixed and request error handling is cleaned up
