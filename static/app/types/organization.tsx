@@ -145,7 +145,10 @@ export interface Member {
     teamSlug: string;
   }[];
   teams: string[]; // # Deprecated, use teamRoles
-  user: User;
+  /**
+   * User may be null when the member represents an invited member
+   */
+  user: User | null;
 }
 
 /**
