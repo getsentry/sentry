@@ -17,7 +17,6 @@ export function initializeOrg({
   project?: Partial<Project>;
   projects?: Partial<Project>[];
   router?: any;
-  routerProps?: any;
 } = {}) {
   const projects = (
     additionalProjects ||
