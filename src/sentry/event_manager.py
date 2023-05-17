@@ -1791,6 +1791,11 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             substatus=GroupSubStatus.REGRESSED,
         )
     )
+    group.active_at = date
+    group.status = GroupStatus.UNRESOLVED
+    group.substatus = GroupSubStatus.REGRESSED
+    # groups may have been updated already from a separate event that groups to the same group
+    # only fire these signals the first time the row was actually updated
     if is_regression:
         issue_unresolved.send_robust(
             project=group.project,
@@ -1799,10 +1804,6 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             transition_type="automatic",
             sender="handle_regression",
         )
-        group.active_at = date
-        group.status = GroupStatus.UNRESOLVED
-        group.substatus = GroupSubStatus.REGRESSED
-        # intentionally fire the signal to update the cached Group
         post_save.send(
             sender=Group,
             instance=group,
