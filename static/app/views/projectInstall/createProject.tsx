@@ -177,12 +177,6 @@ function CreateProject() {
       ),
       {
         modalCss,
-        onClose: () => {
-          trackAnalytics('onboarding.select_framework_modal_close_button_clicked', {
-            platform: selectedPlatform.key,
-            organization,
-          });
-        },
       }
     );
   }, [platform, createProject, organization]);
@@ -244,6 +238,7 @@ function CreateProject() {
           <TeamSelectInput>
             <TeamSelector
               name="select-team"
+              aria-label={t('Select a Team')}
               menuPlacement="auto"
               clearable={false}
               value={team}
