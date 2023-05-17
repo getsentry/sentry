@@ -1,7 +1,8 @@
-import {Client, ResponseMeta} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'sentry/constants';
 import {RecentSearch, SavedSearch, SavedSearchType} from 'sentry/types';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import RequestError from 'sentry/utils/requestError/requestError';
 
 const getRecentSearchUrl = (orgSlug: string): string =>
   `/organizations/${orgSlug}/recent-searches/`;
@@ -29,7 +30,7 @@ export function saveRecentSearch(
     },
   });
 
-  promise.catch((err: ResponseMeta) =>
+  promise.catch((err: RequestError) =>
     handleXhrErrorResponse('Unable to save a recent search', err)
   );
 
@@ -61,7 +62,7 @@ export function fetchRecentSearches(
     },
   });
 
-  promise.catch((resp: ResponseMeta) => {
+  promise.catch((resp: RequestError) => {
     if (resp.status !== 401 && resp.status !== 403) {
       handleXhrErrorResponse('Unable to fetch recent searches', resp);
     }
