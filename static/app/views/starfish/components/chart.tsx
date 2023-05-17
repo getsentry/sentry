@@ -123,7 +123,7 @@ function Chart({
   );
 
   let dataMax = durationOnly
-    ? computeAxisMax([...data, ...(scatterPlot ?? [])])
+    ? computeAxisMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
     : percentOnly
     ? computeMax(data)
     : undefined;
