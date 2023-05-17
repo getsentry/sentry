@@ -1,21 +1,21 @@
 import * as Sentry from '@sentry/react';
 
-import {ResponseMeta} from 'sentry/api';
+import RequestError from 'sentry/utils/requestError/requestError';
 
-export function handleXhrErrorResponse(message: string, resp: ResponseMeta): void {
-  if (!resp) {
+export function handleXhrErrorResponse(message: string, err: RequestError): void {
+  if (!err) {
     return;
   }
-  if (!resp.responseJSON) {
+  if (!err.responseJSON) {
     return;
   }
 
-  const {responseJSON} = resp;
+  const {responseJSON} = err;
 
   // If this is a string then just capture it as error
   if (typeof responseJSON.detail === 'string') {
     Sentry.withScope(scope => {
-      scope.setExtra('status', resp.status);
+      scope.setExtra('status', err.status);
       scope.setExtra('detail', responseJSON.detail);
       Sentry.captureException(new Error(message));
     });
@@ -29,7 +29,7 @@ export function handleXhrErrorResponse(message: string, resp: ResponseMeta): voi
 
   if (responseJSON.detail && typeof responseJSON.detail.message === 'string') {
     Sentry.withScope(scope => {
-      scope.setExtra('status', resp.status);
+      scope.setExtra('status', err.status);
       scope.setExtra('detail', responseJSON.detail);
       scope.setExtra('code', responseJSON.detail.code);
       Sentry.captureException(new Error(message));
