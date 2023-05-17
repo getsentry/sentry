@@ -517,6 +517,8 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
     elif flt.id == FilterStatKeys.HEALTH_CHECK:
         if is_enabled:
             ret_val = {"patterns": HEALTH_CHECK_GLOBS}
+        else:
+            ret_val = {"patterns": []}
     return ret_val
 
 
