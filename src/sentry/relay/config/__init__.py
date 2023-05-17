@@ -20,7 +20,7 @@ from pytz import utc
 from sentry_sdk import Hub, capture_exception
 
 from sentry import features, killswitches, options, quotas, utils
-from sentry.constants import ObjectStatus
+from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
@@ -514,6 +514,9 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
                 # new style filter, per legacy browser type handling
                 # ret_val['options'] = setting.split(' ')
                 ret_val["options"] = list(setting)
+    elif flt.id == FilterStatKeys.HEALTH_CHECK:
+        if is_enabled:
+            ret_val = {"patterns": HEALTH_CHECK_GLOBS}
     return ret_val
 
 

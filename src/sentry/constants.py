@@ -685,3 +685,17 @@ DS_DENYLIST = frozenset(
         "url",
     ]
 )
+
+
+# DESCRIBES the globs used to check if a transaction is for a healthcheck endpoint
+# https://kubernetes.io/docs/reference/using-api/health-checks/
+# Also it covers: livez, readyz
+HEALTH_CHECK_GLOBS = [
+    "*healthcheck*",
+    "*healthy*",
+    "*live*",
+    "*ready*",
+    "*heartbeat*",
+    "*/health",
+    "*/healthz",
+]
