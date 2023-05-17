@@ -202,22 +202,12 @@ export default function APIModuleView({location, onSelect}: Props) {
       interval
     );
 
-  const tpmTransactionSeries = queryToSeries(
-    topTransactionsData,
-    'group',
-    'epm()',
-    startTime,
-    endTime,
-    24
-  );
+  const tpmTransactionSeries = queryToSeries(topTransactionsData, 'group', 'epm()');
 
   const p75TransactionSeries = queryToSeries(
     topTransactionsData,
     'group',
-    'p75(transaction.duration)',
-    startTime,
-    endTime,
-    24
+    'p75(transaction.duration)'
   );
 
   return (
@@ -231,6 +221,24 @@ export default function APIModuleView({location, onSelect}: Props) {
         />
         <DatePageFilter alignDropdown="left" />
       </FilterOptionsContainer>
+      <ChartsContainer>
+        <ChartsContainerItem>
+          <ChartPanel title={t('Top Transactions Throughput')}>
+            <APIModuleChart
+              data={tpmTransactionSeries}
+              loading={isTopTransactionDataLoading}
+            />
+          </ChartPanel>
+        </ChartsContainerItem>
+        <ChartsContainerItem>
+          <ChartPanel title={t('Top Transactions p75')}>
+            <APIModuleChart
+              data={p75TransactionSeries}
+              loading={isTopTransactionDataLoading}
+            />
+          </ChartPanel>
+        </ChartsContainerItem>
+      </ChartsContainer>
       <ChartsContainer>
         <ChartsContainerItem>
           <ChartPanel title={t('Throughput')}>
@@ -248,22 +256,6 @@ export default function APIModuleView({location, onSelect}: Props) {
               data={zeroFilledFailureRate}
               loading={isGraphLoading}
               chartColors={[themes.charts.getColorPalette(2)[2]]}
-            />
-          </ChartPanel>
-        </ChartsContainerItem>
-        <ChartsContainerItem>
-          <ChartPanel title={t('Top Transactions Throughput')}>
-            <APIModuleChart
-              data={tpmTransactionSeries}
-              loading={isTopTransactionDataLoading}
-            />
-          </ChartPanel>
-        </ChartsContainerItem>
-        <ChartsContainerItem>
-          <ChartPanel title={t('Top Transactions p75')}>
-            <APIModuleChart
-              data={p75TransactionSeries}
-              loading={isTopTransactionDataLoading}
             />
           </ChartPanel>
         </ChartsContainerItem>
