@@ -33,11 +33,6 @@ def get_replays_recordings_consumer(
     consumer_config = get_config(topic, group_id, auto_offset_reset, force_cluster)
     consumer = KafkaConsumer(consumer_config)
 
-    # Creates metrics singleton. The master branch of other consumers initializes here but as
-    # recently as three weeks ago we were initializing metrics within a process's scope via the
-    # initializer property.
-    #
-    # TODO: Determine where we should initialize the metrics singleton.
     initialize_metrics()
 
     return StreamProcessor(
