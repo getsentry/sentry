@@ -1150,8 +1150,7 @@ function WidgetBuilder({
 export default withPageFilters(withTags(WidgetBuilder));
 
 const TitleInput = styled(InputField)`
-  margin-top: -${space(2)};
-  margin-left: -${space(4)};
+  padding: 0;
 `;
 
 const BuildSteps = styled(List)`
