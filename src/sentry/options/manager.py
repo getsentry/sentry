@@ -1,5 +1,6 @@
 import logging
 import sys
+from enum import Enum
 
 from django.conf import settings
 
@@ -12,6 +13,20 @@ _type = type
 logger = logging.getLogger("sentry")
 
 NoneType = type(None)
+
+
+class UpdateChannel(Enum):
+    """Enumerated type referring to potential sources of Sentry Options"""
+
+    UNKNOWN = "unknown"
+    APPLICATION = "application"
+    AUTOMATOR = "automator"
+    CLI = "cli"
+    KILLSWITCH = "killswitch"
+
+    @classmethod
+    def choices(cls):
+        return tuple((i.name, i.value) for i in cls)
 
 
 class UnknownOption(KeyError):
@@ -78,7 +93,7 @@ class OptionsManager:
         self.registry = {}
 
     # TODO: Find out why `from sentry.models.options import OptionsTypes` doesn't work at top level
-    def set(self, key, value, coerce=True, source="legacy"):
+    def set(self, key, value, coerce=True, source: UpdateChannel = UpdateChannel.UNKNOWN):
         """
         Set the value for an option. If the cache is unavailable the action will
         still succeed.

@@ -1,23 +1,9 @@
-from enum import Enum
-
 from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import Model, control_silo_only_model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.picklefield import PickledObjectField
-
-
-class OptionsTypes(Enum):
-    """Enumerated type referring to potential sources of Sentry Options"""
-
-    LEGACY = "legacy"
-    AUTOMATOR = "automator"
-    CLI = "cli"
-    KILLSWITCH = "killswitch"
-
-    @classmethod
-    def choices(cls):
-        return tuple((i.name, i.value) for i in cls)
+from sentry.options.manager import UpdateChannel
 
 
 class BaseOption(Model):  # type: ignore
@@ -34,7 +20,7 @@ class BaseOption(Model):  # type: ignore
     key = models.CharField(max_length=128, unique=True)
     last_updated = models.DateTimeField(default=timezone.now)
     last_updated_by = models.CharField(
-        max_length=128, choices=OptionsTypes.choices(), default="legacy"
+        max_length=128, choices=UpdateChannel.choices(), default=UpdateChannel.UNKNOWN
     )
 
     class Meta:
