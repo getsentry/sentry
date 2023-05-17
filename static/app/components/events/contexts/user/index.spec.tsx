@@ -56,9 +56,7 @@ const event = {
 };
 
 describe('user event context', function () {
-  // Flakey test: https://sentry.sentry.io/issues/3974475742/?project=4857230
-  // eslint-disable-next-line
-  it.skip('display redacted data', async function () {
+  it('display redacted data', async function () {
     render(<UserEventContext event={event} data={userMockData} />);
 
     expect(screen.getByText('ID')).toBeInTheDocument(); // subject
