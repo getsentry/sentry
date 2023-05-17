@@ -16,6 +16,7 @@ from ..base import (
     DetectorType,
     PerformanceDetector,
     fingerprint_spans,
+    get_notification_attachment_body,
     get_span_duration,
     get_span_evidence_value,
 )
@@ -144,7 +145,17 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
                     self.independent_db_spans[0], include_op=False
                 ),
             },
-            evidence_display=[],
+            evidence_display=[
+                {
+                    "name": "Notification Attachment",
+                    "value": get_notification_attachment_body(
+                        "db",
+                        query,
+                    ),
+                    # Has to be marked important to be displayed in the notifications
+                    "important": True,
+                }
+            ],
         )
 
         self._reset_variables()

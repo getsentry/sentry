@@ -19,6 +19,7 @@ from ..base import (
     DetectorType,
     PerformanceDetector,
     fingerprint_http_spans,
+    get_notification_attachment_body,
     get_span_duration,
     get_span_evidence_value,
     get_url_from_span,
@@ -189,7 +190,19 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
                 "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
                 "parameters": self._get_parameters(),
             },
-            evidence_display=[],
+            evidence_display=[
+                {
+                    "name": "Notification Attachment",
+                    "value": get_notification_attachment_body(
+                        last_span["op"],
+                        os.path.commonprefix(
+                            [span.get("description", "") or "" for span in self.spans]
+                        ),
+                    ),
+                    # Has to be marked important to be displayed in the notifications
+                    "important": True,
+                }
+            ],
         )
 
     def _get_parameters(self) -> List[str]:
