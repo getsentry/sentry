@@ -8,9 +8,9 @@ Validation is located at
 
 import math
 import statistics
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List, TypedDict
-from dataclasses import dataclass
 
 
 class IssueForecast(TypedDict):
@@ -22,7 +22,8 @@ class GroupCount(TypedDict):
     intervals: List[str]
     data: List[int]
 
-#standard values if no parameters are passed
+
+# standard values if no parameters are passed
 @dataclass
 class ThresholdVariables:
     std_multiplier: int = 5
@@ -31,11 +32,14 @@ class ThresholdVariables:
     min_bursty_multiplier: int = 2
     max_bursty_multiplier: int = 5
 
-looser_version = ThresholdVariables(6,5,9,2,6)
-tighter_version = ThresholdVariables(4,4,7,2,4)
+
+looser_version = ThresholdVariables(6, 5, 9, 2, 6)
+tighter_version = ThresholdVariables(4, 4, 7, 2, 4)
+
 
 def generate_issue_forecast(
-    data: GroupCount, start_time: datetime, vars: ThresholdVariables()) -> List[IssueForecast]:
+    data: GroupCount, start_time: datetime, vars: ThresholdVariables()
+) -> List[IssueForecast]:
     """
     Calculates daily issue spike limits, given an input dataset from snuba.
 
@@ -58,7 +62,6 @@ def generate_issue_forecast(
     :param vars: Threshold Variables dataclass with different ceiling versions
     :return output: Dict containing a list of spike protection values
     """
-
 
     # output list of dictionaries
     output: List[IssueForecast] = []
@@ -105,7 +108,8 @@ def generate_issue_forecast(
 
     # multiplier determined by exponential equation - bounded between [2,5]
     regression_multiplier = min(
-        max(vars.min_bursty_multiplier, 5 * ((math.e) ** (-0.65 * ts_cv))), vars.max_bursty_multiplier
+        max(vars.min_bursty_multiplier, 5 * ((math.e) ** (-0.65 * ts_cv))),
+        vars.max_bursty_multiplier,
     )
 
     # first ceiling calculation
