@@ -31,9 +31,7 @@ type Props = {
 };
 
 const flattenSuggestions = (list: ProjectSdkUpdates[]) =>
-  list.reduce<SDKUpdatesSuggestion[]>((suggestions, sdk) => {
-    return suggestions.concat(sdk.suggestions);
-  }, []);
+  list.flatMap<SDKUpdatesSuggestion[]>(l => l.suggestions);
 
 function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
   if (!sdkUpdates) {

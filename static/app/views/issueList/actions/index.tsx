@@ -275,13 +275,13 @@ function useSelectedGroupsState() {
   const selected = SelectedGroupStore.getSelectedIds();
   const projects: string[] = [];
 
-  for (const selectedGroup of selected) {
+  selected.forEach(selectedGroup => {
     const group = GroupStore.get(selectedGroup);
 
     if (group && group.project) {
       projects.push(group.project.slug);
     }
-  }
+  });
 
   const uniqProjects = uniq(projects);
   // we only want selectedProjectSlug set if there is 1 project

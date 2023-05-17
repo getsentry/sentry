@@ -57,9 +57,9 @@ export default class TableField extends Component<InputFieldProps> {
 
     const mappedKeys = columnKeys || [];
     const emptyValue = mappedKeys.reduce(
-      (a, v) => {
-        a[v] = null;
-        return a;
+      (acc, key) => {
+        acc[key] = null;
+        return acc;
       },
       {id: ''}
     );

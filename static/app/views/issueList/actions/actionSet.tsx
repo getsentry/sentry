@@ -60,14 +60,12 @@ function ActionSet({
   const label = getLabel(numIssues, allInQuerySelected);
 
   const selectedIssues: BaseGroup[] = [];
-  for (const issue of issues) {
-    const resolvedIssue = GroupStore.get(issue);
-
-    if (resolvedIssue) {
-      // @TODO use a type guard here
-      selectedIssues.push(resolvedIssue as BaseGroup);
+  issues.forEach(issueId => {
+    const issue = GroupStore.get(issueId);
+    if (issue) {
+      selectedIssues.push(issue as BaseGroup);
     }
-  }
+  });
 
   // Merges require multiple issues of a single project type
   const multipleIssueProjectsSelected = multiSelected && !selectedProjectSlug;
