@@ -351,7 +351,7 @@ and run `sentry devservices up kafka zookeeper`.
 
         for (topic_name, topic_data) in settings.KAFKA_TOPICS.items():
             if topic_data is not None:
-                create_topics(topic_data["cluster"], [topic_name])
+                create_topics(topic_data["cluster"], [topic_name], force=True)
 
     from sentry.runner.commands.devservices import _prepare_containers
 
