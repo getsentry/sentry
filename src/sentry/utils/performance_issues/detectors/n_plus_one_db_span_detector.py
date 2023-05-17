@@ -6,6 +6,7 @@ from datetime import timedelta
 from typing import Optional
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.issue_occurrence import IssueEvidenceData
 from sentry.models import Organization, Project
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -217,15 +218,15 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 cause_span_ids=[self.source_span.get("span_id", None)],
                 offender_span_ids=offender_span_ids,
                 evidence_display=[
-                    {
-                        "name": "Notification Attachment",
-                        "value": get_notification_attachment_body(
+                    IssueEvidenceData(
+                        name="Notification Attachment",
+                        value=get_notification_attachment_body(
                             "db",
                             self.n_spans[0].get("description", ""),
                         ),
                         # Has to be marked important to be displayed in the notifications
-                        "important": True,
-                    }
+                        important=True,
+                    )
                 ],
                 evidence_data={
                     "transaction_name": self._event.get("transaction", ""),

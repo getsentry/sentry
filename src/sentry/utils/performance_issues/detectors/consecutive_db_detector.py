@@ -9,6 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
+from sentry.issues.issue_occurrence import IssueEvidenceData
 from sentry.models import Organization, Project
 from sentry.utils.event_frames import get_sdk_name
 
@@ -146,15 +147,15 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
                 ),
             },
             evidence_display=[
-                {
-                    "name": "Notification Attachment",
-                    "value": get_notification_attachment_body(
+                IssueEvidenceData(
+                    name="Notification Attachment",
+                    value=get_notification_attachment_body(
                         "db",
                         query,
                     ),
                     # Has to be marked important to be displayed in the notifications
-                    "important": True,
-                }
+                    important=True,
+                )
             ],
         )
 

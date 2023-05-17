@@ -12,6 +12,7 @@ from django.utils.encoding import force_bytes
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.issues.issue_occurrence import IssueEvidenceData
 from sentry.models import Organization, Project
 
 from ..base import (
@@ -191,17 +192,17 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
                 "parameters": self._get_parameters(),
             },
             evidence_display=[
-                {
-                    "name": "Notification Attachment",
-                    "value": get_notification_attachment_body(
+                IssueEvidenceData(
+                    name="Notification Attachment",
+                    value=get_notification_attachment_body(
                         last_span["op"],
                         os.path.commonprefix(
                             [span.get("description", "") or "" for span in self.spans]
                         ),
                     ),
                     # Has to be marked important to be displayed in the notifications
-                    "important": True,
-                }
+                    important=True,
+                )
             ],
         )
 

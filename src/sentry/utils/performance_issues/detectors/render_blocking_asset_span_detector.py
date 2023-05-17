@@ -5,6 +5,7 @@ from typing import Any, Mapping, Optional
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
+from sentry.issues.issue_occurrence import IssueEvidenceData
 from sentry.models import Organization, Project
 
 from ..base import (
@@ -94,15 +95,15 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                         "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
                     },
                     evidence_display=[
-                        {
-                            "name": "Notification Attachment",
-                            "value": get_notification_attachment_body(
+                        IssueEvidenceData(
+                            name="Notification Attachment",
+                            value=get_notification_attachment_body(
                                 op,
                                 span.get("description") or "",
                             ),
                             # Has to be marked important to be displayed in the notifications
-                            "important": True,
-                        }
+                            important=True,
+                        )
                     ],
                 )
 

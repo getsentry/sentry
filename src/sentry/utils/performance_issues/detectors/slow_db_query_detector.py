@@ -6,6 +6,7 @@ from typing import Optional
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
+from sentry.issues.issue_occurrence import IssueEvidenceData
 from sentry.models import Organization, Project
 
 from ..base import (
@@ -78,15 +79,15 @@ class SlowDBQueryDetector(PerformanceDetector):
                     "num_repeating_spans": str(len(spans_involved)),
                 },
                 evidence_display=[
-                    {
-                        "name": "Notification Attachment",
-                        "value": get_notification_attachment_body(
+                    IssueEvidenceData(
+                        name="Notification Attachment",
+                        value=get_notification_attachment_body(
                             op,
                             description,
                         ),
                         # Has to be marked important to be displayed in the notifications
-                        "important": True,
-                    }
+                        important=True,
+                    )
                 ],
             )
 
