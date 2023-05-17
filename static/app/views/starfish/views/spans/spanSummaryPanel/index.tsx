@@ -5,6 +5,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import {SpanDescription} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanDescription';
 import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
 import {useSpanMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetrics';
 
@@ -18,9 +19,7 @@ export function SpanSummaryPanel({span, onClose}: Props) {
 
   return (
     <Detail detailKey={span?.group_id} onClose={onClose}>
-      <h2>{t('Span Summary')}</h2>
-      <SubHeader>{t('Description')}</SubHeader>
-      <pre>{span?.description}</pre>
+      <Header>{t('Span Summary')}</Header>
 
       <FlexRowContainer>
         <Block title={t('First Seen')}>
@@ -39,6 +38,14 @@ export function SpanSummaryPanel({span, onClose}: Props) {
           />
         </Block>
       </FlexRowContainer>
+
+      <FlexRowContainer>
+        {span && (
+          <Block title={t('Description')}>
+            <SpanDescription span={span} />
+          </Block>
+        )}
+      </FlexRowContainer>
     </Detail>
   );
 }
@@ -56,6 +63,8 @@ function Block({title, children}: BlockProps) {
     </FlexRowItem>
   );
 }
+
+const Header = styled('h2')``;
 
 const SubHeader = styled('h3')`
   color: ${p => p.theme.gray300};
