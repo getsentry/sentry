@@ -26,7 +26,7 @@ OrgId = int
 @dataclasses.dataclass(frozen=True)
 class CardinalityLimiterState:
     _cardinality_limiter: CardinalityLimiter
-    _use_case_id: UseCaseKey
+    _metric_path_key: UseCaseKey
     _grants: Optional[Sequence[GrantedQuota]]
     _timestamp: Optional[Timestamp]
     keys_to_remove: Sequence[PartitionIdxOffset]
@@ -148,7 +148,7 @@ class TimeseriesCardinalityLimiter:
 
         return CardinalityLimiterState(
             _cardinality_limiter=self.backend,
-            _use_case_id=metric_path_key,
+            _metric_path_key=metric_path_key,
             _grants=grants,
             _timestamp=timestamp,
             keys_to_remove=list(keys_to_remove.values()),
