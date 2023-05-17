@@ -5,7 +5,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import PlatformPicker from 'sentry/components/platformPicker';
+import PlatformPicker, {PLATFORM_CATEGORIES} from 'sentry/components/platformPicker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
@@ -19,7 +19,6 @@ import withProjects from 'sentry/utils/withProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
-import {PLATFORM_CATEGORIES} from 'sentry/components/platformPicker'
 
 type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
@@ -68,9 +67,9 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
 
     const project = projects.find(p => p.slug === projectId);
     const platform = project ? platforms.find(p => p.id === project.platform) : undefined;
-    const category = PLATFORM_CATEGORIES.find(c => c.platforms.some(p => p === platform?.id))?.id
-
-    console.log({category});
+    const category = PLATFORM_CATEGORIES.find(c =>
+      c.platforms?.some(p => p === platform?.id)
+    )?.id;
 
     return (
       <div>
@@ -115,7 +114,8 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
           }
           showOther={false}
           organization={this.props.organization}
-          defaultCategory={platform.}
+          defaultCategory={category}
+          platform={platform?.id}
         />
         <p>
           {tct(

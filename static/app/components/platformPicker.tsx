@@ -21,8 +21,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 export const PLATFORM_CATEGORIES: {
   id: string;
   name: string;
-  platforms: PlatformKey[];
-}[] = [...categoryList, {id: 'all', name: t('All')}] as const;
+  platforms?: PlatformKey[];
+}[] = [...JSON.parse(JSON.stringify(categoryList)), {id: 'all', name: t('All')}];
 
 const PlatformList = styled('div')`
   display: grid;
