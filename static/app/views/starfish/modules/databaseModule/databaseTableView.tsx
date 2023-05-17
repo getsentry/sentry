@@ -39,12 +39,12 @@ export type DataRow = {
   lastSeen: string;
   newish: number;
   p50: number;
-  p50_trend: Series[];
+  p50_trend: Series;
   p75: number;
   p95: number;
-  p95_trend: Series[];
+  p95_trend: Series;
   retired: number;
-  throughput: Series[];
+  throughput: Series;
   total_time: number;
   transactions: number;
 };
@@ -210,9 +210,9 @@ export default function DatabaseTableView({
     const rowStyle: CSSProperties | undefined = isSelectedRow
       ? {fontWeight: 'bold'}
       : undefined;
-    const value = row[key];
 
     if (key === 'description') {
+      const value = row.description;
       return (
         <Link onClick={() => onSelect(row, rowIndex)} to="" style={rowStyle}>
           {value.substring(0, 30)}
@@ -241,10 +241,10 @@ export default function DatabaseTableView({
     }
 
     if (key === 'p50') {
-      const horizontalLine = generateHorizontalLine('', value, theme);
+      const horizontalLine = generateHorizontalLine('', row.p50, theme);
       return (
         <GraphRow>
-          <span style={rowStyle}>{getDuration(value / 1000, 2, true)}</span>
+          <span style={rowStyle}>{getDuration(row.p50 / 1000, 2, true)}</span>
           <Graphline>
             <Sparkline
               color={CHART_PALETTE[3][1]}
@@ -258,10 +258,10 @@ export default function DatabaseTableView({
     }
 
     if (key === 'p95') {
-      const horizontalLine = generateHorizontalLine('', value, theme);
+      const horizontalLine = generateHorizontalLine('', row.p95, theme);
       return (
         <GraphRow>
-          <span style={rowStyle}>{getDuration(value / 1000, 2, true)}</span>
+          <span style={rowStyle}>{getDuration(row.p95 / 1000, 2, true)}</span>
           <Graphline>
             <Sparkline
               color={CHART_PALETTE[3][2]}
@@ -274,11 +274,10 @@ export default function DatabaseTableView({
       );
     }
 
-    const timeBasedKeys: Keys[] = ['p50', 'p95', 'total_time'];
-    if (timeBasedKeys.includes(key)) {
-      return <span style={rowStyle}>{getDuration(value / 1000, 2, true)}</span>;
+    if (key === 'total_time') {
+      return <span style={rowStyle}>{getDuration(row.total_time / 1000, 2, true)}</span>;
     }
-    return <span style={rowStyle}>{value}</span>;
+    return <span style={rowStyle}>{row[key]}</span>;
   }
 
   return (
