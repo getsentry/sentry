@@ -3,10 +3,10 @@ from django.core import mail
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import region_silo_test
 
 
-@control_silo_test(stable=True)
+@region_silo_test(stable=True)
 class TasksAuthTest(TestCase):
     def setUp(self):
         super().setUp()
