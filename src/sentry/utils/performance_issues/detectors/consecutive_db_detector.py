@@ -9,7 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
-from sentry.issues.issue_occurrence import IssueEvidenceData
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 from sentry.utils.event_frames import get_sdk_name
 
@@ -147,8 +147,8 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
                 ),
             },
             evidence_display=[
-                IssueEvidenceData(
-                    name="Notification Attachment",
+                IssueEvidence(
+                    name="Offending Spans",
                     value=get_notification_attachment_body(
                         "db",
                         query,

@@ -6,7 +6,7 @@ from typing import Optional
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
-from sentry.issues.issue_occurrence import IssueEvidenceData
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 
 from ..base import (
@@ -79,8 +79,8 @@ class SlowDBQueryDetector(PerformanceDetector):
                     "num_repeating_spans": str(len(spans_involved)),
                 },
                 evidence_display=[
-                    IssueEvidenceData(
-                        name="Notification Attachment",
+                    IssueEvidence(
+                        name="Offending Spans",
                         value=get_notification_attachment_body(
                             op,
                             description,

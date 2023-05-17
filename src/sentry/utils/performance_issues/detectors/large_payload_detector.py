@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
-from sentry.issues.issue_occurrence import IssueEvidenceData
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 
 from ..base import (
@@ -59,8 +59,8 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
             evidence_display=[
-                IssueEvidenceData(
-                    name="Notification Attachment",
+                IssueEvidence(
+                    name="Offending Spans",
                     value=get_notification_attachment_body(
                         "http",
                         desc,

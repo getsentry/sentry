@@ -6,7 +6,7 @@ from datetime import timedelta
 from typing import Optional
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
-from sentry.issues.issue_occurrence import IssueEvidenceData
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -218,8 +218,8 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 cause_span_ids=[self.source_span.get("span_id", None)],
                 offender_span_ids=offender_span_ids,
                 evidence_display=[
-                    IssueEvidenceData(
-                        name="Notification Attachment",
+                    IssueEvidence(
+                        name="Offending Spans",
                         value=get_notification_attachment_body(
                             "db",
                             self.n_spans[0].get("description", ""),

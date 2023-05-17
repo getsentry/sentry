@@ -12,7 +12,7 @@ from sentry.issues.grouptype import (
     PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
 )
-from sentry.issues.issue_occurrence import IssueEvidenceData
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project, ProjectDebugFile
 
 from ..base import (
@@ -81,8 +81,8 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                         "num_repeating_spans": str(len(offender_spans)),
                     },
                     evidence_display=[
-                        IssueEvidenceData(
-                            name="Notification Attachment",
+                        IssueEvidence(
+                            name="Offending Spans",
                             value=get_notification_attachment_body(
                                 span_list[0].get("op"),
                                 span_list[0].get("description", ""),

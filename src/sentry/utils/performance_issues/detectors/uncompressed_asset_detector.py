@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
-from sentry.issues.issue_occurrence import IssueEvidenceData
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 
 from ..base import (
@@ -107,8 +107,8 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
                     "num_repeating_spans": str(len(span.get("span_id", None))),
                 },
                 evidence_display=[
-                    IssueEvidenceData(
-                        name="Notification Attachment",
+                    IssueEvidence(
+                        name="Offending Spans",
                         value=get_notification_attachment_body(
                             op,
                             description,
