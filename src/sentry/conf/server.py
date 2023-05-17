@@ -1012,13 +1012,13 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.schedule_auto_transition_new",
         # Run job once a day at 00:30
         "schedule": crontab(minute=30, hour="0"),
-        "options": {"expires": 10 * 60},
+        "options": {"expires": 3600},
     },
     "schedule_auto_transition_regressed": {
         "task": "sentry.tasks.schedule_auto_transition_regressed",
         # Run job once a day at 02:30
         "schedule": crontab(minute=30, hour="2"),
-        "options": {"expires": 10 * 60},
+        "options": {"expires": 3600},
     },
 }
 
@@ -2896,7 +2896,7 @@ KAFKA_TOPICS = {
 
 
 # If True, consumers will create the topics if they don't exist
-KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True
+KAFKA_CONSUMER_AUTO_CREATE_TOPICS = False
 
 # For Jira, only approved apps can use the access_email_addresses scope
 # This scope allows Sentry to use the email endpoint (https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-rest-api-3-user-email-get)

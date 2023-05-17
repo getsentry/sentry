@@ -93,7 +93,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
 
         if "duration" in result:
             params["duration"] = result["duration"]
-        # if a duration is not defined and we're at a finish state, calculate one
+        # if a duration is not defined and we're at a finished state, calculate one
         elif params.get("status", checkin.status) in CheckInStatus.FINISHED_VALUES:
             duration = int((current_datetime - checkin.date_added).total_seconds() * 1000)
             params["duration"] = duration

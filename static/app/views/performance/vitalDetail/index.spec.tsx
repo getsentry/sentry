@@ -24,7 +24,6 @@ const {
   router,
   project,
 } = initializeOrg({
-  ...initializeOrg(),
   organization,
   router: {
     location: {
