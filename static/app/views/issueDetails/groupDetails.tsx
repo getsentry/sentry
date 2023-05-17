@@ -319,7 +319,6 @@ function useFetchGroupDetails({
   const params = router.params;
   const {projects} = useProjects();
 
-  const [project, setProject] = useState<Project | null>(null);
   const [error, setError] = useState<boolean>(false);
   const [errorType, setErrorType] = useState<Error | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
@@ -353,20 +352,26 @@ function useFetchGroupDetails({
     enabled: isGlobalSelectionReady,
   });
 
-  const {data: groupReleaseData, isLoading: groupReleaseLoading} =
-    useApiQuery<GroupRelease>([`/issues/${groupId}/first-last-release/`], {
-      staleTime: 60000,
-      cacheTime: 60000,
-      enabled: !!groupData,
-    });
-
-  useEffect(() => {
-    if (!groupReleaseLoading && groupReleaseData) {
-      GroupStore.onPopulateReleases(groupId, groupReleaseData);
+  const {data: groupReleaseData} = useApiQuery<GroupRelease>(
+    [`/issues/${groupId}/first-last-release/`],
+    {
+      staleTime: 30000,
+      cacheTime: 30000,
+      enabled: defined(groupData),
     }
-  }, [groupReleaseData, groupReleaseLoading, groupId]);
+  );
 
   const group = groupData ?? null;
+
+  useEffect(() => {
+    if (defined(groupReleaseData) && defined(group)) {
+      GroupStore.loadInitialData([group]);
+      GroupStore.onPopulateReleases(groupId, groupReleaseData);
+    }
+  }, [groupReleaseData, groupId, group]);
+
+  const project =
+    projects?.find(({id}) => id === group?.project?.id) ?? group?.project ?? null;
 
   useSyncGroupStore(environments);
 
@@ -375,12 +380,6 @@ function useFetchGroupDetails({
       setEvent(eventData);
     }
   }, [eventData]);
-
-  useEffect(() => {
-    if (!loadingGroup && group) {
-      GroupStore.loadInitialData([group]);
-    }
-  }, [group, loadingGroup]);
 
   useEffect(() => {
     if (group && event) {
@@ -436,7 +435,6 @@ function useFetchGroupDetails({
         delete locationQuery._allp;
         browserHistory.replace({...window.location, query: locationQuery});
       }
-      setProject(matchingProject || group.project);
     }
   }, [group?.project, loadingGroup, projects, api, organization.slug, params.groupId]);
 
