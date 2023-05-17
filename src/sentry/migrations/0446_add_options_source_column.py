@@ -23,9 +23,38 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="option",
-            name="last_updated_by",
-            field=models.CharField(default="legacy", max_length=128),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_option" ADD COLUMN "last_updated_by" VARCHAR(64) NOT NULL DEFAULT 'legacy';
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_option" DROP COLUMN "last_updated_by";
+                    """,
+                    hints={"tables": ["sentry_option"]},
+                ),
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_controloption" ADD COLUMN "last_updated_by" VARCHAR(64) NOT NULL DEFAULT 'legacy';
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_controloption" DROP COLUMN "last_updated_by";
+                    """,
+                    hints={"tables": ["sentry_controloption"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="option",
+                    name="last_updated_by",
+                    field=models.CharField(default="legacy", max_length=64),
+                ),
+                migrations.AddField(
+                    model_name="controloption",
+                    name="last_updated_by",
+                    field=models.CharField(default="legacy", max_length=64),
+                ),
+            ],
         ),
     ]
