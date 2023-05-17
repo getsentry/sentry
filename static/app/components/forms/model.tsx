@@ -256,8 +256,11 @@ class FormModel {
    * Remove a field from the descriptor map and errors.
    */
   removeField(id: string) {
+    this.fields.delete(id);
+    this.fieldState.delete(id);
     this.fieldDescriptor.delete(id);
     this.errors.delete(id);
+    delete this.initialData[id];
   }
 
   /**

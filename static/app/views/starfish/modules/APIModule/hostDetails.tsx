@@ -53,6 +53,7 @@ export function HostDetails({host}: Props) {
     queryFn: () =>
       fetch(`${externalApi?.statusPage}?format=json`).then(res => res.json()),
     retry: false,
+    refetchOnWindowFocus: false,
     initialData: {},
     enabled: !!externalApi,
   });

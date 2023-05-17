@@ -43,6 +43,7 @@ from sentry.models import (
     UserOption,
     UserReport,
 )
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -1208,6 +1209,25 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 [],
             )
 
+    @with_feature("organizations:issue-states")
+    def test_has_inbox_reason(self):
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        msg = mail.outbox[0]
+        assert msg.subject == "[Sentry] BAR-1 - Hello world"
+        assert "Regressed issue" in msg.alternatives[0][0]
+
 
 class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
     def test_get_digest_subject(self):
@@ -1310,15 +1330,18 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
 
         assert notify.call_count == 0
         assert len(mail.outbox) == 2  # we send it to 2 users
-        message1 = mail.outbox[0]
-        message2 = mail.outbox[1]
+        messages = sorted(mail.outbox, key=lambda message: message.to[0])
+
+        message1 = messages[0]
+        message2 = messages[1]
+
         # self.user only receives a digest about one alert, since a rule was muted
-        assert message2.to[0] == self.user.email
-        assert "1 new alert since" in message2.subject
+        assert message1.to[0] == self.user.email
+        assert "1 new alert since" in message1.subject
 
         # user2 receives a digest about both alerts, since no rules were muted
-        assert message1.to[0] == user2.email
-        assert "2 new alerts since" in message1.subject
+        assert message2.to[0] == user2.email
+        assert "2 new alerts since" in message2.subject
 
     @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)

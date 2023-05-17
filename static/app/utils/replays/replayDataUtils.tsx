@@ -11,56 +11,14 @@ import type {
   RawCrumb,
 } from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import getMinMax from 'sentry/utils/getMinMax';
 import type {
-  MemorySpanType,
   RecordingEvent,
   ReplayCrumb,
   ReplayError,
   ReplayRecord,
   ReplaySpan,
 } from 'sentry/views/replays/types';
-
-// Errors if it is an interface
-// See https://github.com/microsoft/TypeScript/issues/15300
-type ReplayAttachmentsByTypeMap = {
-  breadcrumbs: ReplayCrumb[];
-
-  /**
-   * The flattened list of rrweb events. These are stored as multiple attachments on the root replay object: the `event` prop.
-   */
-  rrwebEvents: RecordingEvent[];
-  spans: ReplaySpan[];
-};
-
-export function mapRRWebAttachments(
-  unsortedReplayAttachments: any[]
-): ReplayAttachmentsByTypeMap {
-  const replayAttachments: ReplayAttachmentsByTypeMap = {
-    breadcrumbs: [],
-    rrwebEvents: [],
-    spans: [],
-  };
-
-  unsortedReplayAttachments.forEach(attachment => {
-    if (attachment.data?.tag === 'performanceSpan') {
-      replayAttachments.spans.push(attachment.data.payload);
-    } else if (attachment?.data?.tag === 'breadcrumb') {
-      replayAttachments.breadcrumbs.push(attachment.data.payload);
-    } else {
-      replayAttachments.rrwebEvents.push(attachment);
-    }
-  });
-
-  return replayAttachments;
-}
-
-export const isMemorySpan = (span: ReplaySpan): span is MemorySpanType => {
-  return span.op === 'memory';
-};
-
-export const isNetworkSpan = (span: ReplaySpan) => {
-  return span.op.startsWith('navigation.') || span.op.startsWith('resource.');
-};
 
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
   // Marshal special fields into tags
@@ -254,30 +212,6 @@ export function spansFactory(spans: ReplaySpan[]) {
       id: `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`,
       timestamp: span.startTimestamp * 1000,
     }));
-}
-
-/**
- * Calculate min/max of an array simultaneously.
- * This prevents two things:
- * - Avoid extra allocations and iterations, just loop through once.
- * - Avoid `Maximum call stack size exceeded` when the array is too large
- *   `Math.min()` & `Math.max()` will throw after about ~10⁷ which is A LOT of items.
- *   See: https://stackoverflow.com/a/52613386
- *
- * `lodash.min()` & `lodash.max()` are also options, they use a while-loop as here,
- * but that also includes a comparator function
- */
-function getMinMax(arr) {
-  let len = arr.length;
-  let min = Infinity;
-  let max = -Infinity;
-
-  while (len--) {
-    min = arr[len] < min ? arr[len] : min;
-    max = arr[len] > max ? arr[len] : max;
-  }
-
-  return {min, max};
 }
 
 /**

@@ -182,7 +182,7 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
 
     // eslint-disable-next-line no-cond-assign
     while ((match = regex.exec(template)) !== null) {
-      const substr = template.substr(pos, match.index - pos);
+      const substr = template.substring(pos, match.index);
       if (substr !== '') {
         buf.push(substr);
       }
@@ -209,7 +209,7 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
 
     let endPos = regex.lastIndex;
     if (!satisfied) {
-      const rest = template.substr(pos);
+      const rest = template.substring(pos);
       if (rest) {
         buf.push(rest);
       }

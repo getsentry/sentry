@@ -377,7 +377,9 @@ class FilterToSubscribedUsersTest(TestCase):
         actual_recipients = NotificationSetting.objects.filter_to_accepting_recipients(
             self.project, users
         )[ExternalProviders.EMAIL]
-        expected_recipients = {RpcActor.from_orm_user(user) for user in expected_users}
+        expected_recipients = {
+            RpcActor.from_orm_user(user, fetch_actor=False) for user in expected_users
+        }
         assert actual_recipients == expected_recipients
 
     def test(self):

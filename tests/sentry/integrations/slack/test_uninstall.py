@@ -13,9 +13,11 @@ from sentry.notifications.helpers import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
+@control_silo_test
 class SlackUninstallTest(APITestCase):
     """TODO(mgaeta): Extract the endpoint's DELETE logic to a helper and use it instead of API."""
 

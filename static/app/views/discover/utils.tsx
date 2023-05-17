@@ -7,11 +7,17 @@ import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, OrganizationSummary, SelectValue} from 'sentry/types';
+import {
+  NewQuery,
+  Organization,
+  OrganizationSummary,
+  Project,
+  SelectValue,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {
   aggregateFunctionOutputType,
   Aggregation,
@@ -40,6 +46,7 @@ import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {DashboardWidgetSource, DisplayType, WidgetQuery} from '../dashboards/types';
+import {transactionSummaryRouteWithQuery} from '../performance/transactionSummary/utils';
 
 import {displayModeToDisplayType} from './savedQuery/utils';
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';
@@ -724,6 +731,28 @@ export function handleAddQueryToDashboard({
     location,
   });
   return;
+}
+
+export function getTargetForTransactionSummaryLink(
+  dataRow: EventData,
+  organization: Organization,
+  projects?: Project[],
+  nextView?: EventView
+) {
+  const projectMatch = projects?.find(
+    project =>
+      project.slug && [dataRow['project.name'], dataRow.project].includes(project.slug)
+  );
+  const projectID = projectMatch ? [projectMatch.id] : undefined;
+
+  const target = transactionSummaryRouteWithQuery({
+    orgSlug: organization.slug,
+    transaction: String(dataRow.transaction),
+    projectID,
+    query: nextView?.getPageFiltersQuery() || {},
+  });
+
+  return target;
 }
 
 export function constructAddQueryToDashboardLink({
