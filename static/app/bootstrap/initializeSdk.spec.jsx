@@ -1,6 +1,16 @@
 import {isFilteredRequestErrorEvent} from './initializeSdk';
 
 describe('isFilteredRequestErrorEvent', () => {
+  it.each(['GET', 'POST', 'PUT', 'DELETE'])('filters 200 %s events', method => {
+    const requestErrorEvent = {
+      exception: {
+        values: [{type: 'RequestError', value: `${method} /dogs/are/great/ 200`}],
+      },
+    };
+
+    expect(isFilteredRequestErrorEvent(requestErrorEvent)).toBeTruthy();
+  });
+
   it.each(['GET', 'POST', 'PUT', 'DELETE'])('filters 401 %s events', method => {
     const unauthorizedErrorEvent = {
       exception: {
