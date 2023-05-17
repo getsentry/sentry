@@ -10,6 +10,7 @@ import math
 import statistics
 from datetime import datetime, timedelta
 from typing import List, TypedDict
+from dataclasses import dataclass
 
 
 class IssueForecast(TypedDict):
@@ -21,10 +22,20 @@ class GroupCount(TypedDict):
     intervals: List[str]
     data: List[int]
 
+#standard values if no parameters are passed
+@dataclass
+class ThresholdVariables:
+    std_multiplier: int = 5
+    min_spike_multiplier: int = 5
+    max_spike_multiplier: int = 8
+    min_bursty_multiplier: int = 2
+    max_bursty_multiplier: int = 5
+
+looser_version = ThresholdVariables(6,5,9,2,6)
+tighter_version = ThresholdVariables(4,4,7,2,4)
 
 def generate_issue_forecast(
-    data: GroupCount, start_time: datetime, version: str = "A"
-) -> List[IssueForecast]:
+    data: GroupCount, start_time: datetime, vars: ThresholdVariables()) -> List[IssueForecast]:
     """
     Calculates daily issue spike limits, given an input dataset from snuba.
 
@@ -44,29 +55,10 @@ def generate_issue_forecast(
     The final spike limit for each hour is set to the max of the bursty limit bound or the calculated limit.
     :param data: Dict of Snuba query results - hourly data over past 7 days
     :param start_time: datetime indicating the first hour to calc spike protection for
+    :param vars: Threshold Variables dataclass with different ceiling versions
     :return output: Dict containing a list of spike protection values
     """
 
-    # set thresholds based on version
-
-    if version == "A":
-        STANDARD_DEV_MULTIPLIER = 5
-        MIN_SPIKE_MULTIPLIER = 5
-        MAX_SPIKE_MULTIPLIER = 8
-        MIN_BURSTY_MULTIPLIER = 2
-        MAX_BURSTY_MULTIPLIER = 5
-    elif version == "B":  # tighter threshold version
-        STANDARD_DEV_MULTIPLIER = 4
-        MIN_SPIKE_MULTIPLIER = 4
-        MAX_SPIKE_MULTIPLIER = 7
-        MIN_BURSTY_MULTIPLIER = 2
-        MAX_BURSTY_MULTIPLIER = 4
-    else:  # version C - looser threshold version
-        STANDARD_DEV_MULTIPLIER = 6
-        MIN_SPIKE_MULTIPLIER = 5
-        MAX_SPIKE_MULTIPLIER = 9
-        MIN_BURSTY_MULTIPLIER = 2
-        MAX_BURSTY_MULTIPLIER = 6
 
     # output list of dictionaries
     output: List[IssueForecast] = []
@@ -113,7 +105,7 @@ def generate_issue_forecast(
 
     # multiplier determined by exponential equation - bounded between [2,5]
     regression_multiplier = min(
-        max(MIN_BURSTY_MULTIPLIER, 5 * ((math.e) ** (-0.65 * ts_cv))), MAX_BURSTY_MULTIPLIER
+        max(vars.min_bursty_multiplier, 5 * ((math.e) ** (-0.65 * ts_cv))), vars.max_bursty_multiplier
     )
 
     # first ceiling calculation
@@ -121,8 +113,8 @@ def generate_issue_forecast(
 
     # This second multiplier corresponds to 5 standard deviations above the avg ts value
     ts_multiplier = min(
-        max((ts_avg + (STANDARD_DEV_MULTIPLIER * ts_std_dev)) / ts_avg, MIN_SPIKE_MULTIPLIER),
-        MAX_SPIKE_MULTIPLIER,
+        max((ts_avg + (vars.std_multiplier * ts_std_dev)) / ts_avg, vars.min_spike_multiplier),
+        vars.max_spike_multiplier,
     )
 
     # Default upper limit is the truncated multiplier * avg value
