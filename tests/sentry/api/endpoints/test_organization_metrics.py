@@ -288,6 +288,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                     "project_id": self.transaction_proj.id,
                     "metric_id": tx_user_metric,
                     "timestamp": user_ts,
+                    "sentry_received_timestamp": user_ts + 10,
                     "tags": {
                         tx_satisfaction: perf_indexer_record(
                             self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
@@ -302,6 +303,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                     "project_id": self.transaction_proj.id,
                     "metric_id": tx_user_metric,
                     "timestamp": user_ts,
+                    "sentry_received_timestamp": user_ts + 10,
                     "tags": {
                         tx_satisfaction: perf_indexer_record(
                             self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
@@ -324,6 +326,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                     "project_id": self.transaction_proj.id,
                     "metric_id": tx_duration_metric,
                     "timestamp": user_ts,
+                    "sentry_received_timestamp": user_ts + 10,
                     "tags": {
                         tx_satisfaction: perf_indexer_record(
                             self.organization.id, TransactionSatisfactionTagValue.TOLERATED.value
@@ -341,6 +344,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                     "project_id": self.transaction_proj.id,
                     "metric_id": tx_lcp_metric,
                     "timestamp": user_ts,
+                    "sentry_received_timestamp": user_ts + 10,
                     "tags": {
                         tx_satisfaction: perf_indexer_record(
                             self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
