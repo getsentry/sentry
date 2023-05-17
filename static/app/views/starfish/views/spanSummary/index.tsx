@@ -48,11 +48,6 @@ const COLUMN_ORDER = [
     width: 200,
   },
   {
-    key: 'user',
-    name: 'User',
-    width: 200,
-  },
-  {
     key: 'timestamp',
     name: 'Timestamp',
     width: 300,
