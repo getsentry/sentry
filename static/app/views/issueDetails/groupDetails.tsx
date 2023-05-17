@@ -399,7 +399,7 @@ function useFetchGroupDetails({
   }, [group, event, router, organization]);
 
   useEffect(() => {
-    if (!loadingGroup && group) {
+    if (group?.project) {
       const matchingProject = projects?.find(p => p.id === group.project.id);
 
       if (!matchingProject) {
@@ -438,7 +438,7 @@ function useFetchGroupDetails({
       }
       setProject(matchingProject || group.project);
     }
-  }, [group, loadingGroup, projects, api, organization.slug, params.groupId]);
+  }, [group?.project, loadingGroup, projects, api, organization.slug, params.groupId]);
 
   const handleError = useCallback((e: RequestError) => {
     Sentry.captureException(e);
