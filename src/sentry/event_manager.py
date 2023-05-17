@@ -32,6 +32,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, transaction
 from django.db.models import Func
+from django.db.models.signals import post_save
 from django.utils.encoding import force_text
 from pytz import UTC
 
@@ -1790,17 +1791,25 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             substatus=GroupSubStatus.REGRESSED,
         )
     )
-    issue_unresolved.send_robust(
-        project=group.project,
-        user=None,
-        group=group,
-        transition_type="automatic",
-        sender="handle_regression",
-    )
-
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
     group.substatus = GroupSubStatus.REGRESSED
+    # groups may have been updated already from a separate event that groups to the same group
+    # only fire these signals the first time the row was actually updated
+    if is_regression:
+        issue_unresolved.send_robust(
+            project=group.project,
+            user=None,
+            group=group,
+            transition_type="automatic",
+            sender="handle_regression",
+        )
+        post_save.send(
+            sender=Group,
+            instance=group,
+            created=False,
+            update_fields=["last_seen", "active_at", "status", "substatus"],
+        )
 
     if is_regression and release:
         resolution = None
