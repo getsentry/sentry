@@ -1,7 +1,9 @@
 import {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import DropdownButton from 'sentry/components/dropdownButton';
+import {Button} from 'sentry/components/button';
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface AccordionItemContent {
@@ -50,11 +52,13 @@ function AccordionItem({
     <StyledLineItem>
       <ListItemContainer>
         {children}
-        <StyledDropdownButton
+        <Button
+          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+          aria-label={t('Expand')}
+          aria-expanded={isExpanded}
           size="zero"
           borderless
           onClick={() => setExpandedIndex(index)}
-          isOpen={isExpanded}
         />
       </ListItemContainer>
       <StyledContentContainer>{isExpanded && content}</StyledContentContainer>
@@ -70,12 +74,6 @@ const AccordionContainer = styled('ul')`
   padding: ${space(1)} 0 0 0;
   margin: 0;
   list-style-type: none;
-`;
-
-const StyledDropdownButton = styled(DropdownButton)`
-  svg {
-    margin: 0;
-  }
 `;
 
 const ListItemContainer = styled('div')`
