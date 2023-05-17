@@ -131,6 +131,11 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
        * that has been removed.
        */
       "TypeError: can't access dead object",
+      /**
+       * React internal error thrown when something outside react modifies the DOM
+       * This is usually because of a browser extension or chrome translate page
+       */
+      "NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.",
     ],
 
     // Temporary fix while `ignoreErrors` bug is fixed and request error handling is cleaned up
