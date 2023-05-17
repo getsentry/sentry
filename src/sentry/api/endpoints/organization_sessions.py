@@ -41,8 +41,10 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
 
         # Compute a dummy query to get the number of intervals:
         dummy_query = self.build_sessions_query(request, organization, None, None)
-        num_intervals = (dummy_query.end - dummy_query.start).total_seconds() // dummy_query.rollup
-        max_num_groups = 1 + SNUBA_LIMIT // num_intervals
+        num_intervals = (
+            1 + (dummy_query.end - dummy_query.start).total_seconds() // dummy_query.rollup
+        )
+        max_num_groups = SNUBA_LIMIT // num_intervals
 
         def data_fn(offset: int, limit: int):
             with self.handle_query_errors():
