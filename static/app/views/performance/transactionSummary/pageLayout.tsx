@@ -8,6 +8,7 @@ import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -202,12 +203,16 @@ function PageLayout(props: Props) {
             return null;
           }
 
-          if (!isLoading && tableData) {
-            const selectableProjects = tableData?.data.map(
-              row => projects.find(project => project.slug === row.project) as Project
-            );
+          if (isLoading) {
+            return <LoadingIndicator />;
+          }
 
-            return (
+          const selectableProjects = tableData?.data.map(
+            row => projects.find(project => project.slug === row.project) as Project
+          );
+
+          return (
+            selectableProjects && (
               <PickProjectToContinue
                 data-test-id="transaction-sumamry-project-picker-modal"
                 projects={selectableProjects}
@@ -222,10 +227,8 @@ function PageLayout(props: Props) {
                 }}
                 noProjectRedirectPath="/performance/"
               />
-            );
-          }
-
-          return null;
+            )
+          );
         }}
       </DiscoverQuery>
     );
