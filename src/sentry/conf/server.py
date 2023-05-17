@@ -2445,6 +2445,18 @@ SENTRY_DEVSERVICES = {
             "volumes": {settings.CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
         }
     ),
+    "vroom": lambda settings, options: (
+        {
+            "image": "us.gcr.io/sentryio/vroom:nightly",
+            "pull": True,
+            "volumes": {"profiles": {"bind": "/var/lib/sentry-profiles"}},
+            "environment": {
+                "SENTRY_SNUBA_HOST": SENTRY_SNUBA,
+            },
+            "ports": {"8085/tcp": 8085},
+            "only_if": bool(os.environ.get("SENTRY_USE_PROFILING", settings.SENTRY_USE_PROFILING)),
+        }
+    ),
 }
 
 # Max file size for serialized file uploads in API
@@ -3181,7 +3193,7 @@ ANOMALY_DETECTION_URL = "127.0.0.1:9091"
 ANOMALY_DETECTION_TIMEOUT = 30
 
 # This is the URL to the profiling service
-SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
+SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 
