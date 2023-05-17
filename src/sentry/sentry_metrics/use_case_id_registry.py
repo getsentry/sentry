@@ -7,16 +7,16 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 
 
 class UseCaseID(Enum):
+    SPANS = "spans"
     TRANSACTIONS = "transactions"
     SESSIONS = "sessions"
-    SPANS = "spans"
 
 
 # UseCaseKey will be renamed to MetricPathKey
 METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
-    UseCaseID.SESSIONS: UseCaseKey.RELEASE_HEALTH,
-    UseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
     UseCaseID.SPANS: UseCaseKey.PERFORMANCE,
+    UseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
+    UseCaseID.SESSIONS: UseCaseKey.RELEASE_HEALTH,
 }
 
 # TODO: Remove this as soon as the entire indexer system is use case aware
@@ -27,9 +27,10 @@ REVERSE_METRIC_PATH_MAPPING: Mapping[UseCaseKey, UseCaseID] = {
     UseCaseKey.PERFORMANCE: UseCaseID.TRANSACTIONS,
 }
 
-USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS = {
-    UseCaseID.TRANSACTIONS: "sentry-metrics.cardinality-limiter.limits.performance.per-org",
-    UseCaseID.SESSIONS: "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
+USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME = {
+    UseCaseID.SPANS: "sentry-metrics.writes-limiter.limits.spans",
+    UseCaseID.TRANSACTIONS: "sentry-metrics.writes-limiter.limits.performance",
+    UseCaseID.SESSIONS: "sentry-metrics.writes-limiter.limits.releasehealth",
 }
 
 

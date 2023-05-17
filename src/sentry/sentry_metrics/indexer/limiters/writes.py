@@ -19,7 +19,10 @@ from sentry.sentry_metrics.indexer.base import (
     UseCaseKeyCollection,
     UseCaseKeyResult,
 )
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import (
+    USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME,
+    UseCaseID,
+)
 from sentry.utils import metrics
 
 OrgId = int
@@ -76,34 +79,19 @@ class WritesLimiter:
         This value can potentially cached globally as long as it is invalidated
         when sentry.options are.
         """
-        if use_case_id is UseCaseID.TRANSACTIONS:
+        if use_case_id in USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME:
             return [
                 Quota(prefix_override=self._build_quota_key(), **args)
-                for args in options.get("sentry-metrics.writes-limiter.limits.performance.global")
-            ] + [
-                Quota(prefix_override=None, **args)
-                for args in options.get("sentry-metrics.writes-limiter.limits.performance.per-org")
-            ]
-        elif use_case_id is UseCaseID.SPANS:
-            return [
-                Quota(prefix_override=self._build_quota_key(), **args)
-                for args in options.get("sentry-metrics.writes-limiter.limits.spans.global")
-            ] + [
-                Quota(prefix_override=None, **args)
-                for args in options.get("sentry-metrics.writes-limiter.limits.spans.per-org")
-            ]
-        elif use_case_id is UseCaseID.SESSIONS:
-            return [
-                Quota(prefix_override=self._build_quota_key(), **args)
-                for args in options.get("sentry-metrics.writes-limiter.limits.releasehealth.global")
+                for args in options.get(
+                    f"{USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME[use_case_id]}.global"
+                )
             ] + [
                 Quota(prefix_override=None, **args)
                 for args in options.get(
-                    "sentry-metrics.writes-limiter.limits.releasehealth.per-org"
+                    f"{USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME[use_case_id]}.per-org"
                 )
             ]
-        else:
-            raise ValueError(use_case_id)
+        raise ValueError(use_case_id)
 
     @metrics.wraps("sentry_metrics.indexer.construct_quota_requests")
     def _construct_quota_requests(
