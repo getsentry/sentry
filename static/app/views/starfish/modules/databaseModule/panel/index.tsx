@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {Theme, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 import moment from 'moment';
@@ -7,14 +7,13 @@ import moment from 'moment';
 import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import MarkLine from 'sentry/components/charts/components/markLine';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import {Series} from 'sentry/types/echarts';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
@@ -34,7 +33,10 @@ import {
   useQueryPanelTable,
   useQueryTransactionByTPMAndP75,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
-import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
+import {
+  generateMarkLine,
+  queryToSeries,
+} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
@@ -55,6 +57,7 @@ type DbQueryDetailProps = {
 
 export type TransactionListDataRow = {
   count: number;
+  example: string;
   frequency: number;
   group_id: string;
   p75: number;
@@ -214,6 +217,7 @@ function QueryDetailBody({
     endTime,
     SPARKLINE_INTERVAL
   );
+
   const markLine =
     spmTransactionSeries?.[0]?.data && (isNew || isOld)
       ? generateMarkLine(
@@ -246,7 +250,7 @@ function QueryDetailBody({
             {t('First Seen')}
             {row.newish === 1 && <Badge type="new" text="new" />}
           </SubHeader>
-          {Math.abs(moment(row.firstSeen).diff(startTime, 'minutes')) < 360 ? (
+          {Math.abs(moment(row.firstSeen).diff(startTime, 'minutes')) < 720 ? (
             <SubSubHeader>
               More than <TimeSince date={row.firstSeen} />{' '}
             </SubSubHeader>
@@ -299,7 +303,7 @@ function QueryDetailBody({
       <FormattedCode>{highlightSql(row.formatted_desc, row)}</FormattedCode>
       <FlexRowContainer>
         <FlexRowItem>
-          <SubHeader>{t('Throughput')}</SubHeader>
+          <SubHeader>{t('Throughput (Spans Per Minute)')}</SubHeader>
           <SubSubHeader>{row.epm.toFixed(3)}</SubSubHeader>
           <Chart
             statsPeriod="24h"
@@ -423,47 +427,12 @@ export const highlightSql = (description: string, queryDetail: DataRow) => {
   });
 };
 
-function generateMarkLine(
-  title: string,
-  position: string,
-  data: SeriesDataUnit[],
-  theme: Theme
-) {
-  const index = data.findIndex(item => {
-    return (
-      Math.abs(moment.duration(moment(item.name).diff(moment(position))).asSeconds()) <
-      86400
-    );
-  });
-  return {
-    seriesName: title,
-    type: 'line',
-    color: theme.blue300,
-    data: [],
-    xAxisIndex: 0,
-    yAxisIndex: 0,
-    markLine: MarkLine({
-      silent: true,
-      animation: false,
-      lineStyle: {color: theme.blue300, type: 'dotted'},
-      data: [
-        {
-          xAxis: index,
-        },
-      ],
-      label: {
-        show: false,
-      },
-    }),
-  };
-}
-
 const throughputQueryToChartData = (
   data: any,
   startTime: moment.Moment,
   endTime: moment.Moment
 ): Series[] => {
-  const countSeries: Series = {seriesName: 'count()', data: [] as any[]};
+  const countSeries: Series = {seriesName: 'spm()', data: [] as any[]};
   const p50Series: Series = {seriesName: 'p50()', data: [] as any[]};
   const p95Series: Series = {seriesName: 'p95()', data: [] as any[]};
   data.forEach(({count, p50, p95, interval}) => {
