@@ -453,12 +453,20 @@ def _process_symbolicator_results_for_sample(
         symbolicated_frame_idx = 0
 
         for idx in range(len(raw_frames)):
-            if idx in frames_sent:
-                for frame_idx in symbolicated_frames_dict[symbolicated_frame_idx]:
-                    new_frames.append(symbolicated_frames[frame_idx])
-                symbolicated_frame_idx += 1
-            else:
+            # If we didn't send the frame to symbolicator, add the raw frame.
+            if idx not in frames_sent:
                 new_frames.append(raw_frames[idx])
+                continue
+
+            # If we sent it to symbolicator, add the current symbolicated frame
+            # to new_frames.
+            # This works since symbolicated_frames are in the same order
+            # as raw_frames (except some frames are not sent).
+            for frame_idx in symbolicated_frames_dict[symbolicated_frame_idx]:
+                new_frames.append(symbolicated_frames[frame_idx])
+
+            # go to the next symbolicated frame result
+            symbolicated_frame_idx += 1
 
         new_frames_count = (
             len(raw_frames)
