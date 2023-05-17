@@ -1,3 +1,5 @@
+import type {Organization, Project} from 'sentry/types';
+
 /**
  * Creates stubs for:
  *   - a project or projects
@@ -10,7 +12,12 @@ export function initializeOrg({
   project: additionalProject,
   projects: additionalProjects,
   router: additionalRouter,
-}: {organization?: any; project?: any; projects?: any[]; router?: any} = {}) {
+}: {
+  organization?: Partial<Organization>;
+  project?: Partial<Project>;
+  projects?: Partial<Project>[];
+  router?: any;
+} = {}) {
   const projects = (
     additionalProjects ||
     (additionalProject && [additionalProject]) || [{}]
