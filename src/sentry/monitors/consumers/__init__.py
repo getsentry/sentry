@@ -9,7 +9,7 @@ from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
 from django.conf import settings
 
-from sentry.monitors.consumers.check_in import StoreMonitorCheckInStrategyFactory
+from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
 from sentry.utils import kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
 

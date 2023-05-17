@@ -17,7 +17,7 @@ from django.utils.http import is_safe_url
 from sentry import options
 from sentry.models import Organization, User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 

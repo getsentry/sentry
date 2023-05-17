@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Mapping, Optional, Union
 
 from requests import PreparedRequest, Response
@@ -7,6 +8,7 @@ from sentry_sdk.tracing import Span
 
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.integration import Integration
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client import BaseApiResponse
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
@@ -15,6 +17,7 @@ from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import metrics
 
 SLACK_DATADOG_METRIC = "integrations.slack.http_response"
+logger = logging.getLogger(__name__)
 
 
 class SlackClient(IntegrationProxyClient):
@@ -22,6 +25,26 @@ class SlackClient(IntegrationProxyClient):
     integration_name = "slack"
     base_url = "https://slack.com/api"
     metrics_prefix = "integrations.slack"
+
+    def __init__(
+        self,
+        integration_id: int | None = None,
+        org_integration_id: int | None = None,
+        verify_ssl: bool = True,
+        logging_context: Mapping[str, Any] | None = None,
+    ) -> None:
+        # The IntegrationProxyClient requires org_integration context to proxy requests properly
+        # but the SlackClient is not often invoked within the context of an organization. This work
+        # around ensures one is always provided
+        self.integration_id = integration_id
+        if not org_integration_id and integration_id is not None:
+            org_integrations = integration_service.get_organization_integrations(
+                integration_id=self.integration_id
+            )
+            if len(org_integrations) > 0:
+                org_integration_id = org_integrations[0].id
+
+        super().__init__(org_integration_id, verify_ssl, logging_context)
 
     @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
@@ -38,6 +61,7 @@ class SlackClient(IntegrationProxyClient):
             ).first()
 
         if not integration:
+            logger.info("no_integration", extra={"path_url": prepared_request.path_url})
             return prepared_request
 
         token = (

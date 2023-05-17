@@ -335,6 +335,8 @@ def main(
     load_performance_issues=False,
     slow=False,
 ):
+    from sentry.constants import ObjectStatus
+
     try:
         user = User.objects.filter(is_superuser=True)[0]
     except IndexError:
@@ -424,10 +426,8 @@ def main(
                     organization_id=org.id,
                     type=MonitorType.CRON_JOB,
                     defaults={
-                        "status": MonitorStatus.DISABLED,
+                        "status": ObjectStatus.DISABLED,
                         "config": {"schedule": next(MONITOR_SCHEDULES)},
-                        "next_checkin": timezone.now() + timedelta(minutes=60),
-                        "last_checkin": timezone.now(),
                     },
                 )
 

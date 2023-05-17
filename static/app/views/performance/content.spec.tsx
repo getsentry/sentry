@@ -45,7 +45,6 @@ function initializeData(projects, query, features = FEATURES) {
     projects,
   });
   const initialData = initializeOrg({
-    ...initializeOrg(),
     organization,
     router: {
       location: {
@@ -76,7 +75,6 @@ function initializeTrendsData(query, addDefaultQuery = true) {
     : {};
 
   const initialData = initializeOrg({
-    ...initializeOrg(),
     organization,
     router: {
       location: {

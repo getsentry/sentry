@@ -67,6 +67,10 @@ def get_next_schedule(last_checkin, schedule_type, schedule):
     else:
         raise NotImplementedError("unknown schedule_type")
 
+    # Ensure we clamp the expected time down to the minute, that is the level
+    # of granularity we're able to support
+    next_schedule = next_schedule.replace(second=0, microsecond=0)
+
     return next_schedule
 
 
@@ -143,8 +147,8 @@ class CheckInStatus:
     TIMEOUT = 5
     """Checkin was left in-progress past max_runtime"""
 
-    FINISHED_VALUES = (OK, ERROR, TIMEOUT)
-    """Sentient values used to indicate a monitor is finished running"""
+    FINISHED_VALUES = (OK, ERROR, MISSED, TIMEOUT)
+    """Terminal values used to indicate a monitor is finished running"""
 
     @classmethod
     def as_choices(cls):
@@ -213,14 +217,11 @@ class Monitor(Model):
         choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
     )
     config = JSONField(default=dict)
-    next_checkin = models.DateTimeField(null=True)
-    last_checkin = models.DateTimeField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitor"
-        index_together = (("type", "next_checkin"),)
         unique_together = (("organization_id", "slug"),)
 
     __repr__ = sane_repr("guid", "project_id", "name")
@@ -253,6 +254,14 @@ class Monitor(Model):
             last_checkin.astimezone(tz), schedule_type, self.config["schedule"]
         )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
+
+    def update_config(self, config_payload, validated_config):
+        monitor_config = self.config
+        # Only update keys that were specified in the payload
+        for key in config_payload.keys():
+            if key in validated_config:
+                monitor_config[key] = validated_config[key]
+        self.save()
 
 
 @receiver(pre_save, sender=Monitor)
@@ -339,14 +348,8 @@ class MonitorEnvironmentManager(BaseManager):
         # TODO: assume these objects exist once backfill is completed
         environment = Environment.get_or_create(project=project, name=environment_name)
 
-        monitorenvironment_defaults = {
-            "status": monitor.status,
-            "next_checkin": monitor.next_checkin,
-            "last_checkin": monitor.last_checkin,
-        }
-
         return MonitorEnvironment.objects.get_or_create(
-            monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
+            monitor=monitor, environment=environment, defaults={"status": MonitorStatus.ACTIVE}
         )[0]
 
 
@@ -430,7 +433,7 @@ class MonitorEnvironment(Model):
             "last_checkin": ts,
             "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
         }
-        if checkin.status == CheckInStatus.OK and self.monitor.status != MonitorStatus.DISABLED:
+        if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
             params["status"] = MonitorStatus.OK
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)

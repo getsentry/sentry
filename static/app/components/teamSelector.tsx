@@ -19,7 +19,7 @@ import {space} from 'sentry/styles/space';
 import {Organization, Project, Team} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useApi from 'sentry/utils/useApi';
-import useTeams from 'sentry/utils/useTeams';
+import {useTeams} from 'sentry/utils/useTeams';
 import withOrganization from 'sentry/utils/withOrganization';
 
 const UnassignedWrapper = styled('div')`

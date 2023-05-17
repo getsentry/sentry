@@ -7,7 +7,10 @@ export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
+  NEW = 'is:new',
   ARCHIVED = 'is:archived',
+  ESCALATING = 'is:escalating',
+  ONGOING = 'is:ongoing',
   REPROCESSING = 'is:reprocessing',
 }
 
@@ -39,11 +42,12 @@ type OverviewTab = {
  * Get a list of currently active tabs
  */
 export function getTabs(organization: Organization) {
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
   const tabs: Array<[string, OverviewTab]> = [
     [
       Query.UNRESOLVED,
       {
-        name: t('All Unresolved'),
+        name: hasEscalatingIssuesUi ? t('Unresolved') : t('All Unresolved'),
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
@@ -62,28 +66,53 @@ export function getTabs(organization: Organization) {
           Issues are automatically marked reviewed in 7 days.`),
       },
     ],
-    organization.features.includes('escalating-issues-ui')
-      ? [
-          Query.ARCHIVED,
-          {
-            name: t('Archived'),
-            analyticsName: 'archived',
-            count: true,
-            enabled: true,
-            tooltipTitle: t(`Archived issues don’t trigger alerts.`),
-          },
-        ]
-      : [
-          Query.IGNORED,
-          {
-            name: t('Ignored'),
-            analyticsName: 'ignored',
-            count: true,
-            enabled: true,
-            tooltipTitle: t(`Ignored issues don’t trigger alerts. When their ignore
+    [
+      Query.NEW,
+      {
+        name: t('New'),
+        analyticsName: 'new',
+        count: true,
+        enabled: hasEscalatingIssuesUi,
+      },
+    ],
+    [
+      Query.ESCALATING,
+      {
+        name: t('Escalating'),
+        analyticsName: 'escalating',
+        count: true,
+        enabled: hasEscalatingIssuesUi,
+      },
+    ],
+    [
+      Query.ONGOING,
+      {
+        name: t('Ongoing'),
+        analyticsName: 'ongoing',
+        count: true,
+        enabled: hasEscalatingIssuesUi,
+      },
+    ],
+    [
+      Query.ARCHIVED,
+      {
+        name: t('Archived'),
+        analyticsName: 'archived',
+        count: true,
+        enabled: hasEscalatingIssuesUi,
+      },
+    ],
+    [
+      Query.IGNORED,
+      {
+        name: t('Ignored'),
+        analyticsName: 'ignored',
+        count: true,
+        enabled: !hasEscalatingIssuesUi,
+        tooltipTitle: t(`Ignored issues don’t trigger alerts. When their ignore
         conditions are met they become Unresolved and are flagged for review.`),
-          },
-        ],
+      },
+    ],
     [
       Query.REPROCESSING,
       {

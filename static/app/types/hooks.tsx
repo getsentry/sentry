@@ -145,7 +145,6 @@ type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}
  * Component wrapping hooks
  */
 export type ComponentHooks = {
-  'component:codecov-integration-cta': () => React.ReactNode;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:codecov-integration-stacktrace-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;

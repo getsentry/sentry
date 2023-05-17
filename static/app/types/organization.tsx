@@ -50,6 +50,7 @@ export interface Organization extends OrganizationSummary {
   eventsMemberAdmin: boolean;
   experiments: Partial<OrgExperiments>;
   isDefault: boolean;
+  isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];
   openMembership: boolean;
   orgRoleList: OrgRole[];
@@ -60,7 +61,7 @@ export interface Organization extends OrganizationSummary {
     maxRateInterval: number | null;
     projectLimit: number | null;
   };
-  relayPiiConfig: string;
+  relayPiiConfig: string | null;
   safeFields: string[];
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
@@ -144,7 +145,10 @@ export interface Member {
     teamSlug: string;
   }[];
   teams: string[]; // # Deprecated, use teamRoles
-  user: User;
+  /**
+   * User may be null when the member represents an invited member
+   */
+  user: User | null;
 }
 
 /**

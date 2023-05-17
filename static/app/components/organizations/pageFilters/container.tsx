@@ -7,6 +7,7 @@ import {
   InitializeUrlStateParams,
   updateDateTime,
   updateEnvironments,
+  updatePersistence,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -35,6 +36,16 @@ type Props = InitializeUrlStateProps & {
    */
   desyncedAlertMessage?: string;
   /**
+   * When true, changes to page filters' value won't be saved to local storage, and will
+   * be forgotten when the user navigates to a different page. This is useful for local
+   * filtering contexts like in Dashboard Details.
+   */
+  disablePersistence?: boolean;
+  /**
+   * Whether to hide the desynced filter alert.
+   */
+  hideDesyncAlert?: boolean;
+  /**
    * Whether to hide the revert button in the desynced filter alert.
    */
   hideDesyncRevertButton?: boolean;
@@ -57,7 +68,9 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     shouldForceProject,
     specificProjectSlugs,
     skipInitializeUrlParams,
+    disablePersistence,
     desyncedAlertMessage,
+    hideDesyncAlert,
     hideDesyncRevertButton,
   } = props;
   const router = useRouter();
@@ -89,6 +102,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
       forceProject,
       shouldForceProject,
       shouldEnforceSingleProject: enforceSingleProject,
+      shouldPersist: !disablePersistence,
       showAbsolute,
       skipInitializeUrlParams,
     });
@@ -109,6 +123,9 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     doInitialization();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectsLoaded, shouldForceProject, enforceSingleProject]);
+
+  // Update store persistence when `disablePersistence` changes
+  useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);
 
   const lastQuery = useRef(location.query);
 
@@ -178,11 +195,13 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
 
   return (
     <Fragment>
-      <DesyncedFilterAlert
-        router={router}
-        message={desyncedAlertMessage}
-        hideRevertButton={hideDesyncRevertButton}
-      />
+      {!hideDesyncAlert && (
+        <DesyncedFilterAlert
+          router={router}
+          message={desyncedAlertMessage}
+          hideRevertButton={hideDesyncRevertButton}
+        />
+      )}
       {children}
     </Fragment>
   );

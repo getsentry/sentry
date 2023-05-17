@@ -214,15 +214,12 @@ class SnubaEventStorage(EventStorage):
         if len(event.data) == 0:
             return None
 
-        if group_id is not None and event.get_event_type() != "generic":
-            # Set passed group_id if not a transaction
-            if event.get_event_type() == "transaction" and not skip_transaction_groupevent:
-                logger.warning("eventstore.passed-group-id-for-transaction")
-                return event.for_group(Group.objects.get(id=group_id))
-            else:
-                event.group_id = group_id
-
-        elif event.get_event_type() != "transaction":
+        if group_id is not None and (
+            event.get_event_type() == "error"
+            or (event.get_event_type() == "transaction" and skip_transaction_groupevent)
+        ):
+            event.group_id = group_id
+        elif event.get_event_type() != "transaction" or group_id:
             # Load group_id from Snuba if not a transaction
             raw_query_kwargs = {}
             if event.datetime > timezone.now() - timedelta(hours=1):
@@ -233,16 +230,21 @@ class SnubaEventStorage(EventStorage):
                     ["timestamp", ">", datetime.fromtimestamp(random.randint(0, 1000000000))]
                 ]
             dataset = (
-                Dataset.IssuePlatform if event.get_event_type() == "generic" else Dataset.Events
+                Dataset.IssuePlatform
+                if event.get_event_type() in ("transaction", "generic")
+                else Dataset.Events
             )
             try:
                 tenant_ids = tenant_ids or {"organization_id": event.project.organization_id}
+                filter_keys = {"project_id": [project_id], "event_id": [event_id]}
+                if group_id:
+                    filter_keys["group_id"] = [group_id]
                 result = snuba.raw_query(
                     dataset=dataset,
                     selected_columns=self.__get_columns(dataset),
                     start=event.datetime,
                     end=event.datetime + timedelta(seconds=1),
-                    filter_keys={"project_id": [project_id], "event_id": [event_id]},
+                    filter_keys=filter_keys,
                     limit=1,
                     referrer="eventstore.get_event_by_id_nodestore",
                     tenant_ids=tenant_ids,
@@ -274,13 +276,18 @@ class SnubaEventStorage(EventStorage):
             # Inject the snuba data here to make sure any snuba columns are available
             event._snuba_data = result["data"][0]
 
+        # Set passed group_id if not a transaction
+        if event.get_event_type() == "transaction" and not skip_transaction_groupevent and group_id:
+            logger.warning("eventstore.passed-group-id-for-transaction")
+            return event.for_group(Group.objects.get(id=group_id))
+
         return event
 
     def _get_dataset_for_event(self, event):
-        if event.get_event_type() == "transaction":
-            return snuba.Dataset.Transactions
-        elif event.get_event_type() == "generic":
+        if getattr(event, "occurrence", None) or event.get_event_type() == "generic":
             return snuba.Dataset.IssuePlatform
+        elif event.get_event_type() == "transaction":
+            return snuba.Dataset.Transactions
         else:
             return snuba.Dataset.Discover
 
@@ -351,7 +358,7 @@ class SnubaEventStorage(EventStorage):
         except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
             # This can happen when the date conditions for paging
             # and the current event generate impossible conditions.
-            return None
+            return [None for _ in filters]
 
         return [self.__get_event_id_from_result(result) for result in results]
 
