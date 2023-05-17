@@ -57,6 +57,7 @@ type DbQueryDetailProps = {
 
 export type TransactionListDataRow = {
   count: number;
+  example: string;
   frequency: number;
   group_id: string;
   p75: number;
