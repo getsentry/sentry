@@ -15,7 +15,7 @@ def list():
     from sentry import options
 
     for opt in options.all():
-        if drift(opt.name):
+        if not drift(opt.name):
             click.echo(f"{opt.name}: {options.get(opt.name)}")
 
 
@@ -167,4 +167,4 @@ def drift(key: str) -> bool:
     # check how option was changed.
     # if changed manually we ignore.
 
-    return source == "automator"
+    return source != "automator"
