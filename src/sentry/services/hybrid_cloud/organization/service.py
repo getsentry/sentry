@@ -34,14 +34,14 @@ class ByOrganizationMembership(RegionResolution):
         member_mappings = OrganizationMemberMapping.objects.filter(user_id=user_id)
         organization_ids = member_mappings.values_list("organization_id", flat=True)
         mappings = self.organization_mapping_manager.filter(organization_id__in=organization_ids)
-        return [self._resolve_from_mapping(mapping) for mapping in mappings]
+        return {self._resolve_from_mapping(mapping) for mapping in mappings}
 
 
 class ByMultipleOrganizationIds(RegionResolution):
     def resolve(self, arguments: ArgumentDict) -> Collection[Region]:
         organization_ids: List[int] = arguments["organization_ids"]
         mappings = self.organization_mapping_manager.filter(organization_id__in=organization_ids)
-        return [self._resolve_from_mapping(mapping) for mapping in mappings]
+        return {self._resolve_from_mapping(mapping) for mapping in mappings}
 
 
 class OrganizationService(RpcService):
