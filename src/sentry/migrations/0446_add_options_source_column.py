@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0419_add_null_constraint_for_org_integration_denorm"),
+        ("sentry", "0445_drop_deprecated_monitor_next_last_checkin_db_op"),
     ]
 
     operations = [
