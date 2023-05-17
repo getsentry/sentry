@@ -88,12 +88,6 @@ class DatabaseBackedUserService(UserService):
                 return list(qs.filter(email__iexact=username))
         return []
 
-    def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
-        # TODO(actorid) this method needs to be removed too
-        return [
-            self._FQ.serialize_rpc(u) for u in self._FQ.base_query().filter(actor_id__in=actor_ids)
-        ]
-
     def flush_nonce(self, *, user_id: int) -> None:
         user = User.objects.filter(id=user_id).first()
         if user is not None:

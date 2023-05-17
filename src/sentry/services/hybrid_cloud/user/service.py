@@ -83,11 +83,6 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
-        pass
-
-    @rpc_method
-    @abstractmethod
     def update_user(self, *, user_id: int, attrs: UserUpdateArgs) -> Any:
         # Returns a serialized user
         pass
