@@ -55,7 +55,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0446_backfill_groupedmessage_resolved_substatus"),
+        ("sentry", "0446_backfill_indexer_use_case_id"),
     ]
 
     operations = [
