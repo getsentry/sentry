@@ -664,7 +664,6 @@ def profiles_consumer(**options):
 @click.option("--processes", default=1, type=int)
 @click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--use-multi-processing", type=bool, default=True)
 def replays_recordings_consumer(**options):
     from sentry.replays.consumers import get_replays_recordings_consumer
 
@@ -679,7 +678,7 @@ def replays_recordings_consumer(**options):
         num_processes=options["processes"],
         output_block_size=options["output_block_size"],
         topic=options["topic"],
-        use_multi_proc=options["use_multi_processing"],
+        use_multi_proc=options["processes"] > 1,
     )
     run_processor_with_signals(consumer)
 
