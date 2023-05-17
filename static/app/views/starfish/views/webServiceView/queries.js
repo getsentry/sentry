@@ -10,11 +10,11 @@ export const getModuleBreakdown = ({transaction}) => {
 };
 
 export const getTopDomainsActionsAndOp = ({transaction}) => {
-  return `SELECT domain, action, span_operation, sum(exclusive_time) as sum
+  return `SELECT domain, action, span_operation, module, sum(exclusive_time) as sum, uniq(description) as num_spans
    FROM spans_experimental_starfish
    WHERE span_operation NOT IN ['base.dispatch.execute', 'middleware.django', 'base.dispatch.request']
    ${transaction ? `AND transaction = '${transaction}'` : ''}
-   GROUP BY domain, action, span_operation
+   GROUP BY domain, action, span_operation, module
    ORDER BY -sum(exclusive_time)
    LIMIT 5
  `;
@@ -22,14 +22,14 @@ export const getTopDomainsActionsAndOp = ({transaction}) => {
 
 export const getTopDomainsActionsAndOpTimeseries = ({transaction, topConditions}) => {
   return `SELECT
- quantile(0.75)(exclusive_time) as p75, domain, action, span_operation,
+ quantile(0.75)(exclusive_time) as p75, domain, action, span_operation, module,
  toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
  FROM default.spans_experimental_starfish
  ${topConditions ? `WHERE (${topConditions})` : ''}
  ${topConditions && transaction ? `AND transaction = '${transaction}'` : ''}
  ${!topConditions && transaction ? `WHERE transaction = '${transaction}'` : ''}
- GROUP BY interval, domain, action, span_operation
- ORDER BY interval, domain, action, span_operation
+ GROUP BY interval, domain, action, span_operation, module
+ ORDER BY interval, domain, action, span_operation, module
  `;
 };
 
