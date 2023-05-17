@@ -262,9 +262,9 @@ Sentry.captureCheckIn({
           }
         )}
       </div>
-      <CodeSnippet language="php">{checkInSuccessCode}</CodeSnippet>
+      <CodeSnippet language="javascript">{checkInSuccessCode}</CodeSnippet>
       <div>{t('To notify Sentry if your job execution fails')}</div>
-      <CodeSnippet language="php">{checkInFailCode}</CodeSnippet>
+      <CodeSnippet language="javascript">{checkInFailCode}</CodeSnippet>
     </Fragment>
   );
 }
