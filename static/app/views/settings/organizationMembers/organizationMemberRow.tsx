@@ -123,7 +123,10 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     return (
       <StyledPanelItem data-test-id={email}>
         <MemberHeading>
-          <UserAvatar size={32} user={user ?? {id: email, email}} />
+          <UserAvatar
+            size={32}
+            user={user ?? {email, id: email, name: email, type: 'user'}}
+          />
           <MemberDescription to={detailsUrl}>
             <h5 style={{margin: '0 0 3px'}}>
               <UserName>{name}</UserName>

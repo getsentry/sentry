@@ -164,7 +164,7 @@ function renderBodyCell(
               {(row as unknown as DataRow).formatted_desc}
             </StyledFormattedCode>
           ) : (
-            row.description
+            row.description || '<null>'
           )}
         </Link>
       </OverflowEllipsisTextContainer>
@@ -225,8 +225,16 @@ function getColumns(queryConditions: string[]): GridColumnOrder[] {
 
   const domain = getDomainHeader(queryConditions);
 
+  const doQueryConditionsIncludeDomain = queryConditions.some(condition =>
+    condition.includes('domain =')
+  );
+
+  const doQueryConditionsIncludeSpanOperation = queryConditions.some(condition =>
+    condition.includes('span_operation =')
+  );
+
   const order: Array<GridColumnOrder | false> = [
-    {
+    !doQueryConditionsIncludeSpanOperation && {
       key: 'span_operation',
       name: 'Operation',
       width: COL_WIDTH_UNDEFINED,
@@ -236,7 +244,7 @@ function getColumns(queryConditions: string[]): GridColumnOrder[] {
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    {
+    !doQueryConditionsIncludeDomain && {
       key: 'domain',
       name: domain,
       width: COL_WIDTH_UNDEFINED,
