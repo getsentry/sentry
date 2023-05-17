@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
+from typing import Any, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from sentry import options
 from sentry.ratelimits.sliding_windows import (
@@ -15,7 +15,6 @@ from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
     FetchTypeExt,
-    KeyCollection,
     UseCaseKeyCollection,
     UseCaseKeyResult,
 )
@@ -39,9 +38,9 @@ class DroppedString:
 class RateLimitState:
     _writes_limiter: WritesLimiter
     _namespace: str
-    _requests: Sequence[Sequence[RequestedQuota]]
-    _grants: Sequence[Sequence[GrantedQuota]]
-    _timestamps: Sequence[Timestamp]
+    _requests: Sequence[RequestedQuota]
+    _grants: Sequence[GrantedQuota]
+    _timestamp: Timestamp
 
     accepted_keys: UseCaseKeyCollection
     dropped_strings: Sequence[DroppedString]
@@ -56,8 +55,8 @@ class RateLimitState:
         """
         if exc_type is not None:
             return
-        for requests, grants, timestamp in zip(self._requests, self._grants, self._timestamps):
-            self._writes_limiter.rate_limiter.use_quotas(requests, grants, timestamp)
+
+        self._writes_limiter.rate_limiter.use_quotas(self._requests, self._grants, self._timestamp)
 
 
 class WritesLimiter:
@@ -65,11 +64,11 @@ class WritesLimiter:
         self.namespace = namespace
         self.rate_limiter: RedisSlidingWindowRateLimiter = RedisSlidingWindowRateLimiter(**options)
 
-    def _build_quota_key(self, org_id: Optional[OrgId] = None) -> str:
+    def _build_quota_key(self, use_case_id: UseCaseID, org_id: Optional[OrgId] = None) -> str:
         if org_id is not None:
-            return f"metrics-indexer-{self.namespace}-org-{org_id}"
+            return f"metrics-indexer-{use_case_id.value}-org-{org_id}"
         else:
-            return f"metrics-indexer-{self.namespace}-global"
+            return f"metrics-indexer-{use_case_id.value}-global"
 
     @metrics.wraps("sentry_metrics.indexer.construct_quotas")
     def _construct_quotas(self, use_case_id: UseCaseID) -> Sequence[Quota]:
@@ -81,7 +80,7 @@ class WritesLimiter:
         """
         if use_case_id in USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME:
             return [
-                Quota(prefix_override=self._build_quota_key(), **args)
+                Quota(prefix_override=self._build_quota_key(use_case_id), **args)
                 for args in options.get(
                     f"{USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME[use_case_id]}.global"
                 )
@@ -95,48 +94,62 @@ class WritesLimiter:
 
     @metrics.wraps("sentry_metrics.indexer.construct_quota_requests")
     def _construct_quota_requests(
-        self, use_case_id: UseCaseID, keys: KeyCollection
-    ) -> Tuple[Sequence[OrgId], Sequence[RequestedQuota]]:
+        self, keys: UseCaseKeyCollection
+    ) -> Tuple[Sequence[UseCaseID], Sequence[OrgId], Sequence[RequestedQuota]]:
+        use_case_ids = []
         org_ids = []
         requests = []
-        quotas = self._construct_quotas(use_case_id)
 
-        if quotas:
-            for org_id, strings in keys.mapping.items():
+        for use_case_id, key_collection in keys.mapping.items():
+            quotas = self._construct_quotas(use_case_id)
+
+            if not quotas:
+                continue
+            for org_id, strings in key_collection.mapping.items():
+                use_case_ids.append(use_case_id)
                 org_ids.append(org_id)
                 requests.append(
                     RequestedQuota(
-                        prefix=self._build_quota_key(org_id),
+                        prefix=self._build_quota_key(use_case_id, org_id),
                         requested=len(strings),
                         quotas=quotas,
                     )
                 )
 
-        return org_ids, requests
+        return use_case_ids, org_ids, requests
 
-    def _check_use_case_writes_limits(
-        self, use_case_id: UseCaseID, key_collection: KeyCollection
-    ) -> Tuple[
-        Timestamp,
-        Sequence[RequestedQuota],
-        Sequence[GrantedQuota],
-        Sequence[DroppedString],
-        dict[OrgId, Set[str]],
-    ]:
-        org_ids, requests = self._construct_quota_requests(
-            use_case_id,
-            key_collection,
-        )
+    @metrics.wraps("sentry_metrics.indexer.check_write_limits")
+    def check_write_limits(
+        self,
+        use_case_keys: UseCaseKeyCollection,
+    ) -> RateLimitState:
+        """
+        Takes a UseCaseKeyCollection and applies DB write limits as configured via sentry.options.
+
+        Returns a context manager that, upon entering, returns a tuple of:
+
+        1. A UseCaseKeyCollection containing all unmapped keys that passed through the
+          rate limiter.
+
+        2. All unmapped keys that did not pass through the rate limiter.
+
+        Upon (successful) exit, rate limits are consumed.
+        """
+
+        use_case_ids, org_ids, requests = self._construct_quota_requests(use_case_keys)
         timestamp, grants = self.rate_limiter.check_within_quotas(requests)
 
-        accepted_keys = dict(key_collection.mapping)
+        accepted_keys = {
+            use_case_id: {org_id: strings for org_id, strings in key_collection.mapping.items()}
+            for use_case_id, key_collection in use_case_keys.mapping.items()
+        }
         dropped_strings = []
 
-        for org_id, grant in zip(org_ids, grants):
-            if len(accepted_keys[org_id]) <= grant.granted:
+        for use_case_id, org_id, grant in zip(use_case_ids, org_ids, grants):
+            if len(accepted_keys[use_case_id][org_id]) <= grant.granted:
                 continue
 
-            allowed_strings = set(accepted_keys[org_id])
+            allowed_strings = set(accepted_keys[use_case_id][org_id])
 
             while len(allowed_strings) > grant.granted:
                 dropped_strings.append(
@@ -156,55 +169,16 @@ class WritesLimiter:
                     )
                 )
 
-            accepted_keys[org_id] = allowed_strings
-
-        return timestamp, requests, grants, dropped_strings, accepted_keys
-
-    @metrics.wraps("sentry_metrics.indexer.check_write_limits")
-    def check_write_limits(
-        self,
-        use_case_keys: UseCaseKeyCollection,
-    ) -> RateLimitState:
-        """
-        Takes a UseCaseKeyCollection and applies DB write limits as configured via sentry.options.
-
-        Returns a context manager that, upon entering, returns a tuple of:
-
-        1. A UseCaseKeyCollection containing all unmapped keys that passed through the
-          rate limiter.
-
-        2. All unmapped keys that did not pass through the rate limiter.
-
-        Upon (successful) exit, rate limits are consumed.
-        """
-        timestamps = []
-        all_requests = []
-        all_grants = []
-        all_dropped_strings: List[DroppedString] = []
-        all_accepted_keys = {}
-        for use_case_id, key_collection in use_case_keys.mapping.items():
-            (
-                timestamp,
-                requests,
-                grants,
-                dropped_strings,
-                accepted_keys,
-            ) = self._check_use_case_writes_limits(use_case_id, key_collection)
-
-            all_requests.append(requests)
-            all_grants.append(grants)
-            timestamps.append(timestamp)
-            all_dropped_strings.extend(dropped_strings)
-            all_accepted_keys[use_case_id] = accepted_keys
+            accepted_keys[use_case_id][org_id] = allowed_strings
 
         state = RateLimitState(
             _writes_limiter=self,
             _namespace=self.namespace,
-            _requests=all_requests,
-            _grants=all_grants,
-            _timestamps=timestamps,
-            accepted_keys=UseCaseKeyCollection(all_accepted_keys),
-            dropped_strings=all_dropped_strings,
+            _requests=requests,
+            _grants=grants,
+            _timestamp=timestamp,
+            accepted_keys=UseCaseKeyCollection(accepted_keys),
+            dropped_strings=dropped_strings,
         )
         return state
 

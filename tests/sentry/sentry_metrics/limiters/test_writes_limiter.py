@@ -5,7 +5,7 @@ from sentry.sentry_metrics.configuration import (
 )
 from sentry.sentry_metrics.indexer.base import KeyCollection, UseCaseKeyCollection
 from sentry.sentry_metrics.indexer.limiters.writes import WritesLimiter
-from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
 
 WRITES_LIMITERS = {
     RELEASE_HEALTH_PG_NAMESPACE: WritesLimiter(RELEASE_HEALTH_PG_NAMESPACE, **{}),
@@ -24,13 +24,14 @@ def test_writes_limiter_no_limits(set_sentry_option):
     ), set_sentry_option("sentry-metrics.writes-limiter.limits.performance.global", []):
         writes_limiter = get_writes_limiter(PERFORMANCE_PG_NAMESPACE)
 
-        key_collection = KeyCollection(
+        use_case_keys = UseCaseKeyCollection(
             {
-                1: {"a", "b", "c"},
-                2: {"a", "b", "c"},
+                UseCaseID.TRANSACTIONS: {
+                    1: {"a", "b", "c"},
+                    2: {"a", "b", "c"},
+                }
             }
         )
-        use_case_keys = UseCaseKeyCollection({NEW_USE_CASE_ID: key_collection})
         with writes_limiter.check_write_limits(use_case_keys) as state:
             assert not state.dropped_strings
             assert state.accepted_keys.as_tuples() == use_case_keys.as_tuples()
@@ -43,14 +44,15 @@ def test_writes_limiter_doesnt_limit(set_sentry_option):
     ), set_sentry_option("sentry-metrics.writes-limiter.limits.performance.global", []):
         writes_limiter = get_writes_limiter(PERFORMANCE_PG_NAMESPACE)
 
-        key_collection = KeyCollection(
+        use_case_keys = UseCaseKeyCollection(
             {
-                1: {"a", "b", "c"},
-                2: {"a", "b", "c"},
+                UseCaseID.TRANSACTIONS: {
+                    1: {"a", "b", "c"},
+                    2: {"a", "b", "c"},
+                }
             }
         )
 
-        use_case_keys = UseCaseKeyCollection({NEW_USE_CASE_ID: key_collection})
         with writes_limiter.check_write_limits(use_case_keys) as state:
             assert not state.dropped_strings
             assert state.accepted_keys.as_tuples() == use_case_keys.as_tuples()
@@ -63,13 +65,15 @@ def test_writes_limiter_org_limit(set_sentry_option):
     ), set_sentry_option("sentry-metrics.writes-limiter.limits.performance.global", []):
         writes_limiter = get_writes_limiter(PERFORMANCE_PG_NAMESPACE)
 
-        key_collection = KeyCollection(
+        use_case_keys = UseCaseKeyCollection(
             {
-                1: {"a", "b", "c"},
-                2: {"a", "b", "c"},
+                UseCaseID.TRANSACTIONS: {
+                    1: {"a", "b", "c"},
+                    2: {"a", "b", "c"},
+                }
             }
         )
-        use_case_keys = UseCaseKeyCollection({NEW_USE_CASE_ID: key_collection})
+
         with writes_limiter.check_write_limits(use_case_keys) as state:
             assert len(state.dropped_strings) == 2
             assert sorted(ds.use_case_key_result.org_id for ds in state.dropped_strings) == [1, 2]
@@ -94,16 +98,16 @@ def test_writes_limiter_global_limit(set_sentry_option):
 
         # edgecase: each organization's quota fits into the global quota
         # individually, but not in total.
-        key_collection = KeyCollection(
+        use_case_keys = UseCaseKeyCollection(
             {
-                1: {"a", "b", "c"},
-                2: {"a", "b", "c"},
+                UseCaseID.TRANSACTIONS: {
+                    1: {"a", "b", "c"},
+                    2: {"a", "b", "c"},
+                }
             }
         )
 
-        with writes_limiter.check_write_limits(
-            UseCaseKeyCollection({NEW_USE_CASE_ID: key_collection})
-        ) as state:
+        with writes_limiter.check_write_limits(use_case_keys) as state:
             assert len(state.dropped_strings) == 2
 
 
@@ -122,7 +126,7 @@ def test_writes_limiter_respects_namespaces(set_sentry_option):
     ), set_sentry_option("sentry-metrics.writes-limiter.limits.performance.global", []):
         writes_limiter_perf = get_writes_limiter(PERFORMANCE_PG_NAMESPACE)
 
-        key_collection = KeyCollection(
+        key_collection_1 = KeyCollection(
             {
                 1: {"a", "b", "c"},
                 2: {"a", "b", "c"},
@@ -130,11 +134,11 @@ def test_writes_limiter_respects_namespaces(set_sentry_option):
         )
 
         with writes_limiter_perf.check_write_limits(
-            UseCaseKeyCollection({NEW_USE_CASE_ID: key_collection})
+            UseCaseKeyCollection({UseCaseID.TRANSACTIONS: key_collection_1})
         ) as state:
             assert len(state.dropped_strings) == 2
 
-        key_collection = KeyCollection(
+        key_collection_2 = KeyCollection(
             {
                 1: {"d", "e"},
                 2: {"d", "e"},
@@ -142,13 +146,13 @@ def test_writes_limiter_respects_namespaces(set_sentry_option):
         )
 
         with writes_limiter_perf.check_write_limits(
-            UseCaseKeyCollection({NEW_USE_CASE_ID: key_collection})
+            UseCaseKeyCollection({UseCaseID.TRANSACTIONS: key_collection_2})
         ) as state:
             assert len(state.dropped_strings) == 4
 
         writes_limiter_rh = get_writes_limiter(RELEASE_HEALTH_PG_NAMESPACE)
 
         with writes_limiter_rh.check_write_limits(
-            UseCaseKeyCollection({NEW_USE_CASE_ID: key_collection})
+            UseCaseKeyCollection({UseCaseID.SESSIONS: key_collection_1})
         ) as state:
             assert not state.dropped_strings
