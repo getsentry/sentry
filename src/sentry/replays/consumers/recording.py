@@ -6,7 +6,7 @@ from typing import Any, Mapping, Union
 import sentry_sdk
 from arroyo import configure_metrics
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies import RunTask, RunTaskWithMultiprocessing, TransformStep
+from arroyo.processing.strategies import RunTaskInThreads, RunTaskWithMultiprocessing, TransformStep
 from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Commit, Message, Partition
@@ -63,7 +63,9 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         partitions: Mapping[Partition, int],
     ) -> Any:
         # Give mypy some help.
-        step: Union[RunTaskWithMultiprocessing[MessageContext, Any], RunTask[MessageContext, Any]]
+        step: Union[
+            RunTaskWithMultiprocessing[MessageContext, Any], RunTaskInThreads[MessageContext, Any]
+        ]
 
         if self.use_multi_proc:
             step = RunTaskWithMultiprocessing(
@@ -77,8 +79,11 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
                 initializer=initialize_consumer_state,
             )
         else:
-            step = RunTask(
-                function=move_replay_to_permanent_storage,
+            # By default we preserve the previous behavior.
+            step = RunTaskInThreads(
+                processing_function=move_replay_to_permanent_storage,
+                concurrency=4,
+                max_pending_futures=50,
                 next_step=CommitOffsets(commit),
             )
 
