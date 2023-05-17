@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class GithubRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.GITHUB]
-    webook_provider = WebhookProviderIdentifier.GITHUB
+    webhook_identifier = WebhookProviderIdentifier.GITHUB
 
     control_events = ["installation"]
 
@@ -45,4 +45,4 @@ class GithubRequestParser(BaseRequestParser):
             logger.error("no_regions", extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
-        return self.get_response_from_outbox_creation()
+        return self.get_response_from_outbox_creation(regions=regions)

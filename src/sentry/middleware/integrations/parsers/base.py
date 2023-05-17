@@ -33,6 +33,12 @@ class BaseRequestParser(abc.ABC):
     def provider(self) -> str:
         raise NotImplementedError("'provider' property is required by IntegrationControlMiddleware")
 
+    @property
+    def webhook_identifier(self) -> str:
+        raise NotImplementedError(
+            "'webhook_identifier' property is required for outboxing. Refer to WebhookProviderIdentifier enum."
+        )
+
     def __init__(self, request: HttpRequest, response_handler: Callable):
         self.request = request
         self.match: ResolverMatch = resolve(self.request.path)
@@ -103,7 +109,7 @@ class BaseRequestParser(abc.ABC):
         for outbox in ControlOutbox.for_webhook_update(
             webhook_identifier=self.webhook_identifier,
             region_names=[region.name for region in regions],
-            payload=self.request.__dict__,
+            request=self.request,
         ):
             outbox.save()
         return HttpResponse(status=status.HTTP_202_ACCEPTED)

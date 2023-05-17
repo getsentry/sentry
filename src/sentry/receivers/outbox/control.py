@@ -7,6 +7,7 @@ and perform RPC calls to propagate changes to relevant region(s).
 """
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from django.dispatch import receiver
@@ -21,6 +22,8 @@ from sentry.models import (
     process_control_outbox,
 )
 from sentry.receivers.outbox import maybe_process_tombstone
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.USER_UPDATE)
@@ -65,8 +68,32 @@ def process_organization_integration_update(object_identifier: int, **kwds: Any)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.WEBHOOK_PROXY)
-def process_async_webhooks(payload: Any, **kwds: Any):
-    # 1. Parse the payload into an python friendly format
-    # 2. Send the request along using the SiloClient
-    # 3. Log the response
-    pass
+def process_async_webhooks(payload: Any, region_name: str, **kwds: Any):
+    from sentry.models.outbox import ControlOutbox
+    from sentry.silo.client import RegionSiloClient
+    from sentry.types.region import RegionResolutionError, get_region_by_name
+
+    try:
+        region = get_region_by_name(name=region_name)
+    except RegionResolutionError as e:
+        logger.error("webhook_proxy.region_resolution_error", extra={"error": e})
+        return
+
+    try:
+        webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
+    except Exception as e:
+        logger.error("webhook_proxy.invalid_payload_error", extra={"error": e})
+        return
+
+    response = RegionSiloClient(region=region).request(
+        method=webhook_payload.method,
+        path=webhook_payload.path,
+        headers=webhook_payload.headers,
+        # We need to send the body as raw bytes to avoid interfering with webhook signatures
+        data=webhook_payload.body,
+        json=False,
+        raw_response=True,
+    )
+    logger.info(
+        "webhook_proxy.complete", extra={"status": response.status_code, "url": response.url}
+    )
