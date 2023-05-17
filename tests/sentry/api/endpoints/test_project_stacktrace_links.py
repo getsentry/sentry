@@ -165,13 +165,15 @@ class ProjectStacktraceLinksTest(APITestCase):
             }
 
     def test_second_config_works(self):
+        code_mapping1 = self.setup_code_mapping("foo", "src/foo")
+        code_mapping2 = self.setup_code_mapping("foo/bar", "bar")
+
+        # this is the code mapping order that will be tried
+        assert get_code_mapping_configs(self.project) == [code_mapping2, code_mapping1]
+
         with patch.object(
             ExampleIntegration, "get_stacktrace_link", side_effect=[None, "https://sourceurl.com"]
         ):
-            code_mapping1 = self.setup_code_mapping("foo", "src/foo")
-            code_mapping2 = self.setup_code_mapping("foo/bar", "bar")
-            assert get_code_mapping_configs(self.project) == [code_mapping2, code_mapping1]
-
             response = self.get_success_response(
                 self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
             )
@@ -194,55 +196,76 @@ class ProjectStacktraceLinksTest(APITestCase):
             "foo2/baz.py",
             "foo3/bar.py",
             "foo3/baz.py",
+            "foo4/bar.py",
+            "foo4/baz.py",
         ]
 
         expected = [
             {
+                "error": "max_code_mappings_applied",
                 "file": "foo0/bar.py",
-                "sourceUrl": "https://example.com/example/foo/blob/master/src/foo0/bar.py",
             },
             {
+                "error": "max_code_mappings_applied",
                 "file": "foo0/baz.py",
-                "sourceUrl": "https://example.com/example/foo/blob/master/src/foo0/baz.py",
             },
             {
-                "error": "file_not_found",
                 "file": "foo1/bar.py",
-                "attemptedUrl": "https://example.com/example/foo/blob/master/src/foo1/bar.py",
+                "sourceUrl": "https://example.com/example/foo/blob/master/src/foo1/bar.py",
             },
             {
-                "error": "file_not_found",
                 "file": "foo1/baz.py",
-                "attemptedUrl": "https://example.com/example/foo/blob/master/src/foo1/baz.py",
+                "sourceUrl": "https://example.com/example/foo/blob/master/src/foo1/baz.py",
             },
             {
+                "attemptedUrl": "https://example.com/example/foo/blob/master/src/foo2/bar.py",
+                "error": "file_not_found",
                 "file": "foo2/bar.py",
-                "sourceUrl": "https://example.com/example/foo/blob/master/src/foo2/bar.py",
             },
             {
+                "attemptedUrl": "https://example.com/example/foo/blob/master/src/foo2/baz.py",
+                "error": "file_not_found",
                 "file": "foo2/baz.py",
-                "sourceUrl": "https://example.com/example/foo/blob/master/src/foo2/baz.py",
             },
             {
-                "error": "stack_root_mismatch",
                 "file": "foo3/bar.py",
+                "sourceUrl": "https://example.com/example/foo/blob/master/src/foo3/bar.py",
+            },
+            {
+                "file": "foo3/baz.py",
+                "sourceUrl": "https://example.com/example/foo/blob/master/src/foo3/baz.py",
             },
             {
                 "error": "stack_root_mismatch",
-                "file": "foo3/baz.py",
+                "file": "foo4/bar.py",
+            },
+            {
+                "error": "stack_root_mismatch",
+                "file": "foo4/baz.py",
             },
         ]
 
-        self.setup_code_mapping("bar", "")
-        self.setup_code_mapping("foo0", "src/foo0")
-        self.setup_code_mapping("foo1", "src/foo1")
-        self.setup_code_mapping("foo2", "src/foo2")
-        self.setup_code_mapping("baz", "")
+        code_mapping1 = self.setup_code_mapping("bar", "")
+        code_mapping2 = self.setup_code_mapping("foo0", "src/foo0")
+        code_mapping3 = self.setup_code_mapping("foo1", "src/foo1")
+        code_mapping4 = self.setup_code_mapping("foo2", "src/foo2")
+        code_mapping5 = self.setup_code_mapping("foo3", "src/foo3")
+        code_mapping6 = self.setup_code_mapping("baz", "")
+
+        # this is the code mapping order that will be tried
+        assert get_code_mapping_configs(self.project) == [
+            code_mapping6,
+            code_mapping5,
+            code_mapping4,
+            code_mapping3,
+            code_mapping2,
+            code_mapping1,
+        ]
 
         with patch.object(
             ExampleIntegration,
             "get_stacktrace_link",
-            side_effect=["https://sourceurl.com", None, "https://sourceurl.com"],
+            side_effect=["https://sourceurl.com", None, "https://sourceurl.com", None],
         ):
             qs = {"file": files}
 

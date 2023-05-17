@@ -72,7 +72,7 @@ class ProjectStacktraceLinksEndpoint(ProjectEndpoint):  # type: ignore
             # safety to limit the maximum number of mappings used
             # to avoid reaching API rate limits
             if mappings_used >= MAX_CODE_MAPPINGS_USED:
-                for file in result["files"]:
+                for file in files:
                     if not file.get("error") and file.get("sourceUrl") is None:
                         file["error"] = "max_code_mappings_applied"
                 continue
