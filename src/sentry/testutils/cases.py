@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import responses
+import sentry_kafka_schemas
 
 from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
 
@@ -1356,6 +1357,14 @@ class BaseMetricsTestCase(SnubaTestCase):
         # XXX(markus): do not use this method in your tests, use store_metric
         # instead. we need to be able to make changes to the indexer's output
         # protocol without having to update a million tests
+        if entity.startswith("generic_"):
+            codec = sentry_kafka_schemas.get_codec("snuba-generic-metrics")
+        else:
+            codec = sentry_kafka_schemas.get_codec("snuba-metrics")
+
+        for bucket in buckets:
+            codec.validate(bucket)
+
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + cls.snuba_endpoint.format(entity=entity),
