@@ -138,6 +138,9 @@ class ReleaseMetaTest(APITestCase):
         self.login_as(user=user)
 
         bundle = self.create_artifact_bundle(org=org, artifact_count=10)
+        ProjectArtifactBundle.objects.create(
+            organization_id=org.id, project_id=project.id, artifact_bundle=bundle
+        )
         ReleaseArtifactBundle.objects.create(
             organization_id=org.id, release_name=release.version, artifact_bundle=bundle
         )
