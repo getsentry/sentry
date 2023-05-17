@@ -17,6 +17,7 @@ export function initializeOrg({
   project?: Partial<Project>;
   projects?: Partial<Project>[];
   router?: any;
+  routerProps?: any;
 } = {}) {
   const projects = (
     additionalProjects ||
@@ -33,6 +34,7 @@ export function initializeOrg({
     ...additionalRouter,
     params: {
       orgId: organization.slug,
+      projectId: project.slug,
       ...additionalRouter?.params,
     },
   });
@@ -46,12 +48,22 @@ export function initializeOrg({
     },
   ]);
 
+  const routerProps = {
+    params: router.params as {orgId: string; projectId: string},
+    routeParams: router.params,
+    router,
+    route: router.routes[0],
+    routes: router.routes,
+    location: routerContext.context.location,
+  };
+
   return {
     organization,
     project,
     projects,
     router,
     routerContext,
+    routerProps,
     // not sure what purpose this serves
     route: {},
   };

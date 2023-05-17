@@ -61,7 +61,7 @@ function renderDebugIdBundlesMockRequests({
 describe('ProjectSourceMaps', function () {
   describe('Release Bundles', function () {
     it('renders default state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, project, router, routerContext, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -78,18 +78,10 @@ describe('ProjectSourceMaps', function () {
         projectSlug: project.slug,
       });
 
-      render(
-        <ProjectSourceMaps
-          location={routerContext.context.location}
-          project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
-          params={{orgId: organization.slug, projectId: project.slug}}
-        />,
-        {context: routerContext, organization}
-      );
+      render(<ProjectSourceMaps project={project} {...routerProps} />, {
+        context: routerContext,
+        organization,
+      });
 
       // Title
       expect(screen.getByRole('heading', {name: 'Source Maps'})).toBeInTheDocument();
@@ -168,7 +160,7 @@ describe('ProjectSourceMaps', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, project, routerContext, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -186,18 +178,10 @@ describe('ProjectSourceMaps', function () {
         empty: true,
       });
 
-      render(
-        <ProjectSourceMaps
-          location={routerContext.context.location}
-          project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
-          params={{orgId: organization.slug, projectId: project.slug}}
-        />,
-        {context: routerContext, organization}
-      );
+      render(<ProjectSourceMaps project={project} {...routerProps} />, {
+        context: routerContext,
+        organization,
+      });
 
       expect(
         await screen.findByText('No release bundles found for this project.')
@@ -207,7 +191,7 @@ describe('ProjectSourceMaps', function () {
 
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, project, routerContext, router, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -224,18 +208,10 @@ describe('ProjectSourceMaps', function () {
         projectSlug: project.slug,
       });
 
-      render(
-        <ProjectSourceMaps
-          location={routerContext.context.location}
-          project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
-          params={{orgId: organization.slug, projectId: project.slug}}
-        />,
-        {context: routerContext, organization}
-      );
+      render(<ProjectSourceMaps project={project} {...routerProps} />, {
+        context: routerContext,
+        organization,
+      });
 
       // Title
       expect(screen.getByRole('heading', {name: 'Source Maps'})).toBeInTheDocument();
@@ -315,7 +291,7 @@ describe('ProjectSourceMaps', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, project, routerProps, routerContext} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -333,18 +309,10 @@ describe('ProjectSourceMaps', function () {
         empty: true,
       });
 
-      render(
-        <ProjectSourceMaps
-          location={routerContext.context.location}
-          project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
-          params={{orgId: organization.slug, projectId: project.slug}}
-        />,
-        {context: routerContext, organization}
-      );
+      render(<ProjectSourceMaps project={project} {...routerProps} />, {
+        context: routerContext,
+        organization,
+      });
 
       expect(
         await screen.findByText('No debug ID bundles found for this project.')
