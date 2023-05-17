@@ -225,7 +225,7 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
             NotificationSetting.objects.get_settings(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.DEPLOY,
-                actor=RpcActor.from_orm_user(self.user),
+                actor=RpcActor.from_orm_user(self.user, fetch_actor=False),
             )
             == NotificationSettingOptionValues.DEFAULT
         )
@@ -240,7 +240,7 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
             NotificationSetting.objects.get_settings(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.DEPLOY,
-                actor=RpcActor.from_orm_user(self.user),
+                actor=RpcActor.from_orm_user(self.user, fetch_actor=False),
             )
             == NotificationSettingOptionValues.ALWAYS
         )
