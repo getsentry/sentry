@@ -254,13 +254,15 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
                 errors=2,
             )
         )
+        timestamp = (time.time() // 60 - 2) * 60
         self._send_buckets(
             [
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
                     "metric_id": metric_id,
-                    "timestamp": (time.time() // 60 - 2) * 60,
+                    "timestamp": timestamp,
+                    "sentry_received_timestamp": timestamp + 10,
                     "tags": {
                         resolve_weak(use_key_id, org_id, "release"): _indexer_record(
                             org_id, "fooww"
