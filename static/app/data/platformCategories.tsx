@@ -163,7 +163,7 @@ const categoryList = [
   {id: 'mobile', name: t('Mobile'), platforms: mobile},
   {id: 'desktop', name: t('Desktop'), platforms: desktop},
   {id: 'serverless', name: t('Serverless'), platforms: serverless},
-];
+] as const;
 
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
