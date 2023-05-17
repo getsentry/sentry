@@ -276,7 +276,7 @@
         "nullable": true,
         "oneOf": [
           {
-            "$ref": "releases/group-event-release.json#/GroupEventRelease"
+            "$ref": "releases/organization-release.json#/OrganizationRelease"
           },
           {
             "$ref": "null.json#/NullValue"

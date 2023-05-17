@@ -154,7 +154,10 @@
                                   71,
                                   "            return fn.apply(this, wrappedArguments);"
                                 ],
-                                [72, "            // tslint:enable:no-unsafe-any"],
+                                [
+                                  72,
+                                  "            // tslint:enable:no-unsafe-any"
+                                ],
                                 [73, "        }"],
                                 [74, "        catch (ex) {"],
                                 [75, "            ignoreNextOnError();"],
@@ -179,7 +182,10 @@
                               "instructionAddr": null,
                               "context": [
                                 [69, "     */"],
-                                [70, "    triggerAsync: function triggerAsync() {"],
+                                [
+                                  70,
+                                  "    triggerAsync: function triggerAsync() {"
+                                ],
                                 [71, "        var args = arguments,"],
                                 [72, "            me = this;"],
                                 [73, "        _.nextTick(function () {"],
@@ -221,8 +227,14 @@
                               "context": [
                                 [76, "/*!"],
                                 [77, "  Copyright (c) 2018 Jed Watson."],
-                                [78, "  Licensed under the MIT License (MIT), see"],
-                                [79, "  http://jedwatson.github.io/react-select"],
+                                [
+                                  78,
+                                  "  Licensed under the MIT License (MIT), see"
+                                ],
+                                [
+                                  79,
+                                  "  http://jedwatson.github.io/react-select"
+                                ],
                                 [80, "*/"],
                                 [
                                   81,
@@ -230,9 +242,15 @@
                                 ],
                                 [82, "/*!"],
                                 [83, " * JavaScript Cookie v2.2.1"],
-                                [84, " * https://github.com/js-cookie/js-cookie"],
+                                [
+                                  84,
+                                  " * https://github.com/js-cookie/js-cookie"
+                                ],
                                 [85, " *"],
-                                [86, " * Copyright 2006, 2015 Klaus Hartl & Fagner Brack"]
+                                [
+                                  86,
+                                  " * Copyright 2006, 2015 Klaus Hartl & Fagner Brack"
+                                ]
                               ],
                               "symbolAddr": null,
                               "trust": null,
@@ -414,6 +432,8 @@
               },
               "release": {
                 "dateReleased": "2020-06-17T19:21:02.186004Z",
+                "newGroups": 4,
+                "commitCount": 11,
                 "url": "https://freight.getsentry.net/deploys/getsentry/production/8868/",
                 "data": {},
                 "lastDeploy": {
@@ -424,8 +444,11 @@
                   "dateFinished": "2020-06-17T19:20:55.641748Z",
                   "id": "6883490"
                 },
+                "deployCount": 1,
                 "dateCreated": "2020-06-17T18:45:31.042157Z",
+                "lastEvent": "2020-07-08T21:21:21Z",
                 "version": "b65bc521378269d3eaefdc964f8ef56621414943",
+                "firstEvent": "2020-06-17T22:25:14Z",
                 "lastCommit": {
                   "repository": {
                     "status": "active",
@@ -462,7 +485,58 @@
                   "message": "feat(billing): Get a lot of money",
                   "id": "b65bc521378269d3eaefdc964f8ef56621414943"
                 },
-                "ref": "master"
+                "shortVersion": "b65bc521378269d3eaefdc964f8ef56621414943",
+                "authors": [
+                  {
+                    "username": "a37a1b4520ce46cea147ae2885a4e7e7",
+                    "lastLogin": "2020-09-14T22:34:55.550640Z",
+                    "isSuperuser": false,
+                    "isManaged": false,
+                    "experiments": {},
+                    "lastActive": "2020-09-15T22:13:20.503880Z",
+                    "isStaff": false,
+                    "id": "655784",
+                    "isActive": true,
+                    "has2fa": false,
+                    "name": "hell.boy@sentry.io",
+                    "avatarUrl": "https://secure.gravatar.com/avatar/eaa22e25b3a984659420831a77e4874e?s=32&d=mm",
+                    "dateJoined": "2020-04-20T16:21:25.365772Z",
+                    "emails": [
+                      {
+                        "is_verified": false,
+                        "id": "784574",
+                        "email": "hellboy@gmail.com"
+                      },
+                      {
+                        "is_verified": true,
+                        "id": "749185",
+                        "email": "hell.boy@sentry.io"
+                      }
+                    ],
+                    "avatar": {
+                      "avatarUuid": null,
+                      "avatarType": "letter_avatar"
+                    },
+                    "hasPasswordAuth": false,
+                    "email": "hell.boy@sentry.io"
+                  }
+                ],
+                "owner": null,
+                "ref": "master",
+                "projects": [
+                  {
+                    "name": "Sentry CSP",
+                    "slug": "sentry-csp"
+                  },
+                  {
+                    "name": "Backend",
+                    "slug": "sentry"
+                  },
+                  {
+                    "name": "Frontend",
+                    "slug": "javascript"
+                  }
+                ]
               },
               "groupID": "1341191803"
             }
