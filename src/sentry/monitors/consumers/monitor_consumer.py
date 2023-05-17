@@ -131,7 +131,7 @@ def _process_message(wrapper: Dict) -> None:
                         "monitors.checkin.result",
                         tags={"source": "consumer", "status": "failed_validation"},
                     )
-                    logger.debug("monitor does not exist: %s", params["monitor_slug"])
+                    logger.info("monitor.validation.failed", extra={**params})
                     return
             except MonitorLimitsExceeded:
                 metrics.incr(
@@ -170,6 +170,18 @@ def _process_message(wrapper: Dict) -> None:
                     project_id=project_id,
                     monitor=monitor,
                 )
+
+                if check_in.status in CheckInStatus.FINISHED_VALUES:
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={"source": "consumer", "status": "checkin_finished"},
+                    )
+                    logger.debug(
+                        "check-in was finished: attempted update from %s to %s",
+                        check_in.status,
+                        status,
+                    )
+                    return
 
                 if duration is None:
                     duration = int((start_time - check_in.date_added).total_seconds() * 1000)

@@ -43,10 +43,8 @@ function initializeData({
   const organization = TestStubs.Organization({
     features,
     projects: projects ? projects : [project],
-    apdexThreshold: 400,
   });
   const initialData = initializeOrg({
-    ...initializeOrg(),
     organization,
     router: {
       location: {

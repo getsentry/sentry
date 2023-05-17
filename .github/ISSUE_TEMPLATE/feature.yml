@@ -29,6 +29,7 @@ body:
         - 'Unknown'
         - 'Sign In'
         - 'Issues'
+        - 'Issues - Suggested Fix'
         - 'Projects'
         - 'Performance'
         - 'Profiling'
