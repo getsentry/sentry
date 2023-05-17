@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Optional
 
 import pytz
 
-from sentry import options
+from sentry import options, quotas
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 
 if TYPE_CHECKING:
@@ -13,19 +13,31 @@ if TYPE_CHECKING:
 # In case a misconfiguration happens on the server side which makes the option invalid, we want to define a fallback
 # sliding window size, which in this case will be 24 hours.
 FALLBACK_SLIDING_WINDOW_SIZE = 24
+# Sentinel value used to mark that an error happened when computing the sliding window sample rate for a specific
+# project.
+SLIDING_WINDOW_CALCULATION_ERROR = "sliding_window_error"
 
 
 def generate_sliding_window_cache_key(org_id: int) -> str:
     return f"ds::o:{org_id}:sliding_window"
 
 
-def get_sliding_window_sample_rate(project: "Project", default_sample_rate: float) -> float:
+def get_sliding_window_sample_rate(
+    project: "Project", default_sample_rate: float
+) -> Optional[float]:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_sliding_window_cache_key(project.organization.id)
 
     try:
-        return float(redis_client.hget(cache_key, project.id))
+        value = redis_client.hget(cache_key, project.id)
+        # In case we had an explicit error, we want to fetch the blended sample rate to avoid oversampling.
+        if value == SLIDING_WINDOW_CALCULATION_ERROR:
+            return quotas.get_blended_sample_rate(project=project)
+
+        return float(value)
     except (TypeError, ValueError):
+        # In case we couldn't convert the value to float, that is, it is a string or the value is not there, we want
+        # to fall back to a default sample rate. This case is different from the sentinel value because it's generic.
         return default_sample_rate
 
 
