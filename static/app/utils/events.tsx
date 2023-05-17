@@ -15,7 +15,7 @@ import {
   IssueType,
   TreeLabelPart,
 } from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
@@ -220,14 +220,44 @@ function hasTrace(event: Event) {
 
 /**
  * Function to determine if an event has source maps
+ * by ensuring that every inApp frame has a valid sourcemap
  */
 export function eventHasSourceMaps(event: Event) {
-  return event.entries?.some(entry => {
-    return (
-      entry.type === EntryType.EXCEPTION &&
-      entry.data.values?.some(value => !!value.rawStacktrace && !!value.stacktrace)
-    );
-  });
+  const inAppFrames = getInAppFrames(event);
+
+  // the map field tells us if it's sourcemapped
+  return inAppFrames.every(frame => !!frame.map);
+}
+
+/**
+ * Function to get status about how many frames have source maps
+ */
+export function getFrameBreakdownOfSourcemaps(event?: Event | null) {
+  if (!event) {
+    // return undefined if there is no event
+    return {};
+  }
+  const inAppFrames = getInAppFrames(event);
+  if (!inAppFrames.length) {
+    return {};
+  }
+
+  return {
+    framesWithSourcemapsPercent:
+      (inAppFrames.filter(frame => !!frame.map).length * 100) / inAppFrames.length,
+    framesWithoutSourceMapsPercent:
+      (inAppFrames.filter(frame => !frame.map).length * 100) / inAppFrames.length,
+  };
+}
+
+function getInAppFrames(event: Event) {
+  const exceptions = getExceptionEntries(event);
+  return exceptions
+    .map(exception => exception.data.values || [])
+    .flat()
+    .map(exceptionValue => exceptionValue?.stacktrace?.frames || [])
+    .flat()
+    .filter(frame => frame.inApp);
 }
 
 function getExceptionEntries(event: Event) {
@@ -296,6 +326,8 @@ function getAssignmentIntegration(group: Group) {
 }
 
 export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyticsParams {
+  const {framesWithSourcemapsPercent, framesWithoutSourceMapsPercent} =
+    getFrameBreakdownOfSourcemaps(event);
   return {
     event_id: event?.eventID || '-1',
     num_commits: event?.release?.commitCount || 0,
@@ -309,6 +341,8 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     has_trace: event ? hasTrace(event) : false,
     has_commit: !!event?.release?.lastCommit,
     event_errors: event ? getEventErrorString(event) : '',
+    frames_with_sourcemaps_percent: framesWithSourcemapsPercent,
+    frames_without_source_maps_percent: framesWithoutSourceMapsPercent,
     sdk_name: event?.sdk?.name,
     sdk_version: event?.sdk?.version,
     release_user_agent: event?.release?.userAgent,
