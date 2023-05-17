@@ -7,13 +7,21 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from sentry.models import GroupRuleStatus, GroupStatus, ProjectOwnership, Rule, RuleFireHistory
+from sentry.models import (
+    GroupRuleStatus,
+    GroupStatus,
+    ProjectOwnership,
+    Rule,
+    RuleFireHistory,
+    RuleSnooze,
+)
 from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
 from sentry.rules.conditions import EventCondition
 from sentry.rules.filters.base import EventFilter
 from sentry.rules.processor import RuleProcessor
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import region_silo_test
 
 EMAIL_ACTION_DATA = {
@@ -45,6 +53,7 @@ class RuleProcessorTest(TestCase):
             project=self.group_event.project,
             data={"conditions": [EVERY_EVENT_COND_DATA], "actions": [EMAIL_ACTION_DATA]},
         )
+        self.integration = install_slack(self.organization)
 
     # this test relies on a few other tests passing
     def test_integrated(self):
@@ -114,6 +123,43 @@ class RuleProcessorTest(TestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
+
+    def test_muted_rule(self):
+        """Test that we don't sent a notification for a muted Slack rule"""
+        action_data = [
+            {
+                "channel": "#my-channel",
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
+                "tags": "",
+                "workspace": self.integration.id,
+            },
+        ]
+        slack_rule = self.create_project_rule(self.project, action_data)
+        muted_slack_rule = self.create_project_rule(self.project, action_data)
+        RuleSnooze.objects.create(
+            user_id=None,
+            owner_id=self.user.id,
+            rule=muted_slack_rule,
+            until=None,
+        )
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        results = list(rp.apply())
+        assert len(results) == 2
+        assert (
+            RuleFireHistory.objects.filter(rule=slack_rule, group=self.group_event.group).count()
+            == 1
+        )
+        assert (
+            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
+            == 1
+        )
 
     def run_query_test(self, rp, expected_queries):
         with CaptureQueriesContext(connections[DEFAULT_DB_ALIAS]) as queries:
