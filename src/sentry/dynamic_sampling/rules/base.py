@@ -20,27 +20,43 @@ ALWAYS_ALLOWED_RULE_TYPES = {RuleType.RECALIBRATION_RULE, RuleType.UNIFORM_RULE}
 logger = logging.getLogger("sentry.dynamic_sampling")
 
 
+def is_sliding_window_enabled(organization: Organization) -> bool:
+    return not features.has(
+        "organizations:ds-sliding-window-org", organization, actor=None
+    ) and features.has("organizations:ds-sliding-window", organization, actor=None)
+
+
 def get_guarded_blended_sample_rate(organization: Organization, project: Project) -> float:
     sample_rate = quotas.get_blended_sample_rate(organization_id=organization.id)
 
-    # If the sample rate is None, it means that the customer is on AM1, thus we throw an exception which will
-    # lead to no rules being generated.
+    # If the sample rate is None, it means that dynamic sampling rules shouldn't be generated.
     if sample_rate is None:
         raise Exception("get_blended_sample_rate returns none")
 
+    # We want to make sure the sample rate is a float, otherwise an exception will be thrown and rules will not be
+    # generated.
+    sample_rate = float(sample_rate)
+
+    # If the sample rate is 100%, we don't want to use any special dynamic sample rate, we will just sample at 100%.
+    if sample_rate == 1.0:
+        return sample_rate
+
     # We want to use the normal sliding window only if the sliding window at the org level is disabled.
-    if not features.has(
-        "organizations:ds-sliding-window-org", organization, actor=None
-    ) and features.has("organizations:ds-sliding-window", organization, actor=None):
-        # In case we use sliding window, and we don't find a value in the cache, we want to give the user 100% sample
-        # rate.
-        sample_rate = get_sliding_window_sample_rate(project, default_sample_rate=1.0)
+    if is_sliding_window_enabled(organization):
+        # In case we use sliding window, we want to fall back to the original sample rate in case there was an error,
+        # whereas if we don't find a value in cache, we just sample at 100% under the assumption that the project
+        # has just been created.
+        sample_rate = get_sliding_window_sample_rate(
+            project=project, if_error_sample_rate=sample_rate, if_absent_sample_rate=1.0
+        )
     else:
+        # In case we use the prioritise by project, we want to fall back to the original sample rate in case there are
+        # any issues.
         sample_rate = get_prioritise_by_project_sample_rate(
-            project, default_sample_rate=float(sample_rate)
+            project=project, default_sample_rate=sample_rate
         )
 
-    return float(sample_rate)
+    return sample_rate
 
 
 def _get_rules_of_enabled_biases(
