@@ -181,7 +181,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 assert "environment" not in extra_query_kwargs
                 query_kwargs.update(extra_query_kwargs)
 
-            if query_kwargs["sort_by"] == "better priority":
+            if query_kwargs["sort_by"] == "betterPriority":
                 query_kwargs["aggregate_kwargs"] = self.build_better_priority_sort_kwargs(request)
 
             query_kwargs["environments"] = environments if environments else None
@@ -240,7 +240,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`
         """
 
-        if request.GET.get("sort") == "better priority" and not features.has(
+        if request.GET.get("sort") == "betterPriority" and not features.has(
             "organizations:issue-list-better-priority-sort", organization, actor=request.user
         ):
             return Response(
