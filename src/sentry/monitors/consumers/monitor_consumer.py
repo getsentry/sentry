@@ -171,6 +171,18 @@ def _process_message(wrapper: Dict) -> None:
                     monitor=monitor,
                 )
 
+                if check_in.status in CheckInStatus.FINISHED_VALUES:
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={"source": "consumer", "status": "checkin_finished"},
+                    )
+                    logger.debug(
+                        "check-in was finished: attempted update from %s to %s",
+                        check_in.status,
+                        status,
+                    )
+                    return
+
                 if duration is None:
                     duration = int((start_time - check_in.date_added).total_seconds() * 1000)
 
