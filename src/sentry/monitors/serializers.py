@@ -6,7 +6,8 @@ from django.db.models import prefetch_related_objects
 from typing_extensions import TypedDict
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
-from sentry.models import Project
+from sentry.models import Project, Rule, RuleSource
+from sentry.monitors.utils import get_alert_rule_data
 
 from .models import Monitor, MonitorCheckIn, MonitorEnvironment, MonitorStatus
 
@@ -33,8 +34,9 @@ class MonitorEnvironmentSerializerResponse(TypedDict):
 
 @register(Monitor)
 class MonitorSerializer(Serializer):
-    def __init__(self, environments=None):
+    def __init__(self, environments=None, expand=None):
         self.environments = environments
+        self.expand = expand
 
     def get_attrs(self, item_list, user, **kwargs):
         # TODO(dcramer): assert on relations
@@ -70,7 +72,7 @@ class MonitorSerializer(Serializer):
             str(item.id): serialized_monitor_environments.get(item.id, []) for item in item_list
         }
 
-        return {
+        attrs = {
             item: {
                 "project": projects[str(item.project_id)] if item.project_id else None,
                 "environments": environment_data[str(item.id)],
@@ -78,11 +80,25 @@ class MonitorSerializer(Serializer):
             for item in item_list
         }
 
+        if self._expand("rule"):
+            for item in item_list:
+                alert_rule_id = item.config.get("alert_rule_id")
+                if alert_rule_id:
+                    alert_rule = Rule.objects.filter(
+                        project_id=item.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
+                    ).first()
+                    attrs["rule"] = get_alert_rule_data(alert_rule) if alert_rule else None
+
+        return attrs
+
     def serialize(self, obj, attrs, user):
         config = obj.config.copy()
         if "schedule_type" in config:
             config["schedule_type"] = obj.get_schedule_type_display()
-        return {
+        # Remove alert rule id from response
+        config.pop("alert_rule_id", None)
+
+        result = {
             "id": str(obj.guid),
             "status": obj.get_status_display(),
             "type": obj.get_type_display(),
@@ -93,6 +109,17 @@ class MonitorSerializer(Serializer):
             "project": attrs["project"],
             "environments": attrs["environments"],
         }
+
+        if self._expand("rule"):
+            result["rule"] = attrs["rule"]
+
+        return result
+
+    def _expand(self, key) -> bool:
+        if self.expand is None:
+            return False
+
+        return key in self.expand
 
 
 class MonitorSerializerResponse(TypedDict):
