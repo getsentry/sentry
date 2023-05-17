@@ -20,7 +20,7 @@ class BaseOption(Model):  # type: ignore
     key = models.CharField(max_length=128, unique=True)
     last_updated = models.DateTimeField(default=timezone.now)
     last_updated_by = models.CharField(
-        max_length=128, choices=UpdateChannel.choices(), default=UpdateChannel.UNKNOWN
+        max_length=16, choices=UpdateChannel.choices(), default=UpdateChannel.UNKNOWN
     )
 
     class Meta:
