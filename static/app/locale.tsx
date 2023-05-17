@@ -209,7 +209,7 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
 
     let endPos = regex.lastIndex;
     if (!satisfied) {
-      const rest = template.substr(pos);
+      const rest = template.substring(pos);
       if (rest) {
         buf.push(rest);
       }
