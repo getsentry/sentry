@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from typing import List, Optional, Sequence, Set, Tuple
 
 from django.http import Http404, HttpResponse, StreamingHttpResponse
@@ -93,9 +94,13 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         release_name = request.GET.get("release")
         dist_name = request.GET.get("dist")
 
+        used_artifact_bundles = dict()
         bundle_file_ids = set()
         if debug_id:
-            bundle_file_ids = get_artifact_bundles_containing_debug_id(debug_id, project)
+            bundles = get_artifact_bundles_containing_debug_id(debug_id, project)
+            for (bundle_id, date_added, file_id) in bundles:
+                used_artifact_bundles[bundle_id] = date_added
+                bundle_file_ids.add(file_id)
 
         individual_files = set()
         if url and release_name and not bundle_file_ids:
@@ -104,12 +109,29 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             # file we are looking for. We want to return more here, even bundles that
             # do *not* contain the file, rather than opening up each bundle. We want to
             # avoid opening up bundles at all cost.
-            bundle_file_ids |= get_release_artifacts(project, release_name, dist_name)
+            bundles = get_release_artifacts(project, release_name, dist_name)
+            for (bundle_id, date_added, file_id) in bundles:
+                used_artifact_bundles[bundle_id] = date_added
+                bundle_file_ids.add(file_id)
 
             release, dist = try_resolve_release_dist(project, release_name, dist_name)
             if release:
                 bundle_file_ids |= get_legacy_release_bundles(release, dist)
                 individual_files = get_legacy_releasefile_by_file_url(release, dist, url)
+
+        for bundle_id, date_added in used_artifact_bundles.items():
+            pass
+        # TODO: properly implement this :-)
+        #    if date_added < # TODO: now - refresh threshold:
+        #        redis_set_key = now truncated to `bucket_window`
+        #        add `bundle_id` to a redis set `redis_set_key`
+        #        add `redis_set_key` to another redis set `redis_key_index`
+        # TODO: in a different periodic celery task/cron:
+        # - get all the redis buckets from `redis_key_index`
+        # - iterate the buckets in order except the 2 most recent ones
+        #   (accounting for the active bucket and some time skew)
+        #   - for each bundle_id in a bucket:
+        #     - UPDATE all tables we need
 
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
@@ -143,14 +165,16 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         return Response(serialize(found_artifacts, request.user))
 
 
-def get_artifact_bundles_containing_debug_id(debug_id: str, project: Project) -> Set[int]:
+def get_artifact_bundles_containing_debug_id(
+    debug_id: str, project: Project
+) -> Set[Tuple[int, datetime, int]]:
     # We want to have the newest `File` for each `debug_id`.
     return set(
         ArtifactBundle.objects.filter(
             organization_id=project.organization.id,
             debugidartifactbundle__debug_id=debug_id,
         )
-        .values_list("file_id", flat=True)
+        .values_list("id", "date_added", "file_id")
         .order_by("-date_uploaded")[:1]
     )
 
@@ -159,7 +183,7 @@ def get_release_artifacts(
     project: Project,
     release_name: str,
     dist_name: Optional[str],
-) -> Set[int]:
+) -> Set[Tuple[int, datetime, int]]:
     return set(
         ArtifactBundle.objects.filter(
             organization_id=project.organization.id,
@@ -169,7 +193,7 @@ def get_release_artifacts(
             # See `_create_artifact_bundle` in `src/sentry/tasks/assemble.py` for the reference.
             releaseartifactbundle__dist_name=dist_name or "",
         )
-        .values_list("file_id", flat=True)
+        .values_list("id", "date_added", "file_id")
         .order_by("-date_uploaded")[:MAX_BUNDLES_QUERY]
     )
 
