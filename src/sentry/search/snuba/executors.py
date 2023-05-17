@@ -501,7 +501,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
         "inbox": "",
-        "better priority": "better_priority",
+        "betterPriority": "better_priority",
     }
 
     aggregation_defs = {

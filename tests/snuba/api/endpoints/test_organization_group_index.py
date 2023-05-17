@@ -161,7 +161,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         }
 
         response = self.get_success_response(
-            sort="better priority",
+            sort="betterPriority",
             query="is:unresolved",
             limit=25,
             start=iso_format(before_now(days=1)),
