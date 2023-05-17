@@ -8,6 +8,7 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
+import {Series} from 'sentry/types/echarts';
 import {getDuration} from 'sentry/utils/formatters';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
 import {Sort} from 'sentry/views/starfish/modules/databaseModule';
@@ -38,9 +39,12 @@ export type DataRow = {
   lastSeen: string;
   newish: number;
   p50: number;
+  p50_trend: Series[];
   p75: number;
   p95: number;
+  p95_trend: Series[];
   retired: number;
+  throughput: Series[];
   total_time: number;
   transactions: number;
 };
@@ -48,11 +52,9 @@ export type DataRow = {
 export type Keys =
   | 'description'
   | 'domain'
-  | 'throughput'
-  | 'p50_trend'
-  | 'p95_trend'
-  | 'epm'
   | 'p50'
+  | 'p95'
+  | 'epm'
   | 'p95'
   | 'transactions'
   | 'total_time';
@@ -71,19 +73,19 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 200,
   },
   {
-    key: 'throughput',
+    key: 'epm',
     name: 'Throughput (SPM)',
-    width: 175,
+    width: 200,
   },
   {
-    key: 'p50_trend',
-    name: 'P50 Trend',
-    width: 175,
+    key: 'p50',
+    name: 'P50',
+    width: 200,
   },
   {
-    key: 'p95_trend',
-    name: 'P95 trend',
-    width: 175,
+    key: 'p95',
+    name: 'P95',
+    width: 200,
   },
   {
     key: 'transactions',
@@ -221,59 +223,61 @@ export default function DatabaseTableView({
       );
     }
 
-    const timeBasedKeys: Keys[] = ['total_time'];
+    if (key === 'epm') {
+      const horizontalLine = generateHorizontalLine('', row.epm, theme);
+      return (
+        <GraphRow>
+          <span style={rowStyle}>{row.epm.toFixed(2)}</span>
+          <Graphline>
+            <Sparkline
+              color={CHART_PALETTE[3][0]}
+              series={row.throughput}
+              markLine={horizontalLine}
+              width={column.width ? column.width - column.width / 5 : undefined}
+            />
+          </Graphline>
+        </GraphRow>
+      );
+    }
+
+    if (key === 'p50') {
+      const horizontalLine = generateHorizontalLine('', value, theme);
+      return (
+        <GraphRow>
+          <span style={rowStyle}>{getDuration(value / 1000, 2, true)}</span>
+          <Graphline>
+            <Sparkline
+              color={CHART_PALETTE[3][1]}
+              series={row.p50_trend}
+              markLine={horizontalLine}
+              width={column.width ? column.width - column.width / 5 - 50 : undefined}
+            />
+          </Graphline>
+        </GraphRow>
+      );
+    }
+
+    if (key === 'p95') {
+      const horizontalLine = generateHorizontalLine('', value, theme);
+      return (
+        <GraphRow>
+          <span style={rowStyle}>{getDuration(value / 1000, 2, true)}</span>
+          <Graphline>
+            <Sparkline
+              color={CHART_PALETTE[3][2]}
+              series={row.p95_trend}
+              markLine={horizontalLine}
+              width={column.width ? column.width - column.width / 5 - 50 : undefined}
+            />
+          </Graphline>
+        </GraphRow>
+      );
+    }
+
+    const timeBasedKeys: Keys[] = ['p50', 'p95', 'total_time'];
     if (timeBasedKeys.includes(key)) {
       return <span style={rowStyle}>{getDuration(value / 1000, 2, true)}</span>;
     }
-
-    if (key === 'throughput') {
-      const horizontalLine = generateHorizontalLine(
-        `${row.epm.toFixed(2)}`,
-        row.epm,
-        theme
-      );
-      return (
-        <Sparkline
-          color={CHART_PALETTE[3][0]}
-          series={value}
-          markLine={horizontalLine}
-          width={column.width ? column.width - column.width / 5 : undefined}
-        />
-      );
-    }
-
-    if (key === 'p50_trend') {
-      const horizontalLine = generateHorizontalLine(
-        `${getDuration(row.p50 / 1000, 2, true)}`,
-        row.p50,
-        theme
-      );
-      return (
-        <Sparkline
-          color={CHART_PALETTE[3][1]}
-          series={value}
-          markLine={horizontalLine}
-          width={column.width ? column.width - column.width / 5 : undefined}
-        />
-      );
-    }
-
-    if (key === 'p95_trend') {
-      const horizontalLine = generateHorizontalLine(
-        `${getDuration(row.p95 / 1000, 2, true)}`,
-        row.p95,
-        theme
-      );
-      return (
-        <Sparkline
-          color={CHART_PALETTE[3][2]}
-          series={value}
-          markLine={horizontalLine}
-          width={column.width ? column.width - column.width / 5 : undefined}
-        />
-      );
-    }
-
     return <span style={rowStyle}>{value}</span>;
   }
 
@@ -294,4 +298,11 @@ export default function DatabaseTableView({
 
 const StyledBadge = styled(Badge)`
   margin-left: ${space(0.75)};
+`;
+
+const Graphline = styled('div')`
+  margin-left: auto;
+`;
+const GraphRow = styled('div')`
+  display: inline-flex;
 `;
