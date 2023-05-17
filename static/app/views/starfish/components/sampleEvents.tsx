@@ -77,7 +77,7 @@ export function SampleEvents({eventView}: Props) {
 
   const {isLoading, data} = useGenericDiscoverQuery<any, DiscoverQueryProps>({
     route: 'events',
-    eventView,
+    eventView: sampleEventsEventView,
     referrer: 'starfish-transaction-summary-sample-events',
     limit: 5,
     location,
