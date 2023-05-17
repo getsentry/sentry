@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
 import Tag from 'sentry/components/tag';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type Props = {
@@ -40,11 +40,6 @@ export function DebugIdBundlesTags({dist, release, loading}: Props) {
               type="info"
             >
               {release}
-            </Tag>
-          )}
-          {!dist && !release && (
-            <Tag tooltipText={t('Not associated with a release or distribution')}>
-              {t('none')}
             </Tag>
           )}
         </Fragment>
