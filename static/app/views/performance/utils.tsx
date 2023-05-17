@@ -264,7 +264,7 @@ export function removeTracingKeysFromSearch(
   }
 ) {
   currentFilter.getFilterKeys().forEach(tagKey => {
-    const searchKey = tagKey.startsWith('!') ? tagKey.substr(1) : tagKey;
+    const searchKey = tagKey.startsWith('!') ? tagKey.substring(1) : tagKey;
     // Remove aggregates and transaction event fields
     if (
       // aggregates

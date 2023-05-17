@@ -25,6 +25,7 @@ import {
 } from 'sentry/views/starfish/modules/databaseModule/queries';
 import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combineTableDataWithSparklineData';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 
 import DatabaseChartView from './databaseChartView';
 import DatabaseTableView, {DataRow, MainTableSort} from './databaseTableView';
@@ -88,7 +89,13 @@ function DatabaseModule() {
   );
 
   const {data: dbAggregateData} = useQuery({
-    queryKey: ['dbAggregates', transaction, filterNew, filterOld],
+    queryKey: [
+      'dbAggregates',
+      transaction,
+      filterNew,
+      filterOld,
+      pageFilters.selection.datetime,
+    ],
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getDbAggregatesQuery({
@@ -100,20 +107,17 @@ function DatabaseModule() {
     initialData: [],
   });
 
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
+    pageFilters.selection.datetime
+  );
+
   const combinedDbData = combineTableDataWithSparklineData(
     tableData,
     dbAggregateData,
-    moment.duration(12, 'hours')
+    moment.duration(12, 'hours'),
+    moment(start_timestamp),
+    moment(end_timestamp)
   );
-
-  const aggregatesGroupedByQuery = {};
-  dbAggregateData.forEach(({description, interval, count, p75}) => {
-    if (description in aggregatesGroupedByQuery) {
-      aggregatesGroupedByQuery[description].push({name: interval, count, p75});
-    } else {
-      aggregatesGroupedByQuery[description] = [{name: interval, count, p75}];
-    }
-  });
 
   useEffect(() => {
     function handleKeyDown({keyCode}) {
