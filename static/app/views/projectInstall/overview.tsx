@@ -8,18 +8,22 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import PlatformPicker from 'sentry/components/platformPicker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {PlatformKey} from 'sentry/data/platformCategories';
+import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
+import {PLATFORM_CATEGORIES} from 'sentry/components/platformPicker'
 
 type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
+  projects: Project[];
 } & AsyncComponent['props'];
 
 type State = {
@@ -56,11 +60,17 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
   };
 
   render() {
-    const {organization} = this.props;
+    const {organization, projects} = this.props;
     const {projectId} = this.props.params;
     const {keyList, showDsn} = this.state;
 
     const issueStreamLink = `/organizations/${organization.slug}/issues/#welcome`;
+
+    const project = projects.find(p => p.slug === projectId);
+    const platform = project ? platforms.find(p => p.id === project.platform) : undefined;
+    const category = PLATFORM_CATEGORIES.find(c => c.platforms.some(p => p === platform?.id))?.id
+
+    console.log({category});
 
     return (
       <div>
@@ -105,6 +115,7 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
           }
           showOther={false}
           organization={this.props.organization}
+          defaultCategory={platform.}
         />
         <p>
           {tct(
@@ -138,4 +149,4 @@ const DsnContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-export default withOrganization(ProjectInstallOverview);
+export default withOrganization(withProjects(ProjectInstallOverview));
