@@ -4,12 +4,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from sentry.db.models import BaseManager
 from sentry.services.hybrid_cloud import ArgumentDict
 from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
 from sentry.types.region import Region, get_region_by_name
 
 if TYPE_CHECKING:
+    from sentry.db.models import BaseManager
     from sentry.models import OrganizationMapping
 
 

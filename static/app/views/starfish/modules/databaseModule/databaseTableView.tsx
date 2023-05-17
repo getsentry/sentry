@@ -6,8 +6,13 @@ import Badge from 'sentry/components/badge';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
-import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel';
+import Sparkline from 'sentry/views/starfish/components/sparkline';
+import {Sort} from 'sentry/views/starfish/modules/databaseModule';
+import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
+
+import {highlightSql} from './panel';
 
 type Props = {
   isDataLoading: boolean;
@@ -15,13 +20,7 @@ type Props = {
   onSelect: (row: DataRow, rowIndex: number) => void;
   columns?: any;
   data?: DataRow[];
-  onSortChange?: ({
-    direction,
-    sortHeader,
-  }: {
-    direction: 'desc' | 'asc' | undefined;
-    sortHeader: TableColumnHeader;
-  }) => void;
+  onSortChange?: ({direction, sortHeader}: MainTableSort) => void;
   selectedRow?: DataRow;
 };
 
@@ -38,14 +37,26 @@ export type DataRow = {
   group_id: string;
   lastSeen: string;
   newish: number;
+  p50: number;
   p75: number;
+  p95: number;
   retired: number;
   total_time: number;
   transactions: number;
 };
 
-type Keys = 'description' | 'domain' | 'epm' | 'p75' | 'transactions' | 'total_time';
+export type Keys =
+  | 'description'
+  | 'domain'
+  | 'throughput'
+  | 'p75_trend'
+  | 'epm'
+  | 'p50'
+  | 'p95'
+  | 'transactions'
+  | 'total_time';
 export type TableColumnHeader = GridColumnHeader<Keys>;
+export type MainTableSort = Sort<TableColumnHeader>;
 
 const COLUMN_ORDER: TableColumnHeader[] = [
   {
@@ -59,12 +70,26 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 200,
   },
   {
+    key: 'throughput',
+    name: 'Throughput',
+    width: 200,
+  },
+  {
+    key: 'p75_trend',
+    name: 'P75 Trend',
+    width: 200,
+  },
+  {
     key: 'epm',
     name: 'Tpm',
   },
   {
-    key: 'p75',
-    name: 'p75',
+    key: 'p50',
+    name: 'p50',
+  },
+  {
+    key: 'p95',
+    name: 'p95',
   },
   {
     key: 'transactions',
@@ -76,7 +101,58 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   },
 ];
 
-export default function APIModuleView({
+export function similarity(value: string, other: string): number {
+  // If they're identical we don't care
+  if (value === other || other === undefined || value === undefined) {
+    return -1;
+  }
+  const short_words = value.length < other.length ? value.split(' ') : other.split(' ');
+  const long_words = value.length > other.length ? value.split(' ') : other.split(' ');
+  const total = long_words.length;
+  let count = 0;
+  while (long_words.length > 0) {
+    const word = long_words.pop();
+    if (word && short_words.includes(word)) {
+      count += 1;
+      short_words.splice(short_words.indexOf(word), 1);
+    }
+  }
+
+  return count / total;
+}
+
+function renderBadge(row, selectedRow) {
+  const similar = similarity(selectedRow?.description, row.description) > 0.8;
+  const newish = row?.newish === 1;
+  const retired = row?.retired === 1;
+  let response: React.ReactNode | null = null;
+  if (similar) {
+    if (newish && selectedRow.newish !== 1) {
+      response = (
+        <span>
+          <StyledBadge type="new" text="new" />
+          <StyledBadge type="alpha" text="similar" />
+        </span>
+      );
+    } else if (retired && selectedRow.retired !== 1) {
+      response = (
+        <span>
+          <StyledBadge type="warning" text="old" />
+          <StyledBadge type="alpha" text="similar" />
+        </span>
+      );
+    } else {
+      response = <StyledBadge type="alpha" text="similar" />;
+    }
+  } else if (newish) {
+    response = <StyledBadge type="new" text="new" />;
+  } else if (retired) {
+    response = <StyledBadge type="warning" text="old" />;
+  }
+  return response;
+}
+
+export default function DatabaseTableView({
   location,
   data,
   onSelect,
@@ -92,10 +168,10 @@ export default function APIModuleView({
 
   function onSortClick(col: TableColumnHeader) {
     let direction: 'desc' | 'asc' | undefined = undefined;
-    if (sort.direction === 'desc') {
-      direction = 'asc';
-    } else if (!sort.direction) {
+    if (!sort.direction || col.key !== sort.sortHeader?.key) {
       direction = 'desc';
+    } else if (sort.direction === 'desc') {
+      direction = 'asc';
     }
     if (onSortChange) {
       setSort({direction, sortHeader: col});
@@ -104,7 +180,14 @@ export default function APIModuleView({
   }
 
   function renderHeadCell(col: TableColumnHeader): React.ReactNode {
-    const sortableKeys: Keys[] = ['p75', 'epm', 'total_time', 'domain', 'transactions'];
+    const sortableKeys: Keys[] = [
+      'p50',
+      'p95',
+      'epm',
+      'total_time',
+      'domain',
+      'transactions',
+    ];
     if (sortableKeys.includes(col.key)) {
       const isBeingSorted = col.key === sort.sortHeader?.key;
       const direction = isBeingSorted ? sort.direction : undefined;
@@ -130,10 +213,9 @@ export default function APIModuleView({
     const rowStyle: CSSProperties | undefined = isSelectedRow
       ? {fontWeight: 'bold'}
       : undefined;
+    const value = row[key];
 
     if (key === 'description') {
-      const value = row[key];
-
       let headerExtra = '';
       if (row.newish === 1) {
         headerExtra = `Query (First seen ${row.firstSeen})`;
@@ -141,22 +223,43 @@ export default function APIModuleView({
         headerExtra = `Query (Last seen ${row.lastSeen})`;
       }
       return (
-        <Hovercard header={headerExtra} body={value}>
+        <Hovercard header={headerExtra} body={highlightSql(row.formatted_desc, row)}>
           <Link onClick={() => onSelect(row, rowIndex)} to="" style={rowStyle}>
             {value.substring(0, 30)}
             {value.length > 30 ? '...' : ''}
             {value.length > 30 ? value.substring(value.length - 30) : ''}
           </Link>
-          {row?.newish === 1 && <StyledBadge type="new" text="new" />}
-          {row?.retired === 1 && <StyledBadge type="warning" text="old" />}
+          {renderBadge(row, selectedRow)}
         </Hovercard>
       );
     }
-    if (key === 'p75' || key === 'total_time') {
-      const value = row[key];
+
+    const timeBasedKeys: Keys[] = ['p50', 'p95', 'total_time'];
+    if (timeBasedKeys.includes(key)) {
       return <span style={rowStyle}>{value.toFixed(2)}ms</span>;
     }
-    return <span style={rowStyle}>{row[key]}</span>;
+
+    if (key === 'throughput') {
+      return (
+        <Sparkline
+          color={CHART_PALETTE[3][0]}
+          series={value}
+          width={column.width ? column.width - column.width / 5 : undefined}
+        />
+      );
+    }
+
+    if (key === 'p75_trend') {
+      return (
+        <Sparkline
+          color={CHART_PALETTE[3][3]}
+          series={value}
+          width={column.width ? column.width - column.width / 5 : undefined}
+        />
+      );
+    }
+
+    return <span style={rowStyle}>{value}</span>;
   }
 
   return (

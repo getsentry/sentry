@@ -71,7 +71,7 @@ def strict(filename: str, dryrun: bool):
         click.echo("Dryrun flag on. ")
 
     with open(filename) as stream:
-        data = yaml.safe_load(stream)
+        data = yaml.safe_load(stream).get("data", {})
 
         for key, val in data.items():
             _set(key, val, dryrun)

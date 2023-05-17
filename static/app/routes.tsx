@@ -670,18 +670,6 @@ function buildRoutes() {
           component={make(() => import('sentry/views/settings/projectPlugins/details'))}
         />
       </Route>
-      <Route path="install/" name={t('Configuration')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/projectInstall/overview'))}
-        />
-        <Route
-          path=":platform/"
-          name={t('Docs')}
-          component={make(
-            () => import('sentry/views/projectInstall/platformOrIntegration')
-          )}
-        />
-      </Route>
     </Route>
   );
 
@@ -1714,12 +1702,22 @@ function buildRoutes() {
         )}
       />
       <Route
+        path="endpoint-overview/"
+        component={make(
+          () => import('sentry/views/starfish/views/webServiceView/endpointOverview')
+        )}
+      />
+      <Route
         path="database/"
         component={make(() => import('sentry/views/starfish/modules/databaseModule'))}
       />
       <Route
         path="api/"
         component={make(() => import('sentry/views/starfish/modules/APIModule'))}
+      />
+      <Route
+        path="spans/"
+        component={make(() => import('sentry/views/starfish/views/spans'))}
       />
       <Route
         path="span/:groupId/"
@@ -1739,10 +1737,9 @@ function buildRoutes() {
           {starfishChildRoutes}
         </Route>
       )}
-
       <Route
-        path="organizations/:orgId/starfish/"
-        component={make(() => import('sentry/views/starfish/'))}
+        path="/organizations/:orgId/starfish/"
+        component={withDomainRedirect(make(() => import('sentry/views/starfish/')))}
         key="org-starfish"
       >
         {starfishChildRoutes}
@@ -2272,10 +2269,13 @@ function buildRoutes() {
           from="integrations/:providerKey/"
           to="/settings/:orgId/projects/:projectId/integrations/:providerKey/"
         />
-        <Redirect from="install/" to="/settings/:orgId/projects/:projectId/install/" />
         <Redirect
-          from="install/:platform'"
-          to="/settings/:orgId/projects/:projectId/install/:platform/"
+          from="/settings/projects/:projectId/install/"
+          to="/getting-started/:projectId/"
+        />
+        <Redirect
+          from="/settings/projects/:projectId/install/:platform/"
+          to="/getting-started/:projectId/:platform/"
         />
       </Route>
       <Redirect from=":projectId/group/:groupId/" to="issues/:groupId/" />

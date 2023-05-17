@@ -16,6 +16,7 @@ import {Series} from 'sentry/types/echarts';
 import {getDuration} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
+import {INTERNAL_API_REGEX} from 'sentry/views/starfish/modules/APIModule/constants';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
@@ -45,12 +46,12 @@ const COLUMN_ORDER = [
   {
     key: 'duration',
     name: 'Response Time',
-    width: 320,
+    width: 220,
   },
   {
     key: 'failure_rate',
     name: 'Failure Rate',
-    width: 320,
+    width: 220,
   },
   {
     key: 'p50',
@@ -72,31 +73,34 @@ const COLUMN_ORDER = [
 export default function HostTable({location, setDomainFilter}: Props) {
   const pageFilter = usePageFilters();
   const theme = useTheme();
-  const query = getHostListQuery({
+  const queryString = getHostListQuery({
     datetime: pageFilter.selection.datetime,
   });
-  const aggregateQuery = getEndpointDomainsQuery({
+  const aggregateQueryString = getEndpointDomainsQuery({
     datetime: pageFilter.selection.datetime,
   });
 
   const {isLoading: areHostsLoading, data: hostsData} = useQuery({
     queryKey: ['query', pageFilter.selection.datetime],
-    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
+    queryFn: () => fetch(`${HOST}/?query=${queryString}`).then(res => res.json()),
     retry: false,
+    refetchOnWindowFocus: false,
     initialData: [],
   });
 
   const {isLoading: areHostAggregatesLoading, data: aggregateHostsData} = useQuery({
     queryKey: ['aggregateQuery', pageFilter.selection.datetime],
-    queryFn: () => fetch(`${HOST}/?query=${aggregateQuery}`).then(res => res.json()),
+    queryFn: () =>
+      fetch(`${HOST}/?query=${aggregateQueryString}`).then(res => res.json()),
     retry: false,
+    refetchOnWindowFocus: false,
     initialData: [],
   });
 
   const dataByHost = groupBy(hostsData, 'domain');
 
   // Filter out localhost and any IP addresses (probably an internal service)
-  const hosts = Object.keys(dataByHost).filter(host => !host.match(/\d\.\d|localhost/));
+  const hosts = Object.keys(dataByHost).filter(host => !host.match(INTERNAL_API_REGEX));
 
   const startDate = moment(orderBy(hostsData, 'interval', 'asc')[0]?.interval);
   const endDate = moment(orderBy(hostsData, 'interval', 'desc')[0]?.interval);
@@ -133,8 +137,13 @@ export default function HostTable({location, setDomainFilter}: Props) {
         endDate
       );
 
-      const {p50, p99, p95, max, total_exclusive_time} =
-        aggregateHostsData?.find(aggregate => aggregate.domain === host) ?? {};
+      const {
+        'p50(span.self_time)': p50,
+        'p99(span.self_time)': p99,
+        'p95(span.self_time)': p95,
+        'p100(span.self_time)': max,
+        'sum(span.self_time)': total_exclusive_time,
+      } = aggregateHostsData?.find(aggregate => aggregate.domain === host) ?? {};
 
       totalTotalExclusiveTime += total_exclusive_time;
       totalP50 += p50;

@@ -3,7 +3,11 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+from django.conf import settings
+from django.test.utils import override_settings
+
 from sentry.constants import ObjectStatus
+from sentry.models import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -40,24 +44,23 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         last_checkin_older = datetime.now() - timedelta(minutes=5)
 
         def add_status_monitor(status_key: str, date: datetime | None = None):
-            status = getattr(MonitorStatus, status_key)
-            # TODO(rjo100): this is precursor to removing the MonitorStatus from Monitors
+            monitor_status = getattr(MonitorStatus, status_key)
+            # TODO(rjo100): this is precursor to removing the MonitorStatus values from Monitors
             monitor = self._create_monitor(
-                status=getattr(MonitorStatus, "ACTIVE"),
-                last_checkin=date or last_checkin,
+                status=ObjectStatus.ACTIVE,
                 name=status_key,
             )
             self._create_monitor_environment(
                 monitor,
                 name="jungle",
                 last_checkin=(date or last_checkin) - timedelta(seconds=30),
-                status=status,
+                status=monitor_status,
             )
             self._create_monitor_environment(
                 monitor,
                 name="volcano",
                 last_checkin=(date or last_checkin) - timedelta(seconds=15),
-                status=getattr(MonitorStatus, "DISABLED"),
+                status=MonitorStatus.DISABLED,
             )
             return monitor
 
@@ -68,6 +71,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         monitor_error_older_checkin = add_status_monitor("ERROR", last_checkin_older)
         monitor_error = add_status_monitor("ERROR")
         monitor_missed_checkin = add_status_monitor("MISSED_CHECKIN")
+        monitor_timed_out = add_status_monitor("TIMEOUT")
 
         response = self.get_success_response(
             self.organization.slug, params={"environment": "jungle"}
@@ -77,6 +81,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             [
                 monitor_error,
                 monitor_error_older_checkin,
+                monitor_timed_out,
                 monitor_missed_checkin,
                 monitor_ok,
                 monitor_active,
@@ -126,6 +131,26 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
 
         response = self.get_success_response(self.organization.slug, query="test-slug")
         self.check_valid_response(response, [monitor])
+
+    def test_ignore_pending_deletion_environments(self):
+        monitor = self._create_monitor()
+        self._create_monitor_environment(
+            monitor,
+            status=MonitorStatus.OK,
+            last_checkin=datetime.now() - timedelta(minutes=1),
+        )
+        self._create_monitor_environment(
+            monitor,
+            status=MonitorStatus.PENDING_DELETION,
+            name="deleted_environment",
+            last_checkin=datetime.now() - timedelta(minutes=1),
+        )
+
+        response = self.get_success_response(self.organization.slug)
+        self.check_valid_response(response, [monitor])
+        # Confirm we only see the one 'ok' environment
+        assert len(response.data[0]["environments"]) == 1
+        assert response.data[0]["environments"][0]["status"] == "ok"
 
 
 @region_silo_test(stable=True)
@@ -182,3 +207,40 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug, **data)
 
         assert response.data["slug"] == "my-monitor"
+
+    @override_settings(MAX_MONITORS_PER_ORG=2)
+    def test_monitor_organization_limit(self):
+        for i in range(settings.MAX_MONITORS_PER_ORG):
+            data = {
+                "project": self.project.slug,
+                "name": f"Unicron-{i}",
+                "slug": f"unicron-{i}",
+                "type": "cron_job",
+                "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            }
+            self.get_success_response(self.organization.slug, **data)
+
+        data = {
+            "project": self.project.slug,
+            "name": f"Unicron-{settings.MAX_MONITORS_PER_ORG + 1}",
+            "slug": f"unicron-{settings.MAX_MONITORS_PER_ORG + 1}",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        self.get_error_response(self.organization.slug, status_code=403, **data)
+
+    def test_simple_with_alert_rule(self):
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            "alert_rule": {"targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}]},
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+
+        monitor = Monitor.objects.get(slug=response.data["slug"])
+        alert_rule_id = monitor.config.get("alert_rule_id")
+        assert Rule.objects.filter(
+            project_id=monitor.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
+        ).exists()

@@ -9,15 +9,15 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project, Scope} from 'sentry/types';
+import {Project} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
-  access: Set<Scope>;
   data: ProjectKey;
+  hasWriteAccess: boolean;
   onRemove: (data: ProjectKey) => void;
   onToggle: (isActive: boolean, data: ProjectKey) => void;
   orgId: string;
@@ -29,7 +29,7 @@ function KeyRow({
   data,
   onRemove,
   onToggle,
-  access,
+  hasWriteAccess,
   routes,
   location,
   params,
@@ -39,8 +39,6 @@ function KeyRow({
   const handleDisable = () => onToggle(false, data);
 
   const editUrl = recreateRoute(`${data.id}/`, {routes, params, location});
-  const controlActive = access.has('project:write');
-
   const platform = project.platform || 'other';
   const isBrowserJavaScript = platform === 'javascript';
   const isJsPlatform = platform.startsWith('javascript');
@@ -62,6 +60,7 @@ function KeyRow({
             {t('Configure')}
           </Button>
           <Confirm
+            disabled={!hasWriteAccess}
             onConfirm={data.isActive ? handleDisable : handleEnable}
             confirmText={data.isActive ? t('Disable Key') : t('Enable Key')}
             message={
@@ -70,11 +69,10 @@ function KeyRow({
                 : t('Are you sure you want to enable this key?')
             }
           >
-            <Button size="sm" disabled={!controlActive}>
-              {data.isActive ? t('Disable') : t('Enable')}
-            </Button>
+            <Button size="sm">{data.isActive ? t('Disable') : t('Enable')}</Button>
           </Confirm>
           <Confirm
+            disabled={!hasWriteAccess}
             priority="danger"
             onConfirm={() => onRemove(data)}
             confirmText={t('Remove Key')}
@@ -82,12 +80,7 @@ function KeyRow({
               'Are you sure you want to remove this key? This action is irreversible.'
             )}
           >
-            <Button
-              size="sm"
-              disabled={!controlActive}
-              icon={<IconDelete />}
-              aria-label={t('Delete')}
-            />
+            <Button size="sm" icon={<IconDelete />} aria-label={t('Delete')} />
           </Confirm>
         </Controls>
       </PanelHeader>

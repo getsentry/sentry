@@ -91,7 +91,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         results[0].callback(event, futures=[])
         data = json.loads(responses.calls[0].request.body)
 
-        perf_issue_title = 'N+1 Query: SELECT "books_author"."id", "books_author"."name" FROM "books_author" WHERE "books_author"."id" = %s LIMIT 21'
+        perf_issue_title = "N+1 Query"
 
         assert data["event_action"] == "trigger"
         assert data["payload"]["summary"] == perf_issue_title
@@ -167,9 +167,9 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(data={"account": self.integration.id})
 
         service_options = rule.get_services()
-        assert [(s.id, s.service_name) for s in service_options] == [
-            (new_service.id, new_service.service_name)
-        ]
+        assert service_options == [(new_service.id, new_service.service_name)]
+        assert "choice" == rule.form_fields["service"]["type"]
+        assert service_options == rule.form_fields["service"]["choices"]
 
     @responses.activate
     def test_valid_service_selected(self):

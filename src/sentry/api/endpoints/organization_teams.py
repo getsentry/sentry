@@ -82,7 +82,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             return Response(status=403)
 
         queryset = (
-            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE)
+            Team.objects.filter(organization=organization, status=TeamStatus.ACTIVE)
             .order_by("slug")
             .select_related("organization")  # Used in TeamSerializer
         )
@@ -176,7 +176,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             if self.should_add_creator_to_team(request):
                 try:
                     member = OrganizationMember.objects.get(
-                        user=request.user, organization=organization
+                        user_id=request.user.id, organization=organization
                     )
                 except OrganizationMember.DoesNotExist:
                     pass

@@ -1344,7 +1344,7 @@ def get_pagerduty_services(organization_id, integration_id):
     return PagerDutyService.objects.filter(
         organization_id=organization_id,
         integration_id=integration_id,
-    )
+    ).values("id", "service_name")
 
 
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.

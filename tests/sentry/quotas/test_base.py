@@ -88,7 +88,7 @@ class QuotaTest(TestCase):
 
     def test_get_blended_sample_rate(self):
         org = self.create_organization()
-        assert self.backend.get_blended_sample_rate(org) is None
+        assert self.backend.get_blended_sample_rate(organization_id=org.id) is None
 
 
 @pytest.mark.parametrize(
@@ -125,24 +125,6 @@ class QuotaTest(TestCase):
                 "limit": 0,
                 "scope": "organization",
                 "categories": ["transaction"],
-                "reasonCode": "go_away",
-            },
-        ),
-        (
-            QuotaConfig(
-                id="p",
-                scope=QuotaScope.PROJECT,
-                scope_id=1,
-                limit=2**32,
-                window=1,
-                reason_code="go_away",
-            ),
-            {
-                "id": "p",
-                "scope": "project",
-                "scopeId": "1",
-                "limit": 2**32 - 1,
-                "window": 1,
                 "reasonCode": "go_away",
             },
         ),

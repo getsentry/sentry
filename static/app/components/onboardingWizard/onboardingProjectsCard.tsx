@@ -16,24 +16,18 @@ import SkipConfirm from './skipConfirm';
 
 export default function OnboardingProjectsCard({
   organization: org,
-  onboardingState,
-  setOnboardingState,
+  onboardingContext,
   projects: allProjects,
 }: OnboardingCustomComponentProps) {
-  if (!onboardingState) {
-    return null;
-  }
-
   const handleSkip = () => {
-    setOnboardingState({
-      ...onboardingState,
-      selectedPlatform: undefined,
+    onboardingContext.setData({
+      ...onboardingContext.data,
+      selectedSDK: undefined,
     });
   };
 
-  const selectedProjectSlug = onboardingState.selectedPlatform
-    ? onboardingState.platformToProjectIdMap[onboardingState.selectedPlatform.key]
-    : undefined;
+  // TODO(Priscila): Reflect on this logic
+  const selectedProjectSlug = onboardingContext.data.selectedSDK?.key;
 
   const project = selectedProjectSlug
     ? allProjects.find(p => p.slug === selectedProjectSlug)

@@ -3,8 +3,8 @@ import {Location} from 'history';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {PRODUCT} from 'sentry/components/onboarding/productSelection';
-import {PersistedStoreContext} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
@@ -74,7 +74,6 @@ function renderMockRequests({
 describe('Onboarding Setup Docs', function () {
   it('does not render Product Selection', async function () {
     const {router, route, routerContext, organization, project} = initializeOrg({
-      ...initializeOrg(),
       projects: [
         {
           ...initializeOrg().project,
@@ -90,24 +89,7 @@ describe('Onboarding Setup Docs', function () {
     renderMockRequests({project, orgSlug: organization.slug});
 
     render(
-      <PersistedStoreContext.Provider
-        value={[
-          {
-            onboarding: {
-              selectedPlatform: {
-                category: 'server',
-                key: 'python',
-                language: 'python',
-                type: 'language',
-              },
-              platformToProjectIdMap: {
-                python: 'python',
-              },
-            },
-          },
-          jest.fn(),
-        ]}
-      >
+      <OnboardingContextProvider>
         <SetupDocs
           active
           onComplete={() => {}}
@@ -117,11 +99,10 @@ describe('Onboarding Setup Docs', function () {
           location={router.location}
           genSkipOnboardingLink={() => ''}
           orgId={organization.slug}
-          jumpToSetupProject={() => {}}
           search=""
-          selectedProjectSlug="python"
+          recentCreatedProject={project}
         />
-      </PersistedStoreContext.Provider>,
+      </OnboardingContextProvider>,
       {
         context: routerContext,
         organization,
@@ -142,7 +123,6 @@ describe('Onboarding Setup Docs', function () {
   describe('renders Product Selection', function () {
     it('all products checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]},
@@ -167,24 +147,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       render(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatform: {
-                  category: 'browser',
-                  key: 'javascript-react',
-                  language: 'javascript',
-                  type: 'framework',
-                },
-                platformToProjectIdMap: {
-                  'javascript-react': 'javascript-react',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -194,11 +157,10 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
-            selectedProjectSlug="javascript-react"
+            recentCreatedProject={project}
           />
-        </PersistedStoreContext.Provider>,
+        </OnboardingContextProvider>,
         {
           context: routerContext,
           organization,
@@ -219,7 +181,6 @@ describe('Onboarding Setup Docs', function () {
 
     it('only performance checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING]},
@@ -244,24 +205,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       render(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatform: {
-                  category: 'browser',
-                  key: 'javascript-react',
-                  language: 'javascript',
-                  type: 'framework',
-                },
-                platformToProjectIdMap: {
-                  'javascript-react': 'javascript-react',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -271,11 +215,10 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
-            selectedProjectSlug="javascript-react"
+            recentCreatedProject={project}
           />
-        </PersistedStoreContext.Provider>,
+        </OnboardingContextProvider>,
         {
           context: routerContext,
           organization,
@@ -290,7 +233,6 @@ describe('Onboarding Setup Docs', function () {
 
     it('only session replay checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {product: [PRODUCT.SESSION_REPLAY]},
@@ -315,24 +257,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       render(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatform: {
-                  category: 'browser',
-                  key: 'javascript-react',
-                  language: 'javascript',
-                  type: 'framework',
-                },
-                platformToProjectIdMap: {
-                  'javascript-react': 'javascript-react',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -342,11 +267,10 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
-            selectedProjectSlug="javascript-react"
+            recentCreatedProject={project}
           />
-        </PersistedStoreContext.Provider>,
+        </OnboardingContextProvider>,
         {
           context: routerContext,
           organization,
@@ -361,7 +285,6 @@ describe('Onboarding Setup Docs', function () {
 
     it('only error monitoring checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {product: []},
@@ -386,24 +309,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       render(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatform: {
-                  category: 'browser',
-                  key: 'javascript-react',
-                  language: 'javascript',
-                  type: 'framework',
-                },
-                platformToProjectIdMap: {
-                  'javascript-react': 'javascript-react',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -413,11 +319,10 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
-            selectedProjectSlug="javascript-react"
+            recentCreatedProject={project}
           />
-        </PersistedStoreContext.Provider>,
+        </OnboardingContextProvider>,
         {
           context: routerContext,
           organization,
@@ -434,7 +339,6 @@ describe('Onboarding Setup Docs', function () {
   describe('JS Loader Script', function () {
     it('renders Loader Script setup', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]},
@@ -465,24 +369,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       const {rerender} = render(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatform: {
-                  category: 'browser',
-                  key: 'javascript',
-                  language: 'javascript',
-                  type: 'language',
-                },
-                platformToProjectIdMap: {
-                  javascript: 'javascript',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -492,11 +379,10 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
-            selectedProjectSlug="javascript"
+            recentCreatedProject={project}
           />
-        </PersistedStoreContext.Provider>,
+        </OnboardingContextProvider>,
         {
           context: routerContext,
           organization,
@@ -529,24 +415,7 @@ describe('Onboarding Setup Docs', function () {
         product: [PRODUCT.SESSION_REPLAY],
       };
       rerender(
-        <PersistedStoreContext.Provider
-          value={[
-            {
-              onboarding: {
-                selectedPlatform: {
-                  category: 'browser',
-                  key: 'javascript',
-                  language: 'javascript',
-                  type: 'language',
-                },
-                platformToProjectIdMap: {
-                  javascript: 'javascript',
-                },
-              },
-            },
-            jest.fn(),
-          ]}
-        >
+        <OnboardingContextProvider>
           <SetupDocs
             active
             onComplete={() => {}}
@@ -556,11 +425,10 @@ describe('Onboarding Setup Docs', function () {
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
-            jumpToSetupProject={() => {}}
             search=""
-            selectedProjectSlug="javascript"
+            recentCreatedProject={project}
           />
-        </PersistedStoreContext.Provider>
+        </OnboardingContextProvider>
       );
 
       expect(updateLoaderMock).toHaveBeenCalledTimes(2);

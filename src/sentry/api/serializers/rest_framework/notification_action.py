@@ -227,7 +227,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
                 for pds in PagerDutyService.objects.filter(
                     organization_id=self.context["organization"].id,
                     integration_id=self.integration.id,
-                )
+                ).values("id", "service_name")
             ]
 
             raise serializers.ValidationError(

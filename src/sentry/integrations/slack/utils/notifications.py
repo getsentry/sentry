@@ -28,7 +28,7 @@ def send_incident_alert_notification(
     integration, org_integration = integration_service.get_organization_context(
         organization_id=incident.organization_id, integration_id=action.integration_id
     )
-    if org_integration is None or integration is None or integration.status != ObjectStatus.VISIBLE:
+    if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
         # Integration removed, but rule is still active.
         return
 

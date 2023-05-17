@@ -192,7 +192,9 @@ def transform_to_notification_settings_by_recipient(
     Given an unsorted list of notification settings, create a mapping of users
     to a map of notification scopes to setting values.
     """
-    actor_mapping = {recipient.actor_id: recipient for recipient in recipients}
+    team_mapping = {r.id: r for r in recipients if r.actor_type == ActorType.TEAM}
+    user_mapping = {r.id: r for r in recipients if r.actor_type == ActorType.USER}
+
     notification_settings_by_recipient: MutableMapping[
         RpcActor,
         MutableMapping[
@@ -200,11 +202,11 @@ def transform_to_notification_settings_by_recipient(
             MutableMapping[ExternalProviders, NotificationSettingOptionValues],
         ],
     ] = defaultdict(lambda: defaultdict(dict))
-    for notification_setting in notification_settings:
-        recipient = actor_mapping[notification_setting.target_id]
-        scope_type = NotificationScopeType(notification_setting.scope_type)
-        value = NotificationSettingOptionValues(notification_setting.value)
-        provider = ExternalProviders(notification_setting.provider)
+    for ns in notification_settings:
+        recipient = team_mapping[ns.team_id] if ns.team_id else user_mapping[ns.user_id]
+        scope_type = NotificationScopeType(ns.scope_type)
+        value = NotificationSettingOptionValues(ns.value)
+        provider = ExternalProviders(ns.provider)
         notification_settings_by_recipient[recipient][scope_type][provider] = value
     return notification_settings_by_recipient
 
@@ -284,10 +286,12 @@ def get_scope(
     if organization:
         return NotificationScopeType.ORGANIZATION, extract_id_from(organization)
 
-    if user is not None:
-        actor = RpcActor.from_object(user)
-    if team is not None:
-        actor = RpcActor.from_object(team)
+    if not actor:
+        if user is not None:
+            actor = RpcActor.from_object(user, fetch_actor=False)
+        if team is not None:
+            actor = RpcActor.from_object(team, fetch_actor=False)
+
     if actor:
         if actor.actor_type == ActorType.TEAM:
             return NotificationScopeType.TEAM, extract_id_from(actor)
@@ -325,12 +329,16 @@ def get_groups_for_query(
     that to know if a user is subscribed or not, as long as notifications aren't
     disabled for the project.
     """
+
+    # Avoid n queries for actors.
+    actor = RpcActor.from_object(user)
+
     # Although this can be done with a comprehension, looping for clarity.
     output = set()
     for project_id, groups in groups_by_project.items():
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope,
-            recipient=user,
+            recipient=actor,
             parent_id=project_id,
             type=NotificationSettingTypes.WORKFLOW,
         )
@@ -530,7 +538,7 @@ def get_most_specific_notification_setting_value(
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    recipient: RpcActor | Team | User | AnonymousUser,
+    recipient: RpcActor | AnonymousUser,
     parent_id: int,
     type: NotificationSettingTypes,
 ) -> NotificationSettingOptionValues:

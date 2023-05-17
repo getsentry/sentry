@@ -28,6 +28,7 @@ import {
   MEPConsumer,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -287,64 +288,56 @@ class WidgetCard extends Component<Props, State> {
       >
         {conditionalWrapWithDashboardsMEPProvider(
           <React.Fragment>
-            <WidgetCardPanel isDragging={false}>
-              <WidgetHeader>
-                <WidgetHeaderDescription>
-                  <Tooltip
-                    title={widget.title}
-                    containerDisplayMode="grid"
-                    showOnlyOnOverflow
-                  >
-                    <WidgetTitle>{widget.title}</WidgetTitle>
-                  </Tooltip>
-                  <DashboardsMEPConsumer>
-                    {({}) => {
-                      // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
-                      // if (
-                      //   isMetricsData === false &&
-                      //   widget.widgetType === WidgetType.DISCOVER
-                      // ) {
-                      //   return (
-                      //     <Tooltip
-                      //       containerDisplayMode="inline-flex"
-                      //       title={t(
-                      //         'Based on your search criteria, the sampled events available may be limited and may not be representative of all events.'
-                      //       )}
-                      //     >
-                      //       <IconWarning color="warningText" />
-                      //     </Tooltip>
-                      //   );
-                      // }
-                      return null;
-                    }}
-                  </DashboardsMEPConsumer>
-                </WidgetHeaderDescription>
-                {this.renderContextMenu()}
-              </WidgetHeader>
-              {hasSessionDuration && SESSION_DURATION_ALERT}
-              {isWidgetInvalid ? (
-                <Fragment>
-                  {renderErrorMessage?.('Widget query condition is invalid.')}
-                  <StyledErrorPanel>
-                    <IconWarning color="gray500" size="lg" />
-                  </StyledErrorPanel>
-                </Fragment>
-              ) : noLazyLoad ? (
-                <WidgetCardChartContainer
-                  location={location}
-                  api={api}
-                  organization={organization}
-                  selection={selection}
-                  widget={widget}
-                  isMobile={isMobile}
-                  renderErrorMessage={renderErrorMessage}
-                  tableItemLimit={tableItemLimit}
-                  windowWidth={windowWidth}
-                  onDataFetched={this.setData}
-                  dashboardFilters={dashboardFilters}
-                />
-              ) : (
-                <LazyLoad once resize height={200}>
+            <VisuallyCompleteWithData
+              id="DashboardList-FirstWidgetCard"
+              hasData={
+                ((this.state.tableData?.length || this.state.seriesData?.length) ?? 0) > 0
+              }
+              disabled={Number(this.props.index) !== 0}
+            >
+              <WidgetCardPanel isDragging={false}>
+                <WidgetHeader>
+                  <WidgetHeaderDescription>
+                    <Tooltip
+                      title={widget.title}
+                      containerDisplayMode="grid"
+                      showOnlyOnOverflow
+                    >
+                      <WidgetTitle>{widget.title}</WidgetTitle>
+                    </Tooltip>
+                    <DashboardsMEPConsumer>
+                      {({}) => {
+                        // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
+                        // if (
+                        //   isMetricsData === false &&
+                        //   widget.widgetType === WidgetType.DISCOVER
+                        // ) {
+                        //   return (
+                        //     <Tooltip
+                        //       containerDisplayMode="inline-flex"
+                        //       title={t(
+                        //         'Based on your search criteria, the sampled events available may be limited and may not be representative of all events.'
+                        //       )}
+                        //     >
+                        //       <IconWarning color="warningText" />
+                        //     </Tooltip>
+                        //   );
+                        // }
+                        return null;
+                      }}
+                    </DashboardsMEPConsumer>
+                  </WidgetHeaderDescription>
+                  {this.renderContextMenu()}
+                </WidgetHeader>
+                {hasSessionDuration && SESSION_DURATION_ALERT}
+                {isWidgetInvalid ? (
+                  <Fragment>
+                    {renderErrorMessage?.('Widget query condition is invalid.')}
+                    <StyledErrorPanel>
+                      <IconWarning color="gray500" size="lg" />
+                    </StyledErrorPanel>
+                  </Fragment>
+                ) : noLazyLoad ? (
                   <WidgetCardChartContainer
                     location={location}
                     api={api}
@@ -358,10 +351,26 @@ class WidgetCard extends Component<Props, State> {
                     onDataFetched={this.setData}
                     dashboardFilters={dashboardFilters}
                   />
-                </LazyLoad>
-              )}
-              {this.renderToolbar()}
-            </WidgetCardPanel>
+                ) : (
+                  <LazyLoad once resize height={200}>
+                    <WidgetCardChartContainer
+                      location={location}
+                      api={api}
+                      organization={organization}
+                      selection={selection}
+                      widget={widget}
+                      isMobile={isMobile}
+                      renderErrorMessage={renderErrorMessage}
+                      tableItemLimit={tableItemLimit}
+                      windowWidth={windowWidth}
+                      onDataFetched={this.setData}
+                      dashboardFilters={dashboardFilters}
+                    />
+                  </LazyLoad>
+                )}
+                {this.renderToolbar()}
+              </WidgetCardPanel>
+            </VisuallyCompleteWithData>
             {!organization.features.includes('performance-mep-bannerless-ui') &&
               (organization.features.includes('dashboards-mep') ||
                 organization.features.includes('mep-rollout-flag')) && (

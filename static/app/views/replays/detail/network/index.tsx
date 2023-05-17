@@ -1,23 +1,19 @@
-import {useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconClose, IconInfo} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import NetworkDetails from 'sentry/views/replays/detail/network/networkDetails';
+import NetworkDetails from 'sentry/views/replays/detail/network/details';
+import {ReqRespBodiesAlert} from 'sentry/views/replays/detail/network/details/onboarding';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
   COLUMN_COUNT,
@@ -32,8 +28,12 @@ import type {NetworkSpan} from 'sentry/views/replays/types';
 const HEADER_HEIGHT = 25;
 const BODY_HEIGHT = 28;
 
+const RESIZEABLE_HANDLE_HEIGHT = 90;
+
 type Props = {
+  isNetworkDetailsSetup: boolean;
   networkSpans: undefined | NetworkSpan[];
+  projectId: undefined | string;
   startTimestampMs: number;
 };
 
@@ -43,12 +43,16 @@ const cellMeasurer = {
   fixedHeight: true,
 };
 
-function NetworkList({networkSpans, startTimestampMs}: Props) {
+function NetworkList({
+  isNetworkDetailsSetup,
+  networkSpans,
+  projectId,
+  startTimestampMs,
+}: Props) {
   const organization = useOrganization();
   const {currentTime, currentHoverTime} = useReplayContext();
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
-  const {dismiss, isDismissed} = useDismissAlert({key: 'replay-network-bodies'});
 
   const filterProps = useNetworkFilters({networkSpans: networkSpans || []});
   const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
@@ -58,6 +62,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
+  const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<MultiGrid>(null);
   const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
@@ -65,17 +70,17 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
       cellMeasurer,
       gridRef,
       columnCount: COLUMN_COUNT,
-      dynamicColumnIndex: 1,
+      dynamicColumnIndex: 2,
       deps,
     });
 
-  const initialRequestDetailsHeight = useMemo(
-    () => Math.max(150, window.innerHeight * 0.25),
-    []
-  );
+  // `initialSize` cannot depend on containerRef because the ref starts as
+  // `undefined` which then gets set into the hook and doesn't update.
+  const initialSize = Math.max(150, window.innerHeight * 0.4);
+
   const {size: containerSize, ...resizableDrawerProps} = useResizableDrawer({
     direction: 'up',
-    initialSize: initialRequestDetailsHeight,
+    initialSize,
     min: 0,
     onResize: () => {},
   });
@@ -83,8 +88,40 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
     'n_detail_row',
     ''
   );
-  const detailItemIndex = getDetailRow();
-  const splitSize = networkSpans && detailItemIndex ? containerSize : undefined;
+  const detailDataIndex = getDetailRow();
+
+  const maxContainerHeight =
+    (containerRef.current?.clientHeight || window.innerHeight) - RESIZEABLE_HANDLE_HEIGHT;
+  const splitSize =
+    networkSpans && detailDataIndex
+      ? Math.min(maxContainerHeight, containerSize)
+      : undefined;
+
+  const onClickCell = useCallback(
+    ({dataIndex, rowIndex}: {dataIndex: number; rowIndex: number}) => {
+      if (getDetailRow() === String(dataIndex)) {
+        setDetailRow('');
+
+        trackAnalytics('replay.details-network-panel-closed', {
+          is_sdk_setup: isNetworkDetailsSetup,
+          organization,
+        });
+      } else {
+        setDetailRow(String(dataIndex));
+        setScrollToRow(rowIndex);
+
+        const item = items[dataIndex];
+        trackAnalytics('replay.details-network-panel-opened', {
+          is_sdk_setup: isNetworkDetailsSetup,
+          organization,
+          resource_method: item.data.method,
+          resource_status: item.data.statusCode,
+          resource_type: item.op,
+        });
+      }
+    },
+    [getDetailRow, isNetworkDetailsSetup, items, organization, setDetailRow]
+  );
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
     const network = items[rowIndex - 1];
@@ -117,9 +154,10 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
               columnIndex={columnIndex}
               currentHoverTime={currentHoverTime}
               currentTime={currentTime}
-              handleClick={handleClick}
               handleMouseEnter={handleMouseEnter}
               handleMouseLeave={handleMouseLeave}
+              onClickTimestamp={handleClick}
+              onClickCell={onClickCell}
               ref={e => e && registerChild?.(e)}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
@@ -141,32 +179,9 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
         organization={organization}
         renderDisabled={false}
       >
-        {isDismissed ? null : (
-          <StyledAlert
-            icon={<IconInfo />}
-            opaque={false}
-            showIcon
-            type="info"
-            trailingItems={
-              <StyledButton priority="link" size="sm" onClick={dismiss}>
-                <IconClose color="gray500" size="sm" />
-              </StyledButton>
-            }
-          >
-            {tct('Start collecting the body of requests and responses. [link]', {
-              link: (
-                <ExternalLink
-                  href="https://github.com/getsentry/sentry-javascript/issues/7103"
-                  onClick={dismiss}
-                >
-                  {t('Learn More')}
-                </ExternalLink>
-              ),
-            })}
-          </StyledAlert>
-        )}
+        <ReqRespBodiesAlert isNetworkDetailsSetup={isNetworkDetailsSetup} />
       </Feature>
-      <NetworkTable>
+      <NetworkTable ref={containerRef}>
         <SplitPanel
           style={{
             gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',
@@ -220,9 +235,16 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
           >
             <NetworkDetails
               {...resizableDrawerProps}
-              item={detailItemIndex ? (items[detailItemIndex] as NetworkSpan) : null}
-              onClose={() => setDetailRow('')}
-              onScrollToRow={() => setScrollToRow(Number(detailItemIndex))}
+              isSetup={isNetworkDetailsSetup}
+              item={detailDataIndex ? (items[detailDataIndex] as NetworkSpan) : null}
+              onClose={() => {
+                setDetailRow('');
+                trackAnalytics('replay.details-network-panel-closed', {
+                  is_sdk_setup: isNetworkDetailsSetup,
+                  organization,
+                });
+              }}
+              projectId={projectId}
               startTimestampMs={startTimestampMs}
             />
           </Feature>
@@ -286,14 +308,6 @@ const NetworkTable = styled(FluidHeight)`
     bottom: 0;
     width: 999999999%;
   }
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(1)};
-`;
-
-const StyledButton = styled(Button)`
-  color: inherit;
 `;
 
 export default NetworkList;

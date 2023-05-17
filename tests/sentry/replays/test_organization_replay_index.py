@@ -797,6 +797,20 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 400
             assert response.data["detail"] == "You cannot view events from multiple projects."
 
+    def test_get_replays_no_multi_project_select_query_referrer(self):
+        self.create_project(teams=[self.team])
+        self.create_project(teams=[self.team])
+
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(user)
+
+        with self.feature(REPLAYS_FEATURES), self.feature({"organizations:global-views": False}):
+            response = self.client.get(self.url + "?queryReferrer=issueReplays")
+            assert response.status_code == 200
+
     def test_get_replays_unknown_field(self):
         """Test replays unknown fields raise a 400 error."""
         project = self.create_project(teams=[self.team])
@@ -860,6 +874,45 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "is_archived": True,
                 }
             ]
+
+    # commented out until https://github.com/getsentry/snuba/pull/4137 is merged.
+    # def test_archived_records_out_of_bounds(self):
+    #     replay1_id = uuid.uuid4().hex
+    #     seq1_timestamp = datetime.datetime.now() - datetime.timedelta(days=10)
+    #     seq2_timestamp = datetime.datetime.now() - datetime.timedelta(days=3)
+
+    #     self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay1_id))
+    #     self.store_replays(
+    #         mock_replay(
+    #             seq2_timestamp, self.project.id, replay1_id, is_archived=True, segment_id=None
+    #         )
+    #     )
+
+    #     with self.feature(REPLAYS_FEATURES):
+    #         response = self.client.get(self.url)
+    #         assert response.status_code == 200
+    #         assert response.json()["data"] == [
+    #             {
+    #                 "id": replay1_id,
+    #                 "project_id": str(self.project.id),
+    #                 "trace_ids": [],
+    #                 "error_ids": [],
+    #                 "environment": None,
+    #                 "tags": [],
+    #                 "user": {"id": "Archived Replay", "display_name": "Archived Replay"},
+    #                 "sdk": {"name": None, "version": None},
+    #                 "os": {"name": None, "version": None},
+    #                 "browser": {"name": None, "version": None},
+    #                 "device": {"name": None, "brand": None, "model": None, "family": None},
+    #                 "urls": None,
+    #                 "started_at": None,
+    #                 "count_errors": None,
+    #                 "activity": None,
+    #                 "finished_at": None,
+    #                 "duration": None,
+    #                 "is_archived": True,
+    #             }
+    #         ]
 
     def test_get_replays_filter_clicks(self):
         """Test replays conform to the interchange format."""

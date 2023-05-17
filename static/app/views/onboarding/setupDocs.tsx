@@ -25,14 +25,12 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useExperiment} from 'sentry/utils/useExperiment';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 
 import FirstEventFooter from './components/firstEventFooter';
 import IntegrationSetup from './integrationSetup';
 import {StepProps} from './types';
-import {usePersistedOnboardingState} from './utils';
 /**
  * The documentation will include the following string should it be missing the
  * verification example, which currently a lot of docs are.
@@ -201,11 +199,9 @@ function ProjectDocs(props: {
   );
 }
 
-function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
+function SetupDocs({route, router, location, recentCreatedProject: project}: StepProps) {
   const api = useApi();
   const organization = useOrganization();
-  const {projects: rawProjects} = useProjects();
-  const [clientState, setClientState] = usePersistedOnboardingState();
 
   const {
     logExperiment: newFooterLogExperiment,
@@ -218,17 +214,10 @@ function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
     'onboarding-heartbeat-footer'
   );
 
-  // get project
-  const projectIndex = selectedProjectSlug
-    ? rawProjects.findIndex(p => p.slug === selectedProjectSlug) ?? undefined
-    : undefined;
-  const project = projectIndex !== undefined ? rawProjects[projectIndex] : undefined;
-
   // SDK instrumentation
   const [hasError, setHasError] = useState(false);
   const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
   const [loadedPlatform, setLoadedPlatform] = useState<PlatformKey | null>(null);
-  const [hasFirstEvent, setHasFirstEvent] = useState<boolean>(!!project?.firstEvent);
 
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
   const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
@@ -239,7 +228,9 @@ function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
   const [integrationUseManualSetup, setIntegrationUseManualSetup] = useState(false);
 
   const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
-  const showDocsWithProductSelection = currentPlatform.match('^javascript-([A-Za-z]+)$');
+  const showDocsWithProductSelection =
+    currentPlatform.match('^javascript-([A-Za-z]+)$') ??
+    (showLoaderOnboarding === false && currentPlatform === 'javascript');
 
   const hideLoaderOnboarding = useCallback(() => {
     setShowLoaderOnboarding(false);
@@ -391,26 +382,14 @@ function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
             project={project}
             organization={organization}
             isLast
-            hasFirstEvent={hasFirstEvent}
             onClickSetupLater={() => {
               const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
               trackAnalytics('growth.onboarding_clicked_setup_platform_later', {
                 organization,
                 platform: currentPlatform,
-                project_index: projectIndex ?? 0,
-              });
-              if (!project.platform || !clientState) {
-                browserHistory.push(orgIssuesURL);
-                return;
-              }
-              setClientState({
-                ...clientState,
-                state: 'finished',
+                project_id: project.id,
               });
               browserHistory.push(orgIssuesURL);
-            }}
-            handleFirstIssueReceived={() => {
-              setHasFirstEvent(true);
             }}
           />
         )
@@ -419,26 +398,14 @@ function SetupDocs({route, router, location, selectedProjectSlug}: StepProps) {
           project={project}
           organization={organization}
           isLast
-          hasFirstEvent={hasFirstEvent}
           onClickSetupLater={() => {
             const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
             trackAnalytics('growth.onboarding_clicked_setup_platform_later', {
               organization,
               platform: currentPlatform,
-              project_index: projectIndex ?? 0,
-            });
-            if (!project.platform || !clientState) {
-              browserHistory.push(orgIssuesURL);
-              return;
-            }
-            setClientState({
-              ...clientState,
-              state: 'finished',
+              project_id: project.id,
             });
             browserHistory.push(orgIssuesURL);
-          }}
-          handleFirstIssueReceived={() => {
-            setHasFirstEvent(true);
           }}
         />
       )}

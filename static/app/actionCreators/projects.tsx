@@ -334,13 +334,20 @@ export function createProject({
  * @param orgSlug Organization Slug
  * @param projectSlug Project Slug
  */
-export function removeProject(
-  api: Client,
-  orgSlug: string,
-  projectSlug: Project['slug']
-) {
+export function removeProject({
+  api,
+  orgSlug,
+  projectSlug,
+  origin,
+}: {
+  api: Client;
+  orgSlug: string;
+  origin: 'onboarding' | 'settings';
+  projectSlug: Project['slug'];
+}) {
   return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
     method: 'DELETE',
+    data: {origin},
   });
 }
 
