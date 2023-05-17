@@ -1,6 +1,8 @@
+import {Theme} from '@emotion/react';
 import moment from 'moment';
 
-import {Series} from 'sentry/types/echarts';
+import MarkLine from 'sentry/components/charts/components/markLine';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 export const queryToSeries = (
@@ -39,3 +41,64 @@ export const queryToSeries = (
     )
   );
 };
+
+export function generateMarkLine(
+  title: string,
+  position: string,
+  data: SeriesDataUnit[],
+  theme: Theme
+) {
+  const index = data.findIndex(item => {
+    return (
+      Math.abs(moment.duration(moment(item.name).diff(moment(position))).asSeconds()) <
+      86400
+    );
+  });
+  return {
+    seriesName: title,
+    type: 'line',
+    color: theme.blue300,
+    data: [],
+    xAxisIndex: 0,
+    yAxisIndex: 0,
+    markLine: MarkLine({
+      silent: true,
+      animation: false,
+      lineStyle: {color: theme.blue300, type: 'dotted'},
+      data: [
+        {
+          xAxis: index,
+        },
+      ],
+      label: {
+        show: false,
+      },
+    }),
+  };
+}
+
+export function generateHorizontalLine(title: string, position: number, theme: Theme) {
+  return {
+    seriesName: title,
+    type: 'line',
+    color: theme.blue300,
+    data: [],
+    xAxisIndex: 0,
+    yAxisIndex: 0,
+    markLine: MarkLine({
+      silent: true,
+      animation: false,
+      lineStyle: {color: theme.blue300, type: 'dotted'},
+      data: [
+        {
+          yAxis: position,
+        },
+      ],
+      label: {
+        show: true,
+        position: 'insideStart',
+        formatter: title,
+      },
+    }),
+  };
+}
