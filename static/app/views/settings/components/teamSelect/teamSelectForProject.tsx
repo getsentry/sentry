@@ -41,6 +41,9 @@ function TeamSelect({
       return <EmptyMessage>{t('No Teams assigned')}</EmptyMessage>;
     }
 
+    // If the user is not a team-admin in any parent teams of this project, they will
+    // not be able to edit the configuration. Warn the user if this is their last team
+    // where they have team-admin role.
     const isUserLastTeamWrite =
       selectedTeams.reduce(
         (count, team) => (team.access.includes('team:write') ? count + 1 : count),
