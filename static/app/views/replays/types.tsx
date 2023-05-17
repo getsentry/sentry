@@ -1,4 +1,4 @@
-import type {eventWithTime} from '@sentry-internal/rrweb/typings/types';
+import type {customEvent, eventWithTime} from '@sentry-internal/rrweb/typings/types';
 import type {Duration} from 'moment';
 
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
@@ -107,16 +107,18 @@ export type ReplayListLocationQuery = {
 export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
+  | 'browser'
   | 'count_errors'
   | 'duration'
   | 'finished_at'
   | 'id'
   | 'is_archived'
+  | 'os'
   | 'project_id'
   | 'started_at'
+  | 'urls'
   | 'user'
-> &
-  Partial<Pick<ReplayRecord, 'browser' | 'count_urls' | 'os' | 'urls'>>;
+>;
 
 // Sync with ReplayListRecord above
 export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
@@ -124,7 +126,6 @@ export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
   'browser.name',
   'browser.version',
   'count_errors',
-  'count_urls',
   'duration',
   'finished_at',
   'id',
@@ -146,6 +147,8 @@ export type ReplaySegment = {
 
 /**
  * Highlight Replay Plugin types
+ *
+ * See also HighlightParams in static/app/components/replays/replayContext.tsx
  */
 export interface Highlight {
   nodeId: number;
@@ -154,6 +157,19 @@ export interface Highlight {
 }
 
 export type RecordingEvent = eventWithTime;
+export type RecordingOptions = customEvent<{
+  blockAllMedia: boolean;
+  errorSampleRate: number;
+  maskAllInputs: boolean;
+  maskAllText: boolean;
+  networkCaptureBodies: boolean;
+  networkDetailHasUrls: boolean;
+  networkRequestHasHeaders: boolean;
+  networkResponseHasHeaders: boolean;
+  sessionSampleRate: number;
+  useCompression: boolean;
+  useCompressionOption: boolean;
+}>;
 
 export interface ReplaySpan<T = Record<string, any>> {
   data: T;
@@ -165,7 +181,7 @@ export interface ReplaySpan<T = Record<string, any>> {
   description?: string;
 }
 
-export type MemorySpanType = ReplaySpan<{
+export type MemorySpan = ReplaySpan<{
   memory: {
     jsHeapSizeLimit: number;
     totalJSHeapSize: number;

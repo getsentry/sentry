@@ -74,7 +74,6 @@ function renderMockRequests({
 describe('Onboarding Setup Docs', function () {
   it('does not render Product Selection', async function () {
     const {router, route, routerContext, organization, project} = initializeOrg({
-      ...initializeOrg(),
       projects: [
         {
           ...initializeOrg().project,
@@ -101,7 +100,7 @@ describe('Onboarding Setup Docs', function () {
           genSkipOnboardingLink={() => ''}
           orgId={organization.slug}
           search=""
-          selectedProjectSlug="python"
+          recentCreatedProject={project}
         />
       </OnboardingContextProvider>,
       {
@@ -124,7 +123,6 @@ describe('Onboarding Setup Docs', function () {
   describe('renders Product Selection', function () {
     it('all products checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]},
@@ -160,7 +158,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            selectedProjectSlug="javascript-react"
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
@@ -183,7 +181,6 @@ describe('Onboarding Setup Docs', function () {
 
     it('only performance checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING]},
@@ -219,7 +216,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            selectedProjectSlug="javascript-react"
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
@@ -236,7 +233,6 @@ describe('Onboarding Setup Docs', function () {
 
     it('only session replay checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {product: [PRODUCT.SESSION_REPLAY]},
@@ -272,7 +268,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            selectedProjectSlug="javascript-react"
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
@@ -289,7 +285,6 @@ describe('Onboarding Setup Docs', function () {
 
     it('only error monitoring checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {product: []},
@@ -325,7 +320,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            selectedProjectSlug="javascript-react"
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
@@ -344,7 +339,6 @@ describe('Onboarding Setup Docs', function () {
   describe('JS Loader Script', function () {
     it('renders Loader Script setup', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {product: [PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]},
@@ -386,7 +380,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            selectedProjectSlug="javascript"
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
@@ -432,7 +426,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            selectedProjectSlug="javascript"
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>
       );

@@ -79,6 +79,7 @@ describe('useReplayData', () => {
       fetching: false,
       onRetry: expect.any(Function),
       replay: expect.any(ReplayReader),
+      replayErrors: expect.any(Array),
       replayRecord: expectedReplay,
       projectSlug: project.slug,
       replayId: expectedReplay.id,
@@ -179,12 +180,30 @@ describe('useReplayData', () => {
     const mockedErrorsCall1 = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays-events-meta/`,
       body: {data: mockErrorResponse1},
-      match: [(_url, options) => options.query?.query === `id:[${ERROR_IDS[0]}]`],
+      headers: {
+        Link: [
+          '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1"',
+          '<http://localhost/?cursor=0:2:0>; rel="next"; results="true"; cursor="0:1:0"',
+        ].join(','),
+      },
+      match: [
+        (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
+        (_url, options) => options.query?.cursor === '0:0:0',
+      ],
     });
     const mockedErrorsCall2 = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays-events-meta/`,
       body: {data: mockErrorResponse2},
-      match: [(_url, options) => options.query?.query === `id:[${ERROR_IDS[1]}]`],
+      headers: {
+        Link: [
+          '<http://localhost/?cursor=0:0:1>; rel="previous"; results="true"; cursor="0:1:0"',
+          '<http://localhost/?cursor=0:2:0>; rel="next"; results="false"; cursor="0:2:0"',
+        ].join(','),
+      },
+      match: [
+        (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
+        (_url, options) => options.query?.cursor === '0:1:0',
+      ],
     });
 
     const {waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
@@ -259,6 +278,7 @@ describe('useReplayData', () => {
       fetchError: undefined,
       fetching: true,
       onRetry: expect.any(Function),
+      replayErrors: expect.any(Array),
       replay: null,
       replayRecord: undefined,
       projectSlug: null,
@@ -342,6 +362,7 @@ describe('useReplayData', () => {
       replay: expect.any(ReplayReader),
       replayRecord: expectedReplay,
       projectSlug: project.slug,
+      replayErrors: expect.any(Array),
       replayId: expectedReplay.id,
     });
   });

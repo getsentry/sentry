@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
 
 from sentry.models import Integration
+from sentry.testutils.silo import control_silo_test
 
 from ..github.test_search import GithubSearchTest
 
 
+@control_silo_test
 class GithubEnterpriseSearchTest(GithubSearchTest):
     # Inherit test methods/scenarios from GithubSearchTest
     # and fill out the slots that customize it to use github:enterprise

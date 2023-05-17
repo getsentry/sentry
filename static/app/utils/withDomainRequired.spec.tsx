@@ -262,7 +262,6 @@ describe('withDomainRequired', function () {
       orgId: 'albertos-apples',
     };
     const {router, route, routerContext} = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         params,
@@ -312,7 +311,6 @@ describe('withDomainRequired', function () {
       orgId: 'albertos-apples',
     };
     const {router, route, routerContext} = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         params,
@@ -362,7 +360,6 @@ describe('withDomainRequired', function () {
       orgId: 'albertos-apples',
     };
     const {router, route, routerContext} = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         params,

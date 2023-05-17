@@ -75,6 +75,14 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
+        event_id=33,
+        name="PROJECT_REMOVE_WITH_ORIGIN",
+        api_name="project.remove-with-origin",
+        template="removed project {slug} in {origin}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=35,
         name="PROJECT_REQUEST_TRANSFER",
         api_name="project.request-transfer",
@@ -243,6 +251,14 @@ default_manager.add(
 default_manager.add(
     AuditLogEvent(
         event_id=122, name="MONITOR_REMOVE", api_name="monitor.remove", template="Monitor removed"
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=123,
+        name="MONITOR_ENVIRONMENT_REMOVE",
+        api_name="monitor.environment.remove",
+        template="Monitor environment removed",
     )
 )
 default_manager.add(events.InternalIntegrationAddAuditLogEvent())

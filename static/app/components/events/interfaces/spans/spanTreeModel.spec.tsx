@@ -47,7 +47,7 @@ describe('SpanTreeModel', () => {
               'http.status_code': '200',
             },
             data: {
-              method: 'GET',
+              'http.method': 'GET',
               type: 'fetch',
               url: '/api/0/organizations/?member=1',
             },
@@ -65,7 +65,7 @@ describe('SpanTreeModel', () => {
               'http.status_code': '200',
             },
             data: {
-              method: 'GET',
+              'http.method': 'GET',
               type: 'fetch',
               url: '/api/0/internal/health/',
             },
@@ -161,7 +161,7 @@ describe('SpanTreeModel', () => {
                 'http.status_code': '200',
               },
               data: {
-                method: 'GET',
+                'http.method': 'GET',
                 type: 'fetch',
                 url: '/api/0/organizations/?member=1',
               },
@@ -240,7 +240,7 @@ describe('SpanTreeModel', () => {
             'http.status_code': '200',
           },
           data: {
-            method: 'GET',
+            'http.method': 'GET',
             type: 'fetch',
             url: '/api/0/organizations/?member=1',
           },
@@ -271,7 +271,7 @@ describe('SpanTreeModel', () => {
             'http.status_code': '200',
           },
           data: {
-            method: 'GET',
+            'http.method': 'GET',
             type: 'fetch',
             url: '/api/0/internal/health/',
           },
@@ -547,7 +547,7 @@ describe('SpanTreeModel', () => {
         'http.status_code': '200',
       },
       data: {
-        method: 'GET',
+        'http.method': 'GET',
         type: 'fetch',
         url: '/api/0/internal/health/',
       },
@@ -628,7 +628,7 @@ describe('SpanTreeModel', () => {
         'http.status_code': '200',
       },
       data: {
-        method: 'GET',
+        'http.method': 'GET',
         type: 'fetch',
         url: '/api/0/internal/health/',
       },
@@ -704,7 +704,7 @@ describe('SpanTreeModel', () => {
         'http.status_code': '200',
       },
       data: {
-        method: 'GET',
+        'http.method': 'GET',
         type: 'fetch',
         url: '/api/0/internal/health/',
       },
@@ -723,7 +723,7 @@ describe('SpanTreeModel', () => {
         'http.status_code': '200',
       },
       data: {
-        method: 'GET',
+        'http.method': 'GET',
         type: 'fetch',
         url: '/api/0/internal/health/',
       },

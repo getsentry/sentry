@@ -12,7 +12,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import GroupTombstones from 'sentry/views/settings/project/projectFilters/groupTombstones';
 import ProjectFiltersChart from 'sentry/views/settings/project/projectFilters/projectFiltersChart';
-import ProjectFiltersSettings from 'sentry/views/settings/project/projectFilters/projectFiltersSettings';
+import {ProjectFiltersSettings} from 'sentry/views/settings/project/projectFilters/projectFiltersSettings';
 
 type Props = {
   organization: Organization;
@@ -32,13 +32,13 @@ function ProjectFilters(props: Props) {
     <Fragment>
       <SentryDocumentTitle title={t('Inbound Filters')} projectSlug={projectId} />
       <SettingsPageHeader title={t('Inbound Data Filters')} />
-      <PermissionAlert project={project} />
-
       <TextBlock>
         {t(
           'Filters allow you to prevent Sentry from storing events in certain situations. Filtered events are tracked separately from rate limits, and do not apply to any project quotas.'
         )}
       </TextBlock>
+
+      <PermissionAlert project={project} />
 
       <div>
         <ProjectFiltersChart project={project} organization={organization} />
@@ -65,12 +65,7 @@ function ProjectFilters(props: Props) {
             location={location}
           />
         ) : (
-          <ProjectFiltersSettings
-            organization={organization}
-            project={project}
-            params={params}
-            features={features}
-          />
+          <ProjectFiltersSettings project={project} params={params} features={features} />
         )}
       </div>
     </Fragment>

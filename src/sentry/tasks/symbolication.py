@@ -100,11 +100,11 @@ def _do_symbolicate_event(
         return
 
     data = CanonicalKeyDict(data)
-
-    project_id = data["project"]
-    set_current_event_project(project_id)
-
     event_id = data["event_id"]
+    project_id = data["project"]
+    has_changed = False
+
+    set_current_event_project(project_id)
 
     task_kind = get_kind_from_task(symbolicate_task)
 
@@ -139,15 +139,14 @@ def _do_symbolicate_event(
         )
 
     if data["platform"] in ("javascript", "node"):
-        from sentry.lang.javascript.processing import (
-            get_js_symbolication_function as get_symbolication_function,
-        )
-    else:
-        from sentry.lang.native.processing import (
-            get_native_symbolication_function as get_symbolication_function,
-        )
+        from sentry.lang.javascript.processing import process_js_stacktraces
 
-    symbolication_function = get_symbolication_function(data)
+        symbolication_function = process_js_stacktraces
+    else:
+        from sentry.lang.native.processing import get_native_symbolication_function
+
+        symbolication_function = get_native_symbolication_function(data)
+
     symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
     if killswitch_matches_context(
@@ -160,8 +159,6 @@ def _do_symbolicate_event(
         },
     ):
         return _continue_to_process_event()
-
-    has_changed = False
 
     symbolication_start_time = time()
 

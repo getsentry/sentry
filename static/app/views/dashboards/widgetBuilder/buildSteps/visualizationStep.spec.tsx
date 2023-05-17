@@ -73,7 +73,6 @@ function mockRequests(orgSlug: Organization['slug']) {
 
 describe('VisualizationStep', function () {
   const {organization, router, routerContext} = initializeOrg({
-    ...initializeOrg(),
     organization: {
       features: ['dashboards-edit', 'global-views', 'dashboards-mep'],
     },

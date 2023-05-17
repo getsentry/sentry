@@ -12,7 +12,7 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import {operationName} from 'sentry/views/replays/detail/utils';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
-const EMPTY_CELL = '\u00A0';
+const EMPTY_CELL = '--';
 
 type Props = {
   columnIndex: number;
@@ -64,7 +64,10 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
 
     const startMs = span.startTimestamp * 1000;
     const endMs = span.endTimestamp * 1000;
+    const method = span.data.method;
     const statusCode = span.data.statusCode;
+    // `data.responseBodySize` is from SDK version 7.44-7.45
+    const size = span.data.size ?? span.data.response?.size ?? span.data.responseBodySize;
 
     const spanTime = useMemo(
       () => relativeTimeInMs(span.startTimestamp * 1000, startTimestampMs),
@@ -110,13 +113,15 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       style,
     } as CellProps;
 
-    // `data.responseBodySize` is from SDK version 7.44-7.45
-    const size = span.data.size ?? span.data.response?.size ?? span.data.responseBodySize;
-
     const renderFns = [
       () => (
         <Cell {...columnProps}>
-          <Text>{statusCode ? statusCode : EMPTY_CELL}</Text>
+          <Text>{method ? method : 'GET'}</Text>
+        </Cell>
+      ),
+      () => (
+        <Cell {...columnProps}>
+          <Text>{typeof statusCode === 'number' ? statusCode : EMPTY_CELL}</Text>
         </Cell>
       ),
       () => (
@@ -152,7 +157,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps} numeric>
-          <TimestampButton
+          <StyledTimestampButton
             format="mm:ss.SSS"
             onClick={(event: MouseEvent) => {
               event.stopPropagation();
@@ -186,7 +191,7 @@ const cellColor = p => {
     const colors = p.isStatusError
       ? [p.theme.alert.error.background]
       : [p.theme.background];
-    return `color: ${p.hasOccurred !== false ? colors[0] : colors[0]};`;
+    return `color: ${colors[0]};`;
   }
   const colors = p.isStatusError
     ? [p.theme.alert.error.borderHover, p.theme.alert.error.iconColor]
@@ -217,6 +222,10 @@ const Text = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   padding: ${space(0.75)} ${space(1.5)};
+`;
+
+const StyledTimestampButton = styled(TimestampButton)`
+  padding-inline: ${space(1.5)};
 `;
 
 export default NetworkTableCell;

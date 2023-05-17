@@ -35,6 +35,7 @@ function useReplayFromIssue({
             returnIds: true,
             query: `issue.id:[${group.id}]`,
             statsPeriod: '14d',
+            project: ALL_ACCESS_PROJECTS,
           },
         }
       );
@@ -45,8 +46,6 @@ function useReplayFromIssue({
     }
   }, [api, organization.slug, group.id]);
 
-  const hasMultiProjectSupport = organization.features.includes('global-views');
-
   const eventView = useMemo(() => {
     if (!replayIds) {
       return null;
@@ -56,14 +55,12 @@ function useReplayFromIssue({
       name: '',
       version: 2,
       fields: REPLAY_LIST_FIELDS,
-      projects: hasMultiProjectSupport
-        ? [ALL_ACCESS_PROJECTS]
-        : [Number(group.project.id)],
       query: `id:[${String(replayIds)}]`,
       range: '14d',
+      projects: [],
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     });
-  }, [location.query.sort, replayIds, hasMultiProjectSupport, group.project.id]);
+  }, [location.query.sort, replayIds]);
 
   useCleanQueryParamsOnRouteLeave({fieldsToClean: ['cursor']});
   useEffect(() => {

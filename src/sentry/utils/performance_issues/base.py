@@ -6,7 +6,7 @@ import re
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union, cast
 from urllib.parse import parse_qs, urlparse
 
 from sentry import options
@@ -368,3 +368,23 @@ def fingerprint_http_spans(spans: list[Span]) -> str:
 
     hashed_url_paths = hashlib.sha1(("-".join(url_paths)).encode("utf8")).hexdigest()
     return hashed_url_paths
+
+
+def get_span_evidence_value(
+    span: Union[Dict[str, Union[str, float]], None] = None, include_op: bool = True
+) -> str:
+    """Get the 'span evidence' data for a given span. This is displayed in issue alert emails."""
+    value = "no value"
+    if not span:
+        return value
+    if not span.get("op") and span.get("description"):
+        value = cast(str, span["description"])
+    if span.get("op") and not span.get("description"):
+        value = cast(str, span["op"])
+    if span.get("op") and span.get("description"):
+        op = cast(str, span["op"])
+        desc = cast(str, span["description"])
+        value = f"{op} - {desc}"
+        if not include_op:
+            value = desc
+    return value

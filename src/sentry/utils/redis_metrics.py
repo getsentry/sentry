@@ -33,10 +33,12 @@ class RedisToolsMetricsBackend(Metrics):
     def increment(
         self, name: str, value: Union[int, float] = 1, tags: Optional[Tags] = None
     ) -> None:
-        self.__backend.incr(self.__merge_name(name), value, self.__merge_tags(tags))
+        self.__backend.incr(key=self.__merge_name(name), amount=value, tags=self.__merge_tags(tags))
 
     def gauge(self, name: str, value: Union[int, float], tags: Optional[Tags] = None) -> None:
-        self.__backend.gauge(self.__merge_name(name), value, self.__merge_tags(tags))
+        self.__backend.gauge(key=self.__merge_name(name), value=value, tags=self.__merge_tags(tags))
 
     def timing(self, name: str, value: Union[int, float], tags: Optional[Tags] = None) -> None:
-        self.__backend.timing(self.__merge_name(name), value, self.__merge_tags(tags))
+        self.__backend.timing(
+            key=self.__merge_name(name), value=value, tags=self.__merge_tags(tags)
+        )

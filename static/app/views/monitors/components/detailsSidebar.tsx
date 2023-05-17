@@ -2,53 +2,42 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import Clipboard from 'sentry/components/clipboard';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Text from 'sentry/components/text';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCopy} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {DEFAULT_MAX_RUNTIME} from 'sentry/views/monitors/components/monitorForm';
 import MonitorIcon from 'sentry/views/monitors/components/monitorIcon';
 import {
-  IntervalConfig,
   Monitor,
   MonitorEnvironment,
   MonitorStatus,
   ScheduleType,
 } from 'sentry/views/monitors/types';
+import {scheduleAsText} from 'sentry/views/monitors/utils';
 
 interface Props {
   monitor: Monitor;
   monitorEnv?: MonitorEnvironment;
 }
 
-function getIntervalScheduleText(schedule: IntervalConfig['schedule']) {
-  const [n, period] = schedule;
-  const intervalTextMap = {
-    minute: tn('Every %s minute', 'Every %s minutes', n),
-    hour: tn('Every %s hour', 'Every %s hours', n),
-    day: tn('Every %s day', 'Every %s days', n),
-    week: tn('Every %s week', 'Every %s weeks', n),
-    month: tn('Every %s month', 'Every %s months', n),
-    year: tn('Every %s year', 'Every %s years', n),
-  };
-  return intervalTextMap[period];
-}
-
 export default function DetailsSidebar({monitorEnv, monitor}: Props) {
   const {checkin_margin, schedule, schedule_type, max_runtime, timezone} = monitor.config;
+  const {onClick, label} = useCopyToClipboard({text: monitor.slug});
 
   const slug = (
-    <Clipboard value={monitor.slug}>
-      <MonitorSlug>
+    <Tooltip title={label}>
+      <MonitorSlug onClick={onClick}>
         <SlugText>{monitor.slug}</SlugText>
         <IconCopy size="xs" />
       </MonitorSlug>
-    </Clipboard>
+    </Tooltip>
   );
 
   return (
@@ -81,12 +70,13 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
       </CheckIns>
       <SectionHeading>{t('Schedule')}</SectionHeading>
       <Schedule>
-        <MonitorIcon status={MonitorStatus.OK} size={12} />
-        <Text>
-          {schedule_type === ScheduleType.CRONTAB
-            ? schedule
-            : getIntervalScheduleText(schedule as IntervalConfig['schedule'])}
-        </Text>
+        <Text>{scheduleAsText(monitor.config)}</Text>
+        {schedule_type === ScheduleType.CRONTAB && (
+          <CrontabText>({schedule})</CrontabText>
+        )}
+      </Schedule>
+      <SectionHeading>{t('Thresholds')}</SectionHeading>
+      <Thresholds>
         <MonitorIcon status={MonitorStatus.MISSED_CHECKIN} size={12} />
         <Text>
           {defined(checkin_margin)
@@ -101,7 +91,7 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
             max_runtime ?? DEFAULT_MAX_RUNTIME
           )}
         </Text>
-      </Schedule>
+      </Thresholds>
       <SectionHeading>{t('Cron Details')}</SectionHeading>
       <KeyValueTable>
         <KeyValueTableRow keyName={t('Monitor Slug')} value={slug} />
@@ -124,6 +114,18 @@ const CheckIns = styled('div')`
 `;
 
 const Schedule = styled('div')`
+  margin-bottom: ${space(2)};
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(1)};
+`;
+
+const CrontabText = styled(Text)`
+  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.subText};
+`;
+
+const Thresholds = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   margin-bottom: ${space(2)};
@@ -131,12 +133,17 @@ const Schedule = styled('div')`
   gap: ${space(1)};
 `;
 
-const MonitorSlug = styled('div')`
+const MonitorSlug = styled('button')`
   display: grid;
   grid-template-columns: 1fr max-content;
   align-items: center;
   gap: ${space(0.5)};
-  cursor: pointer;
+
+  background: transparent;
+  border: none;
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
 `;
 
 const SlugText = styled(Text)`

@@ -67,6 +67,10 @@ def get_next_schedule(last_checkin, schedule_type, schedule):
     else:
         raise NotImplementedError("unknown schedule_type")
 
+    # Ensure we clamp the expected time down to the minute, that is the level
+    # of granularity we're able to support
+    next_schedule = next_schedule.replace(second=0, microsecond=0)
+
     return next_schedule
 
 
@@ -85,7 +89,21 @@ def get_monitor_environment_context(monitor_environment):
     }
 
 
-class MonitorStatus(ObjectStatus):
+class MonitorStatus:
+    """
+    The monitor status is an extension of the ObjectStatus constants. In this
+    extension the "status" of a monitor (passing, failing, timed out, etc) is
+    represented.
+
+    [!!]: This is NOT used for the status of the Monitor model itself. That is
+          simply an ObjectStatus.
+    """
+
+    ACTIVE = 0
+    DISABLED = 1
+    PENDING_DELETION = 2
+    DELETION_IN_PROGRESS = 3
+
     OK = 4
     ERROR = 5
     MISSED_CHECKIN = 6
@@ -94,8 +112,13 @@ class MonitorStatus(ObjectStatus):
     @classmethod
     def as_choices(cls):
         return (
+            # TODO: It is unlikely a MonitorEnvironment should ever be in the
+            # 'active' state, since for a monitor environmnent to be created
+            # some checkins must have been sent.
             (cls.ACTIVE, "active"),
+            # The DISABLED state is denormalized off of the parent Monitor.
             (cls.DISABLED, "disabled"),
+            # MonitorEnvironment's may be deleted
             (cls.PENDING_DELETION, "pending_deletion"),
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
             (cls.OK, "ok"),
@@ -124,8 +147,8 @@ class CheckInStatus:
     TIMEOUT = 5
     """Checkin was left in-progress past max_runtime"""
 
-    FINISHED_VALUES = (OK, ERROR, TIMEOUT)
-    """Sentient values used to indicate a monitor is finished running"""
+    FINISHED_VALUES = (OK, ERROR, MISSED, TIMEOUT)
+    """Terminal values used to indicate a monitor is finished running"""
 
     @classmethod
     def as_choices(cls):
@@ -187,21 +210,18 @@ class Monitor(Model):
     project_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=128)
     status = BoundedPositiveIntegerField(
-        default=MonitorStatus.ACTIVE, choices=MonitorStatus.as_choices()
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )
     type = BoundedPositiveIntegerField(
         default=MonitorType.UNKNOWN,
         choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
     )
     config = JSONField(default=dict)
-    next_checkin = models.DateTimeField(null=True)
-    last_checkin = models.DateTimeField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitor"
-        index_together = (("type", "next_checkin"),)
         unique_together = (("organization_id", "slug"),)
 
     __repr__ = sane_repr("guid", "project_id", "name")
@@ -235,20 +255,13 @@ class Monitor(Model):
         )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
-    def get_status_display(self) -> str:
-        for status_id, display in MonitorStatus.as_choices():
-            if status_id == self.status:
-                if self.status in [
-                    MonitorStatus.ACTIVE,
-                    MonitorStatus.DISABLED,
-                    MonitorStatus.PENDING_DELETION,
-                    MonitorStatus.DELETION_IN_PROGRESS,
-                ]:
-                    return display
-                else:
-                    return "active"
-
-        return "active"
+    def update_config(self, config_payload, validated_config):
+        monitor_config = self.config
+        # Only update keys that were specified in the payload
+        for key in config_payload.keys():
+            if key in validated_config:
+                monitor_config[key] = validated_config[key]
+        self.save()
 
 
 @receiver(pre_save, sender=Monitor)
@@ -335,14 +348,8 @@ class MonitorEnvironmentManager(BaseManager):
         # TODO: assume these objects exist once backfill is completed
         environment = Environment.get_or_create(project=project, name=environment_name)
 
-        monitorenvironment_defaults = {
-            "status": monitor.status,
-            "next_checkin": monitor.next_checkin,
-            "last_checkin": monitor.last_checkin,
-        }
-
         return MonitorEnvironment.objects.get_or_create(
-            monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
+            monitor=monitor, environment=environment, defaults={"status": MonitorStatus.ACTIVE}
         )[0]
 
 
@@ -426,7 +433,7 @@ class MonitorEnvironment(Model):
             "last_checkin": ts,
             "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
         }
-        if checkin.status == CheckInStatus.OK and self.monitor.status != MonitorStatus.DISABLED:
+        if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
             params["status"] = MonitorStatus.OK
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)

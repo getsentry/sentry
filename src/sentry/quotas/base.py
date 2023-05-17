@@ -1,9 +1,7 @@
-import logging
 import typing
 from enum import IntEnum, unique
-from typing import Optional
+from typing import Optional, Tuple
 
-import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
@@ -14,9 +12,6 @@ from sentry.utils.services import Service
 
 if typing.TYPE_CHECKING:
     from sentry.models import Project
-
-
-logger = logging.getLogger(__name__)
 
 
 @unique
@@ -82,23 +77,6 @@ class QuotaConfig:
         if limit is not None:
             assert reason_code, "reason code required for fallible quotas"
             assert type(limit) == int, "limit must be an integer"
-
-            if limit >= 2**32:
-                with sentry_sdk.configure_scope() as sentry_scope:
-                    sentry_scope.set_context(
-                        "quota_limit",
-                        {
-                            "id": id,
-                            "categories": categories,
-                            "scope": scope,
-                            "scope_id": scope_id,
-                            "limit": limit,
-                            "window": window,
-                            "reason_code": reason_code,
-                        },
-                    )
-                    logging.error("Quota limit too large for Relay to parse: %s", limit)
-                limit = 2**32 - 1
 
         if limit == 0:
             assert id is None, "reject-all quotas cannot be tracked"
@@ -237,6 +215,7 @@ class Quota(Service):
         "get_event_retention",
         "get_quotas",
         "get_blended_sample_rate",
+        "get_transaction_sampling_tier_for_volume",
     )
 
     def __init__(self, **options):
@@ -484,10 +463,30 @@ class Quota(Service):
         """
         return (_limit_from_settings(options.get("system.rate-limit")), 60)
 
-    def get_blended_sample_rate(self, project: "Project") -> Optional[float]:
+    def get_blended_sample_rate(
+        self, project: Optional["Project"] = None, organization_id: Optional[int] = None
+    ) -> Optional[float]:
         """
         Returns the blended sample rate for an org based on the package that they are currently on. Returns ``None``
-        if the creation of a uniform rule with blended sample rate is not supported for that project.
+        if the creation of a uniform rule with blended sample rate is not supported for that project or organization.
+
+        The reasoning for having two params as `Optional` is because this method was first designed to work with
+        `Project` but due to requirements change the `Organization` was needed and since we can get the `Organization`
+        from the `Project` we allow one or the other to be passed.
 
         :param project: The project model.
+        :param organization_id: The organization id.
+        """
+
+    def get_transaction_sampling_tier_for_volume(
+        self, organization_id: int, volume: int
+    ) -> Optional[Tuple[int, float]]:
+        """
+        Returns the transaction sampling tier closest to a specific volume.
+
+        The organization_id is required because the tier is based on the organization's plan, and we have to check
+        whether the organization has dynamic sampling.
+
+        :param organization_id: The organization id.
+        :param volume: The volume of transaction of the given project.
         """

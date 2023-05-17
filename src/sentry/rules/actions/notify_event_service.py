@@ -19,7 +19,7 @@ from sentry.rules.actions.services import PluginService
 from sentry.rules.base import CallbackFuture
 from sentry.services.hybrid_cloud.app import RpcSentryAppService, app_service
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
+from sentry.services.hybrid_cloud.organization.serial import serialize_organization
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -63,7 +63,7 @@ def send_incident_alert_notification(
     fire. If not provided we'll attempt to calculate this ourselves.
     :return:
     """
-    organization = DatabaseBackedOrganizationService.serialize_organization(incident.organization)
+    organization = serialize_organization(incident.organization)
     incident_attachment = build_incident_attachment(incident, new_status, metric_value)
 
     integration_service.send_incident_alert_notification(

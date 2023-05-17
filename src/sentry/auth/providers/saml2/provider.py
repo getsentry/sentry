@@ -52,7 +52,7 @@ def get_provider(organization_slug):
     except Organization.DoesNotExist:
         return None
 
-    if organization.status != OrganizationStatus.VISIBLE:
+    if organization.status != OrganizationStatus.ACTIVE:
         return None
 
     try:

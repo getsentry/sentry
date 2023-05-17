@@ -23,12 +23,12 @@ class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
         if is_active_superuser(request):
             # retrieve all teams within the organization
             queryset = Team.objects.filter(
-                organization=organization, status=TeamStatus.VISIBLE
+                organization=organization, status=TeamStatus.ACTIVE
             ).order_by("slug")
         else:
             queryset = Team.objects.filter(
                 organization=organization,
-                status=TeamStatus.VISIBLE,
+                status=TeamStatus.ACTIVE,
                 id__in=request.access.team_ids_with_membership,
             ).order_by("slug")
         return Response(serialize(list(queryset), request.user, TeamWithProjectsSerializer()))

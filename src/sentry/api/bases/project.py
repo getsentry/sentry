@@ -10,7 +10,8 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ProjectMoved, ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import InvalidParams, get_date_range_from_params
-from sentry.models import Project, ProjectRedirect, ProjectStatus
+from sentry.constants import ObjectStatus
+from sentry.models import Project, ProjectRedirect
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 from .organization import OrganizationPermission
@@ -137,7 +138,7 @@ class ProjectEndpoint(Endpoint):
             except ProjectRedirect.DoesNotExist:
                 raise ResourceDoesNotExist
 
-        if project.status != ProjectStatus.VISIBLE:
+        if project.status != ObjectStatus.ACTIVE:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
