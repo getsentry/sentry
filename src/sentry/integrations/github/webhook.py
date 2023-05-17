@@ -477,6 +477,10 @@ class GitHubWebhookBase(View):  # type: ignore
             return HttpResponse(status=400)
 
         if not handler:
+            logger.error(
+                "github.webhook.missing-handler",
+                extra={"event": request.META["HTTP_X_GITHUB_EVENT"]},
+            )
             return HttpResponse(status=204)
 
         try:
