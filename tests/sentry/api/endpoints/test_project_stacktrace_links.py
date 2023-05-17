@@ -5,6 +5,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.api.endpoints.project_stacktrace_link import get_code_mapping_configs
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -84,6 +85,25 @@ class ProjectStacktraceLinksTest(APITestCase):
                 },
             ],
         }
+
+    def test_integration_link_forbidden(self):
+        with patch.object(
+            ExampleIntegration, "get_stacktrace_link", side_effect=ApiError("error", code=403)
+        ):
+            self.setup_code_mapping("foo", "src/foo")
+
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
+            )
+            assert response.data == {
+                "files": [
+                    {
+                        "attemptedUrl": self.url,
+                        "error": "integration_link_forbidden",
+                        "file": self.filepath,
+                    },
+                ],
+            }
 
     def test_stack_root_mismatch_error(self):
         self.setup_code_mapping("baz", "src/foo")
