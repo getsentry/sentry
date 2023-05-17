@@ -28,7 +28,7 @@ describe('RouteSource', function () {
     });
   });
 
-  it('can find a billing related route', async function () {
+  it('can load links via hooks', async function () {
     const mock = jest.fn().mockReturnValue(null);
     const {organization, project} = initializeOrg();
     HookStore.add('settings:organization-navigation-config', () => {
