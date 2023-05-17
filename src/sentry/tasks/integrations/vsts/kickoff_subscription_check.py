@@ -2,7 +2,7 @@ from datetime import timedelta
 from time import time
 
 from sentry.models import ObjectStatus, OrganizationIntegration
-from sentry.silo.base import SiloLimit
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 
 
@@ -11,7 +11,7 @@ from sentry.tasks.base import instrumented_task, retry
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,
-    silo_mode=SiloLimit.CONTROL,
+    silo_mode=SiloMode.CONTROL,
 )
 @retry()
 def kickoff_vsts_subscription_check() -> None:
