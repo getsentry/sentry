@@ -48,14 +48,13 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         max_batch_time: int,
         num_processes: int,
         output_block_size: int,
-        use_multi_proc: bool,
     ) -> None:
         self.input_block_size = input_block_size
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
         self.num_processes = num_processes
         self.output_block_size = output_block_size
-        self.use_multi_proc = use_multi_proc
+        self.use_multi_proc = self.num_processes > 1
 
     def create_with_partitions(
         self,

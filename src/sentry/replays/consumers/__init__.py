@@ -25,7 +25,6 @@ def get_replays_recordings_consumer(
     max_batch_time: int,
     num_processes: int,
     output_block_size: int,
-    use_multi_proc: bool,
     force_topic: str | None,
     force_cluster: str | None,
 ) -> StreamProcessor[KafkaPayload]:
@@ -50,7 +49,6 @@ def get_replays_recordings_consumer(
             max_batch_time=max_batch_time,
             num_processes=num_processes,
             output_block_size=output_block_size,
-            use_multi_proc=use_multi_proc,
         ),
         commit_policy=ONCE_PER_SECOND,
     )

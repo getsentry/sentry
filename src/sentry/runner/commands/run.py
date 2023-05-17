@@ -678,7 +678,6 @@ def replays_recordings_consumer(**options):
         num_processes=options["processes"],
         output_block_size=options["output_block_size"],
         topic=options["topic"],
-        use_multi_proc=options["processes"] > 1,
     )
     run_processor_with_signals(consumer)
 
