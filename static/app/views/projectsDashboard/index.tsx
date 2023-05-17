@@ -7,7 +7,6 @@ import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
-import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -26,7 +25,6 @@ import {Organization, Project, TeamWithProjects} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
 import {onRenderCallback, setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
-import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withTeamsForUser from 'sentry/utils/withTeamsForUser';
 import TeamFilter from 'sentry/views/alerts/list/rules/teamFilter';
@@ -36,7 +34,6 @@ import Resources from './resources';
 import {getTeamParams} from './utils';
 
 type Props = {
-  api: Client;
   error: Error | null;
   loadingTeams: boolean;
   organization: Organization;
@@ -254,6 +251,4 @@ const ProjectCards = styled('div')`
 `;
 
 export {Dashboard};
-export default withApi(
-  withOrganization(withTeamsForUser(withProfiler(OrganizationDashboard)))
-);
+export default withOrganization(withTeamsForUser(withProfiler(OrganizationDashboard)));
