@@ -11,6 +11,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {
   CLICronQuickStart,
   CurlCronQuickStart,
+  NodeJSCronQuickStart,
   PHPCronQuickStart,
   PHPLaravelCronQuickStart,
   PythonCeleryCronQuickStart,
@@ -71,6 +72,11 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
     label: 'Laravel',
     Guide: PHPLaravelCronQuickStart,
     platforms: new Set(['php-laravel']),
+  },
+  nodeJs: {
+    label: 'Node',
+    Guide: NodeJSCronQuickStart,
+    platforms: new Set(['node']),
   },
 };
 
