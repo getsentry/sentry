@@ -32,6 +32,8 @@ export type BaseEventAnalyticsParams = {
   event_errors?: string;
   event_platform?: string;
   event_type?: string;
+  frames_with_sourcemaps_percent?: number;
+  frames_without_source_maps_percent?: number;
   has_otel?: boolean;
   release_user_agent?: string;
   sdk_name?: string;

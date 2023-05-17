@@ -176,6 +176,7 @@ export type Frame = {
   addrMode?: string;
   isPrefix?: boolean;
   isSentinel?: boolean;
+  // map exists if the frame has a source map
   map?: string | null;
   mapUrl?: string | null;
   minGroupingLevel?: number;
