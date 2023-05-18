@@ -608,10 +608,13 @@ class OrganizationMember(Model):
         ip_address=None,
     ):
         """
-        Reject a member invite/jin request and send an audit log entry
+        Reject a member invite/join request and send an audit log entry
         """
         from sentry import audit_log
         from sentry.utils.audit import create_audit_entry_from_user
+
+        if self.invite_status == InviteStatus.APPROVED.value:
+            return
 
         self.delete()
 
