@@ -38,8 +38,7 @@ tighter_version = ThresholdVariables(4, 4, 7, 2, 4)
 
 
 def generate_issue_forecast(
-    data: GroupCount, start_time: datetime, vars: ThresholdVariables()
-) -> List[IssueForecast]:
+    data: GroupCount, start_time: datetime, alg_params: ThresholdVariables = ThresholdVariables()) -> List[IssueForecast]:
     """
     Calculates daily issue spike limits, given an input dataset from snuba.
 
@@ -59,7 +58,7 @@ def generate_issue_forecast(
     The final spike limit for each hour is set to the max of the bursty limit bound or the calculated limit.
     :param data: Dict of Snuba query results - hourly data over past 7 days
     :param start_time: datetime indicating the first hour to calc spike protection for
-    :param vars: Threshold Variables dataclass with different ceiling versions
+    :param alg_params: Threshold Variables dataclass with different ceiling versions
     :return output: Dict containing a list of spike protection values
     """
 
@@ -108,8 +107,8 @@ def generate_issue_forecast(
 
     # multiplier determined by exponential equation - bounded between [2,5]
     regression_multiplier = min(
-        max(vars.min_bursty_multiplier, 5 * ((math.e) ** (-0.65 * ts_cv))),
-        vars.max_bursty_multiplier,
+        max(alg_params.min_bursty_multiplier, 5 * ((math.e) ** (-0.65 * ts_cv))),
+        alg_params.max_bursty_multiplier,
     )
 
     # first ceiling calculation
@@ -117,8 +116,8 @@ def generate_issue_forecast(
 
     # This second multiplier corresponds to 5 standard deviations above the avg ts value
     ts_multiplier = min(
-        max((ts_avg + (vars.std_multiplier * ts_std_dev)) / ts_avg, vars.min_spike_multiplier),
-        vars.max_spike_multiplier,
+        max((ts_avg + (alg_params.std_multiplier * ts_std_dev)) / ts_avg, alg_params.min_spike_multiplier),
+        alg_params.max_spike_multiplier,
     )
 
     # Default upper limit is the truncated multiplier * avg value
