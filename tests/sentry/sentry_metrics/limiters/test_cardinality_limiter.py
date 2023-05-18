@@ -294,13 +294,9 @@ def test_sample_rate_zero(set_sentry_option):
         )
 
         assert not result.keys_to_remove
-        # Assert that we are not just passing the rate limiter, but also do not
-        # check any quotas. If there are no quotas, there are no requests, and
-        # therefore no grants.
-        #
-        # Right now we do call the limiter with an empty list of requests. If
-        # we didn't, `_grants` would be `None` instead of `[]`. Either behavior
-        # would be fine, in neither case we are hitting redis.
+
+        # Right now we do not call the limiter with an empty list of requests.
+        # Hence, `_grants` is `None`.
         assert result._grants is None
 
 
