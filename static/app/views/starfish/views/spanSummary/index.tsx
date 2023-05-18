@@ -648,7 +648,7 @@ const ComparisonLabel = styled('div')<{value: number}>`
 const ChartGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: ${space(1.5)};
+  column-gap: ${space(1.5)};
 `;
 
 function SpanGroupKeyValueList({
