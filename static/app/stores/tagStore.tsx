@@ -80,11 +80,7 @@ const storeConfig: TagStoreDefinition = {
       [FieldKey.ISSUE_CATEGORY]: {
         key: FieldKey.ISSUE_CATEGORY,
         name: 'Issue Category',
-        values: [
-          IssueCategory.ERROR,
-          IssueCategory.PERFORMANCE,
-          ...(org.features.includes('issue-platform') ? [IssueCategory.PROFILE] : []),
-        ],
+        values: [IssueCategory.ERROR, IssueCategory.PERFORMANCE],
         predefined: true,
       },
       [FieldKey.ISSUE_TYPE]: {

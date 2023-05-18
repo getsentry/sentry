@@ -182,7 +182,8 @@ export function getTitle(
         treeLabel: undefined,
       };
     case EventOrGroupType.GENERIC:
-      const isProfilingIssue = event.issueCategory === IssueCategory.PROFILE;
+      const evidenceData = event.occurrence?.evidenceData ?? {};
+      const isProfilingIssue = evidenceData?.templateName === 'profile';
       return {
         title: isProfilingIssue ? metadata.title : customTitle ?? title,
         subtitle: isProfilingIssue ? culprit : '',

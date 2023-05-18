@@ -20,7 +20,6 @@ if TYPE_CHECKING:
 class GroupCategory(Enum):
     ERROR = 1
     PERFORMANCE = 2
-    PROFILE = 3
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
@@ -297,7 +296,7 @@ class ProfileFileIOGroupType(GroupType):
     type_id = 2001
     slug = "profile_file_io_main_thread"
     description = "File I/O on Main Thread"
-    category = GroupCategory.PROFILE.value
+    category = GroupCategory.PERFORMANCE.value
 
 
 @dataclass(frozen=True)
@@ -305,7 +304,7 @@ class ProfileImageDecodeGroupType(GroupType):
     type_id = 2002
     slug = "profile_image_decode_main_thread"
     description = "Image Decoding on Main Thread"
-    category = GroupCategory.PROFILE.value
+    category = GroupCategory.PERFORMANCE.value
 
 
 @dataclass(frozen=True)
@@ -313,7 +312,7 @@ class ProfileJSONDecodeType(GroupType):
     type_id = 2003
     slug = "profile_json_decode_main_thread"
     description = "JSON Decoding on Main Thread"
-    category = GroupCategory.PROFILE.value
+    category = GroupCategory.PERFORMANCE.value
 
 
 def reduce_noise(
