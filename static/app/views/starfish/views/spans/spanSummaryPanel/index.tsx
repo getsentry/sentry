@@ -37,6 +37,8 @@ export function SpanSummaryPanel({span, onClose}: Props) {
           <TimeSince date={spanMetrics?.last_seen} />
         </Block>
 
+        <Block title={t('Total Spans')}>{spanMetrics?.count}</Block>
+
         <Block title={t('Total Time')}>
           <Duration
             seconds={spanMetrics?.total_time / 1000}

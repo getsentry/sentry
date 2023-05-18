@@ -3,6 +3,7 @@ import {HOST} from 'sentry/views/starfish/utils/constants';
 import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
 
 type Metrics = {
+  count: number;
   first_seen: string;
   last_seen: string;
   total_time: number;
@@ -26,6 +27,7 @@ export const useSpanMetrics = (span?: Span, referrer = 'span-metrics') => {
 const getQuery = (span: Span) => {
   return `
     SELECT
+    count() as count,
     min(timestamp) as first_seen,
     max(timestamp) as last_seen,
     sum(exclusive_time) as total_time
