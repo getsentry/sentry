@@ -53,16 +53,17 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         TODO(dcramer): assert on relations
         """
 
-        # Preload to avoid fetching each user individually
+        # Preload to avoid fetching each team individually
         prefetch_related_objects(
             item_list,
-            "user",
             Prefetch(
                 "teams",
                 queryset=Team.objects.all().exclude(org_role=None),
                 to_attr="team_role_prefetch",
             ),
         )
+
+        # Bulk load users
         users_set = sorted(
             {
                 organization_member.user_id
@@ -70,12 +71,16 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
                 if organization_member.user_id
             }
         )
-        users_by_id: Mapping[str, Any] = {
-            u["id"]: u for u in user_service.serialize_many(filter={"user_ids": users_set})
-        }
+        users_by_id: MutableMapping[str, Any] = {}
+        email_map: MutableMapping[str, str] = {}
+        for u in user_service.serialize_many(filter={"user_ids": users_set}):
+            users_by_id[u["id"]] = u
+            email_map[u["id"]] = u["email"]
+
         actor_ids = Actor.objects.filter(
             user_id__in=users_set, type=ACTOR_TYPES["user"]
         ).values_list("id", flat=True)
+
         inviters_set = sorted(
             {
                 organization_member.inviter_id
@@ -86,8 +91,8 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         inviters_by_id: Mapping[int, RpcUser] = {
             u.id: u for u in user_service.get_many(filter={"user_ids": inviters_set})
         }
-        external_users_map = defaultdict(list)
 
+        external_users_map = defaultdict(list)
         if "externalUsers" in self.expand:
             organization_id = get_organization_id(item_list)
             external_actors = list(
@@ -112,6 +117,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
                 "externalUsers": external_users,
                 "orgRolesFromTeams": self.__sorted_org_roles_for_user(item),
                 "inviter": inviter,
+                "email": email_map.get(user_id, item.email),
             }
         return attrs
 
@@ -123,10 +129,12 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             inviter = attrs["inviter"]
             if inviter:
                 inviter_name = inviter.get_display_name()
+        user = attrs["user"]
+        email = attrs["email"]
         d: OrganizationMemberResponse = {
             "id": str(obj.id),
-            "email": obj.get_email(),
-            "name": obj.user.get_display_name() if obj.user else obj.get_email(),
+            "email": email,
+            "name": user["name"] if user else email,
             "user": attrs["user"],
             "role": obj.role,  # Deprecated, use orgRole instead
             "roleName": roles.get(obj.role).name,  # Deprecated
