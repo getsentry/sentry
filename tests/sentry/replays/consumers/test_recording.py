@@ -28,7 +28,6 @@ class RecordingTestCaseMixin:
             max_batch_time=1,
             num_processes=1,
             output_block_size=1,
-            use_multi_proc=False,
         )
 
     def setUp(self):
