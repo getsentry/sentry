@@ -5,6 +5,7 @@ import GridEditable, {GridColumnHeader as Column} from 'sentry/components/gridEd
 import Link from 'sentry/components/links/link';
 import Truncate from 'sentry/components/truncate';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {Series} from 'sentry/types/echarts';
 import {useLocation} from 'sentry/utils/useLocation';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
 import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
