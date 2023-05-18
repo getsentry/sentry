@@ -33,7 +33,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0445_drop_deprecated_monitor_next_last_checkin_db_op"),
+        ("sentry", "0449_pickle_to_json_authenticator"),
     ]
 
     operations = [
