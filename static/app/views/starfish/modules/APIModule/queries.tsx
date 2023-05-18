@@ -281,22 +281,35 @@ export const getSpanInTransactionQuery = ({groupId, datetime}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   // TODO - add back `module = <moudle> to filter data
   return `
-    SELECT count() AS count, quantile(0.5)(exclusive_time) as p50, span_operation
-    FROM spans_experimental_starfish
-    WHERE group_id = '${groupId}'
+    SELECT
+      count() AS count,
+      quantile(0.5)(exclusive_time) as p50,
+      span_operation,
+      action,
+      description
+    FROM
+      spans_experimental_starfish
+    WHERE
+    group_id = '${groupId}'
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    GROUP BY span_operation
+    GROUP BY
+      span_operation,
+      description,
+      action
  `;
 };
 
-export const getSpanFacetBreakdownQuery = ({groupId, datetime}) => {
+export const getSpanFacetBreakdownQuery = ({groupId, datetime, transactionName}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   // TODO - add back `module = <moudle> to filter data
   return `
-    SELECT transaction, user, domain
+    SELECT
+      user, domain
     FROM spans_experimental_starfish
-    WHERE group_id = '${groupId}'
+    WHERE
+    group_id = '${groupId}'
+    AND transaction = '${transactionName}'
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
  `;

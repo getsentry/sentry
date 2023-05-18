@@ -134,16 +134,24 @@ export interface Member {
   pending: boolean | undefined;
   projects: string[];
 
-  // Avoid using these keys
-  role: OrgRole['id']; // Deprecated: use orgRole
+  /**
+   * @deprecated use orgRole
+   */
+  role: OrgRole['id'];
   roleName: string;
-  roles: OrgRole[]; // Deprecated: use orgRoleList
+  /**
+   * @deprecated use orgRoleList
+   */
+  roles: OrgRole[];
 
   teamRoleList: TeamRole[]; // TODO: Move to global store
   teamRoles: {
     role: string | null;
     teamSlug: string;
   }[];
+  /**
+   * @deprecated use teamRoles
+   */
   teams: string[]; // # Deprecated, use teamRoles
   /**
    * User may be null when the member represents an invited member
