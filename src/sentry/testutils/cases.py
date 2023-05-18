@@ -42,7 +42,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from io import BytesIO
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, List, Literal, Optional, Sequence, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -1277,7 +1277,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         cls,
         org_id: int,
         project_id: int,
-        type: str,
+        type: Literal["counter", "set", "distribution"],
         name: str,
         tags: Dict[str, str],
         timestamp: int | float,
@@ -1306,7 +1306,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             )
             assert res is not None, name
             mapping_meta[str(res)] = name
-            return res
+            return str(res)
 
         def tag_value(name):
             assert isinstance(name, str)
@@ -1336,7 +1336,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
             "value": value,
             "retention_days": 90,
-            "use_case_id": use_case_id,
+            "use_case_id": use_case_id.value,
             # making up a sentry_received_timestamp, but it should be sometime
             # after the timestamp of the event
             "sentry_received_timestamp": timestamp + 10,
@@ -2304,78 +2304,53 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
         self.login_as(user=self.user)
         now = int(time.time())
 
-        # TODO: move _send to SnubaMetricsTestCase
         org_id = self.organization.id
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.__indexer_record(org_id, "metric1"),
-                    "timestamp": now,
-                    "tags": {
-                        self.__indexer_record(org_id, "tag1"): self.__indexer_record(
-                            org_id, "value1"
-                        ),
-                        self.__indexer_record(org_id, "tag2"): self.__indexer_record(
-                            org_id, "value2"
-                        ),
-                    },
-                    "type": "c",
-                    "value": 1,
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.__indexer_record(org_id, "metric1"),
-                    "timestamp": now,
-                    "tags": {
-                        self.__indexer_record(org_id, "tag3"): self.__indexer_record(
-                            org_id, "value3"
-                        ),
-                    },
-                    "type": "c",
-                    "value": 1,
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_counters",
+        self.store_metric(
+            org_id=org_id,
+            project_id=self.project.id,
+            name="metric1",
+            timestamp=now,
+            tags={
+                "tag1": "value1",
+                "tag2": "value2",
+            },
+            type="counter",
+            value=1,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.__indexer_record(org_id, "metric2"),
-                    "timestamp": now,
-                    "tags": {
-                        self.__indexer_record(org_id, "tag4"): self.__indexer_record(
-                            org_id, "value3"
-                        ),
-                        self.__indexer_record(org_id, "tag1"): self.__indexer_record(
-                            org_id, "value2"
-                        ),
-                        self.__indexer_record(org_id, "tag2"): self.__indexer_record(
-                            org_id, "value1"
-                        ),
-                    },
-                    "type": "s",
-                    "value": [123],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.__indexer_record(org_id, "metric3"),
-                    "timestamp": now,
-                    "tags": {},
-                    "type": "s",
-                    "value": [123],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_sets",
+        self.store_metric(
+            org_id=org_id,
+            project_id=self.project.id,
+            name="metric1",
+            timestamp=now,
+            tags={"tag3": "value3"},
+            type="counter",
+            value=1,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
+        self.store_metric(
+            org_id=org_id,
+            project_id=self.project.id,
+            name="metric2",
+            timestamp=now,
+            tags={
+                "tag4": "value3",
+                "tag1": "value2",
+                "tag2": "value1",
+            },
+            type="set",
+            value=123,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
+        self.store_metric(
+            org_id=org_id,
+            project_id=self.project.id,
+            name="metric3",
+            timestamp=now,
+            tags={},
+            type="set",
+            value=123,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
 
 
