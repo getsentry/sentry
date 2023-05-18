@@ -219,7 +219,7 @@ class OptionsStore:
             values={
                 "value": value,
                 "last_updated": timezone.now(),
-                "last_updated_by": source,
+                "last_updated_by": source.value,
             },
         )
 

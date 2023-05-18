@@ -8,6 +8,7 @@ from django.core.cache.backends.locmem import LocMemCache
 
 from sentry.models import Option
 from sentry.options import OptionsManager
+from sentry.options.manager import UpdateChannel
 from sentry.options.store import OptionsStore
 from sentry.testutils import TestCase
 from sentry.testutils.silo import no_silo_test
@@ -40,7 +41,7 @@ class OptionsStoreTest(TestCase):
         store, key = self.store, self.key
 
         assert store.get(key) is None
-        assert store.set(key, "bar")
+        assert store.set(key, "bar", UpdateChannel.CLI)
         assert store.get(key) == "bar"
         assert store.delete(key)
 
@@ -51,7 +52,7 @@ class OptionsStoreTest(TestCase):
         assert store.get(key) is None
 
         with pytest.raises(AssertionError):
-            store.set(key, "bar")
+            store.set(key, "bar", UpdateChannel.CLI)
 
         with pytest.raises(AssertionError):
             store.delete(key)
@@ -61,12 +62,12 @@ class OptionsStoreTest(TestCase):
         with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
             # we can't update options if the db is unavailable
             with pytest.raises(RuntimeError):
-                store.set(key, "bar")
+                store.set(key, "bar", UpdateChannel.CLI)
 
         # Assert nothing was written to the local_cache
         assert not store._local_cache
 
-        store.set(key, "bar")
+        store.set(key, "bar", UpdateChannel.CLI)
 
         with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
             assert store.get(key) == "bar"
@@ -81,7 +82,7 @@ class OptionsStoreTest(TestCase):
         store, key = self.store, self.make_key(10, 10)
 
         mocked_time.return_value = 0
-        store.set(key, "bar")
+        store.set(key, "bar", UpdateChannel.CLI)
 
         with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
             with patch.object(store.cache, "get", side_effect=RuntimeError()):
@@ -100,7 +101,7 @@ class OptionsStoreTest(TestCase):
         store, key = self.store, self.make_key(10, 0)
 
         mocked_time.return_value = 0
-        store.set(key, "bar")
+        store.set(key, "bar", UpdateChannel.CLI)
 
         with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
             with patch.object(store.cache, "get", side_effect=RuntimeError()):
@@ -130,10 +131,10 @@ class OptionsStoreTest(TestCase):
         key3 = self.make_key(10, 10)  # should expire after 20
         key4 = self.make_key(10, 15)  # should expire after 25
 
-        store.set(key1, "x")
-        store.set(key2, "x")
-        store.set(key3, "x")
-        store.set(key4, "x")
+        store.set(key1, "x", UpdateChannel.CLI)
+        store.set(key2, "x", UpdateChannel.CLI)
+        store.set(key3, "x", UpdateChannel.CLI)
+        store.set(key4, "x", UpdateChannel.CLI)
 
         assert len(store._local_cache) == 4
 
