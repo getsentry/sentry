@@ -12,9 +12,16 @@ from sentry.issues.grouptype import (
     PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
 )
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project, ProjectDebugFile
 
-from ..base import DetectorType, PerformanceDetector, get_span_evidence_value, total_span_time
+from ..base import (
+    DetectorType,
+    PerformanceDetector,
+    get_notification_attachment_body,
+    get_span_evidence_value,
+    total_span_time,
+)
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
@@ -73,7 +80,17 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                         ),
                         "num_repeating_spans": str(len(offender_spans)),
                     },
-                    evidence_display=[],
+                    evidence_display=[
+                        IssueEvidence(
+                            name="Offending Spans",
+                            value=get_notification_attachment_body(
+                                span_list[0].get("op"),
+                                span_list[0].get("description", ""),
+                            ),
+                            # Has to be marked important to be displayed in the notifications
+                            important=True,
+                        )
+                    ],
                 )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:

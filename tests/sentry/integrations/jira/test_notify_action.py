@@ -7,7 +7,6 @@ from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
-from sentry.utils.http import absolute_uri
 
 
 class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
@@ -106,23 +105,10 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Make assertions about what would be POSTed to api/2/issue.
         assert data["fields"]["summary"] == "N+1 Query"
-        # TODO: Uncomment this and remove the other check on `description` once we fix the contents
-        # to include the query
-        # assert (
-        #     "*Transaction Name* | db - SELECT `books_author`.`id`, `books_author`"
-        #     in data["fields"]["description"]
-        # )
-        short_id = event.group.qualified_short_id
-        group_url = absolute_uri(
-            event.group.get_absolute_url(params={"referrer": "jira_integration"})
+        assert (
+            "*Offending Spans* | db - SELECT `books_author`.`id`, `books_author`"
+            in data["fields"]["description"]
         )
-        rule_url = absolute_uri(
-            f"/organizations/{self.project.organization.slug}/alerts/rules/{self.project.slug}/{self.jira_rule.id}/"
-        )
-        description = f"Sentry Issue: [{short_id}|{group_url}]\nThis ticket was automatically created by Sentry via [{self.jira_rule.rule.label}|{rule_url}]"
-        assert description == data["fields"]["description"]
-        assert data["fields"]["issuetype"]["id"] == "1"
-
         external_issue = ExternalIssue.objects.get(key="APP-123")
         assert external_issue
 

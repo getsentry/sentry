@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 
 from ..base import (
     DetectorType,
     PerformanceDetector,
     fingerprint_resource_span,
+    get_notification_attachment_body,
     get_span_duration,
     get_span_evidence_value,
 )
@@ -104,7 +106,17 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
                     "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
                     "num_repeating_spans": str(len(span.get("span_id", None))),
                 },
-                evidence_display=[],
+                evidence_display=[
+                    IssueEvidence(
+                        name="Offending Spans",
+                        value=get_notification_attachment_body(
+                            op,
+                            description,
+                        ),
+                        # Has to be marked important to be displayed in the notifications
+                        important=True,
+                    )
+                ],
             )
 
     def _fingerprint(self, span) -> str:

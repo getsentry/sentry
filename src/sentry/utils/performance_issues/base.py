@@ -388,3 +388,15 @@ def get_span_evidence_value(
         if not include_op:
             value = desc
     return value
+
+
+def get_notification_attachment_body(op, desc) -> str:
+    """Get the 'span evidence' data for a performance problem. This is displayed in issue alert emails."""
+    value = "no value"
+    if not op and desc:
+        value = desc
+    if op and not desc:
+        value = op
+    if op and desc:
+        value = f"{op} - {desc}"
+    return value
