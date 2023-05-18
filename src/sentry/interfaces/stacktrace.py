@@ -221,7 +221,7 @@ class Frame(Interface):
             data["addrMode"] = self.addr_mode
 
         # TODO(dcramer): abstract out this API
-        if self.data and "sourcemap" in data:
+        if self.data and "sourcemap" in self.data:
             data.update(
                 {
                     "map": self.data["sourcemap"].rsplit("/", 1)[-1],

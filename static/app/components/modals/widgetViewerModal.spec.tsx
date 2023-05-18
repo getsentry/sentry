@@ -86,12 +86,10 @@ describe('Modals -> WidgetViewerModal', function () {
     initialData = initializeOrg({
       organization: {
         features: ['discover-query'],
-        apdexThreshold: 400,
       },
       router: {
         location: {query: {}},
       },
-      project: 1,
       projects: [TestStubs.Project()],
     });
 

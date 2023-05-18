@@ -62,7 +62,8 @@ RUN set -x \
   && apt-get install -y --no-install-recommends $buildDeps \
   && pip install -r /tmp/requirements-frozen.txt \
   && mkdir /tmp/uwsgi-dogstatsd \
-  && wget -O - https://github.com/eventbrite/uwsgi-dogstatsd/archive/filters-and-tags.tar.gz | \
+                                                                  # pinned the same as in getsentry
+  && wget -O - https://github.com/DataDog/uwsgi-dogstatsd/archive/1a04f784491ab0270b4e94feb94686b65d8d2db1.tar.gz | \
   tar -xzf - -C /tmp/uwsgi-dogstatsd --strip-components=1 \
   && UWSGI_NEED_PLUGIN="" uwsgi --build-plugin /tmp/uwsgi-dogstatsd \
   && mkdir -p /var/lib/uwsgi \
