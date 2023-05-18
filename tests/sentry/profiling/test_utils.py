@@ -11,7 +11,7 @@ DUMMY_POOL = ConnectionPool("dummy")
 
 
 def get_url(path: str) -> str:
-    return f"{settings.SENTRY_PROFILING_SERVICE_URL}{path}"
+    return f"{settings.SENTRY_VROOM}{path}"
 
 
 def test_retry_on_post_profile() -> None:

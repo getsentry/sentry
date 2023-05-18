@@ -62,7 +62,7 @@ class RetrySkipTimeout(urllib3.Retry):
 
 
 _profiling_pool = connection_from_url(
-    settings.SENTRY_PROFILING_SERVICE_URL,
+    settings.SENTRY_VROOM,
     retries=RetrySkipTimeout(
         total=3,
         status_forcelist={502},
