@@ -48,7 +48,6 @@ import Sidebar, {
   getQueries,
   getTransactionBasedSeries,
   queryDataToChartData,
-  SidebarChart,
 } from 'sentry/views/starfish/views/spanSummary/sidebar';
 
 import {getSpanSamplesQuery, SamplePopulationType} from './queries';
@@ -117,7 +116,6 @@ export default function SpanSummary({location, params}: Props) {
   });
   const pageFilter = usePageFilters();
   const theme = useTheme();
-  const chartColors = theme.charts.getColorPalette(2);
 
   const dateFilter = getDateFilters(pageFilter);
 
@@ -492,10 +490,18 @@ export default function SpanSummary({location, params}: Props) {
                 <FlexRowContainer>
                   <FlexRowItem>
                     <ChartPanel title={t('Throughput (SPM)')}>
-                      <SidebarChart
-                        series={countSeries}
-                        isLoading={isLoadingSeriesData}
-                        chartColor={chartColors[0]}
+                      <Chart
+                        loading={isLoadingSeriesData}
+                        statsPeriod="24h"
+                        height={140}
+                        data={[countSeries ?? []]}
+                        start=""
+                        end=""
+                        utc={false}
+                        stacked
+                        isLineChart
+                        disableXAxis
+                        hideYAxisSplitLine
                       />
                     </ChartPanel>
                   </FlexRowItem>
