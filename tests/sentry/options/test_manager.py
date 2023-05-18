@@ -70,6 +70,8 @@ class OptionsManagerTest(TestCase):
 
         assert self.manager.get("foo") == ""
 
+        assert self.manager.get_last_update_channel("foo") is None
+
     def test_register(self):
         with pytest.raises(UnknownOption):
             self.manager.get("does-not-exit")
