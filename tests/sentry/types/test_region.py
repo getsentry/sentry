@@ -13,7 +13,6 @@ from sentry.types.region import (
     RegionContextError,
     RegionResolutionError,
     get_local_region,
-    get_region_by_id,
     get_region_by_name,
     get_region_for_organization,
 )
@@ -28,11 +27,8 @@ class RegionMappingTest(TestCase):
             Region("acme-single-tenant", 3, "acme.my.sentry.io", RegionCategory.SINGLE_TENANT),
         ]
         with override_regions(regions):
-            assert get_region_by_id(1) == regions[0]
             assert get_region_by_name("eu") == regions[1]
 
-            with pytest.raises(RegionResolutionError):
-                get_region_by_id(4)
             with pytest.raises(RegionResolutionError):
                 get_region_by_name("nowhere")
 
