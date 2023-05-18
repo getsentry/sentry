@@ -35,7 +35,6 @@ import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters, PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import MegaChart from 'sentry/views/starfish/views/spanSummary/megaChart';
 import Sidebar, {
   getTransactionBasedSeries,
   queryDataToChartData,
@@ -304,13 +303,6 @@ export default function SpanSummary({location, params}: Props) {
             <FilterOptionsContainer>
               <DatePageFilter alignDropdown="left" />
               <FilterOptionsSubContainer>
-                <ToggleLabel active={state.megaChart}>{t('Show mega chart')}</ToggleLabel>
-                <SwitchButton
-                  isActive={state.megaChart}
-                  toggle={() => {
-                    setState({...state, megaChart: !state.megaChart});
-                  }}
-                />
                 <ToggleLabel active={state.plotSamples}>
                   {t('Plot samples on charts')}
                 </ToggleLabel>
@@ -340,16 +332,6 @@ export default function SpanSummary({location, params}: Props) {
                     />
                   </div>
                 )}
-                {state.megaChart && (
-                  <MegaChart
-                    groupId={groupId}
-                    spanGroupOperation={spanGroupOperation}
-                    description={null}
-                    transactionName={transactionName}
-                    sampledSpanData={state.plotSamples ? sampledSpanData : []}
-                  />
-                )}
-
                 <FlexRowContainer>
                   <FlexRowItem>
                     <h4>{t('Throughput (SPM)')}</h4>
@@ -542,9 +524,8 @@ function SpanGroupKeyValueList({
                 ) : (
                   formattedDescription
                 ),
-              subject: 'Full Query',
+              subject: 'Query',
             },
-            {key: 'domain', value: spanDomain, subject: 'Table Columns'},
           ]}
           shouldSort={false}
         />
