@@ -127,6 +127,9 @@ test-js-ci: node-version-check
 test-python-ci:
 	@echo "--> Running CI Python tests"
 	pytest tests/integration tests/sentry \
+		-n auto \
+		--maxprocesses 8 \
+		--ignore tests/sentry/hybrid_cloud \
 		--ignore tests/sentry/eventstream/kafka \
 		--ignore tests/sentry/post_process_forwarder \
 		--ignore tests/sentry/snuba \
@@ -134,6 +137,9 @@ test-python-ci:
 		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
 		--ignore tests/sentry/region_to_control/test_region_to_control_kafka.py \
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
+
+	pytest tests/sentry/hybrid_cloud \
+		--cov . --cov-report="xml:.artifacts/python-serial.coverage.xml"
 	@echo ""
 
 test-snuba:
