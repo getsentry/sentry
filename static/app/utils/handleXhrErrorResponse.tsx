@@ -3,10 +3,9 @@ import * as Sentry from '@sentry/react';
 import RequestError from 'sentry/utils/requestError/requestError';
 
 export function handleXhrErrorResponse(message: string, err: RequestError): void {
-  if (!err) {
-    return;
-  }
-  if (!err.responseJSON) {
+  // Sudo errors are handled separately elsewhere
+  // @ts-ignore Property 'code' does not exist on type 'string'
+  if (!err || !err.responseJSON || err.responseJSON?.detail?.code === 'sudo-required') {
     return;
   }
 
@@ -19,11 +18,6 @@ export function handleXhrErrorResponse(message: string, err: RequestError): void
       scope.setExtra('detail', responseJSON.detail);
       Sentry.captureException(new Error(message));
     });
-    return;
-  }
-
-  // Ignore sudo-required errors
-  if (responseJSON.detail && responseJSON.detail.code === 'sudo-required') {
     return;
   }
 
