@@ -8,6 +8,7 @@ from typing import Any, List, Optional, cast
 
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import (
     RpcUser,
@@ -78,6 +79,20 @@ class UserService(RpcService):
         :param is_active:
         filter for only active users
         :return:
+        """
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_organizations(
+        self,
+        *,
+        user_id: int,
+        only_visible: bool = False,
+    ) -> List[RpcOrganizationSummary]:
+        """Get summary data for all organizations of which the user is a member.
+
+        The organizations may span multiple regions.
         """
         pass
 

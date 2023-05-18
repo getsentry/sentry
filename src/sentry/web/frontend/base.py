@@ -32,6 +32,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
@@ -104,8 +105,8 @@ class OrganizationMixin:
         )
         backup_organization: RpcOrganizationSummary | None = None
         if active_organization is None:
-            organizations = organization_service.get_organizations(
-                user_id=request.user.id, scope=None, only_visible=True
+            organizations = user_service.get_organizations(
+                user_id=request.user.id, only_visible=True
             )
 
             if organizations:

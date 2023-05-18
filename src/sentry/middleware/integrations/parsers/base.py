@@ -10,7 +10,8 @@ from django.urls import ResolverMatch, resolve
 
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.silo import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient
 from sentry.types.region import Region, get_region_for_organization
@@ -125,9 +126,7 @@ class BaseRequestParser(abc.ABC):
             integration_id=integration.id
         )
         organization_ids = [oi.organization_id for oi in organization_integrations]
-        return organization_service.get_organizations(
-            user_id=None, scope=None, only_visible=False, organization_ids=organization_ids
-        )
+        return organization_mapping_service.get_many(organization_ids=organization_ids)
 
     def get_regions_from_organizations(
         self, organizations: Sequence[RpcOrganizationSummary] = None

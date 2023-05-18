@@ -10,13 +10,10 @@ from django.utils import timezone
 from pydantic.fields import Field
 from typing_extensions import TypedDict
 
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 
 
-class RpcOrganizationMapping(RpcModel):
-    organization_id: int = -1
-    slug: str = ""
-    name: str = ""
+class RpcOrganizationMapping(RpcOrganizationSummary):
     region_name: str = ""
     date_created: datetime = Field(default_factory=timezone.now)
     verified: bool = False

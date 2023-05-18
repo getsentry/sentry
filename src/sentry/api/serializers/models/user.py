@@ -39,7 +39,8 @@ from sentry.models import (
     UserPermission,
     UserRoleUser,
 )
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 
@@ -218,11 +219,8 @@ class UserSerializer(Serializer):  # type: ignore
         # TODO(dcramer): move this to DetailedUserSerializer
         if attrs["identities"] is not None:
             organization_ids = {i.auth_provider.organization_id for i in attrs["identities"]}
-            auth_identity_organizations = organization_service.get_organizations(
-                user_id=None,
-                scope=None,
-                only_visible=False,
-                organization_ids=list(organization_ids),
+            auth_identity_organizations = organization_mapping_service.get_many(
+                organization_ids=list(organization_ids)
             )
             orgs_by_id: Mapping[int, RpcOrganizationSummary] = {
                 o.id: o for o in auth_identity_organizations
