@@ -222,6 +222,7 @@ function PageLayout(props: Props) {
                   query: {
                     project: projectId,
                     transaction: transactionName,
+                    statsPeriod: eventView.statsPeriod,
                     referrer: 'performance-transaction-summary',
                   },
                 }}
