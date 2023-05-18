@@ -25,6 +25,8 @@ from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
+    Activity,
+    ActivityType,
     Group,
     GroupHistoryStatus,
     GroupInboxReason,
@@ -312,7 +314,7 @@ def manage_snooze_states(
         group.substatus = GroupSubStatus.ESCALATING
         group.status = GroupStatus.UNRESOLVED
         issue_escalating.send_robust(
-            project=group.project, group=group, event=event, sender=is_escalating
+            project=group.project, group=group, event=event, sender=manage_snooze_states
         )
 
     elif group_inbox_reason == GroupInboxReason.ONGOING:
@@ -333,3 +335,11 @@ def manage_snooze_states(
         )
 
     group.save(update_fields=["status", "substatus"])
+
+    Activity.objects.create(
+        project=group.project,
+        group=group,
+        type=ActivityType.SET_UNRESOLVED.value,
+        user_id=None,
+        data={"event_id": event.event_id},
+    )

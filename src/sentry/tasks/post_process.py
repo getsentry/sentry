@@ -15,7 +15,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
-from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
@@ -656,7 +655,7 @@ def process_snoozes(job: PostProcessJob) -> None:
         return
 
     from sentry.issues.escalating import is_escalating, manage_snooze_states
-    from sentry.models import Activity, GroupInboxReason, GroupSnooze, GroupStatus, GroupSubStatus
+    from sentry.models import GroupInboxReason, GroupSnooze, GroupStatus, GroupSubStatus
 
     event = job["event"]
     group = event.group
@@ -704,14 +703,6 @@ def process_snoozes(job: PostProcessJob) -> None:
 
             else:
                 manage_snooze_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
-
-            Activity.objects.create(
-                project=group.project,
-                group=group,
-                type=ActivityType.SET_UNRESOLVED.value,
-                user_id=None,
-                data={"event_id": job["event"].event_id},
-            )
 
             snooze.delete()
 
