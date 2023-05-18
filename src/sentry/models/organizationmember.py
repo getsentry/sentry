@@ -247,11 +247,13 @@ class OrganizationMember(Model):
             self.refresh_expires_at()
         is_new = bool(self.id)
         super().save(*args, **kwargs)
+        region_outbox = None
         if is_new:
-            self.save_outbox_for_create()
+            region_outbox = self.save_outbox_for_create()
         else:
-            self.save_outbox_for_update()
+            region_outbox = self.save_outbox_for_update()
         self.__org_roles_from_teams = None
+        return region_outbox
 
     def refresh_from_db(self, *args, **kwargs):
         super().refresh_from_db(*args, **kwargs)
