@@ -88,6 +88,7 @@ from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
+from sentry.mediators.project_rules import Creator
 from sentry.models import ApiToken
 from sentry.models import AuthProvider as AuthProviderModel
 from sentry.models import (
@@ -112,6 +113,7 @@ from sentry.models import (
     Release,
     ReleaseCommit,
     Repository,
+    RuleSource,
     UserEmail,
     UserOption,
 )
@@ -2400,6 +2402,26 @@ class MonitorTestCase(APITestCase):
         return MonitorEnvironment.objects.create(
             monitor=monitor, environment=environment, **monitorenvironment_defaults
         )
+
+    def _create_alert_rule(self, monitor):
+        rule = Creator(
+            name="New Cool Rule",
+            owner=None,
+            project=self.project,
+            action_match="all",
+            filter_match="any",
+            conditions=[],
+            actions=[],
+            frequency=5,
+        ).call()
+        rule.update(source=RuleSource.CRON_MONITOR)
+
+        config = monitor.config
+        config["alert_rule_id"] = rule.id
+        monitor.config = config
+        monitor.save()
+
+        return rule
 
 
 class MonitorIngestTestCase(MonitorTestCase):

@@ -134,9 +134,22 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
 
 
 def update_alert_rule(request: Request, project: Project, alert_rule: Rule, alert_rule_data: dict):
+    actions = []
+    for target in alert_rule_data.get("targets", []):
+        target_identifier = target["target_identifier"]
+        target_type = target["target_type"]
+
+        action = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "name": f"Send a notification to {target_type}",
+            "targetIdentifier": target_identifier,
+            "targetType": target_type,
+        }
+        actions.append(action)
+
     serializer = RuleSerializer(
         context={"project": project, "organization": project.organization},
-        data=alert_rule_data,
+        data={"actions": actions},
         partial=True,
     )
 
@@ -144,8 +157,10 @@ def update_alert_rule(request: Request, project: Project, alert_rule: Rule, aler
         data = serializer.validated_data
 
         kwargs = {
-            "actions": data["actions"],
+            "project": project,
+            "actions": data.get("actions", []),
         }
+
         updated_rule = project_rules.Updater.run(rule=alert_rule, request=request, **kwargs)
 
         RuleActivity.objects.create(

@@ -81,7 +81,7 @@ class MonitorSerializer(Serializer):
 
         if self._expand("rule"):
             for item in item_list:
-                attrs["rule"] = item.get_alert_rule_data()
+                attrs[item]["rule"] = item.get_alert_rule_data()
 
         return attrs
 
