@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject, removeTeamFromProject} from 'sentry/actionCreators/projects';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t, tct} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {Organization, Project, Team} from 'sentry/types';
@@ -10,6 +11,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TeamSelectForProject from 'sentry/views/settings/components/teamSelect/teamSelectForProject';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = {
@@ -121,21 +123,28 @@ class ProjectTeams extends AsyncView<Props, State> {
 
   renderBody() {
     const {project, organization} = this.props;
+    const {projectTeams} = this.state;
 
     const canCreateTeam = this.canCreateTeam();
-    const hasAccess = organization.access.includes('project:write');
-    const confirmRemove = t(
-      'This is the last team with access to this project. Removing it will mean only organization owners and managers will be able to access the project pages. Are you sure you want to remove this team from the project %s?',
-      project.slug
-    );
-    const {projectTeams} = this.state;
+    const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
 
     return (
       <div>
         <SettingsPageHeader title={t('Project Teams for %s', project.slug)} />
+        <TextBlock>
+          {t(
+            'These teams and their members have access to this project. They can be assigned to issues and alerts created in it.'
+          )}
+        </TextBlock>
+        <TextBlock>
+          {t(
+            'Team Admins can grant other teams access to this project. However, they cannot revoke access unless they are admins for the other teams too.'
+          )}
+        </TextBlock>
         <PermissionAlert project={project} />
+
         <TeamSelectForProject
-          disabled={!hasAccess}
+          disabled={!hasWriteAccess}
           canCreateTeam={canCreateTeam}
           organization={organization}
           project={project}
@@ -148,7 +157,6 @@ class ProjectTeams extends AsyncView<Props, State> {
               this.remountComponent
             );
           }}
-          confirmLastTeamRemoveMessage={confirmRemove}
         />
       </div>
     );

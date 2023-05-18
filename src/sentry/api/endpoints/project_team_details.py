@@ -37,10 +37,8 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
             team = Team.objects.get(organization_id=project.organization_id, slug=team_slug)
         except Team.DoesNotExist:
             raise Http404
-        if not request.access.has_team_scope(team, "project:write"):
-            return Response(
-                {"detail": ["You do not have permission to perform this action."]}, status=403
-            )
+
+        # A user with project:write can grant access to this project to other user/teams
         project.add_team(team)
         return Response(serialize(project, request.user, ProjectWithTeamSerializer()), status=201)
 
