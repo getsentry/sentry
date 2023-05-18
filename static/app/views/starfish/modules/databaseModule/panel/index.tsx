@@ -19,6 +19,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
+import {generateMarkLine} from 'sentry/views/starfish/components/sparkline';
 import ProfileView from 'sentry/views/starfish/modules/databaseModule/panel/profileView';
 import QueryTransactionTable, {
   PanelSort,
@@ -33,10 +34,7 @@ import {
   useQueryPanelTable,
   useQueryTransactionByTPMAndDuration,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
-import {
-  generateMarkLine,
-  queryToSeries,
-} from 'sentry/views/starfish/modules/databaseModule/utils';
+import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 

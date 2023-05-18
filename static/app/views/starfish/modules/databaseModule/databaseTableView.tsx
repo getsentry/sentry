@@ -9,10 +9,11 @@ import Link from 'sentry/components/links/link';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import {getDuration} from 'sentry/utils/formatters';
-import Sparkline from 'sentry/views/starfish/components/sparkline';
+import Sparkline, {
+  generateHorizontalLine,
+} from 'sentry/views/starfish/components/sparkline';
 import {Sort} from 'sentry/views/starfish/modules/databaseModule';
 import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
-import {generateHorizontalLine} from 'sentry/views/starfish/modules/databaseModule/utils';
 
 type Props = {
   isDataLoading: boolean;
