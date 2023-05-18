@@ -81,15 +81,9 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             exception = event.interfaces["exception"].values[exception_idx]
         except IndexError:
             raise ParseError(detail="Query parameter 'exception_idx' is out of bounds")
-
-        raw_stacktrace = exception.raw_stacktrace
-        if raw_stacktrace:
-            # Exception is already source mapped
-            return self._create_response()
-
         frame, filename, abs_path = self._get_frame_filename_and_path(exception, frame_idx)
-
-        if frame.context_line:
+        if frame.data and "sourcemap" in frame.data:
+            # already mapped
             return self._create_response()
 
         try:
