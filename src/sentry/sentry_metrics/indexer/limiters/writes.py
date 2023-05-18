@@ -95,7 +95,7 @@ class WritesLimiter:
             for args in options.get("sentry-metrics.writes-limiter.limits.generic-metrics.global")
         ] + [
             Quota(prefix_override=None, **args)
-            for args in options.get("sentry-metrics.writes-limiter.limits.generic-metrics..per-org")
+            for args in options.get("sentry-metrics.writes-limiter.limits.generic-metrics.per-org")
         ]
 
     @metrics.wraps("sentry_metrics.indexer.construct_quota_requests")
