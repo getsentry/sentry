@@ -195,6 +195,9 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
   const is404 =
     ['NotFoundError', 'RequestError'].includes(type) &&
     !!value.match('(GET|POST|PUT|DELETE) .* 404');
+  const is429 =
+    ['TooManyRequestsError', 'RequestError'].includes(type) &&
+    !!value.match('(GET|POST|PUT|DELETE) .* 429');
 
-  return is200 || is401 || is403 || is404;
+  return is200 || is401 || is403 || is404 || is429;
 }

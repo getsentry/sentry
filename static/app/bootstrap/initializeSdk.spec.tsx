@@ -59,6 +59,22 @@ describe('isFilteredRequestErrorEvent', () => {
     expect(isFilteredRequestErrorEvent(requestErrorEvent)).toBeTruthy();
   });
 
+  it.each(['GET', 'POST', 'PUT', 'DELETE'])('filters 429 %s events', method => {
+    const notFoundErrorEvent = {
+      exception: {
+        values: [{type: 'TooManyRequestsError', value: `${method} /dogs/are/great/ 429`}],
+      },
+    };
+    const requestErrorEvent = {
+      exception: {
+        values: [{type: 'RequestError', value: `${method} /dogs/are/great/ 429`}],
+      },
+    };
+
+    expect(isFilteredRequestErrorEvent(notFoundErrorEvent)).toBeTruthy();
+    expect(isFilteredRequestErrorEvent(requestErrorEvent)).toBeTruthy();
+  });
+
   it.each(['NotFoundError', 'ForbiddenError', 'UnauthorizedError'])(
     "doesn't filter other %s events",
     errorType => {
