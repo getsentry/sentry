@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuthIdentity, OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -96,9 +97,11 @@ def check_auth_identity(auth_identity_id, **kwargs):
         is_valid = True
 
     if getattr(om.flags, "sso:linked") != is_linked:
-        setattr(om.flags, "sso:linked", is_linked)
-        setattr(om.flags, "sso:invalid", not is_valid)
-        om.update(flags=om.flags)
+        # TODO: may need to be replaced with a service call
+        with in_test_psql_role_override("postgres"):
+            setattr(om.flags, "sso:linked", is_linked)
+            setattr(om.flags, "sso:invalid", not is_valid)
+            om.update(flags=om.flags)
 
     now = timezone.now()
     auth_identity.update(last_verified=now, last_synced=now)
