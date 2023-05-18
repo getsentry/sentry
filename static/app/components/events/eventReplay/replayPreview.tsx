@@ -67,8 +67,9 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
         data-test-id="replay-error"
         trailingItems={
           <Button
-            size="xs"
+            external
             href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking"
+            size="xs"
           >
             {t('Read Docs')}
           </Button>
