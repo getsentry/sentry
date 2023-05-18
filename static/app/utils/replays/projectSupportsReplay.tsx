@@ -16,14 +16,13 @@ function projectSupportsReplay(project: MinimalProject) {
  * Basically: is this a backend or frontend project
  */
 export function projectCanLinkToReplay(project: undefined | MinimalProject) {
-  if (!project) {
+  if (!project || !project.platform) {
     return false;
   }
-  const {platform} = project;
-  return Boolean(
-    platform &&
-      replayPlatforms.includes(platform) &&
-      backend.some(val => val === platform) // TS doesn't like `includes()` here :(
+
+  return (
+    replayPlatforms.includes(project.platform) ||
+    backend.some(val => val === project.platform)
   );
 }
 

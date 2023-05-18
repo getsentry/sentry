@@ -15,9 +15,18 @@ type Props = {
   replayId: undefined | string;
 };
 
-function useProjectFromSlug({projectSlug}: {projectSlug: string}) {
-  const {fetching, projects} = useProjects({slugs: [projectSlug]});
-  return fetching ? projects[0] : undefined;
+function useProjectFromSlug({
+  organization,
+  projectSlug,
+}: {
+  organization: Organization;
+  projectSlug: string;
+}) {
+  const {fetching, projects} = useProjects({
+    slugs: [projectSlug],
+    orgId: organization.slug,
+  });
+  return fetching ? undefined : projects[0];
 }
 
 export default function EventReplay({replayId, organization, projectSlug, event}: Props) {
@@ -27,7 +36,7 @@ export default function EventReplay({replayId, organization, projectSlug, event}
   const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
   const replayPreview = useCallback(() => import('./replayPreview'), []);
 
-  const project = useProjectFromSlug({projectSlug});
+  const project = useProjectFromSlug({organization, projectSlug});
   const isReplayRelated = projectCanLinkToReplay(project);
 
   if (!hasReplaysFeature || fetching || !isReplayRelated) {
