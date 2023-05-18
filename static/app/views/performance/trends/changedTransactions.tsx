@@ -298,7 +298,7 @@ function ChangedTransactions(props: Props) {
           <TransactionsListContainer data-test-id="changed-transactions">
             <TrendsTransactionPanel>
               <StyledHeaderTitleLegend>
-                {chartTitle} {withBreakpoint && '- With Breakpoints'}
+                {chartTitle} {!withBreakpoint && 'Indexed'}
                 <QuestionTooltip size="sm" position="top" title={titleTooltipContent} />
               </StyledHeaderTitleLegend>
               {isLoading ? (
@@ -489,36 +489,40 @@ function TrendsListItem(props: TrendsListItemProps) {
           />
         }
       >
-        <MenuItem
-          onClick={() =>
-            handleFilterDuration(
-              location,
-              organization,
-              longestPeriodValue,
-              FilterSymbols.LESS_THAN_EQUALS,
-              trendChangeType,
-              projects,
-              trendView.project
-            )
-          }
-        >
-          <MenuAction>{t('Show \u2264 %s', longestDuration)}</MenuAction>
-        </MenuItem>
-        <MenuItem
-          onClick={() =>
-            handleFilterDuration(
-              location,
-              organization,
-              longestPeriodValue,
-              FilterSymbols.GREATER_THAN_EQUALS,
-              trendChangeType,
-              projects,
-              trendView.project
-            )
-          }
-        >
-          <MenuAction>{t('Show \u2265 %s', longestDuration)}</MenuAction>
-        </MenuItem>
+        {!organization.features.includes('performance-new-trends') && (
+          <Fragment>
+            <MenuItem
+              onClick={() =>
+                handleFilterDuration(
+                  location,
+                  organization,
+                  longestPeriodValue,
+                  FilterSymbols.LESS_THAN_EQUALS,
+                  trendChangeType,
+                  projects,
+                  trendView.project
+                )
+              }
+            >
+              <MenuAction>{t('Show \u2264 %s', longestDuration)}</MenuAction>
+            </MenuItem>
+            <MenuItem
+              onClick={() =>
+                handleFilterDuration(
+                  location,
+                  organization,
+                  longestPeriodValue,
+                  FilterSymbols.GREATER_THAN_EQUALS,
+                  trendChangeType,
+                  projects,
+                  trendView.project
+                )
+              }
+            >
+              <MenuAction>{t('Show \u2265 %s', longestDuration)}</MenuAction>
+            </MenuItem>
+          </Fragment>
+        )}
         <MenuItem
           onClick={() => handleFilterTransaction(location, transaction.transaction)}
         >

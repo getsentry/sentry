@@ -22,6 +22,8 @@ type State = {
   /**
    * Indicates that User results (from API) are paginated and there are more
    * Users that are not in the initial response.
+   *
+   * A null value indicates that we don't know if there are more values.
    */
   hasMore: null | boolean;
   /**
@@ -211,9 +213,13 @@ export function useMembers({emails, limit}: Options = {}) {
           limit,
         });
 
+        const memberUsers = results
+          .map(m => m.user)
+          .filter((user): user is User => user !== null);
+
         // Unique by `id` to avoid duplicates due to renames and state store data
         const fetchedMembers = uniqBy<User>(
-          [...results.map(member => member.user), ...store.members],
+          [...memberUsers, ...store.members],
           ({id}) => id
         );
         MemberListStore.loadInitialData(fetchedMembers);
@@ -262,8 +268,12 @@ export function useMembers({emails, limit}: Options = {}) {
           cursor,
         });
 
+        const memberUsers = results
+          .map(m => m.user)
+          .filter((user): user is User => user !== null);
+
         const fetchedMembers = uniqBy<User>(
-          [...store.members, ...results.map(member => member.user)],
+          [...store.members, ...memberUsers],
           ({email}) => email
         );
 

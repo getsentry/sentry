@@ -1,5 +1,5 @@
-import {Component, Fragment} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {Fragment, useCallback, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
@@ -17,84 +17,170 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {Organization, Team} from 'sentry/types';
+import {Team} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getPlatformName from 'sentry/utils/getPlatformName';
-import withRouteAnalytics, {
-  WithRouteAnalyticsProps,
-} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import slugify from 'sentry/utils/slugify';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useTeams} from 'sentry/utils/useTeams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import withOrganization from 'sentry/utils/withOrganization';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
-import withTeams from 'sentry/utils/withTeams';
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
 const getCategoryName = (category?: string) =>
   categoryList.find(({id}) => id === category)?.id;
-
-type Props = WithRouterProps &
-  WithRouteAnalyticsProps & {
-    api: any;
-    organization: Organization;
-    teams: Team[];
-  };
 
 type PlatformName = React.ComponentProps<typeof PlatformIcon>['platform'];
 type IssueAlertFragment = Parameters<
   React.ComponentProps<typeof IssueAlertOptions>['onChange']
 >[0];
 
-type State = {
-  dataFragment: IssueAlertFragment | undefined;
-  error: boolean;
-  inFlight: boolean;
-  platform: PlatformName | null;
-  projectName: string;
-  team: string;
-};
+function CreateProject() {
+  const api = useApi();
+  const organization = useOrganization();
 
-class CreateProject extends Component<Props, State> {
-  constructor(props: Props, context) {
-    super(props, context);
+  const location = useLocation();
+  const {query} = location;
 
-    const {teams, location} = props;
-    const {query} = location;
-    const accessTeams = teams.filter((team: Team) => team.hasAccess);
+  const accessTeams = useTeams().teams.filter((team: Team) => team.hasAccess);
 
-    const team = query.team || (accessTeams.length && accessTeams[0].slug);
-    const platform = getPlatformName(query.platform) ? query.platform : '';
+  useRouteAnalyticsEventNames(
+    'project_creation_page.viewed',
+    'Project Create: Creation page viewed'
+  );
 
-    this.state = {
-      error: false,
-      projectName: getPlatformName(platform) || '',
-      team,
-      platform,
-      inFlight: false,
-      dataFragment: undefined,
-    };
+  const platformQuery = Array.isArray(query.platform)
+    ? query.platform[0]
+    : query.platform ?? null;
+
+  const platformName = getPlatformName(platformQuery);
+
+  const defaultCategory = getCategoryName(
+    Array.isArray(query.category) ? query.category[0] : query.category ?? undefined
+  );
+
+  const [projectName, setProjectName] = useState(platformName ?? '');
+  const [platform, setPlatform] = useState(platformName ? platformQuery : '');
+  const [team, setTeam] = useState(query.team || accessTeams?.[0]?.slug);
+
+  const [error, setError] = useState(false);
+  const [inFlight, setInFlight] = useState(false);
+
+  const [alertRuleConfig, setAlertRuleConfig] = useState<IssueAlertFragment | undefined>(
+    undefined
+  );
+
+  const createProject = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      const {slug} = organization;
+      const {
+        shouldCreateCustomRule,
+        name,
+        conditions,
+        actions,
+        actionMatch,
+        frequency,
+        defaultRules,
+      } = alertRuleConfig || {};
+
+      setInFlight(true);
+
+      try {
+        const projectData = await api.requestPromise(`/teams/${slug}/${team}/projects/`, {
+          method: 'POST',
+          data: {
+            name: projectName,
+            platform,
+            default_rules: defaultRules ?? true,
+          },
+        });
+
+        let ruleId: string | undefined;
+        if (shouldCreateCustomRule) {
+          const ruleData = await api.requestPromise(
+            `/projects/${organization.slug}/${projectData.slug}/rules/`,
+            {
+              method: 'POST',
+              data: {
+                name,
+                conditions,
+                actions,
+                actionMatch,
+                frequency,
+              },
+            }
+          );
+          ruleId = ruleData.id;
+        }
+        trackAnalytics('project_creation_page.created', {
+          organization,
+          issue_alert: defaultRules
+            ? 'Default'
+            : shouldCreateCustomRule
+            ? 'Custom'
+            : 'No Rule',
+          project_id: projectData.id,
+          rule_id: ruleId || '',
+        });
+
+        ProjectsStore.onCreateSuccess(projectData, organization.slug);
+
+        const platformKey = platform || 'other';
+
+        browserHistory.push(
+          normalizeUrl(
+            `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`
+          )
+        );
+      } catch (err) {
+        setInFlight(false);
+        setError(err.responseJSON.detail);
+
+        // Only log this if the error is something other than:
+        // * The user not having access to create a project, or,
+        // * A project with that slug already exists
+        if (err.status !== 403 && err.status !== 409) {
+          Sentry.withScope(scope => {
+            scope.setExtra('err', err);
+            Sentry.captureMessage('Project creation failed');
+          });
+        }
+      }
+    },
+    [api, alertRuleConfig, organization, platform, projectName, team]
+  );
+
+  function handlePlatformChange(platformKey: PlatformName | null) {
+    if (!platformKey) {
+      setPlatform(null);
+      setProjectName('');
+      return;
+    }
+
+    const userModifiedName = projectName && projectName !== platform;
+    const newName = userModifiedName ? projectName : platformKey;
+
+    setPlatform(platformKey);
+    setProjectName(newName);
   }
 
-  componentDidMount() {
-    this.props.setEventNames(
-      'project_creation_page.viewed',
-      'Project Create: Creation page viewed'
-    );
-  }
+  const {shouldCreateCustomRule, conditions} = alertRuleConfig || {};
 
-  get defaultCategory() {
-    const {query} = this.props.location;
-    return getCategoryName(query.category);
-  }
+  const canSubmitForm =
+    !inFlight &&
+    team &&
+    projectName !== '' &&
+    (!shouldCreateCustomRule || conditions?.every?.(condition => condition.value));
 
-  renderProjectForm() {
-    const {organization} = this.props;
-    const {projectName, platform, team} = this.state;
-
-    const createProjectForm = (
-      <CreateProjectForm onSubmit={this.createProject}>
+  const createProjectForm = (
+    <Fragment>
+      <Layout.Title withMargins>
+        {t('3. Name your project and assign it a team')}
+      </Layout.Title>
+      <CreateProjectForm onSubmit={createProject}>
         <div>
           <FormLabel>{t('Project name')}</FormLabel>
           <ProjectNameInputWrap>
@@ -105,7 +191,7 @@ class CreateProject extends Component<Props, State> {
               placeholder={t('project-name')}
               autoComplete="off"
               value={projectName}
-              onChange={e => this.setState({projectName: slugify(e.target.value)})}
+              onChange={e => setProjectName(slugify(e.target.value))}
             />
           </ProjectNameInputWrap>
         </div>
@@ -118,7 +204,7 @@ class CreateProject extends Component<Props, State> {
               clearable={false}
               value={team}
               placeholder={t('Select a Team')}
-              onChange={choice => this.setState({team: choice.value})}
+              onChange={choice => setTeam(choice.value)}
               teamFilter={(filterTeam: Team) => filterTeam.hasAccess}
             />
             <Button
@@ -128,7 +214,7 @@ class CreateProject extends Component<Props, State> {
               onClick={() =>
                 openCreateTeamModal({
                   organization,
-                  onClose: ({slug}) => this.setState({team: slug}),
+                  onClose: ({slug}) => setTeam(slug),
                 })
               }
               title={t('Create a team')}
@@ -141,191 +227,49 @@ class CreateProject extends Component<Props, State> {
             type="submit"
             data-test-id="create-project"
             priority="primary"
-            disabled={!this.canSubmitForm}
+            disabled={!canSubmitForm}
           >
             {t('Create Project')}
           </Button>
         </div>
       </CreateProjectForm>
-    );
+    </Fragment>
+  );
 
-    return (
-      <Fragment>
-        <Layout.Title withMargins>
-          {t('3. Name your project and assign it a team')}
-        </Layout.Title>
-        {createProjectForm}
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      {error && <Alert type="error">{error}</Alert>}
 
-  get canSubmitForm() {
-    const {projectName, team, inFlight} = this.state;
-    const {shouldCreateCustomRule, conditions} = this.state.dataFragment || {};
-
-    return (
-      !inFlight &&
-      team &&
-      projectName !== '' &&
-      (!shouldCreateCustomRule || conditions?.every?.(condition => condition.value))
-    );
-  }
-
-  createProject = async e => {
-    e.preventDefault();
-    const {organization, api} = this.props;
-    const {projectName, platform, team, dataFragment} = this.state;
-    const {slug} = organization;
-    const {
-      shouldCreateCustomRule,
-      name,
-      conditions,
-      actions,
-      actionMatch,
-      frequency,
-      defaultRules,
-    } = dataFragment || {};
-
-    this.setState({inFlight: true});
-
-    if (!projectName) {
-      Sentry.withScope(scope => {
-        scope.setExtra('props', this.props);
-        scope.setExtra('state', this.state);
-        Sentry.captureMessage('No project name');
-      });
-    }
-
-    try {
-      const projectData = await api.requestPromise(`/teams/${slug}/${team}/projects/`, {
-        method: 'POST',
-        data: {
-          name: projectName,
-          platform,
-          default_rules: defaultRules ?? true,
-        },
-      });
-
-      let ruleId: string | undefined;
-      if (shouldCreateCustomRule) {
-        const ruleData = await api.requestPromise(
-          `/projects/${organization.slug}/${projectData.slug}/rules/`,
-          {
-            method: 'POST',
-            data: {
-              name,
-              conditions,
-              actions,
-              actionMatch,
-              frequency,
-            },
-          }
-        );
-        ruleId = ruleData.id;
-      }
-      trackAnalytics('project_creation_page.created', {
-        organization,
-        issue_alert: defaultRules
-          ? 'Default'
-          : shouldCreateCustomRule
-          ? 'Custom'
-          : 'No Rule',
-        project_id: projectData.id,
-        rule_id: ruleId || '',
-      });
-
-      ProjectsStore.onCreateSuccess(projectData, organization.slug);
-
-      const platformKey = platform || 'other';
-
-      browserHistory.push(
-        normalizeUrl(
-          `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`
-        )
-      );
-    } catch (err) {
-      this.setState({
-        inFlight: false,
-        error: err.responseJSON.detail,
-      });
-
-      // Only log this if the error is something other than:
-      // * The user not having access to create a project, or,
-      // * A project with that slug already exists
-      if (err.status !== 403 && err.status !== 409) {
-        Sentry.withScope(scope => {
-          scope.setExtra('err', err);
-          scope.setExtra('props', this.props);
-          scope.setExtra('state', this.state);
-          Sentry.captureMessage('Project creation failed');
-        });
-      }
-    }
-  };
-
-  setPlatform = (platformKey: PlatformName | null) => {
-    if (!platformKey) {
-      this.setState({platform: null, projectName: ''});
-      return;
-    }
-
-    this.setState(({projectName, platform}) => {
-      // Avoid replacing project name when the user already modified it
-      const userModifiedName = projectName && projectName !== platform;
-      const newName = userModifiedName ? projectName : platformKey;
-
-      return {
-        platform: platformKey,
-        projectName: slugify(newName),
-      };
-    });
-  };
-
-  render() {
-    const {platform, error} = this.state;
-
-    return (
-      <Fragment>
-        {error && <Alert type="error">{error}</Alert>}
-
-        <div data-test-id="onboarding-info">
-          <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
-          <HelpText>
-            {tct(
-              'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/" />
-                ),
-              }
-            )}
-          </HelpText>
-          <Layout.Title withMargins>{t('1. Choose your platform')}</Layout.Title>
-          <PlatformPicker
-            platform={platform}
-            defaultCategory={this.defaultCategory}
-            setPlatform={selectedPlatform =>
-              this.setPlatform(selectedPlatform?.id ?? null)
+      <div data-test-id="onboarding-info">
+        <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
+        <HelpText>
+          {tct(
+            'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/" />
+              ),
             }
-            organization={this.props.organization}
-            showOther
-          />
-          <IssueAlertOptions
-            onChange={updatedData => {
-              this.setState({dataFragment: updatedData});
-            }}
-          />
-          {this.renderProjectForm()}
-        </div>
-      </Fragment>
-    );
-  }
+          )}
+        </HelpText>
+        <Layout.Title withMargins>{t('1. Choose your platform')}</Layout.Title>
+        <PlatformPicker
+          platform={platform}
+          defaultCategory={defaultCategory}
+          setPlatform={selectedPlatform =>
+            handlePlatformChange(selectedPlatform?.id ?? null)
+          }
+          organization={organization}
+          showOther
+        />
+        <IssueAlertOptions onChange={updatedData => setAlertRuleConfig(updatedData)} />
+
+        {createProjectForm}
+      </div>
+    </Fragment>
+  );
 }
 
-// TODO(davidenwang): change to functional component and replace withTeams with useTeams
-export default withRouteAnalytics(
-  withApi(withSentryRouter(withOrganization(withTeams(CreateProject))))
-);
 export {CreateProject};
 
 const CreateProjectForm = styled('form')`

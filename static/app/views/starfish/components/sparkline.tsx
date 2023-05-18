@@ -8,10 +8,11 @@ import {Series} from 'sentry/types/echarts';
 type SparklineProps = {
   series: Series;
   color?: string | string[];
+  markLine?: Series;
   width?: number;
 };
 
-export default function Sparkline({series, width, color}: SparklineProps) {
+export default function Sparkline({series, width, color, markLine}: SparklineProps) {
   echarts.use([LineChart, SVGRenderer]);
 
   if (!series.data) {
@@ -30,7 +31,7 @@ export default function Sparkline({series, width, color}: SparklineProps) {
       echarts={echarts}
       option={{
         color,
-        series: [valueSeries],
+        series: [valueSeries, markLine],
         xAxis: {
           show: false,
           data: series.data.map(datum => datum.name),

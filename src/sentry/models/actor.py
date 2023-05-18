@@ -1,5 +1,5 @@
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union
+from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -112,8 +112,8 @@ class Actor(Model):
         return self.get_actor_tuple().get_actor_identifier()
 
 
-def get_actor_id_for_user(user: Union["User", RpcUser]):
-    return get_actor_for_user(user).id
+def get_actor_id_for_user(user: Union["User", RpcUser]) -> int:
+    return cast(int, get_actor_for_user(user).id)
 
 
 def get_actor_for_user(user: Union["User", RpcUser]) -> "Actor":
