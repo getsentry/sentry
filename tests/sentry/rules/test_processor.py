@@ -130,12 +130,11 @@ class RuleProcessorTest(TestCase):
             {
                 "channel": "#my-channel",
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
-                "tags": "",
                 "workspace": integration.id,
             },
         ]
         slack_rule = self.create_project_rule(self.project, action_data)
+        action_data[0].update({"channel": "#my-other-channel"})
         muted_slack_rule = self.create_project_rule(self.project, action_data)
         RuleSnooze.objects.create(
             user_id=None,
@@ -151,7 +150,23 @@ class RuleProcessorTest(TestCase):
             has_reappeared=True,
         )
         results = list(rp.apply())
+        # this indicates that both email and slack notifs were sent, though there could be more than one of each type
         assert len(results) == 2
+        # this checks that there was only 1 slack notification sent
+        slack_notifs = results[1][1]
+        assert len(slack_notifs) == 1
+        assert slack_notifs[0].rule == slack_rule
+
+        email_notifs = results[0][1]
+        # this checks that there was only 1 email notification sent
+        assert len(email_notifs) == 1
+        assert results[0][1][0].rule == self.rule
+        assert (
+            RuleFireHistory.objects.filter(
+                rule=muted_slack_rule, group=self.group_event.group
+            ).count()
+            == 0
+        )
         assert (
             RuleFireHistory.objects.filter(rule=slack_rule, group=self.group_event.group).count()
             == 1
