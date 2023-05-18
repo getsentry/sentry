@@ -1235,9 +1235,11 @@ class BaseMetricsTestCase(SnubaTestCase):
                 type,
                 mri,
                 {**tags, **base_tags},
-                session["started"]
-                if isinstance(session["started"], (int, float))
-                else to_timestamp(session["started"]),
+                int(
+                    session["started"]
+                    if isinstance(session["started"], (int, float))
+                    else to_timestamp(session["started"])
+                ),
                 value,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
             )
