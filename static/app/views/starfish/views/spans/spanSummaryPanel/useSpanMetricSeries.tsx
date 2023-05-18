@@ -29,7 +29,7 @@ export const useSpanMetricSeries = (span?: Span, referrer = 'span-metrics-series
   });
 
   const parsedData = keyBy(
-    ['spm', 'p50', 'p95'].map(seriesName => {
+    ['spm', 'p50', 'p95', 'failure_rate'].map(seriesName => {
       const series: Series = {
         seriesName,
         data: data.map(datum => ({value: datum[seriesName], name: datum.interval})),
@@ -47,9 +47,12 @@ const getQuery = (span: Span) => {
   return `
   SELECT
     toStartOfInterval(start_timestamp, INTERVAL ${INTERVAL} HOUR) as interval,
+    count() as count,
+    divide(count, multiply(${INTERVAL}, 60)) as spm,
     quantile(0.95)(exclusive_time) as p95,
     quantile(0.50)(exclusive_time) as p50,
-    divide(count(), multiply(${INTERVAL}, 60)) as spm
+    countIf(greaterOrEquals(status, 400) AND lessOrEquals(status, 599)) as "failure_count",
+    "failure_count" / "count" as "failure_rate"
   FROM spans_experimental_starfish
   WHERE group_id = '${span.group_id}'
   GROUP BY interval
