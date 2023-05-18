@@ -406,7 +406,12 @@ class Organization(Model, SnowflakeIdMixin):
                     organization=to_org, user_id=from_member.user.id
                 )
             except OrganizationMember.DoesNotExist:
-                from_member.update(organization=to_org)
+                region_outbox = None
+                with transaction.atomic():
+                    from_member.organization = to_org
+                    region_outbox = from_member.save()
+                if region_outbox:
+                    region_outbox.drain_shard(max_updates_to_drain=10)
                 to_member = from_member
             else:
                 qs = OrganizationMemberTeam.objects.filter(
