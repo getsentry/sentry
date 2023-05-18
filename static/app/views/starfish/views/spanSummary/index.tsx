@@ -275,10 +275,18 @@ export default function SpanSummary({location, params}: Props) {
     dateFilter
   );
 
-  const [p50Series, , spmSeries, _errorCountSeries] = queryDataToChartData(
-    seriesData
-  ).map(series =>
-    zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
+  const [p50Series, spmSeries, _errorCountSeries] = queryDataToChartData(seriesData).map(
+    series => {
+      series.lineStyle = {type: 'dotted'};
+      const zerofilled = zeroFillSeries(
+        series,
+        moment.duration(12, 'hours'),
+        startTime,
+        endTime
+      );
+
+      return zerofilled;
+    }
   );
 
   const {data: transactionData, isLoading: isTransactionDataLoading} = useApiQuery<{
