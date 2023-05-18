@@ -32,7 +32,6 @@ const getQuery = (span: Span) => {
     max(timestamp) as last_seen,
     sum(exclusive_time) as total_time
     FROM spans_experimental_starfish
-    WHERE 1 == 1
-    AND group_id = '${span.group_id}'
+    WHERE group_id = '${span.group_id}'
  `;
 };
