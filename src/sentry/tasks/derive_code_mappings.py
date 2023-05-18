@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Tuple
 from sentry_sdk import set_tag, set_user
 
 from sentry import features
+from sentry.constants import ObjectStatus
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.locks import locks
@@ -171,7 +172,9 @@ def get_installation(
     organization: Organization,
 ) -> Tuple[IntegrationInstallation | None, RpcOrganizationIntegration | None]:
     integrations = integration_service.get_integrations(
-        organization_id=organization.id, providers=["github"]
+        organization_id=organization.id,
+        providers=["github"],
+        status=ObjectStatus.ACTIVE,
     )
     if len(integrations) == 0:
         return None, None

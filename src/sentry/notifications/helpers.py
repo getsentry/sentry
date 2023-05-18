@@ -378,10 +378,11 @@ def get_user_subscriptions_for_groups(
     implicitly subscribed (or if they can subscribe at all.)
     """
     results = {}
+    actor = RpcActor.from_orm_user(user)
     for project_id, groups in groups_by_project.items():
         notification_settings_by_provider = get_values_by_provider(
             notification_settings_by_scope,
-            recipient=RpcActor.from_orm_user(user),
+            recipient=actor,
             parent_id=project_id,
             type=NotificationSettingTypes.WORKFLOW,
         )
