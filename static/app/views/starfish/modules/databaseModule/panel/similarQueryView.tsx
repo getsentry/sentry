@@ -78,9 +78,10 @@ function SimilarQueryView(props: Props) {
     }
     const timeBasedKeys: Keys[] = ['p50', 'p95', 'total_time'];
     if ((['epm', ...timeBasedKeys] as Keys[]).includes(key)) {
-      const val = row[key];
-      const sign = val > mainTableRow[key] ? '+' : '';
-      const percentage = (val / mainTableRow[key] - 1) * 100;
+      const val = row[key] as number;
+      const mainTableVal = mainTableRow[key] as number;
+      const sign = val > mainTableVal ? '+' : '';
+      const percentage = (val / mainTableVal - 1) * 100;
 
       let unit = '';
       if (timeBasedKeys.includes(key)) {
