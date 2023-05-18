@@ -1442,17 +1442,19 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             type=self._extract_entity_from_mri(name) if type is None else type,
             name=name,
             tags=tags,
-            timestamp=(
-                self.adjust_timestamp(
-                    self.now
-                    - timedelta(
-                        days=days_before_now,
-                        hours=hours_before_now,
-                        minutes=minutes_before_now,
-                        seconds=seconds_before_now,
+            timestamp=int(
+                (
+                    self.adjust_timestamp(
+                        self.now
+                        - timedelta(
+                            days=days_before_now,
+                            hours=hours_before_now,
+                            minutes=minutes_before_now,
+                            seconds=seconds_before_now,
+                        )
                     )
-                )
-            ).timestamp(),
+                ).timestamp()
+            ),
             value=value,
             use_case_id=use_case_id,
         )
