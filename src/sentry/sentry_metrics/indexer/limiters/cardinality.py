@@ -108,9 +108,9 @@ class TimeseriesCardinalityLimiter:
             )
             prefix = _build_quota_key(message["use_case_id"], org_id)
             hash_to_offset[prefix, message_hash] = key
+            request_hashes[prefix].add(message_hash)
             configured_quota = _construct_quotas(message["use_case_id"])
 
-            request_hashes[prefix].add(message_hash)
             # since we might have some use cases that are covered by
             # a quota and some that are not, only add entries that
             # are covered by a quota
