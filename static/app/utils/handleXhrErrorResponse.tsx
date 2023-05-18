@@ -9,11 +9,14 @@ export function handleXhrErrorResponse(message: string, err: RequestError): void
     return;
   }
 
-  const {responseJSON} = err;
+  const {responseJSON, status} = err;
 
   Sentry.withScope(scope => {
-    scope.setExtra('status', err.status);
-    scope.setExtra('responseJSON', responseJSON);
+    scope.setExtras({
+      status,
+      responseJSON,
+    });
+
     Sentry.captureException(new Error(message));
   });
 }
