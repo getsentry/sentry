@@ -17,6 +17,10 @@ export function handleXhrErrorResponse(message: string, err: RequestError): void
       responseJSON,
     });
 
-    Sentry.captureException(new Error(message));
+    Sentry.captureException(
+      // We need to typecheck here even though `err` is typed in the function
+      // signature because TS doesn't type thrown or rejected errors
+      err instanceof Error ? new Error(message, {cause: err}) : new Error(message)
+    );
   });
 }
