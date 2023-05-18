@@ -16,6 +16,7 @@ from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.grouping.strategies.message import trim_message_for_grouping
 from sentry.grouping.strategies.similarity_encoders import ident_encoder, text_shingle_encoder
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
+from sentry.grouping.utils import hash_from_values
 from sentry.interfaces.exception import Exception as ChainedException
 from sentry.interfaces.exception import Mechanism, SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
@@ -813,17 +814,14 @@ def filter_exceptions_for_exception_groups(
         reverse=True,
     )
 
-    # Figure out the distinct exceptions, grouping by the hashes of their grouping components.
-    distinct_exceptions = [
+    # Figure out the distinct top-level exceptions, grouping by the hash of the grouping component values.
+    distinct_top_level_exceptions = [
         next(group)
         for _, group in itertools.groupby(
             top_level_exceptions,
-            key=lambda exception: [
-                component.get_hash()
-                for component in context.get_grouping_component(
-                    exception, event=event, **meta
-                ).values()
-            ],
+            key=lambda exception: hash_from_values(
+                context.get_grouping_component(exception, event=event, **meta).values()
+            ),
         )
     ]
 
@@ -833,17 +831,18 @@ def filter_exceptions_for_exception_groups(
     # We'll also set the main_exception_id, which is used in the extract_metadata function
     # in src/sentry/eventtypes/error.py - which will ensure the issue is titled by this
     # item rather than the exception group.
-    if len(distinct_exceptions) == 1:
-        event.data["main_exception_id"] = distinct_exceptions[0].mechanism.exception_id
-        return list(get_first_path(distinct_exceptions[0]))
+    if len(distinct_top_level_exceptions) == 1:
+        main_exception = distinct_top_level_exceptions[0]
+        event.data["main_exception_id"] = main_exception.mechanism.exception_id
+        return list(get_first_path(main_exception))
 
     # When there's more than one distinct top-level exception, return one of each of them AND the root exception group.
     # NOTE: This deviates from the original RFC, because finding a common ancestor that shares
     # one of each top-level exception that is _not_ the root is overly complicated.
     # Also, it's more likely the stack trace of the root exception will be more meaningful
     # than one of an inner exception group.
-    distinct_exceptions.append(exceptions_by_id[0])
-    return distinct_exceptions
+    distinct_top_level_exceptions.append(exceptions_by_id[0])
+    return distinct_top_level_exceptions
 
 
 @chained_exception.variant_processor
