@@ -14,21 +14,29 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 
 
-def add_invite_details_to_session(request: Request, member_id: int, token: str) -> None:
+def add_invite_details_to_session(
+    request: Request, organization_id: int, member_id: int, token: str
+) -> None:
     """Add member ID and token to the request session"""
+    request.session["invite_organization_id"] = organization_id
     request.session["invite_token"] = token
     request.session["invite_member_id"] = member_id
 
 
 def remove_invite_details_from_session(request: Request) -> None:
     """Deletes invite details from the request session"""
+    request.session.pop("invite_organization_id", None)
     request.session.pop("invite_member_id", None)
     request.session.pop("invite_token", None)
 
 
-def get_invite_details(request: Request) -> Tuple[str, int]:
+def get_invite_details(request: Request) -> Tuple[str, int, int]:
     """Returns tuple of (token, member_id) from request session"""
-    return request.session.get("invite_token", None), request.session.get("invite_member_id", None)
+    return (
+        request.session.get("invite_token", None),
+        request.session.get("invite_member_id", None),
+        request.session.pop("invite_organization_id", None),
+    )
 
 
 class ApiInviteHelper:
@@ -46,7 +54,7 @@ class ApiInviteHelper:
         member via the currently set pending invite details in the session, or
         via the passed email if no cookie is currently set.
         """
-        invite_token, invite_member_id = get_invite_details(request)
+        invite_token, invite_member_id, organization_id = get_invite_details(request)
 
         rpc_org_member = None
         if invite_token and invite_member_id:
@@ -79,13 +87,13 @@ class ApiInviteHelper:
         instance: Any | None = None,
         logger: Logger | None = None,
     ) -> ApiInviteHelper | None:
-        invite_token, invite_member_id = get_invite_details(request)
+        invite_token, invite_member_id, organization_id = get_invite_details(request)
 
         if not invite_token or not invite_member_id:
             return None
 
         rpc_org_member = organization_service.get_organization_member(
-            organization_member_id=invite_member_id
+            organization_id=organization_id, organization_member_id=invite_member_id
         )
         if rpc_org_member is None:
             if logger:

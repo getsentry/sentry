@@ -77,7 +77,10 @@ class AcceptOrganizationInvite(Endpoint):
         if not helper.user_authenticated:
             request.session["can_register"] = True
             add_invite_details_to_session(
-                request, organization_member.id, organization_member.token
+                request,
+                organization_id=organization_member.organization_id,
+                member_id=organization_member.id,
+                token=organization_member.token,
             )
 
             # When SSO is required do *not* set a next_url to return to accept
@@ -95,7 +98,10 @@ class AcceptOrganizationInvite(Endpoint):
         # required if SSO is required.
         if auth_provider is not None:
             add_invite_details_to_session(
-                request, organization_member.id, organization_member.token
+                request,
+                organization_id=organization_member.organization_id,
+                member_id=organization_member.id,
+                token=organization_member.token,
             )
 
             provider = auth_provider.get_provider()
@@ -105,7 +111,10 @@ class AcceptOrganizationInvite(Endpoint):
         data.update(onboarding_steps)
         if any(onboarding_steps.values()):
             add_invite_details_to_session(
-                request, organization_member.id, organization_member.token
+                request,
+                organization_id=organization_member.organization_id,
+                member_id=organization_member.id,
+                token=organization_member.token,
             )
 
         response.data = data
