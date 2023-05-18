@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
@@ -29,12 +29,14 @@ function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
 
+  const nowRef = useRef<Date>(new Date());
+
   let since: number, until: number;
   if (start && end) {
     until = new Date(end).getTime() / 1000;
     since = new Date(start).getTime() / 1000;
   } else {
-    until = Math.floor(new Date().getTime() / 1000);
+    until = Math.floor(nowRef.current.getTime() / 1000);
     const intervalSeconds = intervalToMilliseconds(period ?? '30d') / 1000;
     since = until - intervalSeconds;
   }
