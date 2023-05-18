@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
+import jsonschema
 import pytz
 from croniter import croniter
 from dateutil import rrule
@@ -30,6 +32,8 @@ from sentry.locks import locks
 from sentry.models import Environment
 from sentry.utils.retries import TimedRetryPolicy
 
+logger = logging.getLogger(__name__)
+
 if TYPE_CHECKING:
     from sentry.models import Project
 
@@ -40,6 +44,21 @@ SCHEDULE_INTERVAL_MAP = {
     "day": rrule.DAILY,
     "hour": rrule.HOURLY,
     "minute": rrule.MINUTELY,
+}
+
+MONITOR_CONFIG = {
+    "type": "object",
+    "properties": {
+        "checkin_margin": {"type": ["integer", "null"]},
+        "max_runtime": {"type": ["integer", "null"]},
+        "timezone": {"type": ["string", "null"]},
+        "schedule_type": {"type": "integer"},
+        "schedule": {"type": ["string", "array"]},
+        "alert_rule_id": {"type": ["integer", "null"]},
+    },
+    # TODO(davidenwang): Old monitors may not have timezone or schedule_type, these should be added here once we've cleaned up old data
+    "required": ["checkin_margin", "max_runtime", "schedule"],
+    "additionalProperties": False,
 }
 
 
@@ -238,7 +257,6 @@ class Monitor(Model):
                     organization_id=self.organization_id,
                     max_length=50,
                 )
-
         return super().save(*args, **kwargs)
 
     def get_schedule_type_display(self):
@@ -247,12 +265,16 @@ class Monitor(Model):
     def get_audit_log_data(self):
         return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
 
-    def get_next_scheduled_checkin(self, last_checkin):
+    def get_next_scheduled_checkin_without_margin(self, last_checkin):
         tz = pytz.timezone(self.config.get("timezone") or "UTC")
         schedule_type = self.config.get("schedule_type", ScheduleType.CRONTAB)
         next_checkin = get_next_schedule(
             last_checkin.astimezone(tz), schedule_type, self.config["schedule"]
         )
+        return next_checkin
+
+    def get_next_scheduled_checkin(self, last_checkin):
+        next_checkin = self.get_next_scheduled_checkin_without_margin(last_checkin)
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
     def update_config(self, config_payload, validated_config):
@@ -262,6 +284,15 @@ class Monitor(Model):
             if key in validated_config:
                 monitor_config[key] = validated_config[key]
         self.save()
+
+    def get_validated_config(self):
+        try:
+            jsonschema.validate(self.config, MONITOR_CONFIG)
+            return self.config
+        except jsonschema.ValidationError:
+            logging.error(f"Monitor: {self.id} invalid config: {self.config}")
+
+        return None
 
 
 @receiver(pre_save, sender=Monitor)
@@ -293,6 +324,9 @@ class MonitorCheckIn(Model):
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
     attachment_id = BoundedBigIntegerField(null=True)
+    # Holds the time we expected to receive this check-in without factoring in margin
+    expected_time = models.DateTimeField(null=True)
+    monitor_config = JSONField(null=True)
 
     objects = BaseManager(cache_fields=("guid",))
 

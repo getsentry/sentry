@@ -1,9 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
-import moment from 'moment';
+import moment, {Moment} from 'moment';
 
-import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -14,6 +13,7 @@ import {
   getEndpointDetailSeriesQuery,
   getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
+import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
@@ -24,13 +24,20 @@ import {
   getUniqueTransactionCountQuery,
 } from 'sentry/views/starfish/views/spanSummary/queries';
 
+type Props = {
+  groupId: string;
+  sampledSpanData: any;
+  spanGroupOperation: string;
+  transactionName: string;
+  description?: string;
+};
+
 export default function Sidebar({
   spanGroupOperation,
   groupId,
   description,
   transactionName,
-  sampledSpanData,
-}) {
+}: Props) {
   const theme = useTheme();
   const pageFilter = usePageFilters();
   const {getSeriesQuery, getAggregatesQuery} = getQueries(spanGroupOperation);
@@ -41,6 +48,7 @@ export default function Sidebar({
     datetime: pageFilter.selection.datetime,
     groupId,
     module,
+    interval: 12,
   });
   const aggregatesQuery = getAggregatesQuery({
     description,
@@ -49,7 +57,6 @@ export default function Sidebar({
     groupId,
     module,
   });
-
   // This is supposed to a metrics span query that fetches aggregate metric data
   const {isLoading: _isLoadingSideBarAggregateData, data: spanAggregateData} = useQuery({
     queryKey: ['span-aggregates'],
@@ -61,22 +68,28 @@ export default function Sidebar({
     initialData: [],
   });
 
-  const {isLoading: _isLoadingSideBarOverallAggregateData, data: overallAggregateData} =
-    useQuery({
-      queryKey: ['overall-aggregates'],
-      queryFn: () =>
-        fetch(
-          `${HOST}/?query=${getOverallAggregatesQuery(
-            pageFilter.selection.datetime
-          )}&referrer=overall-aggregates`
-        ).then(res => res.json()),
-      retry: false,
-      initialData: [],
-    });
+  const {isLoading: _isLoadingSideBarOverallAggregateData} = useQuery({
+    queryKey: ['overall-aggregates'],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getOverallAggregatesQuery(
+          pageFilter.selection.datetime
+        )}&referrer=overall-aggregates`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
 
   // Also a metrics span query that fetches series data
   const {isLoading: isLoadingSeriesData, data: seriesData} = useQuery({
-    queryKey: ['seriesdata'],
+    enabled: !!module && !!transactionName && !!groupId,
+    queryKey: [
+      'seriesdata',
+      transactionName,
+      module,
+      pageFilter.selection.datetime,
+      groupId,
+    ],
     queryFn: () => fetch(`${HOST}/?query=${seriesQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
@@ -99,20 +112,8 @@ export default function Sidebar({
     initialData: [],
   });
 
-  const {
-    p50,
-    p95,
-    failure_rate,
-    count,
-    total_exclusive_time,
-    count_unique_transaction_id,
-    count_unique_transaction,
-    first_seen,
-    last_seen,
-  } = spanAggregateData[0] || {};
-
-  const {count_overall_unique_transactions, overall_total_exclusive_time} =
-    overallAggregateData[0] || {};
+  const {failure_rate, count, total_exclusive_time, count_unique_transaction_id} =
+    spanAggregateData[0] || {};
 
   const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
   const startTime =
@@ -121,10 +122,9 @@ export default function Sidebar({
       : moment(pageFilter.selection.datetime.start);
   const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
 
-  const [p50Series, p95Series, countSeries, _errorCountSeries, errorRateSeries] =
-    queryDataToChartData(seriesData).map(series =>
-      zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
-    );
+  const [, , , _errorCountSeries, errorRateSeries] = queryDataToChartData(seriesData).map(
+    series => zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
+  );
 
   // NOTE: This almost always calculates to 0.00% when using the scraped data.
   // This is because the scraped data doesn't have nearly as much volume as real prod data.
@@ -142,36 +142,13 @@ export default function Sidebar({
     ) / 100;
 
   const chartColors = theme.charts.getColorPalette(2);
-  const sampledSpanDataSeries = sampledSpanData.map(({timestamp, spanDuration}) => ({
-    name: timestamp,
-    value: spanDuration,
-  }));
 
   return (
     <FlexContainer>
       <FlexItem>
-        <SidebarItemHeader>{t('Total Self Time')}</SidebarItemHeader>
+        <SidebarItemHeader>{t('Total Time')}</SidebarItemHeader>
         <SidebarItemValueContainer>
           <Duration seconds={total_exclusive_time / 1000} fixedDigits={2} abbreviation />{' '}
-          ({formatPercentage(total_exclusive_time / overall_total_exclusive_time)})
-        </SidebarItemValueContainer>
-      </FlexItem>
-      <FlexItem>
-        <SidebarItemHeader>{t('Unique Transactions')}</SidebarItemHeader>
-        <SidebarItemValueContainer>
-          {count_unique_transaction} / {count_overall_unique_transactions}
-        </SidebarItemValueContainer>
-      </FlexItem>
-      <FlexItem>
-        <SidebarItemHeader>{t('First Seen')}</SidebarItemHeader>
-        <SidebarItemValueContainer>
-          <DateTime date={first_seen} timeZone seconds utc />
-        </SidebarItemValueContainer>
-      </FlexItem>
-      <FlexItem>
-        <SidebarItemHeader>{t('Last Seen')}</SidebarItemHeader>
-        <SidebarItemValueContainer>
-          <DateTime date={last_seen} timeZone seconds utc />
         </SidebarItemValueContainer>
       </FlexItem>
       <FlexItem>
@@ -179,48 +156,18 @@ export default function Sidebar({
         <SidebarItemValueContainer>{count}</SidebarItemValueContainer>
       </FlexItem>
       <FlexItem>
-        <SidebarItemHeader>{t('Span Frequency')}</SidebarItemHeader>
+        <SidebarItemHeader>{t('Frequency')}</SidebarItemHeader>
         <SidebarItemValueContainer>
           {formatPercentage(spanFrequency)}
         </SidebarItemValueContainer>
       </FlexItem>
       <FlexItem>
-        <SidebarItemHeader>{t('Spans Per Event')}</SidebarItemHeader>
-        <SidebarItemValueContainer>{spansPerEvent}</SidebarItemValueContainer>
-      </FlexItem>
-      <FlexFullWidthItem>
-        <SidebarItemHeader>{t('Throughput')}</SidebarItemHeader>
-        <SidebarItemValueContainer>{count}</SidebarItemValueContainer>
-        <SidebarChart
-          series={countSeries}
-          isLoading={isLoadingSeriesData}
-          chartColor={chartColors[0]}
-        />
-      </FlexFullWidthItem>
-      <FlexFullWidthItem>
-        <SidebarItemHeader>{t('Duration P50 / P95')}</SidebarItemHeader>
+        <SidebarItemHeader>{t('Avg Spans')}</SidebarItemHeader>
         <SidebarItemValueContainer>
-          <Duration seconds={p50 / 1000} fixedDigits={2} abbreviation /> /
-          <Duration seconds={p95 / 1000} fixedDigits={2} abbreviation />
+          {spansPerEvent} {t('per event')}
         </SidebarItemValueContainer>
-        <Chart
-          statsPeriod="24h"
-          height={140}
-          data={[p50Series ?? [], p95Series ?? []]}
-          start=""
-          end=""
-          loading={isLoadingSeriesData}
-          utc={false}
-          chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
-          scatterPlot={[
-            {data: sampledSpanDataSeries, seriesName: 'Sampled Span Duration'},
-          ]}
-          stacked
-          isLineChart
-          disableXAxis
-          hideYAxisSplitLine
-        />
-      </FlexFullWidthItem>
+      </FlexItem>
+
       {
         // This could be better. Improve later.
         spanGroupOperation === 'http.client' && (
@@ -269,7 +216,7 @@ const SidebarItemValueContainer = styled('h4')`
   font-weight: normal;
 `;
 
-function SidebarChart(props) {
+export function SidebarChart(props) {
   return (
     <Chart
       statsPeriod="24h"
@@ -297,7 +244,7 @@ function SidebarChart(props) {
   );
 }
 
-function queryDataToChartData(data: any) {
+export function queryDataToChartData(data: any) {
   const series = [] as any[];
   if (data.length > 0) {
     Object.keys(data[0])
@@ -321,7 +268,7 @@ function queryDataToChartData(data: any) {
   return series;
 }
 
-function getQueries(spanGroupOperation: string) {
+export function getQueries(spanGroupOperation: string) {
   switch (spanGroupOperation) {
     case 'db':
     case 'cache':
@@ -341,3 +288,42 @@ function getQueries(spanGroupOperation: string) {
       };
   }
 }
+
+export const getTransactionBasedSeries = (
+  data: any[],
+  dateFilter: {endTime: Moment; startTime: Moment}
+) => {
+  const p50TransactionSeries = queryToSeries(
+    data,
+    'group',
+    'p50(transaction.duration)',
+    dateFilter.startTime,
+    dateFilter.endTime,
+    12
+  )[0];
+
+  const p95TransactionSeries = queryToSeries(
+    data,
+    'group',
+    'p95(transaction.duration)',
+    dateFilter.startTime,
+    dateFilter.endTime,
+    12
+  )[0];
+
+  const throughputTransactionSeries = queryToSeries(
+    data,
+    'group',
+    'epm()',
+    dateFilter.startTime,
+    dateFilter.endTime,
+    12
+  )[0];
+  if (data.length) {
+    p50TransactionSeries.seriesName = 'p50()';
+    p95TransactionSeries.seriesName = 'p95()';
+    throughputTransactionSeries.seriesName = 'epm()';
+  }
+
+  return {p50TransactionSeries, p95TransactionSeries, throughputTransactionSeries};
+};
