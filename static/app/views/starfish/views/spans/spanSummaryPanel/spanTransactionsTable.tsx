@@ -64,7 +64,7 @@ export function SpanTransactionsTable({span}: Props) {
   return (
     <GridEditable
       isLoading={isLoading}
-      data={spanTransactionsWithMetrics as unknown as Row[]}
+      data={spanTransactionsWithMetrics}
       columnOrder={COLUMN_ORDER}
       columnSortBy={[]}
       grid={{
