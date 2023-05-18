@@ -6,8 +6,7 @@ from django.db.models import prefetch_related_objects
 from typing_extensions import TypedDict
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
-from sentry.models import Project, Rule, RuleSource
-from sentry.monitors.utils import get_alert_rule_data
+from sentry.models import Project
 
 from .models import Monitor, MonitorCheckIn, MonitorEnvironment, MonitorStatus
 
@@ -82,12 +81,7 @@ class MonitorSerializer(Serializer):
 
         if self._expand("rule"):
             for item in item_list:
-                alert_rule_id = item.config.get("alert_rule_id")
-                if alert_rule_id:
-                    alert_rule = Rule.objects.filter(
-                        project_id=item.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
-                    ).first()
-                    attrs["rule"] = get_alert_rule_data(alert_rule) if alert_rule else None
+                attrs["rule"] = item.get_alert_rule_data()
 
         return attrs
 
@@ -95,8 +89,6 @@ class MonitorSerializer(Serializer):
         config = obj.config.copy()
         if "schedule_type" in config:
             config["schedule_type"] = obj.get_schedule_type_display()
-        # Remove alert rule id from response
-        config.pop("alert_rule_id", None)
 
         result = {
             "id": str(obj.guid),

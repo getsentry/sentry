@@ -30,14 +30,14 @@ def create_alert_rule(
     request: Request, project: Project, monitor: Monitor, validated_alert_rule: dict
 ):
     """
-    Gets a dict formatted alert rule to create alongside the monitor
+    Create an alert rule from a request with the given data
+    :param request: Request object
     :param project: Project object
-    :param user: User object that made the request
     :param monitor: Monitor object being created
     :param alert_rule: Dictionary of configurations for an associated Rule
     :return: dict
     """
-    alert_rule_data = get_alert_rule(project, request.user, monitor, validated_alert_rule)
+    alert_rule_data = create_alert_rule_data(project, request.user, monitor, validated_alert_rule)
     serializer = RuleSerializer(
         context={"project": project, "organization": project.organization},
         data=alert_rule_data,
@@ -72,7 +72,7 @@ def create_alert_rule(
     return None
 
 
-def get_alert_rule(project: Project, user: User, monitor: Monitor, alert_rule: dict):
+def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert_rule: dict):
     """
     Gets a dict formatted alert rule to create alongside the monitor
     :param project: Project object
@@ -133,13 +133,23 @@ def get_alert_rule(project: Project, user: User, monitor: Monitor, alert_rule: d
     return alert_rule_data
 
 
-def get_alert_rule_data(rule: Rule):
-    """
-    Gets the relevant alert rule data to edit the alert rule for a monitor
-    :param rule: existing associated Rule object
-    :return: dict
-    """
-    data = rule.data
-    alert_rule_data = {"actions": data["actions"]}
+def update_alert_rule(request: Request, project: Project, alert_rule: Rule, alert_rule_data: dict):
+    serializer = RuleSerializer(
+        context={"project": project, "organization": project.organization},
+        data=alert_rule_data,
+        partial=True,
+    )
 
-    return alert_rule_data
+    if serializer.is_valid():
+        data = serializer.validated_data
+
+        kwargs = {
+            "actions": data["actions"],
+        }
+        updated_rule = project_rules.Updater.run(rule=alert_rule, request=request, **kwargs)
+
+        RuleActivity.objects.create(
+            rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value
+        )
+
+    return alert_rule.id

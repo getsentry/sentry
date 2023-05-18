@@ -27,7 +27,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models import Environment
+from sentry.models import Environment, Rule, RuleSource
 from sentry.utils.retries import TimedRetryPolicy
 
 if TYPE_CHECKING:
@@ -262,6 +262,31 @@ class Monitor(Model):
             if key in validated_config:
                 monitor_config[key] = validated_config[key]
         self.save()
+
+    def get_alert_rule(self):
+        alert_rule_id = self.config.get("alert_rule_id")
+        if alert_rule_id:
+            alert_rule = Rule.objects.filter(
+                project_id=self.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
+            ).first()
+            if alert_rule:
+                return alert_rule
+
+            # Clear out stale alert_rule_id
+            clean_config = self.config.copy()
+            clean_config.pop("alert_rule_id", None)
+            self.update(config=clean_config)
+
+        return None
+
+    def get_alert_rule_data(self):
+        alert_rule = self.get_alert_rule()
+        if alert_rule:
+            data = alert_rule.data
+            alert_rule_data = {"actions": data["actions"]}
+            return alert_rule_data
+
+        return None
 
 
 @receiver(pre_save, sender=Monitor)

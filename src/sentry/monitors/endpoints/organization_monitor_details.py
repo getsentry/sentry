@@ -10,7 +10,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
@@ -21,18 +20,10 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.mediators import project_rules
-from sentry.models import (
-    Rule,
-    RuleActivity,
-    RuleActivityType,
-    RuleSource,
-    RuleStatus,
-    ScheduledDeletion,
-)
+from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, ScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
-from sentry.monitors.utils import create_alert_rule
+from sentry.monitors.utils import create_alert_rule, update_alert_rule
 from sentry.monitors.validators import MonitorValidator
 
 from .base import MonitorEndpoint
@@ -120,51 +111,16 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         if "project" in result and result["project"].id != monitor.project_id:
             raise ParameterValidationError("existing monitors may not be moved between projects")
         if "alert_rule" in result:
-            alert_rule_id = monitor.config.get("alert_rule_id")
             # check to see if rule exists
-            alert_rule = Rule.objects.filter(
-                project_id=monitor.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
-            ).first()
+            alert_rule = monitor.get_alert_rule()
             # if exists, update
-
             if alert_rule:
-                pass
+                params["alert_rule_id"] = update_alert_rule(alert_rule, result["alert_rule"])
             # if not, create
             else:
-                alert_rule_data = create_alert_rule(request, project, monitor, result["alert_rule"])
-                serializer = RuleSerializer(
-                    context={"project": project, "organization": project.organization},
-                    data=alert_rule_data,
-                )
-
-                if serializer.is_valid():
-                    data = serializer.validated_data
-                    # combine filters and conditions into one conditions criteria for the rule object
-                    conditions = data.get("conditions", [])
-                    if "filters" in data:
-                        conditions.extend(data["filters"])
-
-                    kwargs = {
-                        "name": data["name"],
-                        "environment": data.get("environment"),
-                        "project": project,
-                        "action_match": data["actionMatch"],
-                        "filter_match": data.get("filterMatch"),
-                        "conditions": conditions,
-                        "actions": data.get("actions", []),
-                        "frequency": data.get("frequency"),
-                        "user_id": request.user.id,
-                    }
-
-                    rule = project_rules.Creator.run(request=request, **kwargs)
-                    rule.update(source=RuleSource.CRON_MONITOR)
-                    RuleActivity.objects.create(
-                        rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
-                    )
-
-                    config = monitor.config
-                    config["alert_rule_id"] = rule.id
-                    monitor.update(config=config)
+                alert_rule_id = create_alert_rule(request, project, monitor, result["alert_rule"])
+                if alert_rule_id:
+                    params["alert_rule_id"] = alert_rule_id
 
         if params:
             monitor.update(**params)
