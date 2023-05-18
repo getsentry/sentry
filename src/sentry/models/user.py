@@ -45,6 +45,7 @@ class UserManager(BaseManager, DjangoUserManager):
     ) -> QuerySet:
         from sentry.models import ProjectTeam, Team
 
+        # TODO(hybridcloud) This is doing cross silo joins
         return self.filter(
             emails__is_verified=True,
             sentry_orgmember_set__teams__in=Team.objects.filter(
@@ -56,6 +57,7 @@ class UserManager(BaseManager, DjangoUserManager):
         ).distinct()
 
     def get_from_teams(self, organization_id: int, teams: Sequence["Team"]) -> QuerySet:
+        # TODO(hybridcloud) This is doing cross silo joins
         return self.filter(
             sentry_orgmember_set__organization_id=organization_id,
             sentry_orgmember_set__organizationmemberteam__team__in=teams,
@@ -67,6 +69,7 @@ class UserManager(BaseManager, DjangoUserManager):
         """
         Returns users associated with a project based on their teams.
         """
+        # TODO(hybridcloud) This is doing cross silo joins
         return self.filter(
             sentry_orgmember_set__organization_id=organization_id,
             sentry_orgmember_set__organizationmemberteam__team__projectteam__project__in=projects,
@@ -76,6 +79,7 @@ class UserManager(BaseManager, DjangoUserManager):
 
     def get_from_organizations(self, organization_ids):
         """Returns users associated with an Organization based on their teams."""
+        # TODO(hybridcloud) This is doing cross silo joins
         return self.filter(
             sentry_orgmember_set__organization_id__in=organization_ids,
             sentry_orgmember_set__organizationmemberteam__is_active=True,
