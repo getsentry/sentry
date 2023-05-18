@@ -111,18 +111,19 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         if "project" in result and result["project"].id != monitor.project_id:
             raise ParameterValidationError("existing monitors may not be moved between projects")
         if "alert_rule" in result:
-            # check to see if rule exists
+            # Check to see if rule exists
             alert_rule = monitor.get_alert_rule()
-            # if exists, update
+            # If rule exists, update as necessary
             if alert_rule:
                 alert_rule_id = update_alert_rule(
                     request, project, alert_rule, result["alert_rule"]
                 )
-            # if not, create
+            # If rule does not exist, create
             else:
                 alert_rule_id = create_alert_rule(request, project, monitor, result["alert_rule"])
 
             if alert_rule_id:
+                # If config is not sent, use existing config to update alert_rule_id
                 if "config" not in params:
                     params["config"] = monitor.config
 

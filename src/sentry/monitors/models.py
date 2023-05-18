@@ -301,7 +301,7 @@ class Monitor(Model):
             if alert_rule:
                 return alert_rule
 
-            # Clear out stale alert_rule_id
+            # If alert_rule_id is stale, clear it from the config
             clean_config = self.config.copy()
             clean_config.pop("alert_rule_id", None)
             self.update(config=clean_config)
