@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import List
 
 from django.db.models import Max, prefetch_related_objects
+from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
 from sentry.models import (
@@ -138,6 +139,19 @@ class RuleSerializer(Serializer):
             for o in obj.data.get("conditions", [])
         ]
 
+        actions = []
+        for action in obj.data.get("actions", []):
+            try:
+                actions.append(
+                    dict(
+                        list(action.items())
+                        + [("name", _generate_rule_label(obj.project, obj, action))]
+                    )
+                )
+            except serializers.ValidationError:
+                # Integrations can be deleted and we don't want to fail to load the rule
+                pass
+
         d = {
             # XXX(dcramer): we currently serialize unsaved rule objects
             # as part of the rule editor
@@ -146,10 +160,7 @@ class RuleSerializer(Serializer):
             "conditions": list(filter(lambda condition: not _is_filter(condition), all_conditions)),
             # filters are not new conditions but are the subset of conditions that pertain to event attributes
             "filters": list(filter(lambda condition: _is_filter(condition), all_conditions)),
-            "actions": [
-                dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])
-                for o in obj.data.get("actions", [])
-            ],
+            "actions": actions,
             "actionMatch": obj.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH,
             "filterMatch": obj.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH,
             "frequency": obj.data.get("frequency") or Rule.DEFAULT_FREQUENCY,
