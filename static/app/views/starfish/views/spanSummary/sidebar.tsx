@@ -15,14 +15,9 @@ import {
   getEndpointDetailSeriesQuery,
   getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
-import {
-  FlexRowContainer,
-  FlexRowItem,
-} from 'sentry/views/starfish/modules/databaseModule/panel';
-import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {getDateFilters, PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {
   getOverallAggregatesQuery,
@@ -43,12 +38,10 @@ export default function Sidebar({
   spanGroupOperation,
   groupId,
   description,
-  sampledSpanData,
   transactionName,
 }: Props) {
   const theme = useTheme();
   const pageFilter = usePageFilters();
-  const dateFilter = getDateFilters(pageFilter);
   const {getSeriesQuery, getAggregatesQuery} = getQueries(spanGroupOperation);
   const module = spanGroupOperation;
   const seriesQuery = getSeriesQuery({
@@ -89,12 +82,6 @@ export default function Sidebar({
       initialData: [],
     });
 
-  const {isLoading: isTransactionDataLoading, data: transactionAggregateData} =
-    useQueryTransactionByTPMAndDuration([transactionName], 12);
-
-  const {p50TransactionSeries, p95TransactionSeries, throughputTransactionSeries} =
-    getTransactionBasedSeries(transactionAggregateData, dateFilter);
-
   // Also a metrics span query that fetches series data
   const {isLoading: isLoadingSeriesData, data: seriesData} = useQuery({
     enabled: !!module && !!transactionName && !!groupId,
@@ -128,8 +115,6 @@ export default function Sidebar({
   });
 
   const {
-    p50,
-    p95,
     failure_rate,
     count,
     total_exclusive_time,
@@ -147,10 +132,9 @@ export default function Sidebar({
       : moment(pageFilter.selection.datetime.start);
   const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
 
-  const [p50Series, p95Series, countSeries, _errorCountSeries, errorRateSeries] =
-    queryDataToChartData(seriesData).map(series =>
-      zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
-    );
+  const [, , , _errorCountSeries, errorRateSeries] = queryDataToChartData(seriesData).map(
+    series => zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
+  );
 
   // NOTE: This almost always calculates to 0.00% when using the scraped data.
   // This is because the scraped data doesn't have nearly as much volume as real prod data.
@@ -168,10 +152,6 @@ export default function Sidebar({
     ) / 100;
 
   const chartColors = theme.charts.getColorPalette(2);
-  const sampledSpanDataSeries = sampledSpanData.map(({timestamp, spanDuration}) => ({
-    name: timestamp,
-    value: spanDuration,
-  }));
 
   return (
     <FlexContainer>
@@ -210,89 +190,6 @@ export default function Sidebar({
         })} ${t(' Per Event')}`}</SidebarItemHeader>
         <SidebarItemValueContainer>{spansPerEvent}</SidebarItemValueContainer>
       </FlexItem>
-      <FlexFullWidthItem>
-        <FlexRowContainer>
-          <FlexRowItem>
-            <SidebarItemHeader>
-              {getGroupLabel({spanGroupOperation, capitalize: true})} {t('Throughput')}
-            </SidebarItemHeader>
-            <SidebarItemValueContainer>
-              {count} {getGroupLabel({spanGroupOperation, plural: true})}
-            </SidebarItemValueContainer>
-            <SidebarChart
-              series={countSeries}
-              isLoading={isLoadingSeriesData}
-              chartColor={chartColors[0]}
-            />
-          </FlexRowItem>
-          <FlexRowItem>
-            <SidebarItemHeader>
-              {`${getGroupLabel({spanGroupOperation, capitalize: true})} ${t(
-                'Duration P50 / P95'
-              )}`}
-            </SidebarItemHeader>
-            <SidebarItemValueContainer>
-              <Duration seconds={p50 / 1000} fixedDigits={2} abbreviation /> /
-              <Duration seconds={p95 / 1000} fixedDigits={2} abbreviation />
-            </SidebarItemValueContainer>
-            <Chart
-              statsPeriod="24h"
-              height={140}
-              data={[p50Series ?? [], p95Series ?? []]}
-              start=""
-              end=""
-              loading={isLoadingSeriesData}
-              utc={false}
-              chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
-              scatterPlot={[
-                {data: sampledSpanDataSeries, seriesName: 'Sampled Span Duration'},
-              ]}
-              stacked
-              isLineChart
-              disableXAxis
-              hideYAxisSplitLine
-            />
-          </FlexRowItem>
-        </FlexRowContainer>
-      </FlexFullWidthItem>
-
-      <FlexFullWidthItem>
-        <FlexRowContainer>
-          <FlexRowItem>
-            <SidebarItemHeader>{t('Transaction Throughput')}</SidebarItemHeader>
-            <Chart
-              statsPeriod="24h"
-              height={140}
-              data={[throughputTransactionSeries ?? []]}
-              start=""
-              end=""
-              loading={isTransactionDataLoading}
-              utc={false}
-              stacked
-              isLineChart
-              disableXAxis
-              hideYAxisSplitLine
-            />
-          </FlexRowItem>
-          <FlexRowItem>
-            <SidebarItemHeader>{t('Transaction Duration P50 / P95')}</SidebarItemHeader>
-            <Chart
-              statsPeriod="24h"
-              height={140}
-              data={[p50TransactionSeries ?? [], p95TransactionSeries ?? []]}
-              start=""
-              end=""
-              loading={isTransactionDataLoading}
-              utc={false}
-              chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
-              stacked
-              isLineChart
-              disableXAxis
-              hideYAxisSplitLine
-            />
-          </FlexRowItem>
-        </FlexRowContainer>
-      </FlexFullWidthItem>
 
       {
         // This could be better. Improve later.
@@ -342,7 +239,7 @@ const SidebarItemValueContainer = styled('h4')`
   font-weight: normal;
 `;
 
-function SidebarChart(props) {
+export function SidebarChart(props) {
   return (
     <Chart
       statsPeriod="24h"
@@ -370,7 +267,7 @@ function SidebarChart(props) {
   );
 }
 
-function queryDataToChartData(data: any) {
+export function queryDataToChartData(data: any) {
   const series = [] as any[];
   if (data.length > 0) {
     Object.keys(data[0])
@@ -394,7 +291,7 @@ function queryDataToChartData(data: any) {
   return series;
 }
 
-function getQueries(spanGroupOperation: string) {
+export function getQueries(spanGroupOperation: string) {
   switch (spanGroupOperation) {
     case 'db':
     case 'cache':
@@ -439,7 +336,7 @@ const getGroupLabel = (options: {
   return label;
 };
 
-const getTransactionBasedSeries = (
+export const getTransactionBasedSeries = (
   data: any[],
   dateFilter: {endTime: Moment; startTime: Moment}
 ) => {
