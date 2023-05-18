@@ -16,8 +16,6 @@ class GithubRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.GITHUB]
     webhook_identifier = WebhookProviderIdentifier.GITHUB
 
-    control_events = ["installation"]
-
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
         try:
@@ -28,11 +26,7 @@ class GithubRequestParser(BaseRequestParser):
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
     def get_response(self):
-        event_type = self.request.META.get("HTTP_X_GITHUB_EVENT")
-
-        if event_type in self.control_events:
-            return self.get_response_from_control_silo()
-
+        # All github webhooks will be sent to region silos
         regions = self.get_regions_from_organizations()
         if len(regions) == 0:
             logger.error("no_regions", extra={"path": self.request.path})
