@@ -4,6 +4,7 @@ import responses
 import sentry_kafka_schemas
 
 from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
+from sentry.utils.dates import to_timestamp
 
 __all__ = (
     "TestCase",
@@ -1234,7 +1235,9 @@ class BaseMetricsTestCase(SnubaTestCase):
                 type,
                 mri,
                 {**tags, **base_tags},
-                session["started"],
+                session["started"]
+                if isinstance(session["started"], (int, float))
+                else to_timestamp(session["started"]),
                 value,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
             )
@@ -1280,7 +1283,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         type: Literal["counter", "set", "distribution"],
         name: str,
         tags: Dict[str, str],
-        timestamp: int | float,
+        timestamp: int,
         value,
         use_case_id: UseCaseKey,
     ):

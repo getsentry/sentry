@@ -9,6 +9,7 @@ from django.urls import reverse
 
 from sentry.models import ApiToken
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import TransactionStatusTagValue, TransactionTagsKey
 from sentry.snuba.metrics.fields import (
@@ -269,96 +270,65 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
         )
 
     def test_metrics_index_transaction_derived_metrics(self):
-        user_ts = time.time()
-        org_id = self.organization.id
-        tx_duration_metric = perf_indexer_record(org_id, TransactionMRI.DURATION.value)
-        # TODO: check that this is correct, because APDEX is the only derived metric that has either DURATION or LCP
-        #  in the required metrics.
-        tx_lcp_metric = perf_indexer_record(org_id, TransactionMRI.MEASUREMENTS_LCP.value)
-        tx_status = perf_indexer_record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
-        tx_satisfaction = perf_indexer_record(
-            self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
-        )
-        tx_user_metric = perf_indexer_record(self.organization.id, TransactionMRI.USER.value)
+        user_ts = int(time.time())
 
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.transaction_proj.id,
-                    "metric_id": tx_user_metric,
-                    "timestamp": user_ts,
-                    "sentry_received_timestamp": user_ts + 10,
-                    "tags": {
-                        tx_satisfaction: perf_indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
-                        ),
-                    },
-                    "type": "s",
-                    "value": [1, 2],
-                    "retention_days": 90,
+        for value in 1, 2:
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.transaction_proj.id,
+                name=TransactionMRI.USER.value,
+                timestamp=user_ts,
+                tags={
+                    TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.FRUSTRATED.value,
                 },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.transaction_proj.id,
-                    "metric_id": tx_user_metric,
-                    "timestamp": user_ts,
-                    "sentry_received_timestamp": user_ts + 10,
-                    "tags": {
-                        tx_satisfaction: perf_indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
-                        ),
-                        tx_status: perf_indexer_record(
-                            self.organization.id, TransactionStatusTagValue.CANCELLED.value
-                        ),
-                    },
-                    "type": "s",
-                    "value": [1, 3],  # user 1 had mixed transactions, user 3 only satisfied
-                    "retention_days": 90,
+                type="set",
+                value=value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
+
+        for value in 1, 3:
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.transaction_proj.id,
+                name=TransactionMRI.USER.value,
+                timestamp=user_ts,
+                tags={
+                    TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.SATISFIED.value,
+                    TransactionTagsKey.TRANSACTION_STATUS.value: TransactionStatusTagValue.CANCELLED.value,
                 },
-            ],
-            entity="metrics_sets",
+                type="set",
+                value=value,  # user 1 had mixed transactions, user 3 only satisfied
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
+
+        self.store_metric(
+            org_id=self.organization.id,
+            project_id=self.transaction_proj.id,
+            name=TransactionMRI.DURATION.value,
+            timestamp=user_ts,
+            tags={
+                TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.TOLERATED.value,
+                TransactionTagsKey.TRANSACTION_STATUS.value: TransactionStatusTagValue.OK.value,
+            },
+            type="distribution",
+            value=0.3,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.transaction_proj.id,
-                    "metric_id": tx_duration_metric,
-                    "timestamp": user_ts,
-                    "sentry_received_timestamp": user_ts + 10,
-                    "tags": {
-                        tx_satisfaction: perf_indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.TOLERATED.value
-                        ),
-                        tx_status: perf_indexer_record(
-                            self.organization.id, TransactionStatusTagValue.OK.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [0.3],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.transaction_proj.id,
-                    "metric_id": tx_lcp_metric,
-                    "timestamp": user_ts,
-                    "sentry_received_timestamp": user_ts + 10,
-                    "tags": {
-                        tx_satisfaction: perf_indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
-                        ),
-                        tx_status: perf_indexer_record(
-                            self.organization.id, TransactionStatusTagValue.OK.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [0.3],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_distributions",
+
+        self.store_metric(
+            org_id=self.organization.id,
+            project_id=self.transaction_proj.id,
+            # TODO: check that this is correct, because APDEX is the only derived metric that has either DURATION or LCP
+            #  in the required metrics.
+            name=TransactionMRI.MEASUREMENTS_LCP.value,
+            timestamp=user_ts,
+            tags={
+                TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.SATISFIED.value,
+                TransactionTagsKey.TRANSACTION_STATUS.value: TransactionStatusTagValue.OK.value,
+            },
+            type="distribution",
+            value=0.3,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
         response = self.get_success_response(
             self.organization.slug, project=[self.transaction_proj.id]
