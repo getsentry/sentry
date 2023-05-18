@@ -15,6 +15,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {canCreateProject} from 'sentry/components/projects/utils';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -94,7 +95,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
     return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
 
-  const canCreateProjects = organization.access.includes('project:admin');
+  const canCreateProjects = canCreateProject(organization);
   const canJoinTeam = organization.access.includes('team:read');
 
   const selectedTeams = getTeamParams(location ? location.query.team : '');
