@@ -2324,7 +2324,8 @@ SENTRY_DEVSERVICES = {
             "volumes": {"kafka_6": {"bind": "/var/lib/kafka/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
-            or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS,
+            or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS
+            or settings.SENTRY_USE_PROFILING,
         }
     ),
     "clickhouse": lambda settings, options: (
@@ -2453,6 +2454,8 @@ SENTRY_DEVSERVICES = {
             "pull": True,
             "volumes": {"profiles": {"bind": "/var/lib/sentry-profiles"}},
             "environment": {
+                "SENTRY_KAFKA_BROKERS_PROFILING": "{containers[kafka][name]}:9093",
+                "SENTRY_KAFKA_BROKERS_OCCURRENCES": "{containers[kafka][name]}:9093",
                 "SENTRY_SNUBA_HOST": "http://{containers[snuba][name]}:1218",
             },
             "ports": {"8085/tcp": 8085},
