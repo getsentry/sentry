@@ -1315,6 +1315,10 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         def tag_value(name):
             assert isinstance(name, str)
+
+            if use_case_id == UseCaseKey.PERFORMANCE:
+                return name
+
             res = indexer.record(
                 use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
                 org_id=org_id,
@@ -1345,6 +1349,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             # making up a sentry_received_timestamp, but it should be sometime
             # after the timestamp of the event
             "sentry_received_timestamp": timestamp + 10,
+            "version": 2 if use_case_id == UseCaseKey.PERFORMANCE else 1,
         }
 
         msg["mapping_meta"] = {}
@@ -1494,7 +1499,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         self,
         name: str,
         tags: Dict[str, str],
-        value: int,
+        value: int | float,
         type: Optional[str] = None,
         org_id: Optional[int] = None,
         project_id: Optional[int] = None,
