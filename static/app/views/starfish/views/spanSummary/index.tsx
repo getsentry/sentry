@@ -279,10 +279,12 @@ export default function SpanSummary({location, params}: Props) {
   const {isLoading: isTransactionAggregateDataLoading, data: transactionAggregateData} =
     useQueryTransactionByTPMAndDuration([transactionName], 12);
 
-  const {p50TransactionSeries, p95TransactionSeries, throughputTransactionSeries} =
-    getTransactionBasedSeries(transactionAggregateData, dateFilter);
+  const {p50TransactionSeries, throughputTransactionSeries} = getTransactionBasedSeries(
+    transactionAggregateData,
+    dateFilter
+  );
 
-  const [p50Series, p95Series, , spmSeries, _errorCountSeries] = queryDataToChartData(
+  const [p50Series, , spmSeries, _errorCountSeries] = queryDataToChartData(
     seriesData
   ).map(series =>
     zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
@@ -507,11 +509,11 @@ export default function SpanSummary({location, params}: Props) {
                     </ChartPanel>
                   </FlexRowItem>
                   <FlexRowItem>
-                    <ChartPanel title={t('Transaction Duration (P50 / P95)')}>
+                    <ChartPanel title={t('Transaction Duration (P50)')}>
                       <Chart
                         statsPeriod="24h"
                         height={140}
-                        data={[p50TransactionSeries ?? [], p95TransactionSeries ?? []]}
+                        data={[p50TransactionSeries ?? []]}
                         start=""
                         end=""
                         loading={isTransactionAggregateDataLoading}
@@ -545,11 +547,11 @@ export default function SpanSummary({location, params}: Props) {
                     </ChartPanel>
                   </FlexRowItem>
                   <FlexRowItem>
-                    <ChartPanel title={t('Span Duration (P50 / P95)')}>
+                    <ChartPanel title={t('Span Duration (P50)')}>
                       <Chart
                         statsPeriod="24h"
                         height={140}
-                        data={[p50Series ?? [], p95Series ?? []]}
+                        data={[p50Series ?? []]}
                         start=""
                         end=""
                         loading={isLoadingSeriesData}
