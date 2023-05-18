@@ -333,6 +333,26 @@ def test_already_cached_plus_read_results(
     )
 
 
+def test_read_when_bulk_record(indexer, use_case_id):
+    strings = {
+        use_case_id: {
+            1: {"a"},
+            2: {"b", "c"},
+            3: {"d", "e", "f"},
+            4: {"g", "h", "i", "j"},
+            5: {"k", "l", "m", "n", "o"},
+        }
+    }
+    indexer.bulk_record(strings)
+    results = indexer.bulk_record(strings)
+    assert all(
+        str_meta_data.fetch_type is FetchType.DB_READ
+        for key_result in results.results.values()
+        for metadata in key_result.meta.values()
+        for str_meta_data in metadata.values()
+    )
+
+
 def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
     """
     Assert that rate limits per-org and globally are applied at all.
