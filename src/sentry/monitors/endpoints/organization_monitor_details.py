@@ -184,11 +184,19 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                 event = audit_log.get_event_id("MONITOR_REMOVE")
                 alert_rule_id = monitor_objects.first().config.get("alert_rule_id")
                 if alert_rule_id:
-                    rule = Rule.objects.filter(
-                        project_id=monitor.project_id,
-                        id=alert_rule_id,
-                        status__not=RuleStatus.PENDING_DELETION,
-                    ).first()
+                    rule = (
+                        Rule.objects.filter(
+                            project_id=monitor.project_id,
+                            id=alert_rule_id,
+                        )
+                        .exclude(
+                            status__in=[
+                                RuleStatus.PENDING_DELETION,
+                                RuleStatus.DELETION_IN_PROGRESS,
+                            ]
+                        )
+                        .first()
+                    )
                     if rule:
                         rule.update(status=RuleStatus.PENDING_DELETION)
                         RuleActivity.objects.create(
