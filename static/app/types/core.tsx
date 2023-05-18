@@ -113,6 +113,7 @@ export enum Outcome {
   DROPPED = 'dropped', // this is not a real outcome coming from the server
   RATE_LIMITED = 'rate_limited',
   CLIENT_DISCARD = 'client_discard',
+  ABUSE = 'abuse',
 }
 
 export type IntervalPeriod = ReturnType<typeof getInterval>;

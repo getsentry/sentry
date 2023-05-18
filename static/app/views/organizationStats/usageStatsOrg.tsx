@@ -346,6 +346,7 @@ class UsageStatsOrganization<
         [Outcome.FILTERED]: 0,
         [Outcome.DROPPED]: 0,
         [Outcome.INVALID]: 0, // Combined with dropped later
+        [Outcome.ABUSE]: 0, // Combined with dropped later
         [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
         [Outcome.CLIENT_DISCARD]: 0, // Not exposed yet
       };
@@ -372,6 +373,7 @@ class UsageStatsOrganization<
             case Outcome.DROPPED:
             case Outcome.RATE_LIMITED:
             case Outcome.INVALID:
+            case Outcome.ABUSE:
               usageStats[i].dropped.total += stat;
               // TODO: add client discards to dropped?
               return;
@@ -381,9 +383,10 @@ class UsageStatsOrganization<
         });
       });
 
-      // Invalid and rate_limited data is combined with dropped
+      // Invalid, rate_limited data, and abused is combined with dropped
       count[Outcome.DROPPED] += count[Outcome.INVALID];
       count[Outcome.DROPPED] += count[Outcome.RATE_LIMITED];
+      count[Outcome.DROPPED] += count[Outcome.ABUSE];
 
       usageStats.forEach(stat => {
         stat.total = stat.accepted + stat.filtered + stat.dropped.total;
