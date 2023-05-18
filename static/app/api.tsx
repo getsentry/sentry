@@ -533,7 +533,8 @@ export class Client {
               scope.setExtras({
                 twoHundredErrorReason,
                 responseJSON,
-                responseText,
+                // Force `undefined` and the empty string to print so they're differentiable in the UI
+                responseText: String(responseText) || '[empty string]',
                 responseContentType,
                 errorReason,
               });
