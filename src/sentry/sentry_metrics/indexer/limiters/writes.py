@@ -19,7 +19,7 @@ from sentry.sentry_metrics.indexer.base import (
     UseCaseKeyResult,
 )
 from sentry.sentry_metrics.use_case_id_registry import (
-    USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME,
+    USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
     UseCaseID,
 )
 from sentry.utils import metrics
@@ -78,25 +78,13 @@ class WritesLimiter:
         This value can potentially cached globally as long as it is invalidated
         when sentry.options are.
         """
-        if use_case_id in USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME:
-            return [
-                Quota(prefix_override=self._build_quota_key(use_case_id), **args)
-                for args in options.get(
-                    f"{USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME[use_case_id]}.global"
-                )
-            ] + [
-                Quota(prefix_override=None, **args)
-                for args in options.get(
-                    f"{USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME[use_case_id]}.per-org"
-                )
-            ]
+        option_name = USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS.get(
+            use_case_id, "sentry-metrics.writes-limiter.limits.generic-metrics"
+        )
         return [
             Quota(prefix_override=self._build_quota_key(use_case_id), **args)
-            for args in options.get("sentry-metrics.writes-limiter.limits.generic-metrics.global")
-        ] + [
-            Quota(prefix_override=None, **args)
-            for args in options.get("sentry-metrics.writes-limiter.limits.generic-metrics.per-org")
-        ]
+            for args in options.get(f"{option_name}.global")
+        ] + [Quota(prefix_override=None, **args) for args in options.get(f"{option_name}.per-org")]
 
     @metrics.wraps("sentry_metrics.indexer.construct_quota_requests")
     def _construct_quota_requests(

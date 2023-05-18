@@ -40,7 +40,7 @@ MOCK_REVERSE_METRIC_PATH_MAPPING = {
     UseCaseKey.PERFORMANCE: MockUseCaseID.TRANSACTIONS,
 }
 
-MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME = {
+MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
     MockUseCaseID.TRANSACTIONS: "sentry-metrics.writes-limiter.limits.transactions",
     MockUseCaseID.USE_CASE_1: "sentry-metrics.writes-limiter.limits.uc1",
     MockUseCaseID.USE_CASE_2: "sentry-metrics.writes-limiter.limits.uc2",
@@ -49,8 +49,8 @@ MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME = {
 
 @patch("sentry.sentry_metrics.indexer.limiters.writes.UseCaseID", MockUseCaseID)
 @patch(
-    "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME",
-    MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME,
+    "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
+    MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
 )
 def test_writes_limiter_no_limits():
     with override_options(
@@ -94,8 +94,8 @@ def test_writes_limiter_no_limits():
 
 @patch("sentry.sentry_metrics.indexer.limiters.writes.UseCaseID", MockUseCaseID)
 @patch(
-    "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME",
-    MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME,
+    "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
+    MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
 )
 def test_writes_limiter_doesnt_limit():
     with override_options(
@@ -148,8 +148,8 @@ def test_writes_limiter_doesnt_limit():
 
 @patch("sentry.sentry_metrics.indexer.limiters.writes.UseCaseID", MockUseCaseID)
 @patch(
-    "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME",
-    MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME,
+    "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
+    MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
 )
 def test_writes_limiter_org_limit():
     with override_options(
@@ -225,8 +225,8 @@ def test_writes_limiter_org_limit():
 
 @patch("sentry.sentry_metrics.indexer.limiters.writes.UseCaseID", MockUseCaseID)
 @patch(
-    "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME",
-    MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME,
+    "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
+    MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
 )
 def test_writes_limiter_global_limit():
     with override_options(
@@ -280,8 +280,8 @@ def test_writes_limiter_global_limit():
 
 @patch("sentry.sentry_metrics.indexer.limiters.writes.UseCaseID", MockUseCaseID)
 @patch(
-    "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME",
-    MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME,
+    "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
+    MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
 )
 def test_writes_limiter_respects_use_case_id():
     """

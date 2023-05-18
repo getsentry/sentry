@@ -27,7 +27,7 @@ REVERSE_METRIC_PATH_MAPPING: Mapping[UseCaseKey, UseCaseID] = {
     UseCaseKey.PERFORMANCE: UseCaseID.TRANSACTIONS,
 }
 
-USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTION_NAME = {
+USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
     UseCaseID.SPANS: "sentry-metrics.writes-limiter.limits.spans",
     UseCaseID.TRANSACTIONS: "sentry-metrics.writes-limiter.limits.performance",
     UseCaseID.SESSIONS: "sentry-metrics.writes-limiter.limits.releasehealth",
