@@ -426,14 +426,12 @@ class SnubaEventStream(SnubaProtocolEventStream):
             codec = sentry_kafka_schemas.get_codec(
                 topic={
                     "events": "events",
-                    # "transactions": "transactions",
+                    "transactions": "transactions",
                     "search_issues": "generic-events",
                 }[entity]
             )
         except (sentry_kafka_schemas.SchemaNotFound, KeyError):
             # Needed since "generic-events" does not have a schema yet
-            # and the "transactions" one is not compatible with
-            # existing test cases
             codec = sentry_kafka_schemas.codecs.json.JsonCodec(None)
 
         codec.decode(serialized_data.encode("utf-8"), validate=True)

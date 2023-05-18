@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -105,12 +105,12 @@ function transformData(_data: Record<string, any>, model: FormModel) {
     }
 
     if (Array.isArray(data.config.schedule) && k === 'config.schedule.frequency') {
-      data.config.schedule![0] = parseInt(v as string, 10);
+      data.config.schedule[0] = parseInt(v as string, 10);
       return data;
     }
 
     if (Array.isArray(data.config.schedule) && k === 'config.schedule.interval') {
-      data.config.schedule![1] = v as IntervalConfig['schedule'][1];
+      data.config.schedule[1] = v as IntervalConfig['schedule'][1];
       return data;
     }
 
@@ -146,11 +146,6 @@ function MonitorForm({
   const form = useRef(new FormModel({transformData, mapFormErrors}));
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const [crontabInput, setCrontabInput] = useState(
-    monitor?.config.schedule_type === ScheduleType.CRONTAB
-      ? monitor?.config.schedule
-      : DEFAULT_CRONTAB
-  );
 
   function formDataFromConfig(type: MonitorType, config: MonitorConfig) {
     const rv = {};
@@ -183,8 +178,6 @@ function MonitorForm({
 
   const isSuperuser = isActiveSuperuser();
   const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
-
-  const parsedSchedule = crontabAsText(crontabInput);
 
   return (
     <Form
@@ -281,8 +274,16 @@ function MonitorForm({
           )}
           <Observer>
             {() => {
-              const schedule_type = form.current.getValue('config.schedule_type');
-              if (schedule_type === 'crontab') {
+              const scheduleType = form.current.getValue('config.schedule_type');
+
+              const parsedSchedule =
+                scheduleType === 'crontab'
+                  ? crontabAsText(
+                      form.current.getValue('config.schedule')?.toString() ?? ''
+                    )
+                  : null;
+
+              if (scheduleType === 'crontab') {
                 return (
                   <ScheduleGroupInputs>
                     <StyledTextField
@@ -292,7 +293,6 @@ function MonitorForm({
                       css={{input: {fontFamily: commonTheme.text.familyMono}}}
                       required
                       stacked
-                      onChange={setCrontabInput}
                       inline={false}
                     />
                     <StyledSelectField
@@ -307,7 +307,7 @@ function MonitorForm({
                   </ScheduleGroupInputs>
                 );
               }
-              if (schedule_type === 'interval') {
+              if (scheduleType === 'interval') {
                 return (
                   <ScheduleGroupInputs interval>
                     <LabelText>{t('Every')}</LabelText>

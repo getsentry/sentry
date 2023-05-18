@@ -171,6 +171,7 @@ def get_participants_for_release(
     projects: Iterable[Project], organization: Organization, user_ids: set[int]
 ) -> ParticipantMap:
     # Collect all users with verified emails on a team in the related projects.
+    # TODO(hybridcloud) This is doing n queries.
     users = {
         RpcActor.from_orm_user(user)
         for user in User.objects.get_team_members_with_verified_email_for_projects(projects)
@@ -231,10 +232,12 @@ def get_owners(
         users = user_service.get_many(
             filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
         )
+        # TODO(hybridcloud) This is doing N queries.
         recipients = [RpcActor.from_object(user) for user in users]
 
     else:
         outcome = "match"
+        # TODO(hybridcloud) This looks like it is doing N queries.
         recipients = [RpcActor.from_object(obj) for obj in ActorTuple.resolve_many(owners)]
         # Used to suppress extra notifications to all matched owners, only notify the would-be auto-assignee
         if not features.has("organizations:notification-all-recipients", project.organization):
@@ -274,6 +277,7 @@ def get_owner_reason(
 def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, set[User]]:
     """Get a set of users that have disabled Issue Alert notifications for a given project."""
     user_ids = project.member_set.values_list("user", flat=True)
+    # TODO(hybridcloud) This is doing N queries
     users = [RpcActor.from_orm_user(user) for user in User.objects.filter(id__in=user_ids)]
     notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
         type=NotificationSettingTypes.ISSUE_ALERTS,
@@ -354,6 +358,7 @@ def determine_eligible_recipients(
         if features.has("organizations:streamline-targeting-context", project.organization):
             try:
                 suspect_commit_users = [
+                    # TODO(hybridcloud) This is doing N queries.
                     RpcActor.from_rpc_user(user)
                     for user in get_suspect_commit_users(project, event)
                 ]
@@ -376,6 +381,7 @@ def determine_eligible_recipients(
         if suggested_assignees:
             return dedupe_suggested_assignees(suggested_assignees)
 
+        # TODO(hybridcloud) this is doing N queries.
         return [
             RpcActor.from_rpc_user(user)
             for user in get_fallthrough_recipients(project, fallthrough_choice)
@@ -549,6 +555,7 @@ def get_recipients_by_provider(
 
     # If there are any teams that didn't get added, fall back and add all users.
     users |= {
+        # TODO(hybridcloud) This is doing N queries.
         RpcActor.from_rpc_user(user)
         for user in get_users_from_team_fall_back(teams, teams_by_provider)
     }
