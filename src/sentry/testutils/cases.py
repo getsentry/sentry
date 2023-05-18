@@ -1353,13 +1353,13 @@ class BaseMetricsTestCase(SnubaTestCase):
         else:
             entity = f"metrics_{type}s"
 
-        cls._send_buckets([msg], entity)
+        cls.__send_buckets([msg], entity)
 
     @classmethod
-    def _send_buckets(cls, buckets, entity):
-        # XXX(markus): do not use this method in your tests, use store_metric
-        # instead. we need to be able to make changes to the indexer's output
-        # protocol without having to update a million tests
+    def __send_buckets(cls, buckets, entity):
+        # DO NOT USE THIS METHOD IN YOUR TESTS, use store_metric instead. we
+        # need to be able to make changes to the indexer's output protocol
+        # without having to update a million tests
         if entity.startswith("generic_"):
             codec = sentry_kafka_schemas.get_codec("snuba-generic-metrics")
         else:
