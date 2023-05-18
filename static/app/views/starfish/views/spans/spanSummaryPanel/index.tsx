@@ -102,22 +102,22 @@ type BlockProps = {
 function Block({title, children}: BlockProps) {
   return (
     <BlockWrapper>
-      <SubHeader>{title}</SubHeader>
-      <SubSubHeader>{children}</SubSubHeader>
+      <BlockTitle>{title}</BlockTitle>
+      <BlockContent>{children}</BlockContent>
     </BlockWrapper>
   );
 }
 
 const Header = styled('h2')``;
 
-const SubHeader = styled('h3')`
+const BlockTitle = styled('h3')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   margin-bottom: ${space(1)};
 `;
 
-const SubSubHeader = styled('h4')`
+const BlockContent = styled('h4')`
   margin: 0;
   font-weight: normal;
 `;
