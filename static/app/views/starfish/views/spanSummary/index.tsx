@@ -502,7 +502,7 @@ export default function SpanSummary({location, params}: Props) {
                       stacked
                       isLineChart
                       disableXAxis
-                      hideYAxisSplitLine
+                      definedAxisTicks={4}
                     />
                   </ChartPanel>
 
@@ -519,7 +519,7 @@ export default function SpanSummary({location, params}: Props) {
                       stacked
                       isLineChart
                       disableXAxis
-                      hideYAxisSplitLine
+                      definedAxisTicks={4}
                     />
                   </ChartPanel>
 
@@ -535,7 +535,7 @@ export default function SpanSummary({location, params}: Props) {
                       stacked
                       isLineChart
                       disableXAxis
-                      hideYAxisSplitLine
+                      definedAxisTicks={4}
                     />
                   </ChartPanel>
 
@@ -562,7 +562,7 @@ export default function SpanSummary({location, params}: Props) {
                       stacked
                       isLineChart
                       disableXAxis
-                      hideYAxisSplitLine
+                      definedAxisTicks={4}
                     />
                   </ChartPanel>
                 </ChartGrid>
