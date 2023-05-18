@@ -510,12 +510,12 @@ export default function SpanSummary({location, params}: Props) {
                     <Chart
                       statsPeriod="24h"
                       height={140}
+                      chartColors={theme.charts.getColorPalette(4).slice(5, 6)}
                       data={[p50TransactionSeries ?? []]}
                       start=""
                       end=""
                       loading={isTransactionAggregateDataLoading}
                       utc={false}
-                      chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
                       stacked
                       isLineChart
                       disableXAxis
@@ -548,7 +548,7 @@ export default function SpanSummary({location, params}: Props) {
                       end=""
                       loading={isLoadingSeriesData}
                       utc={false}
-                      chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
+                      chartColors={theme.charts.getColorPalette(4).slice(5, 6)}
                       scatterPlot={
                         state.plotSamples
                           ? [
