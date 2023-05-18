@@ -245,6 +245,7 @@ export function WidgetInteractiveTitle({
       value={chartSetting}
       onChange={handleChange}
       triggerProps={{borderless: true, size: 'zero'}}
+      offset={4}
     />
   );
 }
@@ -253,10 +254,11 @@ const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
    * setting this higher up causes it to trickle into the menues */
   font-weight: normal;
-  margin: 0 -${space(0.5)};
+  margin: -${space(0.5)} -${space(1)} -${space(0.25)};
   min-width: 0;
 
   button {
+    padding: ${space(0.5)} ${space(1)};
     font-size: ${p => p.theme.fontSizeLarge};
   }
 `;
