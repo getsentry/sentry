@@ -580,7 +580,6 @@ export default function SpanSummary({location, params}: Props) {
                   <span>LOADING SAMPLE LIST</span>
                 ) : (
                   <div>
-                    <h3>{t('Samples')}</h3>
                     <GridEditable
                       isLoading={isLoading || isTransactionDataLoading}
                       data={sampledSpanData}
