@@ -575,6 +575,7 @@ export const useQueryMainTable = (options: {
       sortDirection,
       newFilter,
       oldFilter,
+      outlierFilter,
     ],
     cacheTime: 10000,
     queryFn: () => fetch(`${HOST}/?query=${query}&format=sql`).then(res => res.json()),
