@@ -20,6 +20,7 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -28,7 +29,7 @@ from . import BaseEventTest
 
 
 @region_silo_test(stable=True)
-class StatusActionTest(BaseEventTest):
+class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_ask_linking(self):
         """Freezing time to prevent flakiness from timestamp mismatch."""
@@ -518,6 +519,26 @@ class StatusActionTest(BaseEventTest):
             resp.data["text"]
             == f"Invite request for hello@sentry.io has been rejected. <{manage_url}|See Members and Requests>."
         )
+
+    def test_invalid_rejected_invite_request(self):
+        user = self.create_user(email="hello@sentry.io")
+        member = self.create_member(
+            organization=self.organization,
+            role="member",
+            user=user,
+            invite_status=InviteStatus.APPROVED.value,
+        )
+
+        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+
+        resp = self.post_webhook(action_data=[{"value": "reject_member"}], callback_id=callback_id)
+
+        assert resp.status_code == 200, resp.content
+        assert OrganizationMember.objects.filter(id=member.id).exists()
+        member.refresh_from_db()
+        self.assert_org_member_mapping(org_member=member)
+
+        assert resp.data["text"] == "Member invitation for hello@sentry.io no longer exists."
 
     def test_invitation_removed(self):
         other_user = self.create_user()
