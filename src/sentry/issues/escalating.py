@@ -308,7 +308,17 @@ def manage_issue_states(
     """
     Handles the downstream changes to the status/substatus of GroupInbox and Group for each GroupInboxReason
     """
+
     if group_inbox_reason == GroupInboxReason.ESCALATING:
+        try:
+            group = Group.objects.get(
+                id=group.id,
+                # ensure we can only update if the status is currently Ignored
+                status=GroupStatus.IGNORED,
+            )
+        except Group.DoesNotExist:
+            return
+
         add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
         record_group_history(group, GroupHistoryStatus.ESCALATING)
         group.substatus = GroupSubStatus.ESCALATING
@@ -318,12 +328,30 @@ def manage_issue_states(
         )
 
     elif group_inbox_reason == GroupInboxReason.ONGOING:
+        try:
+            Group.objects.get(
+                id=group.id,
+                # ensure we can't update things if the status has been set to Unresolved
+                status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED],
+            )
+        except Group.DoesNotExist:
+            return
+
         add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
         record_group_history(group, GroupHistoryStatus.ONGOING)
         group.status = GroupStatus.UNRESOLVED
         group.substatus = GroupSubStatus.ONGOING
 
     elif group_inbox_reason == GroupInboxReason.UNIGNORED:
+        try:
+            Group.objects.get(
+                id=group.id,
+                # ensure we can't update things if the status has been set to Unresolved
+                status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED],
+            )
+        except Group.DoesNotExist:
+            return
+
         add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
         record_group_history(group, GroupHistoryStatus.UNIGNORED)
         group.status = GroupStatus.UNRESOLVED
