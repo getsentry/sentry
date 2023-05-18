@@ -50,21 +50,34 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
 
   if (fetchError) {
     const reasons = [
-      t('The replay is still processing'),
-      t('The replay has been deleted by a member in your organization'),
-      t('There is an internal system error'),
+      t('The replay was rate-limited and could not be accepted.'),
+      t('The replay has been deleted by a member in your organization.'),
+      t('There were network errors and the replay was not saved.'),
+      tct('[link:Read the docs] to understand why.', {
+        link: (
+          <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking" />
+        ),
+      }),
     ];
 
     return (
-      <Alert type="info" showIcon data-test-id="replay-error">
+      <Alert
+        type="info"
+        showIcon
+        data-test-id="replay-error"
+        trailingItems={
+          <Button
+            external
+            href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking"
+            size="xs"
+          >
+            {t('Read Docs')}
+          </Button>
+        }
+      >
         <p>
-          {tct(
-            'The replay for this event cannot be found. [link:Read the docs to understand why]. This could be due to these reasons:',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking" />
-              ),
-            }
+          {t(
+            'The replay for this event cannot be found. This could be due to these reasons:'
           )}
         </p>
         <List symbol="bullet">
