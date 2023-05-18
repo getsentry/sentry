@@ -25,6 +25,11 @@ REVERSE_METRIC_PATH_MAPPING: Mapping[UseCaseKey, UseCaseID] = {
     UseCaseKey.PERFORMANCE: UseCaseID.TRANSACTIONS,
 }
 
+USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS = {
+    UseCaseID.TRANSACTIONS: "sentry-metrics.cardinality-limiter.limits.performance.per-org",
+    UseCaseID.SESSIONS: "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
+}
+
 
 def get_metric_path_from_usecase(use_case: UseCaseID) -> UseCaseKey:
     return METRIC_PATH_MAPPING[use_case]
