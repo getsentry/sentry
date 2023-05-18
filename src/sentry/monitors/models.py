@@ -54,6 +54,7 @@ MONITOR_CONFIG = {
         "timezone": {"type": ["string", "null"]},
         "schedule_type": {"type": "integer"},
         "schedule": {"type": ["string", "array"]},
+        "alert_rule_id": {"type": ["integer", "null"]},
     },
     # TODO(davidenwang): Old monitors may not have timezone or schedule_type, these should be added here once we've cleaned up old data
     "required": ["checkin_margin", "max_runtime", "schedule"],
