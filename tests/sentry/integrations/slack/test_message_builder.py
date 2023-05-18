@@ -242,7 +242,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             attachments["text"]
             == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
         )
-        assert attachments["text"] == ""
         assert attachments["fallback"] == f"[{self.project.slug}] N+1 Query"
         assert attachments["color"] == "#2788CE"  # blue for info level
 
