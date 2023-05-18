@@ -564,7 +564,7 @@ class EventsChart extends Component<EventsChartProps> {
     const yAxisSeriesNames = yAxisArray.map(name => {
       let yAxisLabel = name && isEquation(name) ? getEquation(name) : name;
       if (yAxisLabel && yAxisLabel.length > 60) {
-        yAxisLabel = yAxisLabel.substr(0, 60) + '...';
+        yAxisLabel = yAxisLabel.substring(0, 60) + '...';
       }
       return yAxisLabel;
     });

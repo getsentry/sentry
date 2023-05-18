@@ -57,7 +57,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         assert request.headers["Authorization"] == "Bearer jwt_token_1"
 
         request = responses.calls[1].request
-        assert request.headers["Authorization"] == "token token_1"
+        assert request.headers["Authorization"] == "Bearer token_1"
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -96,7 +96,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         assert request.headers["Authorization"] == "Bearer jwt_token_1"
 
         request = responses.calls[1].request
-        assert request.headers["Authorization"] == "token token_1"
+        assert request.headers["Authorization"] == "Bearer token_1"
         payload = json.loads(request.body)
         assert payload == {"body": "This is the description", "assignee": None, "title": "hello"}
 
@@ -167,7 +167,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         assert request.headers["Authorization"] == "Bearer jwt_token_1"
 
         request = responses.calls[1].request
-        assert request.headers["Authorization"] == "token token_1"
+        assert request.headers["Authorization"] == "Bearer token_1"
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -203,7 +203,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         assert request.headers["Authorization"] == "Bearer jwt_token_1"
 
         request = responses.calls[1].request
-        assert request.headers["Authorization"] == "token token_1"
+        assert request.headers["Authorization"] == "Bearer token_1"
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -286,13 +286,13 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         assert request.headers["Authorization"] == b"Bearer jwt_token_1"
 
         request = responses.calls[1].request
-        assert request.headers["Authorization"] == "token token_1"
+        assert request.headers["Authorization"] == "Bearer token_1"
         payload = json.loads(request.body)
         assert payload == {"body": "hello"}
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.client.GitHubClientMixin.get_token", return_value="jwt_token_1"
+        "sentry.integrations.github.client.GithubProxyClient._get_token", return_value="jwt_token_1"
     )
     def test_default_repo_link_fields(self, mock_get_jwt):
         responses.add(
@@ -360,7 +360,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.client.GitHubClientMixin.get_token", return_value="jwt_token_1"
+        "sentry.integrations.github.client.GithubProxyClient._get_token", return_value="jwt_token_1"
     )
     def test_default_repo_link_fields_no_repos(self, mock_get_jwt):
         responses.add(

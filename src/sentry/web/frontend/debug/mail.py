@@ -41,6 +41,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason, get_inbox_reason_text
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
@@ -261,7 +262,7 @@ def make_generic_event(project):
     return generic_group.get_latest_event()
 
 
-def get_shared_context(rule, org, project, group, event):
+def get_shared_context(rule, org, project, group, event, group_inbox: GroupInbox | None = None):
     rules = get_rules([rule], org, project)
     snooze_alert = len(rules) > 0
     snooze_alert_url = rules[0].status_url + urlencode({"mute": "1"}) if snooze_alert else ""
@@ -269,6 +270,7 @@ def get_shared_context(rule, org, project, group, event):
         "rule": rule,
         "rules": rules,
         "group": group,
+        "group_header": get_inbox_reason_text(group_inbox),
         "event": event,
         "timezone": pytz.timezone("Europe/Vienna"),
         # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
@@ -433,6 +435,9 @@ class ActivityMailDebugView(View):
         )
 
 
+has_issue_states = True
+
+
 @login_required
 def alert(request):
     random = get_random(request)
@@ -449,12 +454,16 @@ def alert(request):
         and f"We notified all members in the {project.get_full_name()} project of this issue"
         or None
     )
+    inbox_reason = random.choice(
+        [GroupInboxReason.NEW, GroupInboxReason.REGRESSION, GroupInboxReason.ONGOING]
+    )
+    group_inbox = GroupInbox(reason=inbox_reason.value, group=group, project=project)
 
     return MailPreview(
         html_template="sentry/emails/error.html",
         text_template="sentry/emails/error.txt",
         context={
-            **get_shared_context(rule, org, project, group, event),
+            **get_shared_context(rule, org, project, group, event, group_inbox),
             "interfaces": get_interface_list(event),
             "project_label": project.slug,
             "commits": json.loads(COMMIT_EXAMPLE),
@@ -463,7 +472,10 @@ def alert(request):
             "notification_settings_link": absolute_uri(
                 "/settings/account/notifications/alerts/?referrer=alert_email"
             ),
+            "culprit": random.choice(["sentry.tasks.culprit.culprit", None]),
+            "subtitle": random.choice(["subtitles are cool", None]),
             "issue_type": group.issue_type.description,
+            "has_issue_states": has_issue_states,
         },
     ).render(request)
 

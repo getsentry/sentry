@@ -14,6 +14,7 @@ from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.cache import cache
 
 TREE_RESPONSES = {
@@ -61,6 +62,7 @@ class GitHubPlugin(IssueTrackingPlugin2):
     conf_key = slug
 
 
+@control_silo_test
 class GitHubIntegrationTest(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"

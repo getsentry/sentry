@@ -5,8 +5,10 @@ from django.urls import reverse
 
 from sentry.models import Identity, IdentityProvider, Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class GithubSearchTest(APITestCase):
     # There is another test case that inherits from this
     # one to ensure that github:enterprise behaves as expected.

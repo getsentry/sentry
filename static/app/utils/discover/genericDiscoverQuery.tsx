@@ -130,6 +130,7 @@ type ComponentProps<T, P> = {
    * Allows components to modify the payload before it is set.
    */
   getRequestPayload?: (props: Props<T, P>) => any;
+  options?: Omit<Parameters<typeof useQuery>[2], 'initialData'>;
   /**
    * An external hook to parse errors in case there are differences for a specific api.
    */
@@ -414,16 +415,20 @@ function getPayload<T, P>(props: Props<T, P>) {
 
 export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const api = useApi();
-  const {orgSlug, route} = props;
+  const {orgSlug, route, options} = props;
   const url = `/organizations/${orgSlug}/${route}/`;
   const apiPayload = getPayload<T, P>(props);
 
-  return useQuery<T, QueryError>([route, apiPayload], async () => {
-    const [resp] = await doDiscoverQuery<T>(api, url, apiPayload, {
-      queryBatching: props.queryBatching,
-    });
-    return resp;
-  });
+  return useQuery<T, QueryError>(
+    [route, apiPayload],
+    async () => {
+      const [resp] = await doDiscoverQuery<T>(api, url, apiPayload, {
+        queryBatching: props.queryBatching,
+      });
+      return resp;
+    },
+    options
+  );
 }
 
 export default GenericDiscoverQuery;
