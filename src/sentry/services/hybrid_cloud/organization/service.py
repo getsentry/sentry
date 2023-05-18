@@ -59,32 +59,6 @@ class OrganizationService(RpcService):
         """
         pass
 
-    # TODO: This should return RpcOrganizationSummary objects, since we cannot realistically span out requests and
-    #  capture full org objects / teams / permissions.  But we can gather basic summary data from the control silo.
-    @regional_rpc_method(resolve=UnimplementedRegionResolution())
-    @abstractmethod
-    def get_organizations(
-        self,
-        *,
-        user_id: Optional[int],
-        scope: Optional[str],
-        only_visible: bool,
-        organization_ids: Optional[List[int]] = None,
-    ) -> List[RpcOrganizationSummary]:
-        """
-        When user_id is set, returns all organizations associated with that user id given
-        a scope and visibility requirement.  When user_id is not set, but organization_ids is, provides the
-        set of organizations matching those ids, ignore scope and user_id.
-
-        When only_visible set, the organization object is only returned if it's status is Visible, otherwise any
-        organization will be returned.
-
-        Because this endpoint fetches not from region silos, but the control silo organization membership table,
-        only a subset of all organization metadata is available.  Spanning out and querying multiple organizations
-        for their full metadata is greatly discouraged for performance reasons.
-        """
-        pass
-
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def check_membership_by_email(
