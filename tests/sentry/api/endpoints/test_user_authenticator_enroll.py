@@ -6,6 +6,7 @@ from django.db.models import F
 from django.urls import reverse
 
 from sentry import audit_log
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
@@ -426,7 +427,8 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         # Mutate the OrganizationMember, putting it out of sync with the
         # pending member cookie.
-        om.update(id=om.id + 1)
+        with in_test_psql_role_override("postgres"):
+            om.update(id=om.id + 1)
 
         self.setup_u2f(om)
 
@@ -444,7 +446,8 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         # Mutate the OrganizationMember, putting it out of sync with the
         # pending member cookie.
-        om.update(token="123")
+        with in_test_psql_role_override("postgres"):
+            om.update(token="123")
 
         self.setup_u2f(om)
 
