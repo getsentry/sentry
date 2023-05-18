@@ -14,11 +14,13 @@ from sentry.models import (
     Group,
     GroupAssignee,
     GroupStatus,
+    GroupSubStatus,
     Identity,
     InviteStatus,
     OrganizationMember,
 )
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -27,7 +29,7 @@ from . import BaseEventTest
 
 
 @region_silo_test(stable=True)
-class StatusActionTest(BaseEventTest):
+class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_ask_linking(self):
         """Freezing time to prevent flakiness from timestamp mismatch."""
@@ -58,7 +60,7 @@ class StatusActionTest(BaseEventTest):
             },
             project_id=self.project.id,
         )
-        status_action = {"name": "status", "value": "ignored", "type": "button"}
+        status_action = {"name": "status", "value": "ignored:forever", "type": "button"}
         original_message = {
             "type": "message",
             "attachments": [
@@ -84,6 +86,55 @@ class StatusActionTest(BaseEventTest):
 
         assert resp.status_code == 200, resp.content
         assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.FOREVER
+
+        expect_status = f"Identity not found.\n*Issue ignored by <@{self.external_id}>*"
+        assert resp.data["attachments"][0]["text"] == expect_status
+
+    def test_archive_issue(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-1"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        status_action = {"name": "status", "value": "ignored:until_escalating", "type": "button"}
+        original_message = {
+            "type": "message",
+            "attachments": [
+                {
+                    "id": 1,
+                    "ts": 1681409875,
+                    "color": "E03E2F",
+                    "fallback": "[node] IntegrationError: Identity not found.",
+                    "text": "Identity not found.",
+                    "title": "IntegrationError",
+                    "footer": "NODE-F via <http://localhost:8000/organizations/sentry/alerts/rules/node/3/details/|New Issue in #critical channel>",
+                    "mrkdwn_in": ["text"],
+                }
+            ],
+        }
+        resp = self.post_webhook(
+            action_data=[status_action],
+            original_message=original_message,
+            type="interactive_message",
+            callback_id=json.dumps({"issue": event.group.id}),
+        )
+        self.group = Group.objects.get(id=event.group.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
         expect_status = f"Identity not found.\n*Issue ignored by <@{self.external_id}>*"
         assert resp.data["attachments"][0]["text"] == expect_status
@@ -98,13 +149,14 @@ class StatusActionTest(BaseEventTest):
             )
             AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
 
-        status_action = {"name": "status", "value": "ignored", "type": "button"}
+        status_action = {"name": "status", "value": "ignored:forever", "type": "button"}
 
         resp = self.post_webhook(action_data=[status_action])
         self.group = Group.objects.get(id=self.group.id)
 
         assert resp.status_code == 200, resp.content
         assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.FOREVER
 
         expect_status = f"*Issue ignored by <@{self.external_id}>*"
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
@@ -195,13 +247,15 @@ class StatusActionTest(BaseEventTest):
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
     def test_response_differs_on_bot_message(self):
-        status_action = {"name": "status", "value": "ignored", "type": "button"}
+        status_action = {"name": "status", "value": "ignored:forever", "type": "button"}
 
         original_message = {"type": "message"}
 
         resp = self.post_webhook(action_data=[status_action], original_message=original_message)
         self.group = Group.objects.get(id=self.group.id)
 
+        assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.FOREVER
         assert resp.status_code == 200, resp.content
         assert "attachments" in resp.data
         assert resp.data["attachments"][0]["title"] == self.group.title
@@ -298,7 +352,7 @@ class StatusActionTest(BaseEventTest):
             user=user2,
         )
 
-        status_action = {"name": "status", "value": "ignored", "type": "button"}
+        status_action = {"name": "status", "value": "ignored:forever", "type": "button"}
 
         resp = self.post_webhook(
             action_data=[status_action], slack_user={"id": user2_identity.external_id}
@@ -465,6 +519,26 @@ class StatusActionTest(BaseEventTest):
             resp.data["text"]
             == f"Invite request for hello@sentry.io has been rejected. <{manage_url}|See Members and Requests>."
         )
+
+    def test_invalid_rejected_invite_request(self):
+        user = self.create_user(email="hello@sentry.io")
+        member = self.create_member(
+            organization=self.organization,
+            role="member",
+            user=user,
+            invite_status=InviteStatus.APPROVED.value,
+        )
+
+        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+
+        resp = self.post_webhook(action_data=[{"value": "reject_member"}], callback_id=callback_id)
+
+        assert resp.status_code == 200, resp.content
+        assert OrganizationMember.objects.filter(id=member.id).exists()
+        member.refresh_from_db()
+        self.assert_org_member_mapping(org_member=member)
+
+        assert resp.data["text"] == "Member invitation for hello@sentry.io no longer exists."
 
     def test_invitation_removed(self):
         other_user = self.create_user()

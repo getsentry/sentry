@@ -374,7 +374,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         are subscribed to alerts. We check both the project level settings and
         global default settings.
         """
-        recipient_actors = [RpcActor.from_object(r, fetch_actor=False) for r in recipients]
+        recipient_actors = RpcActor.many_from_object(recipients)
 
         notification_settings = notifications_service.get_settings_for_recipient_by_parent(
             type=type, parent_id=parent.id, recipients=recipient_actors

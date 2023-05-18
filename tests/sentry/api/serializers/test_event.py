@@ -454,7 +454,15 @@ class IssueEventSerializerTest(TestCase):
                 "transactionName": "/books/",
                 "numRepeatingSpans": "10",
             },
-            "evidenceDisplay": [],
+            "evidenceDisplay": [
+                {
+                    "important": True,
+                    "name": "Offending Spans",
+                    "value": "db - SELECT `books_author`.`id`, "
+                    "`books_author`.`name` FROM `books_author` "
+                    "WHERE `books_author`.`id` = %s LIMIT 21",
+                }
+            ],
         }
 
     @override_options({"performance.issues.all.problem-detection": 1.0})

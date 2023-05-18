@@ -203,7 +203,11 @@ def transform_to_notification_settings_by_recipient(
         ],
     ] = defaultdict(lambda: defaultdict(dict))
     for ns in notification_settings:
-        recipient = team_mapping[ns.team_id] if ns.team_id else user_mapping[ns.user_id]
+        if ns.team_id is not None:
+            recipient = team_mapping[ns.team_id]
+        else:
+            assert ns.user_id is not None
+            recipient = user_mapping[ns.user_id]
         scope_type = NotificationScopeType(ns.scope_type)
         value = NotificationSettingOptionValues(ns.value)
         provider = ExternalProviders(ns.provider)

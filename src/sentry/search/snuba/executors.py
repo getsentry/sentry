@@ -45,7 +45,6 @@ from sentry.issues.search import (
     group_categories_from,
 )
 from sentry.models import Environment, Group, Organization, Project
-from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.search.utils import validate_cdc_search_filters
 from sentry.utils import json, metrics, snuba
@@ -453,18 +452,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         return sort_by in self.sort_strategies.keys()
 
 
-def trend_aggregation(start: datetime, end: datetime) -> Sequence[str]:
-    middle_date = start + timedelta(seconds=(end - start).total_seconds() * 0.5)
-    middle = datetime.strftime(middle_date, DateArg.date_format)
-
-    agg_range_1 = f"countIf(greater(toDateTime('{middle}'), timestamp))"
-    agg_range_2 = f"countIf(lessOrEquals(toDateTime('{middle}'), timestamp))"
-    return [
-        f"if(greater({agg_range_1}, 0), divide({agg_range_2}, {agg_range_1}), 0)",
-        "",
-    ]
-
-
 def better_priority_aggregation(
     start: datetime,
     end: datetime,
@@ -497,11 +484,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "new": "first_seen",
         "priority": "priority",
         "user": "user_count",
-        "trend": "trend",
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
         "inbox": "",
-        "better priority": "better_priority",
+        "betterPriority": "better_priority",
     }
 
     aggregation_defs = {
@@ -513,7 +499,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
-        "trend": trend_aggregation,
         "better_priority": better_priority_aggregation,
     }
 
