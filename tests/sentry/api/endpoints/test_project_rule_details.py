@@ -225,6 +225,35 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["actions"][0]["disabled"] is True
 
+    def test_with_deleted_sentry_app(self):
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": "123-uuid-does-not-exist",
+                "settings": [
+                    {"name": "title", "value": "An alert"},
+                    {"summary": "Something happened here..."},
+                    {"name": "points", "value": "3"},
+                    {"name": "assignee", "value": "Nisanthan"},
+                ],
+            }
+        ]
+        data = {
+            "conditions": [],
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+        self.rule.update(data=data)
+
+        responses.add(responses.GET, "http://example.com/sentry/members", json={}, status=404)
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        # Action with deleted SentryApp is removed
+        assert response.data["actions"] == []
+
     @freeze_time()
     def test_last_triggered(self):
         response = self.get_success_response(

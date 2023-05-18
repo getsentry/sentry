@@ -20,13 +20,12 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import Chart from 'sentry/views/starfish/components/chart';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import {TextAlignRight} from 'sentry/views/starfish/modules/APIModule/endpointTable';
-import {getSpanInTransactionQuery} from 'sentry/views/starfish/modules/APIModule/queries';
 import {
   FlexRowContainer,
   FlexRowItem,
@@ -38,13 +37,12 @@ import {getDateFilters, PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import MegaChart from 'sentry/views/starfish/views/spanSummary/megaChart';
 import Sidebar, {
-  getQueries,
   getTransactionBasedSeries,
   queryDataToChartData,
   SidebarChart,
 } from 'sentry/views/starfish/views/spanSummary/sidebar';
 
-import {getSpanSamplesQuery, SamplePopulationType} from './queries';
+import {getQueries, useQueryGetSpanSamples, useQuerySpansInTransaction} from './queries';
 
 const COLUMN_ORDER = [
   {
@@ -118,87 +116,11 @@ export default function SpanSummary({location, params}: Props) {
   const transactionName: string = location.query.transaction;
   const user: string = location.query.user;
 
-  const spanInfoQuery = getSpanInTransactionQuery({
-    groupId,
-    datetime: pageFilter.selection.datetime,
-  });
-
-  const {isLoading, data} = useQuery<
-    {
-      action: string;
-      count: number;
-      description: string;
-      formatted_desc: string;
-      p50: number;
-      span_operation: 'string';
-    }[]
-  >({
-    queryKey: ['spanSummary', groupId],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${spanInfoQuery}&format=sql`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
+  const {isLoading, data} = useQuerySpansInTransaction({groupId});
 
   const p50 = data[0]?.p50 ?? 0;
 
-  const commonSamplesQueryOptions = {
-    groupId,
-    transactionName,
-    user,
-    datetime: pageFilter.selection.datetime,
-    p50,
-  };
-
-  const commonQueryOptions = {
-    queryKey: [
-      groupId,
-      transactionName,
-      user,
-      pageFilter.selection.datetime,
-      'spanSamples',
-    ],
-    retry: false,
-    initialData: [],
-  };
-
-  const results = useQueries({
-    queries: [
-      {
-        ...commonQueryOptions,
-        queryKey: [...commonQueryOptions.queryKey, 'spanSamplesSlowest'],
-        queryFn: () =>
-          fetch(
-            `${HOST}/?query=${getSpanSamplesQuery({
-              ...commonSamplesQueryOptions,
-              populationType: SamplePopulationType.SLOWEST,
-            })}`
-          ).then(res => res.json()),
-      },
-      {
-        ...commonQueryOptions,
-        queryKey: [...commonQueryOptions.queryKey, 'spanSamplesMedian'],
-        queryFn: () =>
-          fetch(
-            `${HOST}/?query=${getSpanSamplesQuery({
-              ...commonSamplesQueryOptions,
-              populationType: SamplePopulationType.MEDIAN,
-            })}`
-          ).then(res => res.json()),
-      },
-      {
-        ...commonQueryOptions,
-        queryKey: [...commonQueryOptions.queryKey, 'spanSamplesFastest'],
-        queryFn: () =>
-          fetch(
-            `${HOST}/?query=${getSpanSamplesQuery({
-              ...commonSamplesQueryOptions,
-              populationType: SamplePopulationType.FASTEST,
-            })}`
-          ).then(res => res.json()),
-      },
-    ],
-  });
+  const results = useQueryGetSpanSamples({groupId, transactionName, user, p50});
 
   const {isLoading: areSpanSamplesLoading, data: spanSampleData} = results.reduce(
     (acc: {data: any[]; isLoading: boolean; spanIds: Set<string>}, result) => {
@@ -223,6 +145,7 @@ export default function SpanSummary({location, params}: Props) {
   const spanDescription = spanSampleData?.[0]?.description;
   const spanDomain = spanSampleData?.[0]?.domain;
   const spanGroupOperation = data?.[0]?.span_operation;
+  const module = data?.[0]?.module;
   const formattedDescription = data?.[0]?.formatted_desc;
   const action = data?.[0]?.action;
 
@@ -233,6 +156,7 @@ export default function SpanSummary({location, params}: Props) {
     datetime: pageFilter.selection.datetime,
     groupId,
     module: spanGroupOperation,
+    interval: 12,
   });
 
   const {isLoading: isLoadingSeriesData, data: seriesData} = useQuery({
@@ -262,7 +186,7 @@ export default function SpanSummary({location, params}: Props) {
   const {p50TransactionSeries, p95TransactionSeries, throughputTransactionSeries} =
     getTransactionBasedSeries(transactionAggregateData, dateFilter);
 
-  const [p50Series, p95Series, countSeries, _errorCountSeries] = queryDataToChartData(
+  const [p50Series, p95Series, , spmSeries, _errorCountSeries] = queryDataToChartData(
     seriesData
   ).map(series =>
     zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
@@ -430,13 +354,13 @@ export default function SpanSummary({location, params}: Props) {
                   <FlexRowItem>
                     <h4>{t('Throughput (SPM)')}</h4>
                     <SidebarChart
-                      series={countSeries}
+                      series={spmSeries}
                       isLoading={isLoadingSeriesData}
                       chartColor={chartColors[0]}
                     />
                   </FlexRowItem>
                   <FlexRowItem>
-                    <h4>{t('Span Duration P50 / P95')}</h4>
+                    <h4>{t('Span Duration (P50 / P95)')}</h4>
                     <Chart
                       statsPeriod="24h"
                       height={140}
@@ -466,7 +390,7 @@ export default function SpanSummary({location, params}: Props) {
 
                 <FlexRowContainer>
                   <FlexRowItem>
-                    <h4>{t('Transaction Throughput')}</h4>
+                    <h4>{t('Throughput (TPM)')}</h4>
                     <Chart
                       statsPeriod="24h"
                       height={140}
@@ -482,7 +406,7 @@ export default function SpanSummary({location, params}: Props) {
                     />
                   </FlexRowItem>
                   <FlexRowItem>
-                    <h4>{t('Transaction Duration P50 / P95')}</h4>
+                    <h4>{t('Transaction Duration (P50 / P95)')}</h4>
                     <Chart
                       statsPeriod="24h"
                       height={140}
@@ -525,6 +449,7 @@ export default function SpanSummary({location, params}: Props) {
                   spanGroupOperation={spanGroupOperation}
                   transactionName={transactionName}
                   sampledSpanData={state.plotSamples ? sampledSpanData : []}
+                  module={module}
                 />
               </SidebarContainer>
             </FlexContainer>
