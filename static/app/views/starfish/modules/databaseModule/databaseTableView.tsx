@@ -167,7 +167,7 @@ export default function DatabaseTableView({
     },
   ];
   if (noP95) {
-    COLUMN_ORDER.splice(4, 1);
+    COLUMN_ORDER = COLUMN_ORDER.filter(col => col.key !== 'p95')
   }
 
   function onSortClick(col: TableColumnHeader) {
