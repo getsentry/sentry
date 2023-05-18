@@ -84,9 +84,9 @@ class TimeseriesCardinalityLimiter:
         hash_to_offset = {}
         prefix_to_quota = {}
 
-        # this works by applying one rollout option for each metric path
-        # ultimately, this can be moved into the loop below to
-        # make rollout options occur on a per use case-basis
+        # this works by applying one cardinality limiter rollout option
+        # for each metric path. ultimately, this can be moved into the
+        # loop below to make rollout options occur on a per use case-basis
         if metric_path_key == UseCaseKey.PERFORMANCE:
             rollout_option = "sentry-metrics.cardinality-limiter.orgs-rollout-rate"
         elif metric_path_key == UseCaseKey.RELEASE_HEALTH:
