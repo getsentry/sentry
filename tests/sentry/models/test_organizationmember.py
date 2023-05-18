@@ -278,10 +278,12 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
         member.approve_invite()
         member.save()
+        member.outbox_for_create().drain_shard(max_updates_to_drain=10)
 
         member = OrganizationMember.objects.get(id=member.id)
         assert member.invite_approved
         assert member.invite_status == InviteStatus.APPROVED.value
+        self.assert_org_member_mapping(org_member=member)
 
     def test_scopes_with_member_admin_config(self):
         member = OrganizationMember.objects.create(
@@ -446,6 +448,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         )
         user = self.create_user()
         member.approve_member_invitation(user)
+        self.assert_org_member_mapping(org_member=member)
         assert member.invite_status == InviteStatus.APPROVED.value
 
     def test_reject_member_invitation(self):
