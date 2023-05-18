@@ -2,14 +2,14 @@ import {useState} from 'react';
 import {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {t} from 'sentry/locale';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import EndpointDetail, {
-  EndpointDataRow,
-} from 'sentry/views/starfish/views/endpointDetails';
+import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
+import {SpanSummaryPanel} from 'sentry/views/starfish/views/spans/spanSummaryPanel';
 
 import APIModuleView from './APIModuleView';
 
@@ -38,8 +38,18 @@ export default function APIModule(props: Props) {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <APIModuleView {...props} onSelect={setSelectedRow} />
-            <EndpointDetail row={selectedRow} onClose={unsetSelectedSpanGroup} />
+            <PageFiltersContainer>
+              <APIModuleView {...props} onSelect={setSelectedRow} />
+              <SpanSummaryPanel
+                span={{
+                  ...selectedRow,
+                  span_operation: 'http.client',
+                  group_id: selectedRow?.group_id || '',
+                }}
+                onClose={unsetSelectedSpanGroup}
+              />
+              ;
+            </PageFiltersContainer>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>

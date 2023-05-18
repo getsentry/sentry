@@ -6,6 +6,7 @@
 from typing import Optional
 
 from django.db import transaction
+from django.db.models import Q
 
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
@@ -34,11 +35,14 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             user_id and email is None
         ), "Must set either user or email"
         with transaction.atomic():
-            query = OrganizationMemberMapping.objects.filter(organization_id=organization_id)
+            conditions = Q(organizationmember_id=organizationmember_id)
             if user_id is not None:
-                query = query.filter(user_id=user_id)
+                conditions = conditions | Q(user_id=user_id)
             else:
-                query = query.filter(email=email)
+                conditions = conditions | Q(email=email)
+            query = OrganizationMemberMapping.objects.filter(
+                Q(organization_id=organization_id), conditions
+            )
 
             if query.exists():
                 org_member_mapping = query.get()

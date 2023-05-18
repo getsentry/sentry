@@ -1,3 +1,4 @@
+import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
@@ -12,21 +13,22 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
+import {getDuration} from 'sentry/utils/formatters';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
-import Sparkline from 'sentry/views/starfish/components/sparkline';
+import Sparkline, {
+  generateHorizontalLine,
+} from 'sentry/views/starfish/components/sparkline';
 import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-import type {Cluster} from './clusters';
-
 type Props = {
-  clusters: Cluster[];
   isLoading: boolean;
   location: Location;
   onSelect: (row: SpanDataRow) => void;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
+  queryConditions: string[];
   spansData: SpanDataRow[];
   spansTrendsData: SpanTrendDataRow[];
 };
@@ -35,6 +37,7 @@ export type SpanDataRow = {
   count: number;
   description: string;
   domain: string;
+  epm: number;
   group_id: string;
   p50: number;
   p95: number;
@@ -54,55 +57,76 @@ export default function SpansTable({
   spansData,
   orderBy,
   onSetOrderBy,
-  clusters,
+  queryConditions,
   spansTrendsData,
   isLoading,
   onSelect,
 }: Props) {
-  const spansTrendsGrouped = {};
+  const theme = useTheme();
+  const spansTrendsGrouped = {p50_trend: {}, p95_trend: {}, throughput: {}};
 
-  spansTrendsData?.forEach(({group_id, span_operation, interval, percentile_value}) => {
-    if (span_operation in spansTrendsGrouped) {
-      if (group_id in spansTrendsGrouped[span_operation]) {
-        return spansTrendsGrouped[span_operation][group_id].push({
-          name: interval,
-          value: percentile_value,
-        });
+  spansTrendsData?.forEach(({group_id, span_operation, interval, ...rest}) => {
+    ['p50_trend', 'p95_trend', 'throughput'].forEach(trend => {
+      if (span_operation in spansTrendsGrouped[trend]) {
+        if (group_id in spansTrendsGrouped[trend][span_operation]) {
+          return spansTrendsGrouped[trend][span_operation][group_id].push({
+            name: interval,
+            value: rest[trend],
+          });
+        }
+        return (spansTrendsGrouped[trend][span_operation][group_id] = [
+          {name: interval, value: rest[trend]},
+        ]);
       }
-      return (spansTrendsGrouped[span_operation][group_id] = [
-        {name: interval, value: percentile_value},
-      ]);
-    }
-    return (spansTrendsGrouped[span_operation] = {
-      [group_id]: [{name: interval, value: percentile_value}],
+      return (spansTrendsGrouped[trend][span_operation] = {
+        [group_id]: [{name: interval, value: rest[trend]}],
+      });
     });
   });
 
   const combinedSpansData = spansData?.map(spanData => {
     const {group_id, span_operation} = spanData;
-    if (spansTrendsGrouped[span_operation] === undefined) {
+    if (spansTrendsGrouped.p50_trend?.[span_operation] === undefined) {
       return spanData;
     }
-    const percentile_trend: Series = {
-      seriesName: 'percentile_trend',
-      data: spansTrendsGrouped[span_operation][group_id],
+    const p50_trend: Series = {
+      seriesName: 'p50_trend',
+      data: spansTrendsGrouped.p50_trend[span_operation][group_id],
+    };
+    const p95_trend: Series = {
+      seriesName: 'p95_trend',
+      data: spansTrendsGrouped.p95_trend[span_operation][group_id],
+    };
+    const throughput_trend: Series = {
+      seriesName: 'throughput_trend',
+      data: spansTrendsGrouped.throughput[span_operation][group_id],
     };
 
-    const zeroFilled = zeroFillSeries(percentile_trend, moment.duration(1, 'day'));
-    return {...spanData, percentile_trend: zeroFilled};
+    const zeroFilledP50 = zeroFillSeries(p50_trend, moment.duration(1, 'day'));
+    const zeroFilledP95 = zeroFillSeries(p95_trend, moment.duration(1, 'day'));
+    const zeroFilledThroughput = zeroFillSeries(
+      throughput_trend,
+      moment.duration(1, 'day')
+    );
+    return {
+      ...spanData,
+      p50_trend: zeroFilledP50,
+      p95_trend: zeroFilledP95,
+      throughput_trend: zeroFilledThroughput,
+    };
   });
 
   return (
     <GridEditable
       isLoading={isLoading}
       data={combinedSpansData}
-      columnOrder={getColumns(clusters)}
+      columnOrder={getColumns(queryConditions)}
       columnSortBy={
         orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<string>]
       }
       grid={{
         renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) => renderBodyCell(column, row, onSelect),
+        renderBodyCell: (column, row) => renderBodyCell(column, row, theme, onSelect),
       }}
       location={location}
     />
@@ -114,7 +138,7 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
     return (
       <SortLink
         align="left"
-        canSort={column.key !== 'percentile_trend'}
+        canSort
         direction={orderBy === column.key ? 'desc' : undefined}
         onClick={() => {
           onSetOrderBy(`${column.key}`);
@@ -132,19 +156,56 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
   return renderHeadCell;
 }
 
-const SPAN_OPS_WITH_DETAIL = ['http.client', 'db'];
-
 function renderBodyCell(
   column: GridColumnHeader,
   row: SpanDataRow,
+  theme: Theme,
   onSelect?: (row: SpanDataRow) => void
 ): React.ReactNode {
-  if (column.key === 'percentile_trend' && row[column.key]) {
+  if (column.key === 'throughput_trend' && row[column.key]) {
+    const horizontalLine = generateHorizontalLine(
+      `${row.epm.toFixed(2)}`,
+      row.epm,
+      theme
+    );
     return (
       <Sparkline
         color={CHART_PALETTE[3][0]}
         series={row[column.key]}
         width={column.width ? column.width - column.width / 5 : undefined}
+        markLine={horizontalLine}
+      />
+    );
+  }
+
+  if (column.key === 'p50_trend' && row[column.key]) {
+    const horizontalLine = generateHorizontalLine(
+      `${getDuration(row.p50 / 1000, 2, true)}`,
+      row.p50,
+      theme
+    );
+    return (
+      <Sparkline
+        color={CHART_PALETTE[3][1]}
+        series={row[column.key]}
+        width={column.width ? column.width - column.width / 5 : undefined}
+        markLine={horizontalLine}
+      />
+    );
+  }
+
+  if (column.key === 'p95_trend' && row[column.key]) {
+    const horizontalLine = generateHorizontalLine(
+      `${getDuration(row.p95 / 1000, 2, true)}`,
+      row.p95,
+      theme
+    );
+    return (
+      <Sparkline
+        color={CHART_PALETTE[3][2]}
+        series={row[column.key]}
+        width={column.width ? column.width - column.width / 5 : undefined}
+        markLine={horizontalLine}
       />
     );
   }
@@ -153,20 +214,13 @@ function renderBodyCell(
     const formattedRow = mapRowKeys(row, row.span_operation);
     return (
       <OverflowEllipsisTextContainer>
-        <Link
-          onClick={() => onSelect?.(formattedRow)}
-          to={
-            SPAN_OPS_WITH_DETAIL.includes(row.span_operation)
-              ? ''
-              : `/starfish/span/${encodeURIComponent(row.group_id)}`
-          }
-        >
+        <Link onClick={() => onSelect?.(formattedRow)} to="">
           {row.span_operation === 'db' ? (
             <StyledFormattedCode>
               {(row as unknown as DataRow).formatted_desc}
             </StyledFormattedCode>
           ) : (
-            row.description
+            row.description || '<null>'
           )}
         </Link>
       </OverflowEllipsisTextContainer>
@@ -203,17 +257,40 @@ const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
   }
 };
 
-function getColumns(clusters: Cluster[]): GridColumnOrder[] {
-  const secondCluster = clusters.at(1);
-  const description =
-    clusters.findLast(cluster => Boolean(cluster.description_label))?.description_label ||
-    'Description';
+function getDomainHeader(queryConditions: string[]) {
+  if (queryConditions.includes("span_operation = 'db'")) {
+    return 'Table';
+  }
+  if (queryConditions.includes("span_operation = 'http.client'")) {
+    return 'Host';
+  }
+  return 'Domain';
+}
+function getDescriptionHeader(queryConditions: string[]) {
+  if (queryConditions.includes("span_operation = 'db'")) {
+    return 'Query';
+  }
+  if (queryConditions.includes("span_operation = 'http.client'")) {
+    return 'URL';
+  }
+  return 'Description';
+}
 
-  const domain =
-    clusters.findLast(cluster => Boolean(cluster.domain_label))?.domain_label || 'Domain';
+function getColumns(queryConditions: string[]): GridColumnOrder[] {
+  const description = getDescriptionHeader(queryConditions);
+
+  const domain = getDomainHeader(queryConditions);
+
+  const doQueryConditionsIncludeDomain = queryConditions.some(condition =>
+    condition.includes('domain =')
+  );
+
+  const doQueryConditionsIncludeSpanOperation = queryConditions.some(condition =>
+    condition.includes('span_operation =')
+  );
 
   const order: Array<GridColumnOrder | false> = [
-    !secondCluster && {
+    !doQueryConditionsIncludeSpanOperation && {
       key: 'span_operation',
       name: 'Operation',
       width: COL_WIDTH_UNDEFINED,
@@ -223,7 +300,7 @@ function getColumns(clusters: Cluster[]): GridColumnOrder[] {
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    !!secondCluster && {
+    !doQueryConditionsIncludeDomain && {
       key: 'domain',
       name: domain,
       width: COL_WIDTH_UNDEFINED,
@@ -231,7 +308,7 @@ function getColumns(clusters: Cluster[]): GridColumnOrder[] {
     {
       key: 'total_exclusive_time',
       name: 'Total Time',
-      width: 250,
+      width: COL_WIDTH_UNDEFINED,
     },
     {
       key: 'transactions',
@@ -239,14 +316,19 @@ function getColumns(clusters: Cluster[]): GridColumnOrder[] {
       width: COL_WIDTH_UNDEFINED,
     },
     {
-      key: 'p50',
-      name: 'p50',
-      width: COL_WIDTH_UNDEFINED,
+      key: 'throughput_trend',
+      name: 'throughput (spm)',
+      width: 175,
     },
     {
-      key: 'percentile_trend',
-      name: 'p50 Trend',
-      width: 250,
+      key: 'p50_trend',
+      name: 'p50 trend',
+      width: 175,
+    },
+    {
+      key: 'p95_trend',
+      name: 'p95 trend',
+      width: 175,
     },
   ];
 

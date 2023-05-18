@@ -131,7 +131,7 @@ def _process_message(wrapper: Dict) -> None:
                         "monitors.checkin.result",
                         tags={"source": "consumer", "status": "failed_validation"},
                     )
-                    logger.debug("monitor does not exist: %s", params["monitor_slug"])
+                    logger.info("monitor.validation.failed", extra={**params})
                     return
             except MonitorLimitsExceeded:
                 metrics.incr(
@@ -171,6 +171,18 @@ def _process_message(wrapper: Dict) -> None:
                     monitor=monitor,
                 )
 
+                if check_in.status in CheckInStatus.FINISHED_VALUES:
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={"source": "consumer", "status": "checkin_finished"},
+                    )
+                    logger.debug(
+                        "check-in was finished: attempted update from %s to %s",
+                        check_in.status,
+                        status,
+                    )
+                    return
+
                 if duration is None:
                     duration = int((start_time - check_in.date_added).total_seconds() * 1000)
 
@@ -199,6 +211,12 @@ def _process_message(wrapper: Dict) -> None:
                     logger.debug("check-in duration is invalid: %s", project.organization_id)
                     return
 
+                expected_time = None
+                if monitor_environment.last_checkin:
+                    expected_time = monitor.get_next_scheduled_checkin_without_margin(
+                        monitor_environment.last_checkin
+                    )
+
                 check_in = MonitorCheckIn.objects.create(
                     project_id=project_id,
                     monitor=monitor,
@@ -208,6 +226,8 @@ def _process_message(wrapper: Dict) -> None:
                     status=status,
                     date_added=date_added,
                     date_updated=start_time,
+                    expected_time=expected_time,
+                    monitor_config=monitor.get_validated_config(),
                 )
 
                 signal_first_checkin(project, monitor)
