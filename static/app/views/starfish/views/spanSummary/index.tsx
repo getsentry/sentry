@@ -2,7 +2,6 @@ import React, {useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import keyBy from 'lodash/keyBy';
 import moment from 'moment';
@@ -32,7 +31,6 @@ import {
   highlightSql,
 } from 'sentry/views/starfish/modules/databaseModule/panel';
 import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
-import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters, PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import Sidebar, {
@@ -41,7 +39,11 @@ import Sidebar, {
   SidebarChart,
 } from 'sentry/views/starfish/views/spanSummary/sidebar';
 
-import {getQueries, useQueryGetSpanSamples, useQuerySpansInTransaction} from './queries';
+import {
+  useQueryGetSpanSamples,
+  useQueryGetSpanSeriesData,
+  useQuerySpansInTransaction,
+} from './queries';
 
 const COLUMN_ORDER = [
   {
@@ -148,28 +150,12 @@ export default function SpanSummary({location, params}: Props) {
   const formattedDescription = data?.[0]?.formatted_desc;
   const action = data?.[0]?.action;
 
-  const {getSeriesQuery} = getQueries(spanGroupOperation);
-  const seriesQuery = getSeriesQuery({
-    description: undefined,
-    transactionName,
-    datetime: pageFilter.selection.datetime,
+  const {isLoading: isLoadingSeriesData, data: seriesData} = useQueryGetSpanSeriesData({
     groupId,
-    module: spanGroupOperation,
-    interval: 12,
-  });
-
-  const {isLoading: isLoadingSeriesData, data: seriesData} = useQuery({
-    enabled: !!module && !!transactionName && !!groupId,
-    queryKey: [
-      'seriesdata',
-      transactionName,
-      spanGroupOperation,
-      pageFilter.selection.datetime,
-      groupId,
-    ],
-    queryFn: () => fetch(`${HOST}/?query=${seriesQuery}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
+    spanGroupOperation,
+    transactionName,
+    description: spanDescription,
+    module,
   });
 
   const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];

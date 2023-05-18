@@ -378,7 +378,7 @@ const getSidebarAggregatesQuery = ({
  `;
 };
 
-export function getQueries(spanGroupOperation: string) {
+function getQueries(spanGroupOperation: string) {
   switch (spanGroupOperation) {
     case 'db':
     case 'cache':
