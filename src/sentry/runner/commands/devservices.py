@@ -208,7 +208,9 @@ def up(
 
     configure()
 
-    containers = _prepare_containers(project, skip_only_if=skip_only_if, silent=True)
+    containers = _prepare_containers(
+        project, skip_only_if=(skip_only_if or len(services) > 0), silent=True
+    )
     selected_services = set()
 
     if services:
