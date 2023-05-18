@@ -178,6 +178,7 @@ function importSentrySampledProfile(
       profileID: input.event_id,
       projectID: input.project_id,
       release: input.release,
+      received: input.received,
 
       // these don't really work for multiple transactions
       transactionID: input.transaction.id,
