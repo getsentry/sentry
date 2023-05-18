@@ -11,7 +11,8 @@ from sentry.api.invite_helper import (
     add_invite_details_to_session,
     remove_invite_details_from_session,
 )
-from sentry.models import AuthProvider, Organization
+from sentry.models import AuthProvider, Organization, OrganizationMember
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import auth
 
 
@@ -24,13 +25,30 @@ class AcceptOrganizationInvite(Endpoint):
     def respond_invalid() -> Response:
         return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid invite code"})
 
-    def get_helper(self, request: Request, member_id: int, token: str) -> ApiInviteHelper:
-        return ApiInviteHelper(request=request, member_id=member_id, instance=self, token=token)
+    def get_helper(
+        self, request: Request, organization_id: int, member_id: int, token: str
+    ) -> ApiInviteHelper:
+        rpc_org_member = organization_service.get_organization_member(
+            organization_id=organization_id, organization_member_id=member_id
+        )
+        return ApiInviteHelper(
+            request=request, rpc_org_member=rpc_org_member, instance=self, token=token
+        )
 
     def get(
         self, request: Request, member_id: int, token: str, organization_slug: Optional[str] = None
     ) -> Response:
-        helper = self.get_helper(request, member_id, token)
+        # TODO: fix this later
+        member = OrganizationMember.objects.filter(id=member_id)
+        if not member.exists():
+            return self.respond_invalid()
+        member = member.get()
+        helper = self.get_helper(
+            request=request,
+            organization_id=member.organization_id,
+            member_id=member_id,
+            token=token,
+        )
         if helper.om is None:
             return self.respond_invalid()
 
@@ -124,7 +142,14 @@ class AcceptOrganizationInvite(Endpoint):
     def post(
         self, request: Request, member_id: int, token: str, organization_slug: Optional[str] = None
     ) -> Response:
-        helper = self.get_helper(request, member_id, token)
+        # TODO: fix this later
+        member = OrganizationMember.objects.get(id=member_id)
+        helper = self.get_helper(
+            request=request,
+            organization_id=member.organization_id,
+            member_id=member_id,
+            token=token,
+        )
         if helper.om is None:
             return self.respond_invalid()
 
