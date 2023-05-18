@@ -38,7 +38,8 @@ tighter_version = ThresholdVariables(4, 4, 7, 2, 4)
 
 
 def generate_issue_forecast(
-    data: GroupCount, start_time: datetime, alg_params: ThresholdVariables = ThresholdVariables()) -> List[IssueForecast]:
+    data: GroupCount, start_time: datetime, alg_params: ThresholdVariables = ThresholdVariables()
+) -> List[IssueForecast]:
     """
     Calculates daily issue spike limits, given an input dataset from snuba.
 
@@ -116,7 +117,10 @@ def generate_issue_forecast(
 
     # This second multiplier corresponds to 5 standard deviations above the avg ts value
     ts_multiplier = min(
-        max((ts_avg + (alg_params.std_multiplier * ts_std_dev)) / ts_avg, alg_params.min_spike_multiplier),
+        max(
+            (ts_avg + (alg_params.std_multiplier * ts_std_dev)) / ts_avg,
+            alg_params.min_spike_multiplier,
+        ),
         alg_params.max_spike_multiplier,
     )
 
