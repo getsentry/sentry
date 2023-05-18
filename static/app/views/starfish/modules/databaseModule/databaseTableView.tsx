@@ -19,12 +19,12 @@ import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel
 type Props = {
   isDataLoading: boolean;
   location: Location;
-  noP95: boolean;
   onSelect: (row: DataRow, rowIndex: number) => void;
-  p95asNumber: boolean;
   columns?: any;
   data?: DataRow[];
+  noP95?: boolean;
   onSortChange?: ({direction, sortHeader}: MainTableSort) => void;
+  p95asNumber?: boolean;
   selectedRow?: DataRow;
 };
 
