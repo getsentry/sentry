@@ -306,7 +306,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         )
         assert not getattr(persisted_om.flags, "sso:linked")
         assert getattr(persisted_om.flags, "sso:invalid")
-        self.assert_org_member_mapping_not_exists(org_member=persisted_om)
+        self.assert_org_member_mapping(org_member=persisted_om)
 
     def test_login_with_other_identity(self):
         request_user = self.set_up_user()
