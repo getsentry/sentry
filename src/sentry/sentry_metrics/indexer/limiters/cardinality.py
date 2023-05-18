@@ -51,7 +51,13 @@ def _construct_quotas(use_case_id: UseCaseID) -> Optional[Quota]:
     when sentry.options are.
     """
 
-    quota_args = options.get(USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS[use_case_id])
+    if use_case_id in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS:
+        quota_args = options.get(USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS[use_case_id])
+
+    else:
+        quota_args = options.get(
+            "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
+        )
 
     if quota_args:
         if len(quota_args) > 1:
