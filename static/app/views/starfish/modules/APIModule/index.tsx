@@ -8,9 +8,8 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import EndpointDetail, {
-  EndpointDataRow,
-} from 'sentry/views/starfish/views/endpointDetails';
+import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
+import {SpanSummaryPanel} from 'sentry/views/starfish/views/spans/spanSummaryPanel';
 
 import APIModuleView from './APIModuleView';
 
@@ -41,7 +40,15 @@ export default function APIModule(props: Props) {
             <PageErrorAlert />
             <PageFiltersContainer>
               <APIModuleView {...props} onSelect={setSelectedRow} />
-              <EndpointDetail row={selectedRow} onClose={unsetSelectedSpanGroup} />
+              <SpanSummaryPanel
+                span={{
+                  ...selectedRow,
+                  span_operation: 'http.client',
+                  group_id: selectedRow?.group_id || '',
+                }}
+                onClose={unsetSelectedSpanGroup}
+              />
+              ;
             </PageFiltersContainer>
           </Layout.Main>
         </Layout.Body>
