@@ -392,7 +392,7 @@ export function getOverallAggregatesQuery(datetime) {
   `;
 }
 
-export function getQueries(spanGroupOperation: string) {
+function getQueries(spanGroupOperation: string) {
   switch (spanGroupOperation) {
     case 'db':
     case 'cache':
