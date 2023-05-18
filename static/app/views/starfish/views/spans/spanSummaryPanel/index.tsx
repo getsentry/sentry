@@ -8,6 +8,7 @@ import {space} from 'sentry/styles/space';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
 import {SpanDescription} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanDescription';
+import {SpanTransactionsTable} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanTransactionsTable';
 import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
 import {useSpanMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetrics';
 import {useSpanMetricSeries} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetricSeries';
@@ -27,7 +28,7 @@ export function SpanSummaryPanel({span, onClose}: Props) {
     <Detail detailKey={span?.group_id} onClose={onClose}>
       <Header>{t('Span Summary')}</Header>
 
-      <FlexRowContainer>
+      <BlockContainer>
         <Block title={t('First Seen')}>
           <TimeSince date={spanMetrics?.first_seen} />
         </Block>
@@ -43,17 +44,17 @@ export function SpanSummaryPanel({span, onClose}: Props) {
             abbreviation
           />
         </Block>
-      </FlexRowContainer>
+      </BlockContainer>
 
-      <FlexRowContainer>
+      <BlockContainer>
         {span && (
           <Block title={t('Description')}>
             <SpanDescription span={span} />
           </Block>
         )}
-      </FlexRowContainer>
+      </BlockContainer>
 
-      <FlexRowContainer>
+      <BlockContainer>
         <Block title={t('SPM')}>
           <Chart
             statsPeriod="24h"
@@ -86,7 +87,9 @@ export function SpanSummaryPanel({span, onClose}: Props) {
             hideYAxisSplitLine
           />
         </Block>
-      </FlexRowContainer>
+      </BlockContainer>
+
+      <BlockContainer>{span && <SpanTransactionsTable span={span} />}</BlockContainer>
     </Detail>
   );
 }
@@ -98,10 +101,10 @@ type BlockProps = {
 
 function Block({title, children}: BlockProps) {
   return (
-    <FlexRowItem>
+    <BlockWrapper>
       <SubHeader>{title}</SubHeader>
       <SubSubHeader>{children}</SubSubHeader>
-    </FlexRowItem>
+    </BlockWrapper>
   );
 }
 
@@ -119,7 +122,7 @@ const SubSubHeader = styled('h4')`
   font-weight: normal;
 `;
 
-const FlexRowContainer = styled('div')`
+const BlockContainer = styled('div')`
   display: flex;
   & > div:last-child {
     padding-right: ${space(1)};
@@ -127,7 +130,7 @@ const FlexRowContainer = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-const FlexRowItem = styled('div')`
+const BlockWrapper = styled('div')`
   padding-right: ${space(4)};
   flex: 1;
 `;
