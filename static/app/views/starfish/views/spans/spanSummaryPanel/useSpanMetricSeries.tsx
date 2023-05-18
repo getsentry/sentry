@@ -17,14 +17,12 @@ type Metric = {
 };
 
 export const useSpanMetricSeries = (span?: Span, referrer = 'span-metrics-series') => {
-  const aggregatesQuery = span ? getQuery(span) : '';
+  const query = span ? getQuery(span) : '';
 
   const {isLoading, error, data} = useQuery<Metric[]>({
     queryKey: ['span-metrics-series', span?.group_id],
     queryFn: () =>
-      fetch(`${HOST}/?query=${aggregatesQuery}&referrer=${referrer}`).then(res =>
-        res.json()
-      ),
+      fetch(`${HOST}/?query=${query}&referrer=${referrer}`).then(res => res.json()),
     retry: false,
     initialData: [],
     enabled: Boolean(span),
