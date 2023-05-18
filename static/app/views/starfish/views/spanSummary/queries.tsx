@@ -73,6 +73,7 @@ export const getSidebarSeriesQuery = ({
   datetime,
   groupId,
   module,
+  interval,
 }) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
@@ -80,6 +81,7 @@ export const getSidebarSeriesQuery = ({
      quantile(0.5)(exclusive_time) as p50,
      quantile(0.95)(exclusive_time) as p95,
      count() as count,
+     divide(count(), multiply(${interval}, 60)) as spm,
      countIf(greaterOrEquals(status, 400) AND lessOrEquals(status, 599)) as failure_count,
      failure_count / count as failure_rate
      FROM spans_experimental_starfish

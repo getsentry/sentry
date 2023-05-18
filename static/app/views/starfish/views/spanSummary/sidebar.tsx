@@ -50,6 +50,7 @@ export default function Sidebar({
     datetime: pageFilter.selection.datetime,
     groupId,
     module,
+    interval: 12,
   });
   const aggregatesQuery = getAggregatesQuery({
     description,
@@ -361,7 +362,7 @@ export const getTransactionBasedSeries = (
   const throughputTransactionSeries = queryToSeries(
     data,
     'group',
-    'count()',
+    'epm()',
     dateFilter.startTime,
     dateFilter.endTime,
     12
@@ -369,7 +370,7 @@ export const getTransactionBasedSeries = (
   if (data.length) {
     p50TransactionSeries.seriesName = 'p50()';
     p95TransactionSeries.seriesName = 'p95()';
-    throughputTransactionSeries.seriesName = 'count()';
+    throughputTransactionSeries.seriesName = 'epm()';
   }
 
   return {p50TransactionSeries, p95TransactionSeries, throughputTransactionSeries};

@@ -211,6 +211,7 @@ export default function SpanSummary({location, params}: Props) {
     datetime: pageFilter.selection.datetime,
     groupId,
     module: spanGroupOperation,
+    interval: 12,
   });
 
   const {isLoading: isLoadingSeriesData, data: seriesData} = useQuery({
@@ -240,7 +241,7 @@ export default function SpanSummary({location, params}: Props) {
   const {p50TransactionSeries, p95TransactionSeries, throughputTransactionSeries} =
     getTransactionBasedSeries(transactionAggregateData, dateFilter);
 
-  const [p50Series, p95Series, countSeries, _errorCountSeries] = queryDataToChartData(
+  const [p50Series, p95Series, , spmSeries, _errorCountSeries] = queryDataToChartData(
     seriesData
   ).map(series =>
     zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
@@ -447,13 +448,13 @@ export default function SpanSummary({location, params}: Props) {
                   <FlexRowItem>
                     <h4>{t('Throughput (SPM)')}</h4>
                     <SidebarChart
-                      series={countSeries}
+                      series={spmSeries}
                       isLoading={isLoadingSeriesData}
                       chartColor={chartColors[0]}
                     />
                   </FlexRowItem>
                   <FlexRowItem>
-                    <h4>{t('Span Duration P50 / P95')}</h4>
+                    <h4>{t('Span Duration (P50 / P95)')}</h4>
                     <Chart
                       statsPeriod="24h"
                       height={140}
@@ -483,7 +484,7 @@ export default function SpanSummary({location, params}: Props) {
 
                 <FlexRowContainer>
                   <FlexRowItem>
-                    <h4>{t('Transaction Throughput')}</h4>
+                    <h4>{t('Throughput (TPM)')}</h4>
                     <Chart
                       statsPeriod="24h"
                       height={140}
@@ -499,7 +500,7 @@ export default function SpanSummary({location, params}: Props) {
                     />
                   </FlexRowItem>
                   <FlexRowItem>
-                    <h4>{t('Transaction Duration P50 / P95')}</h4>
+                    <h4>{t('Transaction Duration (P50 / P95)')}</h4>
                     <Chart
                       statsPeriod="24h"
                       height={140}
