@@ -11,22 +11,9 @@ export function handleXhrErrorResponse(message: string, err: RequestError): void
 
   const {responseJSON} = err;
 
-  // If this is a string then just capture it as error
-  if (typeof responseJSON.detail === 'string') {
-    Sentry.withScope(scope => {
-      scope.setExtra('status', err.status);
-      scope.setExtra('responseJSON', responseJSON);
-      Sentry.captureException(new Error(message));
-    });
-    return;
-  }
-
-  if (responseJSON.detail && typeof responseJSON.detail.message === 'string') {
-    Sentry.withScope(scope => {
-      scope.setExtra('status', err.status);
-      scope.setExtra('responseJSON', responseJSON);
-      Sentry.captureException(new Error(message));
-    });
-    return;
-  }
+  Sentry.withScope(scope => {
+    scope.setExtra('status', err.status);
+    scope.setExtra('responseJSON', responseJSON);
+    Sentry.captureException(new Error(message));
+  });
 }
