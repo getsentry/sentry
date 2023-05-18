@@ -131,7 +131,7 @@ class SiloModeTest:
         return cast(
             TestMethod,
             pytest.mark.parametrize(
-                "silo_mode", sorted([mode for mode in self.silo_modes], key=lambda x: x.value)
+                "silo_mode", sorted([mode for mode in self.silo_modes], key=lambda m: f"{m}")
             )(new_test_method),
         )
 
