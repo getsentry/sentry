@@ -602,16 +602,10 @@ export const useQueryTransactionByTPMAndDuration = (
       fields: [
         'transaction',
         'epm()',
-        'count()',
         'p50(transaction.duration)',
         'p95(transaction.duration)',
       ],
-      yAxis: [
-        'epm()',
-        'count()',
-        'p50(transaction.duration)',
-        'p95(transaction.duration)',
-      ],
+      yAxis: ['epm()', 'p50(transaction.duration)', 'p95(transaction.duration)'],
       orderby: '-count',
       query: `transaction:["${transactionNames.join('","')}"]`,
       topEvents: '5',

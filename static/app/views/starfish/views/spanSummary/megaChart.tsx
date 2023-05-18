@@ -34,6 +34,7 @@ export default function MegaChart({
     datetime: pageFilter.selection.datetime,
     groupId,
     module,
+    interval: 12,
   });
 
   // Also a metrics span query that fetches series data
