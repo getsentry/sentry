@@ -5,7 +5,6 @@ from typing import Mapping, MutableMapping, Optional, Sequence, Set
 from django.conf import settings
 from django.core.cache import caches
 
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
     OrgId,
@@ -13,8 +12,10 @@ from sentry.sentry_metrics.indexer.base import (
     UseCaseKeyCollection,
     UseCaseKeyResult,
     UseCaseKeyResults,
+    metric_path_key_compatible_resolve,
+    metric_path_key_compatible_rev_resolve,
 )
-from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
@@ -155,8 +156,9 @@ class CachingIndexer(StringIndexer):
         result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
         return result[use_case_id][org_id][string]
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        key = f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org_id}:{string}"
+    @metric_path_key_compatible_resolve
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        key = f"{use_case_id.value}:{org_id}:{string}"
         result = self.cache.get(key)
 
         if result and isinstance(result, int):
@@ -171,7 +173,8 @@ class CachingIndexer(StringIndexer):
 
         return id
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    @metric_path_key_compatible_rev_resolve
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         return self.indexer.reverse_resolve(use_case_id, org_id, id)
 
     def resolve_shared_org(self, string: str) -> Optional[int]:
