@@ -490,12 +490,21 @@ export default function SpanSummary({location, params}: Props) {
 
                 <FlexRowContainer>
                   <FlexRowItem>
-                    {/* <ChartPanel title={t('Throughput (SPM)')}></ChartPanel> */}
-                    {/* <SidebarChart
-                      series={spmSeries}
-                      isLoading={isLoadingSeriesData}
-                      chartColor={chartColors[0]}
-                    /> */}
+                    <ChartPanel title={t('Throughput (SPM)')}>
+                      <Chart
+                        statsPeriod="24h"
+                        height={140}
+                        data={[spmSeries ?? []]}
+                        start=""
+                        end=""
+                        loading={isLoadingSeriesData}
+                        utc={false}
+                        stacked
+                        isLineChart
+                        disableXAxis
+                        hideYAxisSplitLine
+                      />
+                    </ChartPanel>
                   </FlexRowItem>
                   <FlexRowItem>
                     <ChartPanel title={t('Span Duration (P50 / P95)')}>
