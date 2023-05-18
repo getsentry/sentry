@@ -770,26 +770,34 @@ def filter_exceptions_for_exception_groups(
         return exceptions
 
     # Reconstruct the tree of exceptions if the required data is present.
-    exceptions_by_id = {}
-    exceptions_children_by_id = {}
+    class ExceptionTreeNode:
+        def __init__(
+            self, exception: SingleException = None, children: List[SingleException] = None
+        ):
+            self.exception = exception
+            self.children = children if children else []
+
+    exception_tree: Dict[int, ExceptionTreeNode] = {}
     for exception in reversed(exceptions):
         mechanism: Mechanism = exception.mechanism
         if mechanism and mechanism.exception_id is not None:
-            exceptions_by_id[mechanism.exception_id] = exception
+            node = exception_tree.setdefault(
+                mechanism.exception_id, ExceptionTreeNode()
+            ).exception = exception
+            node.exception = exception
             if mechanism.parent_id is not None:
-                exceptions_children_by_id.setdefault(mechanism.parent_id, []).append(exception)
+                parent_node = exception_tree.setdefault(mechanism.parent_id, ExceptionTreeNode())
+                parent_node.children.append(exception)
         else:
             # At least one exception is missing mechanism ids, so we can't continue with the filter.
             # Exit early to not waste perf.
             return exceptions
 
-    # define some inner functions that will use the dictionaries created above.
-
     # This gets the child exceptions for an exception using the exception_id from the mechanism.
     # That data is guaranteed to exist at this point.
-    def get_child_exceptions(exception):
+    def get_child_exceptions(exception: SingleException):
         exception_id = exception.mechanism.exception_id
-        return exceptions_children_by_id.get(exception_id, [])
+        return exception_tree.get(exception_id).children
 
     # This recursive generator gets the "top-level exceptions", and is used below.
     # "Top-level exceptions are those that are the first descendants of the root that are not exception groups.
@@ -815,7 +823,7 @@ def filter_exceptions_for_exception_groups(
 
     # Traverse the tree recursively from the root exception to get all "top-level exceptions" and sort for consistency.
     top_level_exceptions = sorted(
-        get_top_level_exceptions(exceptions_by_id[0]),
+        get_top_level_exceptions(exception_tree[0].exception),
         key=lambda exception: str(exception.type),
         reverse=True,
     )
@@ -845,7 +853,7 @@ def filter_exceptions_for_exception_groups(
     # one of each top-level exception that is _not_ the root is overly complicated.
     # Also, it's more likely the stack trace of the root exception will be more meaningful
     # than one of an inner exception group.
-    distinct_top_level_exceptions.append(exceptions_by_id[0])
+    distinct_top_level_exceptions.append(exception_tree[0].exception)
     return distinct_top_level_exceptions
 
 
