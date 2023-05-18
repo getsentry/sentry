@@ -131,10 +131,19 @@ class OptionsManager:
                 logger.debug("Using legacy key: %s", key, exc_info=True)
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
-                return self.make_key(key, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None, "legacy")
+                return self.make_key(key, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None)
             raise UnknownOption(key)
 
-    def make_key(self, name, default, type, flags, ttl, grace, grouping_info, source):
+    def make_key(
+        self,
+        name,
+        default,
+        type,
+        flags,
+        ttl,
+        grace,
+        grouping_info,
+    ):
         from sentry.options.store import Key
 
         return Key(
@@ -146,7 +155,6 @@ class OptionsManager:
             int(grace),
             _make_cache_key(name),
             grouping_info,
-            source,
         )
 
     def isset(self, key):
@@ -298,9 +306,7 @@ class OptionsManager:
         settings.SENTRY_DEFAULT_OPTIONS[key] = default_value
 
         # TODO: Figure out indirection to allow "legacy" to reference Enums in Models
-        self.registry[key] = self.make_key(
-            key, default, type, flags, ttl, grace, grouping_info, "legacy"
-        )
+        self.registry[key] = self.make_key(key, default, type, flags, ttl, grace, grouping_info)
 
     def unregister(self, key):
         try:

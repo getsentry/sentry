@@ -9,6 +9,8 @@ from typing import Any, Optional
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 
+from sentry.options.manager import UpdateChannel
+
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
 CACHE_UPDATE_ERR = "Unable to update option cache for %s"
 
@@ -33,7 +35,6 @@ class Key:
     grace: int
     cache_key: str
     grouping_info: Optional[GroupingInfo]
-    source: str
 
 
 def _make_cache_value(key, value):
@@ -197,7 +198,7 @@ class OptionsStore:
         """
         return self.model.objects.get(key=key).last_updated_by
 
-    def set(self, key, value, source="legacy"):
+    def set(self, key, value, source: UpdateChannel):
         """
         Store a value in the option store. Value must get persisted to database first,
         then attempt caches. If it fails database, the entire operation blows up.
@@ -209,7 +210,7 @@ class OptionsStore:
         self.set_store(key, value, source)
         return self.set_cache(key, value)
 
-    def set_store(self, key, value, source="legacy"):
+    def set_store(self, key, value, source: UpdateChannel):
         from sentry.db.models.query import create_or_update
 
         create_or_update(
