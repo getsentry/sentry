@@ -654,7 +654,7 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
-    from sentry.issues.escalating import is_escalating, manage_snooze_states
+    from sentry.issues.escalating import is_escalating, manage_issue_states
     from sentry.models import GroupInboxReason, GroupSnooze, GroupStatus, GroupSubStatus
 
     event = job["event"]
@@ -667,7 +667,7 @@ def process_snoozes(job: PostProcessJob) -> None:
         and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     ):
         if is_escalating(group):
-            manage_snooze_states(group, GroupInboxReason.ESCALATING, event)
+            manage_issue_states(group, GroupInboxReason.ESCALATING, event)
 
             job["has_reappeared"] = True
         return
@@ -696,13 +696,13 @@ def process_snoozes(job: PostProcessJob) -> None:
             }
 
             if features.has("organizations:escalating-issues", group.organization):
-                manage_snooze_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
+                manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
 
             elif features.has("organizations:issue-states", group.organization):
-                manage_snooze_states(group, GroupInboxReason.ONGOING, event, snooze_details)
+                manage_issue_states(group, GroupInboxReason.ONGOING, event, snooze_details)
 
             else:
-                manage_snooze_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
+                manage_issue_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
 
             snooze.delete()
 

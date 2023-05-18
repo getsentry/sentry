@@ -299,7 +299,7 @@ def _issue_category_entity(category: Optional[GroupCategory]) -> EntityKey:
     )
 
 
-def manage_snooze_states(
+def manage_issue_states(
     group: Group,
     group_inbox_reason: GroupInboxReason,
     event: GroupEvent,
@@ -314,7 +314,7 @@ def manage_snooze_states(
         group.substatus = GroupSubStatus.ESCALATING
         group.status = GroupStatus.UNRESOLVED
         issue_escalating.send_robust(
-            project=group.project, group=group, event=event, sender=manage_snooze_states
+            project=group.project, group=group, event=event, sender=manage_issue_states
         )
 
     elif group_inbox_reason == GroupInboxReason.ONGOING:
