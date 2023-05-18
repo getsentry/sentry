@@ -1664,7 +1664,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 self.TYPE_MAP[entity],
                 internal_metric,
                 tags,
-                metric_timestamp,
+                int(metric_timestamp),
                 subvalue,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
