@@ -13,25 +13,31 @@ import Link from 'sentry/components/links/link';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
+import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
+import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-import type {Cluster} from './clusters';
-
 type Props = {
-  clusters: Cluster[];
   isLoading: boolean;
   location: Location;
+  onSelect: (row: SpanDataRow) => void;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
+  queryConditions: string[];
   spansData: SpanDataRow[];
   spansTrendsData: SpanTrendDataRow[];
 };
 
 export type SpanDataRow = {
+  count: number;
   description: string;
+  domain: string;
   group_id: string;
+  p50: number;
+  p95: number;
   span_operation: string;
+  total_exclusive_time: number;
 };
 
 export type SpanTrendDataRow = {
@@ -46,9 +52,10 @@ export default function SpansTable({
   spansData,
   orderBy,
   onSetOrderBy,
-  clusters,
+  queryConditions,
   spansTrendsData,
   isLoading,
+  onSelect,
 }: Props) {
   const spansTrendsGrouped = {};
 
@@ -87,13 +94,13 @@ export default function SpansTable({
     <GridEditable
       isLoading={isLoading}
       data={combinedSpansData}
-      columnOrder={getColumns(clusters)}
+      columnOrder={getColumns(queryConditions)}
       columnSortBy={
         orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<string>]
       }
       grid={{
         renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell,
+        renderBodyCell: (column, row) => renderBodyCell(column, row, onSelect),
       }}
       location={location}
     />
@@ -123,7 +130,13 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
   return renderHeadCell;
 }
 
-function renderBodyCell(column: GridColumnHeader, row: SpanDataRow): React.ReactNode {
+const SPAN_OPS_WITH_DETAIL = ['http.client', 'db'];
+
+function renderBodyCell(
+  column: GridColumnHeader,
+  row: SpanDataRow,
+  onSelect?: (row: SpanDataRow) => void
+): React.ReactNode {
   if (column.key === 'percentile_trend' && row[column.key]) {
     return (
       <Sparkline
@@ -135,10 +148,24 @@ function renderBodyCell(column: GridColumnHeader, row: SpanDataRow): React.React
   }
 
   if (column.key === 'description') {
+    const formattedRow = mapRowKeys(row, row.span_operation);
     return (
       <OverflowEllipsisTextContainer>
-        <Link to={`/starfish/span/${encodeURIComponent(row.group_id)}`}>
-          {row.description}
+        <Link
+          onClick={() => onSelect?.(formattedRow)}
+          to={
+            SPAN_OPS_WITH_DETAIL.includes(row.span_operation)
+              ? ''
+              : `/starfish/span/${encodeURIComponent(row.group_id)}`
+          }
+        >
+          {row.span_operation === 'db' ? (
+            <StyledFormattedCode>
+              {(row as unknown as DataRow).formatted_desc}
+            </StyledFormattedCode>
+          ) : (
+            row.description || '<null>'
+          )}
         </Link>
       </OverflowEllipsisTextContainer>
     );
@@ -151,17 +178,63 @@ function renderBodyCell(column: GridColumnHeader, row: SpanDataRow): React.React
   return row[column.key];
 }
 
-function getColumns(clusters: Cluster[]): GridColumnOrder[] {
-  const secondCluster = clusters.at(1);
-  const description =
-    clusters.findLast(cluster => Boolean(cluster.description_label))?.description_label ||
-    'Description';
+// We use different named column keys for the same columns in db and api module
+// So we need to map them to the appropriate keys for the module details drawer
+// Not ideal, but this is a temporary fix until we match the column keys.
+// Also the type for this is not very consistent. We should fix that too.
+const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
+  switch (spanOperation) {
+    case 'http.client':
+      return {
+        ...row,
+        'p50(span.self_time)': row.p50,
+        'p95(span.self_time)': row.p95,
+      };
+    case 'db':
+      return {
+        ...row,
+        total_time: row.total_exclusive_time,
+      };
 
-  const domain =
-    clusters.findLast(cluster => Boolean(cluster.domain_label))?.domain_label || 'Domain';
+    default:
+      return row;
+  }
+};
+
+function getDomainHeader(queryConditions: string[]) {
+  if (queryConditions.includes("span_operation = 'db'")) {
+    return 'Table';
+  }
+  if (queryConditions.includes("span_operation = 'http.client'")) {
+    return 'Host';
+  }
+  return 'Domain';
+}
+function getDescriptionHeader(queryConditions: string[]) {
+  if (queryConditions.includes("span_operation = 'db'")) {
+    return 'Query';
+  }
+  if (queryConditions.includes("span_operation = 'http.client'")) {
+    return 'URL';
+  }
+  return 'Description';
+}
+
+function getColumns(queryConditions: string[]): GridColumnOrder[] {
+  const description = getDescriptionHeader(queryConditions);
+
+  const domain = getDomainHeader(queryConditions);
+
+  const doQueryConditionsIncludeDomain = queryConditions.some(condition =>
+    condition.includes('domain =')
+  );
+
+  const doQueryConditionsIncludeSpanOperation = queryConditions.some(condition =>
+    condition.includes('span_operation =')
+  );
 
   const order: Array<GridColumnOrder | false> = [
-    !secondCluster && {
+    !doQueryConditionsIncludeSpanOperation && {
       key: 'span_operation',
       name: 'Operation',
       width: COL_WIDTH_UNDEFINED,
@@ -171,7 +244,7 @@ function getColumns(clusters: Cluster[]): GridColumnOrder[] {
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    !!secondCluster && {
+    !doQueryConditionsIncludeDomain && {
       key: 'domain',
       name: domain,
       width: COL_WIDTH_UNDEFINED,
@@ -200,6 +273,11 @@ function getColumns(clusters: Cluster[]): GridColumnOrder[] {
 
   return order.filter((x): x is GridColumnOrder => Boolean(x));
 }
+
+const StyledFormattedCode = styled(FormattedCode)`
+  background: none;
+  text-overflow: ellipsis;
+`;
 
 export const OverflowEllipsisTextContainer = styled('span')`
   text-overflow: ellipsis;

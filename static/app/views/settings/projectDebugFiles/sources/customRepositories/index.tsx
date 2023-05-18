@@ -21,7 +21,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
 import {defined} from 'sentry/utils';
-import getXhrErrorResponseHandler from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 
 import Repository from './repository';
 import {dropDownItems, expandKeys, getRequestMessages} from './utils';
@@ -190,7 +190,7 @@ function CustomRepositories({
         'Rate limit for refreshing repository exceeded. Try again in a few minutes.'
       );
       addErrorMessage(errorMessage);
-      getXhrErrorResponseHandler(errorMessage)(error);
+      handleXhrErrorResponse(errorMessage, error);
     }
   }
 

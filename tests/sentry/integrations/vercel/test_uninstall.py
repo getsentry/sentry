@@ -6,6 +6,7 @@ from sentry.integrations.vercel import VercelClient
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.silo import control_silo_test
 
 PRIMARY_UNINSTALL_RESPONSE = """{
     "configurationId": "my_config_id",
@@ -118,6 +119,7 @@ class VercelUninstallTest(APITestCase):
             ).exists()
 
 
+@control_silo_test
 class VercelUninstallWithConfigurationsTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/vercel/delete/"

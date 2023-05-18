@@ -72,9 +72,11 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   ];
   const rest = {...props, eventView};
   eventView.additionalConditions.addFilterValues('tpm()', ['>0.01']);
-  eventView.additionalConditions.addFilterValues('count_percentage()', ['>0.25', '<4']);
-  eventView.additionalConditions.addFilterValues('trend_percentage()', ['>0%']);
-  eventView.additionalConditions.addFilterValues('confidence()', ['>6']);
+  if (!organization.features.includes('performance-new-trends')) {
+    eventView.additionalConditions.addFilterValues('count_percentage()', ['>0.25', '<4']);
+    eventView.additionalConditions.addFilterValues('trend_percentage()', ['>0%']);
+    eventView.additionalConditions.addFilterValues('confidence()', ['>6']);
+  }
 
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -89,6 +91,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
           limit={3}
           cursor="0:0:1"
           noPagination
+          withBreakpoint={organization.features.includes('performance-new-trends')}
         />
       ),
       transform: transformTrendsDiscover,

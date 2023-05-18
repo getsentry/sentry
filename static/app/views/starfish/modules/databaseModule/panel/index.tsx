@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {Theme, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 import moment from 'moment';
@@ -7,18 +7,18 @@ import moment from 'moment';
 import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import MarkLine from 'sentry/components/charts/components/markLine';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import {Series} from 'sentry/types/echarts';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import ProfileView from 'sentry/views/starfish/modules/databaseModule/panel/profileView';
 import QueryTransactionTable, {
   PanelSort,
@@ -31,9 +31,12 @@ import {
   useQueryPanelGraph,
   useQueryPanelSparklines,
   useQueryPanelTable,
-  useQueryTransactionByTPMAndP75,
+  useQueryTransactionByTPMAndDuration,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
-import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
+import {
+  generateMarkLine,
+  queryToSeries,
+} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
@@ -54,6 +57,7 @@ type DbQueryDetailProps = {
 
 export type TransactionListDataRow = {
   count: number;
+  example: string;
   frequency: number;
   group_id: string;
   p75: number;
@@ -131,7 +135,7 @@ function QueryDetailBody({
   );
 
   const {isLoading: isP75GraphLoading, data: transactionGraphData} =
-    useQueryTransactionByTPMAndP75(
+    useQueryTransactionByTPMAndDuration(
       tableData.map(d => d.transaction).splice(0, 5),
       SPARKLINE_INTERVAL
     );
@@ -172,7 +176,7 @@ function QueryDetailBody({
     return data as TransactionListDataRow;
   });
 
-  const [countSeries, p75Series] = throughputQueryToChartData(
+  const [countSeries, p50Series, p95Series] = throughputQueryToChartData(
     graphData,
     startTime,
     endTime
@@ -213,6 +217,7 @@ function QueryDetailBody({
     endTime,
     SPARKLINE_INTERVAL
   );
+
   const markLine =
     spmTransactionSeries?.[0]?.data && (isNew || isOld)
       ? generateMarkLine(
@@ -245,7 +250,7 @@ function QueryDetailBody({
             {t('First Seen')}
             {row.newish === 1 && <Badge type="new" text="new" />}
           </SubHeader>
-          {Math.abs(moment(row.firstSeen).diff(startTime, 'minutes')) < 360 ? (
+          {Math.abs(moment(row.firstSeen).diff(startTime, 'minutes')) < 720 ? (
             <SubSubHeader>
               More than <TimeSince date={row.firstSeen} />{' '}
             </SubSubHeader>
@@ -298,7 +303,7 @@ function QueryDetailBody({
       <FormattedCode>{highlightSql(row.formatted_desc, row)}</FormattedCode>
       <FlexRowContainer>
         <FlexRowItem>
-          <SubHeader>{t('Throughput')}</SubHeader>
+          <SubHeader>{t('Throughput (Spans Per Minute)')}</SubHeader>
           <SubSubHeader>{row.epm.toFixed(3)}</SubSubHeader>
           <Chart
             statsPeriod="24h"
@@ -315,17 +320,19 @@ function QueryDetailBody({
           />
         </FlexRowItem>
         <FlexRowItem>
-          <SubHeader>{t('Duration (P75)')}</SubHeader>
-          <SubSubHeader>{row.p75.toFixed(3)}ms</SubSubHeader>
+          <SubHeader>{t('Duration P50 / P95')}</SubHeader>
+          <SubSubHeader>
+            {row.p50.toFixed(3)}ms / {row.p95.toFixed(3)}ms
+          </SubSubHeader>
           <Chart
             statsPeriod="24h"
             height={140}
-            data={[p75Series]}
+            data={[p50Series, p95Series]}
             start=""
             end=""
             loading={isDataLoading}
             utc={false}
-            chartColors={[theme.charts.getColorPalette(4)[3]]}
+            chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
             stacked
             isLineChart
             disableXAxis
@@ -390,7 +397,10 @@ function SimplePagination(props: SimplePaginationProps) {
   );
 }
 
-export const highlightSql = (description: string, queryDetail: DataRow) => {
+export const highlightSql = (
+  description: string,
+  queryDetail: {action: string; domain: string}
+) => {
   let acc = '';
   return description.split('').map((token, i) => {
     acc += token;
@@ -420,55 +430,23 @@ export const highlightSql = (description: string, queryDetail: DataRow) => {
   });
 };
 
-function generateMarkLine(
-  title: string,
-  position: string,
-  data: SeriesDataUnit[],
-  theme: Theme
-) {
-  const index = data.findIndex(item => {
-    return (
-      Math.abs(moment.duration(moment(item.name).diff(moment(position))).asSeconds()) <
-      86400
-    );
-  });
-  return {
-    seriesName: title,
-    type: 'line',
-    color: theme.blue300,
-    data: [],
-    xAxisIndex: 0,
-    yAxisIndex: 0,
-    markLine: MarkLine({
-      silent: true,
-      animation: false,
-      lineStyle: {color: theme.blue300, type: 'dotted'},
-      data: [
-        {
-          xAxis: index,
-        },
-      ],
-      label: {
-        show: false,
-      },
-    }),
-  };
-}
-
 const throughputQueryToChartData = (
   data: any,
   startTime: moment.Moment,
   endTime: moment.Moment
 ): Series[] => {
-  const countSeries: Series = {seriesName: 'count()', data: [] as any[]};
-  const p75Series: Series = {seriesName: 'p75()', data: [] as any[]};
-  data.forEach(({count, p75, interval}: any) => {
+  const countSeries: Series = {seriesName: 'spm()', data: [] as any[]};
+  const p50Series: Series = {seriesName: 'p50()', data: [] as any[]};
+  const p95Series: Series = {seriesName: 'p95()', data: [] as any[]};
+  data.forEach(({count, p50, p95, interval}) => {
     countSeries.data.push({value: count, name: interval});
-    p75Series.data.push({value: p75, name: interval});
+    p50Series.data.push({value: p50, name: interval});
+    p95Series.data.push({value: p95, name: interval});
   });
   return [
     zeroFillSeries(countSeries, moment.duration(INTERVAL, 'hours'), startTime, endTime),
-    zeroFillSeries(p75Series, moment.duration(INTERVAL, 'hours'), startTime, endTime),
+    zeroFillSeries(p50Series, moment.duration(INTERVAL, 'hours'), startTime, endTime),
+    zeroFillSeries(p95Series, moment.duration(INTERVAL, 'hours'), startTime, endTime),
   ];
 };
 
@@ -482,7 +460,7 @@ const SubSubHeader = styled('h4')`
   font-weight: normal;
 `;
 
-const FlexRowContainer = styled('div')`
+export const FlexRowContainer = styled('div')`
   display: flex;
   & > div:last-child {
     padding-right: ${space(1)};
@@ -490,18 +468,9 @@ const FlexRowContainer = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-const FlexRowItem = styled('div')`
+export const FlexRowItem = styled('div')`
   padding-right: ${space(4)};
   flex: 1;
-`;
-
-const FormattedCode = styled('div')`
-  padding: ${space(1)};
-  margin-bottom: ${space(3)};
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
-  overflow-x: auto;
-  white-space: pre;
 `;
 
 const Operation = styled('b')`

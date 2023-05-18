@@ -7,7 +7,7 @@ import keyBy from 'lodash/keyBy';
 import orderBy from 'lodash/orderBy';
 import * as qs from 'query-string';
 
-import {Button} from 'sentry/components/button';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import DateTime from 'sentry/components/dateTime';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
@@ -25,13 +25,14 @@ import {
 import {useApiQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
+import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import {TextAlignRight} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {
   getSpanFacetBreakdownQuery,
   getSpanInTransactionQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
+import {highlightSql} from 'sentry/views/starfish/modules/databaseModule/panel';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {EventComparisonView} from 'sentry/views/starfish/views/spanSummary/eventComparisonView';
 import MegaChart from 'sentry/views/starfish/views/spanSummary/megaChart';
 import Sidebar from 'sentry/views/starfish/views/spanSummary/sidebar';
 
@@ -41,11 +42,6 @@ const COLUMN_ORDER = [
   {
     key: 'transaction_id',
     name: 'Event ID',
-    width: 200,
-  },
-  {
-    key: 'transaction',
-    name: 'Transaction',
     width: 200,
   },
   {
@@ -67,11 +63,6 @@ const COLUMN_ORDER = [
     key: 'p50_comparison',
     name: 'Compared to P50',
     width: 200,
-  },
-  {
-    key: 'compare',
-    name: '',
-    width: 50,
   },
 ];
 
@@ -100,20 +91,28 @@ type Props = {
 } & RouteComponentProps<{groupId: string}, {}>;
 
 type State = {
-  leftComparisonEventId?: string;
+  selectedOption: SelectOption<string>;
   megaChart?: boolean;
   plotSamples?: boolean;
-  rightComparisonEventId?: string;
 };
+
+const options = [
+  {label: 'Slowest Samples', value: 'slowest_samples'},
+  {label: 'Fastest Samples', value: 'fastest_samples'},
+  {label: 'Median Samples', value: 'median_samples'},
+];
 
 export default function SpanSummary({location, params}: Props) {
   const [state, setState] = useState<State>({
     plotSamples: false,
     megaChart: false,
-    leftComparisonEventId: undefined,
-    rightComparisonEventId: undefined,
+    selectedOption: options[0],
   });
   const pageFilter = usePageFilters();
+
+  const handleDropdownChange = (option: SelectOption<string>) => {
+    setState({...state, selectedOption: option});
+  };
 
   const groupId = params.groupId;
   const transactionName = location.query.transaction;
@@ -124,19 +123,33 @@ export default function SpanSummary({location, params}: Props) {
     datetime: pageFilter.selection.datetime,
   });
 
-  const {isLoading, data} = useQuery({
+  const {isLoading, data} = useQuery<
+    {
+      action: string;
+      count: number;
+      description: string;
+      formatted_desc: string;
+      p50: number;
+      span_operation: 'string';
+    }[]
+  >({
     queryKey: ['spanSummary', groupId],
-    queryFn: () => fetch(`${HOST}/?query=${spanInfoQuery}`).then(res => res.json()),
+    queryFn: () =>
+      fetch(`${HOST}/?query=${spanInfoQuery}&format=sql`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
+  const p50 = data[0]?.p50 ?? 0;
   const facetBreakdownQuery = getSpanFacetBreakdownQuery({
     groupId,
     datetime: pageFilter.selection.datetime,
+    transactionName,
   });
 
-  const {isLoading: isFacetBreakdownLoading, data: facetBreakdownData} = useQuery({
+  const {isLoading: isFacetBreakdownLoading, data: facetBreakdownData} = useQuery<
+    {domain: string; user: string}[]
+  >({
     queryKey: ['facetBreakdown', groupId],
     queryFn: () => fetch(`${HOST}/?query=${facetBreakdownQuery}`).then(res => res.json()),
     retry: false,
@@ -148,6 +161,8 @@ export default function SpanSummary({location, params}: Props) {
     transactionName,
     user,
     datetime: pageFilter.selection.datetime,
+    sortBy: state.selectedOption.value,
+    p50,
   });
 
   const {isLoading: areSpanSamplesLoading, data: spanSampleData} = useQuery({
@@ -157,6 +172,7 @@ export default function SpanSummary({location, params}: Props) {
       transactionName,
       user,
       pageFilter.selection.datetime,
+      state.selectedOption,
     ],
     queryFn: () => fetch(`${HOST}/?query=${spanSamplesQuery}`).then(res => res.json()),
     retry: false,
@@ -185,8 +201,9 @@ export default function SpanSummary({location, params}: Props) {
 
   const spanDescription = spanSampleData?.[0]?.description;
   const spanDomain = spanSampleData?.[0]?.domain;
-
   const spanGroupOperation = data?.[0]?.span_operation;
+  const formattedDescription = data?.[0]?.formatted_desc;
+  const action = data?.[0]?.action;
 
   const sampledSpanData = spanSampleData.map(datum => {
     const transaction = transactionDataById[datum.transaction_id.replaceAll('-', '')];
@@ -215,11 +232,7 @@ export default function SpanSummary({location, params}: Props) {
     return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
   }
 
-  function renderBodyCell(
-    column: GridColumnHeader,
-    row: SpanTableRow,
-    setComparison: (eventId: string) => void
-  ): React.ReactNode {
+  function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
     if (column.key === 'transaction_id') {
       return (
         <Link
@@ -243,7 +256,6 @@ export default function SpanSummary({location, params}: Props) {
     }
 
     if (column.key === 'p50_comparison') {
-      const {p50} = data[0];
       const diff = row.spanDuration - p50;
 
       if (diff === p50) {
@@ -260,18 +272,6 @@ export default function SpanSummary({location, params}: Props) {
       return <DateTime date={row.timestamp} year timeZone seconds />;
     }
 
-    if (column.key === 'compare') {
-      return (
-        <Button
-          onClick={() => {
-            setComparison(row.transaction_id);
-          }}
-        >
-          {t('View')}
-        </Button>
-      );
-    }
-
     return <span>{row[column.key]}</span>;
   }
 
@@ -280,7 +280,7 @@ export default function SpanSummary({location, params}: Props) {
       <PageErrorProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{groupId}</Layout.Title>
+            <Layout.Title>{transactionName}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
@@ -318,7 +318,9 @@ export default function SpanSummary({location, params}: Props) {
                       data={data}
                       spanGroupOperation={spanGroupOperation}
                       spanDescription={spanDescription}
+                      formattedDescription={formattedDescription}
                       spanDomain={spanDomain}
+                      action={action}
                       transactionName={transactionName}
                     />
                   </div>
@@ -337,7 +339,7 @@ export default function SpanSummary({location, params}: Props) {
                 ) : (
                   <div>
                     <h3>{t('Facets')}</h3>
-                    {['transaction', 'user'].map(facet => {
+                    {['user'].map(facet => {
                       const values = facetBreakdownData.map(datum => datum[facet]);
 
                       const uniqueValues: string[] = Array.from(new Set(values));
@@ -375,24 +377,21 @@ export default function SpanSummary({location, params}: Props) {
                   </div>
                 )}
 
-                {(state.leftComparisonEventId || state.rightComparisonEventId) && (
-                  <EventComparisonView
-                    left={state.leftComparisonEventId}
-                    right={state.rightComparisonEventId}
-                    clearLeft={() => {
-                      setState({...state, leftComparisonEventId: undefined});
-                    }}
-                    clearRight={() => {
-                      setState({...state, rightComparisonEventId: undefined});
-                    }}
-                  />
-                )}
-
                 {areSpanSamplesLoading ? (
                   <span>LOADING SAMPLE LIST</span>
                 ) : (
                   <div>
                     <h3>{t('Samples')}</h3>
+                    <DropdownContainer>
+                      <CompactSelect
+                        options={options}
+                        value={state.selectedOption.value}
+                        onChange={handleDropdownChange}
+                        menuWidth={250}
+                        size="md"
+                      />
+                    </DropdownContainer>
+
                     <GridEditable
                       isLoading={isLoading || isTransactionDataLoading}
                       data={sampledSpanData}
@@ -400,20 +399,7 @@ export default function SpanSummary({location, params}: Props) {
                       columnSortBy={[]}
                       grid={{
                         renderHeadCell,
-                        renderBodyCell: (column: GridColumnHeader, row: SpanTableRow) =>
-                          renderBodyCell(column, row, eventId => {
-                            if (state.leftComparisonEventId) {
-                              setState({
-                                ...state,
-                                rightComparisonEventId: eventId,
-                              });
-                            } else {
-                              setState({
-                                ...state,
-                                leftComparisonEventId: eventId,
-                              });
-                            }
-                          }),
+                        renderBodyCell,
                       }}
                       location={location}
                     />
@@ -424,7 +410,6 @@ export default function SpanSummary({location, params}: Props) {
                 <Sidebar
                   groupId={groupId}
                   spanGroupOperation={spanGroupOperation}
-                  description={null}
                   transactionName={transactionName}
                   sampledSpanData={state.plotSamples ? sampledSpanData : []}
                 />
@@ -454,7 +439,7 @@ const MainSpanSummaryContainer = styled('div')`
 `;
 
 const SidebarContainer = styled('div')`
-  flex: 1 1 300px;
+  flex: 1 1 500px;
 `;
 
 const FilterOptionsContainer = styled('div')`
@@ -484,24 +469,47 @@ const ComparisonLabel = styled('div')<{value: number}>`
   color: ${p => (p.value < 0 ? p.theme.green400 : p.theme.red400)};
 `;
 
+const DropdownContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
 function SpanGroupKeyValueList({
   spanDescription,
   spanGroupOperation,
   spanDomain,
+  formattedDescription,
+  action,
 }: {
-  data: any; // TODO: type this
+  data: any;
+  formattedDescription: string;
+  // TODO: type this
   spanDescription: string;
+  action?: string;
   spanDomain?: string;
   spanGroupOperation?: string;
   transactionName?: string;
 }) {
+  if (formattedDescription && action && spanDomain) {
+    highlightSql(formattedDescription, {action, domain: spanDomain});
+  }
   switch (spanGroupOperation) {
     case 'db':
     case 'cache':
       return (
         <KeyValueList
           data={[
-            {key: 'desc', value: spanDescription, subject: 'Full Query'},
+            {
+              key: 'desc',
+              value:
+                action && spanDomain ? (
+                  <FormattedCode>
+                    {highlightSql(formattedDescription, {action, domain: spanDomain})}
+                  </FormattedCode>
+                ) : (
+                  formattedDescription
+                ),
+              subject: 'Full Query',
+            },
             {key: 'domain', value: spanDomain, subject: 'Table Columns'},
           ]}
           shouldSort={false}

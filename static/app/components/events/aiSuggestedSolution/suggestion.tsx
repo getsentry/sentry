@@ -149,7 +149,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
             onSetIndividualConsent={() =>
               setSuggestedSolutionLocalConfig({individualConsent: true})
             }
-            restriction={error?.responseJSON?.restriction}
+            restriction={error?.responseJSON?.restriction as any}
             onHideSuggestion={onHideSuggestion}
           />
         ) : (
