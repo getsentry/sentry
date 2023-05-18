@@ -1,6 +1,7 @@
 import logging
 import sys
 from enum import Enum
+from typing import Optional
 
 from django.conf import settings
 
@@ -92,7 +93,7 @@ class OptionsManager:
         self.store = store
         self.registry = {}
 
-    def set(self, key, value, coerce=True, source: UpdateChannel = UpdateChannel.UNKNOWN):
+    def set(self, key, value, coerce=True, channel: UpdateChannel = UpdateChannel.UNKNOWN):
         """
         Set the value for an option. If the cache is unavailable the action will
         still succeed.
@@ -116,7 +117,7 @@ class OptionsManager:
         elif not opt.type.test(value):
             raise TypeError(f"got {_type(value)!r}, expected {opt.type!r}")
 
-        return self.store.set(opt, value, source=source)
+        return self.store.set(opt, value, channel=channel)
 
     def lookup_key(self, key):
         try:
@@ -344,9 +345,10 @@ class OptionsManager:
             return (k for k in self.all() if k.flags is DEFAULT_FLAGS)
         return (k for k in self.all() if k.flags & flag)
 
-    def checkDrift(self, key):
+    def get_last_update_channel(self, key) -> Optional[UpdateChannel]:
         """
         Checks how the given key was last changed
         (by automator, legacy, or CLI)
         """
-        return self.store.get_source(key)
+        opt = self.lookup_key(key)
+        return self.store.get_last_update_channel(opt)

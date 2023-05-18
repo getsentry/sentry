@@ -29,6 +29,7 @@ __all__ = (
     "lookup_key",
     "UnknownOption",
     "default_store",
+    "get_last_update_channel",
 )
 
 # See notes in ``runner.initializer`` regarding lazy cache configuration.
@@ -47,7 +48,7 @@ all = default_manager.all
 filter = default_manager.filter
 isset = default_manager.isset
 lookup_key = default_manager.lookup_key
-checkDrift = default_manager.checkDrift
+get_last_update_channel = default_manager.get_last_update_channel
 
 
 def load_defaults():

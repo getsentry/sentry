@@ -43,7 +43,11 @@ class OptionsStoreTest(TestCase):
         assert store.get(key) is None
         assert store.set(key, "bar", UpdateChannel.CLI)
         assert store.get(key) == "bar"
+        assert store.get_last_update_channel(key) == UpdateChannel.CLI
         assert store.delete(key)
+
+    def test_not_in_store(self):
+        assert self.store.get_last_update_channel(self.key) is None
 
     def test_simple_without_cache(self):
         store = OptionsStore(cache=None)

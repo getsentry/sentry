@@ -1,5 +1,6 @@
 import click
 
+from sentry.options.manager import UpdateChannel
 from sentry.runner.decorators import configuration
 
 
@@ -163,8 +164,8 @@ def _delete(key: str, dryrun: bool = False) -> bool:
 def drift(key: str) -> bool:
     from sentry.options import default_manager as manager
 
-    source = manager.checkDrift(key)
+    source = manager.get_last_update_channel(key)
     # check how option was changed.
     # if changed manually we ignore.
 
-    return source != "automator"
+    return source != UpdateChannel.AUTOMATOR
