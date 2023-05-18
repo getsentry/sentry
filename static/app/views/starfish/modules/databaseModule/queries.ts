@@ -582,22 +582,30 @@ export const useQueryMainTable = (options: {
 
 type QueryTransactionByTPMAndP75ReturnType = {
   count: number;
+  'count()': number;
   interval: string;
-  p75: number;
+  'p50(transaction.duration)': number;
+  'p95(transaction.duration)': number;
   transaction: string;
 }[];
-export const useQueryTransactionByTPMAndP75 = (
+export const useQueryTransactionByTPMAndDuration = (
   transactionNames: string[],
   interval: number
 ): UseSpansQueryReturnType<QueryTransactionByTPMAndP75ReturnType> => {
   const {
     selection: {datetime},
   } = usePageFilters();
+
   return useWrappedDiscoverTimeseriesQuery({
     eventView: EventView.fromSavedQuery({
       name: '',
-      fields: ['transaction', 'epm()', 'p50(transaction.duration)'],
-      yAxis: ['epm()', 'p50(transaction.duration)'],
+      fields: [
+        'transaction',
+        'epm()',
+        'p50(transaction.duration)',
+        'p95(transaction.duration)',
+      ],
+      yAxis: ['epm()', 'p50(transaction.duration)', 'p95(transaction.duration)'],
       orderby: '-count',
       query: `transaction:["${transactionNames.join('","')}"]`,
       topEvents: '5',
@@ -680,7 +688,7 @@ const shouldRefetchData = (
 };
 
 // We should find a way to use this in discover
-export function useDiscoverEventsStatsQuery(
+export function useDiscoverEventsStatsQuery<T>(
   props: Omit<DiscoverQueryComponentProps, 'children'>
 ) {
   const afterFetch = (data, _) => {
@@ -691,7 +699,7 @@ export function useDiscoverEventsStatsQuery(
     };
   };
 
-  return useGenericDiscoverQuery({
+  return useGenericDiscoverQuery<T, unknown>({
     route: 'events-stats',
     shouldRefetchData,
     afterFetch,

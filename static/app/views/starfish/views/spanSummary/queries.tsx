@@ -1,11 +1,17 @@
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 
+export enum SamplePopulationType {
+  FASTEST = 'fastest',
+  MEDIAN = 'median',
+  SLOWEST = 'slowest',
+}
+
 export const getSpanSamplesQuery = ({
   groupId,
   transactionName,
   user,
-  sortBy,
+  populationType,
   datetime,
   p50,
 }: {
@@ -14,32 +20,12 @@ export const getSpanSamplesQuery = ({
   user;
   datetime?: DateTimeObject;
   p50?: number;
-  sortBy?: string;
+  populationType?: SamplePopulationType;
 }) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
 
-  if (sortBy === 'median_samples') {
-    return `
-      SELECT transaction_id, transaction, description, user, domain, span_id, sum(exclusive_time) as exclusive_time, abs(minus(exclusive_time, ${p50})) as diff
-        FROM spans_experimental_starfish
-        WHERE group_id = '${groupId}'
-        ${transactionName ? `AND transaction = '${transactionName}'` : ''}
-        ${user ? `AND user = '${user}'` : ''}
-        ${
-          start_timestamp
-            ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')`
-            : ''
-        }
-        ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-        GROUP BY transaction_id, transaction, description, user, domain, span_id
-        HAVING lessOrEquals(divide(diff, ${p50}), 0.05)
-        ORDER BY diff desc
-        LIMIT 10
-    `;
-  }
-
   return `
-    SELECT transaction_id, transaction, description, user, domain, span_id, sum(exclusive_time) as exclusive_time
+    SELECT transaction_id, transaction, description, user, domain, span_id, sum(exclusive_time) as exclusive_time, abs(minus(exclusive_time, ${p50})) as diff
     FROM spans_experimental_starfish
     WHERE group_id = '${groupId}'
     ${transactionName ? `AND transaction = '${transactionName}'` : ''}
@@ -47,8 +33,14 @@ export const getSpanSamplesQuery = ({
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     GROUP BY transaction_id, transaction, description, user, domain, span_id
-    ORDER BY exclusive_time ${sortBy === 'slowest_samples' || !sortBy ? 'desc' : 'asc'}
-    LIMIT 10
+    ORDER BY ${
+      populationType === SamplePopulationType.SLOWEST || !populationType
+        ? 'exclusive_time desc'
+        : populationType === SamplePopulationType.FASTEST
+        ? 'exclusive_time asc'
+        : 'diff asc'
+    }
+    LIMIT 3
  `;
 };
 
@@ -73,6 +65,7 @@ export const getSidebarSeriesQuery = ({
   datetime,
   groupId,
   module,
+  interval,
 }) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
@@ -80,6 +73,7 @@ export const getSidebarSeriesQuery = ({
      quantile(0.5)(exclusive_time) as p50,
      quantile(0.95)(exclusive_time) as p95,
      count() as count,
+     divide(count(), multiply(${interval}, 60)) as spm,
      countIf(greaterOrEquals(status, 400) AND lessOrEquals(status, 599)) as failure_count,
      failure_count / count as failure_rate
      FROM spans_experimental_starfish
