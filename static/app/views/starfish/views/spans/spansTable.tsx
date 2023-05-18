@@ -130,8 +130,6 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
   return renderHeadCell;
 }
 
-const SPAN_OPS_WITH_DETAIL = ['http.client', 'db'];
-
 function renderBodyCell(
   column: GridColumnHeader,
   row: SpanDataRow,
@@ -151,14 +149,7 @@ function renderBodyCell(
     const formattedRow = mapRowKeys(row, row.span_operation);
     return (
       <OverflowEllipsisTextContainer>
-        <Link
-          onClick={() => onSelect?.(formattedRow)}
-          to={
-            SPAN_OPS_WITH_DETAIL.includes(row.span_operation)
-              ? ''
-              : `/starfish/span/${encodeURIComponent(row.group_id)}`
-          }
-        >
+        <Link onClick={() => onSelect?.(formattedRow)} to="">
           {row.span_operation === 'db' ? (
             <StyledFormattedCode>
               {(row as unknown as DataRow).formatted_desc}
