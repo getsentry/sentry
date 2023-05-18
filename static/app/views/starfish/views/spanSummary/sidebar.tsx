@@ -1,10 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
-import capitalize from 'lodash/capitalize';
 import moment, {Moment} from 'moment';
 
-import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -50,6 +48,7 @@ export default function Sidebar({
     datetime: pageFilter.selection.datetime,
     groupId,
     module,
+    interval: 12,
   });
   const aggregatesQuery = getAggregatesQuery({
     description,
@@ -69,18 +68,17 @@ export default function Sidebar({
     initialData: [],
   });
 
-  const {isLoading: _isLoadingSideBarOverallAggregateData, data: overallAggregateData} =
-    useQuery({
-      queryKey: ['overall-aggregates'],
-      queryFn: () =>
-        fetch(
-          `${HOST}/?query=${getOverallAggregatesQuery(
-            pageFilter.selection.datetime
-          )}&referrer=overall-aggregates`
-        ).then(res => res.json()),
-      retry: false,
-      initialData: [],
-    });
+  const {isLoading: _isLoadingSideBarOverallAggregateData} = useQuery({
+    queryKey: ['overall-aggregates'],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getOverallAggregatesQuery(
+          pageFilter.selection.datetime
+        )}&referrer=overall-aggregates`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
 
   // Also a metrics span query that fetches series data
   const {isLoading: isLoadingSeriesData, data: seriesData} = useQuery({
@@ -114,16 +112,8 @@ export default function Sidebar({
     initialData: [],
   });
 
-  const {
-    failure_rate,
-    count,
-    total_exclusive_time,
-    count_unique_transaction_id,
-    first_seen,
-    last_seen,
-  } = spanAggregateData[0] || {};
-
-  const {overall_total_exclusive_time} = overallAggregateData[0] || {};
+  const {failure_rate, count, total_exclusive_time, count_unique_transaction_id} =
+    spanAggregateData[0] || {};
 
   const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
   const startTime =
@@ -156,39 +146,26 @@ export default function Sidebar({
   return (
     <FlexContainer>
       <FlexItem>
-        <SidebarItemHeader>{t('First Seen')}</SidebarItemHeader>
-        <SidebarItemValueContainer>
-          <DateTime date={first_seen} timeZone seconds utc />
-        </SidebarItemValueContainer>
-      </FlexItem>
-      <FlexItem>
-        <SidebarItemHeader>{t('Last Seen')}</SidebarItemHeader>
-        <SidebarItemValueContainer>
-          <DateTime date={last_seen} timeZone seconds utc />
-        </SidebarItemValueContainer>
-      </FlexItem>
-      <FlexItem>
-        <SidebarItemHeader>{t('Total Self Time')}</SidebarItemHeader>
+        <SidebarItemHeader>{t('Total Time')}</SidebarItemHeader>
         <SidebarItemValueContainer>
           <Duration seconds={total_exclusive_time / 1000} fixedDigits={2} abbreviation />{' '}
-          ({formatPercentage(total_exclusive_time / overall_total_exclusive_time)})
         </SidebarItemValueContainer>
       </FlexItem>
       <FlexItem>
-        <SidebarItemHeader>{`${getGroupLabel({spanGroupOperation, capitalize: true})} ${t(
-          ' Frequency'
-        )}`}</SidebarItemHeader>
+        <SidebarItemHeader>{t('Total Spans')}</SidebarItemHeader>
+        <SidebarItemValueContainer>{count}</SidebarItemValueContainer>
+      </FlexItem>
+      <FlexItem>
+        <SidebarItemHeader>{t('Frequency')}</SidebarItemHeader>
         <SidebarItemValueContainer>
           {formatPercentage(spanFrequency)}
         </SidebarItemValueContainer>
       </FlexItem>
       <FlexItem>
-        <SidebarItemHeader>{`${getGroupLabel({
-          spanGroupOperation,
-          capitalize: true,
-          plural: true,
-        })} ${t(' Per Event')}`}</SidebarItemHeader>
-        <SidebarItemValueContainer>{spansPerEvent}</SidebarItemValueContainer>
+        <SidebarItemHeader>{t('Avg Spans')}</SidebarItemHeader>
+        <SidebarItemValueContainer>
+          {spansPerEvent} {t('per event')}
+        </SidebarItemValueContainer>
       </FlexItem>
 
       {
@@ -312,30 +289,6 @@ export function getQueries(spanGroupOperation: string) {
   }
 }
 
-const getGroupLabel = (options: {
-  spanGroupOperation: string;
-  capitalize?: boolean;
-  plural?: boolean;
-}) => {
-  let label = '';
-  switch (options.spanGroupOperation) {
-    case 'db':
-      label = options.plural ? t('queries') : t('query');
-      break;
-    case 'http.client':
-      label = options.plural ? t('requests') : t('request');
-      break;
-
-    default:
-      label = options.plural ? t('spans') : t('span');
-      break;
-  }
-  if (options.capitalize) {
-    return capitalize(label);
-  }
-  return label;
-};
-
 export const getTransactionBasedSeries = (
   data: any[],
   dateFilter: {endTime: Moment; startTime: Moment}
@@ -361,7 +314,7 @@ export const getTransactionBasedSeries = (
   const throughputTransactionSeries = queryToSeries(
     data,
     'group',
-    'count()',
+    'epm()',
     dateFilter.startTime,
     dateFilter.endTime,
     12
@@ -369,7 +322,7 @@ export const getTransactionBasedSeries = (
   if (data.length) {
     p50TransactionSeries.seriesName = 'p50()';
     p95TransactionSeries.seriesName = 'p95()';
-    throughputTransactionSeries.seriesName = 'count()';
+    throughputTransactionSeries.seriesName = 'epm()';
   }
 
   return {p50TransactionSeries, p95TransactionSeries, throughputTransactionSeries};

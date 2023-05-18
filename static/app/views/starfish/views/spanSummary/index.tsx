@@ -252,6 +252,7 @@ export default function SpanSummary({location, params}: Props) {
     datetime: pageFilter.selection.datetime,
     groupId,
     module: spanGroupOperation,
+    interval: 12,
   });
 
   const {isLoading: isLoadingSeriesData, data: seriesData} = useQuery({
@@ -281,7 +282,7 @@ export default function SpanSummary({location, params}: Props) {
   const {p50TransactionSeries, p95TransactionSeries, throughputTransactionSeries} =
     getTransactionBasedSeries(transactionAggregateData, dateFilter);
 
-  const [p50Series, p95Series, countSeries, _errorCountSeries] = queryDataToChartData(
+  const [p50Series, p95Series, , spmSeries, _errorCountSeries] = queryDataToChartData(
     seriesData
   ).map(series =>
     zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
@@ -489,87 +490,75 @@ export default function SpanSummary({location, params}: Props) {
 
                 <FlexRowContainer>
                   <FlexRowItem>
-                    <ChartPanel title={t('Throughput (SPM)')}>
-                      <Chart
-                        loading={isLoadingSeriesData}
-                        statsPeriod="24h"
-                        height={140}
-                        data={[countSeries ?? []]}
-                        start=""
-                        end=""
-                        utc={false}
-                        stacked
-                        isLineChart
-                        disableXAxis
-                        hideYAxisSplitLine
-                      />
-                    </ChartPanel>
+                    <h4>{t('Throughput (SPM)')}</h4>
+                    {/* <SidebarChart
+                      series={spmSeries}
+                      isLoading={isLoadingSeriesData}
+                      chartColor={chartColors[0]}
+                    /> */}
                   </FlexRowItem>
                   <FlexRowItem>
-                    <ChartPanel title={t('Span Duration P50 / P95')}>
-                      <Chart
-                        statsPeriod="24h"
-                        height={140}
-                        data={[p50Series ?? [], p95Series ?? []]}
-                        start=""
-                        end=""
-                        loading={isLoadingSeriesData}
-                        utc={false}
-                        chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
-                        scatterPlot={
-                          state.plotSamples
-                            ? [
-                                {
-                                  data: sampledSpanDataSeries,
-                                  seriesName: 'Sampled Span Duration',
-                                },
-                              ]
-                            : undefined
-                        }
-                        stacked
-                        isLineChart
-                        disableXAxis
-                        hideYAxisSplitLine
-                      />
-                    </ChartPanel>
+                    <h4>{t('Span Duration (P50 / P95)')}</h4>
+                    <Chart
+                      statsPeriod="24h"
+                      height={140}
+                      data={[p50Series ?? [], p95Series ?? []]}
+                      start=""
+                      end=""
+                      loading={isLoadingSeriesData}
+                      utc={false}
+                      chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
+                      scatterPlot={
+                        state.plotSamples
+                          ? [
+                              {
+                                data: sampledSpanDataSeries,
+                                seriesName: 'Sampled Span Duration',
+                              },
+                            ]
+                          : undefined
+                      }
+                      stacked
+                      isLineChart
+                      disableXAxis
+                      hideYAxisSplitLine
+                    />
                   </FlexRowItem>
                 </FlexRowContainer>
 
                 <FlexRowContainer>
                   <FlexRowItem>
-                    <ChartPanel title={t('Transaction Throughput')}>
-                      <Chart
-                        statsPeriod="24h"
-                        height={140}
-                        data={[throughputTransactionSeries ?? []]}
-                        start=""
-                        end=""
-                        loading={isTransactionAggregateDataLoading}
-                        utc={false}
-                        stacked
-                        isLineChart
-                        disableXAxis
-                        hideYAxisSplitLine
-                      />
-                    </ChartPanel>
+                    <h4>{t('Throughput (TPM)')}</h4>
+                    <Chart
+                      statsPeriod="24h"
+                      height={140}
+                      data={[throughputTransactionSeries ?? []]}
+                      start=""
+                      end=""
+                      loading={isTransactionAggregateDataLoading}
+                      utc={false}
+                      stacked
+                      isLineChart
+                      disableXAxis
+                      hideYAxisSplitLine
+                    />
                   </FlexRowItem>
                   <FlexRowItem>
-                    <ChartPanel title={t('Transaction Duration P50 / P95')}>
-                      <Chart
-                        statsPeriod="24h"
-                        height={140}
-                        data={[p50TransactionSeries ?? [], p95TransactionSeries ?? []]}
-                        start=""
-                        end=""
-                        loading={isTransactionAggregateDataLoading}
-                        utc={false}
-                        chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
-                        stacked
-                        isLineChart
-                        disableXAxis
-                        hideYAxisSplitLine
-                      />
-                    </ChartPanel>
+                    <h4>{t('Transaction Duration (P50 / P95)')}</h4>
+                    <Chart
+                      statsPeriod="24h"
+                      height={140}
+                      data={[p50TransactionSeries ?? [], p95TransactionSeries ?? []]}
+                      start=""
+                      end=""
+                      loading={isTransactionAggregateDataLoading}
+                      utc={false}
+                      chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
+                      stacked
+                      isLineChart
+                      disableXAxis
+                      hideYAxisSplitLine
+                    />
                   </FlexRowItem>
                 </FlexRowContainer>
 
