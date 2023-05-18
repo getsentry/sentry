@@ -15,6 +15,7 @@ from sentry.integrations.message_builder import (
 )
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import ActorTuple, Group, GroupStatus, Project, ReleaseProject, Rule, Team, User
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
@@ -52,7 +53,7 @@ def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
     else:
         raise NotImplementedError
 
-    return f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*"
+    return escape_slack_text(f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*")
 
 
 def build_action_text(
@@ -289,6 +290,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
             payload_actions, text, color = build_actions(
                 self.group, project, text, color, self.actions, self.identity
             )
+
         else:
             payload_actions = []
         return self._build(
