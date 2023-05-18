@@ -226,16 +226,18 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     ]
                 )
                 event = audit_log.get_event_id("MONITOR_REMOVE")
-                # TODO(rjo100): Make this more resilient to out of band modifications/deletions
                 alert_rule_id = monitor_objects.first().config.get("alert_rule_id")
                 if alert_rule_id:
                     rule = Rule.objects.filter(
-                        project_id=monitor.project_id, id=alert_rule_id
+                        project_id=monitor.project_id,
+                        id=alert_rule_id,
+                        status__not=RuleStatus.PENDING_DELETION,
                     ).first()
-                    rule.update(status=RuleStatus.PENDING_DELETION)
-                    RuleActivity.objects.create(
-                        rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
-                    )
+                    if rule:
+                        rule.update(status=RuleStatus.PENDING_DELETION)
+                        RuleActivity.objects.create(
+                            rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+                        )
 
             # create copy of queryset as update will remove objects
             monitor_objects_list = list(monitor_objects)
