@@ -131,6 +131,12 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
        * that has been removed.
        */
       "TypeError: can't access dead object",
+      /**
+       * React internal error thrown when something outside react modifies the DOM
+       * This is usually because of a browser extension or chrome translate page
+       */
+      "NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.",
+      "NotFoundError: Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node.",
     ],
 
     // Temporary fix while `ignoreErrors` bug is fixed and request error handling is cleaned up
@@ -176,6 +182,8 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
 
   const {type = '', value = ''} = mainError;
 
+  const is200 =
+    ['RequestError'].includes(type) && !!value.match('(GET|POST|PUT|DELETE) .* 200');
   const is401 =
     ['UnauthorizedError', 'RequestError'].includes(type) &&
     !!value.match('(GET|POST|PUT|DELETE) .* 401');
@@ -186,5 +194,5 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
     ['NotFoundError', 'RequestError'].includes(type) &&
     !!value.match('(GET|POST|PUT|DELETE) .* 404');
 
-  return is401 || is403 || is404;
+  return is200 || is401 || is403 || is404;
 }
