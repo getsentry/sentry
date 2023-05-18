@@ -109,7 +109,6 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
 )
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -306,28 +305,29 @@ class Factories:
             inviter_id = inviter.id
         kwargs["inviter_id"] = inviter_id
 
-        with outbox_runner():
-            om = OrganizationMember.objects.create(**kwargs)
-            organizationmember_mapping_service.create_with_organization_member(org_member=om)
+        om = OrganizationMember.objects.create(**kwargs)
+        om.outbox_for_create().drain_shard(max_updates_to_drain=10)
+        organizationmember_mapping_service.create_with_organization_member(org_member=om)
 
-            if team_roles:
-                for team, role in team_roles:
-                    Factories.create_team_membership(team=team, member=om, role=role)
-            elif teams:
-                for team in teams:
-                    Factories.create_team_membership(team=team, member=om, role=teamRole)
-            return om
+        if team_roles:
+            for team, role in team_roles:
+                Factories.create_team_membership(team=team, member=om, role=role)
+        elif teams:
+            for team in teams:
+                Factories.create_team_membership(team=team, member=om, role=teamRole)
+        return om
 
     @staticmethod
     @exempt_from_silo_limits()
     def create_team_membership(team, member=None, user=None, role=None):
-        with outbox_runner():
-            if member is None:
-                member, _ = OrganizationMember.objects.get_or_create(
-                    user_id=user.id if user else None,
-                    organization=team.organization,
-                    defaults={"role": "member"},
-                )
+        if member is None:
+            member, created = OrganizationMember.objects.get_or_create(
+                user_id=user.id if user else None,
+                organization=team.organization,
+                defaults={"role": "member"},
+            )
+            if created:
+                member.outbox_for_create().drain_shard(max_updates_to_drain=10)
 
             return OrganizationMemberTeam.objects.create(
                 team=team, organizationmember=member, is_active=True, role=role
