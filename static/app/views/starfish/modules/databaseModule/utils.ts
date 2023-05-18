@@ -10,7 +10,8 @@ export const queryToSeries = (
   startTime?: moment.Moment,
   endTime?: moment.Moment,
   interval?: number,
-  zerofillValue?: any
+  zerofillValue?: any,
+  lineType?: 'solid' | 'dashed' | 'dotted'
 ): Series[] => {
   const seriesMap: Record<string, Series> = {};
 
@@ -20,6 +21,7 @@ export const queryToSeries = (
       seriesMap[row[groupByProperty]] = {
         seriesName: row[groupByProperty],
         data: [],
+        lineStyle: {type: lineType ?? 'solid'},
       };
     }
     if (dataEntry.value !== undefined) {
