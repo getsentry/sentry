@@ -9,7 +9,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import {canViewerCreateProjects} from 'sentry/components/projects/utils';
+import {canCreateProject} from 'sentry/components/projects/utils';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -81,7 +81,7 @@ class OrganizationProjects extends AsyncView<Props, State> {
   renderBody(): React.ReactNode {
     const {projectList, projectListPageLinks, projectStats} = this.state;
     const {organization} = this.props;
-    const canCreateProjects = canViewerCreateProjects(organization);
+    const canCreateProjects = canCreateProject(organization);
 
     const action = (
       <Button
