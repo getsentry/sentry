@@ -87,6 +87,25 @@ export function SpanSummaryPanel({span, onClose}: Props) {
             hideYAxisSplitLine
           />
         </Block>
+
+        {span?.span_operation === 'http.client' ? (
+          <Block title={t('Failure Rate')}>
+            <Chart
+              statsPeriod="24h"
+              height={140}
+              data={[spanMetricSeries.failure_rate]}
+              start=""
+              end=""
+              loading={false}
+              chartColors={[theme.charts.getColorPalette(2)[2]]}
+              utc={false}
+              stacked
+              isLineChart
+              disableXAxis
+              hideYAxisSplitLine
+            />
+          </Block>
+        ) : null}
       </BlockContainer>
 
       <BlockContainer>{span && <SpanTransactionsTable span={span} />}</BlockContainer>
