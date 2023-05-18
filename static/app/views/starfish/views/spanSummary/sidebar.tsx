@@ -2,10 +2,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import capitalize from 'lodash/capitalize';
+import orderBy from 'lodash/orderBy';
 import moment, {Moment} from 'moment';
+import * as qs from 'query-string';
 
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
+import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -14,6 +17,7 @@ import Chart from 'sentry/views/starfish/components/chart';
 import {
   getEndpointDetailSeriesQuery,
   getEndpointDetailTableQuery,
+  getSpanFacetBreakdownQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
 import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {HOST} from 'sentry/views/starfish/utils/constants';
@@ -57,6 +61,21 @@ export default function Sidebar({
     datetime: pageFilter.selection.datetime,
     groupId,
     module,
+  });
+
+  const facetBreakdownQuery = getSpanFacetBreakdownQuery({
+    groupId,
+    datetime: pageFilter.selection.datetime,
+    transactionName,
+  });
+
+  const {isLoading: isFacetBreakdownLoading, data: facetBreakdownData} = useQuery<
+    {domain: string; user: string}[]
+  >({
+    queryKey: ['facetBreakdown', groupId],
+    queryFn: () => fetch(`${HOST}/?query=${facetBreakdownQuery}`).then(res => res.json()),
+    retry: false,
+    initialData: [],
   });
   // This is supposed to a metrics span query that fetches aggregate metric data
   const {isLoading: _isLoadingSideBarAggregateData, data: spanAggregateData} = useQuery({
@@ -207,6 +226,50 @@ export default function Sidebar({
           </FlexFullWidthItem>
         )
       }
+      <FlexFullWidthItem>
+        {isFacetBreakdownLoading ? (
+          <span>LOADING</span>
+        ) : (
+          <div>
+            <h3>{t('Facets')}</h3>
+            {['user'].map(facet => {
+              const values = facetBreakdownData.map(datum => datum[facet]);
+
+              const uniqueValues: string[] = Array.from(new Set(values));
+
+              let totalValues = 0;
+
+              const segments = orderBy(
+                uniqueValues.map(uniqueValue => {
+                  const valueCount = values.filter(v => v === uniqueValue).length;
+                  totalValues += valueCount;
+
+                  return {
+                    key: facet,
+                    name: uniqueValue,
+                    value: uniqueValue,
+                    url: `/starfish/span/${groupId}?${qs.stringify({
+                      [facet]: uniqueValue,
+                    })}`,
+                    count,
+                  };
+                }),
+                'count',
+                'desc'
+              );
+
+              return (
+                <TagDistributionMeter
+                  key={facet}
+                  title={facet}
+                  segments={segments}
+                  totalValues={totalValues}
+                />
+              );
+            })}
+          </div>
+        )}
+      </FlexFullWidthItem>
     </FlexContainer>
   );
 }

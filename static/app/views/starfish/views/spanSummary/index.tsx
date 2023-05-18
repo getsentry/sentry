@@ -5,9 +5,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import keyBy from 'lodash/keyBy';
-import orderBy from 'lodash/orderBy';
 import moment from 'moment';
-import * as qs from 'query-string';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import DateTime from 'sentry/components/dateTime';
@@ -16,7 +14,6 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import SwitchButton from 'sentry/components/switchButton';
-import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -29,10 +26,7 @@ import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/trans
 import Chart from 'sentry/views/starfish/components/chart';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import {TextAlignRight} from 'sentry/views/starfish/modules/APIModule/endpointTable';
-import {
-  getSpanFacetBreakdownQuery,
-  getSpanInTransactionQuery,
-} from 'sentry/views/starfish/modules/APIModule/queries';
+import {getSpanInTransactionQuery} from 'sentry/views/starfish/modules/APIModule/queries';
 import {
   FlexRowContainer,
   FlexRowItem,
@@ -147,20 +141,6 @@ export default function SpanSummary({location, params}: Props) {
   });
 
   const p50 = data[0]?.p50 ?? 0;
-  const facetBreakdownQuery = getSpanFacetBreakdownQuery({
-    groupId,
-    datetime: pageFilter.selection.datetime,
-    transactionName,
-  });
-
-  const {isLoading: isFacetBreakdownLoading, data: facetBreakdownData} = useQuery<
-    {domain: string; user: string}[]
-  >({
-    queryKey: ['facetBreakdown', groupId],
-    queryFn: () => fetch(`${HOST}/?query=${facetBreakdownQuery}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
 
   const commonSamplesQueryOptions = {
     groupId,
@@ -444,48 +424,6 @@ export default function SpanSummary({location, params}: Props) {
                     transactionName={transactionName}
                     sampledSpanData={state.plotSamples ? sampledSpanData : []}
                   />
-                )}
-                {isFacetBreakdownLoading ? (
-                  <span>LOADING</span>
-                ) : (
-                  <div>
-                    <h3>{t('Facets')}</h3>
-                    {['user'].map(facet => {
-                      const values = facetBreakdownData.map(datum => datum[facet]);
-
-                      const uniqueValues: string[] = Array.from(new Set(values));
-
-                      let totalValues = 0;
-
-                      const segments = orderBy(
-                        uniqueValues.map(uniqueValue => {
-                          const count = values.filter(v => v === uniqueValue).length;
-                          totalValues += count;
-
-                          return {
-                            key: facet,
-                            name: uniqueValue,
-                            value: uniqueValue,
-                            url: `/starfish/span/${groupId}?${qs.stringify({
-                              [facet]: uniqueValue,
-                            })}`,
-                            count,
-                          };
-                        }),
-                        'count',
-                        'desc'
-                      );
-
-                      return (
-                        <TagDistributionMeter
-                          key={facet}
-                          title={facet}
-                          segments={segments}
-                          totalValues={totalValues}
-                        />
-                      );
-                    })}
-                  </div>
                 )}
 
                 <FlexRowContainer>
