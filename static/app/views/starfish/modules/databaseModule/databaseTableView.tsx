@@ -19,7 +19,9 @@ import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel
 type Props = {
   isDataLoading: boolean;
   location: Location;
+  noP95: boolean;
   onSelect: (row: DataRow, rowIndex: number) => void;
+  p95asNumber: boolean;
   columns?: any;
   data?: DataRow[];
   onSortChange?: ({direction, sortHeader}: MainTableSort) => void;
@@ -61,42 +63,6 @@ export type Keys =
   | 'total_time';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 export type MainTableSort = Sort<TableColumnHeader>;
-
-const COLUMN_ORDER: TableColumnHeader[] = [
-  {
-    key: 'description',
-    name: 'Query',
-    width: 550,
-  },
-  {
-    key: 'domain',
-    name: 'Table',
-    width: 200,
-  },
-  {
-    key: 'epm',
-    name: 'Throughput (SPM)',
-    width: 200,
-  },
-  {
-    key: 'p50',
-    name: 'P50',
-    width: 200,
-  },
-  {
-    key: 'p95',
-    name: 'P95',
-    width: 200,
-  },
-  {
-    key: 'transactions',
-    name: 'transactions',
-  },
-  {
-    key: 'total_time',
-    name: 'Total Time',
-  },
-];
 
 export function similarity(value: string, other: string): number {
   // If they're identical we don't care
@@ -153,6 +119,8 @@ export default function DatabaseTableView({
   location,
   data,
   onSelect,
+  p95asNumber,
+  noP95,
   onSortChange,
   selectedRow,
   isDataLoading,
@@ -163,6 +131,44 @@ export default function DatabaseTableView({
     sortHeader: TableColumnHeader | undefined;
   }>({direction: undefined, sortHeader: undefined});
   const theme = useTheme();
+  const COLUMN_ORDER: TableColumnHeader[] = [
+    {
+      key: 'description',
+      name: 'Query',
+      width: 550,
+    },
+    {
+      key: 'domain',
+      name: 'Table',
+      width: 175,
+    },
+    {
+      key: 'epm',
+      name: 'Throughput (SPM)',
+      width: 175,
+    },
+    {
+      key: 'p50',
+      name: 'P50',
+      width: 175,
+    },
+    {
+      key: 'p95',
+      name: 'P95',
+      width: !p95asNumber ? 175 : undefined,
+    },
+    {
+      key: 'transactions',
+      name: 'transactions',
+    },
+    {
+      key: 'total_time',
+      name: 'Total Time',
+    },
+  ];
+  if (noP95) {
+    COLUMN_ORDER.splice(4, 1);
+  }
 
   function onSortClick(col: TableColumnHeader) {
     let direction: 'desc' | 'asc' | undefined = undefined;
@@ -234,7 +240,7 @@ export default function DatabaseTableView({
               color={CHART_PALETTE[3][0]}
               series={row.throughput}
               markLine={horizontalLine}
-              width={column.width ? column.width - column.width / 5 : undefined}
+              width={column.width ? column.width - column.width / 5 - 50 : undefined}
             />
           </Graphline>
         </GraphRow>
@@ -264,12 +270,14 @@ export default function DatabaseTableView({
         <GraphRow>
           <span style={rowStyle}>{getDuration(row.p95 / 1000, 2, true)}</span>
           <Graphline>
-            <Sparkline
-              color={CHART_PALETTE[3][2]}
-              series={row.p95_trend}
-              markLine={horizontalLine}
-              width={column.width ? column.width - column.width / 5 - 50 : undefined}
-            />
+            {!p95asNumber && (
+              <Sparkline
+                color={CHART_PALETTE[3][2]}
+                series={row.p95_trend}
+                markLine={horizontalLine}
+                width={column.width ? column.width - column.width / 5 - 50 : undefined}
+              />
+            )}
           </Graphline>
         </GraphRow>
       );

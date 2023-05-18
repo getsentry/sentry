@@ -36,7 +36,7 @@ const SPM =
   'if(duration > 0, divide(count(), (max(start_timestamp) - min(start_timestamp) as duration)/60), 0)';
 
 const ORDERBY = `
-  -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
+  -sum(exclusive_time), -count()
 `;
 
 const getActionSubquery = (date_filters: string) => {
@@ -493,6 +493,7 @@ export const useQueryMainTable = (options: {
   action?: string;
   filterNew?: boolean;
   filterOld?: boolean;
+  filterOutlier?: boolean;
   limit?: number;
   sortDirection?: string;
   sortKey?: string;
@@ -503,6 +504,7 @@ export const useQueryMainTable = (options: {
     action,
     filterNew,
     filterOld,
+    filterOutlier,
     sortDirection,
     sortKey,
     table,
@@ -517,6 +519,7 @@ export const useQueryMainTable = (options: {
   const actionFilter = action && action !== 'ALL' ? `action = '${action}'` : undefined;
   const newFilter: string | undefined = filterNew ? 'newish = 1' : undefined;
   const oldFilter: string | undefined = filterOld ? 'retired = 1' : undefined;
+  const outlierFilter: string | undefined = filterOutlier ? `${SPM} > 0.02` : undefined;
 
   const filters = [DEFAULT_WHERE, transactionFilter, tableFilter, actionFilter].filter(
     fil => !!fil
@@ -524,7 +527,7 @@ export const useQueryMainTable = (options: {
   const duration = endTime.unix() - startTime.unix();
   const newColumn = getNewColumn(duration, startTime, endTime);
   const retiredColumn = getRetiredColumn(duration, startTime, endTime);
-  const havingFilters = [newFilter, oldFilter].filter(fil => !!fil);
+  const havingFilters = [newFilter, oldFilter, outlierFilter].filter(fil => !!fil);
   const orderBy = getOrderByFromKey(sortKey, sortDirection) ?? ORDERBY;
 
   const query = `
