@@ -92,7 +92,6 @@ class OptionsManager:
         self.store = store
         self.registry = {}
 
-    # TODO: Find out why `from sentry.models.options import OptionsTypes` doesn't work at top level
     def set(self, key, value, coerce=True, source: UpdateChannel = UpdateChannel.UNKNOWN):
         """
         Set the value for an option. If the cache is unavailable the action will
@@ -305,7 +304,6 @@ class OptionsManager:
 
         settings.SENTRY_DEFAULT_OPTIONS[key] = default_value
 
-        # TODO: Figure out indirection to allow "legacy" to reference Enums in Models
         self.registry[key] = self.make_key(key, default, type, flags, ttl, grace, grouping_info)
 
     def unregister(self, key):
