@@ -45,7 +45,7 @@ from sentry.utils.audit import create_system_audit_entry
 
 
 @region_silo_test
-class OrganizationTest(TestCase):
+class OrganizationTest(TestCase, HybridCloudTestMixin):
     def test_slugify_on_new_orgs(self):
         org = Organization.objects.create(name="name", slug="---downtown_canada---")
         assert org.slug == "downtown-canada"
@@ -127,14 +127,16 @@ class OrganizationTest(TestCase):
 
         from_org.merge_to(to_org)
 
-        assert OrganizationMember.objects.filter(
+        org_member = OrganizationMember.objects.get(
             organization=to_org, user=from_owner, role="owner"
-        ).exists()
+        )
+        self.assert_org_member_mapping(org_member=org_member)
 
         team = Team.objects.get(id=from_team.id)
         assert team.organization == to_org
 
         member = OrganizationMember.objects.get(user=other_user, organization=to_org)
+        self.assert_org_member_mapping(org_member=member)
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=to_team
         ).exists()
