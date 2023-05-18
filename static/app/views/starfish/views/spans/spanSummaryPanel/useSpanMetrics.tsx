@@ -8,10 +8,7 @@ type Metrics = {
   total_time: number;
 };
 
-export const useSpanMetrics = (
-  span?: Pick<Span, 'group_id'>,
-  referrer = 'span-metrics'
-) => {
+export const useSpanMetrics = (span?: Span, referrer = 'span-metrics') => {
   const query = span ? getQuery(span) : '';
 
   const {isLoading, error, data} = useQuery<Metrics[]>({
