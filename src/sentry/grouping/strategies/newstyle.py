@@ -714,13 +714,19 @@ def chained_exception(
     # Get all the exceptions to consider.
     all_exceptions = interface.exceptions()
 
-    # Filter them according to rules for handling exception groups.
+    # Get the grouping components for all exceptions up front, as we'll need them in a few places and only want to compute them once.
+    exception_components = {
+        id(exception): context.get_grouping_component(exception, event=event, **meta)
+        for exception in all_exceptions
+    }
+
+    # Filter the exceptions according to rules for handling exception groups.
     with sentry_sdk.start_span(
         op="grouping.strategies.newstyle.filter_exceptions_for_exception_groups"
     ) as span:
         try:
             exceptions = filter_exceptions_for_exception_groups(
-                all_exceptions, context, event, **meta
+                all_exceptions, exception_components, event
             )
         except Exception:
             # We shouldn't have exceptions here. But if we do, just record it and continue with the original list.
@@ -731,15 +737,13 @@ def chained_exception(
     # Case 1: we have a single exception, use the single exception
     # component directly to avoid a level of nesting
     if len(exceptions) == 1:
-        return context.get_grouping_component(exceptions[0], event=event, **meta)
+        return exception_components[id(exceptions[0])]
 
     # Case 2: produce a component for each chained exception
     by_name: Dict[str, List[GroupingComponent]] = {}
 
     for exception in exceptions:
-        for name, component in context.get_grouping_component(
-            exception, event=event, **meta
-        ).items():
+        for name, component in exception_components[id(exception)].items():
             by_name.setdefault(name, []).append(component)
 
     rv = {}
@@ -756,7 +760,9 @@ def chained_exception(
 
 # See https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
 def filter_exceptions_for_exception_groups(
-    exceptions: List[SingleException], context: GroupingContext, event: Event, **meta: Any
+    exceptions: List[SingleException],
+    exception_components: Dict[int, GroupingComponent],
+    event: Event,
 ) -> List[SingleException]:
 
     # This function only filters exceptions if there are at least two exceptions.
@@ -819,9 +825,7 @@ def filter_exceptions_for_exception_groups(
         next(group)
         for _, group in itertools.groupby(
             top_level_exceptions,
-            key=lambda exception: hash_from_values(
-                context.get_grouping_component(exception, event=event, **meta).values()
-            ),
+            key=lambda exception: hash_from_values(exception_components[id(exception)].values()),
         )
     ]
 
