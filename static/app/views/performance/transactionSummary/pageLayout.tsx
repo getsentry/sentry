@@ -1,6 +1,7 @@
 import {useCallback, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {isString} from '@sentry/utils';
 import {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -94,7 +95,13 @@ function PageLayout(props: Props) {
     features = [],
   } = props;
 
-  const projectId = decodeScalar(location.query.project);
+  let projectId: string | undefined;
+  const filterProjects = location.query.project;
+
+  if (isString(filterProjects) && filterProjects !== '-1') {
+    projectId = filterProjects;
+  }
+
   const router = useRouter();
   const transactionName = getTransactionName(location);
   const [error, setError] = useState<string | undefined>();
@@ -194,6 +201,7 @@ function PageLayout(props: Props) {
         eventView={nextView}
         location={location}
         orgSlug={organization.slug}
+        queryExtras={{project: filterProjects ? filterProjects : undefined}}
         referrer="api.performance.transaction-summary"
       >
         {({isLoading, tableData, error: discoverQueryError}) => {
@@ -224,9 +232,11 @@ function PageLayout(props: Props) {
                     transaction: transactionName,
                     statsPeriod: eventView.statsPeriod,
                     referrer: 'performance-transaction-summary',
+                    ...location.query,
                   },
                 }}
                 noProjectRedirectPath="/performance/"
+                allowAllProjectsSelection
               />
             )
           );
