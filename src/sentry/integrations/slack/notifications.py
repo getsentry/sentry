@@ -104,7 +104,8 @@ def send_notification_as_slack(
     shared_context: Mapping[str, Any],
     extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None,
 ) -> None:
-    """Send an "activity" or "alert rule" notification to a Slack user or team."""
+    """Send an "activity" or "alert rule" notification to a Slack user or team, but NOT to a channel directly.
+    Sending Slack notifications to a channel is in integrations/slack/actions/notification.py"""
     with sentry_sdk.start_span(
         op="notification.send_slack", description="gen_channel_integration_map"
     ):
