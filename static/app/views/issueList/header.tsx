@@ -38,7 +38,6 @@ type IssueListHeaderProps = {
 
 type IssueListHeaderTabProps = {
   name: string;
-  query: string;
   count?: number;
   hasMore?: boolean;
   tooltipHoverable?: boolean;
@@ -49,7 +48,6 @@ function IssueListHeaderTabContent({
   count = 0,
   hasMore = false,
   name,
-  query,
   tooltipHoverable,
   tooltipTitle,
 }: IssueListHeaderTabProps) {
@@ -62,7 +60,7 @@ function IssueListHeaderTabContent({
     >
       {name}{' '}
       {count > 0 && (
-        <Badge type={query === Query.FOR_REVIEW && count > 0 ? 'review' : 'default'}>
+        <Badge>
           <QueryCount hideParens count={count} max={hasMore ? TAB_MAX_COUNT : 1000} />
         </Badge>
       )}
@@ -154,7 +152,6 @@ function IssueListHeader({
                         name={queryName}
                         count={queryCounts[tabQuery]?.count}
                         hasMore={queryCounts[tabQuery]?.hasMore}
-                        query={tabQuery}
                       />
                     </GuideAnchor>
                   </TabList.Item>
