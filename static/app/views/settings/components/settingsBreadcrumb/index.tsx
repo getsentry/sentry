@@ -6,7 +6,7 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import Crumb from 'sentry/views/settings/components/settingsBreadcrumb/crumb';
 import Divider from 'sentry/views/settings/components/settingsBreadcrumb/divider';
-import OrganizationCrumb from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
+import {OrganizationCrumb} from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
 import ProjectCrumb from 'sentry/views/settings/components/settingsBreadcrumb/projectCrumb';
 import TeamCrumb from 'sentry/views/settings/components/settingsBreadcrumb/teamCrumb';
 

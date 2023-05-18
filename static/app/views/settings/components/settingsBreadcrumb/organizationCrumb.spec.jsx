@@ -3,7 +3,8 @@ import {browserHistory} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationCrumb from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {OrganizationCrumb} from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
 
 jest.unmock('sentry/utils/recreateRoute');
 
@@ -18,21 +19,21 @@ describe('OrganizationCrumb', function () {
     }),
   ];
 
+  beforeEach(() => {
+    OrganizationsStore.init();
+    OrganizationsStore.load(organizations);
+  });
+
   const switchOrganization = async () => {
     await userEvent.hover(screen.getByRole('link'));
     await userEvent.click(screen.getAllByRole('option')[1]);
   };
 
   const renderComponent = props =>
-    render(
-      <OrganizationCrumb
-        organizations={organizations}
-        organization={organization}
-        params={{orgId: organization.slug}}
-        {...props}
-      />,
-      {context: routerContext}
-    );
+    render(<OrganizationCrumb params={{orgId: organization.slug}} {...props} />, {
+      context: routerContext,
+      organization,
+    });
 
   beforeEach(function () {
     initialData = window.__initialData;
@@ -160,7 +161,9 @@ describe('OrganizationCrumb', function () {
       }),
     ];
 
-    renderComponent({routes, route, organizations: orgs});
+    OrganizationsStore.load(orgs);
+
+    renderComponent({routes, route});
     await switchOrganization();
 
     // The double slug doesn't actually show up as we have more routing context present.
