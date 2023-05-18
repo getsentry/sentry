@@ -302,7 +302,7 @@ def _issue_category_entity(category: Optional[GroupCategory]) -> EntityKey:
 def manage_issue_states(
     group: Group,
     group_inbox_reason: GroupInboxReason,
-    event: GroupEvent,
+    event: Optional[GroupEvent] = None,
     snooze_details: Optional[Mapping[str, Any]] = None,
 ) -> None:
     """
@@ -369,5 +369,5 @@ def manage_issue_states(
         group=group,
         type=ActivityType.SET_UNRESOLVED.value,
         user_id=None,
-        data={"event_id": event.event_id},
+        data={"event_id": event.event_id} if event else None,
     )

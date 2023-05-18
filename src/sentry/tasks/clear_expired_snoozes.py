@@ -1,7 +1,7 @@
 from django.utils import timezone
 
 from sentry import features
-from sentry.issues.escalating import manage_snooze_states
+from sentry.issues.escalating import manage_issue_states
 from sentry.models import Group, GroupInboxReason, GroupSnooze, GroupStatus
 from sentry.signals import issue_unignored
 from sentry.tasks.base import instrumented_task
@@ -21,13 +21,13 @@ def clear_expired_snoozes():
 
     for group in ignored_groups:
         if features.has("organizations:escalating-issues", group.organization):
-            manage_snooze_states(group, GroupInboxReason.ESCALATING)
+            manage_issue_states(group, GroupInboxReason.ESCALATING)
 
         elif features.has("organizations:issue-states", group.organization):
-            manage_snooze_states(group, GroupInboxReason.ONGOING)
+            manage_issue_states(group, GroupInboxReason.ONGOING)
 
         else:
-            manage_snooze_states(group, GroupInboxReason.UNIGNORED)
+            manage_issue_states(group, GroupInboxReason.UNIGNORED)
 
         issue_unignored.send_robust(
             project=group.project,
