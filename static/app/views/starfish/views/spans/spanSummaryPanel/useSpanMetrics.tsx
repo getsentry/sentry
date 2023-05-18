@@ -23,7 +23,7 @@ export const useSpanMetrics = (span?: Span, referrer = 'span-metrics') => {
   return {isLoading, error, data: data[0]};
 };
 
-const getQuery = (span: Pick<Span, 'group_id'>) => {
+const getQuery = (span: Span) => {
   return `
     SELECT
     min(timestamp) as first_seen,
