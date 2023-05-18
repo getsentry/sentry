@@ -176,6 +176,73 @@ class RuleProcessorTest(TestCase):
             == 1
         )
 
+    def test_muted_msteams_rule(self):
+        """Test that we don't sent a notification for a muted MSTeams rule"""
+        tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
+        integration = self.create_integration(
+            self.organization,
+            tenant_id,
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "service_url": "https://testserviceurl.com/testendpoint/",
+                "installation_type": "tenant",
+                "expires_at": 1234567890,
+                "tenant_id": tenant_id,
+            },
+            name="Personal Installation",
+            provider="msteams",
+        )
+
+        action_data = [
+            {
+                "channel": "secrets",
+                "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                "team": integration.id,
+            },
+        ]
+        msteams_rule = self.create_project_rule(self.project, action_data, [])
+        action_data[0].update({"channel": "#secreter-secrets"})
+        muted_msteams_rule = self.create_project_rule(self.project, action_data, [])
+        RuleSnooze.objects.create(
+            user_id=None,
+            owner_id=self.user.id,
+            rule=muted_msteams_rule,
+            until=None,
+        )
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        results = list(rp.apply())
+        # this indicates that both email and msteams notifs were sent, though there could be more than one of each type
+        assert len(results) == 2
+        slack_notifs = results[1][1]
+        # this checks that there was only 1 msteams notification sent
+        assert len(slack_notifs) == 1
+        assert slack_notifs[0].rule == msteams_rule
+
+        email_notifs = results[0][1]
+        # this checks that there was only 1 email notification sent
+        assert len(email_notifs) == 1
+        assert results[0][1][0].rule == self.rule
+        assert (
+            RuleFireHistory.objects.filter(
+                rule=muted_msteams_rule, group=self.group_event.group
+            ).count()
+            == 0
+        )
+        assert (
+            RuleFireHistory.objects.filter(rule=msteams_rule, group=self.group_event.group).count()
+            == 1
+        )
+        assert (
+            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
+            == 1
+        )
+
     def run_query_test(self, rp, expected_queries):
         with CaptureQueriesContext(connections[DEFAULT_DB_ALIAS]) as queries:
             results = list(rp.apply())
