@@ -490,6 +490,44 @@ export default function SpanSummary({location, params}: Props) {
 
                 <FlexRowContainer>
                   <FlexRowItem>
+                    <ChartPanel title={t('Throughput (TPM)')}>
+                      <Chart
+                        statsPeriod="24h"
+                        height={140}
+                        data={[throughputTransactionSeries ?? []]}
+                        start=""
+                        end=""
+                        loading={isTransactionAggregateDataLoading}
+                        utc={false}
+                        stacked
+                        isLineChart
+                        disableXAxis
+                        hideYAxisSplitLine
+                      />
+                    </ChartPanel>
+                  </FlexRowItem>
+                  <FlexRowItem>
+                    <ChartPanel title={t('Transaction Duration (P50 / P95)')}>
+                      <Chart
+                        statsPeriod="24h"
+                        height={140}
+                        data={[p50TransactionSeries ?? [], p95TransactionSeries ?? []]}
+                        start=""
+                        end=""
+                        loading={isTransactionAggregateDataLoading}
+                        utc={false}
+                        chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
+                        stacked
+                        isLineChart
+                        disableXAxis
+                        hideYAxisSplitLine
+                      />
+                    </ChartPanel>
+                  </FlexRowItem>
+                </FlexRowContainer>
+
+                <FlexRowContainer>
+                  <FlexRowItem>
                     <ChartPanel title={t('Throughput (SPM)')}>
                       <Chart
                         statsPeriod="24h"
@@ -527,44 +565,6 @@ export default function SpanSummary({location, params}: Props) {
                               ]
                             : undefined
                         }
-                        stacked
-                        isLineChart
-                        disableXAxis
-                        hideYAxisSplitLine
-                      />
-                    </ChartPanel>
-                  </FlexRowItem>
-                </FlexRowContainer>
-
-                <FlexRowContainer>
-                  <FlexRowItem>
-                    <ChartPanel title={t('Throughput (TPM)')}>
-                      <Chart
-                        statsPeriod="24h"
-                        height={140}
-                        data={[throughputTransactionSeries ?? []]}
-                        start=""
-                        end=""
-                        loading={isTransactionAggregateDataLoading}
-                        utc={false}
-                        stacked
-                        isLineChart
-                        disableXAxis
-                        hideYAxisSplitLine
-                      />
-                    </ChartPanel>
-                  </FlexRowItem>
-                  <FlexRowItem>
-                    <ChartPanel title={t('Transaction Duration (P50 / P95)')}>
-                      <Chart
-                        statsPeriod="24h"
-                        height={140}
-                        data={[p50TransactionSeries ?? [], p95TransactionSeries ?? []]}
-                        start=""
-                        end=""
-                        loading={isTransactionAggregateDataLoading}
-                        utc={false}
-                        chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
                         stacked
                         isLineChart
                         disableXAxis
