@@ -116,18 +116,22 @@ def get_actor_id_for_user(user: Union["User", RpcUser]) -> int:
     return cast(int, get_actor_for_user(user).id)
 
 
-def get_actor_for_user(user: Union["User", RpcUser]) -> "Actor":
+def get_actor_for_user(user: Union[int, "User", RpcUser]) -> "Actor":
+    if isinstance(user, int):
+        user_id = user
+    else:
+        user_id = user.id
     try:
         with transaction.atomic():
-            actor, created = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user.id)
+            actor, created = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user_id)
             if created:
                 # TODO(actorid) This RPC call should be removed once all reads to
                 # User.actor_id have been removed.
-                user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
+                user_service.update_user(user_id=user_id, attrs={"actor_id": actor.id})
     except IntegrityError as err:
         # Likely a race condition. Long term these need to be eliminated.
         sentry_sdk.capture_exception(err)
-        actor = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).first()
+        actor = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user_id).first()
     return actor
 
 

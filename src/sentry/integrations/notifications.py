@@ -100,6 +100,7 @@ def get_integrations_by_channel_by_recipient(
     provider: ExternalProviders,
 ) -> Mapping[RpcActor, Mapping[str, RpcIntegration]]:
     output: MutableMapping[RpcActor, Mapping[str, RpcIntegration]] = defaultdict(dict)
+    # TODO(hybridcloud) This is doing N queries.
     for recipient in (RpcActor.from_object(r) for r in recipients):
         channels_to_integrations = None
         if recipient.actor_type == ActorType.USER:

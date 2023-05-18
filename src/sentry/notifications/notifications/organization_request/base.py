@@ -37,6 +37,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
 
     def determine_recipients(self) -> Iterable[RpcActor]:
         return [
+            # TODO(hybridcloud) This is doing N queries.
             RpcActor.from_rpc_user(user)
             for user in self.role_based_recipient_strategy.determine_recipients()
         ]

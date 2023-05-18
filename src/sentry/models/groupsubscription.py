@@ -119,6 +119,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         """
         from sentry.notifications.utils.participants import ParticipantMap
 
+        # TODO(hybridcloud) This is doing N queries
         all_possible_users = [
             RpcActor.from_rpc_user(u) for u in group.project.get_members_as_rpc_users()
         ]
