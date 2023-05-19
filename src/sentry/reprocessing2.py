@@ -162,7 +162,7 @@ def save_unprocessed_event(project, event_id):
         nodestore.set(node_id, data)
 
 
-def backup_unprocessed_event(project, data):
+def backup_unprocessed_event(data):
     """
     Backup unprocessed event payload into redis. Only call if event should be
     able to be reprocessed.
