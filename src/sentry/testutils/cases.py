@@ -2304,6 +2304,7 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                     "project_id": self.project.id,
                     "metric_id": self.__indexer_record(org_id, "metric1"),
                     "timestamp": now,
+                    "sentry_received_timestamp": now + 10,
                     "tags": {
                         self.__indexer_record(org_id, "tag1"): self.__indexer_record(
                             org_id, "value1"
@@ -2321,6 +2322,7 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                     "project_id": self.project.id,
                     "metric_id": self.__indexer_record(org_id, "metric1"),
                     "timestamp": now,
+                    "sentry_received_timestamp": now + 10,
                     "tags": {
                         self.__indexer_record(org_id, "tag3"): self.__indexer_record(
                             org_id, "value3"
@@ -2340,6 +2342,7 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                     "project_id": self.project.id,
                     "metric_id": self.__indexer_record(org_id, "metric2"),
                     "timestamp": now,
+                    "sentry_received_timestamp": now + 10,
                     "tags": {
                         self.__indexer_record(org_id, "tag4"): self.__indexer_record(
                             org_id, "value3"
@@ -2360,6 +2363,7 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                     "project_id": self.project.id,
                     "metric_id": self.__indexer_record(org_id, "metric3"),
                     "timestamp": now,
+                    "sentry_received_timestamp": now + 10,
                     "tags": {},
                     "type": "s",
                     "value": [123],
@@ -2376,7 +2380,12 @@ class MonitorTestCase(APITestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
             **kwargs,
         )
 
