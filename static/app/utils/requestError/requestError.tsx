@@ -46,7 +46,7 @@ export default class RequestError extends Error {
   /**
    * Updates Error with XHR response
    */
-  addResponseMetadata(resp: ResponseMeta) {
+  addResponseMetadata(resp: ResponseMeta | undefined) {
     if (resp) {
       this.setNameFromStatus(resp.status);
 
