@@ -97,25 +97,6 @@ class ByOrganizationIdOrSlug(RegionResolution):
         return self._resolve_from_mapping(mapping)
 
 
-@dataclass(frozen=True)
-class ByOrganizationMemberId(RegionResolution):
-    """Resolve from an `int` parameter representing the organization member's ID."""
-
-    parameter_name: str = "organization_member_id"
-
-    def resolve(self, arguments: ArgumentDict) -> Region:
-        from sentry.models.organizationmembermapping import OrganizationMemberMapping
-
-        organization_member_id = arguments[self.parameter_name]
-        org_member_map = OrganizationMemberMapping.objects.filter(
-            organizationmember_id=organization_member_id
-        )
-        mapping = self.organization_mapping_manager.get(
-            organization_id=org_member_map.organization_id
-        )
-        return self._resolve_from_mapping(mapping)
-
-
 class UnimplementedRegionResolution(RegionResolution):
     """Indicate that a method's region resolution logic has not been implemented yet.
 

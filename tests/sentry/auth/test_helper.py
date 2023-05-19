@@ -34,7 +34,7 @@ def _set_up_request():
     return request
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class AuthIdentityHandlerTest(TestCase):
     def setUp(self):
         self.provider = "dummy"

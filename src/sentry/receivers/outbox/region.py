@@ -65,6 +65,7 @@ def process_organization_member_create(
 
     organizationmember_mapping_service.create_with_organization_member(org_member=org_member)
     member_joined.send_robust(
+        sender=None,
         member=org_member,
         organization_id=org_member.organization_id,
     )

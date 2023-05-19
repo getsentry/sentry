@@ -191,3 +191,13 @@ class RpcUserOrganizationContext(RpcModel):
         # Ensures that outer user_id always agrees with the inner member object.
         if self.user_id is not None and self.member is not None:
             assert self.user_id == self.member.user_id
+
+
+class RpcUserInviteContext(RpcUserOrganizationContext):
+    """
+    A context containing an intended organization member object as a potential invite, and the true
+    inner organization member state as found for a given user_id if it exists, or just the organization
+    member state of the invite if none such exists.
+    """
+
+    invite_organization_member_id: int = 0

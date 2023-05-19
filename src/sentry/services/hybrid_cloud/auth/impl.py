@@ -36,7 +36,8 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMemberSummary,
     organization_service,
 )
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
 from sentry.utils.types import Any
@@ -145,6 +146,14 @@ class DatabaseBackedAuthService(AuthService):
             for oid in organization_ids
         ]
 
+    def _serialize_auth_user(self, user: User) -> RpcUser | None:
+        rpc_user: RpcUser | None = None
+        if user is not None:
+            users = user_service.get_many(filter=dict(user_ids=[user.id]))
+            if users:
+                rpc_user = users[0]
+        return rpc_user
+
     def authenticate_with(
         self, *, request: AuthenticationRequest, authenticator_types: List[RpcAuthenticatorType]
     ) -> AuthenticationContext:
@@ -160,7 +169,7 @@ class DatabaseBackedAuthService(AuthService):
 
         return AuthenticationContext(
             auth=AuthenticatedToken.from_token(token) if token else None,
-            user=serialize_rpc_user(user) if user else None,
+            user=self._serialize_auth_user(user),
         )
 
     def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
@@ -188,13 +197,13 @@ class DatabaseBackedAuthService(AuthService):
         )
 
         if expired_user is not None:
-            result.user = serialize_rpc_user(expired_user)
+            result.user = self._serialize_auth_user(expired_user)
             result.expired = True
         elif fake_request.user is not None and not fake_request.user.is_anonymous:
             from django.db import connections, transaction
 
             with transaction.atomic():
-                result.user = serialize_rpc_user(fake_request.user)
+                result.user = self._serialize_auth_user(fake_request.user)
                 transaction.set_rollback(True)
             if SiloMode.single_process_silo_mode():
                 connections.close_all()

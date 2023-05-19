@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Iterable, List, Optional, Set, cast
 
 from django.db import models, transaction
+from django.db.models import Q
 
 from sentry import roles
 from sentry.db.postgres.roles import in_test_psql_role_override
@@ -21,6 +22,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSummary,
+    RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
 from sentry.services.hybrid_cloud.organization.serial import (
@@ -107,10 +109,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def get_invite(
         self,
         *,
-        organization_member_id: int,
+        organization_member_id: Optional[int] = None,
         organization_id: Optional[int] = None,
         slug: Optional[str] = None,
-    ) -> Optional[RpcUserOrganizationContext]:
+        user_id: Optional[int] = None,
+        email: Optional[str] = None,
+    ) -> Optional[RpcUserInviteContext]:
         """
         Query for an organization member by its id and organization
         """
@@ -124,17 +128,24 @@ class DatabaseBackedOrganizationService(OrganizationService):
         except Organization.DoesNotExist:
             return None
 
-        try:
-            member = OrganizationMember.objects.get(
-                id=organization_member_id, organization_id=org.id
-            )
-        except OrganizationMember.DoesNotExist:
+        q = Q(False)
+        if organization_member_id is not None:
+            q = Q(organization_id=org.id, id=organization_member_id)
+        elif email:
+            q = Q(organization_id=org.id, email=email)
+
+        if user_id is not None:
+            # Prefer finding the organization member matching the user id that already exists.
+            q = Q(organization_id=org.id, user_id=user_id) | q
+        member = OrganizationMember.objects.filter(q).first()
+        if member is None:
             return None
 
-        return RpcUserOrganizationContext(
+        return RpcUserInviteContext(
             user_id=member.user_id,
             organization=serialize_organization(org),
             member=serialize_member(member),
+            invite_organization_member_id=organization_member_id,
         )
 
     def get_organization_member(
@@ -147,7 +158,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return serialize_member(member)
 
-    def delete_organization_member(self, *, organization_member_id: int) -> bool:
+    def delete_organization_member(
+        self, *, organization_id: int, organization_member_id: int
+    ) -> bool:
         try:
             member = OrganizationMember.objects.get(id=organization_member_id)
         except OrganizationMember.DoesNotExist:
@@ -159,18 +172,27 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self,
         *,
         organization_member_id: int,
+        organization_id: int,
         user_id: int,
     ) -> Optional[RpcOrganizationMember]:
         region_outbox = None
         with transaction.atomic():
             try:
-                org_member = OrganizationMember.objects.get(id=organization_member_id)
-                org_member.set_user(user_id)
-                org_member.save()
-                region_outbox = org_member.outbox_for_update()
-                region_outbox.save()
+                org_member = OrganizationMember.objects.get(
+                    user_id=user_id, organization_id=organization_id
+                )
+                return serialize_member(org_member)
             except OrganizationMember.DoesNotExist:
-                return None
+                try:
+                    org_member = OrganizationMember.objects.get(
+                        id=organization_member_id, organization_id=organization_id
+                    )
+                    org_member.set_user(user_id)
+                    org_member.save()
+                    region_outbox = org_member.outbox_for_update()
+                    region_outbox.save()
+                except OrganizationMember.DoesNotExist:
+                    return None
         if region_outbox:
             region_outbox.drain_shard(max_updates_to_drain=10)
         return serialize_member(org_member)

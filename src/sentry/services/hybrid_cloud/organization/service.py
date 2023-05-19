@@ -10,13 +10,13 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSummary,
+    RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
 from sentry.services.hybrid_cloud.region import (
     ByOrganizationId,
     ByOrganizationIdAttribute,
     ByOrganizationIdOrSlug,
-    ByOrganizationMemberId,
     ByOrganizationSlug,
     UnimplementedRegionResolution,
 )
@@ -122,29 +122,34 @@ class OrganizationService(RpcService):
     def get_invite(
         self,
         *,
-        organization_member_id: int,
+        organization_member_id: Optional[int] = None,
         organization_id: Optional[int] = None,
         slug: Optional[str] = None,
-    ) -> Optional[RpcUserOrganizationContext]:
+        user_id: Optional[int] = None,
+        email: Optional[str] = None,
+    ) -> Optional[RpcUserInviteContext]:
         """
         Query for an organization member by its id.
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationMemberId())
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def delete_organization_member(self, *, organization_member_id: int) -> bool:
+    def delete_organization_member(
+        self, *, organization_id: int, organization_member_id: int
+    ) -> bool:
         """
         Delete an organization member by its id.
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationMemberId())
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def set_user_for_organization_member(
         self,
         *,
         organization_member_id: int,
+        organization_id: int,
         user_id: int,
     ) -> Optional[RpcOrganizationMember]:
         """
