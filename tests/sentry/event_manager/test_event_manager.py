@@ -46,6 +46,7 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
 )
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import (
     Activity,
     Commit,
@@ -2371,7 +2372,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert group.issue_category == GroupCategory.PERFORMANCE
             assert group.issue_type == PerformanceNPlusOneGroupType
             assert event.occurrence
-            assert event.occurrence.evidence_display == []
+            assert event.occurrence.evidence_display == [
+                IssueEvidence(
+                    name="Offending Spans",
+                    value="db - SELECT `books_author`.`id`, `books_author`.`name` "
+                    "FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                    important=True,
+                )
+            ]
             assert event.occurrence.evidence_data == {
                 "transaction_name": "/books/",
                 "op": "db",
