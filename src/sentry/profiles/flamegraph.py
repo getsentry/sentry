@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List
 
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
@@ -14,32 +14,20 @@ def get_profiles_id(
     organization_id: int,
     project_id: int,
     transaction_name: str,
-    start: datetime = None,
-    end: datetime = None,
+    start: datetime,
+    end: datetime,
 ) -> Dict[str, List[str]]:
-    where_conditions = []
-    if start is not None:
-        where_conditions.append(Condition(Column("received"), Op.GTE, start))
-    else:
-        where_conditions.append(
-            Condition(
-                Column("received"), Op.GTE, datetime.utcnow() - timedelta(days=MAX_RETENTION_DAYS)
-            )
-        )
-    if end is not None:
-        where_conditions.append(Condition(Column("received"), Op.LT, end))
-    else:
-        where_conditions.append(Condition(Column("received"), Op.LT, datetime.utcnow()))
     query = Query(
         match=Entity(EntityKey.Profiles.value),
         select=[
             Column("profile_id"),
         ],
-        where=where_conditions
-        + [
+        where=[
             Condition(Column("organization_id"), Op.EQ, organization_id),
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("transaction_name"), Op.EQ, transaction_name),
+            Condition(Column("received"), Op.GTE, start),
+            Condition(Column("received"), Op.LT, end),
         ],
     ).set_limit(100)
     request = Request(

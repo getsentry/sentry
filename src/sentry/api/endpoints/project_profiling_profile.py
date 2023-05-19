@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime, timedelta
 from typing import Any, Dict
 
 from django.http import HttpResponse, HttpResponseRedirect
@@ -16,7 +17,7 @@ from sentry.api.utils import generate_organization_url
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.profiles.flamegraph import get_profiles_id
+from sentry.profiles.flamegraph import MAX_RETENTION_DAYS, get_profiles_id
 from sentry.profiles.utils import (
     get_from_profiling_service,
     parse_profile_filters,
@@ -146,8 +147,8 @@ class ProjectProfilingFlamegraphEndpoint(ProjectProfilingBaseEndpoint):
             project.organization_id,
             project.id,
             params["transaction_name"],
-            params.get("start"),
-            params.get("end"),
+            params.get("start", datetime.utcnow() - timedelta(days=MAX_RETENTION_DAYS)),
+            params.get("end", datetime.utcnow()),
         )
         kwargs: Dict[str, Any] = {
             "method": "POST",
