@@ -60,9 +60,11 @@ const getDomainSubquery = (date_filters: string) => {
     ${DEFAULT_WHERE}
     ${date_filters} and
     domain != ''
-   group by domain
-   order by ${ORDERBY}
-   limit 5
+  group by domain
+  having
+    ${SPM} > 0.05
+  order by ${ORDERBY}
+  limit 5
   `;
 };
 
@@ -140,14 +142,14 @@ export const useQueryDbTables = (): DefinedUseQueryResult<
 export const useQueryTopDbOperationsChart = (
   interval: number
 ): DefinedUseQueryResult<
-  {action: string; count: number; interval: string; p75: number}[]
+  {action: string; count: number; interval: string; p50: number}[]
 > => {
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
   const query = `
   select
-    floor(quantile(0.75)(exclusive_time), 5) as p75,
+    floor(quantile(0.50)(exclusive_time), 5) as p50,
     action,
     count() as count,
     toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
@@ -255,7 +257,7 @@ type TopTableQuery = {
   count: number;
   domain: string;
   interval: string;
-  p75: number;
+  p50: number;
 }[];
 
 export const useQueryTopTablesChart = (
@@ -266,7 +268,7 @@ export const useQueryTopTablesChart = (
   const dateFilters = getDateQueryFilter(startTime, endTime);
   const query = `
   select
-    floor(quantile(0.75)(exclusive_time), 5) as p75,
+    floor(quantile(0.50)(exclusive_time), 5) as p50,
     domain,
     divide(count(), multiply(${interval}, 60)) as count,
     toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
@@ -290,7 +292,7 @@ export const useQueryTopTablesChart = (
 
   const query2 = `
   select
-  floor(quantile(0.75)(exclusive_time), 5) as p75,
+  floor(quantile(0.50)(exclusive_time), 5) as p50,
   divide(count(), multiply(${interval}, 60)) as count,
   toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
   from default.spans_experimental_starfish
