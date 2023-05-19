@@ -65,18 +65,6 @@ class UserManager(BaseManager, DjangoUserManager):
             is_active=True,
         )
 
-    def get_from_projects(self, organization_id, projects):
-        """
-        Returns users associated with a project based on their teams.
-        """
-        # TODO(hybridcloud) This is doing cross silo joins
-        return self.filter(
-            sentry_orgmember_set__organization_id=organization_id,
-            sentry_orgmember_set__organizationmemberteam__team__projectteam__project__in=projects,
-            sentry_orgmember_set__organizationmemberteam__is_active=True,
-            is_active=True,
-        )
-
     def get_from_organizations(self, organization_ids):
         """Returns users associated with an Organization based on their teams."""
         # TODO(hybridcloud) This is doing cross silo joins
