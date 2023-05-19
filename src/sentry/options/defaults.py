@@ -4,7 +4,6 @@ from sentry.logging import LoggingFormat
 from sentry.options import (
     FLAG_ALLOW_EMPTY,
     FLAG_IMMUTABLE,
-    FLAG_MODIFIABLE_BOOL,
     FLAG_MODIFIABLE_RATE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
@@ -677,8 +676,6 @@ register("performance.issues.consecutive_http.consecutive_count_threshold", defa
 register("performance.issues.consecutive_http.span_duration_threshold", default=1000)
 register("performance.issues.large_http_payload.size_threshold", default=1000000)  # 1MB
 
-# System-wide option for sending occurrences to the issues platform
-register("performance.issues.send_to_issues_platform", default=False, flags=FLAG_MODIFIABLE_BOOL)
 
 # Dynamic Sampling system wide options
 # Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases

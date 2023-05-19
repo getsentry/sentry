@@ -6021,8 +6021,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             "query": f"issue.id:{event.group.id}",
             "dataset": "issuePlatform",
         }
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            response = self.do_request(query)
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
@@ -6088,8 +6087,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
             "dataset": "issuePlatform",
         }
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            response = self.do_request(query)
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
@@ -6103,8 +6101,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             "query": f"project:{event1.group.project.slug} issue:[{event1.group.qualified_short_id},{event2.group.qualified_short_id}]",
             "dataset": "issuePlatform",
         }
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            response = self.do_request(query)
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 2
 

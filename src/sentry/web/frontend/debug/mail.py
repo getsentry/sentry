@@ -49,7 +49,6 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
-from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import SAMPLE_TO_OCCURRENCE_MAP, TEST_ISSUE_OCCURRENCE
 from sentry.utils import json, loremipsum
@@ -201,7 +200,7 @@ def make_performance_event(project, sample_name: str):
     perf_data["event_id"] = event_id
     perf_data["project_id"] = project.id
 
-    with override_options({"performance.issues.send_to_issues_platform": True}), mock.patch.object(
+    with mock.patch.object(
         PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
     ):
         occurrence, group_info = process_event_and_issue_occurrence(

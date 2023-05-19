@@ -74,35 +74,34 @@ class ErrorEventMixin:
 
 class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
     def add_event(self, data, project_id, timestamp):
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            fingerprint = data["fingerprint"][0]
-            fingerprint = (
-                fingerprint
-                if "-" in fingerprint
-                else f"{PerformanceNPlusOneGroupType.type_id}-{data['fingerprint'][0]}"
-            )
-            event_data = load_data(
-                "transaction-n-plus-one",
-                timestamp=timestamp.replace(tzinfo=pytz.utc),
-                start_timestamp=timestamp.replace(tzinfo=pytz.utc),
-                fingerprint=[fingerprint],
-            )
-            event_data["user"] = {"id": uuid4().hex}
-            event_data["environment"] = data.get("environment")
-            for tag in event_data["tags"]:
-                if tag[0] == "environment":
-                    tag[1] = data.get("environment")
-                    break
-            else:
-                event_data["tags"].append(data.get("environment"))
+        fingerprint = data["fingerprint"][0]
+        fingerprint = (
+            fingerprint
+            if "-" in fingerprint
+            else f"{PerformanceNPlusOneGroupType.type_id}-{data['fingerprint'][0]}"
+        )
+        event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=timestamp.replace(tzinfo=pytz.utc),
+            start_timestamp=timestamp.replace(tzinfo=pytz.utc),
+            fingerprint=[fingerprint],
+        )
+        event_data["user"] = {"id": uuid4().hex}
+        event_data["environment"] = data.get("environment")
+        for tag in event_data["tags"]:
+            if tag[0] == "environment":
+                tag[1] = data.get("environment")
+                break
+        else:
+            event_data["tags"].append(data.get("environment"))
 
-            # Store a performance event
-            event = self.create_performance_issue(
-                event_data=event_data,
-                project_id=project_id,
-                fingerprint=fingerprint,
-            )
-            return event
+        # Store a performance event
+        event = self.create_performance_issue(
+            event_data=event_data,
+            project_id=project_id,
+            fingerprint=fingerprint,
+        )
+        return event
 
 
 class StandardIntervalMixin:

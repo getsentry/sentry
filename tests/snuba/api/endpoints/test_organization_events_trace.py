@@ -69,13 +69,9 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
                 {
                     "performance.issues.all.problem-detection": 1.0,
                     "performance-file-io-main-thread-creation": 1.0,
-                    "performance.issues.send_to_issues_platform": True,
-                    "performance.issues.create_issues_through_platform": True,
                 }
             ), self.feature(
-                [
-                    "projects:performance-suspect-spans-ingestion",
-                ]
+                ["projects:performance-suspect-spans-ingestion"]
             ):
                 return self.store_event(data, project_id=project_id, **kwargs)
 
