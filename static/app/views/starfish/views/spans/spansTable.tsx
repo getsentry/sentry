@@ -323,17 +323,17 @@ function getColumns(queryConditions: string[]): GridColumnOrder[] {
     },
     {
       key: 'throughput_trend',
-      name: 'throughput (spm)',
+      name: 'Throughput (SPM)',
       width: 175,
     },
     {
       key: 'p50_trend',
-      name: 'p50 trend',
+      name: 'Duration (p50)',
       width: 175,
     },
     {
       key: 'p95_trend',
-      name: 'p95 trend',
+      name: 'Duration (p95)',
       width: 175,
     },
   ];

@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import MarkLine from 'sentry/components/charts/components/markLine';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -88,11 +89,31 @@ export function SpanSummaryPanel({span, onClose}: Props) {
       </BlockContainer>
 
       <BlockContainer>
-        <Block title={t('SPM')} description={t('Spans per minute')}>
+        <Block title={t('Span Throughput (SPM)')} description={t('Spans per minute')}>
           <Chart
             statsPeriod="24h"
             height={140}
-            data={[spanMetricSeries.spm]}
+            data={[
+              {
+                ...spanMetricSeries.spm,
+                markLine: spanMetrics?.p50
+                  ? MarkLine({
+                      silent: true,
+                      animation: false,
+                      lineStyle: {color: theme.blue300, type: 'dotted'},
+                      data: [
+                        {
+                          yAxis: spanMetrics.spm,
+                        },
+                      ],
+                      label: {
+                        show: true,
+                        position: 'insideStart',
+                      },
+                    })
+                  : undefined,
+              },
+            ]}
             start=""
             end=""
             loading={false}
@@ -104,11 +125,31 @@ export function SpanSummaryPanel({span, onClose}: Props) {
           />
         </Block>
 
-        <Block title={t('Duration')} description={t('Exclusive time')}>
+        <Block title={t('Span Duration (p50)')} description={t('Exclusive time')}>
           <Chart
             statsPeriod="24h"
             height={140}
-            data={[spanMetricSeries.p50, spanMetricSeries.p95]}
+            data={[
+              {
+                ...spanMetricSeries.p50,
+                markLine: spanMetrics?.p50
+                  ? MarkLine({
+                      silent: true,
+                      animation: false,
+                      lineStyle: {color: theme.blue300, type: 'dotted'},
+                      data: [
+                        {
+                          yAxis: spanMetrics.p50,
+                        },
+                      ],
+                      label: {
+                        show: true,
+                        position: 'insideStart',
+                      },
+                    })
+                  : undefined,
+              },
+            ]}
             start=""
             end=""
             loading={false}
