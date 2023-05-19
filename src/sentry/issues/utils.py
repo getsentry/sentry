@@ -15,6 +15,4 @@ def write_occurrence_to_platform(performance_problem: PerformanceProblem, projec
         performance_problem.type.category == GroupCategory.PERFORMANCE.value
         # system-wide option
         and options.get("performance.issues.send_to_issues_platform", False)
-        # more-granular per-project option
-        and project.get_option("sentry:performance_issue_send_to_issues_platform", True)
     )
