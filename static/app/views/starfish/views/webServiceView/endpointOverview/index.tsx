@@ -20,7 +20,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
-import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
 import {SampleEvents} from 'sentry/views/starfish/components/sampleEvents';
@@ -35,6 +34,7 @@ import {
 import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combineTableDataWithSparklineData';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
+import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -228,11 +228,7 @@ export default function EndpointOverview() {
               );
             }}
           </EventsRequest>
-          <FacetBreakdownBar
-            title={t('Where is time spent in this endpoint?')}
-            transaction={transaction as string}
-          />
-          {/* <SpanGroupBreakdownContainer transaction={transaction as string} /> */}
+          <SpanGroupBreakdownContainer transaction={transaction as string} />
           <SubHeader>{t('Sample Events')}</SubHeader>
           <SampleEvents eventView={eventView} />
           <SubHeader>{t('Correlations')}</SubHeader>
