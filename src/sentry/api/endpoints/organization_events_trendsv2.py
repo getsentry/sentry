@@ -235,7 +235,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         request,
                         organization,
                         params["project_id"],
-                        {"data": [trends["data"]], "meta": {"isMetricsData": True}},
+                        {"data": trending_events, "meta": {"isMetricsData": True}},
                         True,
                     ),
                     "stats": trending_transaction_names_stats,
