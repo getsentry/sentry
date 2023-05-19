@@ -85,7 +85,6 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         super().setUp()
         self.rule = Rule.objects.create(project=self.project, label="Test Rule", data={})
         self.key = f"mail:p:{self.project.id}"
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         for i in range(USER_COUNT - 1):
             self.create_member(
