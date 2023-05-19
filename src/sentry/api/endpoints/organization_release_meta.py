@@ -75,7 +75,9 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
 
         # We want to first check if there are any bundles that are weakly associated with this release, if so we want
         # to count the sum of their artifacts.
-        weakly_associated_count = release.count_artifacts_in_artifact_bundles()
+        weakly_associated_count = release.count_artifacts_in_artifact_bundles(
+            project_ids=[project["id"] for project in projects]
+        )
         return Response(
             {
                 "version": release.version,
