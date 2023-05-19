@@ -637,6 +637,7 @@ def process_inbox_adds(job: PostProcessJob) -> None:
             from sentry.models.groupinbox import add_group_to_inbox
 
             if is_reprocessed and is_new:
+                # keep Group.status=UNRESOLVED and Group.substatus=ONGOING if its reprocessed
                 add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
             elif (
                 not is_reprocessed and not has_reappeared
