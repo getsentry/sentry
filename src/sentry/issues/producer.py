@@ -4,7 +4,7 @@ from atexit import register
 from collections import deque
 from concurrent import futures
 from concurrent.futures import Future
-from typing import Deque
+from typing import Any, Deque, Dict
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
@@ -32,6 +32,7 @@ def get_occurrence_producer() -> KafkaProducer:
 
 
 def produce_occurrence_to_kafka(occurrence: IssueOccurrence) -> None:
+    """Produce a typed "IssueOccurrence" to Kafka."""
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
         # write to the issue platform directly
@@ -39,7 +40,14 @@ def produce_occurrence_to_kafka(occurrence: IssueOccurrence) -> None:
 
         lookup_event_and_process_issue_occurrence(occurrence.to_dict())
         return
-    payload = KafkaPayload(None, json.dumps(occurrence.to_dict()).encode("utf-8"), [])
+
+    _produce_to_kafka(occurence_bytes=occurrence.to_dict())
+
+
+def _produce_to_kafka(occurrence: Dict[str, Any]) -> None:
+    """Produce an occurrence dictionary to Kafka."""
+    payload = KafkaPayload(None, json.dumps(occurrence).encode("utf-8"), [])
+
     occurrence_producer = get_occurrence_producer()
     future = occurrence_producer.produce(Topic(settings.KAFKA_INGEST_OCCURRENCES), payload)
 
