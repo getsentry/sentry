@@ -180,41 +180,41 @@ function QueryDetailBody({
     endTime
   );
 
-  const spmTransactionSeries = queryToSeries(
-    sparklineData,
-    'transaction',
-    'spm',
+  const spmTransactionSeries = queryToSeries({
+    data: sparklineData,
+    groupByProperty: 'transaction',
+    seriesValueProperty: 'spm',
     startTime,
     endTime,
-    SPARKLINE_INTERVAL
-  );
+    interval: SPARKLINE_INTERVAL,
+  });
 
-  const spanp50TransactionSeries = queryToSeries(
-    sparklineData,
-    'transaction',
-    'p50',
+  const spanp50TransactionSeries = queryToSeries({
+    data: sparklineData,
+    groupByProperty: 'transaction',
+    seriesValueProperty: 'p50',
     startTime,
     endTime,
-    SPARKLINE_INTERVAL
-  );
+    interval: SPARKLINE_INTERVAL,
+  });
 
-  const tpmTransactionSeries = queryToSeries(
-    transactionGraphData,
-    'group',
-    'epm()',
+  const tpmTransactionSeries = queryToSeries({
+    data: transactionGraphData,
+    groupByProperty: 'group',
+    seriesValueProperty: 'epm()',
     startTime,
     endTime,
-    SPARKLINE_INTERVAL
-  );
+    interval: SPARKLINE_INTERVAL,
+  });
 
-  const p50TransactionSeries = queryToSeries(
-    transactionGraphData,
-    'group',
-    'p50(transaction.duration)',
+  const p50TransactionSeries = queryToSeries({
+    data: transactionGraphData,
+    groupByProperty: 'group',
+    seriesValueProperty: 'p50(transaction.duration)',
     startTime,
     endTime,
-    SPARKLINE_INTERVAL
-  );
+    interval: SPARKLINE_INTERVAL,
+  });
 
   const markLine =
     spmTransactionSeries?.[0]?.data && (isNew || isOld)
