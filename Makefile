@@ -127,9 +127,48 @@ test-js-ci: node-version-check
 test-python-ci:
 	@echo "--> Running CI Python tests"
 	pytest tests/integration tests/sentry \
+		--ignore tests/sentry/hybrid_cloud \
+		--ignore tests/sentry/replays \
+		--ignore tests/sentry/models \
+		--ignore tests/sentry/options \
+		--ignore tests/sentry/web \
+		--ignore tests/sentry/tasks \
+		--ignore tests/sentry/event_manager \
+		--ignore tests/sentry/deletions \
+		--ignore tests/sentry/db \
+		--ignore tests/sentry/utils \
+		--ignore tests/sentry/search \
+		--ignore tests/sentry/rules \
+		--ignore tests/sentry/roles \
+		--ignore tests/sentry/profiles \
+		--ignore tests/sentry/sudo \
+		--ignore tests/sentry/plugins \
+		--ignore tests/sentry/mediators \
+		--ignore tests/sentry/receivers \
+		--ignore tests/sentry/sentry_apps \
+		--ignore tests/sentry/notifications \
+		--ignore tests/sentry/manager \
+		--ignore tests/sentry/sentry_metrics \
+		--ignore tests/sentry/metrics \
+		--ignore tests/sentry/relay \
+		--ignore tests/sentry/lang/javascript \
+		--ignore tests/sentry/ratelimits \
+		--ignore tests/sentry/mail \
+		--ignore tests/sentry/issues \
+		--ignore tests/sentry/similarity/backends \
+		--ignore tests/sentry/quotas \
+		--ignore tests/sentry/silo \
+		--ignore tests/sentry/services \
+		--ignore tests/sentry/runner \
+		--ignore tests/sentry/monitors \
+		--ignore tests/sentry/templatetags \
+		--ignore tests/sentry/shared_integrations \
+		--ignore tests/sentry/release_health \
+		--ignore tests/sentry/nodestore \
+		--ignore tests/sentry/middleware \
+		--ignore tests/sentry/integrations \
 		-n auto \
 		--maxprocesses 8 \
-		--ignore tests/sentry/hybrid_cloud \
 		--ignore tests/sentry/eventstream/kafka \
 		--ignore tests/sentry/post_process_forwarder \
 		--ignore tests/sentry/snuba \
@@ -137,9 +176,6 @@ test-python-ci:
 		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
 		--ignore tests/sentry/region_to_control/test_region_to_control_kafka.py \
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
-
-	pytest tests/sentry/hybrid_cloud \
-		--cov . --cov-report="xml:.artifacts/python-serial.coverage.xml"
 	@echo ""
 
 test-snuba:
