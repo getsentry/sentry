@@ -13,7 +13,7 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.testutils import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
 class ExamplePlugin(IssuePlugin2):
@@ -31,7 +31,7 @@ def naive_build_integration(data):
     "sentry.integrations.example.ExampleIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
-@control_silo_test
+@control_silo_test(stable=True)
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
 
@@ -333,13 +333,14 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     @patch("sentry.mediators.plugins.Migrator.call")
     def test_disabled_plugin_when_fully_migrated(self, call, *args):
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name="user/repo",
-            url="https://example.org/user/repo",
-            provider=self.provider.key,
-            external_id=self.external_id,
-        )
+        with exempt_from_silo_limits():
+            Repository.objects.create(
+                organization_id=self.organization.id,
+                name="user/repo",
+                url="https://example.org/user/repo",
+                provider=self.provider.key,
+                external_id=self.external_id,
+            )
 
         self.pipeline.state.data = {
             "external_id": self.external_id,
@@ -356,7 +357,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
     "sentry.integrations.gitlab.GitlabIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
-@control_silo_test
+@control_silo_test(stable=True)
 class GitlabFinishPipelineTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
 
