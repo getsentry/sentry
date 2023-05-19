@@ -21,6 +21,7 @@ class GroupCategory(Enum):
     ERROR = 1
     PERFORMANCE = 2
     PROFILE = 3
+    REPLAY = 4
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
@@ -314,6 +315,14 @@ class ProfileJSONDecodeType(GroupType):
     slug = "profile_json_decode_main_thread"
     description = "JSON Decoding on Main Thread"
     category = GroupCategory.PROFILE.value
+
+
+@dataclass(frozen=True)
+class ReplaySlowClickType(GroupType):
+    type_id = 3000
+    slug = "replay_slock_click_type"
+    description = "Slow response after click"
+    category = GroupCategory.REPLAY.value
 
 
 def reduce_noise(
