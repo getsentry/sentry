@@ -141,12 +141,12 @@ def set_tags(scope: Scope, result: JSONData) -> None:
 
 def get_code_mapping_configs(project: Project) -> List[RepositoryProjectPathConfig]:
     """
-    Returns the code mapping config list sorted based on precedence.
+    Returns the code mapping config list for a project sorted based on precedence.
     User generated code mappings are evaluated before Sentry generated code mappings.
     Code mappings with more defined stack trace roots are evaluated before less defined stack trace
     roots.
 
-    `configs`: The list of code mapping configs
+    `project`: The project to get the list of sorted code mapping configs for
     """
 
     # xxx(meredith): if there are ever any changes to this query, make

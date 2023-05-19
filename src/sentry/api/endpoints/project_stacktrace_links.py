@@ -21,21 +21,21 @@ class StacktraceLinksSerializer(serializers.Serializer):  # type: ignore
     file = serializers.ListField(child=serializers.CharField())
 
     # falls back to the default branch
-    commit_id = serializers.CharField(required=False)
+    ref = serializers.CharField(required=False)
 
 
 @region_silo_endpoint
 class ProjectStacktraceLinksEndpoint(ProjectEndpoint):  # type: ignore
     """
     Returns valid links for source code providers so that
-    users can go from the file in the stack trace to the
+    users can go from files in the stack trace to the
     provider of their choice.
 
     Simular to `ProjectStacktraceLinkEndpoint` but allows
     for bulk resolution.
 
-    `file`: The file path from the stack trace
-    `commitId` (optional): The commit_id for the last commit of the
+    `file`: The file paths from the stack trace
+    `ref` (optional): The commit_id for the last commit of the
                            release associated to the stack trace's event
     """
 
@@ -86,16 +86,16 @@ class ProjectStacktraceLinksEndpoint(ProjectEndpoint):  # type: ignore
 
             # since the same code mapping stack root matches all these files, we only check the
             # first file and we will assume the other matching files will resolve the same way
-            version = data.get("commit_id")
-            if version:
-                error = check_file(install, config, files[0]["file"], version)
-            if not version or error:
-                version = config.default_branch
-                error = check_file(install, config, files[0]["file"], version)
+            ref = data.get("ref")
+            if ref:
+                error = check_file(install, config, files[0]["file"], ref)
+            if not ref or error:
+                ref = config.default_branch
+                error = check_file(install, config, files[0]["file"], ref)
 
             for file in files:
                 formatted_path = file["file"].replace(config.stack_root, config.source_root, 1)
-                url = install.format_source_url(config.repository, formatted_path, version)
+                url = install.format_source_url(config.repository, formatted_path, ref)
                 if error:
                     file["error"] = error
                     file["attemptedUrl"] = url
@@ -128,15 +128,21 @@ def check_file(
     install: IntegrationInstallation,
     config: RepositoryProjectPathConfig,
     filepath: str,
-    version: str,
+    ref: str,
 ) -> str | None:
+    """
+    Checks to see if the given filepath exists using the given code mapping + ref.
+
+    Returns a string indicating the error if it doesn't exist, and `None` otherwise.
+    """
+
     formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
 
     link = None
     try:
         if isinstance(install, RepositoryMixin):
             # the logic to fall back to the default branch is handled from the caller
-            link = install.get_stacktrace_link(config.repository, formatted_path, version, "")
+            link = install.get_stacktrace_link(config.repository, formatted_path, ref, "")
     except ApiError as e:
         if e.code != 403:
             raise

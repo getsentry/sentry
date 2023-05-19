@@ -138,14 +138,14 @@ class ProjectStacktraceLinksTest(APITestCase):
                 ],
             }
 
-    def test_config_and_source_url_with_commit_id(self):
+    def test_config_and_source_url_with_ref(self):
         with patch.object(
             ExampleIntegration, "get_stacktrace_link", return_value="https://sourceurl.com"
         ):
             self.setup_code_mapping("foo", "src/foo")
 
             qs = {
-                "commit_id": "3c2e87573d3bd16f61cf08fece0638cc47a4fc22",
+                "ref": "3c2e87573d3bd16f61cf08fece0638cc47a4fc22",
                 "file": self.filepath,
             }
 
@@ -168,7 +168,7 @@ class ProjectStacktraceLinksTest(APITestCase):
             self.setup_code_mapping("foo", "src/foo")
 
             qs = {
-                "commit_id": "3c2e87573d3bd16f61cf08fece0638cc47a4fc22",
+                "ref": "3c2e87573d3bd16f61cf08fece0638cc47a4fc22",
                 "file": self.filepath,
             }
 
