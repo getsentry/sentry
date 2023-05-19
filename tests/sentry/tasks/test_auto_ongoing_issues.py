@@ -22,12 +22,16 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         group = self.create_group(
             project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
         )
-        group_inbox = add_group_to_inbox(group, GroupInboxReason.NEW)
-        group_inbox.date_added = now - timedelta(days=3, hours=1)
-        group_inbox.save()
+        group.last_seen = now - timedelta(days=3, hours=1)
+        group.save()
+        add_group_to_inbox(group, GroupInboxReason.NEW)
 
         with self.tasks():
             schedule_auto_transition_new()
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ONGOING
 
         ongoing_inbox = GroupInbox.objects.filter(group=group).get()
         assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
@@ -43,12 +47,16 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         group = self.create_group(
             project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
         )
-        group_inbox = add_group_to_inbox(group, GroupInboxReason.REPROCESSED)
-        group_inbox.date_added = now - timedelta(days=3, hours=1)
-        group_inbox.save()
+        group.last_seen = now - timedelta(days=3, hours=1)
+        group.save()
+        add_group_to_inbox(group, GroupInboxReason.REPROCESSED)
 
         with self.tasks():
             schedule_auto_transition_new()
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ONGOING
 
         ongoing_inbox = GroupInbox.objects.filter(group=group).get()
         assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
@@ -83,13 +91,13 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
                 status=GroupStatus.UNRESOLVED,
                 substatus=GroupSubStatus.NEW,
             )
+            last_seen = now - timedelta(days=day, hours=hours)
+            group.last_seen = last_seen
+            group.save()
 
-            group_inbox = add_group_to_inbox(group, GroupInboxReason.NEW)
-            date_added = now - timedelta(days=day, hours=hours)
-            group_inbox.date_added = date_added
-            group_inbox.save()
+            add_group_to_inbox(group, GroupInboxReason.NEW)
 
-            if (now - date_added).days >= 3:
+            if (now - last_seen).days >= 3:
                 older_groups.append(group)
             else:
                 new_groups.append(group)
@@ -140,15 +148,21 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
 
         groups = Group.objects.bulk_create(
             [
-                Group(project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
-                for _ in range(1010)
+                Group(
+                    project=project,
+                    status=GroupStatus.UNRESOLVED,
+                    substatus=GroupSubStatus.NEW,
+                    last_seen=now - timedelta(days=3, hours=idx),
+                )
+                for idx in range(1010)
             ]
         )
 
+        # group_inbox.date_added = now - timedelta(days=3, hours=idx)
+        # group_inbox.save(update_fields=["date_added"])
+
         for idx, group in enumerate(groups, 1):
-            group_inbox = add_group_to_inbox(group, GroupInboxReason.NEW)
-            group_inbox.date_added = now - timedelta(days=3, hours=idx)
-            group_inbox.save(update_fields=["date_added"])
+            add_group_to_inbox(group, GroupInboxReason.NEW)
 
         # before
         assert Group.objects.filter(project_id=project.id).count() == len(groups) == 1010
@@ -189,14 +203,19 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()
         group = self.create_group(
-            project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED
+            project=project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.REGRESSED,
+            last_seen=now - timedelta(days=14, hours=1),
         )
-        group_inbox = add_group_to_inbox(group, GroupInboxReason.REGRESSION)
-        group_inbox.date_added = now - timedelta(days=14, hours=1)
-        group_inbox.save()
+        add_group_to_inbox(group, GroupInboxReason.REGRESSION)
 
         with self.tasks():
             schedule_auto_transition_regressed()
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ONGOING
 
         ongoing_inbox = GroupInbox.objects.filter(group=group).get()
         assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
