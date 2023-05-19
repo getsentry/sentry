@@ -36,7 +36,6 @@ import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import Sidebar, {
   getTransactionBasedSeries,
   queryDataToChartData,
-  SidebarChart,
 } from 'sentry/views/starfish/views/spanSummary/sidebar';
 
 import {
@@ -109,7 +108,6 @@ export default function SpanSummary({location, params}: Props) {
   });
   const pageFilter = usePageFilters();
   const theme = useTheme();
-  const chartColors = theme.charts.getColorPalette(2);
 
   const dateFilter = getDateFilters(pageFilter);
 
@@ -168,13 +166,13 @@ export default function SpanSummary({location, params}: Props) {
   const {isLoading: isTransactionAggregateDataLoading, data: transactionAggregateData} =
     useQueryTransactionByTPMAndDuration([transactionName], 12);
 
-  const {p50TransactionSeries, p95TransactionSeries, throughputTransactionSeries} =
-    getTransactionBasedSeries(transactionAggregateData, dateFilter);
+  const {p50TransactionSeries, p95TransactionSeries} = getTransactionBasedSeries(
+    transactionAggregateData,
+    dateFilter
+  );
 
-  const [p50Series, p95Series, , spmSeries, _errorCountSeries] = queryDataToChartData(
-    seriesData
-  ).map(series =>
-    zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
+  const [p50Series, p95Series, _errorCountSeries] = queryDataToChartData(seriesData).map(
+    series => zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
   );
 
   const {data: transactionData, isLoading: isTransactionDataLoading} = useApiQuery<{
@@ -320,14 +318,6 @@ export default function SpanSummary({location, params}: Props) {
                 )}
                 <FlexRowContainer>
                   <FlexRowItem>
-                    <h4>{t('Throughput (SPM)')}</h4>
-                    <SidebarChart
-                      series={spmSeries}
-                      isLoading={isLoadingSeriesData}
-                      chartColor={chartColors[0]}
-                    />
-                  </FlexRowItem>
-                  <FlexRowItem>
                     <h4>{t('Span Duration (P50 / P95)')}</h4>
                     <Chart
                       statsPeriod="24h"
@@ -357,22 +347,6 @@ export default function SpanSummary({location, params}: Props) {
                 </FlexRowContainer>
 
                 <FlexRowContainer>
-                  <FlexRowItem>
-                    <h4>{t('Throughput (TPM)')}</h4>
-                    <Chart
-                      statsPeriod="24h"
-                      height={140}
-                      data={[throughputTransactionSeries ?? []]}
-                      start=""
-                      end=""
-                      loading={isTransactionAggregateDataLoading}
-                      utc={false}
-                      stacked
-                      isLineChart
-                      disableXAxis
-                      hideYAxisSplitLine
-                    />
-                  </FlexRowItem>
                   <FlexRowItem>
                     <h4>{t('Transaction Duration (P50 / P95)')}</h4>
                     <Chart

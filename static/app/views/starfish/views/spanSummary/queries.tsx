@@ -265,7 +265,15 @@ const getSpanSamplesQuery = ({
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
 
   return `
-    SELECT transaction_id, transaction, description, user, domain, span_id, sum(exclusive_time) as exclusive_time, abs(minus(exclusive_time, ${p50})) as diff
+    SELECT
+      transaction_id,
+      transaction,
+      description,
+      user,
+      domain,
+      span_id,
+      sum(exclusive_time) as exclusive_time,
+      abs(minus(exclusive_time, ${p50})) as diff
     FROM spans_experimental_starfish
     WHERE group_id = '${groupId}'
     ${transactionName ? `AND transaction = '${transactionName}'` : ''}

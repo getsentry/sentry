@@ -12,8 +12,10 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
+import {FlexRowItem} from 'sentry/views/starfish/modules/databaseModule/panel';
+import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
-import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {getDateFilters, PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {
   useQueryGetFacetsBreakdown,
@@ -63,11 +65,21 @@ export default function Sidebar({
     transactionName,
   });
 
+  const {isLoading: isTransactionAggregateDataLoading, data: transactionAggregateData} =
+    useQueryTransactionByTPMAndDuration([transactionName], 12);
+
   // This is a metrics request on transactions data!
   // We're fetching the count of events on a specific transaction so we can
   // calculate span frequency using metrics spans vs metrics transactions
   const {data: transactionData, isLoading: _isTransactionDataLoading} =
     useQueryGetUniqueTransactionCount({transactionName});
+
+  const dateFilter = getDateFilters(pageFilter);
+
+  const {throughputTransactionSeries} = getTransactionBasedSeries(
+    transactionAggregateData,
+    dateFilter
+  );
 
   const {failure_rate, count, total_exclusive_time, count_unique_transaction_id} =
     spanAggregateData[0] || {};
@@ -79,8 +91,10 @@ export default function Sidebar({
       : moment(pageFilter.selection.datetime.start);
   const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
 
-  const [, , , _errorCountSeries, errorRateSeries] = queryDataToChartData(seriesData).map(
-    series => zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
+  const [, , , spmSeries, _errorCountSeries, errorRateSeries] = queryDataToChartData(
+    seriesData
+  ).map(series =>
+    zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
   );
 
   // NOTE: This almost always calculates to 0.00% when using the scraped data.
@@ -124,6 +138,32 @@ export default function Sidebar({
           {spansPerEvent} {t('per event')}
         </SidebarItemValueContainer>
       </FlexItem>
+      <FlexRowItem>
+        <FlexItem>
+          <h4>{t('Throughput (SPM)')}</h4>
+          <SidebarChart
+            series={spmSeries}
+            isLoading={isLoadingSeriesData}
+            chartColor={chartColors[0]}
+          />
+        </FlexItem>
+        <FlexItem>
+          <h4>{t('Throughput (TPM)')}</h4>
+          <Chart
+            statsPeriod="24h"
+            height={140}
+            data={[throughputTransactionSeries ?? []]}
+            start=""
+            end=""
+            loading={isTransactionAggregateDataLoading}
+            utc={false}
+            stacked
+            isLineChart
+            disableXAxis
+            hideYAxisSplitLine
+          />
+        </FlexItem>
+      </FlexRowItem>
 
       {
         // This could be better. Improve later.
