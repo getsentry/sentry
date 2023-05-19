@@ -2,22 +2,6 @@ import {ResponseMeta} from 'sentry/api';
 
 import RequestError from './requestError';
 
-const ERROR_MAP = {
-  0: 'CancelledError',
-  400: 'BadRequestError',
-  401: 'UnauthorizedError',
-  403: 'ForbiddenError',
-  404: 'NotFoundError',
-  414: 'URITooLongError',
-  426: 'UpgradeRequiredError',
-  429: 'TooManyRequestsError',
-  500: 'InternalServerError',
-  501: 'NotImplementedError',
-  502: 'BadGatewayError',
-  503: 'ServiceUnavailableError',
-  504: 'GatewayTimeoutError',
-};
-
 /**
  * Create a RequestError whose name is equal to HTTP status text defined above
  *
@@ -33,12 +17,6 @@ export default function createRequestError(
   const err = new RequestError(method, path, {cause});
 
   if (resp) {
-    const errorName = ERROR_MAP[resp.status];
-
-    if (errorName) {
-      err.name = errorName;
-    }
-
     err.addResponseMetadata(resp);
   }
 
