@@ -17,7 +17,6 @@ from sentry.sentry_metrics.indexer.limiters.cardinality import (
     TimeseriesCardinalityLimiter,
     _build_quota_key,
 )
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.helpers.options import override_options
 
 
@@ -50,7 +49,6 @@ def rollout_all_orgs_generic_metrics(set_sentry_option):
 
 class MockCardinalityLimiter(CardinalityLimiter):
     def __init__(self):
-        # self.grant_hashes = 10
         self.grant_hashes = {}
         # self.assert_quota: Optional[Quota] = None
         self.assert_requests: Optional[Sequence[RequestedQuota]] = None
@@ -122,7 +120,6 @@ def test_reject_all():
             _build_quota_key(MockUseCaseID.USE_CASE_2, 1): 0,
         }
 
-        # backend.grant_hashes = 0
         limiter = TimeseriesCardinalityLimiter("", backend)
 
         result = limiter.check_cardinality_limits(
@@ -151,7 +148,7 @@ def test_reject_all():
     "sentry.sentry_metrics.indexer.limiters.cardinality.USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS,
 )
-def test_reject_all_but_default():
+def test_reject_all_with_default():
     with override_options(
         {
             "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
@@ -222,7 +219,7 @@ def test_reject_partial():
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 2}
             ],
             "sentry-metrics.cardinality-limiter.limits.uc_1.per-org": [
-                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 1}
+                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}
             ],
             "sentry-metrics.cardinality-limiter.limits.uc_2.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}
@@ -339,13 +336,16 @@ def test_accept_all():
     with override_options(
         {
             "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
-                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 2}
+                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 100}
             ],
             "sentry-metrics.cardinality-limiter.limits.uc_1.per-org": [
-                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 1}
+                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 100}
             ],
             "sentry-metrics.cardinality-limiter.limits.uc_2.per-org": [
-                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}
+                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 100}
+            ],
+            "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org": [
+                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 100}
             ],
         },
     ):
@@ -354,6 +354,7 @@ def test_accept_all():
             _build_quota_key(MockUseCaseID.TRANSACTIONS, 1): 100,
             _build_quota_key(MockUseCaseID.USE_CASE_1, 1): 100,
             _build_quota_key(MockUseCaseID.USE_CASE_2, 1): 100,
+            _build_quota_key(MockUseCaseID.USE_CASE_3, 1): 100,
         }
         limiter = TimeseriesCardinalityLimiter("", backend)
 
@@ -382,6 +383,12 @@ def test_accept_all():
                     "org_id": 1,
                     "name": "bazz",
                     "tags": {},
+                    "use_case_id": MockUseCaseID.USE_CASE_3,
+                },
+                PartitionIdxOffset(0, 4): {
+                    "org_id": 1,
+                    "name": "bye",
+                    "tags": {},
                     "use_case_id": MockUseCaseID.USE_CASE_2,
                 },
             },
@@ -399,25 +406,24 @@ def test_sample_rate_zero(set_sentry_option):
     """
     Assert that with a rollout rate of zero, no quotas are applied.
     """
-
     with override_options(
         {
             "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
-                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 2}
+                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 10}
             ],
             "sentry-metrics.cardinality-limiter.limits.uc_1.per-org": [
-                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 1}
+                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 10}
             ],
             "sentry-metrics.cardinality-limiter.limits.uc_2.per-org": [
-                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}
+                {"window_seconds": 3600, "granularity_seconds": 60, "limit": 10}
             ],
         },
     ), set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 0.0):
         backend = MockCardinalityLimiter()
         backend.grant_hashes = {
-            _build_quota_key(MockUseCaseID.TRANSACTIONS, 1): 0,
-            _build_quota_key(MockUseCaseID.USE_CASE_1, 1): 0,
-            _build_quota_key(MockUseCaseID.USE_CASE_2, 1): 0,
+            _build_quota_key(MockUseCaseID.TRANSACTIONS, 1): 10,
+            _build_quota_key(MockUseCaseID.USE_CASE_1, 1): 10,
+            _build_quota_key(MockUseCaseID.USE_CASE_2, 1): 10,
         }
         limiter = TimeseriesCardinalityLimiter("", backend)
 
@@ -428,19 +434,19 @@ def test_sample_rate_zero(set_sentry_option):
                     "org_id": 1,
                     "name": "foo",
                     "tags": {},
-                    "use_case_id": UseCaseID.TRANSACTIONS,
+                    "use_case_id": MockUseCaseID.TRANSACTIONS,
                 },
                 PartitionIdxOffset(0, 1): {
                     "org_id": 1,
                     "name": "bar",
                     "tags": {},
-                    "use_case_id": UseCaseID.TRANSACTIONS,
+                    "use_case_id": MockUseCaseID.USE_CASE_1,
                 },
                 PartitionIdxOffset(0, 2): {
                     "org_id": 1,
                     "name": "baz",
                     "tags": {},
-                    "use_case_id": UseCaseID.TRANSACTIONS,
+                    "use_case_id": MockUseCaseID.USE_CASE_2,
                 },
             },
         )
