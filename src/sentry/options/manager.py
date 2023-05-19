@@ -350,5 +350,7 @@ class OptionsManager:
         Checks how the given key was last changed
         (by automator, legacy, or CLI)
         """
+        # TODO: Replace with a method that checks whether an update can
+        # be applied evaluating all the possible drift cases.
         opt = self.lookup_key(key)
         return self.store.get_last_update_channel(opt)
