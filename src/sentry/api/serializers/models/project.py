@@ -196,9 +196,6 @@ def format_options(attrs: defaultdict(dict)):
             options.get("sentry:csp_ignored_sources", []) or []
         ),
         "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
-        "sentry:performance_issue_creation_rate": options.get(
-            "sentry:performance_issue_creation_rate"
-        ),
         "sentry:performance_issue_send_to_issues_platform": options.get(
             "sentry:performance_issue_send_to_issues_platform"
         ),
@@ -922,9 +919,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "dynamicSamplingBiases": get_value_with_default("sentry:dynamic_sampling_biases"),
-                "performanceIssueCreationRate": get_value_with_default(
-                    "sentry:performance_issue_creation_rate"
-                ),
                 "performanceIssueSendToPlatform": get_value_with_default(
                     "sentry:performance_issue_send_to_issues_platform"
                 ),
