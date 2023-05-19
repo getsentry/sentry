@@ -1,8 +1,15 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
+import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {Project} from 'sentry/types';
@@ -24,12 +31,18 @@ function initializeData({
   features: additionalFeatures = [],
   query = {},
   project: prj,
-}: {features?: string[]; project?: Project; query?: Record<string, any>} = {}) {
+  projects,
+}: {
+  features?: string[];
+  project?: Project;
+  projects?: Project[];
+  query?: Record<string, any>;
+} = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const project = prj ?? TestStubs.Project({teams});
   const organization = TestStubs.Organization({
     features,
-    projects: [project],
+    projects: projects ? projects : [project],
   });
   const initialData = initializeOrg({
     organization,
@@ -530,6 +543,74 @@ describe('Performance > TransactionSummary', function () {
       ).toBeInTheDocument();
       expect(screen.getByTestId('count-percentage-summary-value')).toHaveTextContent(
         '100%'
+      );
+    });
+
+    it('renders project picker modal when no url does not have project id', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {
+          meta: {
+            fields: {
+              project: 'string',
+              'count()': 'number',
+            },
+          },
+          data: [
+            {
+              'count()': 2,
+              project: 'proj-slug-1',
+            },
+            {
+              'count()': 3,
+              project: 'proj-slug-2',
+            },
+          ],
+        },
+        match: [
+          (_url, options) => {
+            return options.query?.field?.includes('project');
+          },
+        ],
+      });
+
+      const projects = [
+        TestStubs.Project({
+          slug: 'proj-slug-1',
+          id: '1',
+          name: 'Project Name 1',
+        }),
+        TestStubs.Project({
+          slug: 'proj-slug-2',
+          id: '2',
+          name: 'Project Name 2',
+        }),
+      ];
+      OrganizationStore.onUpdate(TestStubs.Organization({slug: 'org-slug'}), {
+        replace: true,
+      });
+      const {organization, router, routerContext} = initializeData({projects});
+      const spy = jest.spyOn(router, 'replace');
+
+      // Ensure project id is not in path
+      delete router.location.query.project;
+
+      render(<TestComponent router={router} location={router.location} />, {
+        context: routerContext,
+        organization,
+        projects,
+      });
+
+      renderGlobalModal();
+
+      const firstProjectOption = await screen.findByText('proj-slug-1');
+      expect(firstProjectOption).toBeInTheDocument();
+      expect(screen.getByText('proj-slug-2')).toBeInTheDocument();
+      expect(screen.getByText('My Projects')).toBeInTheDocument();
+
+      await userEvent.click(firstProjectOption);
+      expect(spy).toHaveBeenCalledWith(
+        '/organizations/org-slug/performance/summary/?transaction=/performance&statsPeriod=14d&referrer=performance-transaction-summary&transactionCursor=1:0:0&project=1'
       );
     });
 

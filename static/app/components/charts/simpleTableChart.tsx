@@ -84,7 +84,8 @@ function SimpleTableChart({
               row,
               organization,
               projects,
-              eventView
+              eventView,
+              location
             )}
           >
             {cell}

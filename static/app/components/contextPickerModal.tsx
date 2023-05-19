@@ -62,6 +62,8 @@ type Props = ModalRenderProps & {
   organizations: Organization[];
 
   projects: Project[];
+
+  allowAllProjectsSelection?: boolean;
 };
 
 const selectStyles: StylesConfig = {
@@ -263,7 +265,7 @@ class ContextPickerModal extends Component<Props> {
   }
 
   renderProjectSelectOrMessage() {
-    const {organization, projects} = this.props;
+    const {organization, projects, allowAllProjectsSelection} = this.props;
     const [memberProjects, nonMemberProjects] = this.getMemberProjects();
     const {isSuperuser} = ConfigStore.get('user') || {};
 
@@ -281,7 +283,7 @@ class ContextPickerModal extends Component<Props> {
         options: nonMemberProjects.map(p => ({
           value: p.slug,
           label: p.slug,
-          disabled: isSuperuser ? false : true,
+          disabled: allowAllProjectsSelection ? false : !isSuperuser,
         })),
       },
     ];
@@ -422,7 +424,9 @@ type ContainerProps = Omit<
   | 'onSelectOrganization'
   | 'integrationConfigs'
 > & {
+  allowAllProjectsSelection?: boolean;
   configUrl?: string;
+
   /**
    * List of slugs we want to be able to choose from
    */
@@ -484,6 +488,7 @@ class ContextPickerModalContainer extends AsyncComponent<ContainerProps, Contain
         organization={this.state.selectedOrganization!}
         onSelectOrganization={this.handleSelectOrganization}
         integrationConfigs={integrationConfigs || []}
+        allowAllProjectsSelection={this.props.allowAllProjectsSelection}
       />
     );
   }

@@ -1,6 +1,7 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 import {urlEncode} from '@sentry/utils';
 import {Location, Query} from 'history';
+import isString from 'lodash/isString';
 import * as Papa from 'papaparse';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
@@ -737,13 +738,22 @@ export function getTargetForTransactionSummaryLink(
   dataRow: EventData,
   organization: Organization,
   projects?: Project[],
-  nextView?: EventView
+  nextView?: EventView,
+  location?: Location
 ) {
-  const projectMatch = projects?.find(
-    project =>
-      project.slug && [dataRow['project.name'], dataRow.project].includes(project.slug)
-  );
-  const projectID = projectMatch ? [projectMatch.id] : undefined;
+  let projectID: string | string[] | undefined;
+  const filterProjects = location?.query.project;
+
+  if (isString(filterProjects) && filterProjects !== '-1') {
+    // Project selector in discover has just one selected project
+    projectID = filterProjects;
+  } else {
+    const projectMatch = projects?.find(
+      project =>
+        project.slug && [dataRow['project.name'], dataRow.project].includes(project.slug)
+    );
+    projectID = projectMatch ? [projectMatch.id] : undefined;
+  }
 
   const target = transactionSummaryRouteWithQuery({
     orgSlug: organization.slug,
@@ -751,6 +761,12 @@ export function getTargetForTransactionSummaryLink(
     projectID,
     query: nextView?.getPageFiltersQuery() || {},
   });
+
+  // Pass on discover filter params when there are multiple
+  // projects associated with the transaction
+  if (!projectID && filterProjects) {
+    target.query.project = filterProjects;
+  }
 
   return target;
 }
