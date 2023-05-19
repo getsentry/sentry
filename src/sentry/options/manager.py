@@ -38,6 +38,27 @@ class ReadOnlyReason(Enum):
     READONLY_FOR_CHANNEL = "read_only_for_channel"
 
 
+class OptionNotWritable(Exception):
+    pass
+
+
+class OptionDrifted(OptionNotWritable):
+    pass
+
+
+class OptionReadOnly(OptionNotWritable):
+    def __init__(self, reason: ReadOnlyReason):
+        self.reason = reason
+
+
+FORBIDDEN_TRANSITIONS = {
+    UpdateChannel.APPLICATION: {UpdateChannel.AUTOMATOR},
+    UpdateChannel.CLI: {UpdateChannel.AUTOMATOR},
+    UpdateChannel.KILLSWITCH: {UpdateChannel.AUTOMATOR},
+    UpdateChannel.ADMIN: {UpdateChannel.AUTOMATOR},
+}
+
+
 class UnknownOption(KeyError):
     pass
 
@@ -388,3 +409,37 @@ class OptionsManager:
             return ReadOnlyReason.SET_IN_FILE
 
         return None
+
+    def assert_can_update(self, key: str, value, channel: UpdateChannel) -> None:
+        # TODO: embed this in the `set` method
+
+        readonly_reason = self.is_option_readonly(key, channel)
+        if readonly_reason is not None:
+            raise OptionReadOnly(readonly_reason)
+
+        if not self.isset(key):
+            # If the option is not readonly and it is not stored in the
+            # option store it means we are relying on default. So we can
+            # update.
+            return
+
+        stored_value = self.get(key)
+        if stored_value == value:
+            # In theory options could have any type so this equality may
+            # not be correct.
+            # In practice, this code is added to support the move towards
+            # configMap backed options, which will be restricted to types
+            # that allow for this equality: basic types, sets, list, maps.
+            # So even if this equality fails, in the worst case scenario
+            # we would not allow the update if there is a mismatch between
+            # the channels.
+            return
+
+        last_updater = self.get_last_update_channel(key)
+        if last_updater is None:
+            return
+        forbidden_states = FORBIDDEN_TRANSITIONS.get(last_updater)
+        if forbidden_states is not None and channel in forbidden_states:
+            raise OptionDrifted
+
+        return
