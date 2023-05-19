@@ -16,6 +16,7 @@ from sentry.api.utils import generate_organization_url
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.models.release import Release
+from sentry.profiles.flamegraph import get_profiles_id
 from sentry.profiles.utils import (
     get_from_profiling_service,
     parse_profile_filters,
@@ -140,10 +141,18 @@ class ProjectProfilingFlamegraphEndpoint(ProjectProfilingBaseEndpoint):
     def get(self, request: Request, project: Project) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
+        params = self.get_profiling_params(request, project)
+        profiles_id = get_profiles_id(
+            project.organization_id,
+            project.id,
+            params["transaction_name"],
+            params.get("start"),
+            params.get("end"),
+        )
         kwargs: Dict[str, Any] = {
-            "method": "GET",
+            "method": "POST",
             "path": f"/organizations/{project.organization_id}/projects/{project.id}/flamegraph",
-            "params": self.get_profiling_params(request, project),
+            "json_data": profiles_id,
         }
         return proxy_profiling_service(**kwargs)
 
