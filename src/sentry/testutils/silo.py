@@ -130,9 +130,7 @@ class SiloModeTest:
             new_test_method.__setattr__("__signature__", new_sig)
         return cast(
             TestMethod,
-            pytest.mark.parametrize("silo_mode", [mode for mode in self.silo_modes])(
-                new_test_method
-            ),
+            pytest.mark.parametrize("silo_mode", sorted(self.silo_modes, key=str))(new_test_method),
         )
 
     def _call(self, decorated_obj: Any, stable: bool) -> Any:
