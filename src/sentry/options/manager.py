@@ -31,6 +31,13 @@ class UpdateChannel(Enum):
         return tuple((i.name, i.value) for i in cls)
 
 
+class ReadOnlyReason(Enum):
+    IMMUTABLE_ON_STORE = "immutable_on_store"
+    SET_IN_FILE = "set_in_file"
+    NOT_REGISTERED = "not_registered"
+    READONLY_FOR_CHANNEL = "read_only_for_channel"
+
+
 class UnknownOption(KeyError):
     pass
 
@@ -104,12 +111,13 @@ class OptionsManager:
         """
         opt = self.lookup_key(key)
 
+        read_only_reason = self.is_option_readonly(key, channel)
         # If an option isn't able to exist in the store, we can't set it at runtime
-        assert not (opt.flags & FLAG_NOSTORE), "%r cannot be changed at runtime" % key
-        # Enforce immutability on key
-        assert not (opt.flags & FLAG_IMMUTABLE), "%r cannot be changed at runtime" % key
+        assert not read_only_reason or read_only_reason != ReadOnlyReason.IMMUTABLE_ON_STORE, (
+            "%r cannot be changed at runtime" % key
+        )
         # Enforce immutability if value is already set on disk
-        assert not (opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key)), (
+        assert not read_only_reason or read_only_reason != ReadOnlyReason.SET_IN_FILE, (
             "%r cannot be changed at runtime because it is configured on disk" % key
         )
 
@@ -356,28 +364,27 @@ class OptionsManager:
         opt = self.lookup_key(key)
         return self.store.get_last_update_channel(opt)
 
-    def is_option_readonly(self, key: str, channel: UpdateChannel) -> bool:
+    def is_option_readonly(self, key: str, channel: UpdateChannel) -> Optional[ReadOnlyReason]:
         opt = self.lookup_key(key)
         if channel == UpdateChannel.AUTOMATOR:
             if key not in self.registry:
-                return False
+                return ReadOnlyReason.NOT_REGISTERED
             if opt.flags and (opt.flags & FLAG_CREDENTIAL):
-                return False
+                return ReadOnlyReason.READONLY_FOR_CHANNEL
 
-        if channel == UpdateChannel.APPLICATION:
+        if channel == UpdateChannel.ADMIN:
             if key not in self.registry:
-                return False
+                return ReadOnlyReason.NOT_REGISTERED
             if opt.flags and not (opt.flags & FLAG_ADMIN_MODIFIABLE):
-                return False
+                return ReadOnlyReason.READONLY_FOR_CHANNEL
 
         # TODO: Support more cases for specific Channels
 
         # If an option isn't able to exist in the store, we can't set it at runtime
-        if opt.flags & FLAG_NOSTORE:
-            return False
-        # Enforce immutability on key
-        if opt.flags & FLAG_IMMUTABLE:
-            return False
+        if opt.flags & (FLAG_NOSTORE | FLAG_IMMUTABLE):
+            return ReadOnlyReason.IMMUTABLE_ON_STORE
         # Enforce immutability if value is already set on disk
         if opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key):
-            return False
+            return ReadOnlyReason.SET_IN_FILE
+
+        return None
