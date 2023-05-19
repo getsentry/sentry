@@ -5,11 +5,19 @@ from django.db import IntegrityError, transaction
 from django.http import Http404
 from django.utils import timezone
 
-from sentry.models import Commit, CommitAuthor, CommitFileChange, Integration, Repository, User
+from sentry.models import (
+    Commit,
+    CommitAuthor,
+    CommitFileChange,
+    Integration,
+    OrganizationMember,
+    Repository,
+)
 from sentry.plugins.providers import RepositoryProvider
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.shared_integrations.exceptions import ApiError
 from sentry_plugins.github.client import GithubPluginClient
+from social_auth.models import UserSocialAuth
 
 from . import Webhook, get_external_id, is_anonymous_email
 
@@ -78,25 +86,24 @@ class PushEventWebhook(Webhook):
                                 # even if we can't find a user, set to none so we
                                 # don't re-query
                                 gh_username_cache[gh_username] = None
-                                try:
-                                    user = User.objects.filter(
-                                        social_auth__provider="github",
-                                        social_auth__uid=gh_user["id"],
-                                        org_memberships=organization_id,
-                                    )[0]
-                                except IndexError:
-                                    pass
-                                else:
-                                    author_email = user.email
-                                    gh_username_cache[gh_username] = author_email
-                                    if commit_author is not None:
-                                        try:
-                                            with transaction.atomic():
-                                                commit_author.update(
-                                                    email=author_email, external_id=external_id
-                                                )
-                                        except IntegrityError:
-                                            pass
+                                for social_auth in UserSocialAuth.objects.filter(
+                                    provider="github", uid=gh_user["id"]
+                                ):
+                                    member = OrganizationMember.objects.filter(
+                                        organization_id=organization_id, user_id=social_auth.user.id
+                                    ).first()
+                                    if member is not None:
+                                        author_email = social_auth.user.email
+                                        gh_username_cache[gh_username] = author_email
+                                        if commit_author is not None:
+                                            try:
+                                                with transaction.atomic():
+                                                    commit_author.update(
+                                                        email=author_email, external_id=external_id
+                                                    )
+                                            except IntegrityError:
+                                                pass
+                                        break
 
                         if commit_author is not None:
                             authors[author_email] = commit_author
