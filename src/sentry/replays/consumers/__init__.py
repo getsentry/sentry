@@ -9,7 +9,10 @@ from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
 from django.conf import settings
 
-from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
+from sentry.replays.consumers.recording import (
+    ProcessReplayRecordingStrategyFactory,
+    initialize_metrics,
+)
 from sentry.utils import kafka_config
 
 
@@ -29,6 +32,8 @@ def get_replays_recordings_consumer(
 
     consumer_config = get_config(topic, group_id, auto_offset_reset, force_cluster)
     consumer = KafkaConsumer(consumer_config)
+
+    initialize_metrics()
 
     return StreamProcessor(
         consumer=consumer,

@@ -67,10 +67,6 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         ]
 
         if self.use_multi_proc:
-            # Only initialize metrics when using multi-processing. This maintains backwards
-            # compatibility and protects us from unexpected failures.
-            initialize_metrics()
-
             step = RunTaskWithMultiprocessing(
                 function=move_replay_to_permanent_storage,
                 next_step=CommitOffsets(commit),
