@@ -43,6 +43,7 @@ function DatabaseModule() {
   const [table, setTable] = useState<string>('ALL');
   const [filterNew, setFilterNew] = useState<boolean>(false);
   const [filterOld, setFilterOld] = useState<boolean>(false);
+  const [filterOutlier, setFilterOutlier] = useState<boolean>(true);
   const [transaction, setTransaction] = useState<string>('');
   const [sort, setSort] = useState<MainTableSort>({
     direction: undefined,
@@ -62,10 +63,15 @@ function DatabaseModule() {
     table,
     filterNew,
     filterOld,
+    filterOutlier,
     sortKey: sort.sortHeader?.key,
     sortDirection: sort.direction,
   });
   const pageFilters = usePageFilters();
+
+  // Experiments
+  const [p95asNumber, setp95asNumber] = useState<boolean>(false);
+  const [noP95, setnoP95] = useState<boolean>(false);
 
   const {selection} = pageFilters;
   const {projects, environments, datetime} = selection;
@@ -154,6 +160,15 @@ function DatabaseModule() {
       setFilterNew(false);
     }
   };
+  const toggleOutlier = () => {
+    setFilterOutlier(!filterOutlier);
+  };
+  const toggleNoP95 = () => {
+    setnoP95(!noP95);
+  };
+  const toggleP95asNumber = () => {
+    setp95asNumber(!p95asNumber);
+  };
 
   const getUpdatedRows = (row: DataRow, rowIndex?: number) => {
     rowIndex ??= tableData.findIndex(data => data.group_id === row.group_id);
@@ -212,6 +227,12 @@ function DatabaseModule() {
                 size="lg"
                 toggle={toggleFilterOld}
               />
+              <LabelledSwitch
+                label="Exclude Outliers"
+                isActive={filterOutlier}
+                size="lg"
+                toggle={toggleOutlier}
+              />
             </SearchFilterContainer>
             <SearchFilterContainer>
               <TransactionNameSearchBar
@@ -228,6 +249,8 @@ function DatabaseModule() {
               onSelect={setSelectedRow}
               onSortChange={setSort}
               selectedRow={rows.selected}
+              p95asNumber={p95asNumber}
+              noP95={noP95}
             />
             <QueryDetail
               isDataLoading={isTableDataLoading || isTableRefetching}
@@ -240,6 +263,19 @@ function DatabaseModule() {
               prevRow={rows.prev}
               onClose={unsetSelectedSpanGroup}
               transaction={transaction}
+            />
+            <div>Experiments</div>
+            <LabelledSwitch
+              label="p95 as number"
+              isActive={p95asNumber}
+              size="lg"
+              toggle={toggleP95asNumber}
+            />
+            <LabelledSwitch
+              label="No p95"
+              isActive={noP95}
+              size="lg"
+              toggle={toggleNoP95}
             />
           </Layout.Main>
         </Layout.Body>
