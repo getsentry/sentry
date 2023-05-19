@@ -214,7 +214,7 @@ default_manager.add("organizations:dynamic-sampling", OrganizationFeature, Featu
 default_manager.add("organizations:dynamic-sampling-transaction-name-priority", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:escalating-issues", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:escalating-issues-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:issue-states", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:issue-states", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:issue-states-auto-transition-new-ongoing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:issue-states-auto-transition-regressed-ongoing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:remove-mark-reviewed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
