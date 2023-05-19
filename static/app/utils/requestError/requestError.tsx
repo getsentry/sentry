@@ -37,7 +37,11 @@ export default class RequestError extends Error {
   status?: number;
   statusText?: string;
 
-  constructor(method: string | undefined, path: string, options: ErrorOptionsObject) {
+  constructor(
+    method: 'POST' | 'GET' | 'DELETE' | 'PUT' | undefined,
+    path: string,
+    options: ErrorOptionsObject
+  ) {
     super(`${method || 'GET'} "${sanitizePath(path)}"`, options);
     this.name = 'RequestError';
     Object.setPrototypeOf(this, new.target.prototype);
