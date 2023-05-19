@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0449_break_user_actor_fk"),
+        ("sentry", "0449_pickle_to_json_authenticator"),
     ]
 
     operations = [
