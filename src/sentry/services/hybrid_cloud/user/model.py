@@ -111,6 +111,7 @@ class UserFilterArgs(TypedDict, total=False):
     team_ids: List[int]
     is_active_memberteam: bool
     emails: List[str]
+    emails_is_verified: bool
 
 
 class UserUpdateArgs(TypedDict, total=False):
