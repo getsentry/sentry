@@ -522,13 +522,14 @@ export class Client {
           // Until we know why, let's do what is essentially some very fancy print debugging.
           if (status === 200) {
             const responseTextUndefined = responseText === undefined;
+            const responseTextEmpty = responseText === '';
 
             // Pass a scope object rather than using `withScope` to avoid even
             // the possibility of scope bleed.
             const scope = new Sentry.Scope();
             scope.setTags({errorReason});
 
-            if (!responseTextUndefined) {
+            if (!responseTextUndefined && !responseTextEmpty) {
               // Grab everything that could conceivably be helpful to know
               scope.setExtras({
                 twoHundredErrorReason,
@@ -542,6 +543,8 @@ export class Client {
 
             const message = responseTextUndefined
               ? '200 API response with undefined responseText'
+              : responseTextEmpty
+              ? '200 API response with empty responseText'
               : '200 treated as error';
 
             // Make sure all of these errors group, so we don't produce a bunch of noise
