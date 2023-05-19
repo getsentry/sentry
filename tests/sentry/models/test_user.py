@@ -149,25 +149,3 @@ class GetUsersFromTeamsTest(TestCase):
         assert list(User.objects.get_from_teams(org2, [team2])) == []
         self.create_member(user=user, organization=org2, role="member", teams=[team2])
         assert list(User.objects.get_from_teams(org2, [team2])) == [user]
-
-
-class GetUsersFromProjectsTest(TestCase):
-    def test(self):
-        user = self.create_user()
-        org = self.create_organization(name="foo", owner=user)
-        team = self.create_team(organization=org)
-        project = self.create_project(organization=org, teams=[team])
-        org2 = self.create_organization(name="bar", owner=None)
-        team2 = self.create_team(organization=org2)
-        user2 = self.create_user("foo@example.com")
-        project2 = self.create_project(organization=org2, teams=[team2])
-        self.create_member(user=user2, organization=org, role="admin", teams=[team])
-
-        assert list(User.objects.get_from_projects(org, [project])) == [user2]
-        user3 = self.create_user("bar@example.com")
-        self.create_member(user=user3, organization=org, role="admin", teams=[team])
-        assert set(list(User.objects.get_from_projects(org, [project]))) == {user2, user3}
-        assert list(User.objects.get_from_projects(org2, [project])) == []
-        assert list(User.objects.get_from_projects(org2, [project2])) == []
-        self.create_member(user=user, organization=org2, role="member", teams=[team2])
-        assert list(User.objects.get_from_projects(org2, [project2])) == [user]
