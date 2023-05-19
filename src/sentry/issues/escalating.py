@@ -308,66 +308,46 @@ def manage_issue_states(
     """
     Handles the downstream changes to the status/substatus of GroupInbox and Group for each GroupInboxReason
     """
-
     if group_inbox_reason == GroupInboxReason.ESCALATING:
-        try:
-            group = Group.objects.get(
-                id=group.id,
-                # ensure we can only update if the status is currently Ignored
-                status=GroupStatus.IGNORED,
-            )
-        except Group.DoesNotExist:
-            return
-
-        add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
-        record_group_history(group, GroupHistoryStatus.ESCALATING)
-        group.substatus = GroupSubStatus.ESCALATING
-        group.status = GroupStatus.UNRESOLVED
-        issue_escalating.send_robust(
-            project=group.project, group=group, event=event, sender=manage_issue_states
+        updated = Group.objects.filter(id=group.id, status=GroupStatus.IGNORED).update(
+            status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ESCALATING
         )
-
+        if updated:
+            add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
+            record_group_history(group, GroupHistoryStatus.ESCALATING)
+            group.status = GroupStatus.UNRESOLVED
+            group.substatus = GroupSubStatus.ESCALATING
+            issue_escalating.send_robust(
+                project=group.project, group=group, event=event, sender=manage_issue_states
+            )
     elif group_inbox_reason == GroupInboxReason.ONGOING:
-        try:
-            Group.objects.get(
-                id=group.id,
-                # ensure we can't update things if the status has been set to Unresolved
-                status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED],
-            )
-        except Group.DoesNotExist:
-            return
-
-        add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
-        record_group_history(group, GroupHistoryStatus.ONGOING)
-        group.status = GroupStatus.UNRESOLVED
-        group.substatus = GroupSubStatus.ONGOING
-
+        updated = Group.objects.filter(
+            id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
+        ).update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        if updated:
+            add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
+            record_group_history(group, GroupHistoryStatus.ONGOING)
+            group.status = GroupStatus.UNRESOLVED
+            group.substatus = GroupSubStatus.ONGOING
     elif group_inbox_reason == GroupInboxReason.UNIGNORED:
-        try:
-            Group.objects.get(
-                id=group.id,
-                # ensure we can't update things if the status has been set to Unresolved
-                status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED],
-            )
-        except Group.DoesNotExist:
-            return
-
-        add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
-        record_group_history(group, GroupHistoryStatus.UNIGNORED)
-        group.status = GroupStatus.UNRESOLVED
-        group.substatus = GroupSubStatus.ONGOING
-
+        updated = Group.objects.filter(
+            id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
+        ).update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        if updated:
+            add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
+            record_group_history(group, GroupHistoryStatus.UNIGNORED)
+            group.status = GroupStatus.UNRESOLVED
+            group.substatus = GroupSubStatus.ONGOING
     else:
         raise NotImplementedError(
             f"We don't support a change of state for {group_inbox_reason.name}"
         )
 
-    group.save(update_fields=["status", "substatus"])
-
-    Activity.objects.create(
-        project=group.project,
-        group=group,
-        type=ActivityType.SET_UNRESOLVED.value,
-        user_id=None,
-        data={"event_id": event.event_id} if event else None,
-    )
+    if updated:
+        Activity.objects.create(
+            project=group.project,
+            group=group,
+            type=ActivityType.SET_UNRESOLVED.value,
+            user_id=None,
+            data={"event_id": event.event_id} if event else None,
+        )
