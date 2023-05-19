@@ -81,8 +81,6 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
             PerformanceNPlusOneGroupType,
             "noise_config",
             new=NoiseConfig(0, timedelta(minutes=1)),
-        ), self.options(
-            {"performance.issues.send_to_issues_platform": True}
         ), self.feature(
             "organizations:issue-platform"
         ):
@@ -120,8 +118,6 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
             PerformanceNPlusOneAPICallsGroupType,
             "noise_config",
             new=NoiseConfig(0, timedelta(minutes=1)),
-        ), self.options(
-            {"performance.issues.send_to_issues_platform": True}
         ), self.feature(
             "organizations:issue-platform"
         ):
