@@ -5,8 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.utils import resolve_weak
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID, UseCaseKey
 from sentry.snuba.metrics import SingularEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import complement, division_float
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
@@ -242,8 +241,6 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         """
         mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS_2
         org_id = self.project.organization.id
-        use_key_id = UseCaseID.SESSIONS
-        metric_id = _indexer_record(org_id, "metric_foo_doe")
 
         self.store_session(
             self.build_session(
@@ -254,26 +251,17 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
                 errors=2,
             )
         )
-        timestamp = (time.time() // 60 - 2) * 60
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": metric_id,
-                    "timestamp": timestamp,
-                    "sentry_received_timestamp": timestamp + 10,
-                    "tags": {
-                        resolve_weak(use_key_id, org_id, "release"): _indexer_record(
-                            org_id, "fooww"
-                        ),
-                    },
-                    "type": "c",
-                    "value": 5,
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_counters",
+        self.store_metric(
+            org_id=org_id,
+            project_id=self.project.id,
+            type="counter",
+            name="metric_foo_doe",
+            timestamp=(time.time() // 60 - 2) * 60,
+            tags={
+                "release": "foow",
+            },
+            value=5,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
         response = self.get_success_response(
             self.organization.slug,

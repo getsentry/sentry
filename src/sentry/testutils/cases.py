@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import responses
+import sentry_kafka_schemas
 
 from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
+from sentry.utils.dates import to_timestamp
 
 __all__ = (
     "TestCase",
@@ -41,7 +43,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from io import BytesIO
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, List, Literal, Optional, Sequence, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -1233,7 +1235,11 @@ class BaseMetricsTestCase(SnubaTestCase):
                 type,
                 mri,
                 {**tags, **base_tags},
-                session["started"],
+                int(
+                    session["started"]
+                    if isinstance(session["started"], (int, float))
+                    else to_timestamp(session["started"])
+                ),
                 value,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
             )
@@ -1276,10 +1282,10 @@ class BaseMetricsTestCase(SnubaTestCase):
         cls,
         org_id: int,
         project_id: int,
-        type: str,
+        type: Literal["counter", "set", "distribution"],
         name: str,
         tags: Dict[str, str],
-        timestamp: int | float,
+        timestamp: int,
         value,
         use_case_id: UseCaseKey,
     ):
@@ -1305,10 +1311,14 @@ class BaseMetricsTestCase(SnubaTestCase):
             )
             assert res is not None, name
             mapping_meta[str(res)] = name
-            return res
+            return str(res)
 
         def tag_value(name):
             assert isinstance(name, str)
+
+            if use_case_id == UseCaseKey.PERFORMANCE:
+                return name
+
             res = indexer.record(
                 use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
                 org_id=org_id,
@@ -1335,10 +1345,11 @@ class BaseMetricsTestCase(SnubaTestCase):
             "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
             "value": value,
             "retention_days": 90,
-            "use_case_id": use_case_id,
+            "use_case_id": use_case_id.value,
             # making up a sentry_received_timestamp, but it should be sometime
             # after the timestamp of the event
             "sentry_received_timestamp": timestamp + 10,
+            "version": 2 if use_case_id == UseCaseKey.PERFORMANCE else 1,
         }
 
         msg["mapping_meta"] = {}
@@ -1349,13 +1360,21 @@ class BaseMetricsTestCase(SnubaTestCase):
         else:
             entity = f"metrics_{type}s"
 
-        cls._send_buckets([msg], entity)
+        cls.__send_buckets([msg], entity)
 
     @classmethod
-    def _send_buckets(cls, buckets, entity):
-        # XXX(markus): do not use this method in your tests, use store_metric
-        # instead. we need to be able to make changes to the indexer's output
-        # protocol without having to update a million tests
+    def __send_buckets(cls, buckets, entity):
+        # DO NOT USE THIS METHOD IN YOUR TESTS, use store_metric instead. we
+        # need to be able to make changes to the indexer's output protocol
+        # without having to update a million tests
+        if entity.startswith("generic_"):
+            codec = sentry_kafka_schemas.get_codec("snuba-generic-metrics")
+        else:
+            codec = sentry_kafka_schemas.get_codec("snuba-metrics")
+
+        for bucket in buckets:
+            codec.validate(bucket)
+
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + cls.snuba_endpoint.format(entity=entity),
@@ -1428,17 +1447,19 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             type=self._extract_entity_from_mri(name) if type is None else type,
             name=name,
             tags=tags,
-            timestamp=(
-                self.adjust_timestamp(
-                    self.now
-                    - timedelta(
-                        days=days_before_now,
-                        hours=hours_before_now,
-                        minutes=minutes_before_now,
-                        seconds=seconds_before_now,
+            timestamp=int(
+                (
+                    self.adjust_timestamp(
+                        self.now
+                        - timedelta(
+                            days=days_before_now,
+                            hours=hours_before_now,
+                            minutes=minutes_before_now,
+                            seconds=seconds_before_now,
+                        )
                     )
-                )
-            ).timestamp(),
+                ).timestamp()
+            ),
             value=value,
             use_case_id=use_case_id,
         )
@@ -1478,7 +1499,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         self,
         name: str,
         tags: Dict[str, str],
-        value: int,
+        value: int | float,
         type: Optional[str] = None,
         org_id: Optional[int] = None,
         project_id: Optional[int] = None,
@@ -1643,7 +1664,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 self.TYPE_MAP[entity],
                 internal_metric,
                 tags,
-                metric_timestamp,
+                int(metric_timestamp),
                 subvalue,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
@@ -2295,82 +2316,53 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
         self.login_as(user=self.user)
         now = int(time.time())
 
-        # TODO: move _send to SnubaMetricsTestCase
         org_id = self.organization.id
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.__indexer_record(org_id, "metric1"),
-                    "timestamp": now,
-                    "sentry_received_timestamp": now + 10,
-                    "tags": {
-                        self.__indexer_record(org_id, "tag1"): self.__indexer_record(
-                            org_id, "value1"
-                        ),
-                        self.__indexer_record(org_id, "tag2"): self.__indexer_record(
-                            org_id, "value2"
-                        ),
-                    },
-                    "type": "c",
-                    "value": 1,
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.__indexer_record(org_id, "metric1"),
-                    "timestamp": now,
-                    "sentry_received_timestamp": now + 10,
-                    "tags": {
-                        self.__indexer_record(org_id, "tag3"): self.__indexer_record(
-                            org_id, "value3"
-                        ),
-                    },
-                    "type": "c",
-                    "value": 1,
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_counters",
+        self.store_metric(
+            org_id=org_id,
+            project_id=self.project.id,
+            name="metric1",
+            timestamp=now,
+            tags={
+                "tag1": "value1",
+                "tag2": "value2",
+            },
+            type="counter",
+            value=1,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.__indexer_record(org_id, "metric2"),
-                    "timestamp": now,
-                    "sentry_received_timestamp": now + 10,
-                    "tags": {
-                        self.__indexer_record(org_id, "tag4"): self.__indexer_record(
-                            org_id, "value3"
-                        ),
-                        self.__indexer_record(org_id, "tag1"): self.__indexer_record(
-                            org_id, "value2"
-                        ),
-                        self.__indexer_record(org_id, "tag2"): self.__indexer_record(
-                            org_id, "value1"
-                        ),
-                    },
-                    "type": "s",
-                    "value": [123],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.__indexer_record(org_id, "metric3"),
-                    "timestamp": now,
-                    "sentry_received_timestamp": now + 10,
-                    "tags": {},
-                    "type": "s",
-                    "value": [123],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_sets",
+        self.store_metric(
+            org_id=org_id,
+            project_id=self.project.id,
+            name="metric1",
+            timestamp=now,
+            tags={"tag3": "value3"},
+            type="counter",
+            value=1,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
+        self.store_metric(
+            org_id=org_id,
+            project_id=self.project.id,
+            name="metric2",
+            timestamp=now,
+            tags={
+                "tag4": "value3",
+                "tag1": "value2",
+                "tag2": "value1",
+            },
+            type="set",
+            value=123,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
+        self.store_metric(
+            org_id=org_id,
+            project_id=self.project.id,
+            name="metric3",
+            timestamp=now,
+            tags={},
+            type="set",
+            value=123,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
 
 
