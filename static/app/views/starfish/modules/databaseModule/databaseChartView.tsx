@@ -10,7 +10,7 @@ import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {getDuration} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {
   useQueryDbTables,
@@ -135,6 +135,7 @@ export default function DatabaseChartView({table, onChange}: Props) {
   }
 
   const chartColors = [...theme.charts.getColorPalette(6).slice(2, 7), theme.gray300];
+  useSynchronizeCharts([!tableGraphLoading]);
 
   return (
     <Fragment>
