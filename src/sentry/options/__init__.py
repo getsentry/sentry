@@ -17,6 +17,7 @@ from .manager import (  # NOQA
     FLAG_STOREONLY,
     OptionsManager,
     UnknownOption,
+    UpdateChannel,
 )
 from .store import OptionsStore
 
