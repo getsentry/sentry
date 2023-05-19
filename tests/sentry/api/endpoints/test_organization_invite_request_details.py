@@ -11,6 +11,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import region_silo_test
 
 
@@ -103,7 +104,7 @@ class OrganizationInviteRequestDeleteTest(InviteRequestBase):
 
 
 @region_silo_test
-class OrganizationInviteRequestUpdateTest(InviteRequestBase):
+class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixin):
     method = "put"
 
     def test_owner_can_update_role(self):
@@ -115,7 +116,8 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase):
         assert resp.data["orgRole"] == "manager"
         assert resp.data["inviteStatus"] == "requested_to_be_invited"
 
-        assert OrganizationMember.objects.filter(id=self.invite_request.id, role="manager").exists()
+        member = OrganizationMember.objects.get(id=self.invite_request.id, role="manager")
+        self.assert_org_member_mapping(org_member=member)
 
     def test_owner_can_update_teams(self):
         self.login_as(user=self.user)
@@ -145,6 +147,7 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase):
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=self.invite_request.id, team=self.team
         ).exists()
+        self.assert_org_member_mapping(org_member=self.invite_request)
 
     def test_can_remove_teams(self):
         OrganizationMemberTeam.objects.create(
@@ -168,7 +171,7 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase):
 
 
 @region_silo_test
-class OrganizationInviteRequestApproveTest(InviteRequestBase):
+class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMixin):
     method = "put"
 
     @patch.object(OrganizationMember, "send_invite_email")
@@ -270,6 +273,7 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase):
         assert OrganizationMember.objects.filter(
             id=self.request_to_join.id, role="manager", invite_status=InviteStatus.APPROVED.value
         ).exists()
+        self.assert_org_member_mapping(org_member=self.request_to_join)
 
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=self.request_to_join.id, team=self.team
