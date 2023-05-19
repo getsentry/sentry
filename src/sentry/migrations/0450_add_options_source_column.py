@@ -13,6 +13,7 @@ class UpdateChannel(Enum):
     AUTOMATOR = "automator"
     CLI = "cli"
     KILLSWITCH = "killswitch"
+    ADMIN = "admin"
 
     @classmethod
     def choices(cls):
