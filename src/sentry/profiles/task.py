@@ -450,13 +450,23 @@ def _process_symbolicator_results_for_sample(
     if len(frames_sent) > 0:
         raw_frames = profile["profile"]["frames"]
         new_frames = []
+        symbolicated_frame_idx = 0
 
         for idx in range(len(raw_frames)):
-            if idx in frames_sent:
-                for frame_idx in symbolicated_frames_dict[idx]:
-                    new_frames.append(symbolicated_frames[frame_idx])
-            else:
+            # If we didn't send the frame to symbolicator, add the raw frame.
+            if idx not in frames_sent:
                 new_frames.append(raw_frames[idx])
+                continue
+
+            # If we sent it to symbolicator, add the current symbolicated frame
+            # to new_frames.
+            # This works since symbolicated_frames are in the same order
+            # as raw_frames (except some frames are not sent).
+            for frame_idx in symbolicated_frames_dict[symbolicated_frame_idx]:
+                new_frames.append(symbolicated_frames[frame_idx])
+
+            # go to the next symbolicated frame result
+            symbolicated_frame_idx += 1
 
         new_frames_count = (
             len(raw_frames)
@@ -566,6 +576,9 @@ The sorting order is callee to caller (child to parent)
 def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
     index_map: dict[int, List[int]] = {}
     for i, frame in enumerate(frames):
+        # In case we don't have an `original_index` field, we default to using
+        # the index of the frame in order to still produce a data structure
+        # with the right shape.
         index_map.setdefault(frame.get("original_index", i), []).append(i)
     return index_map
 

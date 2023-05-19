@@ -76,6 +76,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
             assert checkin.status == CheckInStatus.OK
+            assert checkin.monitor_config == monitor.config
 
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.OK
@@ -83,6 +84,12 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
                 checkin.date_added
             )
+
+            # Confirm next check-in is populated with config and expected time
+            expected_time = monitor_environment.next_checkin
+            resp = self.client.post(path, {"status": "ok"}, **self.token_auth_headers)
+            checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
+            assert checkin.expected_time == expected_time
 
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_checkins
@@ -404,3 +411,22 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                     path, {"status": "ok", "environment": "dev"}, **self.token_auth_headers
                 )
                 assert resp.status_code == 429, resp.content
+
+    def test_bad_config(self):
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+            monitor.config = {
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+            }
+            monitor.save()
+
+            path = path_func(monitor.guid)
+
+            resp = self.client.post(path, {"status": "ok"}, **self.token_auth_headers)
+            assert resp.status_code == 201, resp.content
+
+            checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
+            assert checkin.status == CheckInStatus.OK
+            # Monitor config will not be saved because it is missing margin and max runtime
+            assert not checkin.monitor_config

@@ -21,7 +21,7 @@ function IssueDetailsContainer({selection, ...props}: Props) {
   const {projects} = useProjects();
   const api = useApi();
 
-  const {params, location} = props;
+  const {location} = props;
 
   const projectId = location.query.project;
   const project = projects.find(proj => proj.id === projectId);
@@ -36,7 +36,6 @@ function IssueDetailsContainer({selection, ...props}: Props) {
 
   return (
     <GroupDetails
-      key={`${params.groupId}-envs:${selection.environments.join(',')}`}
       environments={selection.environments}
       organization={organization}
       projects={projects}
