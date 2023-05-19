@@ -129,23 +129,3 @@ class UserMergeToTest(TestCase):
 
         assert member.role == "owner"
         assert list(member.teams.all().order_by("pk")) == [team_1, team_2, team_3]
-
-
-class GetUsersFromTeamsTest(TestCase):
-    def test(self):
-        user = self.create_user()
-        org = self.create_organization(name="foo", owner=user)
-        team = self.create_team(organization=org)
-        org2 = self.create_organization(name="bar", owner=None)
-        team2 = self.create_team(organization=org2)
-        user2 = self.create_user("foo@example.com")
-        self.create_member(user=user2, organization=org, role="admin", teams=[team])
-
-        assert list(User.objects.get_from_teams(org, [team])) == [user2]
-        user3 = self.create_user("bar@example.com")
-        self.create_member(user=user3, organization=org, role="admin", teams=[team])
-        assert set(list(User.objects.get_from_teams(org, [team]))) == {user2, user3}
-        assert list(User.objects.get_from_teams(org2, [team])) == []
-        assert list(User.objects.get_from_teams(org2, [team2])) == []
-        self.create_member(user=user, organization=org2, role="member", teams=[team2])
-        assert list(User.objects.get_from_teams(org2, [team2])) == [user]
