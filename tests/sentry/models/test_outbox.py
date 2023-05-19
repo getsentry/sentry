@@ -201,7 +201,7 @@ def test_control_outbox_for_webhooks():
         "/extensions/github/webhook/",
         data={"installation": {"id": "github:1"}},
         content_type="application/json",
-        **{"HTTP_X_GITHUB_EMOTICON": ">:^]"},
+        HTTP_X_GITHUB_EMOTICON=">:^]",
     )
     [outbox] = ControlOutbox.for_webhook_update(
         webhook_identifier=WebhookProviderIdentifier.GITHUB,
@@ -223,7 +223,7 @@ def test_control_outbox_for_webhooks():
     assert outbox.payload["uri"] == "http://testserver/extensions/github/webhook/"
     # Request factory expects transformed headers, but the outbox stores raw headers
     assert outbox.payload["headers"]["X-Github-Emoticon"] == ">:^]"
-    assert outbox.payload["body"] == '{"installation": {"id": "github:1"}}'
+    assert outbox.payload["body"] == b'{"installation": {"id": "github:1"}}'
 
 
 @pytest.mark.django_db(transaction=True)

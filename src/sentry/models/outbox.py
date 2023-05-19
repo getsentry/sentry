@@ -331,7 +331,7 @@ class ControlOutbox(OutboxBase):
             path=request.path,
             uri=request.get_raw_uri(),
             headers={k: v for k, v in request.headers.items()},
-            body=request.body.decode(),
+            body=request.body,
         )
 
     @classmethod
@@ -341,7 +341,7 @@ class ControlOutbox(OutboxBase):
             path=payload.get("path"),
             uri=payload.get("uri"),
             headers=payload.get("headers"),
-            body=payload.get("body", ""),
+            body=payload.get("body"),
         )
 
     @classmethod
