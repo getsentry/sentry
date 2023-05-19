@@ -9,6 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 from sentry.utils.event_frames import get_sdk_name
 
@@ -16,6 +17,7 @@ from ..base import (
     DetectorType,
     PerformanceDetector,
     fingerprint_spans,
+    get_notification_attachment_body,
     get_span_duration,
     get_span_evidence_value,
 )
@@ -144,7 +146,17 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
                     self.independent_db_spans[0], include_op=False
                 ),
             },
-            evidence_display=[],
+            evidence_display=[
+                IssueEvidence(
+                    name="Offending Spans",
+                    value=get_notification_attachment_body(
+                        "db",
+                        query,
+                    ),
+                    # Has to be marked important to be displayed in the notifications
+                    important=True,
+                )
+            ],
         )
 
         self._reset_variables()

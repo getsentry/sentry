@@ -22,7 +22,6 @@ import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import {
-  IconArchive,
   IconCheckmark,
   IconEllipsis,
   IconMute,
@@ -502,13 +501,7 @@ export function Actions(props: Props) {
           }
           size="sm"
           icon={
-            isResolved ? (
-              <IconCheckmark />
-            ) : hasEscalatingIssues ? (
-              <IconArchive />
-            ) : (
-              <IconMute />
-            )
+            hasEscalatingIssues ? null : isResolved ? <IconCheckmark /> : <IconMute />
           }
           disabled={disabled || isAutoResolved}
           onClick={() =>
@@ -534,7 +527,6 @@ export function Actions(props: Props) {
                 isArchived={isIgnored}
                 onUpdate={onUpdate}
                 disabled={disabled}
-                hideIcon
                 disableTooltip
               />
             </GuideAnchor>
@@ -545,7 +537,6 @@ export function Actions(props: Props) {
               onUpdate={onUpdate}
               disabled={disabled}
               size="sm"
-              hideIcon
               disableTooltip
             />
           )}
@@ -561,7 +552,6 @@ export function Actions(props: Props) {
               isResolved={isResolved}
               isAutoResolved={isAutoResolved}
               size="sm"
-              hideIcon
               priority="primary"
             />
           </GuideAnchor>

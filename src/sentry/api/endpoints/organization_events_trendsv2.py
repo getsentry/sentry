@@ -1,5 +1,6 @@
 import logging
 
+import sentry_sdk
 from django.conf import settings
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
@@ -74,6 +75,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         selected_columns.append(trend_function)
         selected_columns.append("count()")
         request.yAxis = selected_columns
+        top_events_limit = 56
+        events_per_query = 8
 
         def get_top_events(selected_columns, user_query, params, orderby, limit, referrer):
             return query(
@@ -88,7 +91,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             )
 
         def generate_top_transaction_query(events):
-            top_transaction_names = [event.get("transaction") for event in events["data"]]
+            top_transaction_names = [event.get("transaction") for event in events]
             top_transaction_as_str = ", ".join(
                 f'"{transaction}"' for transaction in top_transaction_names
             )
@@ -101,18 +104,27 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 user_query=user_query,
                 params=params,
                 orderby=["-count()"],
-                limit=100,
+                limit=top_events_limit,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS.value,
             )
 
+            sentry_sdk.set_tag(
+                "performance.trendsv2.top_events", top_events.get("data", None) is not None
+            )
             if top_events.get("data", None) is None:
-                return None
+                return {}
 
-            new_query = user_query + generate_top_transaction_query(top_events)
+            data = top_events["data"]
+            split_top_events = [
+                data[i : i + events_per_query] for i in range(0, len(data), events_per_query)
+            ]
+            new_queries = [
+                user_query + generate_top_transaction_query(t_e) for t_e in split_top_events
+            ]
 
-            result = metrics_performance.timeseries_query(
+            result = metrics_performance.bulk_timeseries_query(
                 selected_columns,
-                new_query,
+                new_queries,
                 params,
                 rollup=rollup,
                 zerofill_results=zerofill_results,
@@ -139,7 +151,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         extra={"result_key": result_key, "top_event_keys": list(results.keys())},
                     )
             for key, item in results.items():
-                key = f'{key},{item["project"]}'
+                key = f'{item["project"]},{key}'
                 formatted_results[key] = SnubaTSResult(
                     {
                         "data": zerofill(
@@ -156,7 +168,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     params["end"],
                     rollup,
                 )
-
             return formatted_results
 
         try:
@@ -164,19 +175,25 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 request,
                 organization,
                 get_event_stats_metrics,
-                top_events=50,
+                top_events=events_per_query,
                 query_column=trend_function,
                 params=params,
                 query=_query,
                 additional_query_column="count()",
             )
 
+            sentry_sdk.set_tag("performance.trendsv2.stats_data", bool(stats_data))
+
             # handle empty response
-            if stats_data.get("data", None):
+            if not bool(stats_data):
                 return Response(
                     {
                         "events": self.handle_results_with_meta(
-                            request, organization, params["project_id"], {"data": []}
+                            request,
+                            organization,
+                            params["project_id"],
+                            {"data": [], "meta": {"isMetricsData": True}},
+                            True,
                         ),
                         "stats": {},
                     },
@@ -203,6 +220,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
             # send the data to microservice
             trends = get_trends(trends_request)
+            sentry_sdk.set_tag("performance.trendsv2.trends", len(trends.get("data", [])) > 0)
+
             trending_transaction_names_stats = {}
             trending_events = trends["data"]
             for t in trending_events:
@@ -215,9 +234,15 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return Response(
                 {
                     "events": self.handle_results_with_meta(
-                        request, organization, params["project_id"], {"data": trending_events}
+                        request,
+                        organization,
+                        params["project_id"],
+                        {"data": trending_events, "meta": {"isMetricsData": True}},
+                        True,
                     ),
                     "stats": trending_transaction_names_stats,
+                    # temporary change to see what stats data is returned
+                    "raw_stats": trends_request,
                 },
                 status=200,
             )

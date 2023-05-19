@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -8,6 +8,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
+import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Count from 'sentry/components/count';
@@ -148,7 +149,17 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     `/settings/${organization.slug}/projects/${project.slug}/source-maps/artifact-bundles/`
   );
 
+  const sourceMapsUrl = normalizeUrl(
+    `/settings/${organization.slug}/projects/${project.slug}/source-maps/`
+  );
+
   const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
+
+  useEffect(() => {
+    if (location.pathname === sourceMapsUrl) {
+      router.replace(debugIdsUrl);
+    }
+  }, [location.pathname, sourceMapsUrl, debugIdsUrl, router]);
 
   const {
     data: archivesData,
@@ -250,11 +261,29 @@ export function ProjectSourceMaps({location, router, project}: Props) {
         )}
       </TextBlock>
       <NavTabs underlined>
-        <ListLink to={releaseBundlesUrl} index isActive={() => !tabDebugIdBundlesActive}>
-          {t('Release Bundles')}
-        </ListLink>
-        <ListLink to={debugIdsUrl} isActive={() => tabDebugIdBundlesActive}>
+        <ListLink to={debugIdsUrl} index isActive={() => tabDebugIdBundlesActive}>
           {t('Artifact Bundles')}
+        </ListLink>
+        <ListLink to={releaseBundlesUrl} isActive={() => !tabDebugIdBundlesActive}>
+          {t('Release Bundles')}
+          <Tooltip
+            title={tct(
+              'Release Bundles have been deprecated in favor of Artifact Bundles. Learn more about [link:Artifact Bundles].',
+              {
+                link: (
+                  <ExternalLink
+                    href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/artifact-bundles/"
+                    onClick={event => {
+                      event.stopPropagation();
+                    }}
+                  />
+                ),
+              }
+            )}
+            isHoverable
+          >
+            <Badge type="warning" text={t('Deprecated')} />
+          </Tooltip>
         </ListLink>
       </NavTabs>
       <SearchBarWithMarginBottom

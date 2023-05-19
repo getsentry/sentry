@@ -16,19 +16,20 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import usePrevious from 'sentry/utils/usePrevious';
 
-import getCurrentSentryReactTransaction from './getCurrentSentryReactTransaction';
-
 const MIN_UPDATE_SPAN_TIME = 16; // Frame boundary @ 60fps
 const WAIT_POST_INTERACTION = 50; // Leave a small amount of time for observers and onRenderCallback to log since they come in after they occur and not during.
 const INTERACTION_TIMEOUT = 2 * 60_000; // 2min. Wrap interactions up after this time since we don't want transactions sticking around forever.
-const MEASUREMENT_OUTLIER_VALUE = 5 * 60_000;
+const MEASUREMENT_OUTLIER_VALUE = 5 * 60_000; // Measurements over 5 minutes don't get recorded as a metric and are tagged instead.
+const ASSET_OUTLIER_VALUE = 1_000_000_000; // Assets over 1GB are ignored since they are likely a reporting error.
+const VCD_START = 'vcd-start';
+const VCD_END = 'vcd-end';
 
 /**
  * It depends on where it is called but the way we fetch transactions can be empty despite an ongoing transaction existing.
  * This will return an interaction-type transaction held onto by a class static if one exists.
  */
 export function getPerformanceTransaction(): IdleTransaction | Transaction | undefined {
-  return PerformanceInteraction.getTransaction() ?? getCurrentSentryReactTransaction();
+  return PerformanceInteraction.getTransaction() ?? Sentry.getActiveTransaction();
 }
 
 /**
@@ -65,7 +66,7 @@ export class PerformanceInteraction {
 
   static startInteraction(name: string, timeout = INTERACTION_TIMEOUT, immediate = true) {
     try {
-      const currentIdleTransaction = getCurrentSentryReactTransaction();
+      const currentIdleTransaction = Sentry.getActiveTransaction();
       if (currentIdleTransaction) {
         // If interaction is started while idle still exists.
         currentIdleTransaction.setTag('finishReason', 'sentry.interactionStarted'); // Override finish reason so we can capture if this has effects on idle timeout.
@@ -162,7 +163,7 @@ export function VisuallyCompleteWithData({
   const isVCDSet = useRef(false);
 
   if (isVCDSet && hasData && performance && performance.mark && !disabled) {
-    performance.mark(`${id}-vcsd-start`);
+    performance.mark(`${id}-${VCD_START}`);
     isVCDSet.current = true;
   }
 
@@ -175,7 +176,7 @@ export function VisuallyCompleteWithData({
       performance
         .getEntriesByType('mark')
         .map(m => m.name)
-        .filter(n => n.includes('vcsd'))
+        .filter(n => n.includes('vcd'))
         .forEach(n => performance.clearMarks(n));
     }
   }, [location, previousLocation]);
@@ -185,7 +186,7 @@ export function VisuallyCompleteWithData({
       return;
     }
     try {
-      const transaction: any = getCurrentSentryReactTransaction(); // Using any to override types for private api.
+      const transaction: any = Sentry.getActiveTransaction(); // Using any to override types for private api.
       if (!transaction) {
         return;
       }
@@ -193,22 +194,28 @@ export function VisuallyCompleteWithData({
       if (!isDataCompleteSet.current && _hasData) {
         isDataCompleteSet.current = true;
 
-        performance.mark(`${id}-vcsd-end-pre-timeout`);
+        performance.mark(`${id}-${VCD_END}-pretimeout`);
 
         window.setTimeout(() => {
           if (!browserPerformanceTimeOrigin) {
             return;
           }
-          const startMark = performance.getEntriesByName(`${id}-vcds-start`)[0];
-          const endMark = performance.getEntriesByName(`${id}-vcds-end`)[0];
+          performance.mark(`${id}-${VCD_END}`);
+          const startMarks = performance.getEntriesByName(`${id}-${VCD_START}`);
+          const endMarks = performance.getEntriesByName(`${id}-${VCD_END}`);
+          if (startMarks.length > 1 || endMarks.length > 1) {
+            transaction.setTag('vcd_extra_recorded_marks', true);
+          }
+
+          const startMark = startMarks.at(-1);
+          const endMark = endMarks.at(-1);
           if (!startMark || !endMark) {
             return;
           }
-          performance.mark(`${id}-vcsd-end`);
           performance.measure(
             `VCD [${id}] #${num.current}`,
-            `${id}-vcsd-start`,
-            `${id}-vcsd-end`
+            `${id}-${VCD_START}`,
+            `${id}-${VCD_END}`
           );
           num.current = num.current++;
         }, 0);
@@ -255,29 +262,49 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
   let allTransfered = 0;
   let allEncoded = 0;
   let hasAssetTimings = false;
+  const getOperation = data => data.operation ?? '';
+  const getTransferSize = data =>
+    data['http.response_transfer_size'] ?? data['Transfer Size'] ?? 0;
+  const getEncodedSize = data =>
+    data['http.response_content_length'] ?? data['Encoded Body Size'] ?? 0;
+  const getDecodedSize = data =>
+    data['http.decoded_response_content_length'] ?? data['Decoded Body Size'] ?? 0;
+  const getFields = data => ({
+    operation: getOperation(data),
+    transferSize: getTransferSize(data),
+    encodedSize: getEncodedSize(data),
+    decodedSize: getDecodedSize(data),
+  });
 
   for (const [op, _] of Object.entries(OP_ASSET_MEASUREMENT_MAP)) {
     const filtered = spans.filter(
       s =>
         s.op === op &&
-        SENTRY_ASSET_DOMAINS.every(
-          domain => !s.description || s.description.includes(domain)
+        SENTRY_ASSET_DOMAINS.some(
+          domain =>
+            !s.description ||
+            s.description.includes(domain) ||
+            s.description.startsWith('/')
         )
     );
-    const transfered = filtered.reduce(
-      (acc, curr) =>
-        acc +
-        (curr.data['http.response_transfer_size'] ?? curr.data['Transfer Size'] ?? 0),
-      0
-    );
-    const encoded = filtered.reduce(
-      (acc, curr) =>
-        acc +
-        (curr.data['http.response_content_length'] ??
-          curr.data['Encoded Body Size'] ??
-          0),
-      0
-    );
+    const transfered = filtered.reduce((acc, curr) => {
+      const fields = getFields(curr.data);
+      if (fields.transferSize > ASSET_OUTLIER_VALUE) {
+        return acc;
+      }
+      return acc + fields.transferSize;
+    }, 0);
+    const encoded = filtered.reduce((acc, curr) => {
+      const fields = getFields(curr.data);
+      if (
+        fields.encodedSize > ASSET_OUTLIER_VALUE ||
+        (fields.encodedSize > 0 && fields.decodedSize === 0)
+      ) {
+        // There appears to be a bug where we have massive encoded sizes w/o a decode size, we'll ignore these assets for now.
+        return acc;
+      }
+      return acc + fields.encodedSize;
+    }, 0);
 
     if (encoded > 0) {
       hasAssetTimings = true;

@@ -24,6 +24,8 @@ type State = {
   /**
    * Indicates that Team results (from API) are paginated and there are more
    * Teams that are not in the initial response.
+   *
+   * A null value indicates that we don't know if there are more values.
    */
   hasMore: null | boolean;
   /**
@@ -157,7 +159,7 @@ async function fetchTeams(
  * slugs, or loading more through search.
  *
  */
-function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
+export function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
   const api = useApi();
   const {organization} = useLegacyStore(OrganizationStore);
   const store = useLegacyStore(TeamStore);
@@ -400,5 +402,3 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
 
   return result;
 }
-
-export default useTeams;
