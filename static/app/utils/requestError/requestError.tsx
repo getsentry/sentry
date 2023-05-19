@@ -46,7 +46,7 @@ export default class RequestError extends Error {
   /**
    * Updates Error with XHR response
    */
-  setResponse(resp: ResponseMeta) {
+  addResponseMetadata(resp: ResponseMeta) {
     if (resp) {
       this.message = `${this.message} ${
         typeof resp.status === 'number' ? resp.status : 'n/a'

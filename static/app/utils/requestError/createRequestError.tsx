@@ -39,7 +39,7 @@ export default function createRequestError(
       err.name = errorName;
     }
 
-    err.setResponse(resp);
+    err.addResponseMetadata(resp);
   }
 
   return err;
