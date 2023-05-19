@@ -68,16 +68,16 @@ class RpcUser(RpcModel):
         # TODO: Remove the need for this
         return hash((self.id, self.pk))
 
-    def has_unverified_emails(self):
+    def has_unverified_emails(self) -> bool:
         return len(self.get_unverified_emails()) > 0
 
-    def has_verified_emails(self):
+    def has_verified_emails(self) -> bool:
         return len(self.get_verified_emails()) > 0
 
-    def get_unverified_emails(self):
+    def get_unverified_emails(self) -> List[RpcUserEmail]:
         return [e for e in self.useremails if not e.is_verified]
 
-    def get_verified_emails(self):
+    def get_verified_emails(self) -> List[RpcUserEmail]:
         return [e for e in self.useremails if e.is_verified]
 
     def has_usable_password(self) -> bool:

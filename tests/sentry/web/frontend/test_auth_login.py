@@ -290,6 +290,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         self.session["can_register"] = True
         self.session["invite_token"] = invite.token
         self.session["invite_member_id"] = invite.id
+        self.session["invite_organization_id"] = invite.organization_id
         self.save_session()
 
         self.client.get(self.path)
