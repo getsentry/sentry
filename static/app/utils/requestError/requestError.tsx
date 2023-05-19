@@ -40,8 +40,10 @@ export default class RequestError extends Error {
   ) {
     const options = cause instanceof Error ? {cause} : {};
     super(`${method || 'GET'} "${sanitizePath(path)}"`, options);
+    // TODO (kmclb) This is here to compensate for a bug in the SDK wherein it
+    // ignores subclassing of `Error` when getting error type. Once that's
+    // fixed, this can go.
     this.name = 'RequestError';
-    Object.setPrototypeOf(this, new.target.prototype);
   }
 
   /**
