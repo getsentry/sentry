@@ -258,8 +258,8 @@ export default function SpanSummary({location, params}: Props) {
     if (column.key === 'p50_comparison') {
       const diff = row.spanDuration - p50;
 
-      if (diff === p50) {
-        return 'At baseline';
+      if (Math.floor(row.spanDuration) === Math.floor(p50)) {
+        return <PlaintextLabel>{t('At baseline')}</PlaintextLabel>;
       }
 
       const labelString =
@@ -468,6 +468,10 @@ const FilterOptionsSubContainer = styled('div')`
 const ToggleLabel = styled('span')<{active?: boolean}>`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => (p.active ? p.theme.purple300 : p.theme.gray300)};
+`;
+
+const PlaintextLabel = styled('div')`
+  text-align: right;
 `;
 
 const ComparisonLabel = styled('div')<{value: number}>`
