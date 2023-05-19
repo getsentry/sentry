@@ -175,6 +175,7 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 class IssueRuleEditor extends AsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
   trackIncompatibleAnalytics: boolean = false;
+  isUnmounted = false;
 
   get isDuplicateRule(): boolean {
     const {location} = this.props;
@@ -187,6 +188,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   componentWillUnmount() {
+    this.isUnmounted = true;
     GroupStore.reset();
     window.clearTimeout(this.pollingTimeout);
     this.checkIncompatibleRuleDebounced.cancel();
@@ -231,7 +233,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const ruleName = rule?.name;
 
     return routeTitleGen(
-      ruleName ? t('Alert %s', ruleName) : '',
+      ruleName ? t('Alert - %s', ruleName) : t('New Alert Rule'),
       organization.slug,
       false,
       project?.slug
@@ -329,6 +331,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       );
     }
   }
+
   pollHandler = async (quitTime: number) => {
     if (Date.now() > quitTime) {
       addErrorMessage(t('Looking for that channel took too long :('));
@@ -405,6 +408,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         },
       })
       .then(([data, _, resp]) => {
+        if (this.isUnmounted) {
+          return;
+        }
+
         GroupStore.add(data);
 
         const pageLinks = resp?.getResponseHeader('Link');

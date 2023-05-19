@@ -7,7 +7,6 @@ import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 describe('OrganizationAuditLog', function () {
   const {routerContext, organization, router} = initializeOrg({
-    ...initializeOrg(),
     projects: [],
     router: {
       params: {orgId: 'org-slug'},
