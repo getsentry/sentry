@@ -4,7 +4,7 @@ from atexit import register
 from collections import deque
 from concurrent import futures
 from concurrent.futures import Future
-from typing import Any, Deque, Dict
+from typing import Any, Deque, Dict, cast
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
@@ -41,7 +41,7 @@ def produce_occurrence_to_kafka(occurrence: IssueOccurrence) -> None:
         lookup_event_and_process_issue_occurrence(occurrence.to_dict())
         return
 
-    _produce_to_kafka(occurrence=occurrence.to_dict())
+    _produce_to_kafka(occurrence=cast(Dict[str, Any], occurrence.to_dict()))
 
 
 def _produce_to_kafka(occurrence: Dict[str, Any]) -> None:
