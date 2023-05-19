@@ -1,6 +1,6 @@
 import click
+import yaml
 
-from sentry.options.manager import UpdateChannel
 from sentry.runner.decorators import configuration
 
 
@@ -16,7 +16,7 @@ def list():
     from sentry import options
 
     for opt in options.all():
-        if not drift(opt.name):
+        if can_change(opt.name):
             click.echo(f"{opt.name}: {options.get(opt.name)}")
 
 
@@ -32,7 +32,6 @@ def list():
 @configuration
 def patch(filename: str, dryrun: bool):
     "Updates, gets, and deletes options that are each subsectioned in the given file."
-    import yaml
 
     if dryrun:
         click.echo("Dryrun flag on. ")
@@ -74,8 +73,13 @@ def strict(filename: str, dryrun: bool):
     with open(filename) as stream:
         data = yaml.safe_load(stream).get("data", {})
 
+        for key in TRACKED:
+            if key not in data.keys():
+                _delete(key)
+
         for key, val in data.items():
-            _set(key, val, dryrun)
+            if key in TRACKED:
+                _set(key, val, dryrun)
 
 
 @configoptions.command()
@@ -153,19 +157,33 @@ def _delete(key: str, dryrun: bool = False) -> bool:
 
     options.lookup_key(key)
 
-    if not drift(key):
+    if not can_change(key):
         raise click.ClickException(f"Option {key} cannot be changed.")
+
     if not dryrun:
         options.delete(key)
     click.echo(f"Deleted key: {key}")
     return options.get(key)
 
 
-def drift(key: str) -> bool:
-    from sentry.options import default_manager as manager
+TRACKED = {
+    "system.admin-email",
+    "system.support-email",
+    "system.security-email",
+    "system.rate-limit",
+    "github-login.base-domain",
+    "github-login.api-domain",
+    "github-login.extended-permissions",
+    "symbolserver.options",
+    "nodedata.cache-sample-rate",
+}
 
-    source = manager.get_last_update_channel(key)
-    # check how option was changed.
-    # if changed manually we ignore.
 
-    return source != UpdateChannel.AUTOMATOR
+def can_change(key: str) -> bool:
+    from sentry import options
+    from sentry.options import manager
+
+    opt = options.lookup_key(key)
+    return (key in TRACKED) and not (
+        (opt.flags & manager.FLAG_NOSTORE) or (opt.flags & manager.FLAG_IMMUTABLE)
+    )

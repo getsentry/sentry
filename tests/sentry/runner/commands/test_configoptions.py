@@ -68,6 +68,7 @@ class ConfigOptionsTest(CliTestCase):
         assert rv.exit_code == 0, rv.output
         assert "Updated key: github-login.base-domain" in rv.output
         assert "Updated key: github-login.extended-permissions" in rv.output
+        assert "Deleted key: system.admin-email" in rv.output
         rv = self.invoke("get", "github-login.extended-permissions")
         assert rv.exit_code == 0, rv.output
         assert "['test1', 'test2']" in rv.output
