@@ -8,6 +8,7 @@ const ERROR_MAP = {
   401: 'UnauthorizedError',
   403: 'ForbiddenError',
   404: 'NotFoundError',
+  414: 'URITooLongError',
   426: 'UpgradeRequiredError',
   429: 'TooManyRequestsError',
   500: 'InternalServerError',
