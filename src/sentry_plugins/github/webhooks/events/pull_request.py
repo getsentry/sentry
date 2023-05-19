@@ -57,7 +57,7 @@ class PullRequestEventWebhook(Webhook):
                 user_model = User.objects.filter(
                     social_auth__provider="github",
                     social_auth__uid=user["id"],
-                    org_memberships=organization,
+                    sentry_orgmember_set__organization_id=organization.id,
                 )[0]
             except IndexError:
                 pass
