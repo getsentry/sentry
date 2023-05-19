@@ -106,5 +106,11 @@ class UserService(RpcService):
         else:
             return None
 
+    @rpc_method
+    def get_user_by_social_auth(
+        self, organization_id: int, provider: str, uid: str
+    ) -> Optional[RpcUser]:
+        pass
+
 
 user_service: UserService = cast(UserService, UserService.create_delegation())

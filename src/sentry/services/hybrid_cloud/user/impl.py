@@ -103,6 +103,18 @@ class DatabaseBackedUserService(UserService):
             User.objects.filter(id=user_id).update(**attrs)
         return self.serialize_many(filter=dict(user_ids=[user_id]))[0]
 
+    def get_user_by_social_auth(
+        self, organization_id: int, provider: str, uid: str
+    ) -> Optional[RpcUser]:
+        user = User.objects.filter(
+            social_auth__provider=provider,
+            social_auth__uid=uid,
+            orgmembermapping_set__organization_id=organization_id,
+        ).first()
+        if user is None:
+            return None
+        return serialize_rpc_user(user)
+
     def close(self) -> None:
         pass
 
