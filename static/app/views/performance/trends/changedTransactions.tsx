@@ -448,26 +448,35 @@ function TrendsListItem(props: TrendsListItemProps) {
   return (
     <ListItemContainer data-test-id={'trends-list-item-' + trendChangeType}>
       <ItemRadioContainer color={color}>
-        <Tooltip
-          title={
-            <TooltipContent>
-              <span>{t('Total Events')}</span>
-              <span>
-                <Count value={transaction.count_range_1} />
-                <StyledIconArrow direction="right" size="xs" />
-                <Count value={transaction.count_range_2} />
-              </span>
-            </TooltipContent>
-          }
-          disableForVisualTest // Disabled tooltip in snapshots because of overlap order issues.
-        >
+        {transaction.count_range_1 && transaction.count_range_2 ? (
+          <Tooltip
+            title={
+              <TooltipContent>
+                <span>{t('Total Events')}</span>
+                <span>
+                  <Count value={transaction.count_range_1} />
+                  <StyledIconArrow direction="right" size="xs" />
+                  <Count value={transaction.count_range_2} />
+                </span>
+              </TooltipContent>
+            }
+            disableForVisualTest // Disabled tooltip in snapshots because of overlap order issues.
+          >
+            <RadioLineItem index={index} role="radio">
+              <Radio
+                checked={isSelected}
+                onChange={() => handleSelectTransaction(transaction)}
+              />
+            </RadioLineItem>
+          </Tooltip>
+        ) : (
           <RadioLineItem index={index} role="radio">
             <Radio
               checked={isSelected}
               onChange={() => handleSelectTransaction(transaction)}
             />
           </RadioLineItem>
-        </Tooltip>
+        )}
       </ItemRadioContainer>
       <TransactionSummaryLink {...props} />
       <ItemTransactionPercentage>

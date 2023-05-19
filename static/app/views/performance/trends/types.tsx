@@ -70,14 +70,14 @@ export type TrendsTransaction = {
   aggregate_range_2: number;
   count: number;
 
-  count_percentage: number;
-  count_range_1: number;
-  count_range_2: number;
   project: string;
   transaction: string;
   trend_difference: number;
   trend_percentage: number;
   breakpoint?: number;
+  count_percentage?: number;
+  count_range_1?: number;
+  count_range_2?: number;
 };
 
 export type TrendsDataEvents = {
