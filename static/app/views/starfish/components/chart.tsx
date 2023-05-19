@@ -28,6 +28,7 @@ type Props = {
   start: DateString;
   statsPeriod: string | null | undefined;
   utc: boolean;
+  aggregateOutputFormat?: 'number' | 'percentage' | 'duration';
   chartColors?: string[];
   definedAxisTicks?: number;
   disableXAxis?: boolean;
@@ -105,6 +106,7 @@ function Chart({
   showLegend,
   scatterPlot,
   throughput,
+  aggregateOutputFormat,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -175,7 +177,7 @@ function Chart({
         formatter(value: number) {
           return axisLabelFormatter(
             value,
-            aggregateOutputType(data[0].seriesName),
+            aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
             undefined,
             durationUnit
           );
@@ -201,7 +203,6 @@ function Chart({
       : undefined,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors,
     tooltip: {
       trigger: 'axis',
       axisPointer: {
@@ -211,7 +212,8 @@ function Chart({
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
           value,
-          aggregateOutputType(data && data.length ? data[0].seriesName : seriesName)
+          aggregateOutputFormat ??
+            aggregateOutputType(data && data.length ? data[0].seriesName : seriesName)
         );
       },
       nameFormatter(value: string) {
