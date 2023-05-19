@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import TYPE_CHECKING, Any, List, Sequence
+from typing import TYPE_CHECKING, List, Sequence
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -40,22 +40,6 @@ if TYPE_CHECKING:
 
 
 class UserManager(BaseManager, DjangoUserManager):
-    def get_team_members_with_verified_email_for_projects(
-        self, projects: Sequence[Any]
-    ) -> QuerySet:
-        from sentry.models import ProjectTeam, Team
-
-        # TODO(hybridcloud) This is doing cross silo joins
-        return self.filter(
-            emails__is_verified=True,
-            sentry_orgmember_set__teams__in=Team.objects.filter(
-                id__in=ProjectTeam.objects.filter(project__in=projects).values_list(
-                    "team_id", flat=True
-                )
-            ),
-            is_active=True,
-        ).distinct()
-
     def get_from_teams(self, organization_id: int, teams: Sequence["Team"]) -> QuerySet:
         # TODO(hybridcloud) This is doing cross silo joins
         return self.filter(
