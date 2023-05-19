@@ -5900,10 +5900,12 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
                         "retention_days": 90,
                         "package": "lib_foo",
                         "environment": "development",
-                        "p95()": 92592143.6,
                         "p50()": 34695708.0,
-                        "p99()": 103764495.12000002,
                         "p75()": 45980969.0,
+                        "p95()": 92592143.6,
+                        "p99()": 103764495.12000002,
+                        "avg()": 51235123.0,
+                        "sum()": 951283182.0,
                         "examples()": [
                             "6919e4076b4a46bbaf1f3ef1f0666147",
                             "b04bafc378ea421b83b8680fd1caea52",
@@ -5953,11 +5955,15 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
                         "type": "String",
                     },
                     {
-                        "name": "p95()",
+                        "name": "p50()",
                         "type": "Float64",
                     },
                     {
-                        "name": "p50()",
+                        "name": "p75()",
+                        "type": "Float64",
+                    },
+                    {
+                        "name": "p95()",
                         "type": "Float64",
                     },
                     {
@@ -5965,7 +5971,11 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
                         "type": "Float64",
                     },
                     {
-                        "name": "p75()",
+                        "name": "avg()",
+                        "type": "Float64",
+                    },
+                    {
+                        "name": "sum()",
                         "type": "Float64",
                     },
                     {
@@ -5996,6 +6006,8 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
             "p75()",
             "p95()",
             "p99()",
+            "avg()",
+            "sum()",
         ]
 
         query = {
