@@ -124,8 +124,9 @@ def handle_ignored(
                     "actor_id": user.id if user.is_authenticated else None,
                 },
             )
-            Group.objects.filter(id__in=group_ids, status=GroupStatus.IGNORED).update(
-                substatus=GroupSubStatus.UNTIL_CONDITION_MET
+
+            Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
+                substatus=GroupSubStatus.UNTIL_CONDITION_MET, status=GroupStatus.IGNORED
             )
             serialized_user = user_service.serialize_many(
                 filter=dict(user_ids=[user.id]), as_user=user
