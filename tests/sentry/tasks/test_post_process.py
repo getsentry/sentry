@@ -16,7 +16,7 @@ from sentry.buffer.redis import RedisBuffer
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
-from sentry.issues.escalating import is_escalating
+from sentry.issues.escalating import manage_issue_states
 from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
@@ -1379,7 +1379,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             project=group.project,
             group=group,
             event=EventMatcher(event),
-            sender=is_escalating,
+            sender=manage_issue_states,
         )
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
