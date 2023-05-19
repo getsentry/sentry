@@ -196,12 +196,6 @@ def format_options(attrs: defaultdict(dict)):
             options.get("sentry:csp_ignored_sources", []) or []
         ),
         "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
-        "sentry:performance_issue_send_to_issues_platform": options.get(
-            "sentry:performance_issue_send_to_issues_platform"
-        ),
-        "sentry:performance_issue_create_issue_through_plaform": options.get(
-            "sentry:performance_issue_create_issue_through_plaform"
-        ),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
         "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
         f"filters:{FilterTypes.RELEASES}": "\n".join(
@@ -919,12 +913,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "dynamicSamplingBiases": get_value_with_default("sentry:dynamic_sampling_biases"),
-                "performanceIssueSendToPlatform": get_value_with_default(
-                    "sentry:performance_issue_send_to_issues_platform"
-                ),
-                "performanceIssueCreationThroughPlatform": get_value_with_default(
-                    "sentry:performance_issue_create_issue_through_plaform"
-                ),
                 "eventProcessing": {
                     "symbolicationDegraded": False,
                 },
