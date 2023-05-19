@@ -181,8 +181,15 @@ def get_participants_for_release(
     projects: Iterable[Project], organization: Organization, user_ids: set[int]
 ) -> ParticipantMap:
     # Collect all users with verified emails on a team in the related projects.
-    orm_users = User.objects.get_team_members_with_verified_email_for_projects(projects)
-    users = set(RpcActor.many_from_object(orm_users))
+    rpc_users = user_service.get_many(
+        filter={
+            "is_active": True,
+            "organization_id": organization.id,
+            "project_ids": [p.id for p in projects],
+            "emails_is_verified": True,
+        }
+    )
+    users = set(RpcActor.many_from_object(rpc_users))
 
     # Get all the involved users' settings for deploy-emails (including
     # users' organization-independent settings.)

@@ -119,27 +119,34 @@ class DatabaseBackedUserService(UserService):
             if "is_active" in filters:
                 query = query.filter(is_active=filters["is_active"])
             if "organization_id" in filters:
+                # TODO(hybridcloud) This is doing cross silo joins
                 query = query.filter(
                     sentry_orgmember_set__organization_id=filters["organization_id"]
                 )
             if "is_active_memberteam" in filters:
+                # TODO(hybridcloud) This is doing cross silo joins
                 query = query.filter(
                     sentry_orgmember_set__organizationmemberteam__is_active=filters[
                         "is_active_memberteam"
                     ],
                 )
             if "project_ids" in filters:
+                # TODO(hybridcloud) This is doing cross silo joins
                 query = query.filter(
                     sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id__in=filters[
                         "project_ids"
                     ]
                 )
             if "team_ids" in filters:
+                # TODO(hybridcloud) This is doing cross silo joins
                 query = query.filter(
                     sentry_orgmember_set__organizationmemberteam__team_id__in=filters["team_ids"],
                 )
             if "emails" in filters:
                 query = query.filter(in_iexact("emails__email", filters["emails"]))
+
+            if "emails_is_verified" in filters:
+                query = query.filter(emails__is_verified=filters["emails_is_verified"])
 
             return list(query)
 
