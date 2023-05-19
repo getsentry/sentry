@@ -120,7 +120,7 @@ class DatabaseBackedUserService(UserService):
                 query = query.filter(is_active=filters["is_active"])
             if "organization_id" in filters:
                 query = query.filter(
-                    sentry_orgmember_set__organization_id=filters["organization_id"]
+                    orgmembermapping_set__organization_id=filters["organization_id"]
                 )
             if "is_active_memberteam" in filters:
                 query = query.filter(
