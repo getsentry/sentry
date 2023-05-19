@@ -1,17 +1,18 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Duration from 'sentry/components/duration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {formatPercentage} from 'sentry/utils/formatters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
 import {ReleasePreview} from 'sentry/views/starfish/views/spans/spanSummaryPanel/releasePreview';
 import {SpanDescription} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanDescription';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanTransactionsTable';
 import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
+import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
 import {useSpanMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetrics';
 import {useSpanMetricSeries} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetricSeries';
 import {
@@ -27,6 +28,7 @@ type Props = {
 export function SpanSummaryPanel({span, onClose}: Props) {
   const theme = useTheme();
 
+  const {data: applicationMetrics} = useApplicationMetrics();
   const {data: spanMetrics} = useSpanMetrics(span);
   const {data: spanMetricSeries} = useSpanMetricSeries(span);
 
@@ -68,14 +70,12 @@ export function SpanSummaryPanel({span, onClose}: Props) {
         </Block>
 
         <Block
-          title={t('Total Time')}
-          description={t('The total exclusive time taken up by this span')}
+          title={t('App Impact')}
+          description={t(
+            'The total exclusive time taken up by this span vs. entire application'
+          )}
         >
-          <Duration
-            seconds={spanMetrics?.total_time / 1000}
-            fixedDigits={2}
-            abbreviation
-          />
+          {formatPercentage(spanMetrics?.total_time / applicationMetrics?.total_time)}
         </Block>
       </BlockContainer>
 

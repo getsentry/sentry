@@ -13,7 +13,7 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
-import {getDuration} from 'sentry/utils/formatters';
+import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import Sparkline, {
@@ -21,6 +21,7 @@ import Sparkline, {
 } from 'sentry/views/starfish/components/sparkline';
 import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
 
 type Props = {
   isLoading: boolean;
@@ -63,6 +64,8 @@ export default function SpansTable({
   onSelect,
 }: Props) {
   const theme = useTheme();
+  const {data: applicationMetrics} = useApplicationMetrics();
+
   const spansTrendsGrouped = {p50_trend: {}, p95_trend: {}, throughput: {}};
 
   spansTrendsData?.forEach(({group_id, span_operation, interval, ...rest}) => {
@@ -110,6 +113,9 @@ export default function SpansTable({
     );
     return {
       ...spanData,
+      app_impact: formatPercentage(
+        spanData.total_exclusive_time / applicationMetrics.total_time
+      ),
       p50_trend: zeroFilledP50,
       p95_trend: zeroFilledP95,
       throughput_trend: zeroFilledThroughput,
@@ -306,8 +312,8 @@ function getColumns(queryConditions: string[]): GridColumnOrder[] {
       width: COL_WIDTH_UNDEFINED,
     },
     {
-      key: 'total_exclusive_time',
-      name: 'Total Time',
+      key: 'app_impact',
+      name: 'App Impact',
       width: COL_WIDTH_UNDEFINED,
     },
     {
