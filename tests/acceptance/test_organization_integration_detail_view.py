@@ -40,6 +40,8 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
             ExampleIntegrationSetupWindowElement, {"name": self.provider.name}
         )
 
+        self.wait_for_loading()
+
         integration = Integration.objects.filter(
             provider=self.provider.key, external_id=self.provider.name
         ).first()
