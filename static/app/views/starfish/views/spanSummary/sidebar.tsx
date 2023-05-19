@@ -273,23 +273,23 @@ export const getTransactionBasedSeries = (
   data: any[],
   dateFilter: {endTime: Moment; startTime: Moment}
 ) => {
-  const p50TransactionSeries = queryToSeries({
+  const p50TransactionSeries = queryToSeries(
     data,
-    groupByProperty: 'group',
-    seriesValueProperty: 'p50(transaction.duration)',
-    startTime: dateFilter.startTime,
-    endTime: dateFilter.endTime,
-    interval: 12,
-  })[0];
+    'group',
+    'p50(transaction.duration)',
+    dateFilter.startTime,
+    dateFilter.endTime,
+    12
+  )[0];
 
-  const throughputTransactionSeries = queryToSeries({
+  const throughputTransactionSeries = queryToSeries(
     data,
-    groupByProperty: 'group',
-    seriesValueProperty: 'epm()',
-    startTime: dateFilter.startTime,
-    endTime: dateFilter.endTime,
-    interval: 12,
-  })[0];
+    'group',
+    'epm()',
+    dateFilter.startTime,
+    dateFilter.endTime,
+    12
+  )[0];
   if (data.length) {
     p50TransactionSeries.seriesName = 'p50()';
     throughputTransactionSeries.seriesName = 'epm()';
