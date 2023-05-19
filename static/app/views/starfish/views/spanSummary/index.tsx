@@ -4,9 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import keyBy from 'lodash/keyBy';
-import orderBy from 'lodash/orderBy';
 import moment from 'moment';
-import * as qs from 'query-string';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import DateTime from 'sentry/components/dateTime';
@@ -15,7 +13,6 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import SwitchButton from 'sentry/components/switchButton';
-import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -43,7 +40,6 @@ import Sidebar, {
 } from 'sentry/views/starfish/views/spanSummary/sidebar';
 
 import {
-  useQueryGetFacetsBreakdown,
   useQueryGetSpanSamples,
   useQueryGetSpanSeriesData,
   useQuerySpansInTransaction,
@@ -124,9 +120,6 @@ export default function SpanSummary({location, params}: Props) {
   const {isLoading, data} = useQuerySpansInTransaction({groupId});
 
   const p50 = data[0]?.p50 ?? 0;
-
-  const {isLoading: isFacetBreakdownLoading, data: facetBreakdownData} =
-    useQueryGetFacetsBreakdown({groupId, transactionName});
 
   const results = useQueryGetSpanSamples({groupId, transactionName, user, p50});
 
@@ -265,8 +258,8 @@ export default function SpanSummary({location, params}: Props) {
     if (column.key === 'p50_comparison') {
       const diff = row.spanDuration - p50;
 
-      if (diff === p50) {
-        return 'At baseline';
+      if (Math.floor(row.spanDuration) === Math.floor(p50)) {
+        return <PlaintextLabel>{t('At baseline')}</PlaintextLabel>;
       }
 
       const labelString =
@@ -325,49 +318,6 @@ export default function SpanSummary({location, params}: Props) {
                     />
                   </div>
                 )}
-                {isFacetBreakdownLoading ? (
-                  <span>LOADING</span>
-                ) : (
-                  <div>
-                    <h3>{t('Facets')}</h3>
-                    {['user'].map(facet => {
-                      const values = facetBreakdownData.map(datum => datum[facet]);
-
-                      const uniqueValues: string[] = Array.from(new Set(values));
-
-                      let totalValues = 0;
-
-                      const segments = orderBy(
-                        uniqueValues.map(uniqueValue => {
-                          const count = values.filter(v => v === uniqueValue).length;
-                          totalValues += count;
-
-                          return {
-                            key: facet,
-                            name: uniqueValue,
-                            value: uniqueValue,
-                            url: `/starfish/span/${groupId}?${qs.stringify({
-                              [facet]: uniqueValue,
-                            })}`,
-                            count,
-                          };
-                        }),
-                        'count',
-                        'desc'
-                      );
-
-                      return (
-                        <TagDistributionMeter
-                          key={facet}
-                          title={facet}
-                          segments={segments}
-                          totalValues={totalValues}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-
                 <FlexRowContainer>
                   <FlexRowItem>
                     <h4>{t('Throughput (SPM)')}</h4>
@@ -518,6 +468,10 @@ const FilterOptionsSubContainer = styled('div')`
 const ToggleLabel = styled('span')<{active?: boolean}>`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => (p.active ? p.theme.purple300 : p.theme.gray300)};
+`;
+
+const PlaintextLabel = styled('div')`
+  text-align: right;
 `;
 
 const ComparisonLabel = styled('div')<{value: number}>`

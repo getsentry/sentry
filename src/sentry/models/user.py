@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import TYPE_CHECKING, Any, List, Sequence
+from typing import Any, List, Sequence
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -19,7 +19,6 @@ from sentry.db.models import (
     BaseManager,
     BaseModel,
     BoundedAutoField,
-    FlexibleForeignKey,
     control_silo_only_model,
     sane_repr,
 )
@@ -34,9 +33,6 @@ from sentry.types.region import find_regions_for_user
 from sentry.utils.http import absolute_uri
 
 audit_logger = logging.getLogger("sentry.audit.user")
-
-if TYPE_CHECKING:
-    from sentry.models import Team
 
 
 class UserManager(BaseManager, DjangoUserManager):
@@ -55,27 +51,6 @@ class UserManager(BaseManager, DjangoUserManager):
             ),
             is_active=True,
         ).distinct()
-
-    def get_from_teams(self, organization_id: int, teams: Sequence["Team"]) -> QuerySet:
-        # TODO(hybridcloud) This is doing cross silo joins
-        return self.filter(
-            sentry_orgmember_set__organization_id=organization_id,
-            sentry_orgmember_set__organizationmemberteam__team__in=teams,
-            sentry_orgmember_set__organizationmemberteam__is_active=True,
-            is_active=True,
-        )
-
-    def get_from_projects(self, organization_id, projects):
-        """
-        Returns users associated with a project based on their teams.
-        """
-        # TODO(hybridcloud) This is doing cross silo joins
-        return self.filter(
-            sentry_orgmember_set__organization_id=organization_id,
-            sentry_orgmember_set__organizationmemberteam__team__projectteam__project__in=projects,
-            sentry_orgmember_set__organizationmemberteam__is_active=True,
-            is_active=True,
-        )
 
     def get_from_organizations(self, organization_ids):
         """Returns users associated with an Organization based on their teams."""
@@ -187,14 +162,12 @@ class User(BaseModel, AbstractBaseUser):
     )
 
     session_nonce = models.CharField(max_length=12, null=True)
-    actor = FlexibleForeignKey(
-        "sentry.Actor",
-        related_name="user_from_actor",
+    actor_id = models.BigIntegerField(
         db_index=True,
         unique=True,
         null=True,
-        on_delete=models.PROTECT,
     )
+
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
 

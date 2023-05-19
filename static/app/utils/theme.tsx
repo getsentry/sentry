@@ -28,15 +28,15 @@ export const lightColors = {
   gray500: '#2B2233',
   gray400: '#3E3446',
   gray300: '#80708F',
-  gray200: '#DBD6E1',
-  gray100: '#EBE6EF',
+  gray200: '#E0DCE5',
+  gray100: '#F0ECF3',
 
   /**
    * Alternative version of gray200 that's translucent.
    * Useful for borders on tooltips, popovers, and dialogs.
    */
-  translucentGray200: 'rgba(58, 17, 95, 0.18)',
-  translucentGray100: 'rgba(45, 0, 85, 0.1)',
+  translucentGray200: 'rgba(58, 17, 95, 0.14)',
+  translucentGray100: 'rgba(45, 0, 85, 0.06)',
 
   purple400: '#584AC0',
   purple300: '#6C5FC7',
@@ -92,15 +92,15 @@ export const darkColors = {
   gray500: '#EBE6EF',
   gray400: '#D6D0DC',
   gray300: '#998DA5',
-  gray200: '#43384C',
-  gray100: '#342B3B',
+  gray200: '#393041',
+  gray100: '#302735',
 
   /**
    * Alternative version of gray200 that's translucent.
    * Useful for borders on tooltips, popovers, and dialogs.
    */
-  translucentGray200: 'rgba(218, 184, 245, 0.18)',
-  translucentGray100: 'rgba(208, 168, 240, 0.1)',
+  translucentGray200: 'rgba(218, 184, 245, 0.16)',
+  translucentGray100: 'rgba(208, 168, 240, 0.07)',
 
   purple400: '#A397F7',
   purple300: '#7669D3',
@@ -487,11 +487,6 @@ const generateBadgeTheme = (colors: BaseColors) => ({
     background: colors.gray100,
     indicatorColor: colors.gray100,
     color: colors.gray500,
-  },
-  review: {
-    background: colors.purple300,
-    indicatorColor: colors.purple300,
-    color: colors.white,
   },
   warning: {
     background: colors.yellow300,

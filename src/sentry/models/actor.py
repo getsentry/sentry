@@ -192,7 +192,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
     def resolve_to_actor(self) -> Actor:
         obj = self.resolve()
         # TODO(actorid) Remove this once user no longer has actor_id.
-        if obj.actor_id is None or isinstance(obj, RpcUser):
+        if getattr(obj, "actor_id") is None or isinstance(obj, RpcUser):
             return get_actor_for_user(obj)
         # Team case
         return Actor.objects.get(id=obj.actor_id)

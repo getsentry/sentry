@@ -1,17 +1,22 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import orderBy from 'lodash/orderBy';
 import moment, {Moment} from 'moment';
+import * as qs from 'query-string';
 
 import Duration from 'sentry/components/duration';
+import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/formatters';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {
+  useQueryGetFacetsBreakdown,
   useQueryGetSpanAggregatesQuery,
   useQueryGetSpanSeriesData,
   useQueryGetUniqueTransactionCount,
@@ -35,6 +40,10 @@ export default function Sidebar({
 }: Props) {
   const theme = useTheme();
   const pageFilter = usePageFilters();
+  const location = useLocation();
+
+  const {isLoading: isFacetBreakdownLoading, data: facetBreakdownData} =
+    useQueryGetFacetsBreakdown({groupId, transactionName});
 
   // This is supposed to a metrics span query that fetches aggregate metric data
   const {isLoading: _isLoadingSideBarAggregateData, data: spanAggregateData} =
@@ -132,6 +141,50 @@ export default function Sidebar({
           </FlexFullWidthItem>
         )
       }
+      <FlexFullWidthItem>
+        {isFacetBreakdownLoading ? (
+          <span>LOADING</span>
+        ) : (
+          <div>
+            <h3>{t('Facets')}</h3>
+            {['user'].map(facet => {
+              const values = facetBreakdownData.map(datum => datum[facet]);
+
+              const uniqueValues: string[] = Array.from(new Set(values));
+
+              let totalValues = 0;
+
+              const segments = orderBy(
+                uniqueValues.map(uniqueValue => {
+                  const valueCount = values.filter(v => v === uniqueValue).length;
+                  totalValues += valueCount;
+
+                  const newQuery = {...location.query, [facet]: uniqueValue};
+
+                  return {
+                    key: facet,
+                    name: uniqueValue,
+                    value: uniqueValue,
+                    url: `/starfish/span/${groupId}?${qs.stringify(newQuery)}`,
+                    count,
+                  };
+                }),
+                'count',
+                'desc'
+              );
+
+              return (
+                <TagDistributionMeter
+                  key={facet}
+                  title={facet}
+                  segments={segments}
+                  totalValues={totalValues}
+                />
+              );
+            })}
+          </div>
+        )}
+      </FlexFullWidthItem>
     </FlexContainer>
   );
 }
