@@ -82,7 +82,7 @@ class PushEventWebhook(Webhook):
                                     user = User.objects.filter(
                                         social_auth__provider="github",
                                         social_auth__uid=gh_user["id"],
-                                        org_memberships=organization_id,
+                                        sentry_orgmember_set__organization_id=organization_id,
                                     )[0]
                                 except IndexError:
                                     pass
