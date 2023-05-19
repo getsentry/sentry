@@ -13,7 +13,7 @@ import {
 import {metric} from 'sentry/utils/analytics';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
-import createRequestError from 'sentry/utils/requestError/createRequestError';
+import RequestError from 'sentry/utils/requestError/requestError';
 
 export class Request {
   /**
@@ -598,11 +598,11 @@ export class Client {
           }
         },
         error: (resp: ResponseMeta) => {
-          const errorObjectToUse = createRequestError(
-            resp,
-            preservedError,
+          const errorObjectToUse = new RequestError(
             options.method,
-            path
+            path,
+            preservedError,
+            resp
           );
 
           // Although `this.request` logs all error responses, this error object can
