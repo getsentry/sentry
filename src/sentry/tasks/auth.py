@@ -173,6 +173,7 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
         elif not isinstance(user, User):
             raise TypeError(user)
 
+        # TODO(hybridcloud) This compliance task is using data from both silos.
         email = UserEmail.objects.get_primary_email(user)
         email_context = {
             "confirm_url": absolute_uri(

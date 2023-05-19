@@ -161,11 +161,6 @@ function useReplayData({
       return;
     }
 
-    if (!replayRecord.error_ids.length) {
-      setState(prev => ({...prev, fetchingErrors: false}));
-      return;
-    }
-
     // Clone the `finished_at` time and bump it up one second because finishedAt
     // has the `ms` portion truncated, while replays-events-meta operates on
     // timestamps with `ms` attached. So finishedAt could be at time `12:00:00.000Z`

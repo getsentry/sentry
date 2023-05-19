@@ -34,7 +34,6 @@ describe('Discover > ChartFooter', function () {
       router: {
         location: {query: {query: 'tag:value'}},
       },
-      project: 1,
       projects: [],
     });
 
@@ -75,7 +74,6 @@ describe('Discover > ChartFooter', function () {
       router: {
         location: {query: {query: 'tag:value'}},
       },
-      project: 1,
       projects: [],
     });
 

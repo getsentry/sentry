@@ -75,7 +75,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         selected_columns.append(trend_function)
         selected_columns.append("count()")
         request.yAxis = selected_columns
-        top_events_limit = 8
+        top_events_limit = 56
+        events_per_query = 8
 
         def get_top_events(selected_columns, user_query, params, orderby, limit, referrer):
             return query(
@@ -90,7 +91,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             )
 
         def generate_top_transaction_query(events):
-            top_transaction_names = [event.get("transaction") for event in events["data"]]
+            top_transaction_names = [event.get("transaction") for event in events]
             top_transaction_as_str = ", ".join(
                 f'"{transaction}"' for transaction in top_transaction_names
             )
@@ -113,11 +114,17 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             if top_events.get("data", None) is None:
                 return {}
 
-            new_query = user_query + generate_top_transaction_query(top_events)
+            data = top_events["data"]
+            split_top_events = [
+                data[i : i + events_per_query] for i in range(0, len(data), events_per_query)
+            ]
+            new_queries = [
+                user_query + generate_top_transaction_query(t_e) for t_e in split_top_events
+            ]
 
-            result = metrics_performance.timeseries_query(
+            result = metrics_performance.bulk_timeseries_query(
                 selected_columns,
-                new_query,
+                new_queries,
                 params,
                 rollup=rollup,
                 zerofill_results=zerofill_results,
@@ -168,7 +175,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 request,
                 organization,
                 get_event_stats_metrics,
-                top_events=top_events_limit,
+                top_events=events_per_query,
                 query_column=trend_function,
                 params=params,
                 query=_query,
@@ -233,10 +240,9 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         {"data": trending_events, "meta": {"isMetricsData": True}},
                         True,
                     ),
+                    "stats": trending_transaction_names_stats,
                     # temporary change to see what stats data is returned
-                    "stats": trending_transaction_names_stats
-                    if len(trending_events) > 0
-                    else stats_data,
+                    "raw_stats": trends_request,
                 },
                 status=200,
             )

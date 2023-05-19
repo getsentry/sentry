@@ -141,15 +141,18 @@ def map_symbolicator_process_js_errors(errors):
     return mapped_errors
 
 
-def _handles_frame(frame):
+def _handles_frame(frame, data):
     if not frame:
         return False
 
-    # skip frames without an `abs_path`
-    if (abs_path := frame.get("abs_path")) is None:
+    # skip frames without an `abs_path` or line number
+    if not (abs_path := frame.get("abs_path")) or not frame.get("lineno"):
         return False
-    # skip "native" frames without a line
-    if abs_path in ("native", "[native code]") and frame.get("lineno", 0) == 0:
+    # skip "native" frames
+    if abs_path in ("native", "[native code]"):
+        return False
+    # skip builtin node modules
+    if data.get("platform") == "node" and not abs_path.startswith(("/", "app:", "webpack:")):
         return False
     return True
 
@@ -188,7 +191,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             "frames": [
                 dict(frame)
                 for frame in sinfo.stacktrace.get("frames") or ()
-                if _handles_frame(frame)
+                if _handles_frame(frame, data)
             ],
         }
         for sinfo in stacktrace_infos
@@ -227,7 +230,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         new_frames = []
         new_raw_frames = []
         for sinfo_frame in sinfo.stacktrace["frames"]:
-            if not _handles_frame(sinfo_frame):
+            if not _handles_frame(sinfo_frame, data):
                 new_raw_frames.append(sinfo_frame)
                 new_frames.append(sinfo_frame)
                 continue
