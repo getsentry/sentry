@@ -82,7 +82,7 @@ describe('queryClient', function () {
       const requestError = new RequestError('GET', '/some/test/path', {
         cause: new Error(),
       });
-      requestError.setMessage('something bad happened');
+      requestError.message = 'something bad happened';
 
       const api = new MockApiClient();
       jest.spyOn(useApi, 'default').mockReturnValue(api);

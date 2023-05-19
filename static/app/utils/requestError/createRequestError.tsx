@@ -36,7 +36,7 @@ export default function createRequestError(
     const errorName = ERROR_MAP[resp.status];
 
     if (errorName) {
-      err.setName(errorName);
+      err.name = errorName;
     }
 
     err.setResponse(resp);
