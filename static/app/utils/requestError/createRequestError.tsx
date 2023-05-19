@@ -14,9 +14,5 @@ export default function createRequestError(
   method: 'POST' | 'GET' | 'DELETE' | 'PUT' | undefined,
   path: string
 ) {
-  const err = new RequestError(method, path, cause);
-
-  err.addResponseMetadata(resp);
-
-  return err;
+  return new RequestError(method, path, cause, resp);
 }

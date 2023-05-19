@@ -36,7 +36,8 @@ export default class RequestError extends Error {
   constructor(
     method: 'POST' | 'GET' | 'DELETE' | 'PUT' | undefined,
     path: string,
-    cause: Error
+    cause: Error,
+    responseMetadata?: ResponseMeta
   ) {
     const options = cause instanceof Error ? {cause} : {};
     super(`${method || 'GET'} "${sanitizePath(path)}"`, options);
@@ -44,6 +45,7 @@ export default class RequestError extends Error {
     // ignores subclassing of `Error` when getting error type. Once that's
     // fixed, this can go.
     this.name = 'RequestError';
+    this.addResponseMetadata(responseMetadata);
   }
 
   /**
