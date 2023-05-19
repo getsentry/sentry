@@ -220,8 +220,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             sentry_sdk.set_tag("performance.trendsv2.trends", len(trends.get("data", [])) > 0)
 
             trending_transaction_names_stats = {}
-            trending_events = trends["data"]
-
+            # TODO add proper pagination
+            trending_events = trends["data"][:5]
             for t in trending_events:
                 transaction_name = t["transaction"]
                 project = t["project"]
