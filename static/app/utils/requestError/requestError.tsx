@@ -18,10 +18,6 @@ const ERROR_MAP = {
   504: 'GatewayTimeoutError',
 };
 
-interface ErrorOptionsObject {
-  cause: Error;
-}
-
 // Technically, this should include the fact that `responseJSON` can be an
 // array, but since we never actually use its array-ness, it makes the typing
 // significantly simpler if we just rely on the "arrays are objects and we
@@ -40,8 +36,9 @@ export default class RequestError extends Error {
   constructor(
     method: 'POST' | 'GET' | 'DELETE' | 'PUT' | undefined,
     path: string,
-    options: ErrorOptionsObject
+    cause: Error
   ) {
+    const options = cause instanceof Error ? {cause} : {};
     super(`${method || 'GET'} "${sanitizePath(path)}"`, options);
     this.name = 'RequestError';
     Object.setPrototypeOf(this, new.target.prototype);
