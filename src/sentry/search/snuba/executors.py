@@ -399,7 +399,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 )
             except UnsupportedSearchQuery:
                 pass
-
         query_params_for_categories = {
             gc: query_params
             for gc, query_params in query_params_for_categories.items()
@@ -468,34 +467,31 @@ def better_priority_aggregation(
     issue_halflife_hours = 24 * 7  # issues half in value every week
     aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
 
-    if aggregate_kwargs is None:
-        return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
-    else:
-        # probably not needed
-        event_age_weight = 1  # [0, 5]
-        issue_age_weight = 1  # [0, 5]
-        # TODO: we have no way of aggregating to account for frequency:
-        #  (errors within group) / (total events grouped by project)
-        #  keeping this here for now but we should probably delete
-        # frequency_weight = aggregate_kwargs["frequency"]  # [0, 5]
-        # frequency_score = f"countIf(and(greater(toDateTime('{start_str}'), timestamp), lessOrEquals(toDateTime('{end_str}'), timestamp))) / count()"
+    # probably not needed
+    event_age_weight = 1  # [0, 5]
+    issue_age_weight = 1  # [0, 5]
+    # TODO: we have no way of aggregating to account for frequency:
+    #  (errors within group) / (total events grouped by project)
+    #  keeping this here for now but we should probably delete
+    # frequency_weight = aggregate_kwargs["frequency"]  # [0, 5]
+    # frequency_score = f"countIf(and(greater(toDateTime('{start_str}'), timestamp), lessOrEquals(toDateTime('{end_str}'), timestamp))) / count()"
 
-        # event-level
-        log_level_weight = aggregate_kwargs["log_level"]  # [0, 10]
-        stacktrace_weight = aggregate_kwargs["has_stacktrace"]  # [0, 3]
+    # event-level
+    log_level_weight = aggregate_kwargs["log_level"]  # [0, 10]
+    stacktrace_weight = aggregate_kwargs["has_stacktrace"]  # [0, 3]
 
-        log_level_score = "multiIf(equals(level, 'fatal'), 1.0, equals(level, 'error'), 0.66, equals(level, 'warning'), 0.33, 0.0)"
-        stacktrace_score = "if(equals(exception_frames.function, array()), 0.0, 1.0)"
-        event_agg_numerator = f"plus(plus(multiply({log_level_score}, {log_level_weight}), multiply({stacktrace_score}, {stacktrace_weight})), {event_age_weight})"
-        event_agg_denominator = (
-            f"plus(plus({log_level_weight}, {stacktrace_weight}), {event_age_weight})"
-        )
-        event_agg_rank = f"divide({event_agg_numerator}, {event_agg_denominator})"
+    log_level_score = "multiIf(equals(level, 'fatal'), 1.0, equals(level, 'error'), 0.66, equals(level, 'warning'), 0.33, 0.0)"
+    stacktrace_score = "if(equals(exception_frames.function, array()), 0.0, 1.0)"
+    event_agg_numerator = f"plus(plus(multiply({log_level_score}, {log_level_weight}), multiply({stacktrace_score}, {stacktrace_weight})), {event_age_weight})"
+    event_agg_denominator = (
+        f"plus(plus({log_level_weight}, {stacktrace_weight}), {event_age_weight})"
+    )
+    event_agg_rank = f"divide({event_agg_numerator}, {event_agg_denominator})"
 
-        aggregate_event_score = f"greatest({min_score}, sum(divide({event_agg_rank}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
-        aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
+    aggregate_event_score = f"greatest({min_score}, sum(divide({event_agg_rank}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
+    aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
 
-        return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
+    return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):

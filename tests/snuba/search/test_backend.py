@@ -123,6 +123,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 "tags": {"server": "example.com", "sentry:user": "event1@example.com"},
                 "timestamp": event1_timestamp,
                 "stacktrace": {"frames": [{"module": "group1"}]},
+                "level": "fatal",
             },
             project_id=self.project.id,
         )
@@ -135,6 +136,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 "tags": {"server": "example.com", "sentry:user": "event3@example.com"},
                 "timestamp": iso_format(self.base_datetime),
                 "stacktrace": {"frames": [{"module": "group1"}]},
+                "level": "fatal",
             },
             project_id=self.project.id,
         )
@@ -166,6 +168,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                     "url": "http://example.com",
                     "sentry:user": "event2@example.com",
                 },
+                "level": "error",
             },
             project_id=self.project.id,
         )
@@ -406,6 +409,39 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         recent_group = Group.objects.get(id=recent_event.group.id)
         old_group = Group.objects.get(id=old_event.group.id)
         assert list(results) == [recent_group, old_group]
+
+    def test_better_priority_results(self):
+        """Test that the scoring results change when we pass in different weights"""
+        agg_kwargs = {"better_priority": {"log_level": 1, "frequency": 1, "has_stacktrace": 1}}
+        query_executor = self.backend._get_query_executor()
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="better_priority",
+            organization=self.organization,
+            group_ids=[self.group1.id, self.group2.id],
+            limit=150,
+            aggregate_kwargs=agg_kwargs,
+        )
+        group1_score = 0.0009287464307105929
+        group2_score = 0.0010254191950095474
+        assert results == ([(self.group1.id, group1_score), (self.group2.id, group2_score)], 2)
+
+        agg_kwargs["better_priority"].update({"log_level": 5})
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="better_priority",
+            organization=self.organization,
+            group_ids=[self.group1.id, self.group2.id],
+            limit=150,
+            aggregate_kwargs=agg_kwargs,
+        )
+        assert results != ([(self.group1.id, group1_score), (self.group2.id, group2_score)], 2)
 
     def test_sort_with_environment(self):
         for dt in [
