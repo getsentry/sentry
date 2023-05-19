@@ -1,4 +1,3 @@
-import Feature from 'sentry/components/acl/feature';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
@@ -22,24 +21,10 @@ function getSortTooltip(key: IssueSortOptions) {
       return t('Number of events.');
     case IssueSortOptions.USER:
       return t('Number of users affected.');
-    case IssueSortOptions.TREND:
-      return t('% change in event count.');
     case IssueSortOptions.DATE:
     default:
       return t('Last time the issue occurred.');
   }
-}
-
-function getSortOptions(sortKeys: IssueSortOptions[], hasTrendSort = false) {
-  const combinedSortKeys = [
-    ...sortKeys,
-    ...(hasTrendSort ? [IssueSortOptions.TREND] : []),
-  ];
-  return combinedSortKeys.map(key => ({
-    value: key,
-    label: getSortLabel(key),
-    details: getSortTooltip(key),
-  }));
 }
 
 function IssueListSortOptions({onSelect, sort, query}: Props) {
@@ -54,20 +39,20 @@ function IssueListSortOptions({onSelect, sort, query}: Props) {
   ];
 
   return (
-    <Feature features={['issue-list-trend-sort']}>
-      {({hasFeature: hasTrendSort}) => (
-        <CompactSelect
-          size="sm"
-          onChange={opt => onSelect(opt.value)}
-          options={getSortOptions(sortKeys, hasTrendSort)}
-          value={sortKey}
-          triggerProps={{
-            size: 'xs',
-            icon: <IconSort size="xs" />,
-          }}
-        />
-      )}
-    </Feature>
+    <CompactSelect
+      size="sm"
+      onChange={opt => onSelect(opt.value)}
+      options={sortKeys.map(key => ({
+        value: key,
+        label: getSortLabel(key),
+        details: getSortTooltip(key),
+      }))}
+      value={sortKey}
+      triggerProps={{
+        size: 'xs',
+        icon: <IconSort size="xs" />,
+      }}
+    />
   );
 }
 

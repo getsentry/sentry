@@ -30,7 +30,7 @@ type Props = {
   markLine?: Series;
 };
 
-type Keys = 'transaction' | 'spm' | 'p50' | 'frequency' | 'uniqueEvents';
+type Keys = 'transaction' | 'spm' | 'p50' | 'frequency' | 'uniqueEvents' | 'example';
 
 type TableColumnHeader = GridColumnHeader<Keys>;
 
@@ -146,6 +146,7 @@ function QueryTransactionTable(props: Props) {
             Span appears {dataRow.frequency?.toFixed(2)}x per txn ({dataRow.uniqueEvents}{' '}
             total txns)
           </span>
+          <Link to={`/performance/sentry:${dataRow.example}/`}>sample</Link>
         </Fragment>
       );
     }

@@ -1,9 +1,7 @@
 import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import QueryDetail from 'sentry/views/starfish/modules/databaseModule/panel';
-import EndpointDetail, {
-  EndpointDataRow,
-} from 'sentry/views/starfish/views/endpointDetails';
 import {SpanDataRow} from 'sentry/views/starfish/views/spans/spansTable';
+import {SpanSummaryPanel} from 'sentry/views/starfish/views/spans/spanSummaryPanel';
 
 type SpanDetailBodyProps = {
   row: SpanDataRow;
@@ -14,8 +12,6 @@ export default function SpanDetail({
 }: Partial<SpanDetailBodyProps> & {onClose: () => void}) {
   // Types need to be fixed here
   switch (row?.span_operation) {
-    case 'http.client':
-      return <EndpointDetail row={row as unknown as EndpointDataRow} onClose={onClose} />;
     case 'db':
       return (
         <QueryDetail
@@ -30,6 +26,6 @@ export default function SpanDetail({
         />
       );
     default:
-      return null;
+      return <SpanSummaryPanel span={row} onClose={onClose} />;
   }
 }

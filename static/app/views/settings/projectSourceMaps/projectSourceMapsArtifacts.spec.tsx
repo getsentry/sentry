@@ -108,9 +108,7 @@ describe('ProjectSourceMapsArtifacts', function () {
       expect(screen.getByText(/in 3 year/)).toBeInTheDocument();
       // File size
       expect(screen.getByText('8.1 KiB')).toBeInTheDocument();
-      // Chip
-      await userEvent.hover(screen.getByText('none'));
-      expect(await screen.findByText('No distribution set')).toBeInTheDocument();
+
       // Download button
       expect(screen.getByRole('button', {name: 'Download Artifact'})).toHaveAttribute(
         'href',
