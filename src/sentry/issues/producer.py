@@ -41,7 +41,7 @@ def produce_occurrence_to_kafka(occurrence: IssueOccurrence) -> None:
         lookup_event_and_process_issue_occurrence(occurrence.to_dict())
         return
 
-    _produce_to_kafka(occurence_bytes=occurrence.to_dict())
+    _produce_to_kafka(occurrence=occurrence.to_dict())
 
 
 def _produce_to_kafka(occurrence: Dict[str, Any]) -> None:
