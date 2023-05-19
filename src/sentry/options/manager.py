@@ -354,3 +354,29 @@ class OptionsManager:
         # be applied evaluating all the possible drift cases.
         opt = self.lookup_key(key)
         return self.store.get_last_update_channel(opt)
+
+    def is_option_readonly(self, key: str, channel: UpdateChannel) -> bool:
+        opt = self.lookup_key(key)
+        if channel == UpdateChannel.AUTOMATOR:
+            if key not in self.registry:
+                return False
+            if opt.flags and (opt.flags & FLAG_CREDENTIAL):
+                return False
+
+        if channel == UpdateChannel.APPLICATION:
+            if key not in self.registry:
+                return False
+            if opt.flags and not (opt.flags & FLAG_ADMIN_MODIFIABLE):
+                return False
+
+        # TODO: Support more cases for specific Channels
+
+        # If an option isn't able to exist in the store, we can't set it at runtime
+        if opt.flags & FLAG_NOSTORE:
+            return False
+        # Enforce immutability on key
+        if opt.flags & FLAG_IMMUTABLE:
+            return False
+        # Enforce immutability if value is already set on disk
+        if opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key):
+            return False
