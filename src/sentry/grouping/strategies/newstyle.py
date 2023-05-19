@@ -772,7 +772,9 @@ def filter_exceptions_for_exception_groups(
     # Reconstruct the tree of exceptions if the required data is present.
     class ExceptionTreeNode:
         def __init__(
-            self, exception: SingleException = None, children: List[SingleException] = None
+            self,
+            exception: Optional[SingleException] = None,
+            children: Optional[List[SingleException]] = None,
         ):
             self.exception = exception
             self.children = children if children else []
@@ -795,9 +797,10 @@ def filter_exceptions_for_exception_groups(
 
     # This gets the child exceptions for an exception using the exception_id from the mechanism.
     # That data is guaranteed to exist at this point.
-    def get_child_exceptions(exception: SingleException):
+    def get_child_exceptions(exception: SingleException) -> List[SingleException]:
         exception_id = exception.mechanism.exception_id
-        return exception_tree.get(exception_id).children
+        node = exception_tree.get(exception_id)
+        return node.children if node else []
 
     # This recursive generator gets the "top-level exceptions", and is used below.
     # "Top-level exceptions are those that are the first descendants of the root that are not exception groups.
@@ -833,7 +836,8 @@ def filter_exceptions_for_exception_groups(
         next(group)
         for _, group in itertools.groupby(
             top_level_exceptions,
-            key=lambda exception: hash_from_values(exception_components[id(exception)].values()),
+            key=lambda exception: hash_from_values(exception_components[id(exception)].values())
+            or "",
         )
     ]
 
