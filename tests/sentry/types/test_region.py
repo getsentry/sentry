@@ -51,10 +51,7 @@ class RegionMappingTest(TestCase):
             with override_settings(SILO_MODE=SiloMode.MONOLITH):
                 # The relative address and the 0 id are the only important parts of this region value
                 assert get_local_region() == Region(
-                    name=MONOLITH_REGION_NAME,
-                    id=0,
-                    address="/",
-                    category=RegionCategory.MULTI_TENANT,
+                    MONOLITH_REGION_NAME, 0, "/", RegionCategory.MULTI_TENANT
                 )
 
     def test_validate_region(self):
@@ -68,14 +65,14 @@ class RegionMappingTest(TestCase):
     def test_json_config_injection(self):
         region_config = {
             "name": "na",
-            "id": 1,
+            "snowflake_id": 1,
             "address": "http://na.testserver",
             "category": RegionCategory.MULTI_TENANT.name,
         }
         region_config_as_json = json.dumps([region_config])
         with override_settings(SENTRY_REGION_CONFIG=region_config_as_json):
             region = get_region_by_name("na")
-        assert region.id == 1
+        assert region.snowflake_id == 1
 
     def test_find_regions_for_user(self):
         from sentry.types.region import find_regions_for_user
@@ -93,7 +90,7 @@ class RegionMappingTest(TestCase):
         region_config = [
             {
                 "name": "na",
-                "id": 1,
+                "snowflake_id": 1,
                 "address": "http://na.testserver",
                 "category": RegionCategory.MULTI_TENANT.name,
             }
