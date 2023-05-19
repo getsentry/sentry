@@ -14,6 +14,7 @@ from sentry.integrations.slack.webhooks.action import (
 )
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
 from sentry.models.integrations.integration import Integration
+from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.silo.client import SiloClientError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region
@@ -45,6 +46,7 @@ ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS = UNFURL_ACTION_OPTIONS + NOTIFICATION_SETTIN
 
 class SlackRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]  # "slack"
+    webhook_identifier = WebhookProviderIdentifier.SLACK
 
     control_classes = [
         "SlackLinkIdentityView",

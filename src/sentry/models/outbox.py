@@ -341,7 +341,7 @@ class ControlOutbox(OutboxBase):
             path=payload.get("path"),
             uri=payload.get("uri"),
             headers=payload.get("headers"),
-            body=payload.get("body", "").encode(),
+            body=payload.get("body", ""),
         )
 
     @classmethod
