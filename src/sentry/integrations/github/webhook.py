@@ -135,8 +135,9 @@ class InstallationEventWebhook(Webhook):
                 provider=self.provider,
                 external_id=external_id,
             )
-            self._handle_delete(event, integration, org_integrations)
-            if not integration:
+            if integration is not None:
+                self._handle_delete(event, integration, org_integrations)
+            else:
                 # It seems possible for the GH or GHE app to be installed on their
                 # end, but the integration to not exist. Possibly from deleting in
                 # Sentry first or from a failed install flow (where the integration
