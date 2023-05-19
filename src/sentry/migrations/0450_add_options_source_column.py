@@ -63,14 +63,18 @@ class Migration(CheckedMigration):
                     model_name="option",
                     name="last_updated_by",
                     field=models.CharField(
-                        default="legacy", max_length=16, choices=UpdateChannel.choices()
+                        default=UpdateChannel.UNKNOWN.value,
+                        max_length=16,
+                        choices=UpdateChannel.choices(),
                     ),
                 ),
                 migrations.AddField(
                     model_name="controloption",
                     name="last_updated_by",
                     field=models.CharField(
-                        default="legacy", max_length=16, choices=UpdateChannel.choices()
+                        default=UpdateChannel.UNKNOWN.value,
+                        max_length=16,
+                        choices=UpdateChannel.choices(),
                     ),
                 ),
             ],
