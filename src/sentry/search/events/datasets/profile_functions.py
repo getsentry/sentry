@@ -289,6 +289,34 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
+                SnQLFunction(
+                    "avg",
+                    optional_args=[
+                        with_default("function.duration", ProfileFunctionNumericColumn("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "avgMerge",
+                        [SnQLColumn("avg")],
+                        alias,
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "sum",
+                    optional_args=[
+                        with_default("function.duration", ProfileFunctionNumericColumn("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "sumMerge",
+                        [SnQLColumn("sum")],
+                        alias,
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
             ]
         }
 

@@ -7,9 +7,9 @@ export const queryToSeries = (
   data: (Record<string, any> & {interval: string})[],
   groupByProperty: string,
   seriesValueProperty: string,
-  startTime: moment.Moment,
-  endTime: moment.Moment,
-  interval: number,
+  startTime?: moment.Moment,
+  endTime?: moment.Moment,
+  interval?: number,
   zerofillValue?: any
 ): Series[] => {
   const seriesMap: Record<string, Series> = {};
@@ -22,10 +22,13 @@ export const queryToSeries = (
         data: [],
       };
     }
-    if (dataEntry.value) {
+    if (dataEntry.value !== undefined) {
       seriesMap[row[groupByProperty]].data.push(dataEntry);
     }
   });
+  if (!startTime || !endTime || !interval) {
+    return Object.values(seriesMap);
+  }
   return Object.values(seriesMap).map(series =>
     zeroFillSeries(
       series,
