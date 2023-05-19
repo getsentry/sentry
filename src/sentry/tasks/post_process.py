@@ -622,6 +622,9 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
 
 
 def process_inbox_adds(job: PostProcessJob) -> None:
+    from sentry.models import Group, GroupStatus
+    from sentry.types.group import GroupSubStatus
+
     with metrics.timer("post_process.process_inbox_adds.duration"):
         with sentry_sdk.start_span(op="tasks.post_process_group.add_group_to_inbox"):
             event = job["event"]
@@ -634,14 +637,31 @@ def process_inbox_adds(job: PostProcessJob) -> None:
             from sentry.models.groupinbox import add_group_to_inbox
 
             if is_reprocessed and is_new:
+                # keep Group.status=UNRESOLVED and Group.substatus=ONGOING if its reprocessed
                 add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
             elif (
                 not is_reprocessed and not has_reappeared
             ):  # If true, we added the .ONGOING reason already
                 if is_new:
-                    add_group_to_inbox(event.group, GroupInboxReason.NEW)
+                    updated = (
+                        Group.objects.filter(id=event.group.id)
+                        .exclude(substatus=GroupSubStatus.NEW)
+                        .update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+                    )
+                    if updated:
+                        event.group.status = GroupStatus.UNRESOLVED
+                        event.group.substatus = GroupSubStatus.NEW
+                        add_group_to_inbox(event.group, GroupInboxReason.NEW)
                 elif is_regression:
-                    add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+                    updated = (
+                        Group.objects.filter(id=event.group.id)
+                        .exclude(substatus=GroupSubStatus.REGRESSED)
+                        .update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED)
+                    )
+                    if updated:
+                        event.group.status = GroupStatus.UNRESOLVED
+                        event.group.substatus = GroupSubStatus.REGRESSED
+                        add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
 
 
 def process_snoozes(job: PostProcessJob) -> None:

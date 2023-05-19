@@ -20,7 +20,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()
         group = self.create_group(
-            project=project,
+            project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
         )
         group_inbox = add_group_to_inbox(group, GroupInboxReason.NEW)
         group_inbox.date_added = now - timedelta(days=3, hours=1)
@@ -189,7 +189,7 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()
         group = self.create_group(
-            project=project,
+            project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED
         )
         group_inbox = add_group_to_inbox(group, GroupInboxReason.REGRESSION)
         group_inbox.date_added = now - timedelta(days=14, hours=1)
