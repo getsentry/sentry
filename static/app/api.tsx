@@ -14,6 +14,7 @@ import {metric} from 'sentry/utils/analytics';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import RequestError from 'sentry/utils/requestError/requestError';
+import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
 
 export class Request {
   /**
@@ -522,14 +523,17 @@ export class Client {
           // Until we know why, let's do what is essentially some very fancy print debugging.
           if (status === 200) {
             const responseTextUndefined = responseText === undefined;
+            const responseTextEmpty = responseText === '';
+            const parameterizedPath = sanitizePath(path);
 
             // Pass a scope object rather than using `withScope` to avoid even
             // the possibility of scope bleed.
             const scope = new Sentry.Scope();
-            scope.setTags({errorReason});
+            scope.setTags({endpoint: `${method} ${parameterizedPath}`});
 
-            if (!responseTextUndefined) {
+            if (!responseTextUndefined && !responseTextEmpty) {
               // Grab everything that could conceivably be helpful to know
+              scope.setTags({errorReason});
               scope.setExtras({
                 twoHundredErrorReason,
                 responseJSON,
@@ -542,12 +546,17 @@ export class Client {
 
             const message = responseTextUndefined
               ? '200 API response with undefined responseText'
+              : responseTextEmpty
+              ? '200 API response with empty responseText'
               : '200 treated as error';
 
             // Make sure all of these errors group, so we don't produce a bunch of noise
             scope.setFingerprint([message]);
 
-            Sentry.captureException(new Error(`${message}: ${method} ${path}`), scope);
+            Sentry.captureException(
+              new Error(`${message}: ${method} ${parameterizedPath}`),
+              scope
+            );
           }
 
           const shouldSkipErrorHandler =
