@@ -31,7 +31,7 @@ class ProjectStacktraceLinksEndpoint(ProjectEndpoint):  # type: ignore
     users can go from files in the stack trace to the
     provider of their choice.
 
-    Simular to `ProjectStacktraceLinkEndpoint` but allows
+    Similar to `ProjectStacktraceLinkEndpoint` but allows
     for bulk resolution.
 
     `file`: The file paths from the stack trace
