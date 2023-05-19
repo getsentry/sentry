@@ -28,6 +28,8 @@ def link_slack_user_identities(
     integration_id: Optional[int] = None,
     organization_id: Optional[int] = None,
 ) -> None:
+    # TODO(hybridcloud) This needs to use the integration service
+    # as we are crossing silo boundaries.
     if integration_id is not None:
         integration = Integration.objects.get(id=integration_id)
     if organization_id is not None:
