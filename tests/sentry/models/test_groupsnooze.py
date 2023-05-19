@@ -148,9 +148,8 @@ class GroupSnoozeTest(
     @freeze_time()
     def test_rate_reached_perf_issue(self):
         """Test when a performance issue is ignored until it happens 10 times in a day"""
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            for i in range(0, 10):
-                event = self.create_performance_issue()
+        for i in range(0, 10):
+            event = self.create_performance_issue()
         snooze = GroupSnooze.objects.create(group=event.group, count=10, window=24 * 60)
         assert not snooze.is_valid(test_rates=True)
 
