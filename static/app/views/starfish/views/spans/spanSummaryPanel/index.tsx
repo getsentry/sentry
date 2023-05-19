@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Duration from 'sentry/components/duration';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -37,23 +38,39 @@ export function SpanSummaryPanel({span, onClose}: Props) {
       <Header>{t('Span Summary')}</Header>
 
       <BlockContainer>
-        <Block title={t('First Seen')}>
+        <Block
+          title={t('First Seen')}
+          description={t(
+            'The first time this span was ever seen in the current retention window'
+          )}
+        >
           <TimeSince date={spanMetrics?.first_seen} />
           {firstSeenSpanEvent?.release && (
             <ReleasePreview release={firstSeenSpanEvent?.release} />
           )}
         </Block>
 
-        <Block title={t('Last Seen')}>
+        <Block
+          title={t('Last Seen')}
+          description={t('The most recent time this span was seen')}
+        >
           <TimeSince date={spanMetrics?.last_seen} />
           {lastSeenSpanEvent?.release && (
             <ReleasePreview release={lastSeenSpanEvent?.release} />
           )}
         </Block>
 
-        <Block title={t('Total Spans')}>{spanMetrics?.count}</Block>
+        <Block
+          title={t('Total Spans')}
+          description={t('The total number of times this span was seen in all time')}
+        >
+          {spanMetrics?.count}
+        </Block>
 
-        <Block title={t('Total Time')}>
+        <Block
+          title={t('Total Time')}
+          description={t('The total exclusive time taken up by this span')}
+        >
           <Duration
             seconds={spanMetrics?.total_time / 1000}
             fixedDigits={2}
@@ -71,7 +88,7 @@ export function SpanSummaryPanel({span, onClose}: Props) {
       </BlockContainer>
 
       <BlockContainer>
-        <Block title={t('SPM')}>
+        <Block title={t('SPM')} description={t('Spans per minute')}>
           <Chart
             statsPeriod="24h"
             height={140}
@@ -87,7 +104,7 @@ export function SpanSummaryPanel({span, onClose}: Props) {
           />
         </Block>
 
-        <Block title={t('Duration')}>
+        <Block title={t('Duration')} description={t('Exclusive time')}>
           <Chart
             statsPeriod="24h"
             height={140}
@@ -105,7 +122,7 @@ export function SpanSummaryPanel({span, onClose}: Props) {
         </Block>
 
         {span?.span_operation === 'http.client' ? (
-          <Block title={t('Failure Rate')}>
+          <Block title={t('Failure Rate')} description={t('Non-200 HTTP status')}>
             <Chart
               statsPeriod="24h"
               height={140}
@@ -132,12 +149,20 @@ export function SpanSummaryPanel({span, onClose}: Props) {
 type BlockProps = {
   children: React.ReactNode;
   title: React.ReactNode;
+  description?: React.ReactNode;
 };
 
-function Block({title, children}: BlockProps) {
+function Block({title, description, children}: BlockProps) {
   return (
     <BlockWrapper>
-      <BlockTitle>{title}</BlockTitle>
+      <BlockTitle>
+        {title}
+        {description && (
+          <BlockTooltipContainer>
+            <QuestionTooltip size="sm" position="right" title={description} />
+          </BlockTooltipContainer>
+        )}
+      </BlockTitle>
       <BlockContent>{children}</BlockContent>
     </BlockWrapper>
   );
@@ -155,6 +180,10 @@ const BlockTitle = styled('h3')`
 const BlockContent = styled('h4')`
   margin: 0;
   font-weight: normal;
+`;
+
+const BlockTooltipContainer = styled('span')`
+  margin-left: ${space(1)};
 `;
 
 const BlockContainer = styled('div')`
