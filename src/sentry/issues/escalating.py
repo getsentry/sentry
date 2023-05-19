@@ -6,6 +6,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, TypedDict
 
+from django.db.models.signals import post_save
 from snuba_sdk import (
     Column,
     Condition,
@@ -313,10 +314,16 @@ def manage_issue_states(
             status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ESCALATING
         )
         if updated:
-            add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
-            record_group_history(group, GroupHistoryStatus.ESCALATING)
             group.status = GroupStatus.UNRESOLVED
             group.substatus = GroupSubStatus.ESCALATING
+            post_save.send(
+                sender=Group,
+                instance=group,
+                created=False,
+                update_fields=["status", "substatus"],
+            )
+            add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
+            record_group_history(group, GroupHistoryStatus.ESCALATING)
             issue_escalating.send_robust(
                 project=group.project, group=group, event=event, sender=manage_issue_states
             )
@@ -325,19 +332,32 @@ def manage_issue_states(
             id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
         ).update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         if updated:
-            add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
-            record_group_history(group, GroupHistoryStatus.ONGOING)
             group.status = GroupStatus.UNRESOLVED
             group.substatus = GroupSubStatus.ONGOING
+            post_save.send(
+                sender=Group,
+                instance=group,
+                created=False,
+                update_fields=["status", "substatus"],
+            )
+            add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
+            record_group_history(group, GroupHistoryStatus.ONGOING)
     elif group_inbox_reason == GroupInboxReason.UNIGNORED:
         updated = Group.objects.filter(
             id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
         ).update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         if updated:
-            add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
-            record_group_history(group, GroupHistoryStatus.UNIGNORED)
             group.status = GroupStatus.UNRESOLVED
             group.substatus = GroupSubStatus.ONGOING
+            post_save.send(
+                sender=Group,
+                instance=group,
+                created=False,
+                update_fields=["status", "substatus"],
+            )
+            add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
+            record_group_history(group, GroupHistoryStatus.UNIGNORED)
+
     else:
         raise NotImplementedError(
             f"We don't support a change of state for {group_inbox_reason.name}"
