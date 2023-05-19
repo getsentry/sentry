@@ -4,6 +4,7 @@ import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import InboxShortId from 'sentry/components/group/inboxBadges/shortId';
+import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
@@ -13,7 +14,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, Organization} from 'sentry/types';
+import type {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -51,19 +52,15 @@ function EventOrGroupExtraDetails({
   const issuesPath = `/organizations/${organization.slug}/issues/`;
 
   const showReplayCount = organization.features.includes('session-replay');
-  const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
 
   return (
     <GroupExtra>
-      {inbox && <InboxReason inbox={inbox} showDateAdded={showInboxTime} />}
-      {hasEscalatingIssues && status === 'ignored' && (
-        <InboxReason
-          inbox={{
-            reason: 'archived',
-            reason_details: {substatus},
-          }}
-          showDateAdded={false}
-        />
+      {!hasEscalatingIssuesUi && inbox && (
+        <InboxReason inbox={inbox} showDateAdded={showInboxTime} />
+      )}
+      {hasEscalatingIssuesUi && (
+        <GroupStatusBadge status={status} substatus={substatus} />
       )}
       {shortId && (
         <InboxShortId
