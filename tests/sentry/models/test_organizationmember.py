@@ -95,18 +95,22 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert "set_password_url" in context
 
     def test_token_expires_at_set_on_save(self):
-        member = OrganizationMember(organization=self.organization, email="foo@example.com")
-        member.token = member.generate_token()
-        member.save()
+        with outbox_runner():
+            member = OrganizationMember(organization=self.organization, email="foo@example.com")
+            member.token = member.generate_token()
+            member.save()
+        self.assert_org_member_mapping(org_member=member)
 
         expires_at = timezone.now() + timedelta(days=INVITE_DAYS_VALID)
         assert member.token_expires_at
         assert member.token_expires_at.date() == expires_at.date()
 
     def test_token_expiration(self):
-        member = OrganizationMember(organization=self.organization, email="foo@example.com")
-        member.token = member.generate_token()
-        member.save()
+        with outbox_runner():
+            member = OrganizationMember(organization=self.organization, email="foo@example.com")
+            member.token = member.generate_token()
+            member.save()
+        self.assert_org_member_mapping(org_member=member)
 
         assert member.is_pending
         assert member.token_expired is False
@@ -115,17 +119,24 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert member.token_expired
 
     def test_set_user(self):
-        member = OrganizationMember(organization=self.organization, email="foo@example.com")
-        member.token = member.generate_token()
-        member.save()
+        with outbox_runner():
+            member = OrganizationMember(organization=self.organization, email="foo@example.com")
+            member.token = member.generate_token()
+            member.save()
 
-        user = self.create_user(email="foo@example.com")
-        member.set_user(user)
+        self.assert_org_member_mapping(org_member=member)
+
+        with outbox_runner():
+            user = self.create_user(email="foo@example.com")
+            member.set_user(user)
+            member.save()
 
         assert member.is_pending is False
         assert member.token_expires_at is None
         assert member.token is None
         assert member.email is None
+        member.refresh_from_db()
+        self.assert_org_member_mapping(org_member=member)
 
     def test_regenerate_token(self):
         member = OrganizationMember(organization=self.organization, email="foo@example.com")
@@ -267,10 +278,12 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
         member.approve_invite()
         member.save()
+        member.outbox_for_create().drain_shard(max_updates_to_drain=10)
 
         member = OrganizationMember.objects.get(id=member.id)
         assert member.invite_approved
         assert member.invite_status == InviteStatus.APPROVED.value
+        self.assert_org_member_mapping(org_member=member)
 
     def test_scopes_with_member_admin_config(self):
         member = OrganizationMember.objects.create(
@@ -435,6 +448,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         )
         user = self.create_user()
         member.approve_member_invitation(user)
+        self.assert_org_member_mapping(org_member=member)
         assert member.invite_status == InviteStatus.APPROVED.value
 
     def test_reject_member_invitation(self):

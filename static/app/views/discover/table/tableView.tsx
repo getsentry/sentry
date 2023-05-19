@@ -329,7 +329,8 @@ function TableView(props: TableViewProps) {
             dataRow,
             organization,
             projects,
-            eventView
+            eventView,
+            location
           )}
         >
           {cell}
