@@ -131,7 +131,7 @@ export default function DatabaseTableView({
     sortHeader: TableColumnHeader | undefined;
   }>({direction: undefined, sortHeader: undefined});
   const theme = useTheme();
-  const COLUMN_ORDER: TableColumnHeader[] = [
+  let COLUMN_ORDER: TableColumnHeader[] = [
     {
       key: 'description',
       name: 'Query',
