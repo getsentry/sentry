@@ -5,6 +5,7 @@ from unittest.mock import patch
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils import TestCase
 from sentry.testutils.cases import BaseTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
@@ -38,6 +39,7 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
             mock_sdk_crash_reporter.report.assert_not_called()
 
 
+@with_feature("organizations:sdk-crash-monitoring")
 class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, PerfIssueTransactionTestMixin):
     @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
     def test_performance_event_not_detected(self, mock_sdk_crash_reporter):
@@ -72,6 +74,7 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
     def test_no_exception_not_detected(self, mock_sdk_crash_reporter):
         self.execute_test(get_crash_event(exception=[]), False, mock_sdk_crash_reporter)
 
+    @with_feature("organizations:sdk-crash-monitoring")
     def test_sdk_crash_detected_event_is_not_reported(self, mock_sdk_crash_reporter):
         event = get_crash_event()
         event["contexts"]["sdk_crash_detection"] = {"detected": True}
