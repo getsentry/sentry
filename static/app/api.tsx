@@ -527,10 +527,10 @@ export class Client {
             // Pass a scope object rather than using `withScope` to avoid even
             // the possibility of scope bleed.
             const scope = new Sentry.Scope();
-            scope.setTags({errorReason});
 
             if (!responseTextUndefined && !responseTextEmpty) {
               // Grab everything that could conceivably be helpful to know
+              scope.setTags({errorReason});
               scope.setExtras({
                 twoHundredErrorReason,
                 responseJSON,
