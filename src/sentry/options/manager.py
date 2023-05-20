@@ -31,24 +31,18 @@ class UpdateChannel(Enum):
         return tuple((i.name, i.value) for i in cls)
 
 
-class ReadOnlyReason(Enum):
-    IMMUTABLE_ON_STORE = "immutable_on_store"
-    SET_IN_FILE = "set_in_file"
-    NOT_REGISTERED = "not_registered"
-    READONLY_FOR_CHANNEL = "read_only_for_channel"
+def required_flag_to_write(channel: UpdateChannel) -> int:
+    if channel == UpdateChannel.ADMIN:
+        return FLAG_ADMIN_MODIFIABLE
+    elif channel == UpdateChannel.AUTOMATOR:
+        return FLAG_AUTOMATOR_MODIFIABLE
+    else:
+        return 0
 
 
-class OptionNotWritable(Exception):
-    pass
-
-
-class OptionDrifted(OptionNotWritable):
-    pass
-
-
-class OptionReadOnly(OptionNotWritable):
-    def __init__(self, reason: ReadOnlyReason):
-        self.reason = reason
+class NotWritableReason(Enum):
+    READONLY_DEFINITION = "readonly_definition"
+    DRIFTED = "drifted"
 
 
 FORBIDDEN_TRANSITIONS = {
@@ -86,9 +80,20 @@ FLAG_ADMIN_MODIFIABLE = 1 << 8
 FLAG_RATE = 1 << 9
 # Values that are bools
 FLAG_BOOL = 1 << 10
+# Value can be dynamically updated by automator
+FLAG_AUTOMATOR_MODIFIABLE = 1 << 11
 
 FLAG_MODIFIABLE_RATE = FLAG_ADMIN_MODIFIABLE | FLAG_RATE
 FLAG_MODIFIABLE_BOOL = FLAG_ADMIN_MODIFIABLE | FLAG_BOOL
+
+INVALID_COMBINATIONS = {
+    FLAG_ADMIN_MODIFIABLE | FLAG_NOSTORE,
+    FLAG_ADMIN_MODIFIABLE | FLAG_IMMUTABLE,
+    FLAG_ADMIN_MODIFIABLE | FLAG_CREDENTIAL,
+    FLAG_AUTOMATOR_MODIFIABLE | FLAG_NOSTORE,
+    FLAG_AUTOMATOR_MODIFIABLE | FLAG_IMMUTABLE,
+    FLAG_AUTOMATOR_MODIFIABLE | FLAG_CREDENTIAL,
+}
 
 # How long will a cache key exist in local memory before being evicted
 DEFAULT_KEY_TTL = 10
@@ -132,13 +137,12 @@ class OptionsManager:
         """
         opt = self.lookup_key(key)
 
-        read_only_reason = self.is_option_readonly(key, channel)
         # If an option isn't able to exist in the store, we can't set it at runtime
-        assert not read_only_reason or read_only_reason != ReadOnlyReason.IMMUTABLE_ON_STORE, (
-            "%r cannot be changed at runtime" % key
-        )
+        assert not (opt.flags & FLAG_NOSTORE), "%r cannot be changed at runtime" % key
+        # Enforce immutability on key
+        assert not (opt.flags & FLAG_IMMUTABLE), "%r cannot be changed at runtime" % key
         # Enforce immutability if value is already set on disk
-        assert not read_only_reason or read_only_reason != ReadOnlyReason.SET_IN_FILE, (
+        assert not (opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key)), (
             "%r cannot be changed at runtime because it is configured on disk" % key
         )
 
@@ -289,6 +293,16 @@ class OptionsManager:
         if len(key) > 128:
             raise ValueError("Option key has max length of 128 characters")
 
+        # Validate flags combination
+        for invalid in INVALID_COMBINATIONS:
+            # the flags field has all the flags of the invalid combination
+            # activated.
+            # Cannot simply check whether flags & invalid > 0 as all the flags
+            # of the invalid combination must be active for this to not be
+            # valid.
+            if flags & invalid == invalid:
+                raise ValueError(f"Invalid option flags combination: {invalid}")
+
         # If our default is a callable, execute it to
         # see what value is returns, so we can use that to derive the type
         if not callable(default):
@@ -385,43 +399,19 @@ class OptionsManager:
         opt = self.lookup_key(key)
         return self.store.get_last_update_channel(opt)
 
-    def is_option_readonly(self, key: str, channel: UpdateChannel) -> Optional[ReadOnlyReason]:
-        opt = self.lookup_key(key)
-        if channel == UpdateChannel.AUTOMATOR:
-            if key not in self.registry:
-                return ReadOnlyReason.NOT_REGISTERED
-            if opt.flags and (opt.flags & FLAG_CREDENTIAL):
-                return ReadOnlyReason.READONLY_FOR_CHANNEL
-
-        if channel == UpdateChannel.ADMIN:
-            if key not in self.registry:
-                return ReadOnlyReason.NOT_REGISTERED
-            if opt.flags and not (opt.flags & FLAG_ADMIN_MODIFIABLE):
-                return ReadOnlyReason.READONLY_FOR_CHANNEL
-
-        # TODO: Support more cases for specific Channels
-
-        # If an option isn't able to exist in the store, we can't set it at runtime
-        if opt.flags & (FLAG_NOSTORE | FLAG_IMMUTABLE):
-            return ReadOnlyReason.IMMUTABLE_ON_STORE
-        # Enforce immutability if value is already set on disk
-        if opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key):
-            return ReadOnlyReason.SET_IN_FILE
-
-        return None
-
-    def assert_can_update(self, key: str, value, channel: UpdateChannel) -> None:
+    def can_update(self, key: str, value, channel: UpdateChannel) -> Optional[NotWritableReason]:
         # TODO: embed this in the `set` method
 
-        readonly_reason = self.is_option_readonly(key, channel)
-        if readonly_reason is not None:
-            raise OptionReadOnly(readonly_reason)
+        required_flag = required_flag_to_write(channel)
+        opt = self.lookup_key(key)
+        if required_flag and not (opt.flags & required_flag):
+            return NotWritableReason.READONLY_DEFINITION
 
         if not self.isset(key):
             # If the option is not readonly and it is not stored in the
             # option store it means we are relying on default. So we can
             # update.
-            return
+            return None
 
         stored_value = self.get(key)
         if stored_value == value:
@@ -433,13 +423,13 @@ class OptionsManager:
             # So even if this equality fails, in the worst case scenario
             # we would not allow the update if there is a mismatch between
             # the channels.
-            return
+            return None
 
         last_updater = self.get_last_update_channel(key)
         if last_updater is None:
             return
         forbidden_states = FORBIDDEN_TRANSITIONS.get(last_updater)
         if forbidden_states is not None and channel in forbidden_states:
-            raise OptionDrifted
+            return NotWritableReason.DRIFTED
 
-        return
+        return None
