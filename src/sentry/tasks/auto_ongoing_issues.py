@@ -28,7 +28,7 @@ def schedule_auto_transition_new() -> None:
             ):
                 auto_transition_issues_new_to_ongoing.delay(
                     project_id=project_id,
-                    last_seen_lte=int(three_days_past.timestamp()),
+                    first_seen_lte=int(three_days_past.timestamp()),
                     expires=now + timedelta(hours=1),
                 )
 
@@ -41,8 +41,8 @@ def schedule_auto_transition_new() -> None:
 )  # type: ignore
 def auto_transition_issues_new_to_ongoing(
     project_id: int,
-    last_seen_lte: int,
-    last_seen_gte: Optional[int] = None,
+    first_seen_lte: int,
+    first_seen_gte: Optional[int] = None,
     chunk_size: int = 1000,
     **kwargs,
 ) -> None:
@@ -50,13 +50,13 @@ def auto_transition_issues_new_to_ongoing(
         project_id=project_id,
         status=GroupStatus.UNRESOLVED,
         substatus=GroupSubStatus.NEW,
-        last_seen__lte=datetime.fromtimestamp(last_seen_lte, pytz.UTC),
+        first_seen__lte=datetime.fromtimestamp(first_seen_lte, pytz.UTC),
     )
 
-    if last_seen_gte:
-        queryset = queryset.filter(last_seen__gte=datetime.fromtimestamp(last_seen_gte, pytz.UTC))
+    if first_seen_gte:
+        queryset = queryset.filter(first_seen__gte=datetime.fromtimestamp(first_seen_gte, pytz.UTC))
 
-    new_groups = list(queryset.order_by("last_seen")[:chunk_size])
+    new_groups = list(queryset.order_by("first_seen")[:chunk_size])
 
     for group in new_groups:
         transition_group_to_ongoing(
@@ -68,8 +68,8 @@ def auto_transition_issues_new_to_ongoing(
     if len(new_groups) == chunk_size:
         auto_transition_issues_new_to_ongoing.delay(
             project_id=project_id,
-            last_seen_lte=last_seen_lte,
-            last_seen_gte=new_groups[chunk_size - 1].last_seen.timestamp(),
+            first_seen_lte=first_seen_lte,
+            first_seen_gte=new_groups[chunk_size - 1].first_seen.timestamp(),
             chunk_size=chunk_size,
             expires=datetime.now(tz=pytz.UTC) + timedelta(hours=1),
         )
@@ -91,7 +91,7 @@ def schedule_auto_transition_regressed() -> None:
             ):
                 auto_transition_issues_regressed_to_ongoing.delay(
                     project_id=project_id,
-                    last_seen_lte=int(fourteen_days_past.timestamp()),
+                    first_seen_lte=int(fourteen_days_past.timestamp()),
                     expires=now + timedelta(hours=1),
                 )
 
@@ -104,8 +104,8 @@ def schedule_auto_transition_regressed() -> None:
 )  # type: ignore
 def auto_transition_issues_regressed_to_ongoing(
     project_id: int,
-    last_seen_lte: int,
-    last_seen_gte: Optional[int] = None,
+    first_seen_lte: int,
+    first_seen_gte: Optional[int] = None,
     chunk_size: int = 1000,
     **kwargs,
 ) -> None:
@@ -113,13 +113,13 @@ def auto_transition_issues_regressed_to_ongoing(
         project_id=project_id,
         status=GroupStatus.UNRESOLVED,
         substatus=GroupSubStatus.REGRESSED,
-        last_seen__lte=datetime.fromtimestamp(last_seen_lte, pytz.UTC),
+        first_seen__lte=datetime.fromtimestamp(first_seen_lte, pytz.UTC),
     )
 
-    if last_seen_gte:
-        queryset = queryset.filter(last_seen__gte=datetime.fromtimestamp(last_seen_gte, pytz.UTC))
+    if first_seen_gte:
+        queryset = queryset.filter(first_seen__gte=datetime.fromtimestamp(first_seen_gte, pytz.UTC))
 
-    regressed_groups = list(queryset.order_by("last_seen")[:chunk_size])
+    regressed_groups = list(queryset.order_by("first_seen")[:chunk_size])
 
     for group in regressed_groups:
         transition_group_to_ongoing(
@@ -131,8 +131,8 @@ def auto_transition_issues_regressed_to_ongoing(
     if len(regressed_groups) == chunk_size:
         auto_transition_issues_regressed_to_ongoing.delay(
             project_id=project_id,
-            last_seen_lte=last_seen_lte,
-            last_seen_gte=regressed_groups[chunk_size - 1].last_seen.timestamp(),
+            first_seen_lte=first_seen_lte,
+            first_seen_gte=regressed_groups[chunk_size - 1].first_seen.timestamp(),
             chunk_size=chunk_size,
             expires=datetime.now(tz=pytz.UTC) + timedelta(hours=1),
         )

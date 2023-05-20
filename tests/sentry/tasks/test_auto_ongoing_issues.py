@@ -22,7 +22,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         group = self.create_group(
             project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
         )
-        group.last_seen = now - timedelta(days=3, hours=1)
+        group.first_seen = now - timedelta(days=3, hours=1)
         group.save()
 
         with self.tasks():
@@ -46,7 +46,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         group = self.create_group(
             project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
         )
-        group.last_seen = now - timedelta(days=3, hours=1)
+        group.first_seen = now - timedelta(days=3, hours=1)
         group.save()
 
         with self.tasks():
@@ -89,11 +89,11 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
                 status=GroupStatus.UNRESOLVED,
                 substatus=GroupSubStatus.NEW,
             )
-            last_seen = now - timedelta(days=day, hours=hours)
-            group.last_seen = last_seen
+            first_seen = now - timedelta(days=day, hours=hours)
+            group.first_seen = first_seen
             group.save()
 
-            if (now - last_seen).days >= 3:
+            if (now - first_seen).days >= 3:
                 older_groups.append(group)
             else:
                 new_groups.append(group)
@@ -139,7 +139,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
                     project=project,
                     status=GroupStatus.UNRESOLVED,
                     substatus=GroupSubStatus.NEW,
-                    last_seen=now - timedelta(days=3, hours=idx, minutes=1),
+                    first_seen=now - timedelta(days=3, hours=idx, minutes=1),
                 )
                 for idx in range(1010)
             ]
@@ -182,7 +182,7 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
             project=project,
             status=GroupStatus.UNRESOLVED,
             substatus=GroupSubStatus.REGRESSED,
-            last_seen=now - timedelta(days=14, hours=1),
+            first_seen=now - timedelta(days=14, hours=1),
         )
 
         with self.tasks():
