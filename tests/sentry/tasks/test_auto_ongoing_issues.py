@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytz
 
-from sentry.models import Group, GroupInbox, GroupInboxReason, GroupStatus, add_group_to_inbox
+from sentry.models import Group, GroupInbox, GroupInboxReason, GroupStatus
 from sentry.tasks.auto_ongoing_issues import (
     schedule_auto_transition_new,
     schedule_auto_transition_regressed,
@@ -24,7 +24,6 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         )
         group.last_seen = now - timedelta(days=3, hours=1)
         group.save()
-        add_group_to_inbox(group, GroupInboxReason.NEW)
 
         with self.tasks():
             schedule_auto_transition_new()
@@ -49,7 +48,6 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         )
         group.last_seen = now - timedelta(days=3, hours=1)
         group.save()
-        add_group_to_inbox(group, GroupInboxReason.REPROCESSED)
 
         with self.tasks():
             schedule_auto_transition_new()
@@ -95,8 +93,6 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             group.last_seen = last_seen
             group.save()
 
-            add_group_to_inbox(group, GroupInboxReason.NEW)
-
             if (now - last_seen).days >= 3:
                 older_groups.append(group)
             else:
@@ -105,9 +101,6 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         assert Group.objects.filter(project_id=project.id).count() == len(older_groups) + len(
             new_groups
         )
-        assert GroupInbox.objects.filter(
-            project=project, reason=GroupInboxReason.NEW.value
-        ).count() == len(new_groups) + len(older_groups)
 
         with self.tasks():
             schedule_auto_transition_new()
@@ -116,13 +109,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         assert Group.objects.filter(project_id=project.id).count() == len(older_groups) + len(
             new_groups
         )
-        assert GroupInbox.objects.filter(project=project).count() == len(older_groups) + len(
-            new_groups
-        )
-        assert GroupInbox.objects.filter(
-            project=project, reason=GroupInboxReason.NEW.value
-        ).count() == len(new_groups)
-
+        assert GroupInbox.objects.filter(project=project).count() == len(older_groups)
         assert GroupInbox.objects.filter(
             project_id=project.id, reason=GroupInboxReason.ONGOING.value
         ).count() == len(older_groups)
@@ -152,25 +139,14 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
                     project=project,
                     status=GroupStatus.UNRESOLVED,
                     substatus=GroupSubStatus.NEW,
-                    last_seen=now - timedelta(days=3, hours=idx),
+                    last_seen=now - timedelta(days=3, hours=idx, minutes=1),
                 )
                 for idx in range(1010)
             ]
         )
 
-        # group_inbox.date_added = now - timedelta(days=3, hours=idx)
-        # group_inbox.save(update_fields=["date_added"])
-
-        for idx, group in enumerate(groups, 1):
-            add_group_to_inbox(group, GroupInboxReason.NEW)
-
         # before
         assert Group.objects.filter(project_id=project.id).count() == len(groups) == 1010
-        assert (
-            GroupInbox.objects.filter(project=project, reason=GroupInboxReason.NEW.value).count()
-            == len(groups)
-            == 1010
-        )
 
         with self.tasks():
             schedule_auto_transition_new()
@@ -208,7 +184,6 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
             substatus=GroupSubStatus.REGRESSED,
             last_seen=now - timedelta(days=14, hours=1),
         )
-        add_group_to_inbox(group, GroupInboxReason.REGRESSION)
 
         with self.tasks():
             schedule_auto_transition_regressed()
