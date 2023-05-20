@@ -21,6 +21,8 @@ def transition_group_to_ongoing(
         id=group.id, status=from_status, substatus=from_substatus
     ).update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
     if updated:
+        group.status = GroupStatus.UNRESOLVED
+        group.substatus = GroupSubStatus.ONGOING
         post_save.send_robust(
             sender=Group,
             instance=group,
