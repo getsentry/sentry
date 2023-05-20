@@ -12,7 +12,6 @@ from arroyo.types import BrokerValue
 from django.conf import settings
 
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options
 
@@ -40,7 +39,10 @@ def produce_occurrence_to_kafka(
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
         # write to the issue platform directly
-        from sentry.issues.occurrence_consumer import lookup_event_and_process_issue_occurrence
+        from sentry.issues.occurrence_consumer import (
+            lookup_event_and_process_issue_occurrence,
+            process_event_and_issue_occurrence,
+        )
 
         if event_data:
             process_event_and_issue_occurrence(occurrence.to_dict(), event_data)
