@@ -42,7 +42,7 @@ class MetricRulesEdit extends AsyncView<Props, State> {
     const ruleName = rule?.name;
 
     return routeTitleGen(
-      ruleName ? t('Alert %s', ruleName) : '',
+      ruleName ? t('Alert - %s', ruleName) : '',
       organization.slug,
       false,
       project?.slug
