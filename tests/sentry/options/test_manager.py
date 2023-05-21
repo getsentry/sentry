@@ -7,6 +7,9 @@ from django.core.cache.backends.locmem import LocMemCache
 
 from sentry.options.manager import (
     DEFAULT_FLAGS,
+    FLAG_ADMIN_MODIFIABLE,
+    FLAG_AUTOMATOR_MODIFIABLE,
+    FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
@@ -95,6 +98,24 @@ class OptionsManagerTest(TestCase):
 
         with pytest.raises(TypeError):
             self.manager.register("none-type", default=None, type=type(None))
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_NOSTORE | FLAG_ADMIN_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_NOSTORE | FLAG_AUTOMATOR_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_CREDENTIAL | FLAG_ADMIN_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_CREDENTIAL | FLAG_AUTOMATOR_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_IMMUTABLE | FLAG_ADMIN_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_IMMUTABLE | FLAG_AUTOMATOR_MODIFIABLE)
 
     def test_coerce(self):
         self.manager.register("some-int", type=Int)

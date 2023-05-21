@@ -9,34 +9,86 @@ from sentry.options.manager import (
     FLAG_AUTOMATOR_MODIFIABLE,
     FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
-    FLAG_MODIFIABLE_RATE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
-    FLAG_STOREONLY,
     NotWritableReason,
     OptionsManager,
     UpdateChannel,
 )
 from sentry.options.store import OptionsStore
 
-READONLY_TEST_CASES = [
+TEST_CASES = [
     pytest.param(
         "manager",
-        "opt.default",
-        "test",
-        "test1",
+        DEFAULT_FLAGS,
+        None,
         UpdateChannel.UNKNOWN,
         None,
-        id="Write a default flags option with UNKNOWN channel. No check.",
+        None,
+        id="Legacy set of default option",
     ),
     pytest.param(
         "manager",
-        "immutable.option",
+        DEFAULT_FLAGS,
         None,
-        "test1",
+        UpdateChannel.ADMIN,
+        NotWritableReason.READONLY_DEFINITION,
+        NotWritableReason.READONLY_DEFINITION,
+        id="Default option cannot be updated by admin",
+    ),
+    pytest.param(
+        "manager",
+        FLAG_CREDENTIAL,
+        None,
+        UpdateChannel.ADMIN,
+        NotWritableReason.READONLY_DEFINITION,
+        NotWritableReason.READONLY_DEFINITION,
+        id="Credentials cannot be updated by admin",
+    ),
+    pytest.param(
+        "manager",
+        DEFAULT_FLAGS,
+        None,
         UpdateChannel.AUTOMATOR,
         NotWritableReason.READONLY_DEFINITION,
-        id="Automator tries to write immutable option.",
+        NotWritableReason.READONLY_DEFINITION,
+        id="Default option cannot be updated by automator",
+    ),
+    pytest.param(
+        "manager",
+        FLAG_CREDENTIAL,
+        None,
+        UpdateChannel.AUTOMATOR,
+        NotWritableReason.READONLY_DEFINITION,
+        NotWritableReason.READONLY_DEFINITION,
+        id="Credentials cannot be updated by automator",
+    ),
+    pytest.param(
+        "manager",
+        FLAG_AUTOMATOR_MODIFIABLE,
+        UpdateChannel.AUTOMATOR,
+        UpdateChannel.AUTOMATOR,
+        None,
+        None,
+        id="Basic options fully owned by automator. Can update",
+    ),
+    pytest.param(
+        "manager",
+        FLAG_AUTOMATOR_MODIFIABLE,
+        UpdateChannel.CLI,
+        UpdateChannel.AUTOMATOR,
+        None,
+        NotWritableReason.DRIFTED,
+        id="Basic options fully owned by automator. Can update",
+    ),
+    pytest.param(
+        "manager",
+        FLAG_AUTOMATOR_MODIFIABLE,
+        UpdateChannel.AUTOMATOR,
+        UpdateChannel.CLI,
+        None,
+        None,
+        id="Basic options set by automator and reset by CLI",
     ),
 ]
 
@@ -52,57 +104,105 @@ def manager():
     settings.SENTRY_DEFAULT_OPTIONS = {}
     store.flush_local_cache()
 
-    manager.register("opt.default", flags=DEFAULT_FLAGS)
-    manager.register("immutable.option", flags=FLAG_IMMUTABLE)
-    manager.register("file.only.option", flags=FLAG_NOSTORE)
-    manager.register("db.only.automator.option", flags=FLAG_STOREONLY | FLAG_AUTOMATOR_MODIFIABLE)
-    manager.register("db.only.option", flags=FLAG_STOREONLY)
-    manager.register("disk.first", flags=DEFAULT_FLAGS | FLAG_PRIORITIZE_DISK)
-    manager.register(
-        "default.admin.automator.option", flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE
-    )
-    manager.register("default.admin.option", flags=FLAG_MODIFIABLE_RATE)
-    manager.register("disk.first.admin.option", flags=FLAG_MODIFIABLE_RATE | FLAG_PRIORITIZE_DISK)
-    manager.register(
-        "disk.first.admin.automator.option",
-        flags=FLAG_MODIFIABLE_RATE | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-    )
-    manager.register("ephemeral.secret.option", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
-    manager.register("standard.secret.option", flags=FLAG_CREDENTIAL)
-
     yield manager
-
-    manager.unregister("opt.default")
-    manager.unregister("immutable.option")
-    manager.unregister("file.only.option")
-    manager.unregister("db.only.option")
-    manager.unregister("db.only.automator.option")
-    manager.unregister("disk.first")
-    manager.unregister("default.admin.option")
-    manager.unregister("default.admin.automator.option")
-    manager.unregister("disk.first.admin.option")
-    manager.unregister("disk.first.admin.automator.option")
-    manager.unregister("ephemeral.secret.option")
-    manager.unregister("standard.secret.option")
 
     settings.SENTRY_DEFAULT_OPTIONS = default_options
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "manager_fixture, key, set_val, val, channel, expected", READONLY_TEST_CASES
+    "manager_fixture, options_flags, set_channel, check_channel, set_reason, reset_reason",
+    TEST_CASES,
 )
 def test_can_update(
     manager_fixture,
-    key: str,
-    set_val: Optional[Any],
-    val: Optional[Any],
-    channel: UpdateChannel,
-    expected: Optional[NotWritableReason],
+    options_flags: int,
+    set_channel: Optional[UpdateChannel],
+    check_channel: UpdateChannel,
+    set_reason: Optional[NotWritableReason],
+    reset_reason: Optional[NotWritableReason],
     request: Any,
 ) -> None:
     manager = request.getfixturevalue(manager_fixture)
-    if set_val is not None:
-        manager.set(key, set_val)
-    not_writable = manager.can_update(key, val, channel)
-    assert not_writable == expected
+    manager.register("option", flags=options_flags)
+    manager.register("another_option", flags=DEFAULT_FLAGS)
+
+    reason = manager.can_update("option", "testval", check_channel)
+    assert reason == set_reason
+
+    if set_channel:
+        manager.set("option", "testval", channel=set_channel)
+    else:
+        manager.set("option", "testval")
+
+    reason = manager.can_update("option", "testval", check_channel)
+    assert reason == set_reason
+
+    reason = manager.can_update("option", "testval2", check_channel)
+    assert reason == reset_reason
+
+    manager.unregister("another_option")
+    manager.unregister("option")
+
+
+TEST_CASES_READONLY = [
+    pytest.param(
+        "manager",
+        FLAG_AUTOMATOR_MODIFIABLE,
+        False,
+        None,
+        id="Default option. Not readonly",
+    ),
+    pytest.param(
+        "manager",
+        FLAG_IMMUTABLE,
+        False,
+        NotWritableReason.NOT_WRITABLE,
+        id="Immutable option",
+    ),
+    pytest.param(
+        "manager",
+        FLAG_NOSTORE,
+        False,
+        NotWritableReason.NOT_WRITABLE,
+        id="Non storable option",
+    ),
+    pytest.param(
+        "manager",
+        FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+        False,
+        None,
+        id="Disk prioritized. Non set",
+    ),
+    pytest.param(
+        "manager",
+        FLAG_PRIORITIZE_DISK,
+        True,
+        NotWritableReason.NOT_WRITABLE,
+        id="Disk prioritized. Set. Non writable",
+    ),
+]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "manager_fixture, flags, set_settings_val, outcome",
+    TEST_CASES_READONLY,
+)
+def test_non_writable_options(
+    manager_fixture,
+    flags: int,
+    set_settings_val: bool,
+    outcome: Optional[NotWritableReason],
+    request: Any,
+) -> None:
+    manager = request.getfixturevalue(manager_fixture)
+    manager.register("option", flags=flags)
+    if set_settings_val:
+        settings.SENTRY_OPTIONS["option"] = "a_value"
+
+    reason_legacy = manager.can_update("option", "val", UpdateChannel.CLI)
+    assert reason_legacy == outcome
+
+    reason_automator = manager.can_update("option", "val", UpdateChannel.AUTOMATOR)
+    assert reason_automator == outcome
