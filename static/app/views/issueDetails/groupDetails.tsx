@@ -4,6 +4,7 @@ import {
   isValidElement,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
@@ -20,7 +21,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {Group, GroupRelease, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -289,21 +289,24 @@ function makeFetchGroupQueryKey({
 
 function useSyncGroupStore(environments: string[]) {
   const queryClient = useQueryClient();
-  const router = useRouter();
-  const allGroups = useLegacyStore(GroupStore);
 
-  const params = router.params;
-  const group = allGroups.find(({id}) => id === params.groupId) as Group;
+  const unlisten = useRef<Function>();
+  if (unlisten.current === undefined) {
+    unlisten.current = GroupStore.listen(() => {
+      const [storeGroup] = GroupStore.getState();
+      if (defined(storeGroup)) {
+        setApiQueryData(
+          queryClient,
+          makeFetchGroupQueryKey({groupId: storeGroup.id, environments}),
+          storeGroup
+        );
+      }
+    }, undefined);
+  }
 
   useEffect(() => {
-    if (defined(group)) {
-      setApiQueryData(
-        queryClient,
-        makeFetchGroupQueryKey({groupId: group.id, environments}),
-        group
-      );
-    }
-  }, [group, queryClient, environments]);
+    return () => unlisten.current?.();
+  }, []);
 }
 
 function useFetchGroupDetails({
@@ -411,7 +414,9 @@ function useFetchGroupDetails({
           Sentry.captureException(new Error('Project not found'));
         });
       } else {
-        markEventSeen(api, organization.slug, matchingProject.slug, params.groupId);
+        if (!group.hasSeen) {
+          markEventSeen(api, organization.slug, matchingProject.slug, params.groupId);
+        }
         const locationQuery = qs.parse(window.location.search) || {};
 
         if (locationQuery.project === undefined && locationQuery._allp === undefined) {
@@ -436,7 +441,15 @@ function useFetchGroupDetails({
         browserHistory.replace({...window.location, query: locationQuery});
       }
     }
-  }, [group?.project, loadingGroup, projects, api, organization.slug, params.groupId]);
+  }, [
+    group?.project,
+    group?.hasSeen,
+    loadingGroup,
+    projects,
+    api,
+    organization.slug,
+    params.groupId,
+  ]);
 
   const handleError = useCallback((e: RequestError) => {
     Sentry.captureException(e);
