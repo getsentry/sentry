@@ -312,7 +312,7 @@ def manage_issue_states(
     """
     Handles the downstream changes to the status/substatus of GroupInbox and Group for each GroupInboxReason
     """
-    data = {"event_id": event.event_id}
+    data = {"event_id": event.event_id} if event else None
     if group_inbox_reason == GroupInboxReason.ESCALATING:
         updated = Group.objects.filter(id=group.id, status=GroupStatus.IGNORED).update(
             status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ESCALATING
@@ -331,7 +331,7 @@ def manage_issue_states(
             issue_escalating.send_robust(
                 project=group.project, group=group, event=event, sender=manage_issue_states
             )
-            if activity_data:
+            if data and activity_data:
                 data.update(activity_data)
     elif group_inbox_reason == GroupInboxReason.ONGOING:
         updated = Group.objects.filter(
@@ -376,5 +376,5 @@ def manage_issue_states(
             group=group,
             type=ActivityType.SET_UNRESOLVED.value,
             user_id=None,
-            data=data if event else None,
+            data=data,
         )
