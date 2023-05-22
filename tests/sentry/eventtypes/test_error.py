@@ -58,6 +58,39 @@ class ErrorEventTest(TestCase):
             "display_title_with_tree_label": False,
         }
 
+    def test_get_metadata_multiple_exceptions_default(self):
+        inst = ErrorEvent()
+        data = {
+            "exception": {
+                "values": [
+                    {"type": "Exception", "value": "Bar"},
+                    {"type": "Exception", "value": "Foo"},
+                ]
+            }
+        }
+        assert inst.get_metadata(data) == {
+            "type": "Exception",
+            "value": "Foo",
+            "display_title_with_tree_label": False,
+        }
+
+    def test_get_metadata_multiple_exceptions_main_indicated(self):
+        inst = ErrorEvent()
+        data = {
+            "main_exception_id": 1,
+            "exception": {
+                "values": [
+                    {"type": "Exception", "value": "Bar", "mechanism": {"exception_id": 1}},
+                    {"type": "Exception", "value": "Foo", "mechanism": {"exception_id": 0}},
+                ]
+            },
+        }
+        assert inst.get_metadata(data) == {
+            "type": "Exception",
+            "value": "Bar",
+            "display_title_with_tree_label": False,
+        }
+
     def test_get_title_none_value(self):
         inst = ErrorEvent()
         result = inst.get_title({"type": "Error", "value": None})

@@ -15,14 +15,18 @@ def make_exception_snapshot(insta_snapshot):
 
         interface = evt.interfaces.get("exception")
 
-        insta_snapshot(
-            {
-                "errors": evt.data.get("errors"),
-                "to_json": interface and interface.to_json(),
-                "get_api_context": interface and interface.get_api_context(),
-                "to_string": interface and interface.to_string(evt),
-            }
-        )
+        snapshot_values = {
+            "errors": evt.data.get("errors"),
+            "to_json": interface and interface.to_json(),
+            "get_api_context": interface and interface.get_api_context(),
+            "to_string": interface and interface.to_string(evt),
+        }
+
+        tags = sorted(interface.iter_tags())
+        if len(tags) > 0:
+            snapshot_values["tags"] = tags
+
+        insta_snapshot(snapshot_values)
 
     return inner
 
@@ -209,11 +213,48 @@ def test_context_with_mechanism(make_exception_snapshot):
                     "mechanism": {
                         "type": "generic",
                         "source": "__context__",
-                        "is_exception_group": True,
+                        "exception_id": 0,
+                    },
+                }
+            ]
+        )
+    )
+
+
+def test_context_with_two_exceptions_having_mechanism(make_exception_snapshot):
+    make_exception_snapshot(
+        dict(
+            values=[
+                {
+                    "type": "ValueError",
+                    "value": "hello world",
+                    "module": "foo.bar",
+                    "stacktrace": {
+                        "frames": [{"filename": "foo/baz.py", "lineno": 1, "in_app": True}]
+                    },
+                    "mechanism": {
+                        "type": "chained",
+                        "handled": True,
+                        "source": "__context__",
                         "exception_id": 1,
                         "parent_id": 0,
                     },
-                }
+                },
+                {
+                    "type": "ValueError",
+                    "value": "hello world",
+                    "module": "foo.bar",
+                    "stacktrace": {
+                        "frames": [{"filename": "foo/baz.py", "lineno": 1, "in_app": True}]
+                    },
+                    "mechanism": {
+                        "type": "generic",
+                        "handled": False,
+                        "source": "__context__",
+                        "is_exception_group": True,
+                        "exception_id": 0,
+                    },
+                },
             ]
         )
     )
