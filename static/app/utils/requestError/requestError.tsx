@@ -2,7 +2,7 @@ import {ResponseMeta} from 'sentry/api';
 
 import {sanitizePath} from './sanitizePath';
 
-const ERROR_MAP = {
+export const ERROR_MAP = {
   0: 'CancelledError',
   400: 'BadRequestError',
   401: 'UnauthorizedError',
