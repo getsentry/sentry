@@ -1,5 +1,5 @@
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union
+from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -112,22 +112,26 @@ class Actor(Model):
         return self.get_actor_tuple().get_actor_identifier()
 
 
-def get_actor_id_for_user(user: Union["User", RpcUser]):
-    return get_actor_for_user(user).id
+def get_actor_id_for_user(user: Union["User", RpcUser]) -> int:
+    return cast(int, get_actor_for_user(user).id)
 
 
-def get_actor_for_user(user: Union["User", RpcUser]) -> "Actor":
+def get_actor_for_user(user: Union[int, "User", RpcUser]) -> "Actor":
+    if isinstance(user, int):
+        user_id = user
+    else:
+        user_id = user.id
     try:
         with transaction.atomic():
-            actor, created = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user.id)
+            actor, created = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user_id)
             if created:
                 # TODO(actorid) This RPC call should be removed once all reads to
                 # User.actor_id have been removed.
-                user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
+                user_service.update_user(user_id=user_id, attrs={"actor_id": actor.id})
     except IntegrityError as err:
         # Likely a race condition. Long term these need to be eliminated.
         sentry_sdk.capture_exception(err)
-        actor = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).first()
+        actor = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user_id).first()
     return actor
 
 
@@ -188,7 +192,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
     def resolve_to_actor(self) -> Actor:
         obj = self.resolve()
         # TODO(actorid) Remove this once user no longer has actor_id.
-        if obj.actor_id is None or isinstance(obj, RpcUser):
+        if getattr(obj, "actor_id") is None or isinstance(obj, RpcUser):
             return get_actor_for_user(obj)
         # Team case
         return Actor.objects.get(id=obj.actor_id)

@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Environment, GroupRuleStatus, Rule
+from sentry.models import Environment, GroupRuleStatus, Rule, RuleSnooze
 from sentry.rules import EventState, history, rules
 from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values
@@ -264,8 +264,12 @@ class RuleProcessor:
 
         self.grouped_futures.clear()
         rules = self.get_rules()
+        snoozed_rules = RuleSnooze.objects.filter(rule__in=rules, user_id=None).values_list(
+            "rule", flat=True
+        )
         rule_statuses = self.bulk_get_rule_status(rules)
         for rule in rules:
-            self.apply_rule(rule, rule_statuses[rule.id])
+            if rule.id not in snoozed_rules:
+                self.apply_rule(rule, rule_statuses[rule.id])
 
         return self.grouped_futures.values()
