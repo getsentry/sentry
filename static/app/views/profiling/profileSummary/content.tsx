@@ -72,6 +72,11 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
       <Layout.Main fullWidth>
         <ProfileCharts query={props.query} hideCount compact />
         <AggregateFlamegraphPanel transaction={props.transaction} />
+        <SuspectFunctionsTable
+          project={props.project}
+          transaction={props.transaction}
+          analyticsPageSource="profiling_transaction"
+        />
         <TableHeader>
           <CompactSelect
             triggerProps={{prefix: t('Filter'), size: 'xs'}}
@@ -94,11 +99,6 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
           error={profiles.status === 'error' ? t('Unable to load profiles') : null}
           isLoading={profiles.status === 'loading'}
           sort={sort}
-        />
-        <SuspectFunctionsTable
-          project={props.project}
-          transaction={props.transaction}
-          analyticsPageSource="profiling_transaction"
         />
       </Layout.Main>
     </Fragment>
