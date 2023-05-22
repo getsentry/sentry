@@ -117,6 +117,9 @@ class OptionsManagerTest(TestCase):
         with pytest.raises(ValueError):
             self.manager.register("bad_flags", flags=FLAG_IMMUTABLE | FLAG_AUTOMATOR_MODIFIABLE)
 
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_REQUIRED | FLAG_AUTOMATOR_MODIFIABLE)
+
     def test_coerce(self):
         self.manager.register("some-int", type=Int)
 

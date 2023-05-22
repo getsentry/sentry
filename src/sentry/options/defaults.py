@@ -21,7 +21,7 @@ from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 
 
 # System
-register("system.admin-email", flags=FLAG_REQUIRED | FLAG_AUTOMATOR_MODIFIABLE)
+register("system.admin-email", flags=FLAG_REQUIRED)
 register(
     "system.support-email",
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -60,7 +60,7 @@ register(
     ttl=60,
     grace=3600,
     default=os.environ.get("SENTRY_SYSTEM_URL_PREFIX"),
-    flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
 )
 register(
     "system.internal-url-prefix",
@@ -134,28 +134,30 @@ register("mail.backend", default="smtp", flags=FLAG_NOSTORE)
 register(
     "mail.host",
     default="127.0.0.1",
-    flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
 )
 register(
-    "mail.port", default=25, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE
+    "mail.port",
+    default=25,
+    flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
 )
 register(
     "mail.username",
-    flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 register(
     "mail.password",
-    flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 register(
     "mail.use-tls",
     default=False,
-    flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
 )
 register(
     "mail.use-ssl",
     default=False,
-    flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
 )
 register(
     "mail.subject-prefix",
@@ -165,7 +167,7 @@ register(
 register(
     "mail.from",
     default="root@localhost",
-    flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
 )
 register("mail.list-namespace", type=String, default="localhost", flags=FLAG_NOSTORE)
 register(
@@ -258,7 +260,7 @@ register(
 register(
     "auth.allow-registration",
     default=False,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 
 
@@ -269,7 +271,7 @@ register(
 )
 
 # Beacon
-register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED | FLAG_AUTOMATOR_MODIFIABLE)
+register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 
 # Filestore
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)

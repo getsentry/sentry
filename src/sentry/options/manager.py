@@ -47,6 +47,7 @@ class NotWritableReason(Enum):
 
 
 FORBIDDEN_TRANSITIONS = {
+    UpdateChannel.UNKNOWN: {UpdateChannel.AUTOMATOR},
     UpdateChannel.APPLICATION: {UpdateChannel.AUTOMATOR},
     UpdateChannel.CLI: {UpdateChannel.AUTOMATOR},
     UpdateChannel.KILLSWITCH: {UpdateChannel.AUTOMATOR},
@@ -94,6 +95,12 @@ INVALID_COMBINATIONS = {
     FLAG_AUTOMATOR_MODIFIABLE | FLAG_NOSTORE,
     FLAG_AUTOMATOR_MODIFIABLE | FLAG_IMMUTABLE,
     FLAG_AUTOMATOR_MODIFIABLE | FLAG_CREDENTIAL,
+    # An option being required does not strictly mean that it cannot be updated by
+    # the Automator. The issue is on why they exist. Most of them are set by the
+    # application itself during the first initialization.
+    # That flow cannot, like anything else in the application, cannot update the
+    # configMap
+    FLAG_AUTOMATOR_MODIFIABLE | FLAG_REQUIRED,
 }
 
 # How long will a cache key exist in local memory before being evicted
