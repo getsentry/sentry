@@ -331,7 +331,7 @@ class ControlOutbox(OutboxBase):
             path=request.path,
             uri=request.get_raw_uri(),
             headers={k: v for k, v in request.headers.items()},
-            body=request.body.decode(),
+            body=request.data.decode(encoding="utf-8"),
         )
 
     @classmethod
@@ -360,6 +360,7 @@ class ControlOutbox(OutboxBase):
             result.category = OutboxCategory.WEBHOOK_PROXY
             result.region_name = region_name
             payload: OutboxWebhookPayload = result.get_webhook_payload_from_request(request)
+
             result.payload = dataclasses.asdict(payload)
             yield result
 

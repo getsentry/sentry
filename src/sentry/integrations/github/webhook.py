@@ -252,6 +252,7 @@ class PushEventWebhook(Webhook):
                                 # don't re-query
                                 gh_username_cache[gh_username] = None
                                 identity_user = None
+                                # TODO(hybrid-cloud): Combine into a single RPC call if possible
                                 identity = identity_service.get_identity(
                                     identity_ext_id=gh_user["id"],
                                     provider_type=self.provider,
