@@ -43,33 +43,33 @@ def create_alert_rule(
         data=alert_rule_data,
     )
 
-    if serializer.is_valid():
-        data = serializer.validated_data
-        # combine filters and conditions into one conditions criteria for the rule object
-        conditions = data.get("conditions", [])
-        if "filters" in data:
-            conditions.extend(data["filters"])
+    if not serializer.is_valid():
+        return None
 
-        kwargs = {
-            "name": data["name"],
-            "environment": data.get("environment"),
-            "project": project,
-            "action_match": data["actionMatch"],
-            "filter_match": data.get("filterMatch"),
-            "conditions": conditions,
-            "actions": data.get("actions", []),
-            "frequency": data.get("frequency"),
-            "user_id": request.user.id,
-        }
+    data = serializer.validated_data
+    # combine filters and conditions into one conditions criteria for the rule object
+    conditions = data.get("conditions", [])
+    if "filters" in data:
+        conditions.extend(data["filters"])
 
-        rule = project_rules.Creator.run(request=request, **kwargs)
-        rule.update(source=RuleSource.CRON_MONITOR)
-        RuleActivity.objects.create(
-            rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
-        )
-        return rule.id
+    kwargs = {
+        "name": data["name"],
+        "environment": data.get("environment"),
+        "project": project,
+        "action_match": data["actionMatch"],
+        "filter_match": data.get("filterMatch"),
+        "conditions": conditions,
+        "actions": data.get("actions", []),
+        "frequency": data.get("frequency"),
+        "user_id": request.user.id,
+    }
 
-    return None
+    rule = project_rules.Creator.run(request=request, **kwargs)
+    rule.update(source=RuleSource.CRON_MONITOR)
+    RuleActivity.objects.create(
+        rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
+    )
+    return rule.id
 
 
 def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert_rule: dict):
