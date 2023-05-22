@@ -567,7 +567,9 @@ def compute_sliding_window_sample_rate(
         return None
 
     # We want to log the monthly volume for observability purposes.
-    log_extrapolated_monthly_volume(org_id, project_id, total_root_count, extrapolated_volume)
+    log_extrapolated_monthly_volume(
+        org_id, project_id, total_root_count, extrapolated_volume, window_size
+    )
 
     sampling_tier = quotas.get_transaction_sampling_tier_for_volume(org_id, extrapolated_volume)
     if sampling_tier is None:
@@ -582,9 +584,14 @@ def compute_sliding_window_sample_rate(
 
 
 def log_extrapolated_monthly_volume(
-    org_id: int, project_id: Optional[int], volume: int, extrapolated_volume: int
+    org_id: int, project_id: Optional[int], volume: int, extrapolated_volume: int, window_size: int
 ):
-    extra = {"org_id": org_id, "volume": volume, "extrapolated_volume": extrapolated_volume}
+    extra = {
+        "org_id": org_id,
+        "volume": volume,
+        "extrapolated_monthly_volume": extrapolated_volume,
+        "window_size_in_hours": window_size,
+    }
 
     if project_id is not None:
         extra["project_id"] = project_id
