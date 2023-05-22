@@ -2,9 +2,6 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
-
-from enum import IntEnum
-
 from typing_extensions import TypedDict
 
 from sentry.services.hybrid_cloud import RpcModel
@@ -21,10 +18,6 @@ class RpcIdentity(RpcModel):
     idp_id: int
     user_id: int
     external_id: str
-
-
-class IdentitySerializeType(IntEnum):
-    BASE = 0
 
 
 class IdentityFilterArgs(TypedDict, total=False):

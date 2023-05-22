@@ -5,13 +5,11 @@ from typing import Any, Callable, List, Optional
 from django.db.models import QuerySet
 
 from sentry.api.serializers.base import Serializer
-from sentry.api.serializers.models.identity import IdentitySerializer
 from sentry.models import AuthIdentity
 from sentry.models.identity import Identity
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
 from sentry.services.hybrid_cloud.identity.model import (
     IdentityFilterArgs,
-    IdentitySerializeType,
     RpcIdentity,
     RpcIdentityProvider,
 )
@@ -88,7 +86,7 @@ class DatabaseBackedIdentityService(IdentityService):
         ).delete()
 
     class _IdentityFilterQuery(
-        FilterQueryDatabaseImpl[Identity, IdentityFilterArgs, RpcIdentity, IdentitySerializeType]
+        FilterQueryDatabaseImpl[Identity, IdentityFilterArgs, RpcIdentity, None]
     ):
         def apply_filters(self, query: QuerySet, filters: IdentityFilterArgs) -> QuerySet:
             if "user_id" in filters:
@@ -115,8 +113,8 @@ class DatabaseBackedIdentityService(IdentityService):
                 "provider_type",
             )
 
-        def serialize_api(self, serialize_type: Optional[IdentitySerializeType]) -> Serializer:
-            return IdentitySerializer()
+        def serialize_api(self, serializer: Optional[None]) -> Serializer:
+            raise NotImplementedError("API Serialization not supported for IdentityService")
 
         def serialize_rpc(self, identity: Identity) -> RpcIdentity:
             return serialize_identity(identity=identity)
