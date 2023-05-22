@@ -89,7 +89,6 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      */
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.whitelistUrls,
-    denyUrls: [/^file:\/\//],
     integrations: getSentryIntegrations(sentryConfig, routes),
     tracesSampleRate,
     // @ts-ignore not part of browser SDK types yet
