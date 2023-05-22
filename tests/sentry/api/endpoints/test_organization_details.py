@@ -13,7 +13,6 @@ from sentry import audit_log
 from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators import TotpInterface
-from sentry.auth.providers.google.constants import DATA_VERSION
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
@@ -31,7 +30,6 @@ from sentry.models import (
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
@@ -319,7 +317,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert avatar.get_avatar_type_display() == "upload"
         assert avatar.file_id
 
-    @with_feature("organizations:api-auth-provider")
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
@@ -356,8 +353,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
-            "providerKey": "google",
-            "providerConfig": {"domain": "foo.com"},
         }
 
         # needed to set require2FA
@@ -811,79 +806,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_org_mapping_already_taken(self):
         OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
         self.get_error_response(self.organization.slug, slug="taken", status_code=409)
-
-    @with_feature("organizations:api-auth-provider")
-    def test_configure_auth_provider(self):
-        old_config = {"domain": "foo.com"}
-        new_config = {"domain": "bar.com"}
-        provider = "google"
-
-        self.get_success_response(
-            self.organization.slug,
-            method="put",
-            providerKey=provider,
-            providerConfig=old_config,
-        )
-        auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
-        assert auth_provider.provider == provider
-        assert auth_provider.config == {
-            "domains": ["foo.com"],
-            "version": DATA_VERSION,
-            "sentry-source": "api-organization-details",
-        }
-
-        self.get_success_response(
-            self.organization.slug,
-            method="put",
-            providerKey=provider,
-            providerConfig=new_config,
-        )
-        auth_provider = AuthProvider.objects.get(organization_id=self.organization.id)
-        assert auth_provider.provider == provider
-        assert auth_provider.config == {
-            "domains": ["bar.com"],
-            "version": DATA_VERSION,
-            "sentry-source": "api-organization-details",
-        }
-
-    def test_invalid_auth_provider_missing_feature_flag(self):
-        self.get_error_response(
-            self.organization.slug,
-            method="put",
-            providerKey="google",
-            providerConfig={"domain": "foo.com"},
-            status_code=400,
-        )
-        assert AuthProvider.objects.count() == 0
-
-    @with_feature("organizations:api-auth-provider")
-    def test_invalid_auth_provider_configuration(self):
-        self.get_error_response(
-            self.organization.slug, method="put", providerKey="google", status_code=400
-        )
-        self.get_error_response(
-            self.organization.slug,
-            method="put",
-            providerConfig={"domain": "foo.com"},
-            status_code=400,
-        )
-        self.get_error_response(
-            self.organization.slug,
-            method="put",
-            providerKey="not_valid",
-            providerConfig={"domain": "foo.com"},
-            status_code=400,
-        )
-
-        response = self.get_error_response(
-            self.organization.slug,
-            method="put",
-            providerKey="google",
-            providerConfig={"invalid_domain": "foo.com"},
-            status_code=400,
-        )
-        assert response.data == {"providerConfig": ["Invalid key 'domain' in providerConfig"]}
-        assert AuthProvider.objects.count() == 0
 
 
 @region_silo_test
