@@ -73,7 +73,7 @@ describe('OrganizationActionCreator', function () {
     expect(TeamStore.loadInitialData).toHaveBeenCalledWith(teams);
     expect(ProjectsStore.loadInitialData).toHaveBeenCalledWith(projects);
 
-    expect(OrganizationStore.organization).toEqual(org);
+    expect(OrganizationStore.get().organization).toEqual(org);
   });
 
   it('silently fetches organization details', async function () {
