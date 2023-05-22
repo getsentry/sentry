@@ -83,5 +83,5 @@ class SnowflakeUtilsTest(TestCase):
                         return value & ((1 << s.length) - 1)
                     value >>= s.length
 
-            assert recover_segment_value(snowflake.REGION_ID, snowflake1) == regions[0].id
-            assert recover_segment_value(snowflake.REGION_ID, snowflake2) == regions[1].id
+            assert recover_segment_value(snowflake.REGION_ID, snowflake1) == regions[0].snowflake_id
+            assert recover_segment_value(snowflake.REGION_ID, snowflake2) == regions[1].snowflake_id
