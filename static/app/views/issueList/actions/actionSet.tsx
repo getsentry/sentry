@@ -100,7 +100,7 @@ function ActionSet({
   // the dropdown menu based on the current screen size
   const theme = useTheme();
   const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
-  const disabledMarkReviewed = organization.features.includes('remove-mark-reviewed');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
 
   const menuItems: MenuItemProps[] = [
     {
@@ -118,7 +118,7 @@ function ActionSet({
         });
       },
     },
-    ...(disabledMarkReviewed
+    ...(hasEscalatingIssuesUi
       ? []
       : [
           {
@@ -254,7 +254,7 @@ function ActionSet({
           disabled={ignoreDisabled}
         />
       )}
-      {!nestMergeAndReview && !disabledMarkReviewed && (
+      {!nestMergeAndReview && !hasEscalatingIssuesUi && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}
       {!nestMergeAndReview && (

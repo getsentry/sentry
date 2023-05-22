@@ -17,7 +17,7 @@ type Props = {
 function ReviewAction({disabled, onUpdate, tooltipProps, tooltip}: Props) {
   const organization = useOrganization();
 
-  if (organization.features.includes('remove-mark-reviewed')) {
+  if (organization.features.includes('escalating-issues-ui')) {
     return null;
   }
 
