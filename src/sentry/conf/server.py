@@ -976,11 +976,6 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute=30, hour="0"),
         "options": {"expires": 3600},
     },
-    "dynamic-sampling-prioritize-projects": {
-        "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
-    },
     "dynamic-sampling-prioritize-transactions": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
         # Run every 5 minutes
@@ -988,11 +983,6 @@ CELERYBEAT_SCHEDULE = {
     },
     "dynamic-sampling-sliding-window": {
         "task": "sentry.dynamic_sampling.tasks.sliding_window",
-        # Run every 10 minutes
-        "schedule": crontab(minute="*/10"),
-    },
-    "dynamic-sampling-sliding-window-org": {
-        "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
         # Run every 10 minutes
         "schedule": crontab(minute="*/10"),
     },
