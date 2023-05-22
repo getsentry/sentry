@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytz
 
-from sentry.models import Group, GroupInbox, GroupInboxReason, GroupStatus
+from sentry.models import Group, GroupInbox, GroupInboxReason, GroupStatus, add_group_to_inbox
 from sentry.tasks.auto_ongoing_issues import (
     schedule_auto_transition_new,
     schedule_auto_transition_regressed,
@@ -184,6 +184,9 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
             substatus=GroupSubStatus.REGRESSED,
             first_seen=now - timedelta(days=3, hours=1),
         )
+        group_inbox = add_group_to_inbox(group, GroupInboxReason.REGRESSION)
+        group_inbox.date_added = now - timedelta(days=3, hours=1)
+        group_inbox.save(update_fields=["date_added"])
 
         with self.tasks():
             schedule_auto_transition_regressed()

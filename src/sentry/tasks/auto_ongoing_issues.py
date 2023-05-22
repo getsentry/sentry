@@ -6,7 +6,15 @@ from sentry_sdk.crons.decorator import monitor
 
 from sentry import features
 from sentry.issues.ongoing import transition_group_to_ongoing
-from sentry.models import Group, GroupStatus, Organization, OrganizationStatus, Project
+from sentry.models import (
+    Group,
+    GroupInbox,
+    GroupInboxReason,
+    GroupStatus,
+    Organization,
+    OrganizationStatus,
+    Project,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
 from sentry.utils.query import RangeQuerySetWrapper
@@ -91,7 +99,7 @@ def schedule_auto_transition_regressed() -> None:
             ):
                 auto_transition_issues_regressed_to_ongoing.delay(
                     project_id=project_id,
-                    first_seen_lte=int(three_days_past.timestamp()),
+                    date_added_lte=int(three_days_past.timestamp()),
                     expires=now + timedelta(hours=1),
                 )
 
@@ -104,35 +112,35 @@ def schedule_auto_transition_regressed() -> None:
 )  # type: ignore
 def auto_transition_issues_regressed_to_ongoing(
     project_id: int,
-    first_seen_lte: int,
-    first_seen_gte: Optional[int] = None,
+    date_added_lte: int,
+    date_added_gte: Optional[int] = None,
     chunk_size: int = 1000,
     **kwargs,
 ) -> None:
-    queryset = Group.objects.filter(
+
+    queryset = GroupInbox.objects.filter(
         project_id=project_id,
-        status=GroupStatus.UNRESOLVED,
-        substatus=GroupSubStatus.REGRESSED,
-        first_seen__lte=datetime.fromtimestamp(first_seen_lte, pytz.UTC),
+        date_added__lte=datetime.fromtimestamp(date_added_lte, pytz.UTC),
+        reason=GroupInboxReason.REGRESSION.value,
     )
 
-    if first_seen_gte:
-        queryset = queryset.filter(first_seen__gte=datetime.fromtimestamp(first_seen_gte, pytz.UTC))
+    if date_added_gte:
+        queryset = queryset.filter(date_added__gte=datetime.fromtimestamp(date_added_gte, pytz.UTC))
 
-    regressed_groups = list(queryset.order_by("first_seen")[:chunk_size])
+    regressed_inbox = queryset.order_by("date_added")[:chunk_size]
 
-    for group in regressed_groups:
+    for group in Group.objects.filter(id__in=list({inbox.group_id for inbox in regressed_inbox})):
         transition_group_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.REGRESSED,
             group,
         )
 
-    if len(regressed_groups) == chunk_size:
+    if len(regressed_inbox) == chunk_size:
         auto_transition_issues_regressed_to_ongoing.delay(
             project_id=project_id,
-            first_seen_lte=first_seen_lte,
-            first_seen_gte=regressed_groups[chunk_size - 1].first_seen.timestamp(),
+            date_added_lte=date_added_lte,
+            date_added_gte=regressed_inbox[chunk_size - 1].date_added.timestamp(),
             chunk_size=chunk_size,
             expires=datetime.now(tz=pytz.UTC) + timedelta(hours=1),
         )
