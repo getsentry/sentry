@@ -90,7 +90,6 @@ export function Actions(props: Props) {
 
   const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
   const hasDeleteAccess = organization.access.includes('event:admin');
-  const disabledMarkReviewed = organization.features.includes('remove-mark-reviewed');
 
   const {
     delete: deleteCap,
@@ -412,7 +411,7 @@ export function Actions(props: Props) {
             disabled: disabled || group.subscriptionDetails?.disabled,
             onAction: onToggleSubscribe,
           },
-          ...(disabledMarkReviewed
+          ...(hasEscalatingIssues
             ? []
             : [
                 {
