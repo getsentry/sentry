@@ -42,7 +42,7 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
                 mock_sdk_crash_reporter.report.assert_not_called()
 
         if feature_enabled:
-            with Feature("organizations:sdk-crash-monitoring"):
+            with Feature("organizations:sdk-crash-reporting"):
                 _execute_test(self)
         else:
             _execute_test(self)

@@ -31,7 +31,7 @@ class SDKCrashDetection:
 
     def detect_sdk_crash(self, event: Event) -> None:
 
-        if not features.has("organizations:sdk-crash-monitoring", event.project.organization):
+        if not features.has("organizations:sdk-crash-reporting", event.project.organization):
             return
 
         should_detect_sdk_crash = (
