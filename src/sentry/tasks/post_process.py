@@ -709,7 +709,23 @@ def process_snoozes(job: PostProcessJob) -> None:
             job["has_reappeared"] = False
             return
 
-        if not snooze.is_valid(group, test_rates=True, use_pending_data=True):
+        # GroupSnooze row exists but the Group.status isn't ignored
+        # this shouldn't be possible, if this fires, there may be a race or bug
+        if snooze is not None and group.status is not GroupStatus.IGNORED:
+            # log a metric for now, we can potentially set the status and substatus but that might mask some other bug
+            metrics.incr(
+                "post_process.process_snoozes.mismatch_status",
+                tags={
+                    "group_status": group.status,
+                    "group_substatus": group.substatus,
+                },
+            )
+
+        snooze_condition_still_applies = snooze.is_valid(
+            group, test_rates=True, use_pending_data=True
+        )
+
+        if not snooze_condition_still_applies:
             snooze_details = {
                 "until": snooze.until,
                 "count": snooze.count,
