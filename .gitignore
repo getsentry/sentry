@@ -1,6 +1,6 @@
 .env
 .cache/
-.coverage
+.coverage*
 .DS_Store
 .venv
 *.egg-info
@@ -56,3 +56,4 @@ Brewfile.lock.json
 import-graph.txt
 import-graph.dot
 bin/rrweb-output
+model-manifest.json

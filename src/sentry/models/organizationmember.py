@@ -91,9 +91,15 @@ class OrganizationMemberManager(BaseManager):
         from sentry.services.hybrid_cloud.auth import auth_service
 
         orgs_with_scim = auth_service.get_org_ids_with_scim()
-        self.filter(token_expires_at__lt=threshold, user_id__exact=None,).exclude(
-            email__exact=None
-        ).exclude(organization_id__in=orgs_with_scim).delete()
+        for member in (
+            self.filter(
+                token_expires_at__lt=threshold,
+                user_id__exact=None,
+            )
+            .exclude(email__exact=None)
+            .exclude(organization_id__in=orgs_with_scim)
+        ):
+            member.delete()
 
     def get_for_integration(
         self, integration: RpcIntegration | int, user: RpcUser, organization_id: int | None = None
@@ -229,7 +235,7 @@ class OrganizationMember(Model):
 
     def delete(self, *args, **kwds):
         with transaction.atomic(), in_test_psql_role_override("postgres"):
-            self.outbox_for_update().save()
+            self.save_outbox_for_update()
             return super().delete(*args, **kwds)
 
     @transaction.atomic
@@ -239,8 +245,15 @@ class OrganizationMember(Model):
         ), "Must set either user or email"
         if self.token and not self.token_expires_at:
             self.refresh_expires_at()
+        is_new = bool(self.id)
         super().save(*args, **kwargs)
+        region_outbox = None
+        if is_new:
+            region_outbox = self.save_outbox_for_create()
+        else:
+            region_outbox = self.save_outbox_for_update()
         self.__org_roles_from_teams = None
+        return region_outbox
 
     def refresh_from_db(self, *args, **kwargs):
         super().refresh_from_db(*args, **kwargs)
@@ -270,6 +283,11 @@ class OrganizationMember(Model):
             payload=dict(user_id=self.user_id),
         )
 
+    def save_outbox_for_create(self) -> RegionOutbox:
+        outbox = self.outbox_for_create()
+        outbox.save()
+        return outbox
+
     def outbox_for_update(self) -> RegionOutbox:
         return RegionOutbox(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
@@ -278,6 +296,11 @@ class OrganizationMember(Model):
             object_identifier=self.id,
             payload=dict(user_id=self.user_id),
         )
+
+    def save_outbox_for_update(self) -> RegionOutbox:
+        outbox = self.outbox_for_update()
+        outbox.save()
+        return outbox
 
     def refresh_expires_at(self):
         now = timezone.now()
@@ -561,8 +584,12 @@ class OrganizationMember(Model):
         from sentry import audit_log
         from sentry.utils.audit import create_audit_entry_from_user
 
-        self.approve_invite()
-        self.save()
+        region_outbox = None
+        with transaction.atomic():
+            self.approve_invite()
+            region_outbox = self.save()
+        if region_outbox:
+            region_outbox.drain_shard(max_updates_to_drain=10)
 
         if settings.SENTRY_ENABLE_INVITES:
             self.send_invite_email()
@@ -592,10 +619,13 @@ class OrganizationMember(Model):
         ip_address=None,
     ):
         """
-        Reject a member invite/jin request and send an audit log entry
+        Reject a member invite/join request and send an audit log entry
         """
         from sentry import audit_log
         from sentry.utils.audit import create_audit_entry_from_user
+
+        if self.invite_status == InviteStatus.APPROVED.value:
+            return
 
         self.delete()
 

@@ -145,6 +145,9 @@ export function updateDashboard(
     }
   );
 
+  // We let the callers of `updateDashboard` handle adding a success message, so
+  // that it can be more specific than just "Dashboard updated," but do the
+  // error-handling here, since it doesn't depend on the caller's context
   promise.catch(response => {
     const errorResponse = response?.responseJSON ?? null;
 

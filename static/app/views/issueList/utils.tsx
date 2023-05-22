@@ -59,7 +59,7 @@ export function getTabs(organization: Organization) {
         name: t('For Review'),
         analyticsName: 'needs_review',
         count: true,
-        enabled: !hasEscalatingIssuesUi,
+        enabled: true,
         tooltipTitle:
           t(`Issues are marked for review when they are created, unresolved, or unignored.
           Mark an issue reviewed to move it out of this list.
@@ -165,7 +165,6 @@ export enum IssueSortOptions {
   PRIORITY = 'priority',
   FREQ = 'freq',
   USER = 'user',
-  TREND = 'trend',
   INBOX = 'inbox',
 }
 
@@ -185,8 +184,6 @@ export function getSortLabel(key: string) {
       return t('Events');
     case IssueSortOptions.USER:
       return t('Users');
-    case IssueSortOptions.TREND:
-      return t('Relative Change');
     case IssueSortOptions.INBOX:
       return t('Date Added');
     case IssueSortOptions.DATE:

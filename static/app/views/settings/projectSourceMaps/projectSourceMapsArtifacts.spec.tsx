@@ -57,7 +57,6 @@ describe('ProjectSourceMapsArtifacts', function () {
   describe('Release Bundles', function () {
     it('renders default state', async function () {
       const {organization, route, project, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {},
@@ -109,9 +108,7 @@ describe('ProjectSourceMapsArtifacts', function () {
       expect(screen.getByText(/in 3 year/)).toBeInTheDocument();
       // File size
       expect(screen.getByText('8.1 KiB')).toBeInTheDocument();
-      // Chip
-      await userEvent.hover(screen.getByText('none'));
-      expect(await screen.findByText('No distribution set')).toBeInTheDocument();
+
       // Download button
       expect(screen.getByRole('button', {name: 'Download Artifact'})).toHaveAttribute(
         'href',
@@ -121,7 +118,6 @@ describe('ProjectSourceMapsArtifacts', function () {
 
     it('renders empty state', async function () {
       const {organization, route, project, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {},
@@ -162,7 +158,6 @@ describe('ProjectSourceMapsArtifacts', function () {
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
       const {organization, route, project, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
@@ -237,7 +232,6 @@ describe('ProjectSourceMapsArtifacts', function () {
 
     it('renders empty state', async function () {
       const {organization, route, project, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${

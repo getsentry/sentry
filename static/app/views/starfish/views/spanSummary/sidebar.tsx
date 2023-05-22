@@ -1,118 +1,76 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
-import moment from 'moment';
+import orderBy from 'lodash/orderBy';
+import moment, {Moment} from 'moment';
+import * as qs from 'query-string';
 
-import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
+import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/formatters';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
-import {
-  getEndpointDetailSeriesQuery,
-  getEndpointDetailTableQuery,
-} from 'sentry/views/starfish/modules/APIModule/queries';
-import {HOST} from 'sentry/views/starfish/utils/constants';
+import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {
-  getOverallAggregatesQuery,
-  getSidebarAggregatesQuery,
-  getSidebarSeriesQuery,
-  getUniqueTransactionCountQuery,
+  useQueryGetFacetsBreakdown,
+  useQueryGetSpanAggregatesQuery,
+  useQueryGetSpanSeriesData,
+  useQueryGetUniqueTransactionCount,
 } from 'sentry/views/starfish/views/spanSummary/queries';
+
+type Props = {
+  groupId: string;
+  sampledSpanData: any;
+  spanGroupOperation: string;
+  transactionName: string;
+  description?: string;
+  module?: string;
+};
 
 export default function Sidebar({
   spanGroupOperation,
   groupId,
   description,
   transactionName,
-  sampledSpanData,
-}) {
+  module,
+}: Props) {
   const theme = useTheme();
   const pageFilter = usePageFilters();
-  const {getSeriesQuery, getAggregatesQuery} = getQueries(spanGroupOperation);
-  const module = spanGroupOperation;
-  const seriesQuery = getSeriesQuery({
-    description,
-    transactionName,
-    datetime: pageFilter.selection.datetime,
-    groupId,
-    module,
-  });
-  const aggregatesQuery = getAggregatesQuery({
-    description,
-    transactionName,
-    datetime: pageFilter.selection.datetime,
-    groupId,
-    module,
-  });
+  const location = useLocation();
+
+  const {isLoading: isFacetBreakdownLoading, data: facetBreakdownData} =
+    useQueryGetFacetsBreakdown({groupId, transactionName});
 
   // This is supposed to a metrics span query that fetches aggregate metric data
-  const {isLoading: _isLoadingSideBarAggregateData, data: spanAggregateData} = useQuery({
-    queryKey: ['span-aggregates'],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${aggregatesQuery}&referrer=sidebar-aggregates`).then(res =>
-        res.json()
-      ),
-    retry: false,
-    initialData: [],
-  });
-
-  const {isLoading: _isLoadingSideBarOverallAggregateData, data: overallAggregateData} =
-    useQuery({
-      queryKey: ['overall-aggregates'],
-      queryFn: () =>
-        fetch(
-          `${HOST}/?query=${getOverallAggregatesQuery(
-            pageFilter.selection.datetime
-          )}&referrer=overall-aggregates`
-        ).then(res => res.json()),
-      retry: false,
-      initialData: [],
+  const {isLoading: _isLoadingSideBarAggregateData, data: spanAggregateData} =
+    useQueryGetSpanAggregatesQuery({
+      description,
+      groupId,
+      module,
+      transactionName,
     });
 
   // Also a metrics span query that fetches series data
-  const {isLoading: isLoadingSeriesData, data: seriesData} = useQuery({
-    queryKey: ['seriesdata'],
-    queryFn: () => fetch(`${HOST}/?query=${seriesQuery}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
+  const {isLoading: isLoadingSeriesData, data: seriesData} = useQueryGetSpanSeriesData({
+    description,
+    groupId,
+    module,
+    spanGroupOperation,
+    transactionName,
   });
 
   // This is a metrics request on transactions data!
   // We're fetching the count of events on a specific transaction so we can
   // calculate span frequency using metrics spans vs metrics transactions
-  const countUniqueQuery = getUniqueTransactionCountQuery({
-    transactionName,
-    datetime: pageFilter.selection.datetime,
-  });
-  const {data: transactionData, isLoading: _isTransactionDataLoading} = useQuery({
-    queryKey: [countUniqueQuery],
-    queryFn: () =>
-      fetch(`/api/0/organizations/sentry/events/${countUniqueQuery}`).then(res =>
-        res.json()
-      ),
-    retry: false,
-    initialData: [],
-  });
+  const {data: transactionData, isLoading: _isTransactionDataLoading} =
+    useQueryGetUniqueTransactionCount({transactionName});
 
-  const {
-    p50,
-    p95,
-    failure_rate,
-    count,
-    total_exclusive_time,
-    count_unique_transaction_id,
-    count_unique_transaction,
-    first_seen,
-    last_seen,
-  } = spanAggregateData[0] || {};
-
-  const {count_overall_unique_transactions, overall_total_exclusive_time} =
-    overallAggregateData[0] || {};
+  const {failure_rate, count, total_exclusive_time, count_unique_transaction_id} =
+    spanAggregateData[0] || {};
 
   const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
   const startTime =
@@ -121,10 +79,9 @@ export default function Sidebar({
       : moment(pageFilter.selection.datetime.start);
   const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
 
-  const [p50Series, p95Series, countSeries, _errorCountSeries, errorRateSeries] =
-    queryDataToChartData(seriesData).map(series =>
-      zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
-    );
+  const [, , , _errorCountSeries, errorRateSeries] = queryDataToChartData(seriesData).map(
+    series => zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
+  );
 
   // NOTE: This almost always calculates to 0.00% when using the scraped data.
   // This is because the scraped data doesn't have nearly as much volume as real prod data.
@@ -142,36 +99,13 @@ export default function Sidebar({
     ) / 100;
 
   const chartColors = theme.charts.getColorPalette(2);
-  const sampledSpanDataSeries = sampledSpanData.map(({timestamp, spanDuration}) => ({
-    name: timestamp,
-    value: spanDuration,
-  }));
 
   return (
     <FlexContainer>
       <FlexItem>
-        <SidebarItemHeader>{t('Total Self Time')}</SidebarItemHeader>
+        <SidebarItemHeader>{t('Total Time')}</SidebarItemHeader>
         <SidebarItemValueContainer>
           <Duration seconds={total_exclusive_time / 1000} fixedDigits={2} abbreviation />{' '}
-          ({formatPercentage(total_exclusive_time / overall_total_exclusive_time)})
-        </SidebarItemValueContainer>
-      </FlexItem>
-      <FlexItem>
-        <SidebarItemHeader>{t('Unique Transactions')}</SidebarItemHeader>
-        <SidebarItemValueContainer>
-          {count_unique_transaction} / {count_overall_unique_transactions}
-        </SidebarItemValueContainer>
-      </FlexItem>
-      <FlexItem>
-        <SidebarItemHeader>{t('First Seen')}</SidebarItemHeader>
-        <SidebarItemValueContainer>
-          <DateTime date={first_seen} timeZone seconds utc />
-        </SidebarItemValueContainer>
-      </FlexItem>
-      <FlexItem>
-        <SidebarItemHeader>{t('Last Seen')}</SidebarItemHeader>
-        <SidebarItemValueContainer>
-          <DateTime date={last_seen} timeZone seconds utc />
         </SidebarItemValueContainer>
       </FlexItem>
       <FlexItem>
@@ -179,48 +113,18 @@ export default function Sidebar({
         <SidebarItemValueContainer>{count}</SidebarItemValueContainer>
       </FlexItem>
       <FlexItem>
-        <SidebarItemHeader>{t('Span Frequency')}</SidebarItemHeader>
+        <SidebarItemHeader>{t('Frequency')}</SidebarItemHeader>
         <SidebarItemValueContainer>
           {formatPercentage(spanFrequency)}
         </SidebarItemValueContainer>
       </FlexItem>
       <FlexItem>
-        <SidebarItemHeader>{t('Spans Per Event')}</SidebarItemHeader>
-        <SidebarItemValueContainer>{spansPerEvent}</SidebarItemValueContainer>
+        <SidebarItemHeader>{t('Avg Spans')}</SidebarItemHeader>
+        <SidebarItemValueContainer>
+          {spansPerEvent} {t('per event')}
+        </SidebarItemValueContainer>
       </FlexItem>
-      <FlexFullWidthItem>
-        <SidebarItemHeader>{t('Throughput')}</SidebarItemHeader>
-        <SidebarItemValueContainer>{count}</SidebarItemValueContainer>
-        <SidebarChart
-          series={countSeries}
-          isLoading={isLoadingSeriesData}
-          chartColor={chartColors[0]}
-        />
-      </FlexFullWidthItem>
-      <FlexFullWidthItem>
-        <SidebarItemHeader>{t('Self Time Duration (P50)')}</SidebarItemHeader>
-        <SidebarItemValueContainer>
-          <Duration seconds={p50 / 1000} fixedDigits={2} abbreviation />
-        </SidebarItemValueContainer>
-        <SidebarChart
-          series={p50Series}
-          isLoading={isLoadingSeriesData}
-          chartColor={chartColors[1]}
-          sampledSpanDataSeries={sampledSpanDataSeries}
-        />
-      </FlexFullWidthItem>
-      <FlexFullWidthItem>
-        <SidebarItemHeader>{t('Self Time Duration (P95)')}</SidebarItemHeader>
-        <SidebarItemValueContainer>
-          <Duration seconds={p95 / 1000} fixedDigits={2} abbreviation />
-        </SidebarItemValueContainer>
-        <SidebarChart
-          series={p95Series}
-          isLoading={isLoadingSeriesData}
-          chartColor={chartColors[2]}
-          sampledSpanDataSeries={sampledSpanDataSeries}
-        />
-      </FlexFullWidthItem>
+
       {
         // This could be better. Improve later.
         spanGroupOperation === 'http.client' && (
@@ -237,6 +141,50 @@ export default function Sidebar({
           </FlexFullWidthItem>
         )
       }
+      <FlexFullWidthItem>
+        {isFacetBreakdownLoading ? (
+          <span>LOADING</span>
+        ) : (
+          <div>
+            <h3>{t('Facets')}</h3>
+            {['user'].map(facet => {
+              const values = facetBreakdownData.map(datum => datum[facet]);
+
+              const uniqueValues: string[] = Array.from(new Set(values));
+
+              let totalValues = 0;
+
+              const segments = orderBy(
+                uniqueValues.map(uniqueValue => {
+                  const valueCount = values.filter(v => v === uniqueValue).length;
+                  totalValues += valueCount;
+
+                  const newQuery = {...location.query, [facet]: uniqueValue};
+
+                  return {
+                    key: facet,
+                    name: uniqueValue,
+                    value: uniqueValue,
+                    url: `/starfish/span/${groupId}?${qs.stringify(newQuery)}`,
+                    count,
+                  };
+                }),
+                'count',
+                'desc'
+              );
+
+              return (
+                <TagDistributionMeter
+                  key={facet}
+                  title={facet}
+                  segments={segments}
+                  totalValues={totalValues}
+                />
+              );
+            })}
+          </div>
+        )}
+      </FlexFullWidthItem>
     </FlexContainer>
   );
 }
@@ -269,7 +217,7 @@ const SidebarItemValueContainer = styled('h4')`
   font-weight: normal;
 `;
 
-function SidebarChart(props) {
+export function SidebarChart(props) {
   return (
     <Chart
       statsPeriod="24h"
@@ -297,7 +245,7 @@ function SidebarChart(props) {
   );
 }
 
-function queryDataToChartData(data: any) {
+export function queryDataToChartData(data: any) {
   const series = [] as any[];
   if (data.length > 0) {
     Object.keys(data[0])
@@ -321,23 +269,41 @@ function queryDataToChartData(data: any) {
   return series;
 }
 
-function getQueries(spanGroupOperation: string) {
-  switch (spanGroupOperation) {
-    case 'db':
-    case 'cache':
-      return {
-        getSeriesQuery: getSidebarSeriesQuery,
-        getAggregatesQuery: getSidebarAggregatesQuery,
-      };
-    case 'http.client':
-      return {
-        getSeriesQuery: getEndpointDetailSeriesQuery,
-        getAggregatesQuery: getEndpointDetailTableQuery,
-      };
-    default:
-      return {
-        getSeriesQuery: getSidebarSeriesQuery,
-        getAggregatesQuery: getSidebarAggregatesQuery,
-      };
+export const getTransactionBasedSeries = (
+  data: any[],
+  dateFilter: {endTime: Moment; startTime: Moment}
+) => {
+  const p50TransactionSeries = queryToSeries(
+    data,
+    'group',
+    'p50(transaction.duration)',
+    dateFilter.startTime,
+    dateFilter.endTime,
+    12
+  )[0];
+
+  const p95TransactionSeries = queryToSeries(
+    data,
+    'group',
+    'p95(transaction.duration)',
+    dateFilter.startTime,
+    dateFilter.endTime,
+    12
+  )[0];
+
+  const throughputTransactionSeries = queryToSeries(
+    data,
+    'group',
+    'epm()',
+    dateFilter.startTime,
+    dateFilter.endTime,
+    12
+  )[0];
+  if (data.length) {
+    p50TransactionSeries.seriesName = 'p50()';
+    p95TransactionSeries.seriesName = 'p95()';
+    throughputTransactionSeries.seriesName = 'epm()';
   }
-}
+
+  return {p50TransactionSeries, p95TransactionSeries, throughputTransactionSeries};
+};

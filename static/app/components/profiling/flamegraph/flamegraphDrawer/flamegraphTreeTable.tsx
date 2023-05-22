@@ -162,6 +162,7 @@ export function FlamegraphTreeTable({
           ref={n => {
             r.ref = n;
           }}
+          key={r.key}
           node={r.item}
           style={r.styles}
           referenceNode={referenceNode}

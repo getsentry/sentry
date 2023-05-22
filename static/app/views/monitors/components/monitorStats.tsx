@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
@@ -21,20 +21,22 @@ import {Monitor, MonitorEnvironment, MonitorStat} from '../types';
 
 type Props = {
   monitor: Monitor;
-  monitorEnv: MonitorEnvironment;
+  monitorEnvs: MonitorEnvironment[];
   orgId: string;
 };
 
-function MonitorStats({monitor, monitorEnv, orgId}: Props) {
+function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
+
+  const nowRef = useRef<Date>(new Date());
 
   let since: number, until: number;
   if (start && end) {
     until = new Date(end).getTime() / 1000;
     since = new Date(start).getTime() / 1000;
   } else {
-    until = Math.floor(new Date().getTime() / 1000);
+    until = Math.floor(nowRef.current.getTime() / 1000);
     const intervalSeconds = intervalToMilliseconds(period ?? '30d') / 1000;
     since = until - intervalSeconds;
   }
@@ -46,7 +48,7 @@ function MonitorStats({monitor, monitorEnv, orgId}: Props) {
         since: since.toString(),
         until: until.toString(),
         resolution: '1d',
-        environment: monitorEnv.name,
+        environment: monitorEnvs.map(e => e.name),
       },
     },
   ] as const;
@@ -120,7 +122,7 @@ function MonitorStats({monitor, monitorEnv, orgId}: Props) {
     <React.Fragment>
       <Panel>
         <PanelBody withPadding>
-          <StyledHeaderTitle>{t('Recent Check-Ins')}</StyledHeaderTitle>
+          <StyledHeaderTitle>{t('Check-Ins')}</StyledHeaderTitle>
           <BarChart
             isGroupedByDate
             showTimeInTooltip
