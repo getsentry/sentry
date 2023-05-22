@@ -112,6 +112,8 @@ jest.mock('@sentry/react', function sentryReact() {
     lastEventId: jest.fn(),
     getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
     withScope: jest.spyOn(SentryReact, 'withScope'),
+    Hub: SentryReact.Hub,
+    Scope: SentryReact.Scope,
     Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
     BrowserClient: jest.fn().mockReturnValue({
