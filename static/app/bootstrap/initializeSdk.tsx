@@ -179,25 +179,33 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
   }
 
   // In case there's a chain, we take the last entry, because that's the one
-  // passed to `captureException`
-  const mainError = exceptionValues[exceptionValues.length - 1];
+  // passed to `captureException`, and the one right before that, since
+  // `RequestError`s are used as the main error's `cause` value in
+  // `handleXhrErrorResponse`
+  const mainAndMaybeCauseErrors = exceptionValues.slice(-2);
 
-  const {type = '', value = ''} = mainError;
+  for (const error of mainAndMaybeCauseErrors) {
+    const {type = '', value = ''} = error;
 
-  const is200 =
-    ['RequestError'].includes(type) && !!value.match('(GET|POST|PUT|DELETE) .* 200');
-  const is401 =
-    ['UnauthorizedError', 'RequestError'].includes(type) &&
-    !!value.match('(GET|POST|PUT|DELETE) .* 401');
-  const is403 =
-    ['ForbiddenError', 'RequestError'].includes(type) &&
-    !!value.match('(GET|POST|PUT|DELETE) .* 403');
-  const is404 =
-    ['NotFoundError', 'RequestError'].includes(type) &&
-    !!value.match('(GET|POST|PUT|DELETE) .* 404');
-  const is429 =
-    ['TooManyRequestsError', 'RequestError'].includes(type) &&
-    !!value.match('(GET|POST|PUT|DELETE) .* 429');
+    const is200 =
+      ['RequestError'].includes(type) && !!value.match('(GET|POST|PUT|DELETE) .* 200');
+    const is401 =
+      ['UnauthorizedError', 'RequestError'].includes(type) &&
+      !!value.match('(GET|POST|PUT|DELETE) .* 401');
+    const is403 =
+      ['ForbiddenError', 'RequestError'].includes(type) &&
+      !!value.match('(GET|POST|PUT|DELETE) .* 403');
+    const is404 =
+      ['NotFoundError', 'RequestError'].includes(type) &&
+      !!value.match('(GET|POST|PUT|DELETE) .* 404');
+    const is429 =
+      ['TooManyRequestsError', 'RequestError'].includes(type) &&
+      !!value.match('(GET|POST|PUT|DELETE) .* 429');
 
-  return is200 || is401 || is403 || is404 || is429;
+    if (is200 || is401 || is403 || is404 || is429) {
+      return true;
+    }
+  }
+
+  return false;
 }
