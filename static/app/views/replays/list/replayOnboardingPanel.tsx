@@ -10,7 +10,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
-import {canCreateProject} from 'sentry/components/projects/utils';
+import {canCreateProject} from 'sentry/components/projects/useProjectCreationAccess';
 import {Tooltip} from 'sentry/components/tooltip';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {IconInfo} from 'sentry/icons';
