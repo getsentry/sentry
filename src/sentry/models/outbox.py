@@ -331,7 +331,7 @@ class ControlOutbox(OutboxBase):
             path=request.path,
             uri=request.get_raw_uri(),
             headers={k: v for k, v in request.headers.items()},
-            body=request.data.decode(encoding="utf-8"),
+            body=request.body.decode(encoding="utf-8"),
         )
 
     @classmethod
