@@ -1,15 +1,15 @@
 from typing import Any, Generator, Mapping, Sequence, Union
 
-import rb
 from redis import Redis
-from rediscluster import RedisCluster
+from rediscluster import RedisCluster  # type: ignore
 
 # Based on configuration, this could be:
-# - a `rb` (aka redis blaster) Cluster
 # - a `rediscluster` Cluster (actually `RetryingRedisCluster`)
 # - a straight `Redis` client (actually `FailoverRedis`)
 # - or any class configured via `client_class`.
-Cluster = Union[rb.Cluster, RedisCluster, Redis]
+# It could in theory also be a `rb` (aka redis blaster) Cluster, but we
+# intentionally do not support these.
+Cluster = Union[RedisCluster, Redis]
 Info = Mapping[str, Any]
 
 
@@ -51,10 +51,6 @@ def iter_cluster_node_infos(cluster: Cluster) -> Generator[Info, None, None]:
     if isinstance(cluster, RedisCluster):
         # `RedisCluster` returns these as a dictionary, with the node-id as key
         yield from cluster.info().values()
-    elif isinstance(cluster, rb.Cluster):
-        # for `rb`, we have to iterate over all the clients ourselves
-        with cluster.all() as client:
-            yield client.info()
     else:
         # otherwise, lets just hope that `info()` does the right thing
         yield cluster.info()
