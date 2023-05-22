@@ -155,13 +155,11 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     snoozeCreatedBy?: string;
     snoozeForEveryone?: boolean;
   }) {
-    if (rule) {
-      setApiQueryData<IssueAlertRule>(
-        queryClient,
-        getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
-        {...rule, snooze, snoozeCreatedBy, snoozeForEveryone}
-      );
-    }
+    setApiQueryData<IssueAlertRule>(
+      queryClient,
+      getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
+      alertRule => ({...alertRule, snooze, snoozeCreatedBy, snoozeForEveryone})
+    );
   }
 
   function handleUpdateDatetime(datetime: ChangeData) {
