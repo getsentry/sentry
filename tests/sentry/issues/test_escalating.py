@@ -90,9 +90,7 @@ class HistoricGroupCounts(
         )
         assert len(Group.objects.all()) == 2
 
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            perf_event = self.create_performance_issue()
-
+        perf_event = self.create_performance_issue()
         error_event = self._create_events_for_group()
 
         # store_search_issue created two groups

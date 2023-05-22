@@ -15,10 +15,10 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyPercentCondition,
     EventUniqueUserFrequencyCondition,
 )
-from sentry.testutils.cases import RuleTestCase, SnubaTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.samples import load_data
 
 
 class FrequencyConditionMixin:
@@ -72,28 +72,36 @@ class ErrorEventMixin:
         return event.for_group(event.group)
 
 
-class PerfIssuePlatformEventMixin(PerfIssueTransactionTestMixin):
+class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
     def add_event(self, data, project_id, timestamp):
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            fingerprint = data["fingerprint"][0]
-            fingerprint = (
-                fingerprint
-                if "-" in fingerprint
-                else f"{PerformanceNPlusOneGroupType.type_id}-{data['fingerprint'][0]}"
-            )
-            # Store a performance event
-            event = self.store_transaction(
-                environment=data.get("environment"),
-                project_id=project_id,
-                user_id=data.get("user", uuid4().hex),
-                fingerprint=[fingerprint],
-                timestamp=timestamp.replace(tzinfo=pytz.utc),
-            )
-            return event.for_group(event.groups[0])
+        fingerprint = data["fingerprint"][0]
+        fingerprint = (
+            fingerprint
+            if "-" in fingerprint
+            else f"{PerformanceNPlusOneGroupType.type_id}-{data['fingerprint'][0]}"
+        )
+        event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=timestamp.replace(tzinfo=pytz.utc),
+            start_timestamp=timestamp.replace(tzinfo=pytz.utc),
+            fingerprint=[fingerprint],
+        )
+        event_data["user"] = {"id": uuid4().hex}
+        event_data["environment"] = data.get("environment")
+        for tag in event_data["tags"]:
+            if tag[0] == "environment":
+                tag[1] = data.get("environment")
+                break
+        else:
+            event_data["tags"].append(data.get("environment"))
 
-    def assertPasses(self, rule, event=None, **kwargs):
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            super().assertPasses(rule, event=event, **kwargs)
+        # Store a performance event
+        event = self.create_performance_issue(
+            event_data=event_data,
+            project_id=project_id,
+            fingerprint=fingerprint,
+        )
+        return event
 
 
 class StandardIntervalMixin:
