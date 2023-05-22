@@ -13,7 +13,7 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
@@ -89,7 +89,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
 
 
 @region_silo_test
-class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase):
+class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
     def test_no_projects(self):
         response = self.do_request({})
 
@@ -605,50 +605,31 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase):
             {"project.name": self.project.slug, "id": "a" * 32, "count()": 1}
         ]
 
-    def test_performance_issue_ids_undefined(self):
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "2h",
-            "query": "performance.issue_ids:undefined",
-            "project": [self.project.id],
-        }
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
-
-    def test_has_performance_issue_ids(self):
-        data = load_data(
-            platform="transaction",
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        self.store_event(data=data, project_id=self.project.id)
-
+    def test_performance_short_group_id(self):
+        event = self.create_performance_issue()
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": "has:performance.issue_ids",
+            "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
+            "dataset": "issuePlatform",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
+    def test_multiple_performance_short_group_ids_filter(self):
+        event1 = self.create_performance_issue()
+        event2 = self.create_performance_issue()
+
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": "!has:performance.issue_ids",
+            "query": f"project:{event1.group.project.slug} issue:[{event1.group.qualified_short_id},{event2.group.qualified_short_id}]",
+            "dataset": "issuePlatform",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 0
-
-    def test_performance_issue_ids_array_with_undefined(self):
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "2h",
-            "query": "performance.issue_ids:[1,2,3,undefined]",
-            "project": [self.project.id],
-        }
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
+        assert response.data["data"][0]["count()"] == 2
 
     def test_event_id_with_in_search(self):
         self.store_event(
@@ -6040,8 +6021,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             "query": f"issue.id:{event.group.id}",
             "dataset": "issuePlatform",
         }
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            response = self.do_request(query)
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
@@ -6107,8 +6087,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
             "dataset": "issuePlatform",
         }
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            response = self.do_request(query)
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
@@ -6122,8 +6101,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             "query": f"project:{event1.group.project.slug} issue:[{event1.group.qualified_short_id},{event2.group.qualified_short_id}]",
             "dataset": "issuePlatform",
         }
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            response = self.do_request(query)
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 2
 
