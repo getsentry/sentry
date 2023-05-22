@@ -500,7 +500,7 @@ def record_issue_escalating(project, group, event, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         group_id=group.id,
-        event_id=event.event_id,
+        event_id=event.event_id if event else None,
     )
 
 

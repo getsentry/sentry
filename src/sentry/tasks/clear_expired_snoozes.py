@@ -1,11 +1,10 @@
 from django.utils import timezone
 
 from sentry import features
-from sentry.models import Group, GroupSnooze, GroupStatus
-from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.issues.escalating import manage_issue_states
+from sentry.models import Group, GroupInboxReason, GroupSnooze, GroupStatus
 from sentry.signals import issue_unignored
 from sentry.tasks.base import instrumented_task
-from sentry.types.group import GroupSubStatus
 
 
 @instrumented_task(name="sentry.tasks.clear_expired_snoozes", time_limit=65, soft_time_limit=60)
@@ -17,18 +16,19 @@ def clear_expired_snoozes():
     group_list = [gs[1] for gs in groupsnooze_list]
 
     ignored_groups = list(Group.objects.filter(id__in=group_list, status=GroupStatus.IGNORED))
-    Group.objects.filter(id__in=group_list, status=GroupStatus.IGNORED).update(
-        status=GroupStatus.UNRESOLVED,
-        substatus=GroupSubStatus.ONGOING,
-    )
 
     GroupSnooze.objects.filter(id__in=group_snooze_ids).delete()
 
     for group in ignored_groups:
-        if features.has("organizations:issue-states", group.organization):
-            record_group_history(group, GroupHistoryStatus.ONGOING)
+        if features.has("organizations:escalating-issues", group.organization):
+            manage_issue_states(group, GroupInboxReason.ESCALATING)
+
+        elif features.has("organizations:issue-states", group.organization):
+            manage_issue_states(group, GroupInboxReason.ONGOING)
+
         else:
-            record_group_history(group, GroupHistoryStatus.UNIGNORED)
+            manage_issue_states(group, GroupInboxReason.UNIGNORED)
+
         issue_unignored.send_robust(
             project=group.project,
             user_id=None,
