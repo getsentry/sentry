@@ -410,8 +410,42 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         old_group = Group.objects.get(id=old_event.group.id)
         assert list(results) == [recent_group, old_group]
 
-    def test_better_priority_results(self):
-        """Test that the scoring results change when we pass in different weights"""
+    def test_better_priority_log_level_results(self):
+        """Test that the scoring results change when we pass in different log level weights"""
+        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
+        event1 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "a" * 32,
+                "message": "foo. Also, this message is intended to be greater than 256 characters so that we can put some unique string identifier after that point in the string. The purpose of this is in order to verify we are using snuba to search messages instead of Postgres (postgres truncates at 256 characters and clickhouse does not). santryrox.",
+                "environment": "production",
+                "tags": {"server": "example.com", "sentry:user": "event1@example.com"},
+                "timestamp": iso_format(base_datetime),
+                "stacktrace": {"frames": [{"module": "group1"}]},
+                "level": "fatal",
+            },
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group2"],
+                "event_id": "b" * 32,
+                "timestamp": iso_format(base_datetime),
+                "message": "bar",
+                "stacktrace": {"frames": [{"module": "group2"}]},
+                "environment": "staging",
+                "tags": {
+                    "server": "example.com",
+                    "url": "http://example.com",
+                    "sentry:user": "event2@example.com",
+                },
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+        group1 = Group.objects.get(id=event1.group.id)
+        group2 = Group.objects.get(id=event2.group.id)
+
         agg_kwargs = {"better_priority": {"log_level": 1, "frequency": 1, "has_stacktrace": 1}}
         query_executor = self.backend._get_query_executor()
         results = query_executor.snuba_search(
@@ -421,12 +455,15 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             environment_ids=[],
             sort_field="better_priority",
             organization=self.organization,
-            group_ids=[self.group1.id, self.group2.id],
+            group_ids=[group1.id, group2.id],
             limit=150,
             aggregate_kwargs=agg_kwargs,
-        )
-        group1_score = 0.0009287464307105929
-        group2_score = 0.0010254191950095474
+        )[0]
+        group1_score = results[0][1]
+        group2_score = results[1][1]
+
+        # ensure fatal has a higher score than error
+        assert group1_score > group2_score
         assert results == ([(self.group1.id, group1_score), (self.group2.id, group2_score)], 2)
 
         agg_kwargs["better_priority"].update({"log_level": 5})
@@ -437,11 +474,70 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             environment_ids=[],
             sort_field="better_priority",
             organization=self.organization,
-            group_ids=[self.group1.id, self.group2.id],
+            group_ids=[group1.id, group2.id],
             limit=150,
             aggregate_kwargs=agg_kwargs,
         )
+        # check that passing a higher log level weight changes the score from when it was just 1
         assert results != ([(self.group1.id, group1_score), (self.group2.id, group2_score)], 2)
+
+    def test_better_priority_has_stacktrace_results(self):
+        """Test that the scoring results change when we pass in different has_stacktrace weights"""
+        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
+        agg_kwargs = {"better_priority": {"log_level": 1, "frequency": 1, "has_stacktrace": 1}}
+        query_executor = self.backend._get_query_executor()
+
+        no_stacktrace_event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "message": "oh no",
+                "timestamp": iso_format(base_datetime - timedelta(hours=1)),
+            },
+            project_id=self.project.id,
+        )
+        group1 = Group.objects.get(id=no_stacktrace_event.group.id)
+
+        stacktrace_event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "stacktrace": {"frames": [{"module": "group2"}]},
+                "timestamp": iso_format(base_datetime - timedelta(hours=1)),
+            },
+            project_id=self.project.id,
+        )
+        group2 = Group.objects.get(id=stacktrace_event.group.id)
+
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="better_priority",
+            organization=self.organization,
+            group_ids=[group1.id, group2.id],
+            limit=150,
+            aggregate_kwargs=agg_kwargs,
+        )[0]
+        group1_score = results[0][1]
+        group2_score = results[1][1]
+        assert group1_score == group2_score
+
+        agg_kwargs["better_priority"].update({"has_stacktrace": 3})
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="better_priority",
+            organization=self.organization,
+            group_ids=[group1.id, group2.id],
+            limit=150,
+            aggregate_kwargs=agg_kwargs,
+        )[0]
+        group1_score = results[0][1]
+        group2_score = results[1][1]
+        # check that a group with an event with a stacktrace has a higher weight than one without
+        assert group1_score < group2_score
 
     def test_sort_with_environment(self):
         for dt in [
