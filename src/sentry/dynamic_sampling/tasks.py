@@ -30,6 +30,7 @@ from sentry.dynamic_sampling.rules.helpers.sliding_window import (
     generate_sliding_window_cache_key,
     generate_sliding_window_org_cache_key,
     get_sliding_window_org_sample_rate,
+    get_sliding_window_sample_rate,
     get_sliding_window_size,
 )
 from sentry.dynamic_sampling.rules.utils import (
@@ -191,7 +192,6 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     A task that given a project relative transaction counts calculates rebalancing
     sampling rates based on the overall desired project sampling rate.
     """
-
     org_id = project_transactions["org_id"]
     project_id = project_transactions["project_id"]
     total_num_transactions = project_transactions.get("total_num_transactions")
@@ -200,8 +200,11 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
         DSElement(id=id, count=count) for id, count in project_transactions["transaction_counts"]
     ]
 
-    sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
-
+    sample_rate = get_sliding_window_sample_rate(
+        org_id=org_id,
+        project_id=project_id,
+        error_sample_rate_fallback=quotas.get_blended_sample_rate(organization_id=org_id),
+    )
     if sample_rate is None or sample_rate == 1.0:
         # no sampling => no rebalancing
         return
