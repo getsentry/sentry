@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import {browserHistory} from 'react-router';
 
-import {useLocation} from 'sentry/utils/useLocation';
+// import {useLocation} from 'sentry/utils/useLocation';
 
 function useUrlParams(
   defaultKey: string,
@@ -19,27 +19,26 @@ function useUrlParams(): {
   setParamValue: (key: string, value: string) => void;
 };
 function useUrlParams(defaultKey?: string, defaultValue?: string) {
-  const location = useLocation();
+  // const location = useLocation();
 
   const getParamValue = useCallback(
     (key: string) => {
+      const location = browserHistory.getCurrentLocation();
       return location.query[key] || defaultValue;
     },
-    [location, defaultValue]
+    [defaultValue]
   );
 
-  const setParamValue = useCallback(
-    (key: string, value: string) => {
-      browserHistory.push({
-        ...location,
-        query: {
-          ...location.query,
-          [key]: value,
-        },
-      });
-    },
-    [location]
-  );
+  const setParamValue = useCallback((key: string, value: string) => {
+    const location = browserHistory.getCurrentLocation();
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        [key]: value,
+      },
+    });
+  }, []);
 
   const getWithDefault = useCallback(
     () => getParamValue(defaultKey || ''),
