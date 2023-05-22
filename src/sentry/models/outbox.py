@@ -76,7 +76,7 @@ class OutboxWebhookPayload:
     path: str
     uri: str
     headers: Mapping[str, Any]
-    body: bytes
+    body: str
 
 
 class WebhookProviderIdentifier(IntEnum):
@@ -331,7 +331,7 @@ class ControlOutbox(OutboxBase):
             path=request.path,
             uri=request.get_raw_uri(),
             headers={k: v for k, v in request.headers.items()},
-            body=request.body,
+            body=request.body.decode(),
         )
 
     @classmethod
