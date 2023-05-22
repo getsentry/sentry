@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -134,8 +133,6 @@ def auto_transition_issues_regressed_to_ongoing(
             recent_regressed_history__gte=datetime.fromtimestamp(date_added_gte, pytz.UTC)
         )
 
-    logging.error(queryset.query)
-
     groups_with_regressed_history = list(queryset.order_by("recent_regressed_history")[:chunk_size])
 
     for group in groups_with_regressed_history:
@@ -149,7 +146,9 @@ def auto_transition_issues_regressed_to_ongoing(
         auto_transition_issues_regressed_to_ongoing.delay(
             project_id=project_id,
             date_added_lte=date_added_lte,
-            date_added_gte=groups_with_regressed_history[chunk_size - 1].date_added.timestamp(),
+            date_added_gte=groups_with_regressed_history[
+                chunk_size - 1
+            ].recent_regressed_history.timestamp(),
             chunk_size=chunk_size,
             expires=datetime.now(tz=pytz.UTC) + timedelta(hours=1),
         )
