@@ -52,4 +52,17 @@ describe('InboxReason', () => {
 
     expect(await screen.findByText('Affected 10 user(s)')).toBeInTheDocument();
   });
+
+  it('renders unignored with null reason details', () => {
+    render(
+      <InboxReason
+        inbox={{
+          ...inbox,
+          reason: GroupInboxReason.UNIGNORED,
+          reason_details: null,
+        }}
+      />
+    );
+    expect(screen.getByText('Unignored')).toBeInTheDocument();
+  });
 });
