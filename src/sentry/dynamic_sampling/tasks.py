@@ -282,6 +282,8 @@ def adjust_sample_rates(
         # We need the organization object for the feature flag.
         organization = Organization.objects.get_from_cache(id=org_id)
     except Organization.DoesNotExist:
+        # In case an org is not found, it might be that it has been deleted in the time between
+        # the query triggering this job and the actual execution of the job.
         organization = None
 
     # We get the sample rate either directly from quotas or from the new sliding window org mechanism.
