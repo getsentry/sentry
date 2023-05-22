@@ -49,7 +49,12 @@ class CheckMonitorsTest(TestCase):
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *"},
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
         )
         # Exepcted checkin was a full minute ago.
         monitor_environment = MonitorEnvironment.objects.create(
@@ -69,7 +74,14 @@ class CheckMonitorsTest(TestCase):
         # Because our checkin was a minute ago we'll have produced a missed checkin
         assert MonitorCheckIn.objects.filter(
             monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
-        ).exists()
+        )
+        missed_check = MonitorCheckIn.objects.get(
+            monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
+        )
+        assert missed_check.expected_time == (
+            monitor_environment.last_checkin + timedelta(minutes=1)
+        ).replace(second=0, microsecond=0)
+        assert missed_check.monitor_config == monitor.config
 
     def assert_state_does_not_change_for_state(self, state):
         org = self.create_organization()

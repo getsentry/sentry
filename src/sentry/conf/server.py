@@ -1012,13 +1012,13 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.schedule_auto_transition_new",
         # Run job once a day at 00:30
         "schedule": crontab(minute=30, hour="0"),
-        "options": {"expires": 10 * 60},
+        "options": {"expires": 3600},
     },
     "schedule_auto_transition_regressed": {
         "task": "sentry.tasks.schedule_auto_transition_regressed",
         # Run job once a day at 02:30
         "schedule": crontab(minute=30, hour="2"),
-        "options": {"expires": 10 * 60},
+        "options": {"expires": 3600},
     },
 }
 
@@ -1352,6 +1352,8 @@ SENTRY_FEATURES = {
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
     "organizations:mobile-cpu-memory-in-transactions": False,
+    # Enable new page filter UI
+    "organizations:new-page-filter": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -2322,7 +2324,8 @@ SENTRY_DEVSERVICES = {
             "volumes": {"kafka_6": {"bind": "/var/lib/kafka/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
-            or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS,
+            or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS
+            or settings.SENTRY_USE_PROFILING,
         }
     ),
     "clickhouse": lambda settings, options: (
@@ -2443,6 +2446,20 @@ SENTRY_DEVSERVICES = {
             "only_if": settings.SENTRY_USE_CDC_DEV,
             "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
             "volumes": {settings.CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
+        }
+    ),
+    "vroom": lambda settings, options: (
+        {
+            "image": "us.gcr.io/sentryio/vroom:nightly",
+            "pull": True,
+            "volumes": {"profiles": {"bind": "/var/lib/sentry-profiles"}},
+            "environment": {
+                "SENTRY_KAFKA_BROKERS_PROFILING": "{containers[kafka][name]}:9093",
+                "SENTRY_KAFKA_BROKERS_OCCURRENCES": "{containers[kafka][name]}:9093",
+                "SENTRY_SNUBA_HOST": "http://{containers[snuba][name]}:1218",
+            },
+            "ports": {"8085/tcp": 8085},
+            "only_if": settings.SENTRY_USE_PROFILING,
         }
     ),
 }
@@ -2896,7 +2913,7 @@ KAFKA_TOPICS = {
 
 
 # If True, consumers will create the topics if they don't exist
-KAFKA_CONSUMER_AUTO_CREATE_TOPICS = False
+KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True
 
 # For Jira, only approved apps can use the access_email_addresses scope
 # This scope allows Sentry to use the email endpoint (https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-rest-api-3-user-email-get)
@@ -3181,7 +3198,7 @@ ANOMALY_DETECTION_URL = "127.0.0.1:9091"
 ANOMALY_DETECTION_TIMEOUT = 30
 
 # This is the URL to the profiling service
-SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
+SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 
@@ -3243,9 +3260,6 @@ FAIL_ON_UNAVAILABLE_API_CALL = False
 DEV_HYBRID_CLOUD_RPC_SENDER = os.environ.get("SENTRY_DEV_HYBRID_CLOUD_RPC_SENDER", None)
 
 DISALLOWED_CUSTOMER_DOMAINS = []
-
-SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
-SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE = False
 
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000

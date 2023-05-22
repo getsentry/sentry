@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Dict, Mapping, Optional, Sequence, Tuple
 
 import sentry_sdk
 
@@ -25,6 +25,7 @@ from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     set_transactions_resampling_rates,
 )
 from sentry.dynamic_sampling.rules.helpers.sliding_window import (
+    SLIDING_WINDOW_CALCULATION_ERROR,
     extrapolate_monthly_volume,
     generate_sliding_window_cache_key,
     generate_sliding_window_org_cache_key,
@@ -64,26 +65,6 @@ MIN_REBALANCE_FACTOR = 0.1
 MAX_REBALANCE_FACTOR = 10
 
 logger = logging.getLogger(__name__)
-
-
-@instrumented_task(
-    name="sentry.dynamic_sampling.tasks.prioritise_projects",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=2 * 60 * 60,  # 2hours
-    time_limit=2 * 60 * 60 + 5,
-)  # type: ignore
-def prioritise_projects() -> None:
-    metrics.incr("sentry.tasks.dynamic_sampling.prioritise_projects.start", sample_rate=1.0)
-    with metrics.timer("sentry.tasks.dynamic_sampling.prioritise_projects", sample_rate=1.0):
-        for orgs in get_orgs_with_project_counts_without_modulo(
-            MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY
-        ):
-            for org_id, projects_with_tx_count_and_rates in fetch_projects_with_total_volumes(
-                org_ids=orgs
-            ).items():
-                process_projects_sample_rates.delay(org_id, projects_with_tx_count_and_rates)
 
 
 @instrumented_task(
@@ -154,97 +135,6 @@ def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
         # we are either at 1.0 no point creating an adjustment rule
         redis_client.delete(factor_key)
     return None
-
-
-@instrumented_task(
-    name="sentry.dynamic_sampling.process_projects_sample_rates",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=25 * 60,  # 25 mins
-    time_limit=2 * 60 + 5,
-)  # type: ignore
-def process_projects_sample_rates(
-    org_id: OrganizationId,
-    projects_with_tx_count_and_rates: Sequence[
-        Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
-    ],
-) -> None:
-    """
-    Takes a single org id and a list of project ids
-    """
-    with metrics.timer("sentry.tasks.dynamic_sampling.process_projects_sample_rates.core"):
-        adjust_sample_rates(org_id, projects_with_tx_count_and_rates)
-
-
-def adjust_sample_rates(
-    org_id: int,
-    projects_with_tx_count: Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]],
-) -> None:
-    """
-    This function apply model and adjust sample rate per project in org
-    and store it in DS redis cluster, then we invalidate project config
-    so relay can reread it, and we'll inject it from redis cache.
-    """
-    # We need the organization object for the feature flag.
-    organization = Organization.objects.get_from_cache(id=org_id)
-
-    # We get the sample rate either directly from quotas or from the new sliding window org mechanism.
-    if features.has("organizations:ds-sliding-window-org", organization, actor=None):
-        sample_rate = get_adjusted_base_rate_from_cache_or(org_id)
-    else:
-        sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
-
-    # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
-    if sample_rate is None:
-        return
-
-    projects_with_counts = {
-        project_id: count_per_root for project_id, count_per_root, _, _ in projects_with_tx_count
-    }
-    # Since we don't mind about strong consistency, we query a replica of the main database with the possibility of
-    # having out of date information. This is a trade-off we accept, since we work under the assumption that eventually
-    # the projects of an org will be replicated consistently across replicas, because no org should continue to create
-    # new projects.
-    all_projects_ids = (
-        Project.objects.using_replica()
-        .filter(organization=organization)
-        .values_list("id", flat=True)
-    )
-    for project_id in all_projects_ids:
-        # In case a specific project has not been considered in the count query, it means that no metrics were extracted
-        # for it, thus we consider it as having 0 transactions for the query's time window.
-        if project_id not in projects_with_counts:
-            projects_with_counts[project_id] = 0
-
-    projects = []
-    for project_id, count_per_root in projects_with_counts.items():
-        projects.append(
-            DSElement(
-                id=project_id,
-                count=count_per_root,
-            )
-        )
-
-    model = AdjustedModel(projects=projects)
-    ds_projects = model.adjust_sample_rates(sample_rate=sample_rate)
-
-    redis_client = get_redis_client_for_ds()
-    with redis_client.pipeline(transaction=False) as pipeline:
-        for ds_project in ds_projects:
-            cache_key = _generate_cache_key(org_id=org_id)
-            pipeline.hset(
-                cache_key,
-                ds_project.id,
-                ds_project.new_sample_rate,  # redis stores is as string
-            )
-            pipeline.pexpire(cache_key, CACHE_KEY_TTL)
-
-            schedule_invalidate_project_config(
-                project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
-            )
-
-        pipeline.execute()
 
 
 @instrumented_task(
@@ -339,6 +229,141 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
 
 
 @instrumented_task(
+    name="sentry.dynamic_sampling.tasks.prioritise_projects",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=2 * 60 * 60,  # 2hours
+    time_limit=2 * 60 * 60 + 5,
+)  # type: ignore
+def prioritise_projects() -> None:
+    metrics.incr("sentry.tasks.dynamic_sampling.prioritise_projects.start", sample_rate=1.0)
+    with metrics.timer("sentry.tasks.dynamic_sampling.prioritise_projects", sample_rate=1.0):
+        for orgs in get_orgs_with_project_counts_without_modulo(
+            MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY
+        ):
+            for org_id, projects_with_tx_count_and_rates in fetch_projects_with_total_volumes(
+                org_ids=orgs
+            ).items():
+                process_projects_sample_rates.delay(org_id, projects_with_tx_count_and_rates)
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.process_projects_sample_rates",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=25 * 60,  # 25 mins
+    time_limit=2 * 60 + 5,
+)  # type: ignore
+def process_projects_sample_rates(
+    org_id: OrganizationId,
+    projects_with_tx_count_and_rates: Sequence[
+        Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
+    ],
+) -> None:
+    """
+    Takes a single org id and a list of project ids
+    """
+    with metrics.timer("sentry.tasks.dynamic_sampling.process_projects_sample_rates.core"):
+        adjust_sample_rates(org_id, projects_with_tx_count_and_rates)
+
+
+def adjust_sample_rates(
+    org_id: int,
+    projects_with_tx_count: Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]],
+) -> None:
+    """
+    This function apply model and adjust sample rate per project in org
+    and store it in DS redis cluster, then we invalidate project config
+    so relay can reread it, and we'll inject it from redis cache.
+    """
+    # We need the organization object for the feature flag.
+    organization = Organization.objects.get_from_cache(id=org_id)
+
+    # We get the sample rate either directly from quotas or from the new sliding window org mechanism.
+    if features.has("organizations:ds-sliding-window-org", organization, actor=None):
+        sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_id)
+    else:
+        sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
+
+    # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
+    if sample_rate is None:
+        return
+
+    projects_with_counts = {
+        project_id: count_per_root for project_id, count_per_root, _, _ in projects_with_tx_count
+    }
+    # Since we don't mind about strong consistency, we query a replica of the main database with the possibility of
+    # having out of date information. This is a trade-off we accept, since we work under the assumption that eventually
+    # the projects of an org will be replicated consistently across replicas, because no org should continue to create
+    # new projects.
+    all_projects_ids = (
+        Project.objects.using_replica()
+        .filter(organization=organization)
+        .values_list("id", flat=True)
+    )
+    for project_id in all_projects_ids:
+        # In case a specific project has not been considered in the count query, it means that no metrics were extracted
+        # for it, thus we consider it as having 0 transactions for the query's time window.
+        if project_id not in projects_with_counts:
+            projects_with_counts[project_id] = 0
+
+    projects = []
+    for project_id, count_per_root in projects_with_counts.items():
+        projects.append(
+            DSElement(
+                id=project_id,
+                count=count_per_root,
+            )
+        )
+
+    model = AdjustedModel(projects=projects)
+    ds_projects = model.adjust_sample_rates(sample_rate=sample_rate)
+
+    redis_client = get_redis_client_for_ds()
+    with redis_client.pipeline(transaction=False) as pipeline:
+        for ds_project in ds_projects:
+            cache_key = _generate_cache_key(org_id=org_id)
+            pipeline.hset(
+                cache_key,
+                ds_project.id,
+                ds_project.new_sample_rate,  # redis stores is as string
+            )
+            pipeline.pexpire(cache_key, CACHE_KEY_TTL)
+
+            schedule_invalidate_project_config(
+                project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
+            )
+
+        pipeline.execute()
+
+
+def get_adjusted_base_rate_from_cache_or_compute(org_id: int) -> Optional[float]:
+    """
+    Gets the adjusted base sample rate from the sliding window directly from the Redis cache or tries to compute
+    it synchronously.
+    """
+    # We first try to get from cache the sliding window org sample rate.
+    sample_rate = get_sliding_window_org_sample_rate(org_id)
+    if sample_rate is not None:
+        return sample_rate
+
+    # In case we didn't find the value in cache, we want to compute it synchronously.
+    window_size = get_sliding_window_size()
+    # In case the size is None it means that we disabled the sliding window entirely.
+    if window_size is not None:
+        # We want to synchronously fetch the orgs and compute the sliding window org sample rate.
+        orgs_with_counts = fetch_orgs_with_total_root_transactions_count(
+            org_ids=[org_id], window_size=window_size
+        )
+        if (org_total_root_count := orgs_with_counts.get(org_id)) is not None:
+            return compute_sliding_window_sample_rate(org_id, org_total_root_count, window_size)
+
+    return None
+
+
+@instrumented_task(
     name="sentry.dynamic_sampling.tasks.sliding_window",
     queue="dynamicsampling",
     default_retry_delay=5,
@@ -366,45 +391,60 @@ def sliding_window() -> None:
                     )
 
 
+@instrumented_task(
+    name="sentry.dynamic_sampling.process_sliding_window",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=25 * 60,  # 25 mins
+    time_limit=2 * 60 + 5,
+)  # type: ignore
+def process_sliding_window(
+    org_id: OrganizationId,
+    projects_with_total_root_count: Sequence[Tuple[ProjectId, int]],
+    window_size: int,
+) -> None:
+    with metrics.timer(
+        "sentry.tasks.dynamic_sampling.process_sliding_window.adjust_base_sample_rate_per_project"
+    ):
+        adjust_base_sample_rate_per_project(org_id, projects_with_total_root_count, window_size)
+
+
 def adjust_base_sample_rate_per_project(
     org_id: int, projects_with_total_root_count: Sequence[Tuple[ProjectId, int]], window_size: int
 ) -> None:
     """
-    Adjusts the base sample rate per project by considering its volume and how it fits w.r.t. to the sampling tiers.
+    Adjusts the base sample rate per project by computing the sliding window sample rate, considering the total
+    volume of root transactions started from each project in the org.
     """
     projects_with_rebalanced_sample_rate = []
-    for project_id, total_root_count in projects_with_total_root_count:
-        extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
-        if extrapolated_volume is None:
-            with sentry_sdk.push_scope() as scope:
-                scope.set_extra("org_id", org_id)
-                scope.set_extra("project_id", org_id)
-                scope.set_extra("window_size", window_size)
-                sentry_sdk.capture_message("The volume of the current month can't be extrapolated.")
-            continue
 
-        sampling_tier = quotas.get_transaction_sampling_tier_for_volume(org_id, extrapolated_volume)
-        # In case the sampling tier cannot be determined, we want to log it and try to get it for the next project.
-        #
-        # There might be a situation in which the old key is set into Redis still and in that case, we prefer to keep it
-        # instead of deleting it. This behavior can be changed anytime, by just doing an "HDEL" on the failing key.
-        if sampling_tier is None:
-            # In case we want to track this error, we could use a sentinel value in the Redis hash to signal the
-            # rules generator that we want to fall back to a specific sample rate instead of 100%.
-            continue
+    for project_id, total_root_count in augment_with_empty_projects(
+        org_id, projects_with_total_root_count
+    ).items():
+        try:
+            # We want to compute the sliding window sample rate by considering a window of time.
+            # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
+            sample_rate = compute_sliding_window_sample_rate(org_id, total_root_count, window_size)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            sample_rate = None
 
-        # We unpack the tuple containing the sampling tier information in the form (volume, sample_rate). This is done
-        # under the assumption that the sampling_tier tuple contains both non-null values.
-        _, sample_rate = sampling_tier
-        projects_with_rebalanced_sample_rate.append((project_id, sample_rate))
-
-    # In case we failed to get the sampling tier of all the projects, we don't even want to start a Redis pipeline.
-    if len(projects_with_rebalanced_sample_rate) == 0:
-        return
+        # If the sample rate is None, we want to add a sentinel value into Redis, the goal being that when generating
+        # rules we can distinguish between:
+        # 1. Value in the cache
+        # 2. No value in the cache
+        # 3. Error happened
+        projects_with_rebalanced_sample_rate.append(
+            (
+                project_id,
+                str(sample_rate) if sample_rate is not None else SLIDING_WINDOW_CALCULATION_ERROR,
+            )
+        )
 
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:
-        for project_id, sample_rate in projects_with_rebalanced_sample_rate:
+        for project_id, sample_rate in projects_with_rebalanced_sample_rate:  # type:ignore
             cache_key = generate_sliding_window_cache_key(org_id=org_id)
             pipeline.hset(cache_key, project_id, sample_rate)
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
@@ -414,6 +454,33 @@ def adjust_base_sample_rate_per_project(
             )
 
         pipeline.execute()
+
+
+def augment_with_empty_projects(
+    org_id: int, projects_with_total_root_count: Sequence[Tuple[ProjectId, int]]
+) -> Mapping[ProjectId, int]:
+    """
+    Augments the incoming sequence of projects and counts with all the projects that are not in the list. This projects
+    will be added with count 0, to mark that they didn't have any metrics.
+    """
+    projects_with_counts = {
+        project_id: count_per_root for project_id, count_per_root in projects_with_total_root_count
+    }
+
+    # Since we don't mind about strong consistency, we query a replica of the main database with the possibility of
+    # having out of date information. This is a trade-off we accept, since we work under the assumption that eventually
+    # the projects of an org will be replicated consistently across replicas, because no org should continue to create
+    # new projects.
+    all_projects_ids = (
+        Project.objects.using_replica().filter(organization_id=org_id).values_list("id", flat=True)
+    )
+    for project_id in all_projects_ids:
+        # In case a specific project has not been considered in the count query, it means that no metrics were extracted
+        # for it, thus we consider it as having 0 transactions for the query's time window.
+        if project_id not in projects_with_counts:
+            projects_with_counts[project_id] = 0
+
+    return projects_with_counts
 
 
 @instrumented_task(
@@ -443,7 +510,7 @@ def adjust_base_sample_rate_per_org(org_id: int, total_root_count: int, window_s
     """
     Adjusts the base sample rate per org by considering its volume and how it fits w.r.t. to the sampling tiers.
     """
-    sample_rate = compute_sliding_window_org_sample_rate(org_id, total_root_count, window_size)
+    sample_rate = compute_sliding_window_sample_rate(org_id, total_root_count, window_size)
     # If the sample rate is None, we don't want to store a value into Redis.
     if sample_rate is None:
         return
@@ -456,36 +523,15 @@ def adjust_base_sample_rate_per_org(org_id: int, total_root_count: int, window_s
         pipeline.execute()
 
 
-def get_adjusted_base_rate_from_cache_or(org_id: int) -> Optional[float]:
-    """
-    Gets the adjusted base sample rate from the sliding window directly from the Redis cache or tries to compute
-    it synchronously.
-    """
-    # We first try to get from cache the sliding window org sample rate.
-    sample_rate = get_sliding_window_org_sample_rate(org_id)
-    if sample_rate is not None:
-        return sample_rate
-
-    # In case we didn't find the value in cache, we want to compute it synchronously.
-    window_size = get_sliding_window_size()
-    # In case the size is None it means that we disabled the sliding window entirely.
-    if window_size is not None:
-        # We want to synchronously fetch the orgs and compute the sliding window org sample rate.
-        orgs_with_counts = fetch_orgs_with_total_root_transactions_count(
-            org_ids=[org_id], window_size=window_size
-        )
-        if (org_total_root_count := orgs_with_counts.get(org_id)) is not None:
-            return compute_sliding_window_org_sample_rate(org_id, org_total_root_count, window_size)
-
-    return None
-
-
-def compute_sliding_window_org_sample_rate(
+def compute_sliding_window_sample_rate(
     org_id: int, total_root_count: int, window_size: int
 ) -> Optional[float]:
     """
-    Computes the actual sample rate for the sliding window given the org, its total root count and the size of the
+    Computes the actual sample rate for the sliding window given the total root count and the size of the
     window that was used for computing the root count.
+
+    The org_id is used only because it is required on the quotas side to determine whether dynamic sampling is
+    enabled in the first place for that project.
     """
     extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
     if extrapolated_volume is None:
@@ -493,15 +539,11 @@ def compute_sliding_window_org_sample_rate(
             scope.set_extra("org_id", org_id)
             scope.set_extra("window_size", window_size)
             sentry_sdk.capture_message("The volume of the current month can't be extrapolated.")
+
         return None
 
     sampling_tier = quotas.get_transaction_sampling_tier_for_volume(org_id, extrapolated_volume)
-    # In case the sampling tier cannot be determined, we want to log it and try to get it for the next project.
-    #
-    # There might be a situation in which the old key is set into Redis still and in that case, we prefer to keep it
-    # instead of deleting it. This behavior can be changed anytime, by just doing an "HDEL" on the failing key.
     if sampling_tier is None:
-        # In case we want to track this error, we could use a sentinel value in the Redis hash.
         return None
 
     # We unpack the tuple containing the sampling tier information in the form (volume, sample_rate). This is done
