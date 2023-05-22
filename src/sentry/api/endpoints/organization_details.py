@@ -9,7 +9,7 @@ from pytz import UTC
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
-from sentry import audit_log, roles
+from sentry import audit_log, features, roles
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
@@ -175,6 +175,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
+    providerKey = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    providerConfig = serializers.JSONField(required=False, allow_null=True)
 
     @memoize
     def _has_legacy_rate_limits(self):
@@ -186,6 +188,11 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def _has_sso_enabled(self):
         org = self.context["organization"]
         return AuthProvider.objects.filter(organization_id=org.id).exists()
+
+    @property
+    def has_api_auth_provider(self):
+        org = self.context["organization"]
+        return features.has("organizations:api-auth-provider", org)
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
@@ -268,6 +275,24 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             )
         return value
 
+    def validate_providerKey(self, value):
+        from sentry.auth import manager
+
+        if not self.has_api_auth_provider:
+            raise serializers.ValidationError(
+                "Organization does not have the api-auth-provider feature flag enabled"
+            )
+        if not manager.exists(value):
+            raise serializers.ValidationError("Invalid providerKey")
+        return value
+
+    def validate_providerConfig(self, value):
+        if not self.has_api_auth_provider:
+            raise serializers.ValidationError(
+                "Organization does not have the api-auth-provider feature flag enabled"
+            )
+        return value
+
     def validate(self, attrs):
         attrs = super().validate(attrs)
         if attrs.get("avatarType") == "upload":
@@ -278,6 +303,14 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 raise serializers.ValidationError(
                     {"avatarType": "Cannot set avatarType to upload without avatar"}
                 )
+        # Both providerKey and providerConfig are required to configure an auth provider
+        if self.has_api_auth_provider and (("providerKey" in attrs) != ("providerConfig" in attrs)):
+            raise serializers.ValidationError(
+                {
+                    "providerKey": "providerKey and providerConfig are required together to config an auth provider",
+                    "providerConfig": "providerKey and providerConfig are required together to config an auth provider",
+                }
+            )
         return attrs
 
     def save_trusted_relays(self, incoming, changed_data, organization):
@@ -387,6 +420,21 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.name = data["name"]
         if "slug" in data:
             org.slug = data["slug"]
+        if self.has_api_auth_provider and "providerKey" in data and "providerConfig" in data:
+            provider_key = data["providerKey"]
+            provider_config = data["providerConfig"]
+            with transaction.atomic():
+                auth_provider = AuthProvider.objects.update_or_create(
+                    organization_id=org.id,
+                    defaults={"provider": provider_key},
+                )[0]
+                provider = auth_provider.get_provider()
+                try:
+                    config = provider.build_config(provider_config)
+                    config["sentry-source"] = "api-organization-details"
+                except KeyError as err:
+                    raise KeyError(f"Invalid key {str(err)} in providerConfig")
+                auth_provider.update(config=config)
 
         org_tracked_field = {
             "name": org.name,
@@ -541,6 +589,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 return self.respond(
                     {"slug": ["An organization with this slug already exists."]},
                     status=status.HTTP_409_CONFLICT,
+                )
+            except KeyError as err:
+                return self.respond(
+                    {"providerConfig": [err.args[0]]},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             # Send outbox message to clean up mappings after organization
