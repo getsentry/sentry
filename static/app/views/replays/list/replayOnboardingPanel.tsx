@@ -10,7 +10,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
-import {canCreateProject} from 'sentry/components/projects/useProjectCreationAccess';
+import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import {Tooltip} from 'sentry/components/tooltip';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {IconInfo} from 'sentry/icons';
@@ -44,7 +44,7 @@ export default function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
   const organization = useOrganization();
-  const canCreateProjects = canCreateProject(organization);
+  const {canCreateProject} = useProjectCreationAccess(organization);
 
   const selectedProjects = projects.projects.filter(p =>
     pageFilters.selection.projects.includes(Number(p.id))
@@ -67,7 +67,7 @@ export default function ReplayOnboardingPanel() {
   // disable "setup" if the current selected pageFilters are not supported
   const primaryActionDisabled =
     primaryAction === 'create'
-      ? !canCreateProjects
+      ? !canCreateProject
       : allSelectedProjectsUnsupported && hasSelectedProjects;
 
   const breakpoints = preferences.collapsed

@@ -15,7 +15,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {canCreateProject} from 'sentry/components/projects/useProjectCreationAccess';
+import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -87,6 +87,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
     []
   );
 
+  const {canCreateProject} = useProjectCreationAccess(organization);
   if (loadingTeams) {
     return <LoadingIndicator />;
   }
@@ -94,8 +95,6 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
   if (error) {
     return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
-
-  const canCreateProjects = canCreateProject(organization);
   const canJoinTeam = organization.access.includes('team:read');
 
   const selectedTeams = getTeamParams(location ? location.query.team : '');
@@ -163,9 +162,9 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
             <Button
               size="sm"
               priority="primary"
-              disabled={!canCreateProjects}
+              disabled={!canCreateProject}
               title={
-                !canCreateProjects
+                !canCreateProject
                   ? t('You do not have permission to create projects')
                   : undefined
               }
