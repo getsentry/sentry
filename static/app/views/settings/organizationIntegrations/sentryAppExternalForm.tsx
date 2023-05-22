@@ -10,6 +10,7 @@ import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import {Field, FieldValue} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
+import {PlatformExternalIssue} from 'sentry/types';
 import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
 import withApi from 'sentry/utils/withApi';
 
@@ -51,7 +52,7 @@ type Props = {
   appName: string;
   config: SchemaFormConfig;
   element: 'issue-link' | 'alert-rule-action';
-  onSubmitSuccess: Function;
+  onSubmitSuccess: (issue: PlatformExternalIssue) => void;
   sentryAppInstallationUuid: string;
   /**
    * Additional form data to submit with the request
