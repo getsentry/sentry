@@ -254,7 +254,9 @@ export function initializeUrlState({
     project = newProject;
   }
 
-  const pinnedFilters = storedPageFilters?.pinnedFilters ?? new Set();
+  const pinnedFilters = organization.features.includes('new-page-filter')
+    ? new Set<PinnedPageFilter>(['projects', 'environments', 'datetime'])
+    : storedPageFilters?.pinnedFilters ?? new Set();
   PageFiltersStore.onInitializeUrlState(pageFilters, pinnedFilters, shouldPersist);
   updateDesyncedUrlState(router, shouldForceProject);
 
