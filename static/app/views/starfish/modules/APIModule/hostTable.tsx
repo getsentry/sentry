@@ -1,6 +1,7 @@
 import {ReactNode} from 'react';
 import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import groupBy from 'lodash/groupBy';
 import orderBy from 'lodash/orderBy';
@@ -15,15 +16,11 @@ import {Series} from 'sentry/types/echarts';
 import {getDuration} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
-import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {INTERNAL_API_REGEX} from 'sentry/views/starfish/modules/APIModule/constants';
+import {HOST} from 'sentry/views/starfish/utils/constants';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-import {
-  getEndpointDomainsEventView,
-  getEndpointDomainsQuery,
-  getHostListEventView,
-  getHostListQuery,
-} from './queries';
+import {getEndpointDomainsQuery, getHostListQuery} from './queries';
 
 type Props = {
   location: Location;
@@ -79,32 +76,31 @@ export default function HostTable({location, setDomainFilter}: Props) {
   const queryString = getHostListQuery({
     datetime: pageFilter.selection.datetime,
   });
-  const eventView = getHostListEventView({
-    datetime: pageFilter.selection.datetime,
-  });
   const aggregateQueryString = getEndpointDomainsQuery({
     datetime: pageFilter.selection.datetime,
   });
-  const aggregateEventView = getEndpointDomainsEventView({
-    datetime: pageFilter.selection.datetime,
-  });
 
-  const {isLoading: areHostsLoading, data: hostsData} = useSpansQuery({
-    eventView,
-    queryString,
+  const {isLoading: areHostsLoading, data: hostsData} = useQuery({
+    queryKey: ['query', pageFilter.selection.datetime],
+    queryFn: () => fetch(`${HOST}/?query=${queryString}`).then(res => res.json()),
+    retry: false,
+    refetchOnWindowFocus: false,
     initialData: [],
   });
 
-  const {isLoading: areHostAggregatesLoading, data: aggregateHostsData} = useSpansQuery({
-    eventView: aggregateEventView,
-    queryString: aggregateQueryString,
+  const {isLoading: areHostAggregatesLoading, data: aggregateHostsData} = useQuery({
+    queryKey: ['aggregateQuery', pageFilter.selection.datetime],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${aggregateQueryString}`).then(res => res.json()),
+    retry: false,
+    refetchOnWindowFocus: false,
     initialData: [],
   });
 
   const dataByHost = groupBy(hostsData, 'domain');
 
   // Filter out localhost and any IP addresses (probably an internal service)
-  const hosts = Object.keys(dataByHost).filter(host => !host.match(/\d\.\d|localhost/));
+  const hosts = Object.keys(dataByHost).filter(host => !host.match(INTERNAL_API_REGEX));
 
   const startDate = moment(orderBy(hostsData, 'interval', 'asc')[0]?.interval);
   const endDate = moment(orderBy(hostsData, 'interval', 'desc')[0]?.interval);

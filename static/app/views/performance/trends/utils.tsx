@@ -301,7 +301,7 @@ function getQueryInterval(location: Location, eventView: TrendView) {
     period: statsPeriod,
   };
 
-  const intervalFromSmoothing = getInterval(datetimeSelection, 'high');
+  const intervalFromSmoothing = getInterval(datetimeSelection, 'medium');
 
   return intervalFromQueryParam || intervalFromSmoothing;
 }
@@ -429,4 +429,10 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
     maxValue,
     smoothedResults,
   };
+}
+
+export function modifyTransactionNameTrendsQuery(trendView: TrendView) {
+  const query = new MutableSearch(trendView.query);
+  query.setFilterValues('tpm()', ['>0.01']);
+  trendView.query = query.formatString();
 }

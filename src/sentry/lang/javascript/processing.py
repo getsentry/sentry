@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Dict, Optional
 
 from sentry.lang.javascript.utils import (
     do_sourcemaps_processing_ab_test,
@@ -7,7 +7,7 @@ from sentry.lang.javascript.utils import (
 )
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
-from sentry.models import EventError
+from sentry.models import EventError, Project
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
@@ -141,21 +141,23 @@ def map_symbolicator_process_js_errors(errors):
     return mapped_errors
 
 
-def _handles_frame(frame):
+def _handles_frame(frame, data):
     if not frame:
         return False
 
-    # skip frames without an `abs_path`
-    if (abs_path := frame.get("abs_path")) is None:
+    # skip frames without an `abs_path` or line number
+    if not (abs_path := frame.get("abs_path")) or not frame.get("lineno"):
         return False
-    # skip "native" frames without a line
-    if abs_path in ("native", "[native code]") and frame.get("lineno", 0) == 0:
+    # skip "native" frames
+    if abs_path in ("native", "[native code]"):
+        return False
+    # skip builtin node modules
+    if data.get("platform") == "node" and not abs_path.startswith(("/", "app:", "webpack:")):
         return False
     return True
 
 
-def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
-    project = symbolicator.project
+def generate_scraping_config(project: Project) -> Dict[str, Any]:
     allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
     allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
     allow_scraping = allow_scraping_org_level and allow_scraping_project_level
@@ -170,11 +172,16 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             token_header = project.get_option("sentry:token_header") or "X-Sentry-Token"
             scraping_headers[token_header] = token
 
-    scraping_config = {
+    return {
         "enabled": allow_scraping,
         "headers": scraping_headers,
         "allowed_origins": allowed_origins,
     }
+
+
+def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
+    project = symbolicator.project
+    scraping_config = generate_scraping_config(project)
 
     modules = sourcemap_images_from_data(data)
 
@@ -184,7 +191,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             "frames": [
                 dict(frame)
                 for frame in sinfo.stacktrace.get("frames") or ()
-                if _handles_frame(frame)
+                if _handles_frame(frame, data)
             ],
         }
         for sinfo in stacktrace_infos
@@ -223,7 +230,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         new_frames = []
         new_raw_frames = []
         for sinfo_frame in sinfo.stacktrace["frames"]:
-            if not _handles_frame(sinfo_frame):
+            if not _handles_frame(sinfo_frame, data):
                 new_raw_frames.append(sinfo_frame)
                 new_frames.append(sinfo_frame)
                 continue

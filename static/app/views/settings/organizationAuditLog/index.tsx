@@ -72,7 +72,7 @@ function OrganizationAuditLog({location}: Props) {
       setState(prevState => ({
         ...prevState,
         entryList: data.rows,
-        eventTypes: data.options.sort(),
+        eventTypes: data.options,
         isLoading: false,
         entryListPageLinks: response?.getResponseHeader('Link') ?? null,
       }));

@@ -42,8 +42,8 @@ def schedule_auto_transition_new() -> None:
 @instrumented_task(
     name="sentry.tasks.auto_transition_issues_new_to_ongoing",
     queue="auto_transition_issue_states",
-    time_limit=1.25 * 5 * 60,
-    soft_time_limit=5 * 60,
+    time_limit=25 * 60,
+    soft_time_limit=20 * 60,
 )  # type: ignore
 def auto_transition_issues_new_to_ongoing(
     project_id: int,
@@ -109,8 +109,8 @@ def schedule_auto_transition_regressed() -> None:
 @instrumented_task(
     name="sentry.tasks.auto_transition_issues_regressed_to_ongoing",
     queue="auto_transition_issue_states",
-    time_limit=1.25 * 5 * 60,
-    soft_time_limit=5 * 60,
+    time_limit=25 * 60,
+    soft_time_limit=20 * 60,
 )  # type: ignore
 def auto_transition_issues_regressed_to_ongoing(
     project_id: int,

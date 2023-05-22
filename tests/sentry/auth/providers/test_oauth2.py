@@ -23,7 +23,7 @@ class DummyOAuth2Provider(OAuth2Provider):
         pass
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class OAuth2ProviderTest(TestCase):
     @cached_property
     def auth_provider(self):
