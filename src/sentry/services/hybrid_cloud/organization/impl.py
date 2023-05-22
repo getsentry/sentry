@@ -249,8 +249,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 organization_id=organization_id, user_id=user_id
             )
             org_member.remove_user()
-            org_member.save()
-            region_outbox = org_member.save_outbox_for_update()
+            region_outbox = org_member.save()
         if region_outbox:
             region_outbox.drain_shard(max_updates_to_drain=10)
         return serialize_member(org_member)

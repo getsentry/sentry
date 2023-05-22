@@ -21,7 +21,13 @@ import MonitorStats from './components/monitorStats';
 import MonitorOnboarding from './components/onboarding';
 import {Monitor} from './types';
 
+const DEFAULT_POLL_INTERVAL_MS = 5000;
+
 type Props = RouteComponentProps<{monitorSlug: string}, {}>;
+
+function hasLastCheckIn(monitor: Monitor) {
+  return monitor.environments.some(e => e.lastCheckIn);
+}
 
 function MonitorDetails({params, location}: Props) {
   const {selection} = usePageFilters();
@@ -38,7 +44,17 @@ function MonitorDetails({params, location}: Props) {
     {query: {...location.query, environment}},
   ] as const;
 
-  const {data: monitor} = useApiQuery<Monitor>(queryKey, {staleTime: 0});
+  const {data: monitor} = useApiQuery<Monitor>(queryKey, {
+    staleTime: 0,
+    // Refetches while we are waiting for the user to send their first check-in
+    refetchInterval: data => {
+      if (!data) {
+        return false;
+      }
+      const [monitorData] = data;
+      return hasLastCheckIn(monitorData) ? false : DEFAULT_POLL_INTERVAL_MS;
+    },
+  });
 
   function onUpdate(data: Monitor) {
     const updatedMonitor = {
@@ -59,7 +75,6 @@ function MonitorDetails({params, location}: Props) {
     );
   }
 
-  const hasLastCheckIn = monitor.environments.some(e => e.lastCheckIn);
   const envsSortedByLastCheck = monitor.environments.sort((a, b) =>
     a.lastCheckIn.localeCompare(b.lastCheckIn)
   );
@@ -74,7 +89,7 @@ function MonitorDetails({params, location}: Props) {
               <DatePageFilter alignDropdown="left" />
               <EnvironmentPageFilter />
             </StyledPageFilterBar>
-            {!hasLastCheckIn ? (
+            {!hasLastCheckIn(monitor) ? (
               <MonitorOnboarding orgId={organization.slug} monitor={monitor} />
             ) : (
               <Fragment>

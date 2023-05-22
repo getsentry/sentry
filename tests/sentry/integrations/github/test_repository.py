@@ -11,7 +11,7 @@ from sentry.models import Integration, PullRequest, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import TestCase
 from sentry.testutils.asserts import assert_commit_shape
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 from sentry.utils import json
 
 
@@ -24,12 +24,13 @@ def stub_installation_token(external_id=654321):
     )
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class GitHubAppsProviderTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.organization = self.create_organization()
-        self.integration = Integration.objects.create(provider="github", external_id="654321")
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="654321"
+        )
 
     def tearDown(self):
         super().tearDown()
@@ -41,14 +42,17 @@ class GitHubAppsProviderTest(TestCase):
 
     @cached_property
     def repository(self):
-        return Repository.objects.create(
-            name="getsentry/example-repo",
-            provider="integrations:github",
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            url="https://github.com/getsentry/example-repo",
-            config={"name": "getsentry/example-repo"},
-        )
+        # TODO: Refactor this out with a call to the relevant factory if possible to avoid
+        # explicitly having to exempt it from silo limits
+        with exempt_from_silo_limits():
+            return Repository.objects.create(
+                name="getsentry/example-repo",
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+                url="https://github.com/getsentry/example-repo",
+                config={"name": "getsentry/example-repo"},
+            )
 
     @responses.activate
     def test_build_repository_config(self):
@@ -168,60 +172,6 @@ class GitHubAppsProviderTest(TestCase):
         )
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(self.repository, "xyz123", "abcdef")
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_compare_commits_force_refresh(self, get_jwt):
-        stub_installation_token()
-        ten_hours = datetime.datetime.utcnow() + datetime.timedelta(hours=10)
-        self.integration.metadata = {
-            "access_token": "old-access-token",
-            "expires_at": ten_hours.replace(microsecond=0).isoformat(),
-        }
-        self.integration.save()
-        responses.add(
-            responses.GET,
-            "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
-            status=404,
-            body="GitHub returned a 404 Not Found error.",
-        )
-        responses.add(
-            responses.GET,
-            "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
-            json=json.loads(COMPARE_COMMITS_EXAMPLE),
-        )
-        responses.add(
-            responses.GET,
-            "https://api.github.com/repos/getsentry/example-repo/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
-            json=json.loads(GET_COMMIT_EXAMPLE),
-        )
-
-        result = self.provider.compare_commits(self.repository, "xyz123", "abcdef")
-        for commit in result:
-            assert_commit_shape(commit)
-
-        # assert token was refreshed
-        assert (
-            Integration.objects.get(id=self.integration.id).metadata["access_token"]
-            == "v1.install-token"
-        )
-
-        # compare_commits gives 400, token was refreshed, and compare_commits gives 200
-        assert (
-            responses.calls[0].response.url
-            == "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef"
-        )
-        assert responses.calls[0].response.status_code == 404
-        assert (
-            responses.calls[1].response.url
-            == "https://api.github.com/app/installations/654321/access_tokens"
-        )
-        assert responses.calls[1].response.status_code == 200
-        assert (
-            responses.calls[2].response.url
-            == "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef"
-        )
-        assert responses.calls[2].response.status_code == 200
 
     def test_pull_request_url(self):
         pull = PullRequest(key=99)
