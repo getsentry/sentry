@@ -178,7 +178,7 @@ TEST_CASES_READONLY = [
         "manager",
         FLAG_PRIORITIZE_DISK,
         True,
-        NotWritableReason.NOT_WRITABLE,
+        NotWritableReason.OPTION_ON_DISK,
         id="Disk prioritized. Set. Non writable",
     ),
 ]

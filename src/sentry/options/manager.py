@@ -41,6 +41,7 @@ def required_flag_to_write(channel: UpdateChannel) -> int:
 
 
 class NotWritableReason(Enum):
+    OPTION_ON_DISK = "option_on_disk"
     READONLY_DEFINITION = "readonly_definition"
     NOT_WRITABLE = "not_writable"
     DRIFTED = "drifted"
@@ -143,17 +144,6 @@ class OptionsManager:
         >>> from sentry import options
         >>> options.set('option', 'value')
         """
-
-        self.__assert_writable(key)
-        opt = self.lookup_key(key)
-        if coerce:
-            value = opt.type(value)
-        elif not opt.type.test(value):
-            raise TypeError(f"got {_type(value)!r}, expected {opt.type!r}")
-
-        return self.store.set(opt, value, channel=channel)
-
-    def __assert_writable(self, key: str) -> None:
         opt = self.lookup_key(key)
         # If an option isn't able to exist in the store, we can't set it at runtime
         assert not (opt.flags & FLAG_NOSTORE), "%r cannot be changed at runtime" % key
@@ -163,6 +153,13 @@ class OptionsManager:
         assert not (opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key)), (
             "%r cannot be changed at runtime because it is configured on disk" % key
         )
+
+        if coerce:
+            value = opt.type(value)
+        elif not opt.type.test(value):
+            raise TypeError(f"got {_type(value)!r}, expected {opt.type!r}")
+
+        return self.store.set(opt, value, channel=channel)
 
     def lookup_key(self, key):
         try:
@@ -410,16 +407,21 @@ class OptionsManager:
         opt = self.lookup_key(key)
         return self.store.get_last_update_channel(opt)
 
+    def has_changed(self, key: str, value, channel: UpdateChannel) -> bool:
+        stored_value = self.get(key)
+        last_updater = self.get_last_update_channel(key)
+
+        return value != stored_value or channel != last_updater
+
     def can_update(self, key: str, value, channel: UpdateChannel) -> Optional[NotWritableReason]:
         # TODO: embed this in the `set` method
-
-        try:
-            self.__assert_writable(key)
-        except AssertionError:
-            return NotWritableReason.NOT_WRITABLE
-
         required_flag = required_flag_to_write(channel)
         opt = self.lookup_key(key)
+        if opt.flags & (FLAG_NOSTORE | FLAG_IMMUTABLE):
+            return NotWritableReason.NOT_WRITABLE
+        if opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key):
+            return NotWritableReason.OPTION_ON_DISK
+
         if required_flag and not (opt.flags & required_flag):
             return NotWritableReason.READONLY_DEFINITION
 
