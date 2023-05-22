@@ -367,9 +367,11 @@ function useFetchGroupDetails({
   const group = groupData ?? null;
 
   useEffect(() => {
-    if (defined(groupReleaseData) && defined(group)) {
+    if (defined(group)) {
       GroupStore.loadInitialData([group]);
-      GroupStore.onPopulateReleases(groupId, groupReleaseData);
+      if (defined(groupReleaseData)) {
+        GroupStore.onPopulateReleases(groupId, groupReleaseData);
+      }
     }
   }, [groupReleaseData, groupId, group]);
 
