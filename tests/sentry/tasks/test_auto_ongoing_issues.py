@@ -182,7 +182,7 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
             project=project,
             status=GroupStatus.UNRESOLVED,
             substatus=GroupSubStatus.REGRESSED,
-            first_seen=now - timedelta(days=14, hours=1),
+            first_seen=now - timedelta(days=3, hours=1),
         )
 
         with self.tasks():

@@ -82,7 +82,7 @@ def auto_transition_issues_new_to_ongoing(
 @monitor(monitor_slug="schedule_auto_transition_regressed")
 def schedule_auto_transition_regressed() -> None:
     now = datetime.now(tz=pytz.UTC)
-    fourteen_days_past = now - timedelta(days=14)
+    three_days_past = now - timedelta(days=3)
 
     for org in RangeQuerySetWrapper(Organization.objects.filter(status=OrganizationStatus.ACTIVE)):
         if features.has("organizations:issue-states-auto-transition-regressed-ongoing", org):
@@ -91,7 +91,7 @@ def schedule_auto_transition_regressed() -> None:
             ):
                 auto_transition_issues_regressed_to_ongoing.delay(
                     project_id=project_id,
-                    first_seen_lte=int(fourteen_days_past.timestamp()),
+                    first_seen_lte=int(three_days_past.timestamp()),
                     expires=now + timedelta(hours=1),
                 )
 
