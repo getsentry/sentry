@@ -1,3 +1,6 @@
+import random
+import string
+
 from django.db import IntegrityError, transaction
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -19,6 +22,13 @@ from sentry.signals import project_created, team_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 CONFLICTING_TEAM_SLUG_ERROR = "A team with this slug already exists."
+MISSING_PERMISSION_ERROR_STRING = "You do not have permission to join a new team as a Team Admin."
+
+
+def generate_three_letter_string():
+    letters = string.ascii_lowercase
+    return "".join(random.choice(letters) for _ in range(3))
+
 
 # This endpoint is intented to be available to all members of an
 # organization so we include "project:read" in the POST scopes.
@@ -44,8 +54,8 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
 
         Create a new team where the user is set as Team Admin. The
         name+slug of the team is automatically set as 'default-team-[username]'.
-        If this is taken, a suffix is added as needed (eg: ...-1, ...-2).
-        Then create a new project bound to this team
+        If this is taken, a random three letter suffix is added as needed
+        (eg: ...-gnm, ...-zls). Then create a new project bound to this team
 
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
@@ -60,7 +70,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             raise ValidationError(serializer.errors)
         if not self.should_add_creator_to_team(request):
             raise ValidationError(
-                {"detail": "You do not have permission to join a new team as a Team Admin"},
+                {"detail": MISSING_PERMISSION_ERROR_STRING},
             )
 
         result = serializer.validated_data
@@ -68,18 +78,14 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
         if not features.has("organizations:team-roles", organization) or not features.has(
             "organizations:team-project-creation-all", organization
         ):
-            raise ResourceDoesNotExist(
-                detail="You do not have permission to join a new team as a team admin"
-            )
+            raise ResourceDoesNotExist(detail=MISSING_PERMISSION_ERROR_STRING)
 
         default_team_slug = f"default-team-{request.user.username}"
         suffixed_team_slug = default_team_slug
 
         # add suffix to default team name until name is available
-        counter = 1
         while Team.objects.filter(organization=organization, slug=suffixed_team_slug).exists():
-            suffixed_team_slug = f"{default_team_slug}-{counter}"
-            counter += 1
+            suffixed_team_slug = f"{default_team_slug}-{generate_three_letter_string()}"
         default_team_slug = suffixed_team_slug
 
         try:

@@ -1,3 +1,4 @@
+import re
 from functools import cached_property
 from unittest.mock import patch
 
@@ -25,11 +26,14 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.t1 = f"default-team-{self.user}"
-        self.t2 = f"{self.t1}-1"
 
     @cached_property
     def path(self):
         return reverse(self.endpoint, args=[self.organization.slug])
+
+    def validate_team_with_suffix(self, team: Team):
+        pattern = rf"^{self.t1}-[a-z]{{3}}$"
+        return bool(re.match(pattern, team.slug)) and bool(re.match(pattern, team.name))
 
     def test_missing_permission(self):
         user = self.create_user()
@@ -54,21 +58,21 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
     def test_not_authenticated(self, mock_add_creator):
         response = self.get_error_response(self.organization.slug, name=self.p1, status_code=400)
         assert response.data == {
-            "detail": "You do not have permission to join a new team as a Team Admin"
+            "detail": "You do not have permission to join a new team as a Team Admin."
         }
         mock_add_creator.assert_called_once()
 
     def test_missing_team_roles_flag(self):
         response = self.get_error_response(self.organization.slug, name=self.p1, status_code=404)
         assert response.data == {
-            "detail": "You do not have permission to join a new team as a team admin"
+            "detail": "You do not have permission to join a new team as a Team Admin."
         }
 
     @with_feature("organizations:team-roles")
     def test_missing_project_creation_all_flag(self):
         response = self.get_error_response(self.organization.slug, name=self.p1, status_code=404)
         assert response.data == {
-            "detail": "You do not have permission to join a new team as a team admin"
+            "detail": "You do not have permission to join a new team as a Team Admin."
         }
 
     @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
@@ -122,7 +126,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
             team1, team2 = teams[1], teams[0]
 
         assert team1.name == team1.slug == self.t1
-        assert team2.name == team2.slug == self.t2
+        assert self.validate_team_with_suffix(team2)
 
         proj1 = Project.objects.get(id=resp1.data["id"])
         proj2 = Project.objects.get(id=resp2.data["id"])
@@ -143,7 +147,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
             team1, team2 = teams[1], teams[0]
 
         assert team1.name == team1.slug == self.t1
-        assert team2.name == team2.slug == self.t2
+        assert self.validate_team_with_suffix(team2)
 
         proj1 = Project.objects.get(id=resp1.data["id"])
         proj2 = Project.objects.get(id=resp2.data["id"])
