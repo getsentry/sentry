@@ -585,7 +585,7 @@ def compute_sliding_window_sample_rate(
 
 def log_extrapolated_monthly_volume(
     org_id: int, project_id: Optional[int], volume: int, extrapolated_volume: int, window_size: int
-):
+) -> None:
     extra = {
         "org_id": org_id,
         "volume": volume,
