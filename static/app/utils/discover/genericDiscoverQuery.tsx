@@ -77,6 +77,7 @@ type BaseDiscoverQueryProps = {
    * passed, but cursor will be ignored.
    */
   noPagination?: boolean;
+  options?: Omit<Parameters<typeof useQuery>[2], 'initialData'>;
   /**
    * A container for query batching data and functions.
    */
