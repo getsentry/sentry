@@ -1346,7 +1346,6 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         group = event.group
-        snooze = GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(hours=1))
 
         # Check for has_reappeared=False if is_new=True
         self.call_post_process_group(
@@ -1362,6 +1361,11 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
 
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        group.status = GroupStatus.IGNORED
+        group.substatus = GroupSubStatus.UNTIL_CONDITION_MET
+        group.save(update_fields=["status", "substatus"])
+        snooze = GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(hours=1))
+
         # Check for has_reappeared=True if is_new=False
         self.call_post_process_group(
             is_new=False,
@@ -1405,7 +1409,10 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
             )
             group = event.group
-            group.update(times_seen=50)
+            group.times_seen = 50
+            group.status = GroupStatus.IGNORED
+            group.substatus = GroupSubStatus.UNTIL_CONDITION_MET
+            group.save(update_fields=["times_seen", "status", "substatus"])
             snooze = GroupSnooze.objects.create(group=group, count=100, state={"times_seen": 0})
 
             self.call_post_process_group(
@@ -1429,6 +1436,8 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
     def test_maintains_valid_snooze(self, mock_processor):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ONGOING
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now() + timedelta(hours=1))
 
         self.call_post_process_group(
@@ -1441,6 +1450,9 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
 
         assert GroupSnooze.objects.filter(id=snooze.id).exists()
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.NEW
 
     @with_feature("organizations:escalating-issues")
     @patch("sentry.issues.escalating.is_escalating", return_value=(True, 0))
