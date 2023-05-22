@@ -5,7 +5,6 @@ from sentry.options import (
     FLAG_ALLOW_EMPTY,
     FLAG_AUTOMATOR_MODIFIABLE,
     FLAG_IMMUTABLE,
-    FLAG_MODIFIABLE_BOOL,
     FLAG_MODIFIABLE_RATE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
@@ -1184,20 +1183,6 @@ register(
     default=1000000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # 1MB
-
-# System-wide option for sending occurrences to the issues platform
-register(
-    "performance.issues.send_to_issues_platform",
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# System-wide option for performance issue creation through issues platform
-register(
-    "performance.issues.create_issues_through_platform",
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Dynamic Sampling system wide options
 # Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases
