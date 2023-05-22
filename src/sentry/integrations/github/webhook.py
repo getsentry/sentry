@@ -254,9 +254,13 @@ class PushEventWebhook(Webhook):
                                 identity_user = None
                                 # TODO(hybrid-cloud): Combine into a single RPC call if possible
                                 identity = identity_service.get_identity(
-                                    identity_ext_id=gh_user["id"],
-                                    provider_type=self.provider,
-                                    provider_ext_id=self.get_idp_external_id(integration, host),
+                                    filter={
+                                        "identity_ext_id": gh_user["id"],
+                                        "provider_type": self.provider,
+                                        "provider_ext_id": self.get_idp_external_id(
+                                            integration, host
+                                        ),
+                                    }
                                 )
                                 if identity is not None:
                                     identity_user = user_service.get_user(user_id=identity.user_id)
@@ -388,9 +392,11 @@ class PullRequestEventWebhook(Webhook):
         except CommitAuthor.DoesNotExist:
             identity_user = None
             identity = identity_service.get_identity(
-                identity_ext_id=user["id"],
-                provider_type=self.provider,
-                provider_ext_id=self.get_idp_external_id(integration, host),
+                filter={
+                    "identity_ext_id": user["id"],
+                    "provider_type": self.provider,
+                    "provider_ext_id": self.get_idp_external_id(integration, host),
+                }
             )
             if identity is not None:
                 identity_user = user_service.get_user(user_id=identity.user_id)
