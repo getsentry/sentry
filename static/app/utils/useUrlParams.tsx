@@ -1,8 +1,6 @@
 import {useCallback} from 'react';
 import {browserHistory} from 'react-router';
 
-// import {useLocation} from 'sentry/utils/useLocation';
-
 function useUrlParams(
   defaultKey: string,
   defaultValue: string
@@ -19,8 +17,6 @@ function useUrlParams(): {
   setParamValue: (key: string, value: string) => void;
 };
 function useUrlParams(defaultKey?: string, defaultValue?: string) {
-  // const location = useLocation();
-
   const getParamValue = useCallback(
     (key: string) => {
       const location = browserHistory.getCurrentLocation();

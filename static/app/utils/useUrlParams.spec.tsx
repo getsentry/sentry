@@ -16,7 +16,6 @@ type Query = {limit: string; page: string};
 
 describe('useUrlParams', () => {
   beforeEach(() => {
-    // mockBrowserHistoryPush.mockReset();
     mockGetCurrentLocation.mockReturnValue({
       query: {
         page: '3',
