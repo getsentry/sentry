@@ -298,7 +298,7 @@ function ChangedTransactions(props: Props) {
           <TransactionsListContainer data-test-id="changed-transactions">
             <TrendsTransactionPanel>
               <StyledHeaderTitleLegend>
-                {chartTitle}
+                {chartTitle} {!withBreakpoint && 'Indexed'}
                 <QuestionTooltip size="sm" position="top" title={titleTooltipContent} />
               </StyledHeaderTitleLegend>
               {isLoading ? (
@@ -448,26 +448,35 @@ function TrendsListItem(props: TrendsListItemProps) {
   return (
     <ListItemContainer data-test-id={'trends-list-item-' + trendChangeType}>
       <ItemRadioContainer color={color}>
-        <Tooltip
-          title={
-            <TooltipContent>
-              <span>{t('Total Events')}</span>
-              <span>
-                <Count value={transaction.count_range_1} />
-                <StyledIconArrow direction="right" size="xs" />
-                <Count value={transaction.count_range_2} />
-              </span>
-            </TooltipContent>
-          }
-          disableForVisualTest // Disabled tooltip in snapshots because of overlap order issues.
-        >
+        {transaction.count_range_1 && transaction.count_range_2 ? (
+          <Tooltip
+            title={
+              <TooltipContent>
+                <span>{t('Total Events')}</span>
+                <span>
+                  <Count value={transaction.count_range_1} />
+                  <StyledIconArrow direction="right" size="xs" />
+                  <Count value={transaction.count_range_2} />
+                </span>
+              </TooltipContent>
+            }
+            disableForVisualTest // Disabled tooltip in snapshots because of overlap order issues.
+          >
+            <RadioLineItem index={index} role="radio">
+              <Radio
+                checked={isSelected}
+                onChange={() => handleSelectTransaction(transaction)}
+              />
+            </RadioLineItem>
+          </Tooltip>
+        ) : (
           <RadioLineItem index={index} role="radio">
             <Radio
               checked={isSelected}
               onChange={() => handleSelectTransaction(transaction)}
             />
           </RadioLineItem>
-        </Tooltip>
+        )}
       </ItemRadioContainer>
       <TransactionSummaryLink {...props} />
       <ItemTransactionPercentage>
@@ -489,36 +498,40 @@ function TrendsListItem(props: TrendsListItemProps) {
           />
         }
       >
-        <MenuItem
-          onClick={() =>
-            handleFilterDuration(
-              location,
-              organization,
-              longestPeriodValue,
-              FilterSymbols.LESS_THAN_EQUALS,
-              trendChangeType,
-              projects,
-              trendView.project
-            )
-          }
-        >
-          <MenuAction>{t('Show \u2264 %s', longestDuration)}</MenuAction>
-        </MenuItem>
-        <MenuItem
-          onClick={() =>
-            handleFilterDuration(
-              location,
-              organization,
-              longestPeriodValue,
-              FilterSymbols.GREATER_THAN_EQUALS,
-              trendChangeType,
-              projects,
-              trendView.project
-            )
-          }
-        >
-          <MenuAction>{t('Show \u2265 %s', longestDuration)}</MenuAction>
-        </MenuItem>
+        {!organization.features.includes('performance-new-trends') && (
+          <Fragment>
+            <MenuItem
+              onClick={() =>
+                handleFilterDuration(
+                  location,
+                  organization,
+                  longestPeriodValue,
+                  FilterSymbols.LESS_THAN_EQUALS,
+                  trendChangeType,
+                  projects,
+                  trendView.project
+                )
+              }
+            >
+              <MenuAction>{t('Show \u2264 %s', longestDuration)}</MenuAction>
+            </MenuItem>
+            <MenuItem
+              onClick={() =>
+                handleFilterDuration(
+                  location,
+                  organization,
+                  longestPeriodValue,
+                  FilterSymbols.GREATER_THAN_EQUALS,
+                  trendChangeType,
+                  projects,
+                  trendView.project
+                )
+              }
+            >
+              <MenuAction>{t('Show \u2265 %s', longestDuration)}</MenuAction>
+            </MenuItem>
+          </Fragment>
+        )}
         <MenuItem
           onClick={() => handleFilterTransaction(location, transaction.transaction)}
         >

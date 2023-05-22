@@ -234,7 +234,6 @@ const StackTracePreviewWrapper = styled('div')`
   .traceback {
     margin-bottom: 0;
     border: 0;
-    box-shadow: none;
   }
 `;
 

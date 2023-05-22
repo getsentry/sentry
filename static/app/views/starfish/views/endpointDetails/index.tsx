@@ -26,7 +26,7 @@ import {
   getEndpointDetailTableEventView,
   getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
-import {useQueryTransactionByTPMAndP75} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
@@ -132,7 +132,10 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
     );
 
   const {isLoading: isP75GraphLoading, data: transactionGraphData} =
-    useQueryTransactionByTPMAndP75(tableData.map(d => d.transaction).splice(0, 5), 24);
+    useQueryTransactionByTPMAndDuration(
+      tableData.map(d => d.transaction).splice(0, 5),
+      24
+    );
 
   const tpmTransactionSeries = queryToSeries(
     transactionGraphData,

@@ -62,6 +62,7 @@ from sentry.search.events.datasets.profile_functions import ProfileFunctionsData
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.datasets.spans_indexed import SpansIndexedDatasetConfig
+from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfig
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
@@ -93,6 +94,8 @@ class BaseQueryBuilder:
 
 class QueryBuilder(BaseQueryBuilder):
     """Builds a discover query"""
+
+    spans_metrics_builder = False
 
     def _dataclass_params(
         self, snuba_params: Optional[SnubaParams], params: ParamsType
@@ -339,7 +342,9 @@ class QueryBuilder(BaseQueryBuilder):
         elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
         elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
-            if self.use_metrics_layer:
+            if self.spans_metrics_builder:
+                self.config = SpansMetricsDatasetConfig(self)
+            elif self.use_metrics_layer:
                 self.config = MetricsLayerDatasetConfig(self)
             else:
                 self.config = MetricsDatasetConfig(self)

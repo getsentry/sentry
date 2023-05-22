@@ -329,7 +329,8 @@ function TableView(props: TableViewProps) {
             dataRow,
             organization,
             projects,
-            eventView
+            eventView,
+            location
           )}
         >
           {cell}
@@ -487,7 +488,8 @@ function TableView(props: TableViewProps) {
             dataRow,
             organization,
             projects,
-            nextView
+            nextView,
+            location
           );
 
           browserHistory.push(normalizeUrl(target));

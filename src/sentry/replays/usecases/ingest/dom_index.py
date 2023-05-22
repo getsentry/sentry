@@ -140,7 +140,8 @@ def get_user_actions(
             if category == "ui.slowClickDetected":
                 payload["project_id"] = project_id
                 payload["replay_id"] = replay_id
-                logger.info("Slow click detected", extra=payload)
+                payload["dom_tree"] = payload.pop("message")
+                logger.info("sentry.replays.slow_click", extra=payload)
             elif category == "ui.click":
                 node = payload.get("data", {}).get("node")
                 if node is None:
@@ -204,6 +205,17 @@ def get_user_actions(
             log["project_id"] = project_id
             log["replay_id"] = replay_id
             logger.info("SDK Options:", extra=log)
+        # log large dom mutation breadcrumb events 1/100 times
+        if (
+            event.get("type") == 5
+            and event.get("data", {}).get("tag") == "breadcrumb"
+            and event.get("data", {}).get("payload", {}).get("category") == "replay.mutations"
+            and random.randint(0, 99) < 1
+        ):
+            log = event["data"].get("payload", {}).copy()
+            log["project_id"] = project_id
+            log["replay_id"] = replay_id
+            logger.info("Large DOM Mutations List:", extra=log)
 
     return result
 

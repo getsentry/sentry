@@ -1,5 +1,6 @@
 import logging
 from enum import Enum
+from typing import Optional
 
 import jsonschema
 from django.db import models
@@ -11,7 +12,6 @@ from sentry.models import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import inbox_in, inbox_out
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
 
 INBOX_REASON_DETAILS = {
     "type": ["object", "null"],
@@ -87,14 +87,7 @@ def add_group_to_inbox(group, reason, reason_details=None):
         },
     )
 
-    if reason == GroupInboxReason.REGRESSION:
-        group.substatus = GroupSubStatus.REGRESSED
-        group.save(update_fields=["substatus"])
-
-    if reason is GroupInboxReason.NEW:
-        group.substatus = GroupSubStatus.NEW
-        group.save(update_fields=["substatus"])
-    else:
+    if reason is not GroupInboxReason.NEW:
         # Ignore new issues, too many events
         inbox_in.send_robust(
             project=group.project,
@@ -153,3 +146,14 @@ def get_inbox_details(group_list):
     }
 
     return inbox_stats
+
+
+def get_inbox_reason_text(group_inbox: Optional[GroupInbox]):
+    reason = GroupInboxReason(group_inbox.reason) if group_inbox else None
+    if reason == GroupInboxReason.NEW:
+        return "New issue"
+    elif reason == GroupInboxReason.REGRESSION:
+        return "Regressed issue"
+    elif reason == GroupInboxReason.ONGOING:
+        return "Ongoing issue"
+    return "New Alert"

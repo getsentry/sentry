@@ -75,6 +75,27 @@ describe('TeamMembers', function () {
     expect(createMock).toHaveBeenCalled();
   });
 
+  it('can add multiple members with one click on dropdown', async function () {
+    const org = TestStubs.Organization({access: [], openMembership: true});
+    render(
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />
+    );
+
+    await userEvent.click(
+      (
+        await screen.findAllByRole('button', {name: 'Add Member'})
+      )[0]
+    );
+
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+    expect(createMock).toHaveBeenCalled();
+    expect(screen.getAllByTestId('add-member-menu')[0]).toBeVisible();
+  });
+
   it('can add member to team with team:admin permission', async function () {
     const org = TestStubs.Organization({access: ['team:admin'], openMembership: false});
     render(
