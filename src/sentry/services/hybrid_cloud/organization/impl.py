@@ -93,18 +93,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return serialize_member(member)
 
-    def check_membership_by_invite_token(
-        self, organization_id: int, member_id: int, invite_token: str
-    ) -> Optional[RpcOrganizationMember]:
-        try:
-            member = OrganizationMember.objects.get(
-                id=member_id, organization_id=organization_id, token=invite_token
-            )
-        except OrganizationMember.DoesNotExist:
-            return None
-
-        return serialize_member(member)
-
     def get_invite(
         self,
         *,
@@ -148,16 +136,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
             member=serialize_member(member),
             invite_organization_member_id=organization_member_id,
         )
-
-    def get_organization_member(
-        self, *, organization_member_id: int
-    ) -> Optional[RpcOrganizationMember]:
-        try:
-            member = OrganizationMember.objects.get(id=organization_member_id)
-        except OrganizationMember.DoesNotExist:
-            return None
-
-        return serialize_member(member)
 
     def delete_organization_member(
         self, *, organization_id: int, organization_member_id: int
