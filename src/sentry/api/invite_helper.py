@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import dataclasses
 from logging import Logger
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 from django.utils.crypto import constant_time_compare
 from rest_framework.request import Request
@@ -33,12 +34,19 @@ def remove_invite_details_from_session(request: Request) -> None:
     request.session.pop("invite_organization_id", None)
 
 
-def get_invite_details(request: Request) -> Tuple[Optional[str], Optional[int], Optional[int]]:
+@dataclasses.dataclass
+class InviteDetails:
+    invite_token: Optional[str]
+    invite_member_id: Optional[int]
+    invite_organization_id: Optional[int]
+
+
+def get_invite_details(request: Request) -> InviteDetails:
     """Returns tuple of (token, member_id) from request session"""
-    return (
-        request.session.get("invite_token", None),
-        request.session.get("invite_member_id", None),
-        request.session.get("invite_organization_id"),
+    return InviteDetails(
+        invite_token=request.session.get("invite_token", None),
+        invite_member_id=request.session.get("invite_member_id", None),
+        invite_organization_id=request.session.get("invite_organization_id"),
     )
 
 
@@ -56,18 +64,19 @@ class ApiInviteHelper:
         member via the currently set pending invite details in the session, or
         via the passed email if no cookie is currently set.
         """
-        invite_token, invite_member_id, invite_organization_id = get_invite_details(request)
+        invite_details = get_invite_details(request)
         # Came from a different organization.
-        if invite_organization_id is not None and invite_organization_id != organization_id:
-            invite_token = None
-            invite_member_id = None
-            invite_organization_id = None
+        if (
+            invite_details.invite_organization_id is not None
+            and invite_details.invite_organization_id != organization_id
+        ):
+            invite_details = InviteDetails(None, None, None)
 
         invite = None
-        if invite_token and invite_member_id:
+        if invite_details.invite_token and invite_details.invite_member_id:
             invite = organization_service.get_invite(
                 organization_id=organization_id,
-                organization_member_id=invite_member_id,
+                organization_member_id=invite_details.invite_member_id,
                 user_id=request.user.id,
             )
         else:
@@ -82,7 +91,7 @@ class ApiInviteHelper:
         return cls(
             request=request,
             invite_context=invite,
-            token=invite_token,
+            token=invite_details.invite_token,
             logger=logger,
         )
 
@@ -92,14 +101,14 @@ class ApiInviteHelper:
         request: Request,
         logger: Logger | None = None,
     ) -> ApiInviteHelper | None:
-        invite_token, invite_member_id, invite_organization_id = get_invite_details(request)
+        invite_details = get_invite_details(request)
 
-        if not invite_token or not invite_member_id:
+        if not invite_details.invite_token or not invite_details.invite_member_id:
             return None
 
         invite_context = organization_service.get_invite(
-            organization_member_id=invite_member_id,
-            organization_id=invite_organization_id,
+            organization_member_id=invite_details.invite_member_id,
+            organization_id=invite_details.invite_organization_id,
             user_id=request.user.id,
         )
         if invite_context is None:
@@ -110,7 +119,7 @@ class ApiInviteHelper:
         api_invite_helper = ApiInviteHelper(
             request=request,
             invite_context=invite_context,
-            token=invite_token,
+            token=invite_details.invite_token,
             logger=logger,
         )
 
