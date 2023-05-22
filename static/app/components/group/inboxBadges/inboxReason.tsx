@@ -176,14 +176,14 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
 
   const {tooltipText, tooltipDescription, reasonBadgeText, tagType} = getReasonDetails();
 
-  const disabledMarkReviewed = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
   const tooltip = (tooltipText || tooltipDescription) && (
     <TooltipWrapper>
       {tooltipText && <div>{tooltipText}</div>}
       {tooltipDescription && (
         <TooltipDescription>{tooltipDescription}</TooltipDescription>
       )}
-      {disabledMarkReviewed ? null : (
+      {hasEscalatingIssuesUi ? null : (
         <TooltipDescription>{t('Mark Reviewed to remove this label')}</TooltipDescription>
       )}
     </TooltipWrapper>
