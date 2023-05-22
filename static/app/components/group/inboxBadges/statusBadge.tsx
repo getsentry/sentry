@@ -7,6 +7,7 @@ import {Group, GroupSubstatus} from 'sentry/types';
 interface SubstatusBadgeProps {
   status: Group['status'];
   substatus: Group['substatus'];
+  fontSize?: 'sm' | 'md';
 }
 
 function getBadgeProperties(
@@ -63,7 +64,11 @@ export function GroupStatusBadge(props: SubstatusBadgeProps) {
   }
 
   return (
-    <GroupStatusTag type={badge.tagType} tooltip={badge.tooltip}>
+    <GroupStatusTag
+      type={badge.tagType}
+      tooltip={badge.tooltip}
+      fontSize={props.fontSize}
+    >
       {badge.status}
     </GroupStatusTag>
   );
