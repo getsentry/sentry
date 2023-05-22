@@ -23,7 +23,7 @@ function ArchivedBox({statusDetails}: Props) {
     if (ignoreUntilEscalating) {
       return t(
         "This issue has been archived. It'll return to your inbox if it escalates. To learn more, %s",
-        <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/">
+        <ExternalLink href="https://sentry-docs-git-update-beta-test-archiving.sentry.dev/product/issues/states-triage/">
           {t('read the docs')}
         </ExternalLink>
       );
