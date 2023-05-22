@@ -4,7 +4,7 @@ from atexit import register
 from collections import deque
 from concurrent import futures
 from concurrent.futures import Future
-from typing import Any, Deque, Dict, Optional
+from typing import Any, Deque, Dict, MutableMapping, Optional, cast
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
@@ -49,7 +49,7 @@ def produce_occurrence_to_kafka(
         else:
             lookup_event_and_process_issue_occurrence(occurrence.to_dict())
         return
-    payload_data = occurrence.to_dict()
+    payload_data = cast(MutableMapping[str, Any], occurrence.to_dict())
     if event_data:
         payload_data["event"] = event_data
     payload = KafkaPayload(None, json.dumps(payload_data).encode("utf-8"), [])
