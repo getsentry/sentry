@@ -1505,7 +1505,7 @@ SENTRY_FEATURES = {
     "organizations:ds-sliding-window": False,
     # If true certain Slack messages will be escaped to prevent rendering markdown
     "organizations:slack-escape-messages": False,
-    # Enable detecting sdk crashes during event processing
+    # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-monitoring": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
