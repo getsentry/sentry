@@ -380,6 +380,26 @@ describe('GroupActivity', function () {
     );
   });
 
+  it('renders escalating with forecast if org has `escalating-issues-ui` feature', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_UNRESOLVED,
+          data: {
+            forecast: 200,
+          },
+          user: TestStubs.User(),
+          dateCreated,
+        },
+      ],
+      organization: {features: ['escalating-issues-ui']},
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Foo Bar flagged this issue as escalating because over 200 event(s) happened in an hour'
+    );
+  });
+
   it('renders ignored until it happens x times in time window', function () {
     createWrapper({
       activity: [
