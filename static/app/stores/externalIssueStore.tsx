@@ -1,8 +1,10 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
+import {CommonStoreDefinition} from 'sentry/stores/types';
 import {PlatformExternalIssue} from 'sentry/types';
 
-interface ExternalIssueStoreDefinition extends StoreDefinition {
+interface ExternalIssueStoreDefinition
+  extends CommonStoreDefinition<PlatformExternalIssue[]> {
   add(issue: PlatformExternalIssue): void;
   getInitialState(): PlatformExternalIssue[];
   load(items: PlatformExternalIssue[]): void;
@@ -14,6 +16,10 @@ const storeConfig: ExternalIssueStoreDefinition = {
     // listeners due to their leaky nature in tests.
 
     this.items = [];
+  },
+
+  getState() {
+    return this.items;
   },
 
   getInitialState(): PlatformExternalIssue[] {
