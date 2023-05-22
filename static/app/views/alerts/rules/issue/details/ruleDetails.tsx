@@ -255,6 +255,10 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
     const hasSnoozeFeature = organization.features.includes('mute-alerts');
     const isSnoozed = rule.snooze;
+    const slackIntegrationId =
+      'sentry.integrations.slack.notify_action.SlackNotifyServiceAction';
+    const isRuleSlackIntegration =
+      rule.actions.filter(action => action.id === slackIntegrationId).length > 0;
 
     const duplicateLink = {
       pathname: `/organizations/${organization.slug}/alerts/new/issue/`,
@@ -313,6 +317,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
                       onSnooze={this.onSnooze}
                       ruleId={rule.id}
                       projectSlug={projectId}
+                      isSlackIntegration={isRuleSlackIntegration}
                       hasAccess={hasAccess}
                     />
                   )}
@@ -342,13 +347,18 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             {this.renderIncompatibleAlert()}
             {hasSnoozeFeature && isSnoozed && (
               <Alert showIcon>
-                {tct(
-                  "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
-                  {
-                    creator: rule.snoozeCreatedBy,
-                    forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
-                  }
-                )}
+                {isRuleSlackIntegration
+                  ? tct(
+                      "[creator] muted this alert so these Slack notification won't be sent in the future",
+                      {creator: rule.snoozeCreatedBy}
+                    )
+                  : tct(
+                      "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
+                      {
+                        creator: rule.snoozeCreatedBy,
+                        forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
+                      }
+                    )}
               </Alert>
             )}
             <StyledPageTimeRangeSelector
