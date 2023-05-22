@@ -202,9 +202,9 @@ export const enum GroupInboxReason {
 }
 
 export type InboxDetails = {
-  reason_details: InboxReasonDetails;
   date_added?: string;
   reason?: GroupInboxReason;
+  reason_details?: InboxReasonDetails | null;
 };
 
 export type SuggestedOwnerReason =
