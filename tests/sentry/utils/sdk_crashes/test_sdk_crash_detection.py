@@ -2,6 +2,8 @@ import abc
 from typing import Any, Mapping, Sequence
 from unittest.mock import patch
 
+from django.test.utils import override_settings
+
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils import TestCase
 from sentry.testutils.cases import BaseTestCase
@@ -23,8 +25,14 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
         pass
 
     def execute_test(
-        self, event_data, should_be_reported, mock_sdk_crash_reporter, feature_enabled=True
+        self,
+        event_data,
+        should_be_reported,
+        mock_sdk_crash_reporter,
+        feature_enabled=True,
+        project_id=1234,
     ):
+        @override_settings(SDK_CRASH_MONITORING_PROJECT_ID=project_id)
         def _execute_test(self):
             event = self.create_event(
                 data=event_data,
@@ -71,6 +79,9 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
 
     def test_feature_disabled_unhandled_is_not_detected(self, mock_sdk_crash_reporter):
         self.execute_test(get_crash_event(), False, mock_sdk_crash_reporter, feature_enabled=False)
+
+    def test_no_project_id_is_not_detected(self, mock_sdk_crash_reporter):
+        self.execute_test(get_crash_event(), False, mock_sdk_crash_reporter, project_id=None)
 
     def test_handled_is_not_detected(self, mock_sdk_crash_reporter):
         self.execute_test(get_crash_event(handled=True), False, mock_sdk_crash_reporter)

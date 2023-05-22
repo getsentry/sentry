@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from django.conf import settings
+
 from sentry import features
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
@@ -30,6 +32,9 @@ class SDKCrashDetection:
         self.event_stripper = event_stripper
 
     def detect_sdk_crash(self, event: Event) -> None:
+
+        if settings.SDK_CRASH_MONITORING_PROJECT_ID is None:
+            return
 
         if not features.has("organizations:sdk-crash-monitoring", event.project.organization):
             return
@@ -69,4 +74,8 @@ _crash_reporter = SDKCrashReporter()
 _cocoa_sdk_crash_detector = CocoaSDKCrashDetector()
 _event_stripper = EventStripper(sdk_crash_detector=_cocoa_sdk_crash_detector)
 
-sdk_crash_detection = SDKCrashDetection(_crash_reporter, _cocoa_sdk_crash_detector, _event_stripper)
+sdk_crash_detection = SDKCrashDetection(
+    _crash_reporter,
+    _cocoa_sdk_crash_detector,
+    _event_stripper,
+)
