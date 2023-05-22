@@ -363,7 +363,10 @@ def test_log_large_dom_mutations():
     log["project_id"] = 1
     log["replay_id"] = "1"
 
-    with mock.patch("sentry.replays.usecases.ingest.dom_index.logger") as logger:
+    with mock.patch("sentry.replays.usecases.ingest.dom_index.logger") as logger, mock.patch(
+        "random.randint"
+    ) as randint:
+        randint.return_value = 0
         parse_replay_actions(1, "1", 30, events)
         assert logger.info.call_args_list == [mock.call("Large DOM Mutations List:", extra=log)]
 
