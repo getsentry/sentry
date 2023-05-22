@@ -368,7 +368,7 @@ def manage_issue_states(
         raise NotImplementedError(
             f"We don't support a change of state for {group_inbox_reason.name}"
         )
-        
+
     if updated:
         group.save(update_fields=["status", "substatus"])
         Activity.objects.create(
