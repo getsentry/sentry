@@ -10,7 +10,6 @@ from rediscluster import RedisCluster  # type: ignore
 # It could in theory also be a `rb` (aka redis blaster) Cluster, but we
 # intentionally do not support these.
 Cluster = Union[RedisCluster, Redis]
-Info = Mapping[str, Any]
 
 
 class RedisMemoryUsageMetrics:
@@ -44,7 +43,7 @@ class RedisMemoryUsageMetrics:
         return highest_usage
 
 
-def iter_cluster_node_infos(cluster: Cluster) -> Generator[Info, None, None]:
+def iter_cluster_node_infos(cluster: Cluster) -> Generator[Mapping[str, Any], None, None]:
     """
     A generator that yields redis `INFO` results for each of the nodes in the `cluster`.
     """
