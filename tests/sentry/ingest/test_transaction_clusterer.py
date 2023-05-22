@@ -262,8 +262,8 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.rules.update_rules")
 @pytest.mark.django_db
-def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default_organization):
-    project = Project(id=456, name="test_project", organization_id=default_organization.id)
+def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default_project):
+    project = default_project
     assert get_rules(project) == {}
 
     _store_transaction_name(project, "/transaction/number/1")
