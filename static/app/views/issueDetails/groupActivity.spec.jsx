@@ -389,14 +389,14 @@ describe('GroupActivity', function () {
           data: {
             forecast: 200,
           },
-          user: TestStubs.User(),
+          user: null,
           dateCreated,
         },
       ],
       organization: {features: ['escalating-issues-ui']},
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
-      'Foo Bar flagged this issue as escalating because over 200 event(s) happened in an hour'
+      'Sentry flagged this issue as escalating because over 200 event(s) happened in an hour'
     );
   });
 
