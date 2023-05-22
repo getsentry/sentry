@@ -341,8 +341,9 @@ class TestPrioritiseTransactionsTask(BaseMetricsLayerTestCase, TestCase, SnubaTe
                     "dynamic-sampling.prioritise_transactions.load_rate": 1.0,
                 }
             ):
-                with self.tasks():
-                    prioritise_transactions()
+                with self.feature("organizations:ds-sliding-window"):
+                    with self.tasks():
+                        prioritise_transactions()
 
             # now redis should contain rebalancing data for our projects
             for org in self.orgs_info:
@@ -383,8 +384,9 @@ class TestPrioritiseTransactionsTask(BaseMetricsLayerTestCase, TestCase, SnubaTe
                     "dynamic-sampling.prioritise_transactions.rebalance_intensity": 0.7,
                 }
             ):
-                with self.tasks():
-                    prioritise_transactions()
+                with self.feature("organizations:ds-sliding-window"):
+                    with self.tasks():
+                        prioritise_transactions()
 
             # now redis should contain rebalancing data for our projects
             for org in self.orgs_info:
