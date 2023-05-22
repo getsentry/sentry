@@ -7,7 +7,9 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
 from sentry.api.serializers import serialize
-from sentry.models.dashboard import Dashboard
+from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSerializer
+from sentry.models import Group, GroupRelease, ReleaseEnvironment, ReleaseProject
+from sentry.models.environment import Environment
 from sentry.snuba import metrics_enhanced_performance
 from sentry.snuba.referrer import Referrer
 
@@ -26,9 +28,33 @@ class OrganizationEventsStarfishEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            # db requests
-            dashboard = Dashboard.objects.filter(organization_id=organization.id).last()
-            serialize(dashboard, request.user)
+            # a really slow db query
+            projects = self.get_projects(request, organization)
+            project_ids = [p.id for p in projects]
+            group = Group.objects.filter(project_id__in=project_ids).last()
+
+            environments = Environment.objects.filter(organization_id=organization.id)
+
+            release_projects = ReleaseProject.objects.filter(
+                project_id=group.project_id
+            ).values_list("release_id", flat=True)
+
+            release_envs = ReleaseEnvironment.objects.filter(
+                release_id__in=release_projects,
+                organization_id=group.project.organization_id,
+            )
+            if environments:
+                release_envs = release_envs.filter(
+                    environment_id__in=[env.id for env in environments]
+                )
+            release_envs = release_envs.order_by("first_seen").values_list("release_id", flat=True)
+
+            group_releases = GroupRelease.objects.filter(
+                group_id=group.id,
+                release_id__in=release_envs[:1],
+            )
+            if group_releases:
+                serialize(group_releases[0], request.user, GroupReleaseWithStatsSerializer())
 
             try:
                 snuba_params, params = self.get_snuba_dataclass(request, organization)
