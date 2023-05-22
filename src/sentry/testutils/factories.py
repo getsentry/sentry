@@ -283,6 +283,7 @@ class Factories:
         kwds.setdefault("name", org.name)
         kwds.setdefault("idempotency_key", uuid4().hex)
         kwds.setdefault("region_name", "test-region")
+        kwds.setdefault("status", org.status)
         return OrganizationMapping.objects.create(**kwds)
 
     @staticmethod
