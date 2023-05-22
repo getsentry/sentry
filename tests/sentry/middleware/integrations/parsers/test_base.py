@@ -59,7 +59,7 @@ class BaseRequestParserTest(TestCase):
         assert response == self.response_handler(self.request)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @patch.object(BaseRequestParser, "_get_response_from_region_silo")
+    @patch.object(BaseRequestParser, "get_response_from_region_silo")
     def test_get_responses_from_region_silos(self, mock__get_response):
         mock__get_response.side_effect = lambda region: region.name
 
@@ -70,7 +70,7 @@ class BaseRequestParserTest(TestCase):
             assert response_map[region.name].response == region.name
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @patch.object(BaseRequestParser, "_get_response_from_region_silo")
+    @patch.object(BaseRequestParser, "get_response_from_region_silo")
     def test_get_responses_from_region_silos_with_partial_failure(self, mock__get_response):
         mock__get_response.side_effect = lambda region: error_regions(region, ["eu"])
 
@@ -80,7 +80,7 @@ class BaseRequestParserTest(TestCase):
         assert type(response_map["eu"].error) is SiloLimit.AvailabilityError
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @patch.object(BaseRequestParser, "_get_response_from_region_silo")
+    @patch.object(BaseRequestParser, "get_response_from_region_silo")
     def test_get_responses_from_region_silos_with_complete_failure(self, mock__get_response):
         mock__get_response.side_effect = lambda region: error_regions(region, ["na", "eu"])
 

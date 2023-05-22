@@ -44,7 +44,9 @@ class BaseRequestParser(abc.ABC):
         self.match: ResolverMatch = resolve(self.request.path)
         self.response_handler = response_handler
 
-    def _ensure_control_silo(self):
+    # Common Helpers
+
+    def ensure_control_silo(self):
         if SiloMode.get_current_mode() != SiloMode.CONTROL:
             logger.error(
                 "silo_error",
@@ -54,14 +56,19 @@ class BaseRequestParser(abc.ABC):
                 "Integration Request Parsers should only be run on the control silo."
             )
 
+    def is_json_request(self) -> bool:
+        return "application/json" in (self.request.headers or {}).get("Content-Type", "")
+
+    #  Silo Response Helpers
+
     def get_response_from_control_silo(self) -> HttpResponse:
         """
         Used to handle the request directly on the control silo.
         """
-        self._ensure_control_silo()
+        self.ensure_control_silo()
         return self.response_handler(self.request)
 
-    def _get_response_from_region_silo(self, region: Region) -> HttpResponse:
+    def get_response_from_region_silo(self, region: Region) -> HttpResponse:
         region_client = RegionSiloClient(region)
         return region_client.proxy_request(self.request).to_http_response()
 
@@ -72,13 +79,13 @@ class BaseRequestParser(abc.ABC):
         Used to handle the requests on a given list of regions (synchronously).
         Returns a mapping of region name to response/exception.
         """
-        self._ensure_control_silo()
+        self.ensure_control_silo()
 
         region_to_response_map = {}
 
         with ThreadPoolExecutor(max_workers=len(regions)) as executor:
             future_to_region = {
-                executor.submit(self._get_response_from_region_silo, region): region
+                executor.submit(self.get_response_from_region_silo, region): region
                 for region in regions
             }
             for future in as_completed(future_to_region):
@@ -114,6 +121,8 @@ class BaseRequestParser(abc.ABC):
             outbox.save()
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
+    # Required Overrides
+
     def get_response(self):
         """
         Used to surface a response as part of the middleware.
@@ -128,6 +137,8 @@ class BaseRequestParser(abc.ABC):
         Should be overwritten by implementation.
         """
         return None
+
+    # Optional Overrides
 
     def get_organizations_from_integration(
         self, integration: Integration = None

@@ -18,8 +18,10 @@ class GithubRequestParser(BaseRequestParser):
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
+        if not self.is_json_request():
+            return None
         try:
-            event = json.loads(self.request.body.decode("utf-8"))
+            event = json.loads(self.request.body.decode(encoding="utf-8"))
         except json.JSONDecodeError:
             return None
         external_id = event.get("installation", {}).get("id")
