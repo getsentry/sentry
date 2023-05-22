@@ -257,14 +257,16 @@ def get_group_hourly_count(group: Group) -> int:
     return int(hourly_count)
 
 
-def is_escalating(group: Group) -> bool:
-    """Return boolean depending on if the group is escalating or not"""
+def is_escalating(group: Group) -> Tuple[bool, Optional[int]]:
+    """
+    Return boolean depending on if the group is escalating or not and the forecast if it exists.
+    """
     group_hourly_count = get_group_hourly_count(group)
     forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
     # Check if current event occurance is greater than forecast for today's date
     if group_hourly_count > forecast_today:
-        return True
-    return False
+        return True, forecast_today
+    return False, None
 
 
 def parse_groups_past_counts(response: Sequence[GroupsCountResponse]) -> ParsedGroupsCount:
@@ -304,10 +306,12 @@ def manage_issue_states(
     group_inbox_reason: GroupInboxReason,
     event: GroupEvent,
     snooze_details: Optional[Mapping[str, Any]] = None,
+    activity_data: Optional[Mapping[str, Any]] = None,
 ) -> None:
     """
     Handles the downstream changes to the status/substatus of GroupInbox and Group for each GroupInboxReason
     """
+    data = {"event_id": event.event_id}
     if group_inbox_reason == GroupInboxReason.ESCALATING:
         add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
         record_group_history(group, GroupHistoryStatus.ESCALATING)
@@ -316,6 +320,8 @@ def manage_issue_states(
         issue_escalating.send_robust(
             project=group.project, group=group, event=event, sender=manage_issue_states
         )
+        if activity_data:
+            data.update(activity_data)
 
     elif group_inbox_reason == GroupInboxReason.ONGOING:
         add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
@@ -341,5 +347,5 @@ def manage_issue_states(
         group=group,
         type=ActivityType.SET_UNRESOLVED.value,
         user_id=None,
-        data={"event_id": event.event_id},
+        data=data,
     )
