@@ -312,7 +312,19 @@ class Monitor(Model):
         alert_rule = self.get_alert_rule()
         if alert_rule:
             data = alert_rule.data
-            alert_rule_data = {"actions": data["actions"]}
+            alert_rule_data = {}
+
+            # Build up email target data
+            targets = []
+            for action in data.get("actions", []):
+                targets.append(
+                    {
+                        "targetIdentifier": action.get("targetIdentifier"),
+                        "targetType": action.get("targetType"),
+                    }
+                )
+            alert_rule_data["targets"] = targets
+
             return alert_rule_data
 
         return None
