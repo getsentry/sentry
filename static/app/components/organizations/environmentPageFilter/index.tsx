@@ -41,7 +41,7 @@ export interface EnvironmentPageFilterProps
   /**
    * Message to show in the menu footer
    */
-  footerMessage?: string;
+  footerMessage?: React.ReactNode;
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
