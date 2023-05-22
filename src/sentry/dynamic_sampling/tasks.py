@@ -278,11 +278,16 @@ def adjust_sample_rates(
     and store it in DS redis cluster, then we invalidate project config
     so relay can reread it, and we'll inject it from redis cache.
     """
-    # We need the organization object for the feature flag.
-    organization = Organization.objects.get_from_cache(id=org_id)
+    try:
+        # We need the organization object for the feature flag.
+        organization = Organization.objects.get_from_cache(id=org_id)
+    except Organization.DoesNotExist:
+        organization = None
 
     # We get the sample rate either directly from quotas or from the new sliding window org mechanism.
-    if features.has("organizations:ds-sliding-window-org", organization, actor=None):
+    if organization is not None and features.has(
+        "organizations:ds-sliding-window-org", organization, actor=None
+    ):
         sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_id)
     else:
         sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
