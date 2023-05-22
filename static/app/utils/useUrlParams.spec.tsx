@@ -31,6 +31,7 @@ describe('useUrlParams', () => {
   it('should read query values from the url', () => {
     const {result} = reactHooks.renderHook(useUrlParams);
 
+    expect(result.current.key).toBe('');
     expect(result.current.getParamValue('page')).toBe('3');
     expect(result.current.getParamValue('limit')).toBe('50');
   });
@@ -40,6 +41,7 @@ describe('useUrlParams', () => {
       initialProps: ['page'],
     });
 
+    expect(result.current.key).toBe('page');
     expect(result.current.getParamValue()).toBe('3');
   });
 
@@ -51,6 +53,7 @@ describe('useUrlParams', () => {
       }
     ); // Prefer TS function overloading, not initialProps
 
+    expect(result.current.key).toBe('foo');
     expect(result.current.getParamValue()).toBe('bar');
   });
 

@@ -1,6 +1,8 @@
 import {useCallback, useMemo} from 'react';
+import {browserHistory} from 'react-router';
 
-import useUrlParams from 'sentry/utils/useUrlParams';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 interface SortConfig {
@@ -25,17 +27,10 @@ const DEFAULT_BY = 'startTimestamp';
 type Opts = {items: NetworkSpan[]};
 
 function useSortNetwork({items}: Opts) {
-  const {getParamValue: getSortAsc, setParamValue: setSortAsc} = useUrlParams(
-    's_n_asc',
-    DEFAULT_ASC
-  );
-  const {getParamValue: getSortBy, setParamValue: setSortBy} = useUrlParams(
-    's_n_by',
-    DEFAULT_BY
-  );
+  const location = useLocation();
 
-  const sortAsc = getSortAsc();
-  const sortBy = getSortBy();
+  const sortAsc = decodeScalar(location.query.s_n_asc) || DEFAULT_ASC;
+  const sortBy = decodeScalar(location.query.s_n_by) || DEFAULT_BY;
 
   const sortConfig = useMemo(
     () =>
@@ -51,14 +46,20 @@ function useSortNetwork({items}: Opts) {
 
   const handleSort = useCallback(
     (fieldName: keyof typeof SortStrategies) => {
-      if (sortConfig.by === fieldName) {
-        setSortAsc(sortConfig.asc ? 'false' : 'true');
-      } else {
-        setSortAsc('true');
-        setSortBy(fieldName);
-      }
+      const asc =
+        sortConfig.by === fieldName ? (sortConfig.asc ? 'false' : 'true') : DEFAULT_ASC;
+
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          s_n_asc: asc,
+          s_n_by: fieldName,
+          n_detail_row: '',
+        },
+      });
     },
-    [sortConfig, setSortAsc, setSortBy]
+    [sortConfig, location]
   );
 
   return {

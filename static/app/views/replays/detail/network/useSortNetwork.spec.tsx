@@ -1,12 +1,16 @@
+import {browserHistory} from 'react-router';
 import {act} from 'react-test-renderer';
+import type {Location} from 'history';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
+import {useLocation} from 'sentry/utils/useLocation';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 import useSortNetwork from './useSortNetwork';
 
 jest.mock('react-router');
+jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useUrlParams', () => {
   const map = new Map();
   return (name, dflt) => {
@@ -20,6 +24,13 @@ jest.mock('sentry/utils/useUrlParams', () => {
       },
     };
   };
+});
+
+let mockLastLocation: Location;
+const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
+
+browserHistory.push = jest.fn((newLocation: Location) => {
+  mockLastLocation = newLocation;
 });
 
 const SPAN_0_NAVIGATE = {
@@ -144,6 +155,19 @@ describe('useSortNetwork', () => {
     SPAN_7_FETCH_GET,
     SPAN_8_FETCH_POST,
   ];
+
+  beforeEach(() => {
+    mockLastLocation = {
+      action: 'PUSH',
+      hash: '',
+      key: '',
+      pathname: '',
+      query: {},
+      search: '',
+      state: undefined,
+    };
+    mockUseLocation.mockImplementation(() => mockLastLocation);
+  });
 
   it('should the list by timestamp by default', () => {
     const {result} = reactHooks.renderHook(useSortNetwork, {

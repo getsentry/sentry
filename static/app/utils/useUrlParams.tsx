@@ -8,14 +8,17 @@ function useUrlParams(
   defaultValue: string
 ): {
   getParamValue: () => string;
+  key: string;
   setParamValue: (value: string) => void;
 };
 function useUrlParams(defaultKey: string): {
   getParamValue: () => string;
+  key: string;
   setParamValue: (value: string) => void;
 };
 function useUrlParams(): {
   getParamValue: (key: string) => string;
+  key: string;
   setParamValue: (key: string, value: string) => void;
 };
 function useUrlParams(defaultKey?: string, defaultValue?: string) {
@@ -52,12 +55,14 @@ function useUrlParams(defaultKey?: string, defaultValue?: string) {
 
   if (defaultKey !== undefined) {
     return {
+      key: defaultKey,
       getParamValue: getWithDefault,
       setParamValue: setWithDefault,
     };
   }
 
   return {
+    key: defaultKey || '',
     getParamValue,
     setParamValue,
   };
