@@ -46,13 +46,13 @@ class AcceptOrganizationInvite(Endpoint):
             ).first()
             if member_mapping is None:
                 return None
-            invite_context = organization_service.get_invite(
+            invite_context = organization_service.get_invite_by_id(
                 organization_id=member_mapping.organization_id,
                 organization_member_id=member_id,
                 user_id=user_id,
             )
         else:
-            invite_context = organization_service.get_invite(
+            invite_context = organization_service.get_invite_by_slug(
                 organization_member_id=member_id,
                 slug=organization_slug,
                 user_id=user_id,

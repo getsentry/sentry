@@ -233,8 +233,6 @@ class AuthIdentityHandler:
         organization: RpcOrganization,
         auth_identity: AuthIdentity,
     ) -> Tuple[User, RpcOrganizationMember]:
-        # TODO: Might be able to keep hold of the RpcUser object whose ID was
-        #  originally passed to construct the RpcAuthIdentity object
         user = User.objects.get(id=auth_identity.user_id)
 
         # If the user is either currently *pending* invite acceptance (as indicated
@@ -280,20 +278,19 @@ class AuthIdentityHandler:
             auth_identity=auth_identity,
         )
 
-        if om is not None:
-            log_service.record_audit_log(
-                event=AuditLogEvent(
-                    organization_id=self.organization.id,
-                    date_added=timezone.now(),
-                    event_id=audit_log.get_event_id("MEMBER_ADD"),
-                    actor_user_id=user.id,
-                    actor_label=user.username,
-                    ip_address=self.request.META["REMOTE_ADDR"],
-                    target_object_id=om.id,
-                    data=om.get_audit_log_metadata(user.email),
-                    target_user_id=user.id,
-                )
+        log_service.record_audit_log(
+            event=AuditLogEvent(
+                organization_id=self.organization.id,
+                date_added=timezone.now(),
+                event_id=audit_log.get_event_id("MEMBER_ADD"),
+                actor_user_id=user.id,
+                actor_label=user.username,
+                ip_address=self.request.META["REMOTE_ADDR"],
+                target_object_id=om.id,
+                data=om.get_audit_log_metadata(user.email),
+                target_user_id=user.id,
             )
+        )
 
         return om
 

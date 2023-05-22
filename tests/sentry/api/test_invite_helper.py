@@ -35,7 +35,7 @@ class ApiInviteHelperTest(TestCase):
 
         helper = ApiInviteHelper(
             self.request,
-            organization_service.get_invite(
+            organization_service.get_invite_by_id(
                 organization_member_id=om.id, organization_id=om.organization_id
             ),
             None,
@@ -58,7 +58,7 @@ class ApiInviteHelperTest(TestCase):
 
         helper = ApiInviteHelper(
             self.request,
-            organization_service.get_invite(
+            organization_service.get_invite_by_id(
                 organization_member_id=om.id, organization_id=om.organization_id
             ),
             None,
@@ -81,7 +81,7 @@ class ApiInviteHelperTest(TestCase):
 
         helper = ApiInviteHelper(
             self.request,
-            organization_service.get_invite(
+            organization_service.get_invite_by_id(
                 organization_member_id=om.id, organization_id=om.organization_id
             ),
             None,
@@ -109,7 +109,7 @@ class ApiInviteHelperTest(TestCase):
 
         helper = ApiInviteHelper(
             self.request,
-            organization_service.get_invite(
+            organization_service.get_invite_by_id(
                 organization_member_id=om.id, organization_id=om.organization_id
             ),
             None,

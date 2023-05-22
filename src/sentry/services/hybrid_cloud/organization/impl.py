@@ -93,7 +93,43 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return serialize_member(member)
 
-    def get_invite(
+    def get_invite_by_id(
+        self,
+        *,
+        organization_member_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
+        user_id: Optional[int] = None,
+        email: Optional[str] = None,
+    ) -> Optional[RpcUserInviteContext]:
+        """
+        Query for an organization member by its id.
+        """
+        return self._get_invite(
+            organization_member_id=organization_member_id,
+            organization_id=organization_id,
+            user_id=user_id,
+            email=email,
+        )
+
+    def get_invite_by_slug(
+        self,
+        *,
+        organization_member_id: Optional[int] = None,
+        slug: Optional[str] = None,
+        user_id: Optional[int] = None,
+        email: Optional[str] = None,
+    ) -> Optional[RpcUserInviteContext]:
+        """
+        Query for an organization member by its slug.
+        """
+        return self._get_invite(
+            organization_member_id=organization_member_id,
+            slug=slug,
+            user_id=user_id,
+            email=email,
+        )
+
+    def _get_invite(
         self,
         *,
         organization_member_id: Optional[int] = None,

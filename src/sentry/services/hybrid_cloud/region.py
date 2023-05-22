@@ -83,20 +83,6 @@ class ByOrganizationIdAttribute(RegionResolution):
         return self._resolve_from_mapping(mapping)
 
 
-@dataclass(frozen=True)
-class ByOrganizationIdOrSlug(RegionResolution):
-    """Resolve from an object with an organization ID as one of its parameters.  If the ID does not exist, but the slug
-    does, use that instead."""
-
-    def resolve(self, arguments: ArgumentDict) -> Region:
-        organization_id = getattr(arguments, "organization_id")
-        if organization_id is None:
-            mapping = self.organization_mapping_manager.get(slug=getattr(arguments, "slug"))
-        else:
-            mapping = self.organization_mapping_manager.get(organization_id=organization_id)
-        return self._resolve_from_mapping(mapping)
-
-
 class UnimplementedRegionResolution(RegionResolution):
     """Indicate that a method's region resolution logic has not been implemented yet.
 

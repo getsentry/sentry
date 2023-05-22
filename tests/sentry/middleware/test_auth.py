@@ -23,7 +23,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
             assert request.user == self.user
         else:
-            assert request.user == user_service.get_many(filter=dict(user_ids=[self.user.id]))[0]
+            assert request.user == user_service.get_user(id=self.user.id)
 
     def setUp(self):
         from django.core.cache import cache

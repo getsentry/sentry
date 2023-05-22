@@ -74,13 +74,13 @@ class ApiInviteHelper:
 
         invite = None
         if invite_details.invite_token and invite_details.invite_member_id:
-            invite = organization_service.get_invite(
+            invite = organization_service.get_invite_by_id(
                 organization_id=organization_id,
                 organization_member_id=invite_details.invite_member_id,
                 user_id=request.user.id,
             )
         else:
-            invite = organization_service.get_invite(
+            invite = organization_service.get_invite_by_id(
                 organization_id=organization_id, email=email, user_id=request.user.id
             )
         if invite is None:
@@ -106,7 +106,7 @@ class ApiInviteHelper:
         if not invite_details.invite_token or not invite_details.invite_member_id:
             return None
 
-        invite_context = organization_service.get_invite(
+        invite_context = organization_service.get_invite_by_id(
             organization_member_id=invite_details.invite_member_id,
             organization_id=invite_details.invite_organization_id,
             user_id=request.user.id,

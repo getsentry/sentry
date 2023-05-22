@@ -16,7 +16,6 @@ from sentry.services.hybrid_cloud.organization import (
 from sentry.services.hybrid_cloud.region import (
     ByOrganizationId,
     ByOrganizationIdAttribute,
-    ByOrganizationIdOrSlug,
     ByOrganizationSlug,
     UnimplementedRegionResolution,
 )
@@ -107,20 +106,28 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationIdOrSlug())
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def get_invite(
+    def get_invite_by_id(
         self,
         *,
         organization_member_id: Optional[int] = None,
         organization_id: Optional[int] = None,
+        user_id: Optional[int] = None,
+        email: Optional[str] = None,
+    ) -> Optional[RpcUserInviteContext]:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationSlug())
+    @abstractmethod
+    def get_invite_by_slug(
+        self,
+        *,
+        organization_member_id: Optional[int] = None,
         slug: Optional[str] = None,
         user_id: Optional[int] = None,
         email: Optional[str] = None,
     ) -> Optional[RpcUserInviteContext]:
-        """
-        Query for an organization member by its id.
-        """
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
