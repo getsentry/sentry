@@ -4,7 +4,7 @@ from django.http import HttpRequest
 
 from sentry.api.invite_helper import ApiInviteHelper
 from sentry.models import AuthProvider, OrganizationMember
-from sentry.services.hybrid_cloud.organization.serial import serialize_member
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.testutils import TestCase
 
 
@@ -33,7 +33,13 @@ class ApiInviteHelperTest(TestCase):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
-        helper = ApiInviteHelper(self.request, serialize_member(self.member), None)
+        helper = ApiInviteHelper(
+            self.request,
+            organization_service.get_invite(
+                organization_member_id=om.id, organization_id=om.organization_id
+            ),
+            None,
+        )
         helper.accept_invite()
 
         om = OrganizationMember.objects.get(id=self.member.id)
@@ -50,7 +56,13 @@ class ApiInviteHelperTest(TestCase):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
-        helper = ApiInviteHelper(self.request, serialize_member(self.member), None)
+        helper = ApiInviteHelper(
+            self.request,
+            organization_service.get_invite(
+                organization_member_id=om.id, organization_id=om.organization_id
+            ),
+            None,
+        )
         helper.accept_invite()
 
         om = OrganizationMember.objects.get(id=self.member.id)
@@ -67,7 +79,13 @@ class ApiInviteHelperTest(TestCase):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
-        helper = ApiInviteHelper(self.request, serialize_member(self.member), None)
+        helper = ApiInviteHelper(
+            self.request,
+            organization_service.get_invite(
+                organization_member_id=om.id, organization_id=om.organization_id
+            ),
+            None,
+        )
         helper.accept_invite()
 
         # Invite cannot be accepted without AuthIdentity if SSO is required
@@ -89,7 +107,13 @@ class ApiInviteHelperTest(TestCase):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
-        helper = ApiInviteHelper(self.request, serialize_member(self.member), None)
+        helper = ApiInviteHelper(
+            self.request,
+            organization_service.get_invite(
+                organization_member_id=om.id, organization_id=om.organization_id
+            ),
+            None,
+        )
         helper.accept_invite()
 
         om = OrganizationMember.objects.get(id=self.member.id)
