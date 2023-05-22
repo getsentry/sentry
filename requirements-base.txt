@@ -58,7 +58,7 @@ requests>=2.25.1
 rfc3339-validator>=0.1.2
 rfc3986-validator>=0.1.1
 # [end] jsonschema format validators
-sentry-arroyo @ https://github.com/getsentry/arroyo/archive/63f58595c0a56de073dd74ea6096dc56c9f36bbc.zip
+sentry-arroyo @ https://github.com/getsentry/arroyo/archive/18da2c4b14adf6acce4386ed1edb86a0a5c99063.zip
 sentry-kafka-schemas>=0.1.8
 sentry-redis-tools>=0.1.5
 sentry-relay>=0.8.23
