@@ -5,8 +5,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import RuleDetailsContainer from 'sentry/views/alerts/rules/issue/details/index';
-import AlertRuleDetails from 'sentry/views/alerts/rules/issue/details/ruleDetails';
+
+import AlertRuleDetails from './ruleDetails';
 
 describe('AlertRuleDetails', () => {
   const context = initializeOrg({
@@ -19,25 +19,21 @@ describe('AlertRuleDetails', () => {
   });
   const member = TestStubs.Member();
 
-  const createWrapper = (props = {}, newContext, org = organization) => {
-    const params = {
-      orgId: org.slug,
-      projectId: project.slug,
-      ruleId: rule.id,
-    };
-
+  const createWrapper = (props: any = {}, newContext?: any, org = organization) => {
     const router = newContext ? newContext.router : context.router;
     const routerContext = newContext ? newContext.routerContext : context.routerContext;
 
     return render(
-      <RuleDetailsContainer params={params} location={{query: {}}} router={router}>
-        <AlertRuleDetails
-          params={params}
-          location={{query: {}}}
-          router={router}
-          {...props}
-        />
-      </RuleDetailsContainer>,
+      <AlertRuleDetails
+        params={{
+          orgId: org.slug,
+          projectId: project.slug,
+          ruleId: rule.id,
+        }}
+        location={{...router.location, query: {}}}
+        router={router}
+        {...props}
+      />,
       {context: routerContext, organization: org}
     );
   };
@@ -128,15 +124,17 @@ describe('AlertRuleDetails', () => {
     await userEvent.click(screen.getByText('Last 7 days'));
     await userEvent.click(screen.getByText('Last 24 hours'));
 
-    expect(context.router.push).toHaveBeenCalledWith({
-      query: {
-        pageStatsPeriod: '24h',
-        cursor: undefined,
-        pageEnd: undefined,
-        pageStart: undefined,
-        pageUtc: undefined,
-      },
-    });
+    expect(context.router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          pageStatsPeriod: '24h',
+          cursor: undefined,
+          pageEnd: undefined,
+          pageStart: undefined,
+          pageUtc: undefined,
+        },
+      })
+    );
   });
 
   it('should show the time since last triggered in sidebar', async () => {
@@ -194,7 +192,6 @@ describe('AlertRuleDetails', () => {
     const postRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/snooze/`,
       method: 'POST',
-      data: {target: 'me'},
     });
     const deleteRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/snooze/`,
@@ -204,7 +201,10 @@ describe('AlertRuleDetails', () => {
     expect(await screen.findByText('Mute')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Mute'}));
-    expect(postRequest).toHaveBeenCalledTimes(1);
+    expect(postRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({data: {target: 'me'}})
+    );
 
     expect(await screen.findByText('Unmute')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Unmute'}));
@@ -216,7 +216,6 @@ describe('AlertRuleDetails', () => {
     const request = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/snooze/`,
       method: 'POST',
-      data: {target: 'me'},
     });
     const contextWithQueryParam = initializeOrg({
       organization: {features: ['issue-alert-incompatible-rules', 'mute-alerts']},
@@ -228,7 +227,12 @@ describe('AlertRuleDetails', () => {
     createWrapper({}, contextWithQueryParam);
 
     expect(await screen.findByText('Unmute')).toBeInTheDocument();
-    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {target: 'me'},
+      })
+    );
   });
 
   it('mute button is disabled if no alerts:write permission', async () => {
