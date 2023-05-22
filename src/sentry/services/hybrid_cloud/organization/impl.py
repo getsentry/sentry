@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Iterable, List, Optional, Set, cast
 
 from django.db import models, transaction
-from django.db.models import Q
 
 from sentry import roles
 from sentry.db.postgres.roles import in_test_psql_role_override
@@ -128,16 +127,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
         except Organization.DoesNotExist:
             return None
 
-        q = Q(False)
-        if organization_member_id is not None:
-            q = Q(organization_id=org.id, id=organization_member_id)
-        elif email:
-            q = Q(organization_id=org.id, email=email)
-
+        member: RpcOrganizationMember | None = None
         if user_id is not None:
-            # Prefer finding the organization member matching the user id that already exists.
-            q = Q(organization_id=org.id, user_id=user_id) | q
-        member = OrganizationMember.objects.filter(q).first()
+            member = OrganizationMember.objects.filter(
+                organization_id=org.id, user_id=user_id
+            ).first()
+        if member is None and email is not None:
+            member = OrganizationMember.objects.filter(organization_id=org.id, email=email).first()
+        if member is None and organization_member_id is not None:
+            member = OrganizationMember.objects.filter(
+                organization_id=org.id, id=organization_member_id
+            ).first()
+
         if member is None:
             return None
 

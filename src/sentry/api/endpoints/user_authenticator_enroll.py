@@ -18,6 +18,7 @@ from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisal
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.models import Authenticator, User
 from sentry.security import capture_security_activity
+from sentry.services.hybrid_cloud.organization import organization_service
 
 logger = logging.getLogger(__name__)
 
@@ -289,8 +290,16 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         )
         invite_helper = ApiInviteHelper.from_session(request=request, logger=logger)
 
-        if invite_helper and invite_helper.valid_request:
-            invite_helper.accept_invite()
-            remove_invite_details_from_session(request)
+        if invite_helper:
+            if invite_helper.member_already_exists:
+                invite_helper.handle_member_already_exists()
+                organization_service.delete_organization_member(
+                    organization_member_id=invite_helper.invite_context.invite_organization_member_id,
+                    organization_id=invite_helper.invite_context.organization.id,
+                )
+                remove_invite_details_from_session(request)
+            elif invite_helper.valid_request:
+                invite_helper.accept_invite()
+                remove_invite_details_from_session(request)
 
         return response

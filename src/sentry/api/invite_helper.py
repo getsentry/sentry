@@ -68,9 +68,12 @@ class ApiInviteHelper:
             invite = organization_service.get_invite(
                 organization_id=organization_id,
                 organization_member_id=invite_member_id,
+                user_id=request.user.id,
             )
         else:
-            invite = organization_service.get_invite(organization_id=organization_id, email=email)
+            invite = organization_service.get_invite(
+                organization_id=organization_id, email=email, user_id=request.user.id
+            )
         if invite is None:
             # Unable to locate the pending organization member. Cannot setup
             # the invite helper.
@@ -94,18 +97,19 @@ class ApiInviteHelper:
         if not invite_token or not invite_member_id:
             return None
 
-        rpc_org_member = organization_service.get_invite(
+        invite_context = organization_service.get_invite(
             organization_member_id=invite_member_id,
             organization_id=invite_organization_id,
+            user_id=request.user.id,
         )
-        if rpc_org_member is None:
+        if invite_context is None:
             if logger:
                 logger.error("Invalid pending invite cookie", exc_info=True)
             return None
 
         api_invite_helper = ApiInviteHelper(
             request=request,
-            invite_context=rpc_org_member,
+            invite_context=invite_context,
             token=invite_token,
             logger=logger,
         )
