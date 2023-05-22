@@ -11,6 +11,7 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
     get_transaction_names,
     record_transaction_name,
 )
+from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
 from sentry.ingest.transaction_clusterer.rules import (
     ProjectOptionRuleStore,
     RedisRuleStore,
@@ -185,6 +186,7 @@ def test_save_rules(default_project):
     wraps=cluster_projects,  # call immediately
 )
 @pytest.mark.django_db
+@freeze_time("2000-01-01 01:00:00")
 def test_run_clusterer_task(cluster_projects_delay, default_organization):
     def _add_mock_data(proj, number):
         for i in range(0, number):
@@ -197,6 +199,12 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
         project.save()
         _add_mock_data(project, 4)
 
+    assert (
+        get_clusterer_meta(project1)
+        == get_clusterer_meta(project2)
+        == {"first_run": 0, "last_run": 0, "runs": 0}
+    )
+
     spawn_clusterers()
 
     assert cluster_projects_delay.call_count == 1
@@ -205,6 +213,12 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     # Not stored enough transactions yet
     assert get_rules(project1) == {}
     assert get_rules(project2) == {}
+
+    assert (
+        get_clusterer_meta(project1)
+        == get_clusterer_meta(project2)
+        == {"first_run": 946688400, "last_run": 946688400, "runs": 1}
+    )
 
     # Clear transactions if batch minimum is not met
     assert list(get_transaction_names(project1)) == []
@@ -221,7 +235,9 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     # Add a transaction to project2 so it runs again
     _store_transaction_name(project2, "foo")
 
-    with mock.patch("sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1):
+    with mock.patch("sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1), freeze_time(
+        "2000-01-01 01:00:01"
+    ):
         spawn_clusterers()
 
     # One project per batch now:
@@ -235,13 +251,19 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
         "/users/trans/*/**",
     }
 
+    assert (
+        get_clusterer_meta(project1)
+        == get_clusterer_meta(project2)
+        == {"first_run": 946688400, "last_run": 946688401, "runs": 2}
+    )
+
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.rules.update_rules")
 @pytest.mark.django_db
-def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default_organization):
-    project = Project(id=456, name="test_project", organization_id=default_organization.id)
+def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default_project):
+    project = default_project
     assert get_rules(project) == {}
 
     _store_transaction_name(project, "/transaction/number/1")

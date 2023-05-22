@@ -551,6 +551,20 @@ def test_accept_transaction_names(default_project):
         assert transaction_metrics_config["acceptTransactionNames"] == "clientBased"
 
 
+@pytest.mark.parametrize("num_clusterer_runs", [9, 10])
+@pytest.mark.django_db
+def test_txnames_ready(default_project, num_clusterer_runs):
+    with mock.patch(
+        "sentry.relay.config.get_clusterer_meta", return_value={"runs": num_clusterer_runs}
+    ):
+        config = get_project_config(default_project).to_dict()["config"]
+    _validate_project_config(config)
+    if num_clusterer_runs == 9:
+        assert "txNameReady" not in config
+    elif num_clusterer_runs == 10:
+        assert config["txNameReady"] is True
+
+
 @pytest.mark.django_db
 @region_silo_test(stable=True)
 def test_project_config_setattr(default_project):
