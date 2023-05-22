@@ -55,9 +55,10 @@ def track_occurrence_producer_futures(future: Future[BrokerValue[KafkaPayload]])
     if len(occurrence_producer_futures) >= settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT:
         try:
             future = occurrence_producer_futures.popleft()
-            future.result()
         except IndexError:
             return
+        else:
+            future.result()
 
 
 def handle_occurrence_producer() -> None:

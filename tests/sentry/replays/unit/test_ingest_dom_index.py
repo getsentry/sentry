@@ -342,6 +342,32 @@ def test_log_sdk_options():
         assert logger.info.call_args_list == [mock.call("SDK Options:", extra=log)]
 
 
+def test_log_large_dom_mutations():
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1684218178.308,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1684218178.308,
+                    "type": "default",
+                    "category": "replay.mutations",
+                    "data": {"count": 1738},
+                },
+            },
+        }
+    ]
+
+    log = events[0]["data"]["payload"].copy()
+    log["project_id"] = 1
+    log["replay_id"] = "1"
+
+    with mock.patch("sentry.replays.usecases.ingest.dom_index.logger") as logger:
+        parse_replay_actions(1, "1", 30, events)
+        assert logger.info.call_args_list == [mock.call("Large DOM Mutations List:", extra=log)]
+
+
 def test_get_testid():
     # Assert each test-id permutation is extracted.
     assert _get_testid({"testId": "123"}) == "123"

@@ -17,11 +17,7 @@ from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.issues.escalating import manage_issue_states
-from sentry.issues.grouptype import (
-    PerformanceNPlusOneGroupType,
-    PerformanceRenderBlockingAssetSpanGroupType,
-    ProfileFileIOGroupType,
-)
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models import (
     Activity,
@@ -55,7 +51,7 @@ from sentry.tasks.post_process import (
     process_event,
 )
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import BaseTestCase
+from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
@@ -1474,6 +1470,7 @@ class PostProcessGroupErrorTest(
             is_new_group_environment=is_new_group_environment,
             cache_key=cache_key,
             group_id=event.group_id,
+            project_id=event.project_id,
         )
         return cache_key
 
@@ -1487,17 +1484,12 @@ class PostProcessGroupPerformanceTest(
     InboxTestMixin,
     RuleProcessorTestMixin,
     SnoozeTestMixin,
+    PerformanceIssueTestCase,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
         fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
-        # Store a performance event
-        event = self.store_transaction(
-            project_id=project_id,
-            user_id="hi",
-            fingerprint=[fingerprint],
-        )
-        return event.for_group(event.groups[0])
+        return self.create_performance_issue(fingerprint=fingerprint)
 
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
@@ -1523,6 +1515,7 @@ class PostProcessGroupPerformanceTest(
                 is_new_group_environment=is_new_group_environment,
                 cache_key=cache_key,
                 group_states=group_states,
+                project_id=event.project_id,
             )
         return cache_key
 
@@ -1578,19 +1571,9 @@ class PostProcessGroupPerformanceTest(
         mock_handle_auto_assignment,
         mock_handle_owner_assignment,
     ):
-        min_ago = before_now(minutes=1).replace(tzinfo=pytz.utc)
-        event = self.store_transaction(
-            project_id=self.project.id,
-            user_id=self.create_user(name="user1").name,
-            fingerprint=[
-                f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1",
-                f"{PerformanceNPlusOneGroupType.type_id}-group2",
-            ],
-            environment=None,
-            timestamp=min_ago,
-        )
-        assert len(event.groups) == 2
-        cache_key = write_event_to_cache(event)
+        event = self.create_performance_issue()
+        assert event.group
+        # cache_key = write_event_to_cache(event)
         group_state = dict(
             is_new=True,
             is_regression=False,
@@ -1607,15 +1590,17 @@ class PostProcessGroupPerformanceTest(
 
         post_process_group(
             **group_state,
-            cache_key=cache_key,
+            cache_key="dummykey",
             group_id=event.group_id,
-            group_states=[{"id": group.id, **group_state} for group in event.groups],
+            group_states=[{"id": event.group.id, **group_state}],
+            occurrence_id=event.occurrence_id,
+            project_id=self.project.id,
         )
 
         assert transaction_processed_signal_mock.call_count == 1
         assert event_processed_signal_mock.call_count == 0
         assert mock_processor.call_count == 0
-        assert run_post_process_job_mock.call_count == 2
+        assert run_post_process_job_mock.call_count == 1
         assert call_order == [
             mock_handle_owner_assignment,
             mock_handle_auto_assignment,
