@@ -361,7 +361,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         with self.feature("organizations:issue-list-better-priority-sort"):
             weights: PrioritySortWeights = {"log_level": 5, "frequency": 5, "has_stacktrace": 5}
             results = self.make_query(
-                sort_by="better priority",
+                sort_by="betterPriority",
                 aggregate_kwargs=weights,
             )
         assert list(results) == [self.group2, self.group1]
@@ -399,7 +399,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         with self.feature("organizations:issue-list-better-priority-sort"):
             weights: PrioritySortWeights = {"log_level": 5, "frequency": 5, "has_stacktrace": 5}
             results = self.make_query(
-                sort_by="better priority",
+                sort_by="betterPriority",
                 projects=[new_project],
                 aggregate_kwargs=weights,
             )
@@ -1791,82 +1791,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         results = self.make_query([self.project, self.project2], sort_by="user")
         assert list(results) == [self.group1, self.group2, self.group_p2]
-
-    def test_sort_trend(self):
-        start = self.group1.first_seen - timedelta(days=1)
-        end = before_now(days=1).replace(tzinfo=pytz.utc)
-        middle = start + ((end - start) / 2)
-        self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group1"],
-                "event_id": "2" * 32,
-                "message": "something",
-                "timestamp": iso_format(self.base_datetime),
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group1"],
-                "event_id": "3" * 32,
-                "message": "something",
-                "timestamp": iso_format(self.base_datetime),
-            },
-            project_id=self.project.id,
-        )
-
-        fewer_events_group = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group4"],
-                "event_id": "4" * 32,
-                "message": "something",
-                "timestamp": iso_format(middle - timedelta(days=1)),
-            },
-            project_id=self.project.id,
-        ).group
-        self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group4"],
-                "event_id": "5" * 32,
-                "message": "something",
-                "timestamp": iso_format(middle - timedelta(days=1)),
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group4"],
-                "event_id": "6" * 32,
-                "message": "something",
-                "timestamp": iso_format(self.base_datetime),
-            },
-            project_id=self.project.id,
-        )
-
-        no_before_group = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group5"],
-                "event_id": "3" * 32,
-                "message": "something",
-                "timestamp": iso_format(self.base_datetime),
-            },
-            project_id=self.project.id,
-        ).group
-        no_after_group = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group6"],
-                "event_id": "4" * 32,
-                "message": "something",
-                "timestamp": iso_format(middle - timedelta(days=1)),
-            },
-            project_id=self.project.id,
-        ).group
-
-        self.set_up_multi_project()
-        results = self.make_query([self.project], sort_by="trend", date_from=start, date_to=end)
-        assert results[:2] == [self.group1, fewer_events_group]
-        # These will be arbitrarily ordered since their trend values are all 0
-        assert set(results[2:]) == {self.group2, no_before_group, no_after_group}
 
     def test_in_syntax_is_invalid(self):
         with pytest.raises(InvalidSearchQuery, match='"in" syntax invalid for "is" search'):

@@ -15,7 +15,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
-from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
@@ -655,8 +654,8 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
-    from sentry.issues.escalating import is_escalating, manage_snooze_states
-    from sentry.models import Activity, GroupInboxReason, GroupSnooze, GroupStatus, GroupSubStatus
+    from sentry.issues.escalating import is_escalating, manage_issue_states
+    from sentry.models import GroupInboxReason, GroupSnooze, GroupStatus, GroupSubStatus
 
     event = job["event"]
     group = event.group
@@ -668,7 +667,7 @@ def process_snoozes(job: PostProcessJob) -> None:
         and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     ):
         if is_escalating(group):
-            manage_snooze_states(group, GroupInboxReason.ESCALATING, event)
+            manage_issue_states(group, GroupInboxReason.ESCALATING, event)
 
             job["has_reappeared"] = True
         return
@@ -697,21 +696,13 @@ def process_snoozes(job: PostProcessJob) -> None:
             }
 
             if features.has("organizations:escalating-issues", group.organization):
-                manage_snooze_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
+                manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
 
             elif features.has("organizations:issue-states", group.organization):
-                manage_snooze_states(group, GroupInboxReason.ONGOING, event, snooze_details)
+                manage_issue_states(group, GroupInboxReason.ONGOING, event, snooze_details)
 
             else:
-                manage_snooze_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
-
-            Activity.objects.create(
-                project=group.project,
-                group=group,
-                type=ActivityType.SET_UNRESOLVED.value,
-                user_id=None,
-                data={"event_id": job["event"].event_id},
-            )
+                manage_issue_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
 
             snooze.delete()
 

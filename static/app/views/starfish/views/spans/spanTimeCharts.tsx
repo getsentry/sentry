@@ -1,12 +1,13 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import groupBy from 'lodash/groupBy';
 import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {
@@ -16,15 +17,14 @@ import {
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-import type {Cluster} from './clusters';
-
 type Props = {
-  clusters: Cluster[];
   descriptionFilter: string;
+  queryConditions: string[];
 };
 
-export function SpanTimeCharts({descriptionFilter, clusters}: Props) {
+export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
   const themes = useTheme();
+  const location = useLocation();
 
   const pageFilter = usePageFilters();
   const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
@@ -34,30 +34,26 @@ export function SpanTimeCharts({descriptionFilter, clusters}: Props) {
       : moment(pageFilter.selection.datetime.start);
   const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
 
-  const lastCluster = clusters.at(-1);
-
   const {isLoading, data} = useSpansQuery({
     queryString: `${getSpanTotalTimeChartQuery(
       pageFilter.selection.datetime,
       descriptionFilter,
-      lastCluster?.grouping_column || '',
-      clusters.map(c => c.condition(c.name))
+      queryConditions
     )}&referrer=span-time-charts`,
     initialData: [],
   });
 
-  if (!lastCluster) {
-    return null;
-  }
+  const {span_operation, action, domain} = location.query;
 
-  const dataByGroup = groupBy(data, 'primary_group');
+  const label = getSegmentLabel(span_operation, action, domain);
+  const dataByGroup = {[label]: data};
 
   const throughputTimeSeries = Object.keys(dataByGroup).map(groupName => {
     const groupData = dataByGroup[groupName];
 
     return zeroFillSeries(
       {
-        seriesName: groupName,
+        seriesName: label ?? 'Throughput',
         data: groupData.map(datum => ({
           value: datum.throughput,
           name: datum.interval,
@@ -74,7 +70,7 @@ export function SpanTimeCharts({descriptionFilter, clusters}: Props) {
 
     return zeroFillSeries(
       {
-        seriesName: groupName,
+        seriesName: label ?? 'Total Time',
         data: groupData.map(datum => ({
           value: datum.total_time,
           name: datum.interval,
@@ -91,7 +87,7 @@ export function SpanTimeCharts({descriptionFilter, clusters}: Props) {
 
     return zeroFillSeries(
       {
-        seriesName: groupName,
+        seriesName: label ?? 'P50',
         data: groupData.map(datum => ({
           value: datum.p50,
           name: datum.interval,
@@ -185,14 +181,12 @@ export function SpanTimeCharts({descriptionFilter, clusters}: Props) {
 export const getSpanTotalTimeChartQuery = (
   datetime: DateTimeObject,
   descriptionFilter: string | undefined,
-  groupingColumn: string,
   conditions: string[] = []
 ) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   const validConditions = conditions.filter(Boolean);
 
   return `SELECT
-    ${groupingColumn ? `${groupingColumn} AS primary_group,` : ''}
     count() AS throughput,
     sum(exclusive_time) AS total_time,
     quantile(0.50)(exclusive_time) AS p50,
@@ -203,7 +197,7 @@ export const getSpanTotalTimeChartQuery = (
     ${validConditions.length > 0 ? 'AND' : ''}
     ${validConditions.join(' AND ')}
     ${descriptionFilter ? `AND match(lower(description), '${descriptionFilter}')` : ''}
-    GROUP BY ${groupingColumn ? 'primary_group, ' : ''} interval
+    GROUP BY interval
     ORDER BY interval ASC
   `;
 };

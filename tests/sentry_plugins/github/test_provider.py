@@ -6,7 +6,7 @@ import responses
 from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry_plugins.github.client import GitHubAppsClient, GitHubClient
+from sentry_plugins.github.client import GithubPluginAppsClient, GithubPluginClient
 from sentry_plugins.github.plugin import GitHubAppsRepositoryProvider, GitHubRepositoryProvider
 from sentry_plugins.github.testutils import (
     COMPARE_COMMITS_EXAMPLE,
@@ -174,12 +174,14 @@ class GitHubAppsProviderTest(TestCase):
         return GitHubAppsRepositoryProvider("github_apps")
 
     @patch.object(
-        GitHubAppsClient,
+        GithubPluginAppsClient,
         "get_repositories",
         return_value=json.loads(INTSTALLATION_REPOSITORIES_API_RESPONSE),
     )
     @patch.object(
-        GitHubClient, "get_installations", return_value=json.loads(LIST_INSTALLATION_API_RESPONSE)
+        GithubPluginClient,
+        "get_installations",
+        return_value=json.loads(LIST_INSTALLATION_API_RESPONSE),
     )
     def test_link_auth(self, *args):
         user = self.create_user()
@@ -210,7 +212,7 @@ class GitHubAppsProviderTest(TestCase):
         # just check that it doesn't throw / try to delete a webhook
         assert self.provider.delete_repository(repo=repo, actor=user) is None
 
-    @patch.object(GitHubAppsClient, "get_last_commits", return_value=[])
+    @patch.object(GithubPluginAppsClient, "get_last_commits", return_value=[])
     def test_compare_commits_no_start(self, mock_get_last_commits):
         organization = self.create_organization()
         integration = Integration.objects.create(provider="github_apps", external_id="1")
@@ -226,7 +228,7 @@ class GitHubAppsProviderTest(TestCase):
 
         assert mock_get_last_commits.called
 
-    @patch.object(GitHubAppsClient, "compare_commits", return_value={"commits": []})
+    @patch.object(GithubPluginAppsClient, "compare_commits", return_value={"commits": []})
     def test_compare_commits(self, mock_compare_commits):
         organization = self.create_organization()
         integration = Integration.objects.create(provider="github_apps", external_id="1")

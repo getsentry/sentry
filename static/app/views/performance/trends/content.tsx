@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -316,6 +317,24 @@ class TrendsContent extends Component<Props, State> {
                   )}
                 />
               </ListContainer>
+              <Feature features={['organizations:performance-trendsv2-dev-only']}>
+                <ListContainer>
+                  <ChangedTransactions
+                    trendChangeType={TrendChangeType.IMPROVED}
+                    previousTrendFunction={previousTrendFunction}
+                    trendView={trendView}
+                    location={location}
+                    setError={this.setError}
+                  />
+                  <ChangedTransactions
+                    trendChangeType={TrendChangeType.REGRESSION}
+                    previousTrendFunction={previousTrendFunction}
+                    trendView={trendView}
+                    location={location}
+                    setError={this.setError}
+                  />
+                </ListContainer>
+              </Feature>
             </DefaultTrends>
           </Layout.Main>
         </Layout.Body>

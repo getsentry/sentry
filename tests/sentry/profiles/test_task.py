@@ -413,7 +413,7 @@ class ProfilesProcessTaskTest(TestCase):
         frames_sent = [
             idx
             for idx, frame in enumerate(profile["profile"]["frames"])
-            if is_valid_javascript_frame(frame)
+            if is_valid_javascript_frame(frame, profile)
         ]
 
         _process_symbolicator_results_for_sample(profile, stacktraces, frames_sent)
