@@ -10,6 +10,10 @@ from sentry.dynamic_sampling.rules.biases.recalibration_bias import Recalibratio
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     get_transactions_resampling_rates,
 )
+from sentry.dynamic_sampling.rules.helpers.sliding_window import (
+    SLIDING_WINDOW_CALCULATION_ERROR,
+    generate_sliding_window_cache_key,
+)
 from sentry.dynamic_sampling.rules.utils import RuleType, generate_cache_key_rebalance_factor
 from sentry.dynamic_sampling.tasks import (
     prioritise_projects,
@@ -293,33 +297,66 @@ class TestPrioritiseTransactionsTask(BaseMetricsLayerTestCase, TestCase, SnubaTe
         }
         return idx + counts[name]
 
+    def set_sliding_window_cache_entry(self, org_id: int, project_id: int, value: str):
+        redis = get_redis_client_for_ds()
+        cache_key = generate_sliding_window_cache_key(org_id=org_id)
+        redis.hset(cache_key, project_id, value)
+
+    def set_sliding_window_sample_rate(self, org_id: int, project_id: int, sample_rate: float):
+        self.set_sliding_window_cache_entry(org_id, project_id, str(sample_rate))
+
+    def set_sliding_window_error(self, org_id: int, project_id: int):
+        # We want also to test for this case in order to verify the fallback to the `get_blended_sample_rate`.
+        self.set_sliding_window_cache_entry(org_id, project_id, SLIDING_WINDOW_CALCULATION_ERROR)
+
+    def set_sliding_window_error_for_all(self):
+        for org in self.orgs_info:
+            org_id = org["org_id"]
+            for project_id in org["project_ids"]:
+                self.set_sliding_window_error(org_id, project_id)
+
+    def set_sliding_window_sample_rate_for_all(self, sample_rate: float):
+        for org in self.orgs_info:
+            org_id = org["org_id"]
+            for project_id in org["project_ids"]:
+                self.set_sliding_window_sample_rate(org_id, project_id, sample_rate)
+
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     def test_prioritise_transactions_simple(self, get_blended_sample_rate):
         """
         Create orgs projects & transactions and then check that the task creates rebalancing data
         in Redis
         """
-        get_blended_sample_rate.return_value = 0.25
+        BLENDED_RATE = 0.25
+        get_blended_sample_rate.return_value = BLENDED_RATE
 
-        with self.options(
-            {
-                "dynamic-sampling.prioritise_transactions.load_rate": 1.0,
-            }
-        ):
-            with self.tasks():
-                prioritise_transactions()
+        for (sliding_window_error, used_sample_rate) in ((True, BLENDED_RATE), (False, 0.5)):
+            if sliding_window_error:
+                self.set_sliding_window_error_for_all()
+            else:
+                self.set_sliding_window_sample_rate_for_all(used_sample_rate)
 
-        # now redis should contain rebalancing data for our projects
-        for org in self.orgs_info:
-            org_id = org["org_id"]
-            for proj_id in org["project_ids"]:
-                tran_rate, global_rate = get_transactions_resampling_rates(
-                    org_id=org_id, proj_id=proj_id, default_rate=0.1
-                )
-                for transaction_name in ["ts1", "ts2", "tm3", "tl4", "tl5"]:
-                    assert (
-                        transaction_name in tran_rate
-                    )  # check we have some rate calculated for each transaction
+            with self.options(
+                {
+                    "dynamic-sampling.prioritise_transactions.load_rate": 1.0,
+                }
+            ):
+                with self.feature("organizations:ds-sliding-window"):
+                    with self.tasks():
+                        prioritise_transactions()
+
+            # now redis should contain rebalancing data for our projects
+            for org in self.orgs_info:
+                org_id = org["org_id"]
+                for proj_id in org["project_ids"]:
+                    tran_rate, global_rate = get_transactions_resampling_rates(
+                        org_id=org_id, proj_id=proj_id, default_rate=0.1
+                    )
+                    for transaction_name in ["ts1", "ts2", "tm3", "tl4", "tl5"]:
+                        assert (
+                            transaction_name in tran_rate
+                        )  # check we have some rate calculated for each transaction
+                    assert global_rate == used_sample_rate
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     def test_prioritise_transactions_partial(self, get_blended_sample_rate):
@@ -333,36 +370,43 @@ class TestPrioritiseTransactionsTask(BaseMetricsLayerTestCase, TestCase, SnubaTe
         BLENDED_RATE = 0.25
         get_blended_sample_rate.return_value = BLENDED_RATE
 
-        with self.options(
-            {
-                "dynamic-sampling.prioritise_transactions.load_rate": 1.0,
-                "dynamic-sampling.prioritise_transactions.num_explicit_large_transactions": 1,
-                "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions": 1,
-                "dynamic-sampling.prioritise_transactions.rebalance_intensity": 0.7,
-            }
-        ):
-            with self.tasks():
-                prioritise_transactions()
+        for (sliding_window_error, used_sample_rate) in ((True, BLENDED_RATE), (False, 0.5)):
+            if sliding_window_error:
+                self.set_sliding_window_error_for_all()
+            else:
+                self.set_sliding_window_sample_rate_for_all(used_sample_rate)
 
-        # now redis should contain rebalancing data for our projects
-        for org in self.orgs_info:
-            org_id = org["org_id"]
-            for proj_id in org["project_ids"]:
-                tran_rate, implicit_rate = get_transactions_resampling_rates(
-                    org_id=org_id, proj_id=proj_id, default_rate=0.1
-                )
-                # explicit transactions
-                for transaction_name in ["ts1", "tl5"]:
-                    assert (
-                        transaction_name in tran_rate
-                    )  # check we have some rate calculated for each transaction
-                # implicit transactions
-                for transaction_name in ["ts2", "tm3", "tl4"]:
-                    assert (
-                        transaction_name not in tran_rate
-                    )  # check we have some rate calculated for each transaction
-                # we do have some different rate for implicit transactions
-                assert implicit_rate != BLENDED_RATE
+            with self.options(
+                {
+                    "dynamic-sampling.prioritise_transactions.load_rate": 1.0,
+                    "dynamic-sampling.prioritise_transactions.num_explicit_large_transactions": 1,
+                    "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions": 1,
+                    "dynamic-sampling.prioritise_transactions.rebalance_intensity": 0.7,
+                }
+            ):
+                with self.feature("organizations:ds-sliding-window"):
+                    with self.tasks():
+                        prioritise_transactions()
+
+            # now redis should contain rebalancing data for our projects
+            for org in self.orgs_info:
+                org_id = org["org_id"]
+                for proj_id in org["project_ids"]:
+                    tran_rate, implicit_rate = get_transactions_resampling_rates(
+                        org_id=org_id, proj_id=proj_id, default_rate=0.1
+                    )
+                    # explicit transactions
+                    for transaction_name in ["ts1", "tl5"]:
+                        assert (
+                            transaction_name in tran_rate
+                        )  # check we have some rate calculated for each transaction
+                    # implicit transactions
+                    for transaction_name in ["ts2", "tm3", "tl4"]:
+                        assert (
+                            transaction_name not in tran_rate
+                        )  # check we have some rate calculated for each transaction
+                    # we do have some different rate for implicit transactions
+                    assert implicit_rate != BLENDED_RATE
 
 
 @freeze_time(MOCK_DATETIME)

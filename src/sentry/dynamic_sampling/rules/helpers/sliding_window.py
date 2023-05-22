@@ -1,14 +1,11 @@
 from calendar import IllegalMonthError, monthrange
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 import pytz
 
 from sentry import options
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-
-if TYPE_CHECKING:
-    from sentry.models import Project
 
 # In case a misconfiguration happens on the server side which makes the option invalid, we want to define a fallback
 # sliding window size, which in this case will be 24 hours.
@@ -23,13 +20,13 @@ def generate_sliding_window_cache_key(org_id: int) -> str:
 
 
 def get_sliding_window_sample_rate(
-    project: "Project", error_sample_rate_fallback: float
+    org_id: int, project_id: int, error_sample_rate_fallback: float
 ) -> Optional[float]:
     redis_client = get_redis_client_for_ds()
-    cache_key = generate_sliding_window_cache_key(project.organization.id)
+    cache_key = generate_sliding_window_cache_key(org_id=org_id)
 
     try:
-        value = redis_client.hget(cache_key, project.id)
+        value = redis_client.hget(cache_key, project_id)
         # In case we had an explicit error, we want to fetch the blended sample rate to avoid oversampling.
         if value == SLIDING_WINDOW_CALCULATION_ERROR:
             return error_sample_rate_fallback
