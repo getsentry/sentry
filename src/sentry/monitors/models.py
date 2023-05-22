@@ -314,15 +314,17 @@ class Monitor(Model):
             data = alert_rule.data
             alert_rule_data = {}
 
-            # Build up email target data
+            # Build up alert target data
             targets = []
             for action in data.get("actions", []):
-                targets.append(
-                    {
-                        "targetIdentifier": action.get("targetIdentifier"),
-                        "targetType": action.get("targetType"),
-                    }
-                )
+                # Only include email alerts for now
+                if action.get("id") == "sentry.mail.actions.NotifyEmailAction":
+                    targets.append(
+                        {
+                            "targetIdentifier": action.get("targetIdentifier"),
+                            "targetType": action.get("targetType"),
+                        }
+                    )
             alert_rule_data["targets"] = targets
 
             return alert_rule_data
