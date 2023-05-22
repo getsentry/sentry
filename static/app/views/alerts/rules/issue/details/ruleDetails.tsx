@@ -349,7 +349,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               <Alert showIcon>
                 {isRuleSlackIntegration
                   ? tct(
-                      "[creator] muted this alert so these Slack notification won't be sent in the future",
+                      "[creator] muted this alert so these Slack notifications won't be sent in the future",
                       {creator: rule.snoozeCreatedBy}
                     )
                   : tct(
