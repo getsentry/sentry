@@ -2,11 +2,14 @@ import abc
 from typing import Any, Mapping, Sequence
 from unittest.mock import patch
 
+import pytest
 from django.test.utils import override_settings
 
+from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils import TestCase
-from sentry.testutils.cases import BaseTestCase
+from sentry.testutils.cases import BaseTestCase, SnubaTestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
@@ -32,7 +35,7 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
         feature_enabled=True,
         project_id=1234,
     ):
-        @override_settings(SDK_CRASH_MONITORING_PROJECT_ID=project_id)
+        @override_settings(SDK_CRASH_DETECTION_PROJECT_ID=project_id)
         def _execute_test(self):
             event = self.create_event(
                 data=event_data,
@@ -44,8 +47,8 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
             if should_be_reported:
                 mock_sdk_crash_reporter.report.assert_called_once()
 
-                reported_event = mock_sdk_crash_reporter.report.call_args.args[0]
-                assert reported_event.data["contexts"]["sdk_crash_detection"]["detected"] is True
+                reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
+                assert reported_event_data["contexts"]["sdk_crash_detection"]["detected"] is True
             else:
                 mock_sdk_crash_reporter.report.assert_not_called()
 
@@ -310,6 +313,36 @@ class CococaSDKFramesTestMixin(BaseSDKCrashDetectionMixin):
         )
 
 
+class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
+    @pytest.mark.django_db
+    @with_feature("organizations:sdk-crash-monitoring")
+    def test_event_stored_to_project(self):
+        eventstore = SnubaEventStorage()
+
+        cocoa_sdk_crashes_project = self.create_project(
+            name="Cocoa SDK Crashes",
+            slug="cocoa-sdk-crashes",
+            teams=[self.team],
+            fire_project_created=True,
+        )
+
+        event = self.create_event(
+            data=get_crash_event(),
+            project_id=self.project.id,
+        )
+
+        with override_settings(SDK_CRASH_DETECTION_PROJECT_ID=cocoa_sdk_crashes_project.id):
+            sdk_crash_event = sdk_crash_detection.detect_sdk_crash(event=event)
+
+            fetched_sdk_crash_event = eventstore.get_event_by_id(
+                cocoa_sdk_crashes_project.id, sdk_crash_event.event_id
+            )
+
+            assert sdk_crash_event.project_id == cocoa_sdk_crashes_project.id
+
+            assert sdk_crash_event.event_id == fetched_sdk_crash_event.event_id
+
+
 @region_silo_test
 class SDKCrashDetectionTest(
     TestCase,
@@ -318,6 +351,7 @@ class SDKCrashDetectionTest(
     CococaSDKFilenameTestMixin,
     CococaSDKFramesTestMixin,
     PerformanceEventTestMixin,
+    SDKCrashReportTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)

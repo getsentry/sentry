@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, Dict
+
 from django.conf import settings
 
 from sentry import features
@@ -15,8 +17,11 @@ class SDKCrashReporter:
     def __init__(self):
         self
 
-    def report(self, event: Event) -> None:
-        return
+    def report(self, event_data: Dict[str, Any], event_project_id: int) -> Event:
+        from sentry.event_manager import EventManager
+
+        manager = EventManager(event_data)
+        return manager.save(project_id=event_project_id)
 
 
 class SDKCrashDetection:
@@ -31,13 +36,9 @@ class SDKCrashDetection:
         self.cocoa_sdk_crash_detector = sdk_crash_detector
         self.event_stripper = event_stripper
 
-    def detect_sdk_crash(self, event: Event) -> None:
-
-        if settings.SDK_CRASH_MONITORING_PROJECT_ID is None:
-            return
-
+    def detect_sdk_crash(self, event: Event) -> Event:
         if not features.has("organizations:sdk-crash-monitoring", event.project.organization):
-            return
+            return None
 
         should_detect_sdk_crash = (
             event.group
@@ -49,25 +50,31 @@ class SDKCrashDetection:
 
         context = get_path(event.data, "contexts", "sdk_crash_detection")
         if context is not None and context.get("detected", False):
-            return
+            return None
 
         is_unhandled = (
             get_path(event.data, "exception", "values", -1, "mechanism", "data", "handled") is False
         )
         if is_unhandled is False:
-            return
+            return None
 
         frames = get_path(event.data, "exception", "values", -1, "stacktrace", "frames")
         if not frames:
-            return
+            return None
 
         if self.cocoa_sdk_crash_detector.is_sdk_crash(frames):
-            sdk_crash_event = self.event_stripper.strip_event_data(event)
+            sdk_crash_event_data = self.event_stripper.strip_event_data(event)
 
             set_path(
-                sdk_crash_event.data, "contexts", "sdk_crash_detection", value={"detected": True}
+                sdk_crash_event_data, "contexts", "sdk_crash_detection", value={"detected": True}
             )
-            self.sdk_crash_reporter.report(sdk_crash_event)
+
+            if settings.SDK_CRASH_DETECTION_PROJECT_ID is None:
+                return None
+
+            return self.sdk_crash_reporter.report(
+                sdk_crash_event_data, settings.SDK_CRASH_DETECTION_PROJECT_ID
+            )
 
 
 _crash_reporter = SDKCrashReporter()

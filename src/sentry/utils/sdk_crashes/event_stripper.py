@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Sequence
+from typing import Any, Dict, Mapping, Sequence
 
 from sentry.eventstore.models import Event
 from sentry.utils.safe import get_path
@@ -26,7 +26,7 @@ class EventStripper:
         "contexts",
     }
 
-    def strip_event_data(self, event: Event) -> Event:
+    def strip_event_data(self, event: Event) -> Dict[str, Any]:
         new_event_data = dict(filter(self._filter_event, event.data.items()))
         new_event_data["contexts"] = dict(
             filter(self._filter_contexts, new_event_data["contexts"].items())
@@ -44,8 +44,7 @@ class EventStripper:
             stripped_debug_meta_images = self._strip_debug_meta(debug_meta_images, stripped_frames)
             new_event_data["debug_meta"]["images"] = stripped_debug_meta_images
 
-        event.data = new_event_data
-        return event
+        return new_event_data
 
     def _filter_event(self, pair):
         key, _ = pair

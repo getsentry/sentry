@@ -33,11 +33,11 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             project_id=self.project.id,
         )
 
-        stripped_event = event_stripper.strip_event_data(event)
+        stripped_event_data = event_stripper.strip_event_data(event)
 
         keys_removed = {"tags", "user", "threads", "breadcrumbs", "environment"}
         for key in keys_removed:
-            assert stripped_event.data.get(key) is None, f"key {key} should be removed"
+            assert stripped_event_data.get(key) is None, f"key {key} should be removed"
 
         keys_kept = {
             "type",
@@ -52,21 +52,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
         }
 
         for key in keys_kept:
-            assert stripped_event.data.get(key) is not None, f"key {key} should be kept"
-
-    def test_strip_event_data_removes_ip_address(self):
-        event_stripper = EventStripper(CocoaSDKCrashDetector())
-
-        event = self.create_event(
-            data=get_crash_event(),
-            project_id=self.project.id,
-        )
-
-        assert event.ip_address is not None
-
-        stripped_event = event_stripper.strip_event_data(event)
-
-        assert stripped_event.ip_address is None
+            assert stripped_event_data.get(key) is not None, f"key {key} should be kept"
 
     def test_strip_event_data_without_debug_meta(self):
         event_stripper = EventStripper(CocoaSDKCrashDetector())
@@ -79,9 +65,9 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             project_id=self.project.id,
         )
 
-        stripped_event = event_stripper.strip_event_data(event)
+        stripped_event_data = event_stripper.strip_event_data(event)
 
-        debug_meta_images = get_path(stripped_event.data, "debug_meta", "images")
+        debug_meta_images = get_path(stripped_event_data, "debug_meta", "images")
         assert debug_meta_images is None
 
     def test_strip_event_data_strips_context(self):
@@ -92,9 +78,9 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             project_id=self.project.id,
         )
 
-        stripped_event = event_stripper.strip_event_data(event)
+        stripped_event_data = event_stripper.strip_event_data(event)
 
-        contexts = stripped_event.data.get("contexts")
+        contexts = stripped_event_data.get("contexts")
         assert contexts is not None
         assert contexts.get("app") is None
         assert contexts.get("os") is not None
@@ -108,9 +94,9 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             project_id=self.project.id,
         )
 
-        stripped_event = event_stripper.strip_event_data(event)
+        stripped_event_data = event_stripper.strip_event_data(event)
 
-        debug_meta_images = get_path(stripped_event.data, "debug_meta", "images")
+        debug_meta_images = get_path(stripped_event_data, "debug_meta", "images")
 
         image_addresses = set(map(lambda image: image["image_addr"], debug_meta_images))
         expected_image_addresses = {"0x1a4e8f000", "0x100304000", "0x100260000"}
@@ -134,10 +120,10 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             project_id=self.project.id,
         )
 
-        stripped_event = event_stripper.strip_event_data(event)
+        stripped_event_data = event_stripper.strip_event_data(event)
 
         stripped_frames = get_path(
-            stripped_event.data, "exception", "values", -1, "stacktrace", "frames"
+            stripped_event_data, "exception", "values", -1, "stacktrace", "frames"
         )
 
         assert len(stripped_frames) == 6
