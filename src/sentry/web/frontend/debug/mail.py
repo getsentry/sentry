@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime, timedelta
 from random import Random
 from typing import Any, MutableMapping
+from unittest import mock
 from urllib.parse import urlencode
 
 import pytz
@@ -21,19 +22,21 @@ from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore, options
+from sentry import eventstore
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
 from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
+from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.mail.notifications import get_builder_args
 from sentry.models import (
     Activity,
     Group,
     GroupStatus,
+    GroupSubStatus,
     Organization,
     OrganizationMember,
     Project,
@@ -41,13 +44,12 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.models.groupinbox import GroupInbox, GroupInboxReason, get_inbox_reason_text
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
+from sentry.notifications.notifications.rules import get_group_substatus_text
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
-from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import SAMPLE_TO_OCCURRENCE_MAP, TEST_ISSUE_OCCURRENCE
 from sentry.utils import json, loremipsum
@@ -192,58 +194,26 @@ def make_error_event(request, project, platform):
 def make_performance_event(project, sample_name: str):
     timestamp = datetime(2017, 9, 6, 0, 0)
     start_timestamp = timestamp - timedelta(seconds=3)
+    event_id = "44f1419e73884cd2b45c79918f4b6dc4"
+    occurrence_data = SAMPLE_TO_OCCURRENCE_MAP[sample_name].to_dict()
+    occurrence_data["event_id"] = event_id
+    perf_data = dict(load_data(sample_name, start_timestamp=start_timestamp, timestamp=timestamp))
+    perf_data["event_id"] = event_id
+    perf_data["project_id"] = project.id
 
-    if options.get("performance.issues.create_issues_through_platform", True):
-        event_id = "44f1419e73884cd2b45c79918f4b6dc4"
-        occurrence_data = SAMPLE_TO_OCCURRENCE_MAP[sample_name].to_dict()
-        occurrence_data["event_id"] = event_id
+    with mock.patch.object(
+        PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
+    ):
         occurrence, group_info = process_event_and_issue_occurrence(
             occurrence_data,
-            {
-                "event_id": event_id,
-                "project_id": project.id,
-                "timestamp": before_now(minutes=1).isoformat(),
-            },
+            perf_data,
         )
-
-        generic_group = group_info.group
-        group_event = generic_group.get_latest_event()
-        # Prevent CI screenshot from constantly changing
-        group_event.data["timestamp"] = timestamp.timestamp()
-        group_event.data["start_timestamp"] = start_timestamp.timestamp()
-        return group_event
-    else:
-        with override_options(
-            {
-                "performance.issues.all.problem-detection": 1.0,
-                "performance.issues.n_plus_one_db.problem-creation": 1.0,
-                "performance.issues.n_plus_one_api_calls.problem-creation": 1.0,
-                "performance.issues.render_blocking_assets.problem-creation": 1.0,
-            }
-        ), Feature(
-            {
-                "organizations:performance-n-plus-one-api-calls-detector": True,
-                "organizations:performance-issues-render-blocking-assets-detector": True,
-            }
-        ):
-            perf_data = dict(
-                load_data(
-                    sample_name,
-                    start_timestamp=start_timestamp,
-                    timestamp=timestamp,
-                )
-            )
-            perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
-            perf_event_manager = EventManager(perf_data)
-            perf_event_manager.normalize()
-            perf_data = perf_event_manager.get_data()
-            perf_event = perf_event_manager.save(project.id)
-            # Prevent CI screenshot from constantly changing
-            perf_event.data["timestamp"] = timestamp.timestamp()
-            perf_event.data["start_timestamp"] = start_timestamp.timestamp()
-
-        perf_event = perf_event.for_group(perf_event.groups[0])
-        return perf_event
+    generic_group = group_info.group
+    group_event = generic_group.get_latest_event()
+    # Prevent CI screenshot from constantly changing
+    group_event.data["timestamp"] = timestamp.timestamp()
+    group_event.data["start_timestamp"] = start_timestamp.timestamp()
+    return group_event
 
 
 def make_generic_event(project):
@@ -262,7 +232,7 @@ def make_generic_event(project):
     return generic_group.get_latest_event()
 
 
-def get_shared_context(rule, org, project, group, event, group_inbox: GroupInbox | None = None):
+def get_shared_context(rule, org, project, group, event):
     rules = get_rules([rule], org, project)
     snooze_alert = len(rules) > 0
     snooze_alert_url = rules[0].status_url + urlencode({"mute": "1"}) if snooze_alert else ""
@@ -270,7 +240,7 @@ def get_shared_context(rule, org, project, group, event, group_inbox: GroupInbox
         "rule": rule,
         "rules": rules,
         "group": group,
-        "group_header": get_inbox_reason_text(group_inbox),
+        "group_header": get_group_substatus_text(group),
         "event": event,
         "timezone": pytz.timezone("Europe/Vienna"),
         # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
@@ -448,22 +418,22 @@ def alert(request):
     event = make_error_event(request, project, platform)
     group = event.group
 
+    group.substatus = random.choice(
+        [GroupSubStatus.ESCALATING, GroupSubStatus.NEW, GroupSubStatus.REGRESSED]
+    )
+
     rule = Rule(id=1, label="An example rule")
     notification_reason = (
         random.randint(0, 1) > 0
         and f"We notified all members in the {project.get_full_name()} project of this issue"
         or None
     )
-    inbox_reason = random.choice(
-        [GroupInboxReason.NEW, GroupInboxReason.REGRESSION, GroupInboxReason.ONGOING]
-    )
-    group_inbox = GroupInbox(reason=inbox_reason.value, group=group, project=project)
 
     return MailPreview(
         html_template="sentry/emails/error.html",
         text_template="sentry/emails/error.txt",
         context={
-            **get_shared_context(rule, org, project, group, event, group_inbox),
+            **get_shared_context(rule, org, project, group, event),
             "interfaces": get_interface_list(event),
             "project_label": project.slug,
             "commits": json.loads(COMMIT_EXAMPLE),
@@ -487,7 +457,6 @@ def digest(request):
     # TODO: Refactor all of these into something more manageable.
     org = Organization(id=1, slug="example", name="Example Organization")
     project = Project(id=1, slug="example", name="Example Project", organization=org)
-    project.update_option("sentry:performance_issue_creation_rate", 1.0)
     rules = {
         i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
     }

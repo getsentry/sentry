@@ -1,0 +1,12 @@
+---
+created: '2023-05-16T04:47:10.451318Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "87021eb61da600fb3efd9158d979e63d"
+  component:
+    app*
+      exception*
+        type*
+          "System.AggregateException"

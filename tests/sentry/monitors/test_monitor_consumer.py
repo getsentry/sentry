@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 from unittest import mock
 
@@ -48,6 +48,7 @@ class MonitorConsumerTest(TestCase):
             "start_time": now.timestamp(),
             "project_id": self.project.id,
             "payload": json.dumps(payload),
+            "sdk": "test/1.0",
         }
 
         return wrapper
@@ -61,6 +62,7 @@ class MonitorConsumerTest(TestCase):
                 "schedule": "* * * * *",
                 "schedule_type": ScheduleType.CRONTAB,
                 "checkin_margin": 5,
+                "max_runtime": None,
             },
             **kwargs,
         )
@@ -70,6 +72,7 @@ class MonitorConsumerTest(TestCase):
             "start_time": datetime.now().timestamp(),
             "project_id": self.project.id,
             "payload": self.valid_payload(monitor_slug),
+            "sdk": "test/1.0",
         }
 
     def valid_payload(self, monitor_slug: str) -> str:
@@ -104,6 +107,7 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.message_guid)
         assert checkin.status == CheckInStatus.OK
+        assert checkin.monitor_config == monitor.config
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
@@ -111,6 +115,14 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
             checkin.date_added
         )
+
+        # Process another check-in to verify we set an expected time for the next check-in
+        expected_time = monitor_environment.next_checkin
+        message = self.get_message(monitor.slug)
+        _process_message(message)
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        # the expected time should not include the margin of 5 minutes
+        assert checkin.expected_time == expected_time - timedelta(minutes=5)
 
     @pytest.mark.django_db
     def test_passing(self) -> None:
@@ -120,6 +132,7 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
+        assert checkin.monitor_config == monitor.config
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
@@ -127,6 +140,14 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
             checkin.date_added
         )
+
+        # Process another check-in to verify we set an expected time for the next check-in
+        expected_time = monitor_environment.next_checkin
+        message = self.get_message(monitor.slug)
+        _process_message(message)
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        # the expected time should not include the margin of 5 minutes
+        assert checkin.expected_time == expected_time - timedelta(minutes=5)
 
     @pytest.mark.django_db
     def test_failing(self):

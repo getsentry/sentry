@@ -95,6 +95,7 @@ def _process_message(wrapper: Dict) -> None:
     params = json.loads(wrapper["payload"])
     start_time = to_datetime(float(wrapper["start_time"]))
     project_id = int(wrapper["project_id"])
+    source_sdk = wrapper["sdk"]
 
     environment = params.get("environment")
     project = Project.objects.get_from_cache(id=project_id)
@@ -103,7 +104,7 @@ def _process_message(wrapper: Dict) -> None:
 
     metric_kwargs = {
         "source": "consumer",
-        "source_sdk": params.get("sdk", {}).get("name", "unknown"),
+        "source_sdk": source_sdk,
     }
 
     if ratelimits.is_limited(
@@ -167,9 +168,24 @@ def _process_message(wrapper: Dict) -> None:
             try:
                 check_in = MonitorCheckIn.objects.select_for_update().get(
                     guid=params["check_in_id"],
-                    project_id=project_id,
-                    monitor=monitor,
                 )
+
+                if (
+                    check_in.project_id != project_id
+                    or check_in.monitor_id != monitor.id
+                    or check_in.monitor_environment_id != monitor_environment.id
+                ):
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={"source": "consumer", "status": "guid_mismatch"},
+                    )
+                    logger.debug(
+                        "check-in guid %s already associated with %s not payload %s",
+                        params["check_in_id"],
+                        check_in.monitor_id,
+                        monitor.id,
+                    )
+                    return
 
                 if check_in.status in CheckInStatus.FINISHED_VALUES:
                     metrics.incr(
@@ -211,6 +227,12 @@ def _process_message(wrapper: Dict) -> None:
                     logger.debug("check-in duration is invalid: %s", project.organization_id)
                     return
 
+                expected_time = None
+                if monitor_environment.last_checkin:
+                    expected_time = monitor.get_next_scheduled_checkin_without_margin(
+                        monitor_environment.last_checkin
+                    )
+
                 check_in = MonitorCheckIn.objects.create(
                     project_id=project_id,
                     monitor=monitor,
@@ -220,6 +242,8 @@ def _process_message(wrapper: Dict) -> None:
                     status=status,
                     date_added=date_added,
                     date_updated=start_time,
+                    expected_time=expected_time,
+                    monitor_config=monitor.get_validated_config(),
                 )
 
                 signal_first_checkin(project, monitor)
