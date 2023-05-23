@@ -13,7 +13,7 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
@@ -89,7 +89,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
 
 
 @region_silo_test
-class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase):
+class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
     def test_no_projects(self):
         response = self.do_request({})
 
@@ -605,50 +605,31 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase):
             {"project.name": self.project.slug, "id": "a" * 32, "count()": 1}
         ]
 
-    def test_performance_issue_ids_undefined(self):
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "2h",
-            "query": "performance.issue_ids:undefined",
-            "project": [self.project.id],
-        }
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
-
-    def test_has_performance_issue_ids(self):
-        data = load_data(
-            platform="transaction",
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        self.store_event(data=data, project_id=self.project.id)
-
+    def test_performance_short_group_id(self):
+        event = self.create_performance_issue()
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": "has:performance.issue_ids",
+            "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
+            "dataset": "issuePlatform",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
+    def test_multiple_performance_short_group_ids_filter(self):
+        event1 = self.create_performance_issue()
+        event2 = self.create_performance_issue()
+
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": "!has:performance.issue_ids",
+            "query": f"project:{event1.group.project.slug} issue:[{event1.group.qualified_short_id},{event2.group.qualified_short_id}]",
+            "dataset": "issuePlatform",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 0
-
-    def test_performance_issue_ids_array_with_undefined(self):
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "2h",
-            "query": "performance.issue_ids:[1,2,3,undefined]",
-            "project": [self.project.id],
-        }
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
+        assert response.data["data"][0]["count()"] == 2
 
     def test_event_id_with_in_search(self):
         self.store_event(
@@ -5900,10 +5881,12 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
                         "retention_days": 90,
                         "package": "lib_foo",
                         "environment": "development",
-                        "p95()": 92592143.6,
                         "p50()": 34695708.0,
-                        "p99()": 103764495.12000002,
                         "p75()": 45980969.0,
+                        "p95()": 92592143.6,
+                        "p99()": 103764495.12000002,
+                        "avg()": 51235123.0,
+                        "sum()": 951283182.0,
                         "examples()": [
                             "6919e4076b4a46bbaf1f3ef1f0666147",
                             "b04bafc378ea421b83b8680fd1caea52",
@@ -5953,11 +5936,15 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
                         "type": "String",
                     },
                     {
-                        "name": "p95()",
+                        "name": "p50()",
                         "type": "Float64",
                     },
                     {
-                        "name": "p50()",
+                        "name": "p75()",
+                        "type": "Float64",
+                    },
+                    {
+                        "name": "p95()",
                         "type": "Float64",
                     },
                     {
@@ -5965,7 +5952,11 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
                         "type": "Float64",
                     },
                     {
-                        "name": "p75()",
+                        "name": "avg()",
+                        "type": "Float64",
+                    },
+                    {
+                        "name": "sum()",
                         "type": "Float64",
                     },
                     {
@@ -5996,6 +5987,8 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
             "p75()",
             "p95()",
             "p99()",
+            "avg()",
+            "sum()",
         ]
 
         query = {
@@ -6028,8 +6021,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             "query": f"issue.id:{event.group.id}",
             "dataset": "issuePlatform",
         }
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            response = self.do_request(query)
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
@@ -6095,8 +6087,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
             "dataset": "issuePlatform",
         }
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            response = self.do_request(query)
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
@@ -6110,8 +6101,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             "query": f"project:{event1.group.project.slug} issue:[{event1.group.qualified_short_id},{event2.group.qualified_short_id}]",
             "dataset": "issuePlatform",
         }
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            response = self.do_request(query)
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 2
 

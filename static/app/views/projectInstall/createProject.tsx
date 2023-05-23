@@ -13,6 +13,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {SUPPORTED_LANGUAGES} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import PlatformPicker, {Platform} from 'sentry/components/platformPicker';
+import {canCreateProject} from 'sentry/components/projects/utils';
 import TeamSelector from 'sentry/components/teamSelector';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -204,6 +205,7 @@ function CreateProject() {
   const canSubmitForm =
     !inFlight &&
     team &&
+    canCreateProject(organization) &&
     projectName !== '' &&
     (!shouldCreateCustomRule || conditions?.every?.(condition => condition.value));
 
