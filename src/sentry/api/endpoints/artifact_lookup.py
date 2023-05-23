@@ -8,7 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic import SymbolicError, normalize_debug_id
 
-from sentry import ratelimits
+from sentry import options, ratelimits
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
@@ -134,9 +134,10 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 bundle_file_ids |= get_legacy_release_bundles(release, dist)
                 individual_files = get_legacy_releasefile_by_file_url(release, dist, url)
 
-        with metrics.timer("artifact_lookup.get.renew_artifact_bundles"):
-            # Before constructing the response, we want to asynchronously update the artifact bundles renewal date.
-            renew_artifact_bundles(used_artifact_bundles)
+        if options.get("sourcemaps.artifact-bundles.asynchronous-renewal") == 1.0:
+            with metrics.timer("artifact_lookup.get.renew_artifact_bundles"):
+                # Before constructing the response, we want to asynchronously update the artifact bundles renewal date.
+                renew_artifact_bundles(used_artifact_bundles)
 
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
