@@ -39,6 +39,7 @@ import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combi
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import {getTransactionSamplesQuery} from 'sentry/views/starfish/views/webServiceView/endpointOverview/queries';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -139,6 +140,24 @@ export default function EndpointOverview() {
     fields: [],
     version: 2,
   };
+
+  console.log(method);
+
+  const {isLoading: isTransactionSamplesDataLoading, data: transactionSamplesData} =
+    useQuery({
+      queryKey: ['transactionSamplesTable', transaction, method],
+      queryFn: () =>
+        fetch(
+          `${HOST}/?query=${getTransactionSamplesQuery({
+            transaction,
+            method,
+          })}`
+        ).then(res => res.json()),
+      retry: false,
+      initialData: [],
+    });
+
+  console.dir(transactionSamplesData);
 
   function renderFailureRateChart() {
     return (
