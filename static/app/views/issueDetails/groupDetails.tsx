@@ -10,9 +10,9 @@ import {
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import isEmpty from 'lodash/isEmpty';
 import * as qs from 'query-string';
 
-import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -59,6 +59,7 @@ import {
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
+  useEnvironmentsFromUrl,
   useFetchIssueTagsForDetailsPage,
 } from './utils';
 
@@ -69,8 +70,6 @@ type RouteProps = RouteComponentProps<RouterParams, {}>;
 
 type GroupDetailsProps = {
   children: React.ReactNode;
-  environments: string[];
-  isGlobalSelectionReady: boolean;
   organization: Organization;
   projects: Project[];
 };
@@ -93,15 +92,18 @@ interface GroupDetailsContentProps extends GroupDetailsProps, FetchGroupDetailsS
   project: Project;
 }
 
-function getGroupQuery({
-  environments,
-}: Pick<GroupDetailsProps, 'environments'>): Record<string, string | string[]> {
-  // Note, we do not want to include the environment key at all if there are no environments
+function getGroupQuery({environments}: {environments: string[]}) {
   const query: Record<string, string | string[]> = {
-    ...(environments ? {environment: environments} : {}),
+    ...(!isEmpty(environments) ? {environment: environments} : {}),
     expand: ['inbox', 'owners'],
     collapse: ['release', 'tags'],
   };
+
+  return query;
+}
+
+function getEventQuery({environments}: {environments: string[]}) {
+  const query = !isEmpty(environments) ? {environment: environments} : {};
 
   return query;
 }
@@ -244,17 +246,6 @@ function useRefetchGroupForReprocessing({
   }, [hasReprocessingV2Feature, refetchGroup]);
 }
 
-function useFetchOnMount() {
-  const api = useApi();
-  const organization = useOrganization();
-
-  useEffect(() => {
-    // Fetch environments early - used in GroupEventDetailsContainer
-    fetchOrganizationEnvironments(api, organization.slug);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-}
-
 function useEventApiQuery(
   eventID: string,
   queryKey: [string, {query: {environment?: string[]}}]
@@ -319,13 +310,7 @@ function useSyncGroupStore(incomingEnvs: string[]) {
   }, []);
 }
 
-function useFetchGroupDetails({
-  isGlobalSelectionReady,
-  environments,
-}: Pick<
-  GroupDetailsProps,
-  'isGlobalSelectionReady' | 'environments'
->): FetchGroupDetailsState {
+function useFetchGroupDetails(): FetchGroupDetailsState {
   const api = useApi();
   const organization = useOrganization();
   const router = useRouter();
@@ -336,6 +321,8 @@ function useFetchGroupDetails({
   const [errorType, setErrorType] = useState<Error | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
   const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
+
+  const environments = useEnvironmentsFromUrl();
 
   const groupId = params.groupId;
   const eventId = params.eventId ?? 'latest';
@@ -352,7 +339,7 @@ function useFetchGroupDetails({
     isLoading: loadingEvent,
     isError,
     refetch: refetchEvent,
-  } = useEventApiQuery(eventId, [eventUrl, {query: eventQuery}]);
+  } = useEventApiQuery(eventId, [eventUrl, {query: getEventQuery({environments})}]);
 
   const {
     data: groupData,
@@ -363,7 +350,6 @@ function useFetchGroupDetails({
   } = useApiQuery<Group>(makeFetchGroupQueryKey({groupId, environments}), {
     staleTime: 30000,
     cacheTime: 30000,
-    enabled: isGlobalSelectionReady,
   });
 
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
@@ -532,7 +518,6 @@ function useFetchGroupDetails({
     }
   }, [refetchGroup, group]);
 
-  useFetchOnMount();
   useRefetchGroupForReprocessing({refetchGroup});
 
   useEffect(() => {
@@ -665,7 +650,6 @@ function GroupDetailsContentError({
 }
 
 function GroupDetailsContent({
-  environments,
   children,
   group,
   project,
@@ -679,6 +663,8 @@ function GroupDetailsContent({
 
   const {currentTab, baseUrl} = getCurrentRouteInfo({group, event, router, organization});
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
+
+  const environments = useEnvironmentsFromUrl();
 
   useEffect(() => {
     if (
@@ -762,15 +748,17 @@ function GroupDetails(props: GroupDetailsProps) {
   const organization = useOrganization();
   const router = useRouter();
 
-  const {project, group, ...fetchGroupDetailsProps} = useFetchGroupDetails(props);
+  const {project, group, ...fetchGroupDetailsProps} = useFetchGroupDetails();
+
+  const environments = useEnvironmentsFromUrl();
 
   const {data} = useFetchIssueTagsForDetailsPage(
     {
       groupId: router.params.groupId,
-      environment: props.environments,
+      environment: environments,
     },
     // Don't want this query to take precedence over the main requests
-    {enabled: props.isGlobalSelectionReady && defined(group)}
+    {enabled: defined(group)}
   );
   const isSampleError = data?.some(tag => tag.key === 'sample_event') ?? false;
 
