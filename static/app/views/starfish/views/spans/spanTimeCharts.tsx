@@ -8,7 +8,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {
   datetimeToClickhouseFilterTimestamps,
@@ -98,6 +98,8 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
       endTime
     );
   });
+
+  useSynchronizeCharts([!isLoading]);
 
   return (
     <ChartsContainer>
