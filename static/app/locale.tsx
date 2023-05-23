@@ -42,7 +42,7 @@ export function toggleLocaleDebug() {
  * Global Jed locale object loaded with translations via setLocale
  */
 let i18n: Jed | null = null;
-let staticTranslations: string[] = [];
+const staticTranslations = new Set<string>();
 
 /**
  * Set the current application locale.
@@ -59,8 +59,6 @@ export function setLocale(translations: any): Jed {
       sentry: translations,
     },
   });
-
-  staticTranslations = Object.values(translations).flat() as string[];
 
   return i18n;
 }
@@ -88,7 +86,7 @@ export function isStaticString(formatString: string): boolean {
     return false;
   }
 
-  return staticTranslations.includes(formatString);
+  return staticTranslations.has(formatString);
 }
 
 /**
@@ -335,6 +333,7 @@ export function gettext(string: string, ...args: FormatArg[]): string {
   const val: string = getClient().gettext(string);
 
   if (args.length === 0) {
+    staticTranslations.add(val);
     return mark(val);
   }
 
