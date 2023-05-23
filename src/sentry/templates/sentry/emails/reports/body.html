@@ -349,33 +349,33 @@
     </table>
     {% endif %}
 
-    {% if issue_summary.total_inbox_count > 0 %}
+    {% if issue_summary.total_substatus_count > 0 %}
     <table class="issue-breakdown">
       <tr class="mobile-full-width">
         <td>
           <h4>Issues Breakdown</h4>
         </td>
         <td class="legend-inbox">
-          <span class="swatch" style="background-color: #F2B712;"></span>New<span class="quantity"> ({{ issue_summary.new_inbox_count }})</span>
-          <span class="swatch" style="background-color: #E9626E;"></span>Escalating<span class="quantity"> ({{ issue_summary.escalating_inbox_count }})</span>
-          <span class="swatch" style="background-color: #444674;"></span>Regressed<span class="quantity"> ({{ issue_summary.regression_inbox_count }})</span>
-          <span class="swatch" style="background-color: #DBD6E1;"></span>Ongoing<span class="quantity"> ({{ issue_summary.ongoing_inbox_count }})</span>
+          <span class="swatch" style="background-color: #F2B712;"></span>New<span class="quantity"> ({{ issue_summary.new_substatus_count }})</span>
+          <span class="swatch" style="background-color: #E9626E;"></span>Escalating<span class="quantity"> ({{ issue_summary.escalating_substatus_count }})</span>
+          <span class="swatch" style="background-color: #444674;"></span>Regressed<span class="quantity"> ({{ issue_summary.regression_substatus_count }})</span>
+          <span class="swatch" style="background-color: #DBD6E1;"></span>Ongoing<span class="quantity"> ({{ issue_summary.ongoing_substatus_count }})</span>
         </td>
       </tr>
       <tr>
         <td colspan="2">
           <table>
             <tr>
-              <td width="{% widthratio issue_summary.new_inbox_count issue_summary.total_inbox_count 100 %}%" title="New: {{ issue_summary.new_inbox_count }} events" style="background-color: #F2B712">
+              <td width="{% widthratio issue_summary.new_substatus_count issue_summary.total_substatus_count 100 %}%" title="New: {{ issue_summary.new_substatus_count }} events" style="background-color: #F2B712">
                 &nbsp;
               </td>
-              <td width="{% widthratio issue_summary.escalating_inbox_count issue_summary.total_inbox_count 100 %}%" title="Reopened: {{ issue_summary.escalating_inbox_count }} events" style="background-color: #E9626E">
+              <td width="{% widthratio issue_summary.escalating_substatus_count issue_summary.total_substatus_count 100 %}%" title="Reopened: {{ issue_summary.escalating_substatus_count }} events" style="background-color: #E9626E">
                 &nbsp;
               </td>
-              <td width="{% widthratio issue_summary.regression_inbox_count issue_summary.total_inbox_count 100 %}%" title="Existing: {{ issue_summary.regression_inbox_count }} events" style="background-color: #444674">
+              <td width="{% widthratio issue_summary.regression_substatus_count issue_summary.total_substatus_count 100 %}%" title="Existing: {{ issue_summary.regression_substatus_count }} events" style="background-color: #444674">
                 &nbsp;
               </td>
-              <td width="{% widthratio issue_summary.ongoing_inbox_count issue_summary.total_inbox_count 100 %}%" title="Existing: {{ issue_summary.ongoing_inbox_count }} events" style="background-color: #DBD6E1">
+              <td width="{% widthratio issue_summary.ongoing_substatus_count issue_summary.total_substatus_count 100 %}%" title="Existing: {{ issue_summary.ongoing_substatus_count }} events" style="background-color: #DBD6E1">
                 &nbsp;
               </td>
             </tr>
@@ -399,10 +399,10 @@
            href="{% org_url organization issue_detail query='referrer=weekly-email' %}">{{a.group.message}}</a>
         <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
       </div>
-      {% if a.inbox_reason and a.inbox_color %}
-      <span style="background-color: {{a.inbox_color}}; border: 1px solid {{a.inbox_color_border}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; height: 100%;">{{a.inbox_reason}}</span>
+      {% if a.group_substatus and a.group_substatus_color %}
+      <span style="background-color: {{a.group_substatus_color}}; border: 1px solid {{a.group_substatus_border_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; height: 100%;">{{a.group_substatus}}</span>
       {% else %}
-      <span style="background-color: {{a.status_color}}; border: 1px solid {{a.inbox_color_border}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; height: 100%;">{{a.status}}</span>
+      <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; height: 100%;">{{a.status}}</span>
       {% endif %}
       </div>
     {% endfor %}

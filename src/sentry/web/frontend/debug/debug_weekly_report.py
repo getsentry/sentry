@@ -8,8 +8,6 @@ from django.utils import timezone
 from sentry.models import Group, Organization, Project
 from sentry.tasks.weekly_reports import (
     ONE_DAY,
-    GroupInbox,
-    GroupInboxReason,
     OrganizationReportContext,
     ProjectContext,
     render_template_context,
@@ -19,7 +17,7 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 
 from .mail import MailPreviewView
 
-DEBUG_ESCALATING_ISSUES = False
+DEBUG_ISSUE_STATES = True
 
 
 def get_random(request):
@@ -80,24 +78,21 @@ class DebugWeeklyReportView(MailPreviewView):
             project_context.dropped_transaction_count = int(
                 random.weibullvariate(5, 1) * random.paretovariate(0.2)
             )
-            group_inbox = (
-                GroupInbox(reason=GroupInboxReason.ESCALATING) if DEBUG_ESCALATING_ISSUES else None
-            )
             project_context.key_errors = [
-                (g, None, group_inbox, random.randint(0, 1000)) for g in Group.objects.all()[:3]
+                (g, None, random.randint(0, 1000)) for g in Group.objects.all()[:3]
             ]
 
-            if DEBUG_ESCALATING_ISSUES:
+            if DEBUG_ISSUE_STATES:
                 # For organizations:issue-states
-                project_context.new_inbox_count = random.randint(5, 200)
-                project_context.escalating_inbox_count = random.randint(5, 200)
-                project_context.regression_inbox_count = random.randint(5, 200)
-                project_context.ongoing_inbox_count = random.randint(20, 3000)
-                project_context.total_inbox_count = (
-                    project_context.new_inbox_count
-                    + project_context.escalating_inbox_count
-                    + project_context.regression_inbox_count
-                    + project_context.ongoing_inbox_count
+                project_context.new_substatus_count = random.randint(5, 200)
+                project_context.escalating_substatus_count = random.randint(5, 200)
+                project_context.regression_substatus_count = random.randint(5, 200)
+                project_context.ongoing_substatus_count = random.randint(20, 3000)
+                project_context.total_substatus_count = (
+                    project_context.new_substatus_count
+                    + project_context.escalating_substatus_count
+                    + project_context.regression_substatus_count
+                    + project_context.ongoing_substatus_count
                 )
             else:
                 # Removed after organizations:issue-states GA

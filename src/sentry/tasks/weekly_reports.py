@@ -2,7 +2,7 @@ import heapq
 import logging
 from datetime import timedelta
 from functools import partial, reduce
-from typing import MutableMapping
+from typing import MutableMapping, Tuple
 
 import sentry_sdk
 from django.db.models import Count
@@ -26,9 +26,8 @@ from sentry.models import (
     Group,
     GroupHistory,
     GroupHistoryStatus,
-    GroupInbox,
-    GroupInboxReason,
     GroupStatus,
+    GroupSubStatus,
     Organization,
     OrganizationMember,
     OrganizationStatus,
@@ -82,11 +81,11 @@ class ProjectContext:
     new_issue_count = 0
 
     # For organizations:issue-states
-    new_inbox_count = 0
-    ongoing_inbox_count = 0
-    escalating_inbox_count = 0
-    regression_inbox_count = 0
-    total_inbox_count = 0
+    new_substatus_count = 0
+    ongoing_substatus_count = 0
+    escalating_substatus_count = 0
+    regression_substatus_count = 0
+    total_substatus_count = 0
 
     def __init__(self, project):
         self.project = project
@@ -176,8 +175,10 @@ def prepare_organization_report(
         project_event_counts_for_organization(ctx)
 
     if has_issue_states:
-        with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_inbox_summaries"):
-            organization_project_issue_inbox_summaries(ctx)
+        with sentry_sdk.start_span(
+            op="weekly_reports.organization_project_issue_substatus_summaries"
+        ):
+            organization_project_issue_substatus_summaries(ctx)
     else:
         with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_summaries"):
             organization_project_issue_summaries(ctx)
@@ -342,30 +343,27 @@ def organization_project_issue_summaries(ctx):
         )
 
 
-def organization_project_issue_inbox_summaries(ctx: OrganizationReportContext):
-    inbox_counts = (
-        GroupInbox.objects.filter(
-            organization_id=ctx.organization.id,
-            reason__in=[
-                GroupInboxReason.NEW.value,
-                GroupInboxReason.ESCALATING.value,
-                GroupInboxReason.ONGOING.value,
-                GroupInboxReason.REGRESSION.value,
-            ],
+def organization_project_issue_substatus_summaries(ctx: OrganizationReportContext):
+    substatus_counts = (
+        Group.objects.filter(
+            project__organization_id=ctx.organization.id,
+            first_seen__gte=ctx.start,
+            first_seen__lt=ctx.end,
+            status=GroupStatus.UNRESOLVED,
         )
-        .values("project_id", "reason")
-        .annotate(total=Count("reason"))
+        .values("project_id", "substatus")
+        .annotate(total=Count("substatus"))
     )
-    for count in inbox_counts:
-        if count["reason"] == GroupInboxReason.NEW.value:
-            ctx.projects[count["project_id"]].new_inbox_count = count["total"]
-        if count["reason"] == GroupInboxReason.ESCALATING.value:
-            ctx.projects[count["project_id"]].escalating_inbox_count = count["total"]
-        if count["reason"] == GroupInboxReason.ONGOING.value:
-            ctx.projects[count["project_id"]].ongoing_inbox_count = count["total"]
-        if count["reason"] == GroupInboxReason.REGRESSION.value:
-            ctx.projects[count["project_id"]].regression_inbox_count = count["total"]
-        ctx.projects[count["project_id"]].total_inbox_count += count["total"]
+    for item in substatus_counts:
+        if item["substatus"] == GroupSubStatus.NEW:
+            ctx.projects[item["project_id"]].new_substatus_count = item["total"]
+        if item["substatus"] == GroupSubStatus.ESCALATING:
+            ctx.projects[item["project_id"]].escalating_substatus_count = item["total"]
+        if item["substatus"] == GroupSubStatus.ONGOING:
+            ctx.projects[item["project_id"]].ongoing_substatus_count = item["total"]
+        if item["substatus"] == GroupSubStatus.REGRESSED:
+            ctx.projects[item["project_id"]].regression_substatus_count = item["total"]
+        ctx.projects[item["project_id"]].total_substatus_count += item["total"]
 
 
 # Project passes
@@ -412,26 +410,8 @@ def fetch_key_error_groups(ctx):
     for group in Group.objects.filter(id__in=all_key_error_group_ids).all():
         group_id_to_group[group.id] = group
 
-    group_id_to_group_inbox = {}
     group_id_to_group_history = {}
-    if features.has("organizations:issue-states", ctx.organization):
-        group_inbox = (
-            GroupInbox.objects.filter(
-                group_id__in=all_key_error_group_ids,
-                organization_id=ctx.organization.id,
-                reason__in=[
-                    GroupInboxReason.NEW.value,
-                    GroupInboxReason.ESCALATING.value,
-                    GroupInboxReason.ONGOING.value,
-                    GroupInboxReason.REGRESSION.value,
-                ],
-            )
-            .order_by("group_id", "-date_added")
-            .distinct("group_id")
-            .all()
-        )
-        group_id_to_group_inbox = {g.group_id: g for g in group_inbox}
-    else:
+    if not features.has("organizations:issue-states", ctx.organization):
         group_history = (
             GroupHistory.objects.filter(
                 group_id__in=all_key_error_group_ids, organization_id=ctx.organization.id
@@ -452,7 +432,6 @@ def fetch_key_error_groups(ctx):
                     (
                         group_id_to_group.get(group_id),
                         group_id_to_group_history.get(group_id, None),
-                        group_id_to_group_inbox.get(group_id, None),
                         count,
                     )
                     for group_id, count in project_ctx.key_errors
@@ -683,18 +662,21 @@ group_status_to_color = {
     GroupHistoryStatus.REVIEWED: "#FAD473",
     GroupHistoryStatus.NEW: "#FAD473",
 }
-group_inbox_to_color = {
-    GroupInboxReason.NEW: "rgba(245, 176, 0, 0.08)",
-    GroupInboxReason.REGRESSION: "rgba(108, 95, 199, 0.08)",
-    GroupInboxReason.ESCALATING: "rgba(245, 84, 89, 0.09)",
-    GroupInboxReason.ONGOING: "rgba(219, 214, 225, 1)",
-}
-group_inbox_to_color_border = {
-    GroupInboxReason.NEW: "rgba(245, 176, 0, 0.55)",
-    GroupInboxReason.REGRESSION: "rgba(108, 95, 199, 0.5)",
-    GroupInboxReason.ESCALATING: "rgba(245, 84, 89, 0.5)",
-    GroupInboxReason.ONGOING: "rgba(219, 214, 225, 1)",
-}
+
+
+def get_group_status_badge(group: Group) -> Tuple[str, str, str]:
+    """
+    Returns a tuple of (text, background_color, border_color)
+    Should be similar to GroupStatusBadge.tsx in the frontend
+    """
+    if group.status == GroupStatus.UNRESOLVED:
+        if group.substatus == GroupSubStatus.NEW:
+            return ("New", "rgba(245, 176, 0, 0.08)", "rgba(245, 176, 0, 0.55)")
+        if group.substatus == GroupSubStatus.REGRESSED:
+            return ("Regressed", "rgba(108, 95, 199, 0.08)", "rgba(108, 95, 199, 0.5)")
+        if group.substatus == GroupSubStatus.ESCALATING:
+            return ("Escalating", "rgba(245, 84, 89, 0.09)", "rgba(245, 84, 89, 0.5)")
+    return ("Ongoing", "rgba(219, 214, 225, 1)", "rgba(219, 214, 225, 1)")
 
 
 def render_template_context(ctx, user):
@@ -713,6 +695,8 @@ def render_template_context(ctx, user):
     else:
         # If user is None, or if the user is not a member of the organization, we assume that the email was directed to a user who joined all teams.
         user_projects = ctx.projects.values()
+
+    has_issue_states = features.has("organizations:issue-states", ctx.organization)
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
@@ -861,7 +845,7 @@ def render_template_context(ctx, user):
                             "project_id": project_ctx.project.id,
                         },
                     )
-                for group, group_history, group_inbox, count in project_ctx.key_errors:
+                for group, group_history, count in project_ctx.key_errors:
                     if ctx.organization.slug == "sentry":
                         logger.info(
                             "render_template_context.all_key_errors.found_error",
@@ -872,9 +856,10 @@ def render_template_context(ctx, user):
                             },
                         )
 
-                    group_inbox_reason = (
-                        GroupInboxReason(group_inbox.reason) if group_inbox else None
+                    (substatus, substatus_color, substatus_border_color,) = (
+                        get_group_status_badge(group) if has_issue_states else (None, None, None)
                     )
+
                     yield {
                         "count": count,
                         "group": group,
@@ -884,15 +869,9 @@ def render_template_context(ctx, user):
                         "status_color": group_status_to_color[group_history.status]
                         if group_history
                         else group_status_to_color[GroupHistoryStatus.NEW],
-                        "inbox_reason": group_inbox_reason.name.capitalize()
-                        if group_inbox_reason
-                        else None,
-                        "inbox_color": group_inbox_to_color[group_inbox_reason]
-                        if group_inbox_reason
-                        else group_inbox_to_color[GroupInboxReason.NEW],
-                        "inbox_color_border": group_inbox_to_color_border[group_inbox_reason]
-                        if group_inbox_reason
-                        else group_inbox_to_color_border[GroupInboxReason.NEW],
+                        "group_substatus": substatus,
+                        "group_substatus_color": substatus_color,
+                        "group_substatus_border_color": substatus_border_color,
                     }
 
         return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
@@ -939,31 +918,31 @@ def render_template_context(ctx, user):
         existing_issue_count = 0
         reopened_issue_count = 0
         new_issue_count = 0
-        new_inbox_count = 0
-        escalating_inbox_count = 0
-        ongoing_inbox_count = 0
-        regression_inbox_count = 0
-        total_inbox_count = 0
+        new_substatus_count = 0
+        escalating_substatus_count = 0
+        ongoing_substatus_count = 0
+        regression_substatus_count = 0
+        total_substatus_count = 0
         for project_ctx in user_projects:
             all_issue_count += project_ctx.all_issue_count
             existing_issue_count += project_ctx.existing_issue_count
             reopened_issue_count += project_ctx.reopened_issue_count
             new_issue_count += project_ctx.new_issue_count
-            new_inbox_count += project_ctx.new_inbox_count
-            escalating_inbox_count += project_ctx.escalating_inbox_count
-            ongoing_inbox_count += project_ctx.ongoing_inbox_count
-            regression_inbox_count += project_ctx.regression_inbox_count
-            total_inbox_count += project_ctx.total_inbox_count
+            new_substatus_count += project_ctx.new_substatus_count
+            escalating_substatus_count += project_ctx.escalating_substatus_count
+            ongoing_substatus_count += project_ctx.ongoing_substatus_count
+            regression_substatus_count += project_ctx.regression_substatus_count
+            total_substatus_count += project_ctx.total_substatus_count
         return {
             "all_issue_count": all_issue_count,
             "existing_issue_count": existing_issue_count,
             "reopened_issue_count": reopened_issue_count,
             "new_issue_count": new_issue_count,
-            "new_inbox_count": new_inbox_count,
-            "escalating_inbox_count": escalating_inbox_count,
-            "ongoing_inbox_count": ongoing_inbox_count,
-            "regression_inbox_count": regression_inbox_count,
-            "total_inbox_count": total_inbox_count,
+            "new_substatus_count": new_substatus_count,
+            "escalating_substatus_count": escalating_substatus_count,
+            "ongoing_substatus_count": ongoing_substatus_count,
+            "regression_substatus_count": regression_substatus_count,
+            "total_substatus_count": total_substatus_count,
         }
 
     return {
