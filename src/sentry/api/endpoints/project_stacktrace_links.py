@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.integrations.base import IntegrationInstallation
@@ -40,6 +41,11 @@ class ProjectStacktraceLinksEndpoint(ProjectEndpoint):  # type: ignore
     """
 
     def get(self, request: Request, project: Project) -> Response:
+        if not features.has(
+            "organizations:profiling-stacktrace-links", project.organization, actor=request.user
+        ):
+            return Response(status=404)
+
         serializer = StacktraceLinksSerializer(data=request.GET)
 
         if not serializer.is_valid():

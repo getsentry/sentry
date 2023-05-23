@@ -40,11 +40,15 @@ class ProjectStacktraceLinksTest(APITestCase):
             source_root=source_root,
         )
 
+    def test_no_feature(self):
+        self.get_error_response(self.organization.slug, self.project.slug, status_code=404)
+
     def test_no_files(self):
         """The file query search is missing"""
-        response = self.get_error_response(
-            self.organization.slug, self.project.slug, status_code=400
-        )
+        with self.feature(["organizations:profiling-stacktrace-links"]):
+            response = self.get_error_response(
+                self.organization.slug, self.project.slug, status_code=400
+            )
         assert response.data == {
             "file": [ErrorDetail(string="This field is required.", code="required")]
         }
@@ -58,9 +62,10 @@ class ProjectStacktraceLinksTest(APITestCase):
             teams=[self.create_team(organization=self.organization)],
         )
 
-        response = self.get_success_response(
-            self.organization.slug, project.slug, qs_params={"file": self.filepath}
-        )
+        with self.feature(["organizations:profiling-stacktrace-links"]):
+            response = self.get_success_response(
+                self.organization.slug, project.slug, qs_params={"file": self.filepath}
+            )
         assert response.data == {
             "files": [
                 {
@@ -73,9 +78,10 @@ class ProjectStacktraceLinksTest(APITestCase):
     def test_file_not_found_error(self):
         self.setup_code_mapping("foo", "src/foo")
 
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
-        )
+        with self.feature(["organizations:profiling-stacktrace-links"]):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
+            )
         assert response.data == {
             "files": [
                 {
@@ -92,9 +98,10 @@ class ProjectStacktraceLinksTest(APITestCase):
         ):
             self.setup_code_mapping("foo", "src/foo")
 
-            response = self.get_success_response(
-                self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
-            )
+            with self.feature(["organizations:profiling-stacktrace-links"]):
+                response = self.get_success_response(
+                    self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
+                )
             assert response.data == {
                 "files": [
                     {
@@ -108,9 +115,10 @@ class ProjectStacktraceLinksTest(APITestCase):
     def test_stack_root_mismatch_error(self):
         self.setup_code_mapping("baz", "src/foo")
 
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
-        )
+        with self.feature(["organizations:profiling-stacktrace-links"]):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
+            )
         assert response.data == {
             "files": [
                 {
@@ -126,9 +134,10 @@ class ProjectStacktraceLinksTest(APITestCase):
         ):
             self.setup_code_mapping("foo", "src/foo")
 
-            response = self.get_success_response(
-                self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
-            )
+            with self.feature(["organizations:profiling-stacktrace-links"]):
+                response = self.get_success_response(
+                    self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
+                )
             assert response.data == {
                 "files": [
                     {
@@ -149,9 +158,10 @@ class ProjectStacktraceLinksTest(APITestCase):
                 "file": self.filepath,
             }
 
-            response = self.get_success_response(
-                self.organization.slug, self.project.slug, qs_params=qs
-            )
+            with self.feature(["organizations:profiling-stacktrace-links"]):
+                response = self.get_success_response(
+                    self.organization.slug, self.project.slug, qs_params=qs
+                )
             assert response.data == {
                 "files": [
                     {
@@ -172,9 +182,10 @@ class ProjectStacktraceLinksTest(APITestCase):
                 "file": self.filepath,
             }
 
-            response = self.get_success_response(
-                self.organization.slug, self.project.slug, qs_params=qs
-            )
+            with self.feature(["organizations:profiling-stacktrace-links"]):
+                response = self.get_success_response(
+                    self.organization.slug, self.project.slug, qs_params=qs
+                )
             assert response.data == {
                 "files": [
                     {
@@ -194,9 +205,10 @@ class ProjectStacktraceLinksTest(APITestCase):
         with patch.object(
             ExampleIntegration, "get_stacktrace_link", side_effect=[None, "https://sourceurl.com"]
         ):
-            response = self.get_success_response(
-                self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
-            )
+            with self.feature(["organizations:profiling-stacktrace-links"]):
+                response = self.get_success_response(
+                    self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
+                )
             assert response.data == {
                 "files": [
                     {
@@ -289,7 +301,8 @@ class ProjectStacktraceLinksTest(APITestCase):
         ):
             qs = {"file": files}
 
-            response = self.get_success_response(
-                self.organization.slug, self.project.slug, qs_params=qs
-            )
+            with self.feature(["organizations:profiling-stacktrace-links"]):
+                response = self.get_success_response(
+                    self.organization.slug, self.project.slug, qs_params=qs
+                )
             assert response.data == {"files": expected}
