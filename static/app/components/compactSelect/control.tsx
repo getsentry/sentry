@@ -8,10 +8,10 @@ import {
   useState,
 } from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {useTheme} from '@emotion/react';
+import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
-import {useKeyboard} from '@react-aria/interactions';
+import {useFocusWithin, useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {ListState} from '@react-stately/list';
 import {OverlayTriggerState} from '@react-stately/overlays';
@@ -288,12 +288,6 @@ export function Control({
         // Wait for overlay to appear/disappear
         await new Promise(resolve => resolve(null));
 
-        // Focus on search box if present
-        if (searchable) {
-          searchRef.current?.focus();
-          return;
-        }
-
         const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
           `li[role="${grid ? 'row' : 'option'}"][aria-selected="true"]`
         );
@@ -414,6 +408,29 @@ export function Control({
     [selectedOptions]
   );
 
+  const {keyboardProps: optionsWrapKeyboardProps} = useKeyboard({
+    onKeyDown: e => {
+      e.continuePropagation();
+
+      if (!searchRef.current) {
+        return;
+      }
+
+      // When a printable key or backspace is pressed, move focus to the search input
+      // to begin search
+      if (e.key.length === 1 || e.key === 'Backspace') {
+        searchRef.current.focus();
+      }
+    },
+  });
+
+  // Track when OptionsWrap has focus within. If yes, then we'll render a mock blinking
+  // cursor inside the search input to indicate that you can type to search.
+  const [optionsWrapHasFocus, setOptionsWrapHaveFocus] = useState(false);
+  const {focusWithinProps: optionsWrapFocusWithinProps} = useFocusWithin({
+    onFocusWithinChange: setOptionsWrapHaveFocus,
+  });
+
   const contextValue = useMemo(
     () => ({
       registerListState,
@@ -476,21 +493,29 @@ export function Control({
                 </MenuHeader>
               )}
               {searchable && (
-                <SearchInput
-                  ref={searchRef}
-                  placeholder={searchPlaceholder}
-                  value={searchInputValue}
-                  onFocus={onSearchFocus}
-                  onBlur={onSearchBlur}
-                  onChange={e => updateSearch(e.target.value)}
-                  visualSize={size}
-                  {...searchKeyboardProps}
-                />
+                <SearchInputWrap visualSize={size} showMockCursor={optionsWrapHasFocus}>
+                  <SearchInput
+                    ref={searchRef}
+                    placeholder={searchPlaceholder}
+                    value={searchInputValue}
+                    onFocus={onSearchFocus}
+                    onBlur={onSearchBlur}
+                    onChange={e => updateSearch(e.target.value)}
+                    visualSize={size}
+                    {...searchKeyboardProps}
+                  />
+                </SearchInputWrap>
               )}
               {typeof menuBody === 'function'
                 ? menuBody({closeOverlay: overlayState.close})
                 : menuBody}
-              {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
+              {!hideOptions && (
+                <OptionsWrap
+                  {...mergeProps(optionsWrapKeyboardProps, optionsWrapFocusWithinProps)}
+                >
+                  {children}
+                </OptionsWrap>
+              )}
               {menuFooter && (
                 <MenuFooter>
                   {typeof menuFooter === 'function'
@@ -576,23 +601,31 @@ const ClearButton = styled(Button)`
   margin: -${space(0.25)} -${space(0.5)};
 `;
 
+const searchCursorBlink = keyframes`
+  49% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  99% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+`;
+
 const searchVerticalPadding: Record<FormSize, string> = {
   xs: space(0.25),
   sm: space(0.5),
   md: space(0.5),
 };
-const SearchInput = styled('input')<{visualSize: FormSize}>`
-  appearance: none;
-  width: calc(100% - ${space(0.5)} * 2);
-  border: solid 1px ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.backgroundSecondary};
-  font-size: ${p =>
-    p.visualSize !== 'xs' ? p.theme.fontSizeMedium : p.theme.fontSizeSmall};
 
-  /* Subtract 1px to account for border width */
-  padding: ${p => searchVerticalPadding[p.visualSize]} calc(${space(1)} - 1px);
-  margin: ${space(0.5)} ${space(0.5)};
+const SearchInputWrap = styled('div')<{showMockCursor: boolean; visualSize: FormSize}>`
+  position: relative;
+  width: calc(100% - ${space(0.5)} * 2);
+  margin: ${space(0.5)};
 
   /* Add 1px to top margin if immediately preceded by menu header, to account for the
   header's shadow border */
@@ -600,12 +633,44 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
     margin-top: calc(${space(0.5)} + 1px);
   }
 
+  &::before {
+    display: ${p => (p.showMockCursor ? 'initial' : 'none')};
+    content: '';
+    position: absolute;
+    left: ${space(1)};
+    top: 50%;
+    transform: translateY(-50%);
+    height: 1.1em;
+    width: 1px;
+    background: currentcolor;
+    animation: 1s ${searchCursorBlink} infinite;
+    z-index: 1;
+  }
+`;
+
+const SearchInput = styled('input')<{visualSize: FormSize}>`
+  appearance: none;
+  width: 100%;
+  border: solid 1px ${p => p.theme.innerBorder};
+  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.backgroundSecondary};
+
+  font-size: ${p =>
+    p.visualSize !== 'xs' ? p.theme.fontSizeMedium : p.theme.fontSizeSmall};
+
+  /* Subtract 1px to account for border width */
+  padding: ${p => searchVerticalPadding[p.visualSize]} calc(${space(1)} - 1px);
+
+  /* Hide mock text cursor (by covering it) when not empty */
+  &:not(:placeholder-shown) {
+    position: relative;
+    z-index: 2;
+  }
+
   &:focus,
   &.focus-visible {
     outline: none;
-    border-color: ${p => p.theme.focusBorder};
-    box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
-    background: transparent;
+    border: solid 1px ${p => p.theme.border};
   }
 `;
 
