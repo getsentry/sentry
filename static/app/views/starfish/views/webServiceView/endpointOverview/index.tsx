@@ -250,7 +250,7 @@ export default function EndpointOverview() {
                   {({results, loading}) => {
                     return (
                       <Fragment>
-                        <ChartPanel title={t('p50(duration)')}>
+                        <ChartPanel title={t('p50(Duration)')}>
                           <Chart
                             statsPeriod={(statsPeriod as string) ?? '24h'}
                             height={80}
