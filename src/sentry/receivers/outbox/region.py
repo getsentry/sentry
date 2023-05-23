@@ -65,7 +65,7 @@ def process_organization_member_create(
 
     organizationmember_mapping_service.create_with_organization_member(org_member=org_member)
 
-    if org_member.user_id is not None:
+    if org_member.user_id is not None and org_member.token is None:
         member_joined.send_robust(
             sender=None,
             member=org_member,
@@ -96,7 +96,7 @@ def process_organization_member_updates(
         rpc_update_org_member=rpc_org_member_update,
     )
 
-    if org_member.user_id is not None:
+    if org_member.user_id is not None and org_member.token is None:
         member_joined.send_robust(
             sender=None,
             member=org_member,
