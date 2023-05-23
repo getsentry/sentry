@@ -90,6 +90,45 @@ def valid_duration(duration: Optional[int]) -> bool:
     return True
 
 
+def validate_existing_checkin(
+    check_in: MonitorCheckIn,
+    project_id: int,
+    monitor: Monitor,
+    monitor_environment: MonitorEnvironment,
+    status: CheckInStatus,
+) -> bool:
+    if (
+        check_in.project_id != project_id
+        or check_in.monitor_id != monitor.id
+        or check_in.monitor_environment_id != monitor_environment.id
+    ):
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={"source": "consumer", "status": "guid_mismatch"},
+        )
+        logger.debug(
+            "check-in guid %s already associated with %s not payload %s",
+            check_in.guid,
+            check_in.monitor_id,
+            monitor.id,
+        )
+        return False
+
+    if check_in.status in CheckInStatus.FINISHED_VALUES:
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={"source": "consumer", "status": "checkin_finished"},
+        )
+        logger.debug(
+            "check-in was finished: attempted update from %s to %s",
+            check_in.status,
+            status,
+        )
+        return False
+
+    return True
+
+
 def _process_message(wrapper: Dict) -> None:
     # TODO: validate payload schema
     params = json.loads(wrapper["payload"])
@@ -170,33 +209,9 @@ def _process_message(wrapper: Dict) -> None:
                     guid=params["check_in_id"],
                 )
 
-                if (
-                    check_in.project_id != project_id
-                    or check_in.monitor_id != monitor.id
-                    or check_in.monitor_environment_id != monitor_environment.id
+                if not validate_existing_checkin(
+                    check_in, project_id, monitor, monitor_environment, status
                 ):
-                    metrics.incr(
-                        "monitors.checkin.result",
-                        tags={"source": "consumer", "status": "guid_mismatch"},
-                    )
-                    logger.debug(
-                        "check-in guid %s already associated with %s not payload %s",
-                        params["check_in_id"],
-                        check_in.monitor_id,
-                        monitor.id,
-                    )
-                    return
-
-                if check_in.status in CheckInStatus.FINISHED_VALUES:
-                    metrics.incr(
-                        "monitors.checkin.result",
-                        tags={"source": "consumer", "status": "checkin_finished"},
-                    )
-                    logger.debug(
-                        "check-in was finished: attempted update from %s to %s",
-                        check_in.status,
-                        status,
-                    )
                     return
 
                 if duration is None:
@@ -233,18 +248,30 @@ def _process_message(wrapper: Dict) -> None:
                         monitor_environment.last_checkin
                     )
 
-                check_in = MonitorCheckIn.objects.create(
-                    project_id=project_id,
-                    monitor=monitor,
-                    monitor_environment=monitor_environment,
+                check_in, created = MonitorCheckIn.objects.create_or_update(
                     guid=params["check_in_id"],
-                    duration=duration,
-                    status=status,
-                    date_added=date_added,
-                    date_updated=start_time,
-                    expected_time=expected_time,
-                    monitor_config=monitor.get_validated_config(),
+                    defaults={
+                        "project_id": project_id,
+                        "monitor": monitor,
+                        "monitor_environment": monitor_environment,
+                        "duration": duration,
+                        "status": status,
+                        "date_added": date_added,
+                        "date_updated": start_time,
+                        "expected_time": expected_time,
+                        "monitor_config": monitor.get_validated_config(),
+                    },
                 )
+
+                # Protect against race condition for newly created check-ins
+                if not created:
+                    if not validate_existing_checkin(
+                        check_in, project_id, monitor, monitor_environment, status
+                    ):
+                        return
+
+                    check_in.update(status=status, duration=duration)
+                    return
 
                 signal_first_checkin(project, monitor)
 
