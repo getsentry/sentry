@@ -526,7 +526,6 @@ export function Actions(props: Props) {
                 isArchived={isIgnored}
                 onUpdate={onUpdate}
                 disabled={disabled}
-                disableTooltip
               />
             </GuideAnchor>
           ) : (
@@ -536,12 +535,10 @@ export function Actions(props: Props) {
               onUpdate={onUpdate}
               disabled={disabled}
               size="sm"
-              disableTooltip
             />
           )}
           <GuideAnchor target="resolve" position="bottom" offset={20}>
             <ResolveActions
-              disableTooltip
               disabled={disabled}
               disableDropdown={disabled}
               hasRelease={hasRelease}
