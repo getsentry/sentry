@@ -65,6 +65,13 @@ def process_organization_member_create(
 
     organizationmember_mapping_service.create_with_organization_member(org_member=org_member)
 
+    if org_member.user_id is not None:
+        member_joined.send_robust(
+            sender=None,
+            member=org_member,
+            organization_id=org_member.organization_id,
+        )
+
 
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_UPDATE)
 def process_organization_member_updates(
