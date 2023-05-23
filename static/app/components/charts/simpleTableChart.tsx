@@ -16,7 +16,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
-import {StyledLink} from 'sentry/views/discover/table/tableView';
+import {TransactionLink} from 'sentry/views/discover/table/tableView';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {
   decodeColumnOrder,
@@ -79,7 +79,7 @@ function SimpleTableChart({
 
       if (column.key === 'transaction' && row.transaction) {
         cell = (
-          <StyledLink
+          <TransactionLink
             to={getTargetForTransactionSummaryLink(
               row,
               organization,
@@ -89,7 +89,7 @@ function SimpleTableChart({
             )}
           >
             {cell}
-          </StyledLink>
+          </TransactionLink>
         );
       }
 

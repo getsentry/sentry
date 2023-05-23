@@ -323,7 +323,7 @@ function TableView(props: TableViewProps) {
       );
     } else if (columnKey === 'transaction' && dataRow.transaction) {
       cell = (
-        <StyledLink
+        <TransactionLink
           data-test-id="tableView-transaction-link"
           to={getTargetForTransactionSummaryLink(
             dataRow,
@@ -334,7 +334,7 @@ function TableView(props: TableViewProps) {
           )}
         >
           {cell}
-        </StyledLink>
+        </TransactionLink>
       );
     } else if (columnKey === 'trace') {
       const dateSelection = eventView.normalizeDateSelection(location);
@@ -644,6 +644,10 @@ export const StyledLink = styled(Link)`
   & div {
     display: inline;
   }
+`;
+
+export const TransactionLink = styled(Link)`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledIcon = styled(IconStack)`

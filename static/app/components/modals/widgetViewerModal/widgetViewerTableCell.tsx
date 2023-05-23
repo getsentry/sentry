@@ -33,7 +33,7 @@ import {
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
-import {StyledLink} from 'sentry/views/discover/table/tableView';
+import {TransactionLink} from 'sentry/views/discover/table/tableView';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {getTargetForTransactionSummaryLink} from 'sentry/views/discover/utils';
@@ -231,7 +231,7 @@ export const renderGridBodyCell = ({
 
     if (columnKey === 'transaction' && dataRow.transaction) {
       cell = (
-        <StyledLink
+        <TransactionLink
           data-test-id="widget-viewer-transaction-link"
           to={getTargetForTransactionSummaryLink(
             dataRow,
@@ -241,7 +241,7 @@ export const renderGridBodyCell = ({
           )}
         >
           {cell}
-        </StyledLink>
+        </TransactionLink>
       );
     }
 
