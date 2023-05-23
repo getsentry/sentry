@@ -195,7 +195,7 @@ type Props = WithRouterProps &
      */
     disabled?: boolean;
     /**
-     * Disables wildcard searches
+     * Disables wildcard searches (in freeText and in the value of key:value searches mode)
      */
     disallowWildcard?: boolean;
     dropdownClassName?: string;
