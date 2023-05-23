@@ -204,6 +204,10 @@ type Props = WithRouterProps &
      * Disables wildcard searches (in freeText and in the value of key:value searches mode)
      */
     disallowWildcard?: boolean;
+    /**
+     * Custom message that will be displayed when the prop `disallowWildcard` is true and the user types a wildcard
+     */
+    disallowWildcardReason?: string;
     dropdownClassName?: string;
     /**
      * A list of tags to exclude from the autocompletion list, for ex environment may be excluded

@@ -907,6 +907,10 @@ export type SearchConfig = {
    */
   textOperatorKeys: Set<string>;
   /**
+   * Custom message that will be displayed when the prop `disallowWildcard` is true and the user types a wildcard
+   */
+  disallowWildcardReason?: string;
+  /**
    * If validateKeys is set to true, tag keys that don't exist in supportedTags will be consider invalid
    */
   supportedTags?: TagCollection;
