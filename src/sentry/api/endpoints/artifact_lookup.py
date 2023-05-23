@@ -27,6 +27,7 @@ from sentry.models import (
     ReleaseFile,
 )
 from sentry.tasks.process_buffer import buffer_incr
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.api")
 
@@ -133,8 +134,9 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 bundle_file_ids |= get_legacy_release_bundles(release, dist)
                 individual_files = get_legacy_releasefile_by_file_url(release, dist, url)
 
-        # Before constructing the response, we want to asynchronously update the artifact bundles renewal date.
-        renew_artifact_bundles(used_artifact_bundles)
+        with metrics.timer("artifact_lookup.get.renew_artifact_bundles"):
+            # Before constructing the response, we want to asynchronously update the artifact bundles renewal date.
+            renew_artifact_bundles(used_artifact_bundles)
 
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
@@ -173,7 +175,9 @@ def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
     now = datetime.now(tz=pytz.UTC)
 
     for (bundle_id, date_added) in used_artifact_bundles.items():
+        metrics.incr("artifact_lookup.get.renew_artifact_bundles.can_be_renewed")
         if ArtifactBundle.can_be_renewed(date_added):
+            metrics.incr("artifact_lookup.get.renew_artifact_bundles.asynchronously_renew")
             # In case this bundle can be renewed we will try to renew all the instances connected to this bundle with
             # the same `date_added`.
             for model in (
@@ -193,8 +197,7 @@ def async_update_model(model, bundle_id: int, new_date_added: datetime):
     # `bundle_id` in different times. We assume here that there is some ordering in execution and tasks are completed
     # in a FIFO fashion without interleaving updates. In case this will turn out to not be the case, we might have
     # the database into an inconsistent state, where the `date_added` field of the entities connected to the same
-    # `bundle_id` are different.In addition, we don't expect the same `bundle_id` to be request in close sequence since
-    # Symbolicator caches for ~1 hour the bundles received by this endpoint.
+    # `bundle_id` are different.
     #
     # In case we will end up with inconsistent `date_added` into the database, we might have to build a fully custom
     # batching implementation with proper ordering and consistency guarantees.
