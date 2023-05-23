@@ -389,12 +389,15 @@ export class TokenConverter {
     };
   };
 
-  tokenFreeText = (value: string, quoted: boolean) => ({
-    ...this.defaultTokenFields,
-    type: Token.FreeText as const,
-    value,
-    quoted,
-  });
+  tokenFreeText = (value: string, quoted: boolean) => {
+    return {
+      ...this.defaultTokenFields,
+      type: Token.FreeText as const,
+      value,
+      quoted,
+      invalid: this.checkInvalidFreeText(value),
+    };
+  };
 
   tokenLogicGroup = (
     inner: Array<
@@ -558,12 +561,15 @@ export class TokenConverter {
     items: [{separator: '', value: item1}, ...items.map(listJoiner)],
   });
 
-  tokenValueText = (value: string, quoted: boolean) => ({
-    ...this.defaultTokenFields,
-    type: Token.ValueText as const,
-    value,
-    quoted,
-  });
+  tokenValueText = (value: string, quoted: boolean) => {
+    console.log('A');
+    return {
+      ...this.defaultTokenFields,
+      type: Token.ValueText as const,
+      value,
+      quoted,
+    };
+  };
 
   /**
    * This method is used while tokenizing to predicate whether a filter should
@@ -625,6 +631,17 @@ export class TokenConverter {
    */
   predicateTextOperator = (key: TextFilter['key']) =>
     this.config.textOperatorKeys.has(getKeyName(key));
+
+  /**
+   * Checks the validity of a free text based on the provided search configuration
+   */
+  checkInvalidFreeText = (value: string) => {
+    if (this.config.disallowWildCard && value.includes('*')) {
+      return {reason: t('Invalid query. Wildcards not supported in search.')};
+    }
+
+    return null;
+  };
 
   /**
    * Checks a filter against some non-grammar validation rules
@@ -726,6 +743,10 @@ export class TokenConverter {
    * Validates the value of a text filter
    */
   checkInvalidTextValue = (value: TextFilter['value']) => {
+    if (this.config.disallowWildCard && value.value.includes('*')) {
+      return {reason: t('Wildcards not supported in search')};
+    }
+
     if (!value.quoted && /(^|[^\\])"/.test(value.value)) {
       return {reason: t('Quotes must enclose text or be escaped')};
     }
@@ -744,7 +765,13 @@ export class TokenConverter {
     const hasEmptyValue = items.some(item => item.value === null);
 
     if (hasEmptyValue) {
-      return {reason: t('Lists should not have empty values')};
+      return {reason: t('Lists should not have empty VALUES')};
+    }
+
+    const hasWildCard = items.some(item => item.value.value.includes('*'));
+
+    if (this.config.disallowWildCard && hasWildCard) {
+      return {reason: t('Wildcards not supported in search')};
     }
 
     return null;
@@ -804,6 +831,10 @@ export type SearchConfig = {
    * Keys considered valid for date filter types
    */
   dateKeys: Set<string>;
+  /**
+   * Disallow wildcards in free text search
+   */
+  disallowWildCard: boolean;
   /**
    * Keys which are considered valid for duration filters
    */
@@ -874,6 +905,7 @@ const defaultConfig: SearchConfig = {
   ]),
   sizeKeys: new Set([]),
   allowBoolean: true,
+  disallowWildCard: false,
 };
 
 const options = {
@@ -896,10 +928,19 @@ export function parseSearch(
     ? {
         ...additionalConfig,
         ...Object.keys(defaultConfig).reduce((configAccumulator, key) => {
-          configAccumulator[key] =
-            typeof defaultConfig[key] === 'object'
-              ? new Set([...defaultConfig[key], ...(additionalConfig[key] ?? [])])
-              : defaultConfig[key];
+          if (typeof defaultConfig[key] === 'object') {
+            configAccumulator[key] = new Set([
+              ...defaultConfig[key],
+              ...(additionalConfig[key] ?? []),
+            ]);
+            return configAccumulator;
+          }
+          if (typeof defaultConfig[key] === 'boolean') {
+            configAccumulator[key] = additionalConfig[key] || defaultConfig[key];
+            return configAccumulator;
+          }
+
+          configAccumulator[key] = defaultConfig[key];
           return configAccumulator;
         }, {}),
       }
