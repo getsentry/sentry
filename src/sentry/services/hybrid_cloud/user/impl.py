@@ -12,12 +12,7 @@ from sentry.api.serializers import (
 from sentry.api.serializers.base import Serializer
 from sentry.db.models import BaseQuerySet
 from sentry.db.models.query import in_iexact
-from sentry.models import (
-    Organization,
-    OrganizationMapping,
-    OrganizationMemberMapping,
-    OrganizationStatus,
-)
+from sentry.models import OrganizationMapping, OrganizationMemberMapping, OrganizationStatus
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import (
@@ -25,7 +20,6 @@ from sentry.services.hybrid_cloud.filter_query import (
     OpaqueSerializedResponse,
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.organization.serial import serialize_organization
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 from sentry.services.hybrid_cloud.user import (
     RpcUser,
@@ -106,14 +100,10 @@ class DatabaseBackedUserService(UserService):
         org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
             "organization_id", flat=True
         )
+        org_query = OrganizationMapping.objects.filter(organization_id__in=org_ids)
         if only_visible:
-            # TODO: Combine this with OrganizationMapping query
-            # (which will probably require adding status to OrganizationMapping and backfilling)
-            orgs = Organization.objects.filter(id__in=org_ids, status=OrganizationStatus.ACTIVE)
-            return [serialize_organization(o) for o in orgs]
-        else:
-            orgs = OrganizationMapping.objects.filter(organization_id__in=org_ids)
-            return [serialize_organization_mapping(o) for o in orgs]
+            org_query = org_query.filter(status=OrganizationStatus.ACTIVE)
+        return [serialize_organization_mapping(o) for o in org_query]
 
     def flush_nonce(self, *, user_id: int) -> None:
         user = User.objects.filter(id=user_id).first()
