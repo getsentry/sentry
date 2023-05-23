@@ -13,6 +13,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {
   FilterType,
+  InvalidReason,
   ParseResult,
   parseSearch,
   SearchConfig,
@@ -67,6 +68,7 @@ import {
   createSearchGroups,
   filterKeysFromQuery,
   generateOperatorEntryMap,
+  getAutoCompleteGroupForInvalidWildcard,
   getDateTagAutocompleteGroups,
   getSearchConfigFromCustomPerformanceMetrics,
   getSearchGroupWithItemMarkedActive,
@@ -199,15 +201,9 @@ type Props = WithRouterProps &
      */
     disabled?: boolean;
     /**
-<<<<<<< HEAD
      * Disables wildcard searches (in freeText and in the value of key:value searches mode)
      */
     disallowWildcard?: boolean;
-=======
-     * Disables wildcard searches
-     */
-    disallowWildCard?: boolean;
->>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
     dropdownClassName?: string;
     /**
      * A list of tags to exclude from the autocompletion list, for ex environment may be excluded
@@ -363,12 +359,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
-<<<<<<< HEAD
       disallowWildcard: this.props.disallowWildcard,
       invalidMessages: this.props.invalidMessages,
-=======
-      disallowWildCard: this.props.disallowWildCard,
->>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
     }),
     searchTerm: '',
     searchGroups: [],
@@ -429,12 +421,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
-<<<<<<< HEAD
       disallowWildcard: this.props.disallowWildcard,
       invalidMessages: this.props.invalidMessages,
-=======
-      disallowWildCard: this.props.disallowWildCard,
->>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
     };
     return {
       query,
@@ -1474,6 +1462,13 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
           searchText = '';
         }
 
+        if (cursorToken.invalid?.type === InvalidReason.WILDCARD_NOT_ALLOWED) {
+          const groups = getAutoCompleteGroupForInvalidWildcard(searchText);
+          this.updateAutoCompleteStateMultiHeader(groups);
+
+          return;
+        }
+
         const fieldDefinition = this.props.fieldDefinitionGetter(tagName);
         const isDate = fieldDefinition?.valueType === FieldValueType.DATE;
 
@@ -1487,6 +1482,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
         const valueGroup = await this.generateValueAutocompleteGroup(tagName, searchText);
         const autocompleteGroups = valueGroup ? [valueGroup] : [];
+
         // show operator group if at beginning of value
         if (cursor === node.location.start.offset) {
           const opGroup = generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
@@ -1528,16 +1524,19 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     }
 
     const cursorSearchTerm = this.cursorSearchTerm;
+
     if (cursorToken.type === Token.FreeText && cursorSearchTerm) {
-      const autocompleteGroups = [
-        await this.generateTagAutocompleteGroup(cursorSearchTerm.searchTerm),
-      ];
+      const groups: AutocompleteGroup[] | null =
+        cursorToken.invalid?.type === InvalidReason.WILDCARD_NOT_ALLOWED
+          ? getAutoCompleteGroupForInvalidWildcard(cursorSearchTerm.searchTerm)
+          : [await this.generateTagAutocompleteGroup(cursorSearchTerm.searchTerm)];
 
       if (cursor === this.cursorPosition) {
         this.setState({
           searchTerm: cursorSearchTerm.searchTerm,
         });
-        this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+
+        this.updateAutoCompleteStateMultiHeader(groups);
       }
       return;
     }
@@ -1942,12 +1941,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             supportedTags={supportedTags}
             customInvalidTagMessage={this.props.customInvalidTagMessage}
             mergeItemsWith={this.props.mergeSearchGroupWith}
-<<<<<<< HEAD
             disallowWildcard={this.props.disallowWildcard}
             invalidMessages={this.props.invalidMessages}
-=======
-            disallowWildCard={this.props.disallowWildCard}
->>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
           />
         )}
       </Container>
