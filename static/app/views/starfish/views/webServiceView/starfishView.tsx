@@ -21,12 +21,12 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
-import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/failureDetailPanel';
+import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 import EndpointList from './endpointList';
@@ -206,7 +206,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <StyledRow minSize={200}>
         <ChartsContainer>
           <ChartsContainerItem>
-            <FacetBreakdownBar title={t('Where is time spent in my web service?')} />
+            <SpanGroupBreakdownContainer />
           </ChartsContainerItem>
           <ChartsContainerItem2>
             <ChartPanel title={t('Error Rate')}>{renderFailureRateChart()}</ChartPanel>

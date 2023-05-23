@@ -14,9 +14,9 @@ import EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
-import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -177,10 +177,7 @@ function EndpointDetailBody({row, eventView, organization}: EndpointDetailBodyPr
           );
         }}
       </EventsRequest>
-      <FacetBreakdownBar
-        title={t('Where is time spent in this endpoint?')}
-        transaction={row.transaction}
-      />
+      <SpanGroupBreakdownContainer transaction={row.transaction} />
     </div>
   );
 }

@@ -46,6 +46,17 @@ export function getSegmentLabel(span_operation, action, domain) {
   return span_operation || domain || undefined;
 }
 
+export function getSegmentLabelForTable(span_operation, action, domain) {
+  const label = getSegmentLabel(span_operation, action, domain);
+  if (span_operation === 'http.client') {
+    return t('%s (http.client spans)', label);
+  }
+  if (span_operation === 'db') {
+    return t('%s (db spans)', label);
+  }
+  return t('%s spans', label);
+}
+
 function getNumSpansLabel(segment) {
   if (segment.span_operation === 'other' && segment.num_spans === 0) {
     return t('Other');
