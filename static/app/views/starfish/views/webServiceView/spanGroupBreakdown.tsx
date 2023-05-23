@@ -59,7 +59,7 @@ export function SpanGroupBreakdown({
         </Header>
         <Chart
           statsPeriod="24h"
-          height={200}
+          height={175}
           data={visibleSeries}
           start=""
           end=""
@@ -68,10 +68,10 @@ export function SpanGroupBreakdown({
           grid={{
             left: '0',
             right: '0',
-            top: '16px',
-            bottom: '8px',
+            top: '8px',
+            bottom: '0',
           }}
-          definedAxisTicks={8}
+          definedAxisTicks={6}
           stacked
           aggregateOutputFormat="duration"
         />
