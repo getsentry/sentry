@@ -18,8 +18,8 @@ __all__ = ("GzippedDictField",)
 
 logger = logging.getLogger("sentry")
 
-PICKLE_WRITE_JSON = False
-VALIDATE_JSON_SAMPLE_RATE = 0.1
+PICKLE_WRITE_JSON = True
+VALIDATE_JSON_SAMPLE_RATE = 1
 
 
 def _validate_roundtrip(o: object) -> None:
