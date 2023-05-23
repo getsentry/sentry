@@ -296,6 +296,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     const issueAlertOptionsChoices = this.getIssueAlertsChoices(
       this.state.conditions?.length > 0
     );
+
     return (
       <Fragment>
         <PageHeadingWithTopMargins withMargins>
