@@ -10,6 +10,46 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TextAlignLeft} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 
+/* Two types of sample tables
+  1: Transaction Focused
+    - Gets sample transaction events
+    - Duration is for the whole txn
+    - p50 comparison is for the whole txn p50 compared to sample event
+    - Will not have a span count column, as it is not span focused
+
+  2: Span Focused
+    - Gets transaction events containing a specific span
+    - Duration is scoped to the single span
+    - p50 comparison is specific to the span
+    - Needs span count in a specific txn event
+**/
+
+type Keys = 'id' | 'timestamp' | 'transaction.duration' | 'p50_comparison';
+type TableColumnHeader = GridColumnHeader<Keys>;
+
+const COLUMN_ORDER: TableColumnHeader[] = [
+  {
+    key: 'id',
+    name: 'Event ID',
+    width: 200,
+  },
+  {
+    key: 'timestamp',
+    name: 'Timestamp',
+    width: 300,
+  },
+  {
+    key: 'transaction.duration',
+    name: 'Duration',
+    width: 200,
+  },
+  {
+    key: 'p50_comparison',
+    name: 'Compared to P50',
+    width: 200,
+  },
+];
+
 type Props = {
   eventView: EventView;
 };
@@ -19,22 +59,7 @@ type DataRow = {
   'transaction.duration': number;
 };
 
-type Keys = 'id' | 'transaction.duration';
-type TableColumnHeader = GridColumnHeader<Keys>;
-const COLUMN_ORDER: TableColumnHeader[] = [
-  {
-    key: 'id',
-    name: 'Event ID',
-    width: 300,
-  },
-  {
-    key: 'transaction.duration',
-    name: 'Duration',
-    width: -1,
-  },
-];
-
-export function SampleEvents({eventView}: Props) {
+export function TransactionSamplesTable({eventView}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 

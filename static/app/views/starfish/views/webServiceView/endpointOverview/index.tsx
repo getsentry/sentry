@@ -22,7 +22,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import Chart from 'sentry/views/starfish/components/chart';
 import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
-import {SampleEvents} from 'sentry/views/starfish/components/sampleEvents';
+import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import DatabaseTableView, {
   DataRow,
@@ -230,7 +230,7 @@ export default function EndpointOverview() {
           </EventsRequest>
           <SpanGroupBreakdownContainer transaction={transaction as string} />
           <SubHeader>{t('Sample Events')}</SubHeader>
-          <SampleEvents eventView={eventView} />
+          <TransactionSamplesTable eventView={eventView} />
           <SubHeader>{t('Correlations')}</SubHeader>
           <FacetInsights eventView={eventView} />
           <SubHeader>{t('HTTP Spans')}</SubHeader>
