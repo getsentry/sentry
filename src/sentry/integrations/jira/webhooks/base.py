@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from sentry_sdk import Scope
 
 from sentry.api.base import Endpoint
-from sentry.integrations.utils import AtlassianConnectValidationError
+from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError, get_token
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
@@ -111,6 +111,6 @@ class JiraWebhookBase(Endpoint, abc.ABC):
 
     def get_token(self, request: Request) -> str:
         try:
-            return request.META["HTTP_AUTHORIZATION"].split(" ", 1)[1]
-        except (KeyError, IndexError):
+            get_token(request)
+        except AtlassianConnectValidationError:
             raise JiraTokenError

@@ -4,10 +4,14 @@ import hashlib
 from typing import Mapping, Sequence
 
 import requests
+from django.http import HttpRequest
 from jwt import InvalidSignatureError
 from rest_framework.request import Request
 
 from sentry.models import Integration
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.services.hybrid_cloud.integration.service import integration_service
+from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri, percent_encode
 
@@ -40,13 +44,21 @@ def get_query_hash(
     return hashlib.sha256(query_string.encode("utf8")).hexdigest()
 
 
+def get_token(request: HttpRequest) -> str:
+    try:
+        # request.headers = {"Authorization": "JWT abc123def456"}
+        return request.META["HTTP_AUTHORIZATION"].split(" ", 1)[1]
+    except (KeyError, IndexError):
+        raise AtlassianConnectValidationError("Missing/Invalid authorization header")
+
+
 def get_integration_from_jwt(
     token: str | None,
     path: str,
     provider: str,
     query_params: Mapping[str, str] | None,
     method: str = "GET",
-) -> Integration:
+) -> RpcIntegration:
     # https://developer.atlassian.com/static/connect/docs/latest/concepts/authentication.html
     # Extract the JWT token from the request's jwt query
     # parameter or the authorization header.
@@ -63,9 +75,8 @@ def get_integration_from_jwt(
     issuer = claims.get("iss")
     # Look up the sharedSecret for the clientKey, as stored
     # by the add-on during the installation handshake
-    try:
-        integration = Integration.objects.get(provider=provider, external_id=issuer)
-    except Integration.DoesNotExist:
+    integration = integration_service.get_integration(provider=provider, external_id=issuer)
+    if not integration:
         raise AtlassianConnectValidationError("No integration found")
     # Verify the signature with the sharedSecret and the algorithm specified in the header's
     # alg field.  We only need the token + shared secret and do not want to provide an
@@ -120,5 +131,18 @@ def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str
     return decoded_claims
 
 
-def get_integration_from_request(request: Request, provider: str) -> Integration:
+def get_integration_from_request(request: Request, provider: str) -> RpcIntegration:
     return get_integration_from_jwt(request.GET.get("jwt"), request.path, provider, request.GET)
+
+
+@control_silo_function
+def parse_integration_from_request(request: HttpRequest, provider: str) -> Integration | None:
+    token = get_token(request=request)
+    rpc_integration = get_integration_from_jwt(
+        token=token,
+        path=request.path,
+        provider=provider,
+        query_params=request.GET,
+        method=request.method,
+    )
+    return Integration.objects.filter(id=rpc_integration.id).first()
