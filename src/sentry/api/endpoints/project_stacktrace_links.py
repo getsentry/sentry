@@ -12,6 +12,7 @@ from sentry.integrations.mixins import RepositoryMixin
 from sentry.models import Project, RepositoryProjectPathConfig
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.sdk import set_measurement
 
 from .project_stacktrace_link import get_code_mapping_configs
 
@@ -56,6 +57,7 @@ class ProjectStacktraceLinksEndpoint(ProjectEndpoint):  # type: ignore
         result = {"files": [{"file": file} for file in data["file"]]}
 
         mappings_used = 0
+        mappings_attempted = 0
 
         configs = get_code_mapping_configs(project)
 
@@ -74,6 +76,8 @@ class ProjectStacktraceLinksEndpoint(ProjectEndpoint):  # type: ignore
             ]
             if not files:
                 continue
+
+            mappings_attempted += 1
 
             # safety to limit the maximum number of mappings used
             # to avoid reaching API rate limits
@@ -113,6 +117,15 @@ class ProjectStacktraceLinksEndpoint(ProjectEndpoint):  # type: ignore
                         del file["error"]
                     if "attemptedUrl" in file:
                         del file["attemptedUrl"]
+
+        # number of available code mappings
+        set_measurement("mappings.found", len(configs))
+
+        # number of code mappings that matched a stack root
+        set_measurement("mappings.attempted", mappings_attempted)
+
+        # number of code mappings that was attempted
+        set_measurement("mappings.used", mappings_used)
 
         for file in result["files"]:
             if not file.get("error") and file.get("sourceUrl") is None:
