@@ -3,24 +3,19 @@ import Duration from 'sentry/components/duration';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
-import type {ResolutionStatusDetails} from 'sentry/types';
+import {Group, GroupSubstatus, ResolutionStatusDetails} from 'sentry/types';
 
-type Props = {
+interface ArchivedBoxProps {
   statusDetails: ResolutionStatusDetails;
-};
+  substatus: Group['substatus'];
+}
 
-function ArchivedBox({statusDetails}: Props) {
+function ArchivedBox({substatus, statusDetails}: ArchivedBoxProps) {
   function renderReason() {
-    const {
-      ignoreUntil,
-      ignoreCount,
-      ignoreWindow,
-      ignoreUserCount,
-      ignoreUserWindow,
-      ignoreUntilEscalating,
-    } = statusDetails;
+    const {ignoreUntil, ignoreCount, ignoreWindow, ignoreUserCount, ignoreUserWindow} =
+      statusDetails;
 
-    if (ignoreUntilEscalating) {
+    if (substatus === GroupSubstatus.ARCHIVED_UNTIL_ESCALATING) {
       return t(
         "This issue has been archived. It'll return to your inbox if it escalates. To learn more, %s",
         <ExternalLink href="https://sentry-docs-git-update-beta-test-archiving.sentry.dev/product/issues/states-triage/">
