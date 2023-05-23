@@ -265,7 +265,6 @@ export default function EndpointOverview() {
           />
           <SubHeader>{t('Sample Events')}</SubHeader>
           <SampleEvents eventView={eventView} />
-          <SubHeader>{t('Correlations')}</SubHeader>
           <FacetInsights eventView={eventView} />
           <SubHeader>{t('HTTP Spans')}</SubHeader>
           <EndpointTable
