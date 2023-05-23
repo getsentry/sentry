@@ -9,8 +9,7 @@ import pytz
 from sentry import features
 from sentry.db.models import Model
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
-from sentry.models import UserOption
-from sentry.models.groupinbox import GroupInbox, get_inbox_reason_text
+from sentry.models import Group, GroupSubStatus, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -37,6 +36,16 @@ from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
+
+
+def get_group_substatus_text(group: Group):
+    if group.substatus == GroupSubStatus.NEW:
+        return "New issue"
+    elif group.substatus == GroupSubStatus.REGRESSED:
+        return "Regressed issue"
+    elif group.substatus == GroupSubStatus.ONGOING:
+        return "Ongoing issue"
+    return "New Alert"
 
 
 class AlertRuleNotification(ProjectNotification):
@@ -118,10 +127,7 @@ class AlertRuleNotification(ProjectNotification):
             fallthrough_choice=self.fallthrough_choice,
         )
         fallback_params: MutableMapping[str, str] = {}
-        group_inbox_reason = GroupInbox.objects.filter(
-            group=self.group, project=self.project
-        ).first()
-        group_header = get_inbox_reason_text(group_inbox_reason)
+        group_header = get_group_substatus_text(self.group)
 
         context = {
             "project_label": self.project.get_full_name(),
