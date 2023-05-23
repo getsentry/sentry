@@ -33,6 +33,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.models.commit import Commit
 from sentry.notifications.helpers import (
     get_settings_by_provider,
     get_values_by_provider_by_type,
@@ -368,7 +369,7 @@ def determine_eligible_recipients(
                     get_suspect_commit_users(project, event)
                 )
                 suggested_assignees.extend(suspect_commit_users)
-            except Release.DoesNotExist:
+            except (Release.DoesNotExist, Commit.DoesNotExist):
                 logger.info("Skipping suspect committers because release does not exist.")
             except Exception:
                 logger.exception("Could not get suspect committers. Continuing execution.")
