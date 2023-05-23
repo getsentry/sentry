@@ -2,14 +2,14 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import pytz
+from django.db.models import Max
 from sentry_sdk.crons.decorator import monitor
 
 from sentry import features
 from sentry.issues.ongoing import transition_group_to_ongoing
 from sentry.models import (
     Group,
-    GroupInbox,
-    GroupInboxReason,
+    GroupHistoryStatus,
     GroupStatus,
     Organization,
     OrganizationStatus,
@@ -117,30 +117,38 @@ def auto_transition_issues_regressed_to_ongoing(
     chunk_size: int = 1000,
     **kwargs,
 ) -> None:
-
-    queryset = GroupInbox.objects.filter(
-        project_id=project_id,
-        date_added__lte=datetime.fromtimestamp(date_added_lte, pytz.UTC),
-        reason=GroupInboxReason.REGRESSION.value,
+    queryset = (
+        Group.objects.filter(
+            project_id=project_id,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.REGRESSED,
+            grouphistory__status=GroupHistoryStatus.REGRESSED,
+        )
+        .annotate(recent_regressed_history=Max("grouphistory__date_added"))
+        .filter(recent_regressed_history__lte=datetime.fromtimestamp(date_added_lte, pytz.UTC))
     )
 
     if date_added_gte:
-        queryset = queryset.filter(date_added__gte=datetime.fromtimestamp(date_added_gte, pytz.UTC))
+        queryset = queryset.filter(
+            recent_regressed_history__gte=datetime.fromtimestamp(date_added_gte, pytz.UTC)
+        )
 
-    regressed_inbox = queryset.order_by("date_added")[:chunk_size]
+    groups_with_regressed_history = list(queryset.order_by("recent_regressed_history")[:chunk_size])
 
-    for group in Group.objects.filter(id__in=list({inbox.group_id for inbox in regressed_inbox})):
+    for group in groups_with_regressed_history:
         transition_group_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.REGRESSED,
             group,
         )
 
-    if len(regressed_inbox) == chunk_size:
+    if len(groups_with_regressed_history) == chunk_size:
         auto_transition_issues_regressed_to_ongoing.delay(
             project_id=project_id,
             date_added_lte=date_added_lte,
-            date_added_gte=regressed_inbox[chunk_size - 1].date_added.timestamp(),
+            date_added_gte=groups_with_regressed_history[
+                chunk_size - 1
+            ].recent_regressed_history.timestamp(),
             chunk_size=chunk_size,
             expires=datetime.now(tz=pytz.UTC) + timedelta(hours=1),
         )
