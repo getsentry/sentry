@@ -68,7 +68,7 @@ export function useProfilingTransactionQuickSummary(
 
   const functionsQuery = useProfileFunctions<FunctionsField>({
     fields: functionsFields,
-    referrer: '',
+    referrer: 'api.profiling.landing-functions-card',
     sort: {
       key: 'sum()',
       order: 'desc',

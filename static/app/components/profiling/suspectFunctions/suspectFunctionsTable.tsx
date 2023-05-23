@@ -68,7 +68,7 @@ export function SuspectFunctionsTable({
 
   const functionsQuery = useProfileFunctions<FunctionsField>({
     fields: functionsFields,
-    referrer: '',
+    referrer: 'api.profiling.profile-summary-functions-table',
     sort: functionsSort,
     query,
     limit: 5,
