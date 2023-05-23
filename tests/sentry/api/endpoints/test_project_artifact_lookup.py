@@ -515,25 +515,27 @@ class ArtifactLookupTest(APITestCase):
 
     @freeze_time("2023-05-23 10:00:00")
     def test_renewal_with_debug_id(self):
-        debug_id = "cccccccc-0000-0000-0000-000000000000"
-        file = make_compressed_zip_file(
-            "bundle_c.zip",
-            {
-                "path/in/zip/c": {
-                    "url": "~/path/to/app.js",
-                    "type": "source_map",
-                    "content": b"baz",
-                    "headers": {
-                        "debug-id": debug_id,
+        for days_before, expected_date_added, debug_id in (
+            (
+                2,
+                datetime.now(tz=pytz.UTC) - timedelta(days=2),
+                "2432d9ad-fe87-4f77-938d-50cc9b2b2e2a",
+            ),
+            (93, datetime.now(tz=pytz.UTC), "ef88bc3e-d334-4809-9723-5c5dbc8bd4e9"),
+        ):
+            file = make_compressed_zip_file(
+                "bundle_c.zip",
+                {
+                    "path/in/zip/c": {
+                        "url": "~/path/to/app.js",
+                        "type": "source_map",
+                        "content": b"baz",
+                        "headers": {
+                            "debug-id": debug_id,
+                        },
                     },
                 },
-            },
-        )
-
-        for days_before, expected_date_added in (
-            (93, datetime.now(tz=pytz.UTC)),
-            (93, datetime.now(tz=pytz.UTC)),
-        ):
+            )
             bundle_id = uuid4()
             date_added = datetime.now(tz=pytz.UTC) - timedelta(days=days_before)
 
@@ -568,9 +570,8 @@ class ArtifactLookupTest(APITestCase):
                 },
             )
 
-            # query by another debug-id pointing to different bundles
             with self.tasks():
-                self.client.get(f"{url}?debug_id={debug_id}").json()
+                self.client.get(f"{url}?debug_id={debug_id}")
 
             assert (
                 ArtifactBundle.objects.get(id=artifact_bundle.id).date_added == expected_date_added
@@ -597,12 +598,11 @@ class ArtifactLookupTest(APITestCase):
             },
         )
 
-        dist = self.release.add_dist("android")
-
-        for days_before, expected_date_added in (
-            (2, datetime.now(tz=pytz.UTC) - timedelta(days=2)),
-            (93, datetime.now(tz=pytz.UTC)),
+        for days_before, expected_date_added, release in (
+            (2, datetime.now(tz=pytz.UTC) - timedelta(days=2), self.create_release(version="1.0")),
+            (93, datetime.now(tz=pytz.UTC), self.create_release(version="2.0")),
         ):
+            dist = release.add_dist("android")
             bundle_id = uuid4()
             date_added = datetime.now(tz=pytz.UTC) - timedelta(days=days_before)
 
@@ -621,7 +621,7 @@ class ArtifactLookupTest(APITestCase):
             )
             ReleaseArtifactBundle.objects.create(
                 organization_id=self.organization.id,
-                release_name=self.release.version,
+                release_name=release.version,
                 dist_name=dist.name,
                 artifact_bundle=artifact_bundle,
                 date_added=date_added,
@@ -637,11 +637,8 @@ class ArtifactLookupTest(APITestCase):
                 },
             )
 
-            # query by another debug-id pointing to different bundles
             with self.tasks():
-                self.client.get(
-                    f"{url}?release={self.release.version}&dist={dist.name}&url=path/to/app"
-                ).json()
+                self.client.get(f"{url}?release={release.version}&dist={dist.name}&url=path/to/app")
 
             assert (
                 ArtifactBundle.objects.get(id=artifact_bundle.id).date_added == expected_date_added
