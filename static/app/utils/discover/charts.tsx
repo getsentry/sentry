@@ -1,3 +1,4 @@
+import {captureException} from '@sentry/react';
 import {LegendComponentOption} from 'echarts';
 
 import {t} from 'sentry/locale';
@@ -137,31 +138,38 @@ export function axisDuration(value: number, durationUnit?: number): string {
 
 /**
  * Given an array of series and an eCharts legend object,
- * finds the range of y values (min and max) based on which series is selected in the legend
- * Assumes series[0] > series[1] > ...
+ * finds the range of y values (min and max) based on which series is selected in the legend.
+ * Does not assume any ordering of series, will check min/max for all series in multiseries.
  * @param series Array of eCharts series
  * @param legend eCharts legend object
  * @returns
  */
 export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponentOption) {
-  let range: {max: number; min: number} | undefined;
-  if (series[0]?.data) {
-    let minSeries = series[0];
-    let maxSeries;
-    series.forEach(({seriesName, data}, idx) => {
-      if (legend?.selected?.[seriesName] !== false && data.length) {
-        minSeries = series[idx];
-        maxSeries ??= series[idx];
-      }
-    });
-    if (maxSeries?.data) {
-      const max = Math.max(
-        ...maxSeries.data.map(({value}) => value).filter(value => !!value)
-      );
-      const min = Math.min(
-        ...minSeries.data.map(({value}) => value).filter(value => !!value)
-      );
-      range = {max, min};
+  const range: {max: number; min: number} = {
+    max: 0,
+    min: Infinity, // We don't have negative numbers in charts, or if we do we shouldn't show them.
+  };
+
+  if (!series[0]?.data) {
+    return undefined;
+  }
+
+  for (const {seriesName, data} of series) {
+    if (legend?.selected?.[seriesName] !== false) {
+      continue;
+    }
+
+    const max = Math.max(...data.map(({value}) => value).filter(Number.isFinite));
+    const min = Math.min(...data.map(({value}) => value).filter(Number.isFinite));
+
+    if (max > range.max) {
+      range.max = max;
+    }
+    if (min < range.min) {
+      range.min = min;
+    }
+    if (min < 0) {
+      captureException(new Error('Found negative min value in multiseries'));
     }
   }
   return range;
