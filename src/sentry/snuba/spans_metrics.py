@@ -31,7 +31,7 @@ def query(
     extra_columns=None,
 ):
     builder = SpansMetricsQueryBuilder(
-        dataset=Dataset.Metrics,
+        dataset=Dataset.PerformanceMetrics,
         params=params,
         snuba_params=snuba_params,
         query=query,
