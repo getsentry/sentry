@@ -185,12 +185,20 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             except MonitorEnvironmentLimitsExceeded as e:
                 return self.respond({type(e).__name__: str(e)}, status=403)
 
+            expected_time = None
+            if monitor_environment.last_checkin:
+                expected_time = monitor.get_next_scheduled_checkin_without_margin(
+                    monitor_environment.last_checkin
+                )
+
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
                 monitor_id=monitor.id,
                 monitor_environment=monitor_environment,
                 duration=result.get("duration"),
                 status=getattr(CheckInStatus, result["status"].upper()),
+                expected_time=expected_time,
+                monitor_config=monitor.get_validated_config(),
             )
 
             signal_first_checkin(project, monitor)

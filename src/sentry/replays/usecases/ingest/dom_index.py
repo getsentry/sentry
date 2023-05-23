@@ -205,6 +205,17 @@ def get_user_actions(
             log["project_id"] = project_id
             log["replay_id"] = replay_id
             logger.info("SDK Options:", extra=log)
+        # log large dom mutation breadcrumb events 1/100 times
+        if (
+            event.get("type") == 5
+            and event.get("data", {}).get("tag") == "breadcrumb"
+            and event.get("data", {}).get("payload", {}).get("category") == "replay.mutations"
+            and random.randint(0, 99) < 1
+        ):
+            log = event["data"].get("payload", {}).copy()
+            log["project_id"] = project_id
+            log["replay_id"] = replay_id
+            logger.info("Large DOM Mutations List:", extra=log)
 
     return result
 

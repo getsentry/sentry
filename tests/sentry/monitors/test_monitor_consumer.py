@@ -1,6 +1,6 @@
 import uuid
-from datetime import datetime
-from typing import Any, Dict
+from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
 from unittest import mock
 
 import msgpack
@@ -30,9 +30,11 @@ from sentry.utils import json
 
 
 class MonitorConsumerTest(TestCase):
-    def get_message(self, monitor_slug: str, **overrides: Any) -> Dict[str, Any]:
+    def get_message(
+        self, monitor_slug: str, guid: Optional[str] = None, **overrides: Any
+    ) -> Dict[str, Any]:
         now = datetime.now()
-        self.guid = uuid.uuid4().hex
+        self.guid = uuid.uuid4().hex if not guid else guid
         payload = {
             "monitor_slug": monitor_slug,
             "status": "ok",
@@ -46,6 +48,7 @@ class MonitorConsumerTest(TestCase):
             "start_time": now.timestamp(),
             "project_id": self.project.id,
             "payload": json.dumps(payload),
+            "sdk": "test/1.0",
         }
 
         return wrapper
@@ -59,6 +62,7 @@ class MonitorConsumerTest(TestCase):
                 "schedule": "* * * * *",
                 "schedule_type": ScheduleType.CRONTAB,
                 "checkin_margin": 5,
+                "max_runtime": None,
             },
             **kwargs,
         )
@@ -68,6 +72,7 @@ class MonitorConsumerTest(TestCase):
             "start_time": datetime.now().timestamp(),
             "project_id": self.project.id,
             "payload": self.valid_payload(monitor_slug),
+            "sdk": "test/1.0",
         }
 
     def valid_payload(self, monitor_slug: str) -> str:
@@ -102,6 +107,7 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.message_guid)
         assert checkin.status == CheckInStatus.OK
+        assert checkin.monitor_config == monitor.config
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
@@ -109,6 +115,14 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
             checkin.date_added
         )
+
+        # Process another check-in to verify we set an expected time for the next check-in
+        expected_time = monitor_environment.next_checkin
+        message = self.get_message(monitor.slug)
+        _process_message(message)
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        # the expected time should not include the margin of 5 minutes
+        assert checkin.expected_time == expected_time - timedelta(minutes=5)
 
     @pytest.mark.django_db
     def test_passing(self) -> None:
@@ -118,6 +132,7 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
+        assert checkin.monitor_config == monitor.config
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
@@ -125,6 +140,14 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
             checkin.date_added
         )
+
+        # Process another check-in to verify we set an expected time for the next check-in
+        expected_time = monitor_environment.next_checkin
+        message = self.get_message(monitor.slug)
+        _process_message(message)
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        # the expected time should not include the margin of 5 minutes
+        assert checkin.expected_time == expected_time - timedelta(minutes=5)
 
     @pytest.mark.django_db
     def test_failing(self):
@@ -164,12 +187,28 @@ class MonitorConsumerTest(TestCase):
     @pytest.mark.django_db
     def test_check_in_update(self):
         monitor = self._create_monitor(slug="my-monitor")
-        message = self.get_message(monitor.slug)
-        _process_message(message)
-        _process_message(message)
+        _process_message(self.get_message(monitor.slug, status="in_progress"))
+        _process_message(self.get_message(monitor.slug, guid=self.guid))
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration is not None
+
+    @pytest.mark.django_db
+    def test_check_in_update_terminal(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        done_message = self.get_message(monitor.slug, duration=10.0)
+        _process_message(done_message)
+        _process_message(self.get_message(monitor.slug, guid=self.guid, status="in_progress"))
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.duration == int(10.0 * 1000)
+
+        error_message = self.get_message(monitor.slug, duration=20.0, status="error")
+        _process_message(error_message)
+        _process_message(self.get_message(monitor.slug, guid=self.guid, status="in_progress"))
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.duration == int(20.0 * 1000)
 
     @pytest.mark.django_db
     def test_monitor_environment(self):
