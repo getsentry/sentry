@@ -36,7 +36,11 @@ function renderResult(result: ParseResult, cursor: number) {
     .map((renderedToken, i) => <Fragment key={i}>{renderedToken}</Fragment>);
 }
 
-function renderToken(token: TokenResult<Token>, cursor: number) {
+function renderToken(token: TokenResult<Token> | string, cursor: number) {
+  if (typeof token === 'string') {
+    return token;
+  }
+
   switch (token.type) {
     case Token.Spaces:
       return token.value;
@@ -211,6 +215,78 @@ function FreeTextToken({
       <FreeTextTokenGroup ref={filterElementRef} active={isActive} invalid={showInvalid}>
         <FreeText>{token.text}</FreeText>
       </FreeTextTokenGroup>
+    </Tooltip>
+  );
+}
+
+function FreeTextToken({
+  filter,
+  cursor,
+}: {
+  cursor: number;
+  filter: TokenResult<Token.FreeText>;
+}) {
+  const isActive = isWithinToken(filter, cursor);
+
+  // This state tracks if the cursor has left the filter token. We initialize it
+  // to !isActive in the case where the filter token is rendered without the
+  // cursor initially being in it.
+  const [hasLeft, setHasLeft] = useState(!isActive);
+
+  // Used to trigger the shake animation when the element becomes invalid
+  const filterElementRef = useRef<HTMLSpanElement>(null);
+
+  // Trigger the effect when isActive changes to updated whether the cursor has
+  // left the token.
+  useEffect(() => {
+    if (!isActive && !hasLeft) {
+      setHasLeft(true);
+    }
+  }, [hasLeft, isActive]);
+
+  const showInvalid = hasLeft && !!filter.invalid;
+  const showTooltip = showInvalid && isActive;
+
+  const reduceMotion = useReducedMotion();
+
+  // Trigger the shakeAnimation when showInvalid is set to true. We reset the
+  // animation by clearing the style, set it to running, and re-applying the
+  // animation
+  useEffect(() => {
+    if (!filterElementRef.current || !showInvalid || reduceMotion) {
+      return;
+    }
+
+    const style = filterElementRef.current.style;
+
+    style.animation = 'none';
+    void filterElementRef.current.offsetTop;
+
+    window.requestAnimationFrame(
+      () => (style.animation = `${shakeAnimation.name} 300ms`)
+    );
+  }, [reduceMotion, showInvalid]);
+
+  if (!filter.invalid?.reason) {
+    return <Fragment>{renderToken(filter.value, cursor)}</Fragment>;
+  }
+
+  return (
+    <Tooltip
+      disabled={!showTooltip}
+      title={filter.invalid?.reason}
+      overlayStyle={{maxWidth: '350px'}}
+      forceVisible
+      skipWrapper
+    >
+      <Filter
+        ref={filterElementRef}
+        active={isActive}
+        invalid={showInvalid}
+        data-test-id={showInvalid ? 'filter-token-invalid' : 'filter-token'}
+      >
+        <FreeText>{renderToken(filter.value, cursor)}</FreeText>
+      </Filter>
     </Tooltip>
   );
 }

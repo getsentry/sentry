@@ -6,16 +6,23 @@
       "disallowWildcard": true
     },
     "result": [
-      {"type": "spaces", "value": ""},
+      {
+        "type": "spaces",
+        "value": ""
+      },
       {
         "type": "freeText",
         "value": "freeTextWith*",
         "quoted": false,
         "invalid": {
+          "type": "wildcard-not-allowed",
           "reason": "Wildcards not supported in search"
         }
       },
-      {"type": "spaces", "value": ""}
+      {
+        "type": "spaces",
+        "value": ""
+      }
     ]
   },
   {
@@ -25,12 +32,22 @@
       "disallowWildcard": true
     },
     "result": [
-      {"type": "spaces", "value": ""},
+      {
+        "type": "spaces",
+        "value": ""
+      },
       {
         "type": "filter",
         "filter": "textIn",
-        "invalid": {"reason": "Wildcards not supported in search"},
-        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "invalid": {
+          "type": "wildcard-not-allowed",
+          "reason": "Wildcards not supported in search"
+        },
+        "key": {
+          "type": "keySimple",
+          "value": "release",
+          "quoted": false
+        },
         "operator": "",
         "negated": false,
         "value": {
@@ -47,7 +64,10 @@
           "type": "valueTextList"
         }
       },
-      {"type": "spaces", "value": ""}
+      {
+        "type": "spaces",
+        "value": ""
+      }
     ]
   },
   {
@@ -57,19 +77,34 @@
       "disallowWildcard": true
     },
     "result": [
-      {"type": "spaces", "value": ""},
+      {
+        "type": "spaces",
+        "value": ""
+      },
       {
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "key": {
+          "type": "keySimple",
+          "value": "release",
+          "quoted": false
+        },
         "operator": "",
-        "value": {"type": "valueText", "value": "*", "quoted": false},
+        "value": {
+          "type": "valueText",
+          "value": "*",
+          "quoted": false
+        },
         "invalid": {
+          "type": "wildcard-not-allowed",
           "reason": "Wildcards not supported in search"
         }
       },
-      {"type": "spaces", "value": ""}
+      {
+        "type": "spaces",
+        "value": ""
+      }
     ]
   },
   {
@@ -85,16 +120,23 @@
       }
     },
     "result": [
-      {"type": "spaces", "value": ""},
+      {
+        "type": "spaces",
+        "value": ""
+      },
       {
         "type": "freeText",
         "value": "release*:1",
         "quoted": false,
         "invalid": {
+          "type": "wildcard-not-allowed",
           "reason": "Wildcards not supported in search"
         }
       },
-      {"type": "spaces", "value": ""}
+      {
+        "type": "spaces",
+        "value": ""
+      }
     ]
   },
   {
@@ -107,16 +149,23 @@
       }
     },
     "result": [
-      {"type": "spaces", "value": ""},
+      {
+        "type": "spaces",
+        "value": ""
+      },
       {
         "type": "freeText",
         "value": "rele*ase",
         "quoted": false,
         "invalid": {
+          "type": "wildcard-not-allowed",
           "reason": "Release queries don't support wildcards"
         }
       },
-      {"type": "spaces", "value": ""}
+      {
+        "type": "spaces",
+        "value": ""
+      }
     ]
   }
 ]
