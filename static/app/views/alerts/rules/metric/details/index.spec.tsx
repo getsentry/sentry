@@ -36,7 +36,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders', async () => {
-    const {routerContext, organization, router} = initializeOrg();
+    const {routerContext, organization, routerProps} = initializeOrg();
     const incident = TestStubs.Incident();
     const rule = TestStubs.MetricRule({
       projects: [project.slug],
@@ -55,11 +55,7 @@ describe('MetricAlertDetails', () => {
     render(
       <MetricAlertDetails
         organization={organization}
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
+        {...routerProps}
         params={{ruleId: rule.id}}
       />,
       {context: routerContext, organization}
@@ -81,7 +77,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders selected incident', async () => {
-    const {routerContext, organization, router} = initializeOrg();
+    const {routerContext, organization, router, routerProps} = initializeOrg();
     const rule = TestStubs.MetricRule({projects: [project.slug]});
     const incident = TestStubs.Incident();
 
@@ -106,10 +102,7 @@ describe('MetricAlertDetails', () => {
     render(
       <MetricAlertDetails
         organization={organization}
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
+        {...routerProps}
         location={{...router.location, query: {alert: incident.id}}}
         params={{ruleId: rule.id}}
       />,

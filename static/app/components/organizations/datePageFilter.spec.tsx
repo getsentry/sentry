@@ -7,9 +7,6 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
 const {organization, router, routerContext} = initializeOrg({
-  organization: {},
-  project: undefined,
-  projects: undefined,
   router: {
     location: {
       query: {},
@@ -132,9 +129,6 @@ describe('DatePageFilter', function () {
       router: desyncRouter,
       routerContext: desyncRouterContext,
     } = initializeOrg({
-      organization: {},
-      project: undefined,
-      projects: undefined,
       router: {
         location: {
           // the datetime parameters need to be non-null for desync detection to work

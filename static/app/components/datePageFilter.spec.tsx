@@ -6,9 +6,6 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
 const {organization, router, routerContext} = initializeOrg({
-  organization: {},
-  project: undefined,
-  projects: undefined,
   router: {
     location: {
       query: {},

@@ -101,9 +101,9 @@ describe('CreateAlertFromViewButton', () => {
     expect(navigateTo).toHaveBeenCalledWith(
       `/organizations/org-slug/alerts/wizard/?`,
       expect.objectContaining({
-        params: {
+        params: expect.objectContaining({
           orgId: 'org-slug',
-        },
+        }),
       })
     );
   });
