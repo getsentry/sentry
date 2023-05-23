@@ -2,8 +2,6 @@ import moment from 'moment';
 
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 
-const TWELVE_HOURS_IN_MS = 12 * 60 * 60 * 1000;
-
 export function zeroFillSeries(
   series: Series,
   interval: moment.Duration,
@@ -28,7 +26,8 @@ export function zeroFillSeries(
 
   const newData: SeriesDataUnit[] = [];
 
-  const startTimeNearestInterval = startTime && roundUpToNearest12HourInterval(startTime);
+  const startTimeNearestInterval =
+    startTime && roundDownToNearest12HourInterval(startTime);
   const endTimeNearestInterval = endTime && roundDownToNearest12HourInterval(endTime);
 
   const seriesData = [
@@ -84,15 +83,6 @@ export function zeroFillSeries(
     ...series,
     data: newData,
   };
-}
-
-function roundUpToNearest12HourInterval(time: moment.Moment) {
-  return roundDownToNearest12HourInterval(
-    time
-      .clone()
-      .add(12, 'hour')
-      .subtract(TWELVE_HOURS_IN_MS - 1, 'ms')
-  );
 }
 
 function roundDownToNearest12HourInterval(time: moment.Moment) {
