@@ -1,7 +1,7 @@
 import logging
 import sys
 from enum import Enum
-from typing import Optional
+from typing import Optional, Sequence, Tuple
 
 from django.conf import settings
 
@@ -17,18 +17,32 @@ NoneType = type(None)
 
 
 class UpdateChannel(Enum):
-    """Enumerated type referring to potential sources of Sentry Options"""
+    """
+    There are multiple channels to update an option. This enum is used
+    to identify the channel that is trying to update an option or that
+    last updated the option.
+    """
 
+    # Legacy changes made by code that is not aware of this enum.
+    # They should disappear over time.
     UNKNOWN = "unknown"
+    # Any change made directly by the application through the `options`
+    # module not included in the categories below.
     APPLICATION = "application"
-    AUTOMATOR = "automator"
-    CLI = "cli"
-    KILLSWITCH = "killswitch"
+    # Any change made by the sentry Admin UI.
     ADMIN = "admin"
+    # Any change made by the Options Automator.
+    AUTOMATOR = "automator"
+    # Any change made through the sentry CLI with the exceptions of
+    # killswitches.
+    CLI = "cli"
+    # Any change made through the killswitches CLI. This CLI is different
+    # from the CLI above.
+    KILLSWITCH = "killswitch"
 
     @classmethod
-    def choices(cls):
-        return tuple((i.name, i.value) for i in cls)
+    def choices(cls) -> Sequence[Tuple[str, str]]:
+        return [(i.name, i.value) for i in cls]
 
 
 def required_flag_to_write(channel: UpdateChannel) -> int:
@@ -136,7 +150,7 @@ class OptionsManager:
         self.store = store
         self.registry = {}
 
-    def set(self, key, value, coerce=True, channel: UpdateChannel = UpdateChannel.UNKNOWN):
+    def set(self, key: str, value, coerce=True, channel: UpdateChannel = UpdateChannel.UNKNOWN):
         """
         Set the value for an option. If the cache is unavailable the action will
         still succeed.
@@ -161,7 +175,7 @@ class OptionsManager:
 
         return self.store.set(opt, value, channel=channel)
 
-    def lookup_key(self, key):
+    def lookup_key(self, key: str):
         try:
             return self.registry[key]
         except KeyError:
@@ -178,12 +192,12 @@ class OptionsManager:
 
     def make_key(
         self,
-        name,
+        name: str,
         default,
         type,
-        flags,
-        ttl,
-        grace,
+        flags: int,
+        ttl: int,
+        grace: int,
         grouping_info,
     ):
         from sentry.options.store import Key
@@ -199,7 +213,7 @@ class OptionsManager:
             grouping_info,
         )
 
-    def isset(self, key):
+    def isset(self, key: str) -> bool:
         """
         Check if a key has been set to a value and not inheriting from its default.
         """
@@ -212,7 +226,7 @@ class OptionsManager:
 
         return key in settings.SENTRY_OPTIONS
 
-    def get(self, key, silent=False):
+    def get(self, key: str, silent=False):
         """
         Get the value of an option, falling back to the local configuration.
 
@@ -265,7 +279,7 @@ class OptionsManager:
         self.store.set_cache(opt, optval)
         return optval
 
-    def delete(self, key):
+    def delete(self, key: str):
         """
         Permanently remove the value of an option.
 
@@ -286,16 +300,16 @@ class OptionsManager:
 
     def register(
         self,
-        key,
+        key: str,
         default=None,
         type=None,
-        flags=DEFAULT_FLAGS,
-        ttl=DEFAULT_KEY_TTL,
-        grace=DEFAULT_KEY_GRACE,
+        flags: int = DEFAULT_FLAGS,
+        ttl: int = DEFAULT_KEY_TTL,
+        grace: int = DEFAULT_KEY_GRACE,
         # Optional info about how to group options together in the _admin ui. Only applies to
         # options marked `FLAG_ADMIN_MODIFIABLE`
         grouping_info=None,
-    ):
+    ) -> None:
         assert key not in self.registry, "Option already registered: %r" % key
 
         if len(key) > 128:
@@ -359,7 +373,7 @@ class OptionsManager:
 
         self.registry[key] = self.make_key(key, default, type, flags, ttl, grace, grouping_info)
 
-    def unregister(self, key):
+    def unregister(self, key: str) -> None:
         try:
             del self.registry[key]
         except KeyError:
@@ -375,7 +389,7 @@ class OptionsManager:
                     raise
                 sys.stderr.write("* Unknown config option found: %s\n" % e)
 
-    def validate_option(self, key, value):
+    def validate_option(self, key: str, value):
         opt = self.lookup_key(key)
         assert not (opt.flags & FLAG_STOREONLY), "%r is not allowed to be loaded from config" % key
         if not opt.type.test(value):
@@ -387,7 +401,7 @@ class OptionsManager:
         """
         return self.registry.values()
 
-    def filter(self, flag=None):
+    def filter(self, flag: Optional[int] = None):
         """
         Return an iterator that's filtered by which flags are set on a key.
         """
@@ -397,7 +411,7 @@ class OptionsManager:
             return (k for k in self.all() if k.flags is DEFAULT_FLAGS)
         return (k for k in self.all() if k.flags & flag)
 
-    def get_last_update_channel(self, key) -> Optional[UpdateChannel]:
+    def get_last_update_channel(self, key: str) -> Optional[UpdateChannel]:
         """
         Checks how the given key was last changed
         (by automator, legacy, or CLI)

@@ -41,7 +41,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
       window,
       user_count: userCount,
       user_window: userWindow,
-    } = reasonDetails;
+    } = reasonDetails ?? {};
     if (until) {
       // Was ignored until `until` has passed.
       // `until` format: "2021-01-20T03:59:03+00:00"

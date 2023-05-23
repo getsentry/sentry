@@ -10,14 +10,14 @@ from sentry.new_migrations.migrations import CheckedMigration
 class UpdateChannel(Enum):
     UNKNOWN = "unknown"
     APPLICATION = "application"
+    ADMIN = "admin"
     AUTOMATOR = "automator"
     CLI = "cli"
     KILLSWITCH = "killswitch"
-    ADMIN = "admin"
 
     @classmethod
     def choices(cls):
-        return tuple((i.name, i.value) for i in cls)
+        return [(i.name, i.value) for i in cls]
 
 
 class Migration(CheckedMigration):
@@ -34,7 +34,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0452_break_user_actor_fk"),
+        ("sentry", "0456_add_organization_status_to_org_mapping"),
     ]
 
     operations = [
