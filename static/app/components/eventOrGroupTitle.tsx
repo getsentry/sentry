@@ -33,6 +33,11 @@ function EventOrGroupTitle({
   const {id, eventID, groupID, projectID} = event;
 
   const {title, subtitle, treeLabel} = getTitle(event, organization?.features, grouping);
+  const titleLabel = treeLabel ? (
+    <EventTitleTreeLabel treeLabel={treeLabel} />
+  ) : (
+    title ?? ''
+  );
 
   return (
     <Wrapper className={className}>
@@ -44,12 +49,10 @@ function EventOrGroupTitle({
           eventId={eventID}
           projectId={projectID}
         >
-          {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title ?? ''}
+          {titleLabel}
         </GroupPreviewTooltip>
-      ) : treeLabel ? (
-        <EventTitleTreeLabel treeLabel={treeLabel} />
       ) : (
-        title
+        titleLabel
       )}
       {subtitle && (
         <Fragment>
