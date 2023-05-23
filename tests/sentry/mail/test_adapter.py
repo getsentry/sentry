@@ -21,6 +21,7 @@ from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
     Activity,
     GroupRelease,
+    GroupSubStatus,
     Integration,
     NotificationSetting,
     Organization,
@@ -37,7 +38,6 @@ from sentry.models import (
     UserOption,
     UserReport,
 )
-from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -1104,11 +1104,13 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             )
 
     @with_feature("organizations:issue-states")
-    def test_has_inbox_reason(self):
+    def test_group_substatus_header(self):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+        # Header is based on the group substatus
+        event.group.substatus = GroupSubStatus.REGRESSED
+        event.group.save()
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
