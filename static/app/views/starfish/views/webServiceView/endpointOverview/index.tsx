@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -10,6 +9,7 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
@@ -21,6 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import Chart from 'sentry/views/starfish/components/chart';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
 import {SampleEvents} from 'sentry/views/starfish/components/sampleEvents';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
@@ -156,79 +157,81 @@ export default function EndpointOverview() {
         <Layout.Main fullWidth>
           <SubHeader>{t('Endpoint URL')}</SubHeader>
           <pre>{`${method} ${transaction}`}</pre>
-          <EventsRequest
-            query={query.formatString()}
-            includePrevious={false}
-            partial
-            limit={5}
-            interval="1h"
-            includeTransformedData
-            environment={eventView.environment}
-            project={eventView.project}
-            period={pageFilter.selection.datetime.period}
-            referrer="starfish-endpoint-overview"
-            start={pageFilter.selection.datetime.start}
-            end={pageFilter.selection.datetime.end}
-            organization={organization}
-            yAxis={['tpm()', 'p50(transaction.duration)']}
-            queryExtras={{dataset: 'metrics'}}
-          >
-            {({results, loading}) => {
-              return (
-                <Fragment>
-                  <FlexRowContainer>
-                    <FlexRowItem>
-                      <SubHeader>{t('Throughput')}</SubHeader>
-                      <Chart
-                        statsPeriod={(statsPeriod as string) ?? '24h'}
-                        height={150}
-                        data={results?.[0] ? [results?.[0]] : []}
-                        start=""
-                        end=""
-                        loading={loading}
-                        utc={false}
-                        stacked
-                        isLineChart
-                        disableXAxis
-                        hideYAxisSplitLine
-                        chartColors={[theme.charts.getColorPalette(0)[0]]}
-                        grid={{
-                          left: '0',
-                          right: '0',
-                          top: '8px',
-                          bottom: '16px',
-                        }}
-                      />
-                    </FlexRowItem>
-                    <FlexRowItem>
-                      <SubHeader>{t('p50(duration)')}</SubHeader>
-                      <Chart
-                        statsPeriod={(statsPeriod as string) ?? '24h'}
-                        height={150}
-                        data={results?.[1] ? [results?.[1]] : []}
-                        start=""
-                        end=""
-                        loading={loading}
-                        utc={false}
-                        stacked
-                        isLineChart
-                        disableXAxis
-                        hideYAxisSplitLine
-                        chartColors={[theme.charts.getColorPalette(0)[1]]}
-                        grid={{
-                          left: '0',
-                          right: '0',
-                          top: '8px',
-                          bottom: '16px',
-                        }}
-                      />
-                    </FlexRowItem>
-                  </FlexRowContainer>
-                </Fragment>
-              );
-            }}
-          </EventsRequest>
-          <SpanGroupBreakdownContainer transaction={transaction as string} />
+          <StyledRow minSize={200}>
+            <ChartsContainer>
+              <ChartsContainerItem>
+                <SpanGroupBreakdownContainer transaction={transaction as string} />
+              </ChartsContainerItem>
+              <EventsRequest
+                query={query.formatString()}
+                includePrevious={false}
+                partial
+                limit={5}
+                interval="1h"
+                includeTransformedData
+                environment={eventView.environment}
+                project={eventView.project}
+                period={pageFilter.selection.datetime.period}
+                referrer="starfish-endpoint-overview"
+                start={pageFilter.selection.datetime.start}
+                end={pageFilter.selection.datetime.end}
+                organization={organization}
+                yAxis={['tpm()', 'p50(transaction.duration)']}
+                queryExtras={{dataset: 'metrics'}}
+              >
+                {({results, loading}) => {
+                  return (
+                    <ChartsContainerItem2>
+                      <ChartPanel title={t('Througput')}>
+                        <Chart
+                          statsPeriod={(statsPeriod as string) ?? '24h'}
+                          height={150}
+                          data={results?.[0] ? [results?.[0]] : []}
+                          start=""
+                          end=""
+                          loading={loading}
+                          utc={false}
+                          stacked
+                          isLineChart
+                          disableXAxis
+                          hideYAxisSplitLine
+                          chartColors={[theme.charts.getColorPalette(0)[0]]}
+                          grid={{
+                            left: '0',
+                            right: '0',
+                            top: '8px',
+                            bottom: '16px',
+                          }}
+                        />
+                      </ChartPanel>
+                      <ChartPanel title={t('p50(duration)')}>
+                        <Chart
+                          statsPeriod={(statsPeriod as string) ?? '24h'}
+                          height={150}
+                          data={results?.[1] ? [results?.[1]] : []}
+                          start=""
+                          end=""
+                          loading={loading}
+                          utc={false}
+                          stacked
+                          isLineChart
+                          disableXAxis
+                          hideYAxisSplitLine
+                          chartColors={[theme.charts.getColorPalette(0)[1]]}
+                          grid={{
+                            left: '0',
+                            right: '0',
+                            top: '8px',
+                            bottom: '16px',
+                          }}
+                        />
+                      </ChartPanel>
+                    </ChartsContainerItem2>
+                  );
+                }}
+              </EventsRequest>
+            </ChartsContainer>
+          </StyledRow>
           <SubHeader>{t('Sample Events')}</SubHeader>
           <SampleEvents eventView={eventView} />
           <FacetInsights eventView={eventView} />
@@ -288,14 +291,21 @@ const SearchContainerWithFilterAndMetrics = styled('div')`
   }
 `;
 
-const FlexRowContainer = styled('div')`
-  display: flex;
-  & > div:last-child {
-    padding-right: ${space(1)};
-  }
+const StyledRow = styled(PerformanceLayoutBodyRow)`
+  margin-bottom: ${space(2)};
 `;
 
-const FlexRowItem = styled('div')`
-  padding-right: ${space(4)};
+const ChartsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: ${space(2)};
+`;
+
+const ChartsContainerItem = styled('div')`
+  flex: 1.5;
+`;
+
+const ChartsContainerItem2 = styled('div')`
   flex: 1;
 `;
