@@ -108,6 +108,9 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThresholdMetric,
     referrer: 'api.performance.transaction-summary',
     queryExtras,
+    options: {
+      refetchOnWindowFocus: false,
+    },
   });
 
   // Count has to be total indexed events count because it's only used

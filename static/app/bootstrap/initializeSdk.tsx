@@ -89,7 +89,6 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      */
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.whitelistUrls,
-    denyUrls: [/^file:\/\//],
     integrations: getSentryIntegrations(sentryConfig, routes),
     tracesSampleRate,
     // @ts-ignore not part of browser SDK types yet
@@ -141,9 +140,11 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       "NotFoundError: Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node.",
     ],
 
-    // Temporary fix while `ignoreErrors` bug is fixed and request error handling is cleaned up
     beforeSend(event, _hint) {
-      return isFilteredRequestErrorEvent(event) ? null : event;
+      if (isFilteredRequestErrorEvent(event) || isEventWithFileUrl(event)) {
+        return null;
+      }
+      return event;
     },
   });
 
@@ -179,22 +180,37 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
   }
 
   // In case there's a chain, we take the last entry, because that's the one
-  // passed to `captureException`
-  const mainError = exceptionValues[exceptionValues.length - 1];
+  // passed to `captureException`, and the one right before that, since
+  // `RequestError`s are used as the main error's `cause` value in
+  // `handleXhrErrorResponse`
+  const mainAndMaybeCauseErrors = exceptionValues.slice(-2);
 
-  const {type = '', value = ''} = mainError;
+  for (const error of mainAndMaybeCauseErrors) {
+    const {type = '', value = ''} = error;
 
-  const is200 =
-    ['RequestError'].includes(type) && !!value.match('(GET|POST|PUT|DELETE) .* 200');
-  const is401 =
-    ['UnauthorizedError', 'RequestError'].includes(type) &&
-    !!value.match('(GET|POST|PUT|DELETE) .* 401');
-  const is403 =
-    ['ForbiddenError', 'RequestError'].includes(type) &&
-    !!value.match('(GET|POST|PUT|DELETE) .* 403');
-  const is404 =
-    ['NotFoundError', 'RequestError'].includes(type) &&
-    !!value.match('(GET|POST|PUT|DELETE) .* 404');
+    const is200 =
+      ['RequestError'].includes(type) && !!value.match('(GET|POST|PUT|DELETE) .* 200');
+    const is401 =
+      ['UnauthorizedError', 'RequestError'].includes(type) &&
+      !!value.match('(GET|POST|PUT|DELETE) .* 401');
+    const is403 =
+      ['ForbiddenError', 'RequestError'].includes(type) &&
+      !!value.match('(GET|POST|PUT|DELETE) .* 403');
+    const is404 =
+      ['NotFoundError', 'RequestError'].includes(type) &&
+      !!value.match('(GET|POST|PUT|DELETE) .* 404');
+    const is429 =
+      ['TooManyRequestsError', 'RequestError'].includes(type) &&
+      !!value.match('(GET|POST|PUT|DELETE) .* 429');
 
-  return is200 || is401 || is403 || is404;
+    if (is200 || is401 || is403 || is404 || is429) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function isEventWithFileUrl(event: Event): boolean {
+  return !!event.request?.url?.startsWith('file://');
 }

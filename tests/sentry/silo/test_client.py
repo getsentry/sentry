@@ -34,7 +34,7 @@ class SiloClientTest(TestCase):
             RegionSiloClient("atlantis")
 
         with raises(RegionResolutionError):
-            region = Region("eu", 2, self.dummy_address, RegionCategory.MULTI_TENANT)
+            region = Region("atlantis", 1, self.dummy_address, RegionCategory.MULTI_TENANT)
             RegionSiloClient(region)
 
         client = RegionSiloClient(self.region)

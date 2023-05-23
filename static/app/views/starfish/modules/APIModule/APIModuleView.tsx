@@ -14,7 +14,7 @@ import {Series} from 'sentry/types/echarts';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {INTERNAL_API_REGEX} from 'sentry/views/starfish/modules/APIModule/constants';
 import {HostDetails} from 'sentry/views/starfish/modules/APIModule/hostDetails';
@@ -209,6 +209,8 @@ export default function APIModuleView({location, onSelect}: Props) {
     'group',
     'p75(transaction.duration)'
   );
+
+  useSynchronizeCharts([!isGraphLoading]);
 
   return (
     <Fragment>

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import * as qs from 'query-string';
 
 import GridEditable, {GridColumnHeader as Column} from 'sentry/components/gridEditable';
@@ -7,8 +8,11 @@ import Truncate from 'sentry/components/truncate';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
 import {useLocation} from 'sentry/utils/useLocation';
-import Sparkline from 'sentry/views/starfish/components/sparkline';
+import Sparkline, {
+  generateHorizontalLine,
+} from 'sentry/views/starfish/components/sparkline';
 import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
+import {useSpanTransactionMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactionMetrics';
 import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactionMetricSeries';
 import {useSpanTransactions} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactions';
 
@@ -16,15 +20,26 @@ type Props = {
   span: Span;
 };
 
+type Metric = {
+  p50: number;
+  spm: number;
+};
+
 type Row = {
   count: number;
-  metrics: Record<string, Series>;
+  metricSeries: Record<string, Series>;
+  metrics: Metric;
   transaction: string;
 };
 
 export function SpanTransactionsTable({span}: Props) {
   const location = useLocation();
+
   const {data: spanTransactions, isLoading} = useSpanTransactions(span);
+  const {data: spanTransactionMetrics} = useSpanTransactionMetrics(
+    span,
+    spanTransactions.map(row => row.transaction)
+  );
   const {data: spanTransactionMetricsSeries} = useSpanTransactionMetricSeries(
     span,
     spanTransactions.map(row => row.transaction)
@@ -33,7 +48,8 @@ export function SpanTransactionsTable({span}: Props) {
   const spanTransactionsWithMetrics = spanTransactions.map(row => {
     return {
       ...row,
-      metrics: spanTransactionMetricsSeries[row.transaction],
+      metrics: spanTransactionMetrics[row.transaction],
+      metricSeries: spanTransactionMetricsSeries[row.transaction],
     };
   });
 
@@ -95,20 +111,48 @@ function TransactionCell({span, column, row}: CellProps) {
 }
 
 function P50Cell({row}: CellProps) {
+  const theme = useTheme();
+
   return (
     <Fragment>
-      {row.metrics?.p50 ? (
-        <Sparkline color={CHART_PALETTE[3][0]} series={row.metrics.p50} />
+      {row.metricSeries?.p50 ? (
+        <Sparkline
+          color={CHART_PALETTE[3][0]}
+          series={row.metricSeries.p50}
+          markLine={
+            row.metrics?.p50
+              ? generateHorizontalLine(
+                  `${row.metrics.p50.toFixed(2)}`,
+                  row.metrics.p50,
+                  theme
+                )
+              : undefined
+          }
+        />
       ) : null}
     </Fragment>
   );
 }
 
 function SPMCell({row}: CellProps) {
+  const theme = useTheme();
+
   return (
     <Fragment>
-      {row.metrics?.spm ? (
-        <Sparkline color={CHART_PALETTE[3][1]} series={row.metrics.spm} />
+      {row.metricSeries?.spm ? (
+        <Sparkline
+          color={CHART_PALETTE[3][1]}
+          series={row.metricSeries.spm}
+          markLine={
+            row.metrics?.spm
+              ? generateHorizontalLine(
+                  `${row.metrics.spm.toFixed(2)}`,
+                  row.metrics.spm,
+                  theme
+                )
+              : undefined
+          }
+        />
       ) : null}
     </Fragment>
   );
