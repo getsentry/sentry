@@ -27,7 +27,8 @@ def get_sliding_window_sample_rate(
 
     try:
         value = redis_client.hget(cache_key, project_id)
-        # In case we had an explicit error, we want to fetch the blended sample rate to avoid oversampling.
+        # In case we had an explicit error or the sliding window was not run, we want to fetch the blended sample
+        # rate to avoid oversampling.
         if value == SLIDING_WINDOW_CALCULATION_ERROR:
             return error_sample_rate_fallback
 

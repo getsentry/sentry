@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Dict, Mapping, Optional, Sequence, Tuple
+from typing import Dict, Optional, Sequence, Tuple
 
 import sentry_sdk
 
@@ -466,8 +466,12 @@ def adjust_base_sample_rate_per_project(
 
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:
+        cache_key = generate_sliding_window_cache_key(org_id=org_id)
+        # We want to delete the Redis hash before adding new sample rate since we don't backfill projects that have no
+        # root count metrics in the considered window.
+        pipeline.hdel(cache_key)
+
         for project_id, sample_rate in projects_with_rebalanced_sample_rate:  # type:ignore
-            cache_key = generate_sliding_window_cache_key(org_id=org_id)
             pipeline.hset(cache_key, project_id, sample_rate)
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
 
@@ -476,33 +480,6 @@ def adjust_base_sample_rate_per_project(
             )
 
         pipeline.execute()
-
-
-def augment_with_empty_projects(
-    org_id: int, projects_with_total_root_count: Sequence[Tuple[ProjectId, int]]
-) -> Mapping[ProjectId, int]:
-    """
-    Augments the incoming sequence of projects and counts with all the projects that are not in the list. This projects
-    will be added with count 0, to mark that they didn't have any metrics.
-    """
-    projects_with_counts = {
-        project_id: count_per_root for project_id, count_per_root in projects_with_total_root_count
-    }
-
-    # Since we don't mind about strong consistency, we query a replica of the main database with the possibility of
-    # having out of date information. This is a trade-off we accept, since we work under the assumption that eventually
-    # the projects of an org will be replicated consistently across replicas, because no org should continue to create
-    # new projects.
-    all_projects_ids = (
-        Project.objects.using_replica().filter(organization_id=org_id).values_list("id", flat=True)
-    )
-    for project_id in all_projects_ids:
-        # In case a specific project has not been considered in the count query, it means that no metrics were extracted
-        # for it, thus we consider it as having 0 transactions for the query's time window.
-        if project_id not in projects_with_counts:
-            projects_with_counts[project_id] = 0
-
-    return projects_with_counts
 
 
 @instrumented_task(
