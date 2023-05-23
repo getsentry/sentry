@@ -1,7 +1,9 @@
 import zipfile
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import IO, Callable, Dict, List, Optional, Tuple
 
+import pytz
 from django.db import models
 from django.db.models.signals import post_delete
 from django.utils import timezone
@@ -19,6 +21,8 @@ from sentry.utils.hashlib import sha1_text
 
 NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
+EXPIRATION_DAYS = 90
+EXPIRATION_DAYS_CUTOFF = 7
 
 
 class SourceFileType(Enum):
@@ -79,6 +83,17 @@ class ArtifactBundle(Model):
         if dist is not None:
             return sha1_text(url + "\x00\x00" + dist).hexdigest()
         return sha1_text(url).hexdigest()
+
+    @classmethod
+    def can_be_renewed(cls, date_added: datetime):
+        current_date = datetime.now(tz=pytz.UTC)
+
+        expiration_date = date_added + timedelta(days=EXPIRATION_DAYS)
+        cutoff_date = date_added + timedelta(days=EXPIRATION_DAYS + EXPIRATION_DAYS_CUTOFF)
+
+        # An artifact bundle can be renewed only if its date_added is between 90 and 97 days old. This is done in order
+        # to give users a 7 days window after 90 days from artifact creation to keep their artifact bundles alive.
+        return expiration_date <= current_date <= cutoff_date
 
 
 def delete_file_for_artifact_bundle(instance, **kwargs):

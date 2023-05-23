@@ -66,7 +66,7 @@ class OAuthTokenView(View):
             except ApiGrant.DoesNotExist:
                 return self.error(request, "invalid_grant", "invalid grant")
 
-            if grant.is_expired():
+            if grant.can_be_renewed():
                 return self.error(request, "invalid_grant", "grant expired")
 
             if not redirect_uri:

@@ -1,7 +1,8 @@
 import logging
 from datetime import datetime
-from typing import List, Optional, Sequence, Set, Tuple
+from typing import List, Mapping, Optional, Sequence, Set, Tuple
 
+import pytz
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,7 +15,18 @@ from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.serializers import serialize
 from sentry.auth.system import is_system_auth
 from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
-from sentry.models import ArtifactBundle, Distribution, File, Project, Release, ReleaseFile
+from sentry.models import (
+    ArtifactBundle,
+    DebugIdArtifactBundle,
+    Distribution,
+    File,
+    Project,
+    ProjectArtifactBundle,
+    Release,
+    ReleaseArtifactBundle,
+    ReleaseFile,
+)
+from sentry.tasks.process_buffer import buffer_incr
 
 logger = logging.getLogger("sentry.api")
 
@@ -96,11 +108,15 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
         used_artifact_bundles = dict()
         bundle_file_ids = set()
-        if debug_id:
-            bundles = get_artifact_bundles_containing_debug_id(debug_id, project)
-            for (bundle_id, date_added, file_id) in bundles:
+
+        def update_bundles(inner_bundles: Set[Tuple[int, datetime, int]]):
+            for (bundle_id, date_added, file_id) in inner_bundles:
                 used_artifact_bundles[bundle_id] = date_added
                 bundle_file_ids.add(file_id)
+
+        if debug_id:
+            bundles = get_artifact_bundles_containing_debug_id(debug_id, project)
+            update_bundles(bundles)
 
         individual_files = set()
         if url and release_name and not bundle_file_ids:
@@ -110,28 +126,15 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             # do *not* contain the file, rather than opening up each bundle. We want to
             # avoid opening up bundles at all cost.
             bundles = get_release_artifacts(project, release_name, dist_name)
-            for (bundle_id, date_added, file_id) in bundles:
-                used_artifact_bundles[bundle_id] = date_added
-                bundle_file_ids.add(file_id)
+            update_bundles(bundles)
 
             release, dist = try_resolve_release_dist(project, release_name, dist_name)
             if release:
                 bundle_file_ids |= get_legacy_release_bundles(release, dist)
                 individual_files = get_legacy_releasefile_by_file_url(release, dist, url)
 
-        for bundle_id, date_added in used_artifact_bundles.items():
-            pass
-        # TODO: properly implement this :-)
-        #    if date_added < # TODO: now - refresh threshold:
-        #        redis_set_key = now truncated to `bucket_window`
-        #        add `bundle_id` to a redis set `redis_set_key`
-        #        add `redis_set_key` to another redis set `redis_key_index`
-        # TODO: in a different periodic celery task/cron:
-        # - get all the redis buckets from `redis_key_index`
-        # - iterate the buckets in order except the 2 most recent ones
-        #   (accounting for the active bucket and some time skew)
-        #   - for each bundle_id in a bucket:
-        #     - UPDATE all tables we need
+        # Before constructing the response, we want to asynchronously update the artifact bundles renewal date.
+        renew_artifact_bundles(used_artifact_bundles)
 
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
@@ -163,6 +166,46 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         # NOTE: We do not paginate this response, as we have very tight limits
         # on all the individual queries.
         return Response(serialize(found_artifacts, request.user))
+
+
+def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
+    # We take a snapshot in time that MUST be consistent across all updates.
+    now = datetime.now(tz=pytz.UTC)
+
+    for (bundle_id, date_added) in used_artifact_bundles.items():
+        if ArtifactBundle.can_be_renewed(date_added):
+            # In case this bundle can be renewed we will try to renew all the instances connected to this bundle with
+            # the same `date_added`.
+            for model in (
+                ArtifactBundle,
+                ProjectArtifactBundle,
+                DebugIdArtifactBundle,
+                ReleaseArtifactBundle,
+            ):
+                async_update_model(model=model, bundle_id=bundle_id, new_date_added=now)
+
+
+def async_update_model(model, bundle_id: int, new_date_added: datetime):
+    id_key = "id" if model == ArtifactBundle else "artifact_bundle_id"
+    # We want to asynchronously update the field. This is automatically handled in a batching fashion by the buffer.
+    #
+    # This implementation might have race conditions in which a `buffer_incr` task will be scheduled for the same
+    # `bundle_id` in different times. We assume here that there is some ordering in execution and tasks are completed
+    # in a FIFO fashion without interleaving updates. In case this will turn out to not be the case, we might have
+    # the database into an inconsistent state, where the `date_added` field of the entities connected to the same
+    # `bundle_id` are different.In addition, we don't expect the same `bundle_id` to be request in close sequence since
+    # Symbolicator caches for ~1 hour the bundles received by this endpoint.
+    #
+    # In case we will end up with inconsistent `date_added` into the database, we might have to build a fully custom
+    # batching implementation with proper ordering and consistency guarantees.
+    buffer_incr(
+        model=model,
+        # We pass empty columns since we don't want to increment anything, rather we pass extra since we want to update
+        # `date_added` only.
+        columns={},
+        extra={"date_added": new_date_added},
+        filters={id_key: bundle_id},
+    )
 
 
 def get_artifact_bundles_containing_debug_id(
