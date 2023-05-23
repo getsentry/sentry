@@ -3,6 +3,7 @@ from typing import List, Optional
 from unittest.mock import patch
 from uuid import uuid4
 
+import pytest
 from freezegun import freeze_time
 
 from sentry.eventstore.models import Event
@@ -11,15 +12,19 @@ from sentry.issues.escalating import (
     _start_and_end_dates,
     get_group_hourly_count,
     is_escalating,
+    manage_issue_states,
     query_groups_past_counts,
 )
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models import Group
+from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
-from sentry.models.groupinbox import GroupInbox
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
@@ -275,3 +280,57 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
         assert get_group_hourly_count(group) == 1
+
+
+class ManageIssueStatesTest(TestCase):
+    def test_status_changes(self) -> None:
+        state_change_details = [
+            {
+                "substatus": GroupSubStatus.ESCALATING,
+                "reason": GroupInboxReason.ESCALATING,
+                "history_status": GroupHistoryStatus.ESCALATING,
+                "first_seen": datetime.now(),
+            },
+            {
+                "substatus": GroupSubStatus.ONGOING,
+                "reason": GroupInboxReason.ONGOING,
+                "history_status": GroupHistoryStatus.ONGOING,
+                "first_seen": datetime.now(),
+            },
+            {
+                "substatus": GroupSubStatus.NEW,
+                "reason": GroupInboxReason.UNIGNORED,
+                "history_status": GroupHistoryStatus.UNIGNORED,
+                "first_seen": datetime.now(),
+            },
+            {
+                "substatus": GroupSubStatus.ONGOING,
+                "reason": GroupInboxReason.UNIGNORED,
+                "history_status": GroupHistoryStatus.UNIGNORED,
+                "first_seen": datetime.now() - timedelta(days=4),
+            },
+        ]
+
+        for state_change in state_change_details:
+            self.group = self.create_group(
+                status=GroupStatus.IGNORED, first_seen=state_change["first_seen"]
+            )
+            manage_issue_states(self.group, state_change["reason"])
+
+            self.group.refresh_from_db()
+
+            assert self.group.status == GroupStatus.UNRESOLVED
+            assert self.group.substatus == state_change["substatus"]
+
+            assert GroupInbox.objects.filter(group=self.group).exists()
+            assert GroupHistory.objects.filter(
+                group=self.group, status=state_change["history_status"]
+            ).exists()
+            assert Activity.objects.filter(
+                group=self.group, type=ActivityType.SET_UNRESOLVED.value
+            ).exists()
+
+    def test_invalid_status_changes(self) -> None:
+        self.group = self.create_group()
+        with pytest.raises(NotImplementedError):
+            manage_issue_states(self.group, GroupInboxReason.REPROCESSED)
