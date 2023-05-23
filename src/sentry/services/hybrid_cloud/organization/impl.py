@@ -96,17 +96,24 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def get_invite_by_id(
         self,
         *,
+        organization_id: int,
         organization_member_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
         user_id: Optional[int] = None,
         email: Optional[str] = None,
     ) -> Optional[RpcUserInviteContext]:
         """
         Query for an organization member by its id.
         """
+        query = Organization.objects.filter(id=organization_id)
+
+        try:
+            org = query.get()
+        except Organization.DoesNotExist:
+            return None
+
         return self._get_invite(
             organization_member_id=organization_member_id,
-            organization_id=organization_id,
+            org=org,
             user_id=user_id,
             email=email,
         )
@@ -114,17 +121,24 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def get_invite_by_slug(
         self,
         *,
+        slug: str,
         organization_member_id: Optional[int] = None,
-        slug: Optional[str] = None,
         user_id: Optional[int] = None,
         email: Optional[str] = None,
     ) -> Optional[RpcUserInviteContext]:
         """
         Query for an organization member by its slug.
         """
+        query = Organization.objects.filter(slug=slug)
+
+        try:
+            org = query.get()
+        except Organization.DoesNotExist:
+            return None
+
         return self._get_invite(
             organization_member_id=organization_member_id,
-            slug=slug,
+            org=org,
             user_id=user_id,
             email=email,
         )
@@ -133,23 +147,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self,
         *,
         organization_member_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
-        slug: Optional[str] = None,
+        org: Organization,
         user_id: Optional[int] = None,
         email: Optional[str] = None,
     ) -> Optional[RpcUserInviteContext]:
         """
         Query for an organization member by its id and organization
         """
-        if organization_id is not None:
-            query = Organization.objects.filter(id=organization_id)
-        else:
-            query = Organization.objects.filter(slug=slug)
-
-        try:
-            org = query.get()
-        except Organization.DoesNotExist:
-            return None
 
         member: RpcOrganizationMember | None = None
         if user_id is not None:

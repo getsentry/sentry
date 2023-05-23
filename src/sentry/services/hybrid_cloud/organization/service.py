@@ -111,8 +111,8 @@ class OrganizationService(RpcService):
     def get_invite_by_id(
         self,
         *,
+        organization_id: int,
         organization_member_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
         user_id: Optional[int] = None,
         email: Optional[str] = None,
     ) -> Optional[RpcUserInviteContext]:
@@ -123,8 +123,8 @@ class OrganizationService(RpcService):
     def get_invite_by_slug(
         self,
         *,
+        slug: str,
         organization_member_id: Optional[int] = None,
-        slug: Optional[str] = None,
         user_id: Optional[int] = None,
         email: Optional[str] = None,
     ) -> Optional[RpcUserInviteContext]:
