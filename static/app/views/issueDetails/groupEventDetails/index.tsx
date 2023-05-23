@@ -21,7 +21,6 @@ export interface GroupEventDetailsProps
   project: Project;
 }
 
-// Blocks rendering of the event until the environment is loaded
 export function GroupEventDetailsContainer(props: GroupEventDetailsProps) {
   const api = useApi();
 
