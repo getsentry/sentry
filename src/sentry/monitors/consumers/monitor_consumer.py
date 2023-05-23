@@ -95,7 +95,7 @@ def _process_message(wrapper: Dict) -> None:
     params = json.loads(wrapper["payload"])
     start_time = to_datetime(float(wrapper["start_time"]))
     project_id = int(wrapper["project_id"])
-    source_sdk = wrapper["client"]
+    source_sdk = wrapper["sdk"]
 
     environment = params.get("environment")
     project = Project.objects.get_from_cache(id=project_id)
