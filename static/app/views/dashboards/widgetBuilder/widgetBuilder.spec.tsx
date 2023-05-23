@@ -473,7 +473,7 @@ describe('WidgetBuilder', function () {
 
     expect(screen.queryByText('Custom Widget')).not.toBeInTheDocument();
 
-    expect(screen.getAllByText('Unique Users')).toBeInTheDocument();
+    expect(screen.getByText('Unique Users')).toBeInTheDocument();
   });
 
   it('can add query conditions', async function () {
