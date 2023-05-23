@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytz
 
 from sentry.models import (
+    Activity,
     Group,
     GroupHistoryStatus,
     GroupInbox,
@@ -18,6 +19,7 @@ from sentry.tasks.auto_ongoing_issues import (
 )
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
 
@@ -44,6 +46,11 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
         assert ongoing_inbox.date_added >= now
         assert inbox_in.called
+
+        set_ongoing_activity = Activity.objects.filter(
+            group=group, type=ActivityType.AUTO_SET_ONGOING.value
+        ).get()
+        assert set_ongoing_activity.data == {"after_days": 3}
 
     @patch("sentry.signals.inbox_in.send_robust")
     def test_reprocessed(self, inbox_in):
@@ -212,3 +219,8 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
         assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
         assert ongoing_inbox.date_added >= now
         assert inbox_in.called
+
+        set_ongoing_activity = Activity.objects.filter(
+            group=group, type=ActivityType.AUTO_SET_ONGOING.value
+        ).get()
+        assert set_ongoing_activity.data == {"after_days": 3}

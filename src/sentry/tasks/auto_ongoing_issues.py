@@ -71,6 +71,7 @@ def auto_transition_issues_new_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.NEW,
             group,
+            activity_data={"after_days": 3},
         )
 
     if len(new_groups) == chunk_size:
@@ -140,6 +141,7 @@ def auto_transition_issues_regressed_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.REGRESSED,
             group,
+            activity_data={"after_days": 3},
         )
 
     if len(groups_with_regressed_history) == chunk_size:
