@@ -21,11 +21,8 @@ import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {
-  EventsResults,
-  EventsResultsDataRow,
-  useProfileEvents,
-} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {EventsResults, EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
+import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfilingTransactionQuickSummary} from 'sentry/utils/profiling/hooks/useProfilingTransactionQuickSummary';
 import {generateProfileSummaryRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {makeFormatTo} from 'sentry/utils/profiling/units/units';
@@ -103,7 +100,7 @@ export function ProfilingSlowestTransactionsPanel() {
         {profilingTransactions?.map(transaction => {
           return (
             <SlowestTransactionPanelItem
-              key={transaction.transaction}
+              key={transaction.transaction as string}
               transaction={transaction}
               open={transaction.transaction === openPanel}
               onOpen={() => setOpenPanel(transaction.transaction as string)}
@@ -148,7 +145,7 @@ function SlowestTransactionPanelItem({
   );
 
   return (
-    <PanelItem key={transaction.transaction}>
+    <PanelItem key={transaction.transaction as string}>
       <Flex justify="space-between" gap={space(1)}>
         <PlatformIcon platform={transactionProject?.platform ?? 'default'} />
         <Flex.Item
