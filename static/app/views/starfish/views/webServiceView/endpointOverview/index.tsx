@@ -20,9 +20,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
-import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
+import {SampleEvents} from 'sentry/views/starfish/components/sampleEvents';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import DatabaseTableView, {
   DataRow,
@@ -33,6 +33,8 @@ import {
 } from 'sentry/views/starfish/modules/databaseModule/queries';
 import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combineTableDataWithSparklineData';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
+import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -70,44 +72,6 @@ const HTTP_SPAN_COLUMN_ORDER = [
   },
 ];
 
-const DATABASE_SPAN_COLUMN_ORDER = [
-  {
-    key: 'description',
-    name: 'Query',
-    width: 400,
-  },
-  {
-    key: 'domain',
-    name: 'Table',
-    width: 100,
-  },
-  {
-    key: 'throughput',
-    name: 'Throughput',
-    width: 200,
-  },
-  {
-    key: 'p75_trend',
-    name: 'P75 Trend',
-    width: 200,
-  },
-  {
-    key: 'epm',
-    name: 'Tpm',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'p75',
-    name: 'p75',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'total_time',
-    name: 'Total Time',
-    width: COL_WIDTH_UNDEFINED,
-  },
-];
-
 export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
@@ -120,10 +84,10 @@ export default function EndpointOverview() {
     isLoading: isTableDataLoading,
     data: tableData,
     isRefetching: isTableRefetching,
-  } = useQueryMainTable({});
+  } = useQueryMainTable({transaction: (transaction as string) ?? ''});
 
   const {data: dbAggregateData} = useQuery({
-    queryKey: ['dbAggregates'],
+    queryKey: ['dbAggregates', transaction, pageFilter.selection.datetime],
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getDbAggregatesQuery({
@@ -144,10 +108,16 @@ export default function EndpointOverview() {
     }
   });
 
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
+    pageFilter.selection.datetime
+  );
+
   const combinedDbData = combineTableDataWithSparklineData(
     tableData,
     dbAggregateData,
-    moment.duration(12, 'hours')
+    moment.duration(12, 'hours'),
+    moment(start_timestamp),
+    moment(end_timestamp)
   );
 
   const query = new MutableSearch([
@@ -161,7 +131,7 @@ export default function EndpointOverview() {
     id: undefined,
     name: t('Endpoint Overview'),
     query: query.formatString(),
-    projects: [],
+    projects: [1],
     fields: [],
     version: 2,
   };
@@ -258,10 +228,9 @@ export default function EndpointOverview() {
               );
             }}
           </EventsRequest>
-          <FacetBreakdownBar
-            title={t('Where is time spent in this endpoint?')}
-            transaction={transaction as string}
-          />
+          <SpanGroupBreakdownContainer transaction={transaction as string} />
+          <SubHeader>{t('Sample Events')}</SubHeader>
+          <SampleEvents eventView={eventView} />
           <SubHeader>{t('Correlations')}</SubHeader>
           <FacetInsights eventView={eventView} />
           <SubHeader>{t('HTTP Spans')}</SubHeader>
@@ -285,6 +254,8 @@ export default function EndpointOverview() {
           <SubHeader>{t('Database Spans')}</SubHeader>
           <DatabaseTableView
             location={location}
+            data={combinedDbData as DataRow[]}
+            isDataLoading={isTableDataLoading || isTableRefetching}
             onSelect={r => {
               browserHistory.push(
                 `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
@@ -292,9 +263,6 @@ export default function EndpointOverview() {
                 })}`
               );
             }}
-            isDataLoading={isTableDataLoading || isTableRefetching}
-            data={combinedDbData as DataRow[]}
-            columns={DATABASE_SPAN_COLUMN_ORDER}
           />
         </Layout.Main>
       </Layout.Body>

@@ -329,7 +329,8 @@ function TableView(props: TableViewProps) {
             dataRow,
             organization,
             projects,
-            eventView
+            eventView,
+            location
           )}
         >
           {cell}
@@ -482,17 +483,6 @@ function TableView(props: TableViewProps) {
       });
 
       switch (action) {
-        case Actions.TRANSACTION: {
-          const target = getTargetForTransactionSummaryLink(
-            dataRow,
-            organization,
-            projects,
-            nextView
-          );
-
-          browserHistory.push(normalizeUrl(target));
-          return;
-        }
         case Actions.RELEASE: {
           const maybeProject = projects.find(project => {
             return project.slug === dataRow.project;

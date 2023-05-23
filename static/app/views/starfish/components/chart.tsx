@@ -1,6 +1,12 @@
+import {useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {LineSeriesOption} from 'echarts';
-import {YAXisOption} from 'echarts/types/dist/shared';
+import * as echarts from 'echarts/core';
+import {
+  TooltipFormatterCallback,
+  TopLevelFormatterParams,
+  YAXisOption,
+} from 'echarts/types/dist/shared';
 import max from 'lodash/max';
 import min from 'lodash/min';
 
@@ -8,11 +14,12 @@ import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import BaseChart from 'sentry/components/charts/baseChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
+import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import {DateString} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -21,6 +28,8 @@ import {
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import useRouter from 'sentry/utils/useRouter';
 
+const STARFISH_CHART_GROUP = 'starfish_chart_group';
+
 type Props = {
   data: Series[];
   end: DateString;
@@ -28,6 +37,7 @@ type Props = {
   start: DateString;
   statsPeriod: string | null | undefined;
   utc: boolean;
+  aggregateOutputFormat?: 'number' | 'percentage' | 'duration';
   chartColors?: string[];
   definedAxisTicks?: number;
   disableXAxis?: boolean;
@@ -105,9 +115,16 @@ function Chart({
   showLegend,
   scatterPlot,
   throughput,
+  aggregateOutputFormat,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
+  const chart = useRef<ReactEchartsRef>(null);
+
+  const echartsInstance = chart.current?.getEchartsInstance();
+  if (echartsInstance && !echartsInstance.group) {
+    echartsInstance.group = STARFISH_CHART_GROUP;
+  }
 
   if (!data || data.length <= 0) {
     return null;
@@ -123,7 +140,7 @@ function Chart({
   );
 
   let dataMax = durationOnly
-    ? computeAxisMax([...data, ...(scatterPlot ?? [])])
+    ? computeAxisMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
     : percentOnly
     ? computeMax(data)
     : undefined;
@@ -175,7 +192,7 @@ function Chart({
         formatter(value: number) {
           return axisLabelFormatter(
             value,
-            aggregateOutputType(data[0].seriesName),
+            aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
             undefined,
             durationUnit
           );
@@ -185,6 +202,28 @@ function Chart({
     },
     ...additionalAxis,
   ];
+
+  const formatter: TooltipFormatterCallback<TopLevelFormatterParams> = (
+    params,
+    asyncTicket
+  ) => {
+    // Kinda jank. Get hovered dom elements and check if any of them are the chart
+    const hoveredEchartElement = Array.from(document.querySelectorAll(':hover')).find(
+      element => {
+        return element.classList.contains('echarts-for-react');
+      }
+    );
+    if (hoveredEchartElement === chart.current?.ele) {
+      // Return undefined to use default formatter
+      return getFormatter({
+        isGroupedByDate: true,
+        showTimeInTooltip: true,
+        utc,
+      })(params, asyncTicket);
+    }
+    // Return empty string, ie no tooltip
+    return '';
+  };
 
   const areaChartProps = {
     seriesOptions: {
@@ -201,8 +240,8 @@ function Chart({
       : undefined,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors,
     tooltip: {
+      formatter,
       trigger: 'axis',
       axisPointer: {
         type: 'cross',
@@ -211,7 +250,8 @@ function Chart({
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
           value,
-          aggregateOutputType(data && data.length ? data[0].seriesName : seriesName)
+          aggregateOutputFormat ??
+            aggregateOutputType(data && data.length ? data[0].seriesName : seriesName)
         );
       },
       nameFormatter(value: string) {
@@ -250,6 +290,7 @@ function Chart({
           return (
             <BaseChart
               {...zoomRenderProps}
+              ref={chart}
               height={height}
               previousPeriod={previousData}
               additionalSeries={transformedThroughput}
@@ -301,6 +342,7 @@ function Chart({
 
         return (
           <AreaChart
+            forwardedRef={chart}
             height={height}
             {...zoomRenderProps}
             series={series}
@@ -317,3 +359,13 @@ function Chart({
 }
 
 export default Chart;
+
+export function useSynchronizeCharts(deps: boolean[]) {
+  const [synchronized, setSynchronized] = useState<boolean>(false);
+  useEffect(() => {
+    if (deps.every(dep => dep) && !synchronized) {
+      echarts.connect(STARFISH_CHART_GROUP);
+      setSynchronized(true);
+    }
+  }, [deps, synchronized]);
+}

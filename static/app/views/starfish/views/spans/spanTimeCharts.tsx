@@ -1,13 +1,14 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import groupBy from 'lodash/groupBy';
 import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import Chart from 'sentry/views/starfish/components/chart';
+import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
+import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {
   datetimeToClickhouseFilterTimestamps,
@@ -23,6 +24,7 @@ type Props = {
 
 export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
   const themes = useTheme();
+  const location = useLocation();
 
   const pageFilter = usePageFilters();
   const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
@@ -41,14 +43,17 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
     initialData: [],
   });
 
-  const dataByGroup = groupBy(data, 'primary_group');
+  const {span_operation, action, domain} = location.query;
+
+  const label = getSegmentLabel(span_operation, action, domain);
+  const dataByGroup = {[label]: data};
 
   const throughputTimeSeries = Object.keys(dataByGroup).map(groupName => {
     const groupData = dataByGroup[groupName];
 
     return zeroFillSeries(
       {
-        seriesName: groupName,
+        seriesName: label ?? 'Throughput',
         data: groupData.map(datum => ({
           value: datum.throughput,
           name: datum.interval,
@@ -65,7 +70,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
 
     return zeroFillSeries(
       {
-        seriesName: groupName,
+        seriesName: label ?? 'Total Time',
         data: groupData.map(datum => ({
           value: datum.total_time,
           name: datum.interval,
@@ -82,7 +87,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
 
     return zeroFillSeries(
       {
-        seriesName: groupName,
+        seriesName: label ?? 'P50',
         data: groupData.map(datum => ({
           value: datum.p50,
           name: datum.interval,
@@ -93,6 +98,8 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
       endTime
     );
   });
+
+  useSynchronizeCharts([!isLoading]);
 
   return (
     <ChartsContainer>

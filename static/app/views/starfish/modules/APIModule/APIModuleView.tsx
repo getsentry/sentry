@@ -14,7 +14,7 @@ import {Series} from 'sentry/types/echarts';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {INTERNAL_API_REGEX} from 'sentry/views/starfish/modules/APIModule/constants';
 import {HostDetails} from 'sentry/views/starfish/modules/APIModule/hostDetails';
@@ -202,23 +202,15 @@ export default function APIModuleView({location, onSelect}: Props) {
       interval
     );
 
-  const tpmTransactionSeries = queryToSeries(
-    topTransactionsData,
-    'group',
-    'epm()',
-    startTime,
-    endTime,
-    24
-  );
+  const tpmTransactionSeries = queryToSeries(topTransactionsData, 'group', 'epm()');
 
   const p75TransactionSeries = queryToSeries(
     topTransactionsData,
     'group',
-    'p75(transaction.duration)',
-    startTime,
-    endTime,
-    24
+    'p75(transaction.duration)'
   );
+
+  useSynchronizeCharts([!isGraphLoading]);
 
   return (
     <Fragment>
@@ -231,6 +223,24 @@ export default function APIModuleView({location, onSelect}: Props) {
         />
         <DatePageFilter alignDropdown="left" />
       </FilterOptionsContainer>
+      <ChartsContainer>
+        <ChartsContainerItem>
+          <ChartPanel title={t('Top Transactions Throughput')}>
+            <APIModuleChart
+              data={tpmTransactionSeries}
+              loading={isTopTransactionDataLoading}
+            />
+          </ChartPanel>
+        </ChartsContainerItem>
+        <ChartsContainerItem>
+          <ChartPanel title={t('Top Transactions p75')}>
+            <APIModuleChart
+              data={p75TransactionSeries}
+              loading={isTopTransactionDataLoading}
+            />
+          </ChartPanel>
+        </ChartsContainerItem>
+      </ChartsContainer>
       <ChartsContainer>
         <ChartsContainerItem>
           <ChartPanel title={t('Throughput')}>
@@ -248,22 +258,6 @@ export default function APIModuleView({location, onSelect}: Props) {
               data={zeroFilledFailureRate}
               loading={isGraphLoading}
               chartColors={[themes.charts.getColorPalette(2)[2]]}
-            />
-          </ChartPanel>
-        </ChartsContainerItem>
-        <ChartsContainerItem>
-          <ChartPanel title={t('Top Transactions Throughput')}>
-            <APIModuleChart
-              data={tpmTransactionSeries}
-              loading={isTopTransactionDataLoading}
-            />
-          </ChartPanel>
-        </ChartsContainerItem>
-        <ChartsContainerItem>
-          <ChartPanel title={t('Top Transactions p75')}>
-            <APIModuleChart
-              data={p75TransactionSeries}
-              loading={isTopTransactionDataLoading}
             />
           </ChartPanel>
         </ChartsContainerItem>

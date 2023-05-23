@@ -164,7 +164,7 @@ def _do_preprocess_event(
                 "symbolication_function": symbolication_function_name,
             },
         ):
-            reprocessing2.backup_unprocessed_event(project=project, data=original_data)
+            reprocessing2.backup_unprocessed_event(data=original_data)
 
             is_low_priority = should_demote_symbolication(project_id)
             task_kind = SymbolicatorTaskKind(

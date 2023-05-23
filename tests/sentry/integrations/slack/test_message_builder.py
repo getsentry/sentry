@@ -238,12 +238,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         with self.feature("organizations:performance-issues"):
             attachments = SlackIssuesMessageBuilder(event.group, event).build()
         assert attachments["title"] == "N+1 Query"
-        # TODO: Uncomment this once we fix the `evidence_display` for occurrences
-        # assert (
-        #     attachments["text"]
-        #     == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-        # )
-        assert attachments["text"] == ""
+        assert (
+            attachments["text"]
+            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        )
         assert attachments["fallback"] == f"[{self.project.slug}] N+1 Query"
         assert attachments["color"] == "#2788CE"  # blue for info level
 

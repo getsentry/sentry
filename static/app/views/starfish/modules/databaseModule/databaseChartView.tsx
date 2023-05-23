@@ -8,20 +8,16 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
+import {getDuration} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {
-  useGetTransactionsForTables,
   useQueryDbTables,
   useQueryTopDbOperationsChart,
   useQueryTopTablesChart,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
-import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
-import {
-  datetimeToClickhouseFilterTimestamps,
-  getDateFilters,
-} from 'sentry/views/starfish/utils/dates';
+import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 const INTERVAL = 12;
@@ -45,7 +41,11 @@ function parseOptions(options, label) {
       return {
         value: action.key,
         prefix,
-        label: `${action.key || 'null'} - ${action.value} ${label}`,
+        label: `${action.key || 'null'} - ${getDuration(
+          action.value / 1000,
+          2,
+          true
+        )} ${label}`,
       };
     }),
   ];
@@ -54,7 +54,6 @@ function parseOptions(options, label) {
 export default function DatabaseChartView({table, onChange}: Props) {
   const pageFilter = usePageFilters();
   const theme = useTheme();
-  const {startTime, endTime} = getDateFilters(pageFilter);
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
     pageFilter.selection.datetime
   );
@@ -81,7 +80,7 @@ export default function DatabaseChartView({table, onChange}: Props) {
 
     tableGraphData.forEach(datum => {
       seriesByDomain[datum.domain].data.push({
-        value: datum.p75,
+        value: datum.p50,
         name: datum.interval,
       });
       tpmByDomain[datum.domain].data.push({
@@ -90,28 +89,6 @@ export default function DatabaseChartView({table, onChange}: Props) {
       });
     });
   }
-
-  const tableNames = [...new Set(tableGraphData.map(d => d.domain))];
-  const {isLoading: isTopTransactionDataLoading, data: topTransactionsData} =
-    useGetTransactionsForTables(tableNames, INTERVAL);
-
-  const tpmTransactionSeries = queryToSeries(
-    topTransactionsData,
-    'transaction',
-    'epm',
-    startTime,
-    endTime,
-    INTERVAL
-  );
-
-  const p75TransactionSeries = queryToSeries(
-    topTransactionsData,
-    'transaction',
-    'p75',
-    startTime,
-    endTime,
-    INTERVAL
-  );
 
   const topDomains = Object.values(seriesByDomain).map(series =>
     zeroFillSeries(
@@ -147,7 +124,7 @@ export default function DatabaseChartView({table, onChange}: Props) {
 
     topGraphData.forEach(datum => {
       seriesByQuery[datum.action].data.push({
-        value: datum.p75,
+        value: datum.p50,
         name: datum.interval,
       });
       tpmByQuery[datum.action].data.push({
@@ -158,62 +135,17 @@ export default function DatabaseChartView({table, onChange}: Props) {
   }
 
   const chartColors = [...theme.charts.getColorPalette(6).slice(2, 7), theme.gray300];
+  useSynchronizeCharts([!tableGraphLoading]);
 
   return (
     <Fragment>
-      <ChartsContainer>
-        <ChartsContainerItem>
-          <ChartPanel title={t('Top Transactions P75')}>
-            <Chart
-              statsPeriod="24h"
-              height={180}
-              data={p75TransactionSeries}
-              start=""
-              end=""
-              loading={isTopTransactionDataLoading}
-              utc={false}
-              grid={{
-                left: '0',
-                right: '0',
-                top: '16px',
-                bottom: '8px',
-              }}
-              definedAxisTicks={4}
-              isLineChart
-              showLegend
-            />
-          </ChartPanel>
-        </ChartsContainerItem>
-        <ChartsContainerItem>
-          <ChartPanel title={t('Top Transactions Throughput')}>
-            <Chart
-              statsPeriod="24h"
-              height={180}
-              data={tpmTransactionSeries}
-              start=""
-              end=""
-              loading={isTopTransactionDataLoading}
-              utc={false}
-              grid={{
-                left: '0',
-                right: '0',
-                top: '16px',
-                bottom: '8px',
-              }}
-              definedAxisTicks={4}
-              showLegend
-              isLineChart
-            />
-          </ChartPanel>
-        </ChartsContainerItem>
-      </ChartsContainer>
       {tableData.length === 1 && tableData[0].key === '' ? (
         <Fragment />
       ) : (
         <Fragment>
           <ChartsContainer>
             <ChartsContainerItem>
-              <ChartPanel title={t('Slowest Tables P75')}>
+              <ChartPanel title={t('Slowest Tables P50')}>
                 <Chart
                   statsPeriod="24h"
                   height={180}
@@ -263,7 +195,7 @@ export default function DatabaseChartView({table, onChange}: Props) {
             <CompactSelect
               value={table}
               triggerProps={{prefix: t('Table')}}
-              options={parseOptions(tableData, 'p75')}
+              options={parseOptions(tableData, 'p50')}
               menuTitle="Table"
               onChange={opt => onChange(opt.value)}
             />

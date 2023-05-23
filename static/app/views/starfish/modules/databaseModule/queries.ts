@@ -32,8 +32,11 @@ export const DEFAULT_WHERE = `
   action != ''
 `;
 
+const SPM =
+  'if(duration > 0, divide(count(), (max(start_timestamp) - min(start_timestamp) as duration)/60), 0)';
+
 const ORDERBY = `
-  -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
+  -sum(exclusive_time), -count()
 `;
 
 const getActionSubquery = (date_filters: string) => {
@@ -57,9 +60,11 @@ const getDomainSubquery = (date_filters: string) => {
     ${DEFAULT_WHERE}
     ${date_filters} and
     domain != ''
-   group by domain
-   order by ${ORDERBY}
-   limit 5
+  group by domain
+  having
+    ${SPM} > 0.05
+  order by ${ORDERBY}
+  limit 5
   `;
 };
 
@@ -137,14 +142,14 @@ export const useQueryDbTables = (): DefinedUseQueryResult<
 export const useQueryTopDbOperationsChart = (
   interval: number
 ): DefinedUseQueryResult<
-  {action: string; count: number; interval: string; p75: number}[]
+  {action: string; count: number; interval: string; p50: number}[]
 > => {
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
   const query = `
   select
-    floor(quantile(0.75)(exclusive_time), 5) as p75,
+    floor(quantile(0.50)(exclusive_time), 5) as p50,
     action,
     count() as count,
     toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
@@ -252,7 +257,7 @@ type TopTableQuery = {
   count: number;
   domain: string;
   interval: string;
-  p75: number;
+  p50: number;
 }[];
 
 export const useQueryTopTablesChart = (
@@ -263,9 +268,9 @@ export const useQueryTopTablesChart = (
   const dateFilters = getDateQueryFilter(startTime, endTime);
   const query = `
   select
-    floor(quantile(0.75)(exclusive_time), 5) as p75,
+    floor(quantile(0.50)(exclusive_time), 5) as p50,
     domain,
-    count() as count,
+    divide(count(), multiply(${interval}, 60)) as count,
     toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
   from default.spans_experimental_starfish
   where
@@ -287,8 +292,8 @@ export const useQueryTopTablesChart = (
 
   const query2 = `
   select
-  floor(quantile(0.75)(exclusive_time), 5) as p75,
-  count() as count,
+  floor(quantile(0.50)(exclusive_time), 5) as p50,
+  divide(count(), multiply(${interval}, 60)) as count,
   toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
   from default.spans_experimental_starfish
   where
@@ -329,7 +334,8 @@ export const useQueryPanelTable = (
     SELECT
       transaction,
       count() AS count,
-      quantile(0.75)(exclusive_time) as p75
+      quantile(0.75)(exclusive_time) as p75,
+      any(transaction_id) as example
     FROM spans_experimental_starfish
     WHERE
       ${DEFAULT_WHERE}
@@ -397,7 +403,7 @@ export const useQueryPanelSparklines = (
       transaction,
       toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval,
       quantile(0.50)(exclusive_time) AS p50,
-      divide(count(), ${(endTime.unix() - startTime.unix()) / 60}) AS spm
+      divide(count(), multiply(${interval}, 60)) as spm
     FROM spans_experimental_starfish
     WHERE
       transaction in (
@@ -442,7 +448,7 @@ export const useQueryPanelGraph = (row: DataRow, interval: number) => {
       toStartOfInterval(start_timestamp, INTERVAL ${interval} HOUR) as interval,
       quantile(0.95)(exclusive_time) as p95,
       quantile(0.50)(exclusive_time) as p50,
-      count() as count
+      divide(count(), multiply(${interval}, 60)) as count
     FROM spans_experimental_starfish
     WHERE
       ${DEFAULT_WHERE}
@@ -489,6 +495,7 @@ export const useQueryMainTable = (options: {
   action?: string;
   filterNew?: boolean;
   filterOld?: boolean;
+  filterOutlier?: boolean;
   limit?: number;
   sortDirection?: string;
   sortKey?: string;
@@ -499,6 +506,7 @@ export const useQueryMainTable = (options: {
     action,
     filterNew,
     filterOld,
+    filterOutlier,
     sortDirection,
     sortKey,
     table,
@@ -513,6 +521,7 @@ export const useQueryMainTable = (options: {
   const actionFilter = action && action !== 'ALL' ? `action = '${action}'` : undefined;
   const newFilter: string | undefined = filterNew ? 'newish = 1' : undefined;
   const oldFilter: string | undefined = filterOld ? 'retired = 1' : undefined;
+  const outlierFilter: string | undefined = filterOutlier ? `${SPM} > 0.02` : undefined;
 
   const filters = [DEFAULT_WHERE, transactionFilter, tableFilter, actionFilter].filter(
     fil => !!fil
@@ -520,14 +529,14 @@ export const useQueryMainTable = (options: {
   const duration = endTime.unix() - startTime.unix();
   const newColumn = getNewColumn(duration, startTime, endTime);
   const retiredColumn = getRetiredColumn(duration, startTime, endTime);
-  const havingFilters = [newFilter, oldFilter].filter(fil => !!fil);
+  const havingFilters = [newFilter, oldFilter, outlierFilter].filter(fil => !!fil);
   const orderBy = getOrderByFromKey(sortKey, sortDirection) ?? ORDERBY;
 
   const query = `
   select
     description,
     group_id, count() as count,
-    (divide(count, ${(endTime.unix() - startTime.unix()) / 60}) AS epm),
+    ${SPM} as epm,
     quantile(0.75)(exclusive_time) as p75,
     quantile(0.50)(exclusive_time) as p50,
     quantile(0.95)(exclusive_time) as p95,
@@ -555,7 +564,7 @@ export const useQueryMainTable = (options: {
   ${havingFilters.length > 0 ? 'having' : ''}
     ${havingFilters.join(' and ')}
   order by ${orderBy}
-  limit ${limit ?? 100}
+  limit ${limit ?? 50}
 `;
 
   return useQuery<DataRow[]>({
@@ -568,6 +577,7 @@ export const useQueryMainTable = (options: {
       sortDirection,
       newFilter,
       oldFilter,
+      outlierFilter,
     ],
     cacheTime: 10000,
     queryFn: () => fetch(`${HOST}/?query=${query}&format=sql`).then(res => res.json()),
@@ -578,22 +588,30 @@ export const useQueryMainTable = (options: {
 
 type QueryTransactionByTPMAndP75ReturnType = {
   count: number;
+  'count()': number;
   interval: string;
-  p75: number;
+  'p50(transaction.duration)': number;
+  'p95(transaction.duration)': number;
   transaction: string;
 }[];
-export const useQueryTransactionByTPMAndP75 = (
+export const useQueryTransactionByTPMAndDuration = (
   transactionNames: string[],
   interval: number
 ): UseSpansQueryReturnType<QueryTransactionByTPMAndP75ReturnType> => {
   const {
     selection: {datetime},
   } = usePageFilters();
+
   return useWrappedDiscoverTimeseriesQuery({
     eventView: EventView.fromSavedQuery({
       name: '',
-      fields: ['transaction', 'epm()', 'p50(transaction.duration)'],
-      yAxis: ['epm()', 'p50(transaction.duration)'],
+      fields: [
+        'transaction',
+        'epm()',
+        'p50(transaction.duration)',
+        'p95(transaction.duration)',
+      ],
+      yAxis: ['epm()', 'p50(transaction.duration)', 'p95(transaction.duration)'],
       orderby: '-count',
       query: `transaction:["${transactionNames.join('","')}"]`,
       topEvents: '5',
@@ -676,7 +694,7 @@ const shouldRefetchData = (
 };
 
 // We should find a way to use this in discover
-export function useDiscoverEventsStatsQuery(
+export function useDiscoverEventsStatsQuery<T>(
   props: Omit<DiscoverQueryComponentProps, 'children'>
 ) {
   const afterFetch = (data, _) => {
@@ -687,7 +705,7 @@ export function useDiscoverEventsStatsQuery(
     };
   };
 
-  return useGenericDiscoverQuery({
+  return useGenericDiscoverQuery<T, unknown>({
     route: 'events-stats',
     shouldRefetchData,
     afterFetch,
@@ -701,8 +719,9 @@ export const getDbAggregatesQuery = ({datetime, transaction}) => {
     SELECT
     description,
     toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
-    count() AS count,
-    quantile(0.75)(exclusive_time) as p75
+    divide(count(), multiply(12, 60)) as count,
+    quantile(0.50)(exclusive_time) as p50,
+    quantile(0.95)(exclusive_time) as p95
     FROM spans_experimental_starfish
     WHERE module = 'db'
     ${transaction ? `AND transaction = '${transaction}'` : ''}

@@ -327,9 +327,6 @@ class IssueListOverview extends Component<Props, State> {
     let currentPeriod: string;
     if (typeof this.props.location.query?.groupStatsPeriod === 'string') {
       currentPeriod = this.props.location.query.groupStatsPeriod;
-    } else if (this.getSort() === IssueSortOptions.TREND) {
-      // Default to the larger graph when sorting by relative change
-      currentPeriod = 'auto';
     } else {
       currentPeriod = DEFAULT_GRAPH_STATS_PERIOD;
     }

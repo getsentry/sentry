@@ -1,0 +1,29 @@
+---
+created: '2023-05-04T01:23:18.977000Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:type:ident-shingle: "MyApp.Exception"
+similarity:2020-07-23:type:ident-shingle: "System.Exception"
+similarity:2020-07-23:value:character-5-shingle: " <int"
+similarity:2020-07-23:value:character-5-shingle: " Exce"
+similarity:2020-07-23:value:character-5-shingle: " Inne"
+similarity:2020-07-23:value:character-5-shingle: "<int>"
+similarity:2020-07-23:value:character-5-shingle: "Excep"
+similarity:2020-07-23:value:character-5-shingle: "Inner"
+similarity:2020-07-23:value:character-5-shingle: "Some "
+similarity:2020-07-23:value:character-5-shingle: "Test "
+similarity:2020-07-23:value:character-5-shingle: "cepti"
+similarity:2020-07-23:value:character-5-shingle: "e Inn"
+similarity:2020-07-23:value:character-5-shingle: "eptio"
+similarity:2020-07-23:value:character-5-shingle: "er Ex"
+similarity:2020-07-23:value:character-5-shingle: "est <"
+similarity:2020-07-23:value:character-5-shingle: "me In"
+similarity:2020-07-23:value:character-5-shingle: "ner E"
+similarity:2020-07-23:value:character-5-shingle: "nner "
+similarity:2020-07-23:value:character-5-shingle: "ome I"
+similarity:2020-07-23:value:character-5-shingle: "ption"
+similarity:2020-07-23:value:character-5-shingle: "r Exc"
+similarity:2020-07-23:value:character-5-shingle: "st <i"
+similarity:2020-07-23:value:character-5-shingle: "t <in"
+similarity:2020-07-23:value:character-5-shingle: "xcept"

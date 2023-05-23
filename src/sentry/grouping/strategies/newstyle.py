@@ -1,5 +1,8 @@
+import itertools
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Generator, List, Optional
+
+import sentry_sdk
 
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent, calculate_tree_label
@@ -13,8 +16,9 @@ from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.grouping.strategies.message import trim_message_for_grouping
 from sentry.grouping.strategies.similarity_encoders import ident_encoder, text_shingle_encoder
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
+from sentry.grouping.utils import hash_from_values
 from sentry.interfaces.exception import Exception as ChainedException
-from sentry.interfaces.exception import SingleException
+from sentry.interfaces.exception import Mechanism, SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 from sentry.interfaces.threads import Threads
 from sentry.stacktraces.platform import get_behavior_family_for_platform
@@ -706,19 +710,40 @@ def single_exception(
 def chained_exception(
     interface: ChainedException, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
+
+    # Get all the exceptions to consider.
+    all_exceptions = interface.exceptions()
+
+    # Get the grouping components for all exceptions up front, as we'll need them in a few places and only want to compute them once.
+    exception_components = {
+        id(exception): context.get_grouping_component(exception, event=event, **meta)
+        for exception in all_exceptions
+    }
+
+    # Filter the exceptions according to rules for handling exception groups.
+    with sentry_sdk.start_span(
+        op="grouping.strategies.newstyle.filter_exceptions_for_exception_groups"
+    ) as span:
+        try:
+            exceptions = filter_exceptions_for_exception_groups(
+                all_exceptions, exception_components, event
+            )
+        except Exception:
+            # We shouldn't have exceptions here. But if we do, just record it and continue with the original list.
+            sentry_sdk.capture_exception()
+            span.set_status("internal_error")
+            exceptions = all_exceptions
+
     # Case 1: we have a single exception, use the single exception
     # component directly to avoid a level of nesting
-    exceptions = interface.exceptions()
     if len(exceptions) == 1:
-        return context.get_grouping_component(exceptions[0], event=event, **meta)
+        return exception_components[id(exceptions[0])]
 
     # Case 2: produce a component for each chained exception
     by_name: Dict[str, List[GroupingComponent]] = {}
 
     for exception in exceptions:
-        for name, component in context.get_grouping_component(
-            exception, event=event, **meta
-        ).items():
+        for name, component in exception_components[id(exception)].items():
             by_name.setdefault(name, []).append(component)
 
     rv = {}
@@ -731,6 +756,109 @@ def chained_exception(
         )
 
     return rv
+
+
+# See https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
+def filter_exceptions_for_exception_groups(
+    exceptions: List[SingleException],
+    exception_components: Dict[int, GroupingComponent],
+    event: Event,
+) -> List[SingleException]:
+
+    # This function only filters exceptions if there are at least two exceptions.
+    if len(exceptions) <= 1:
+        return exceptions
+
+    # Reconstruct the tree of exceptions if the required data is present.
+    class ExceptionTreeNode:
+        def __init__(
+            self,
+            exception: Optional[SingleException] = None,
+            children: Optional[List[SingleException]] = None,
+        ):
+            self.exception = exception
+            self.children = children if children else []
+
+    exception_tree: Dict[int, ExceptionTreeNode] = {}
+    for exception in reversed(exceptions):
+        mechanism: Mechanism = exception.mechanism
+        if mechanism and mechanism.exception_id is not None:
+            node = exception_tree.setdefault(
+                mechanism.exception_id, ExceptionTreeNode()
+            ).exception = exception
+            node.exception = exception
+            if mechanism.parent_id is not None:
+                parent_node = exception_tree.setdefault(mechanism.parent_id, ExceptionTreeNode())
+                parent_node.children.append(exception)
+        else:
+            # At least one exception is missing mechanism ids, so we can't continue with the filter.
+            # Exit early to not waste perf.
+            return exceptions
+
+    # This gets the child exceptions for an exception using the exception_id from the mechanism.
+    # That data is guaranteed to exist at this point.
+    def get_child_exceptions(exception: SingleException) -> List[SingleException]:
+        exception_id = exception.mechanism.exception_id
+        node = exception_tree.get(exception_id)
+        return node.children if node else []
+
+    # This recursive generator gets the "top-level exceptions", and is used below.
+    # "Top-level exceptions are those that are the first descendants of the root that are not exception groups.
+    # For examples, see https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
+    def get_top_level_exceptions(
+        exception: SingleException,
+    ) -> Generator[SingleException, None, None]:
+        if exception.mechanism.is_exception_group:
+            children = get_child_exceptions(exception)
+            yield from itertools.chain.from_iterable(
+                get_top_level_exceptions(child) for child in children
+            )
+        else:
+            yield exception
+
+    # This recursive generator gets the "first-path" of exceptions, and is used below.
+    # The first path follows from the root to a leaf node, but only following the first child of each node.
+    def get_first_path(exception: SingleException) -> Generator[SingleException, None, None]:
+        yield exception
+        children = get_child_exceptions(exception)
+        if children:
+            yield from get_first_path(children[0])
+
+    # Traverse the tree recursively from the root exception to get all "top-level exceptions" and sort for consistency.
+    top_level_exceptions = sorted(
+        get_top_level_exceptions(exception_tree[0].exception),
+        key=lambda exception: str(exception.type),
+        reverse=True,
+    )
+
+    # Figure out the distinct top-level exceptions, grouping by the hash of the grouping component values.
+    distinct_top_level_exceptions = [
+        next(group)
+        for _, group in itertools.groupby(
+            top_level_exceptions,
+            key=lambda exception: hash_from_values(exception_components[id(exception)].values())
+            or "",
+        )
+    ]
+
+    # If there's only one distinct top-level exception in the group,
+    # use it and its first-path children, but throw out the exception group and any copies.
+    # For example, Group<['Da', 'Da', 'Da']> should just be treated as a single 'Da'.
+    # We'll also set the main_exception_id, which is used in the extract_metadata function
+    # in src/sentry/eventtypes/error.py - which will ensure the issue is titled by this
+    # item rather than the exception group.
+    if len(distinct_top_level_exceptions) == 1:
+        main_exception = distinct_top_level_exceptions[0]
+        event.data["main_exception_id"] = main_exception.mechanism.exception_id
+        return list(get_first_path(main_exception))
+
+    # When there's more than one distinct top-level exception, return one of each of them AND the root exception group.
+    # NOTE: This deviates from the original RFC, because finding a common ancestor that shares
+    # one of each top-level exception that is _not_ the root is overly complicated.
+    # Also, it's more likely the stack trace of the root exception will be more meaningful
+    # than one of an inner exception group.
+    distinct_top_level_exceptions.append(exception_tree[0].exception)
+    return distinct_top_level_exceptions
 
 
 @chained_exception.variant_processor
