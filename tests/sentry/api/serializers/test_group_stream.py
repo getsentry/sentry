@@ -8,20 +8,19 @@ from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializer,
     StreamGroupSerializerSnuba,
 )
-from sentry.issues.grouptype import (
-    GroupCategory,
-    PerformanceNPlusOneGroupType,
-    ProfileFileIOGroupType,
-)
+from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models import Environment
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
 @region_silo_test
-class StreamGroupSerializerTestCase(TestCase, SnubaTestCase, SearchIssueTestMixin):
+class StreamGroupSerializerTestCase(
+    TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceIssueTestCase
+):
     def test_environment(self):
         group = self.group
 
@@ -59,23 +58,8 @@ class StreamGroupSerializerTestCase(TestCase, SnubaTestCase, SearchIssueTestMixi
 
     @freeze_time(before_now(days=1).replace(hour=13, minute=30, second=0, microsecond=0))
     def test_perf_issue(self):
-        cur_time = before_now(minutes=5)
-        event_data = {
-            "type": "transaction",
-            "level": "info",
-            "message": "transaction message",
-            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            "timestamp": cur_time.timestamp(),
-            "start_timestamp": cur_time.timestamp(),
-            "received": cur_time.timestamp(),
-            "fingerprint": [f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        }
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            event = self.store_event(
-                data=event_data,
-                project_id=self.project.id,
-            )
-        group = event.groups[0]
+        event = self.create_performance_issue()
+        group = event.group
         serialized = serialize(group, serializer=StreamGroupSerializerSnuba(stats_period="24h"))
         assert serialized["count"] == "1"
         assert serialized["issueCategory"] == "performance"

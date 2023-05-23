@@ -5,7 +5,15 @@ from sentry.issues.escalating_group_forecast import (
     EscalatingGroupForecast,
 )
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
-from sentry.models import GroupInbox, GroupInboxReason, GroupSnooze, add_group_to_inbox
+from sentry.models import (
+    Group,
+    GroupInbox,
+    GroupInboxReason,
+    GroupSnooze,
+    GroupStatus,
+    GroupSubStatus,
+    add_group_to_inbox,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
@@ -51,6 +59,8 @@ class HandleIgnoredTest(TestCase):  # type: ignore
         assert not GroupInbox.objects.filter(group=self.group).exists()
         snooze = GroupSnooze.objects.filter(group=self.group).first()
         assert snooze.user_count == status_details.get("ignoreUserCount")
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.IGNORED
+        assert Group.objects.get(id=self.group.id).substatus == GroupSubStatus.UNTIL_CONDITION_MET
 
 
 @apply_feature_flag_on_cls("organizations:escalating-issues")

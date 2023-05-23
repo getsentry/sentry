@@ -7,11 +7,16 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import {ReleasePreview} from 'sentry/views/starfish/views/spans/spanSummaryPanel/releasePreview';
 import {SpanDescription} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanDescription';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanTransactionsTable';
 import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
 import {useSpanMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetrics';
 import {useSpanMetricSeries} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetricSeries';
+import {
+  useSpanFirstSeenEvent,
+  useSpanLastSeenEvent,
+} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanSeenEvent';
 
 type Props = {
   onClose: () => void;
@@ -24,6 +29,9 @@ export function SpanSummaryPanel({span, onClose}: Props) {
   const {data: spanMetrics} = useSpanMetrics(span);
   const {data: spanMetricSeries} = useSpanMetricSeries(span);
 
+  const {data: firstSeenSpanEvent} = useSpanFirstSeenEvent(span);
+  const {data: lastSeenSpanEvent} = useSpanLastSeenEvent(span);
+
   return (
     <Detail detailKey={span?.group_id} onClose={onClose}>
       <Header>{t('Span Summary')}</Header>
@@ -31,11 +39,19 @@ export function SpanSummaryPanel({span, onClose}: Props) {
       <BlockContainer>
         <Block title={t('First Seen')}>
           <TimeSince date={spanMetrics?.first_seen} />
+          {firstSeenSpanEvent?.release && (
+            <ReleasePreview release={firstSeenSpanEvent?.release} />
+          )}
         </Block>
 
         <Block title={t('Last Seen')}>
           <TimeSince date={spanMetrics?.last_seen} />
+          {lastSeenSpanEvent?.release && (
+            <ReleasePreview release={lastSeenSpanEvent?.release} />
+          )}
         </Block>
+
+        <Block title={t('Total Spans')}>{spanMetrics?.count}</Block>
 
         <Block title={t('Total Time')}>
           <Duration
@@ -87,6 +103,25 @@ export function SpanSummaryPanel({span, onClose}: Props) {
             hideYAxisSplitLine
           />
         </Block>
+
+        {span?.span_operation === 'http.client' ? (
+          <Block title={t('Failure Rate')}>
+            <Chart
+              statsPeriod="24h"
+              height={140}
+              data={[spanMetricSeries.failure_rate]}
+              start=""
+              end=""
+              loading={false}
+              chartColors={[theme.charts.getColorPalette(2)[2]]}
+              utc={false}
+              stacked
+              isLineChart
+              disableXAxis
+              hideYAxisSplitLine
+            />
+          </Block>
+        ) : null}
       </BlockContainer>
 
       <BlockContainer>{span && <SpanTransactionsTable span={span} />}</BlockContainer>
@@ -102,22 +137,22 @@ type BlockProps = {
 function Block({title, children}: BlockProps) {
   return (
     <BlockWrapper>
-      <SubHeader>{title}</SubHeader>
-      <SubSubHeader>{children}</SubSubHeader>
+      <BlockTitle>{title}</BlockTitle>
+      <BlockContent>{children}</BlockContent>
     </BlockWrapper>
   );
 }
 
 const Header = styled('h2')``;
 
-const SubHeader = styled('h3')`
+const BlockTitle = styled('h3')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   margin-bottom: ${space(1)};
 `;
 
-const SubSubHeader = styled('h4')`
+const BlockContent = styled('h4')`
   margin: 0;
   font-weight: normal;
 `;
