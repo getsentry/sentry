@@ -55,6 +55,42 @@ const addUsernameDisplay = (logEntryUser: User | undefined) => {
   return null;
 };
 
+const getTypeDisplay = (event: string) => {
+  if (event.startsWith('rule.')) {
+    return event.replace('rule.', 'issue-alert.');
+  }
+  if (event.startsWith('alertrule.')) {
+    return event.replace('alertrule.', 'metric-alert.');
+  }
+  return event;
+};
+
+const getEventOptions = (eventTypes: string[] | null) =>
+  eventTypes
+    ?.map(type => {
+      // Having both rule.x and alertrule.x may be confusing, so we'll replace their labels to be more descriptive.
+      // We need to maintain the values here so we still fetch the correct audit log events from the backend should we want
+      // to filter.
+      // See https://github.com/getsentry/sentry/issues/46997
+      if (type.startsWith('rule.')) {
+        return {
+          label: type.replace('rule.', 'issue-alert.'),
+          value: type,
+        };
+      }
+      if (type.startsWith('alertrule.')) {
+        return {
+          label: type.replace('alertrule.', 'metric-alert.'),
+          value: type,
+        };
+      }
+      return {
+        label: type,
+        value: type,
+      };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label));
+
 function AuditNote({
   entry,
   orgSlug,
@@ -64,6 +100,10 @@ function AuditNote({
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === String(entry.data.id));
+
+  if (entry.event.startsWith('rule.')) {
+    return <Note>{entry.note.replace('rule', 'issue alert rule')}</Note>;
+  }
 
   if (!project) {
     return <Note>{entry.note}</Note>;
@@ -176,11 +216,6 @@ function AuditLogList({
   const hasEntries = entries && entries.length > 0;
   const ipv4Length = 15;
 
-  const eventOptions = eventTypes?.map(type => ({
-    label: type,
-    value: type,
-  }));
-
   const action = (
     <EventSelector
       clearable
@@ -188,7 +223,7 @@ function AuditLogList({
       name="eventFilter"
       value={eventType}
       placeholder={t('Select Action: ')}
-      options={eventOptions}
+      options={getEventOptions(eventTypes)}
       onChange={options => {
         onEventSelect(options?.value);
       }}
@@ -218,7 +253,7 @@ function AuditLogList({
                 </NameContainer>
               </UserInfo>
               <FlexCenter>
-                <MonoDetail>{entry.event}</MonoDetail>
+                <MonoDetail>{getTypeDisplay(entry.event)}</MonoDetail>
               </FlexCenter>
               <FlexCenter>
                 {entry.ipAddress && (

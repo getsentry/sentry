@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import TYPE_CHECKING, Any, List, Sequence
+from typing import Any, List, Sequence
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -34,9 +34,6 @@ from sentry.utils.http import absolute_uri
 
 audit_logger = logging.getLogger("sentry.audit.user")
 
-if TYPE_CHECKING:
-    from sentry.models import Team
-
 
 class UserManager(BaseManager, DjangoUserManager):
     def get_team_members_with_verified_email_for_projects(
@@ -54,36 +51,6 @@ class UserManager(BaseManager, DjangoUserManager):
             ),
             is_active=True,
         ).distinct()
-
-    def get_from_teams(self, organization_id: int, teams: Sequence["Team"]) -> QuerySet:
-        # TODO(hybridcloud) This is doing cross silo joins
-        return self.filter(
-            sentry_orgmember_set__organization_id=organization_id,
-            sentry_orgmember_set__organizationmemberteam__team__in=teams,
-            sentry_orgmember_set__organizationmemberteam__is_active=True,
-            is_active=True,
-        )
-
-    def get_from_projects(self, organization_id, projects):
-        """
-        Returns users associated with a project based on their teams.
-        """
-        # TODO(hybridcloud) This is doing cross silo joins
-        return self.filter(
-            sentry_orgmember_set__organization_id=organization_id,
-            sentry_orgmember_set__organizationmemberteam__team__projectteam__project__in=projects,
-            sentry_orgmember_set__organizationmemberteam__is_active=True,
-            is_active=True,
-        )
-
-    def get_from_organizations(self, organization_ids):
-        """Returns users associated with an Organization based on their teams."""
-        # TODO(hybridcloud) This is doing cross silo joins
-        return self.filter(
-            sentry_orgmember_set__organization_id__in=organization_ids,
-            sentry_orgmember_set__organizationmemberteam__is_active=True,
-            is_active=True,
-        )
 
     def get_users_with_only_one_integration_for_provider(
         self, provider: ExternalProviders, organization_id: int
@@ -243,6 +210,9 @@ class User(BaseModel, AbstractBaseUser):
 
     def get_verified_emails(self):
         return self.emails.filter(is_verified=True)
+
+    def has_verified_emails(self):
+        return self.get_verified_emails().exists()
 
     def has_unverified_emails(self):
         return self.get_unverified_emails().exists()
