@@ -635,7 +635,7 @@ export class TokenConverter {
    * Checks the validity of a free text based on the provided search configuration
    */
   checkInvalidFreeText = (value: string) => {
-    if (this.config.disallowWildCard && value.includes('*')) {
+    if (this.config.disallowWildcard && value.includes('*')) {
       return {reason: t('Invalid query. Wildcards not supported in search.')};
     }
 
@@ -742,7 +742,7 @@ export class TokenConverter {
    * Validates the value of a text filter
    */
   checkInvalidTextValue = (value: TextFilter['value']) => {
-    if (this.config.disallowWildCard && value.value.includes('*')) {
+    if (this.config.disallowWildcard && value.value.includes('*')) {
       return {reason: t('Wildcards not supported in search')};
     }
 
@@ -769,7 +769,7 @@ export class TokenConverter {
 
     const hasWildCard = items.some(item => item.value.value.includes('*'));
 
-    if (this.config.disallowWildCard && hasWildCard) {
+    if (this.config.disallowWildcard && hasWildCard) {
       return {reason: t('Lists should not have wildcard values')};
     }
 
@@ -833,7 +833,7 @@ export type SearchConfig = {
   /**
    * Disallow wildcards in free text search
    */
-  disallowWildCard: boolean;
+  disallowWildcard: boolean;
   /**
    * Keys which are considered valid for duration filters
    */
@@ -904,7 +904,7 @@ const defaultConfig: SearchConfig = {
   ]),
   sizeKeys: new Set([]),
   allowBoolean: true,
-  disallowWildCard: false,
+  disallowWildcard: false,
 };
 
 const options = {

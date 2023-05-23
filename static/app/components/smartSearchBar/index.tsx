@@ -197,7 +197,7 @@ type Props = WithRouterProps &
     /**
      * Disables wildcard searches
      */
-    disallowWildCard?: boolean;
+    disallowWildcard?: boolean;
     dropdownClassName?: string;
     /**
      * A list of tags to exclude from the autocompletion list, for ex environment may be excluded
@@ -353,7 +353,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
-      disallowWildCard: this.props.disallowWildCard,
+      disallowWildcard: this.props.disallowWildcard,
     }),
     searchTerm: '',
     searchGroups: [],
@@ -414,7 +414,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
-      disallowWildCard: this.props.disallowWildCard,
+      disallowWildcard: this.props.disallowWildcard,
     };
     return {
       query,
@@ -1922,7 +1922,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             supportedTags={supportedTags}
             customInvalidTagMessage={this.props.customInvalidTagMessage}
             mergeItemsWith={this.props.mergeSearchGroupWith}
-            disallowWildCard={this.props.disallowWildCard}
+            disallowWildcard={this.props.disallowWildcard}
           />
         )}
       </Container>

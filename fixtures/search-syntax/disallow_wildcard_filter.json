@@ -1,9 +1,9 @@
 [
   {
-    "desc": "FreeText with wildcard shall be invalid if disallowWildCard is true",
+    "desc": "FreeText with wildcard shall be invalid if disallowWildcard is true",
     "query": "freeTextWith*",
     "additionalConfig": {
-      "disallowWildCard": true
+      "disallowWildcard": true
     },
     "result": [
       {"type": "spaces", "value": ""},
@@ -19,10 +19,10 @@
     ]
   },
   {
-    "desc": "List value with wildcard shall be invalid if disallowWildCard is true",
+    "desc": "List value with wildcard shall be invalid if disallowWildcard is true",
     "query": "release:[*]",
     "additionalConfig": {
-      "disallowWildCard": true
+      "disallowWildcard": true
     },
     "result": [
       {"type": "spaces", "value": ""},
@@ -51,10 +51,10 @@
     ]
   },
   {
-    "desc": "Value shall be invalid if disallowWildCard is true",
+    "desc": "Value shall be invalid if disallowWildcard is true",
     "query": "release:*",
     "additionalConfig": {
-      "disallowWildCard": true
+      "disallowWildcard": true
     },
     "result": [
       {"type": "spaces", "value": ""},
@@ -76,7 +76,7 @@
     "desc": "Key shall be invalid if not in supportedTags",
     "query": "release*:1",
     "additionalConfig": {
-      "disallowWildCard": true,
+      "disallowWildcard": true,
       "supportedTags": {
         "release": {
           "key": "release",
