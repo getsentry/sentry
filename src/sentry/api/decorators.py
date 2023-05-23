@@ -38,7 +38,7 @@ def sudo_required(func):
 def email_verification_required(func):
     @wraps(func)
     def wrapped(self, request: Request, *args, **kwargs) -> Response:
-        if not request.user.get_verified_emails().exists():
+        if not request.user.has_verified_emails():
             raise EmailVerificationRequired(request.user)
         return func(self, request, *args, **kwargs)
 

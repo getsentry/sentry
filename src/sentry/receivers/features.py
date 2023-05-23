@@ -155,11 +155,13 @@ def record_project_created(project, user, **kwargs):
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(member, organization, **kwargs):
-    FeatureAdoption.objects.record(
+def record_member_joined(member, organization_id: int, **kwargs):
+    if FeatureAdoption.objects.record(
         organization_id=member.organization_id, feature_slug="invite_team", complete=True
-    )
-    analytics.record("organization.joined", user_id=member.user.id, organization_id=organization.id)
+    ):
+        analytics.record(
+            "organization.joined", user_id=member.user_id, organization_id=organization_id
+        )
 
 
 @issue_assigned.connect(weak=False)
