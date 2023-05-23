@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from sentry.services.hybrid_cloud import ArgumentDict
 from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
@@ -45,6 +45,20 @@ class ByOrganizationObject(RegionResolution):
         return self._resolve_from_mapping(mapping)
 
 
+def all_regions_for_organization_mappings_identical(
+    organization_mappings: List[OrganizationMapping],
+) -> bool:
+    if len(organization_mappings) <= 1:
+        return True
+
+    region_name = organization_mappings[0].region_name
+    for org_mapping in organization_mappings:
+        if org_mapping.region_name != region_name:
+            return False
+
+    return True
+
+
 @dataclass(frozen=True)
 class ByOrganizationId(RegionResolution):
     """Resolve from an `int` parameter representing an organization ID."""
@@ -52,10 +66,16 @@ class ByOrganizationId(RegionResolution):
     parameter_name: str = "organization_id"
 
     def resolve(self, arguments: ArgumentDict) -> Region:
-        organization_id = arguments[self.parameter_name]
-        # Validate invariant that all org mappings for org exist in the same region
-        mapping = self.organization_mapping_manager.filter(organization_id=organization_id).first()
-        return self._resolve_from_mapping(mapping)
+        organization_id: int = arguments[self.parameter_name]
+        organization_mappings: List[OrganizationMapping] = list(
+            self.organization_mapping_manager.filter(organization_id=organization_id).all()
+        )
+
+        # Uphold invariant that all org mappings for org exist in the same
+        # region before randomly selecting one
+        assert all_regions_for_organization_mappings_identical(organization_mappings)
+
+        return self._resolve_from_mapping(organization_mappings.pop())
 
 
 @dataclass(frozen=True)
