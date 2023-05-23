@@ -1,11 +1,14 @@
 import {Link} from 'react-router';
-import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
+import {
+  ComparisonLabel,
+  PlaintextLabel,
+} from 'sentry/views/starfish/components/samplesTable/labels';
 import {TextAlignRight} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/views/spanSummary';
 
@@ -127,12 +130,3 @@ export function SpanSamplesTable({isLoading, data, p50}: Props) {
     />
   );
 }
-
-const PlaintextLabel = styled('div')`
-  text-align: right;
-`;
-
-const ComparisonLabel = styled('div')<{value: number}>`
-  text-align: right;
-  color: ${p => (p.value < 0 ? p.theme.green400 : p.theme.red400)};
-`;
