@@ -56,7 +56,6 @@ describe('OrganizationAuditLog', function () {
     });
 
     const {routerContext, router} = initializeOrg({
-      ...initializeOrg(),
       projects: [],
       router: {
         params: {orgId: 'org-slug'},
@@ -75,7 +74,6 @@ describe('OrganizationAuditLog', function () {
 
   it('Displays pretty dynamic sampling logs', async function () {
     const {routerContext, router, project, projects, organization} = initializeOrg({
-      ...initializeOrg(),
       router: {
         params: {orgId: 'org-slug'},
       },

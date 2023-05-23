@@ -42,7 +42,6 @@ describe('AccountSecurityDetails', function () {
         authId: '15',
       };
       const {router, route, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           params,
         },
@@ -88,7 +87,6 @@ describe('AccountSecurityDetails', function () {
         authId: '15',
       };
       const {router, route, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           params,
         },
@@ -141,7 +139,6 @@ describe('AccountSecurityDetails', function () {
         authId: '15',
       };
       const {router, route, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           params,
         },
@@ -195,7 +192,6 @@ describe('AccountSecurityDetails', function () {
       };
 
       const {router, route, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           params,
         },
@@ -257,7 +253,6 @@ describe('AccountSecurityDetails', function () {
       };
 
       const {router, route, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           params,
         },
@@ -301,7 +296,6 @@ describe('AccountSecurityDetails', function () {
       };
 
       const {router, route, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           params,
         },
@@ -351,7 +345,6 @@ describe('AccountSecurityDetails', function () {
       };
 
       const {router, route, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           params,
         },

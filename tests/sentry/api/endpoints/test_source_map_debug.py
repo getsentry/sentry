@@ -116,9 +116,32 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Query parameter 'exception_idx' is out of bounds"
 
-    def test_event_has_context_line(self):
+    def test_event_frame_has_source_maps(self):
         event = self.store_event(
-            data=self.base_data,
+            data={
+                "event_id": "a" * 32,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
+                                        "filename": "/static/js/main.fa8fe19f.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                        "context_line": "function foo() {",
+                                        "data": {
+                                            "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                        },
+                                    }
+                                ]
+                            },
+                        },
+                    ]
+                },
+            },
             project_id=self.project.id,
         )
 
