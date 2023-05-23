@@ -483,18 +483,6 @@ function TableView(props: TableViewProps) {
       });
 
       switch (action) {
-        case Actions.TRANSACTION: {
-          const target = getTargetForTransactionSummaryLink(
-            dataRow,
-            organization,
-            projects,
-            nextView,
-            location
-          );
-
-          browserHistory.push(normalizeUrl(target));
-          return;
-        }
         case Actions.RELEASE: {
           const maybeProject = projects.find(project => {
             return project.slug === dataRow.project;
