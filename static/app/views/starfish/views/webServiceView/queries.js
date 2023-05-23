@@ -33,7 +33,7 @@ export const getTopDomainsActionsAndOpTimeseries = ({
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
  quantile(0.75)(exclusive_time) as p75, domain, action, span_operation, module,
- toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+ toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval
  FROM default.spans_experimental_starfish
  WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
  ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
@@ -52,7 +52,7 @@ export const getOtherDomainsActionsAndOpTimeseries = ({
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
  quantile(0.75)(exclusive_time) as p75,
- toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+ toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval
  FROM default.spans_experimental_starfish
  WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
  ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
@@ -66,7 +66,7 @@ export const getOtherDomainsActionsAndOpTimeseries = ({
 export const spanThroughput = ({transaction}) => {
   return `SELECT
   count() as count,
-  toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+  toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval
   FROM default.spans_experimental_starfish
   ${transaction ? `WHERE transaction = '${transaction}'` : ''}
   GROUP BY interval
@@ -98,7 +98,7 @@ export const getTopDomainsAndMethods = ({transaction}) => {
 export const getTopHttpDomains = ({transaction}) => {
   return `SELECT
  quantile(0.75)(exclusive_time) as p75, domain,
- toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+ toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval
  FROM default.spans_experimental_starfish
  WHERE domain IN (
   SELECT domain
@@ -118,7 +118,7 @@ export const getTopHttpDomains = ({transaction}) => {
 export const getOtherDomains = ({transaction}) => {
   return `SELECT
   quantile(0.75)(exclusive_time) as p75,
-  toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+  toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval
   FROM default.spans_experimental_starfish
   WHERE domain NOT IN (
    SELECT domain
@@ -138,7 +138,7 @@ export const getOtherDomains = ({transaction}) => {
 export const getDatabaseTimeSpent = ({transaction}) => {
   return `SELECT
   quantile(0.75)(exclusive_time) as p75,
-  toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+  toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval
   FROM default.spans_experimental_starfish
   WHERE startsWith(span_operation, 'db') and span_operation != 'db.redis'
   ${transaction ? `AND transaction = '${transaction}'` : ''}
@@ -150,7 +150,7 @@ export const getDatabaseTimeSpent = ({transaction}) => {
 export const getDbThroughput = ({transaction}) => {
   return `SELECT
   count() as count,
-  toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+  toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval
   FROM default.spans_experimental_starfish
   WHERE module = 'db'
   ${transaction ? `AND transaction = '${transaction}'` : ''}
@@ -162,7 +162,7 @@ export const getDbThroughput = ({transaction}) => {
 export const getHttpThroughput = ({transaction}) => {
   return `SELECT
   count() as count,
-  toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+  toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval
   FROM default.spans_experimental_starfish
   WHERE module = 'http'
   ${transaction ? `AND transaction = '${transaction}'` : ''}

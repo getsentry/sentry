@@ -198,8 +198,9 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
       seriesByDomain.Other.data.push({value: value.p75, name: value.interval});
     });
   }
+
   const data = Object.values(seriesByDomain).map(series =>
-    zeroFillSeries(series, moment.duration(1, 'day'), start, end)
+    zeroFillSeries(series, moment.duration(12, 'hour'), start, end)
   );
 
   const initialShowSeries = transformedData.map(
