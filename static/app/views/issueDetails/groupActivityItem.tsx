@@ -271,8 +271,12 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
         const {data} = activity;
         if (data.forecast) {
           return tct(
-            '[author] flagged this issue as escalating because over [forecast] event(s) happened in an hour',
-            {author, forecast: data.forecast}
+            '[author] flagged this issue as escalating because over [forecast] [event] happened in an hour',
+            {
+              author,
+              forecast: data.forecast,
+              event: data.forecast === 1 ? 'event' : 'events',
+            }
           );
         }
         return tct('[author] marked this issue as unresolved', {author});

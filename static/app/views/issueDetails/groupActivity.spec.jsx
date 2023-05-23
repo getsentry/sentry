@@ -380,7 +380,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders escalating with forecast if org has `escalating-issues-ui` feature', function () {
+  it('renders escalating with forecast and plural events if org has `escalating-issues-ui` feature', function () {
     createWrapper({
       activity: [
         {
@@ -396,7 +396,27 @@ describe('GroupActivity', function () {
       organization: {features: ['escalating-issues-ui']},
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
-      'Sentry flagged this issue as escalating because over 200 event(s) happened in an hour'
+      'Sentry flagged this issue as escalating because over 200 events happened in an hour'
+    );
+  });
+
+  it('renders escalating with forecast and singular event if org has `escalating-issues-ui` feature', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_UNRESOLVED,
+          data: {
+            forecast: 1,
+          },
+          user: null,
+          dateCreated,
+        },
+      ],
+      organization: {features: ['escalating-issues-ui']},
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Sentry flagged this issue as escalating because over 1 event happened in an hour'
     );
   });
 
