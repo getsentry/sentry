@@ -529,9 +529,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                             idempotency_key=result.get("idempotencyKey", ""),
                             customer_id=organization.customer_id,
                             region_name=settings.SENTRY_REGION or "us",
+                            status=organization.status,
                         )
-                        # Add status as modifiable field
-                    elif "name" in changed_data:
+                    elif "name" in changed_data or "status" in changed_data:
                         organization_mapping_service.update(
                             organization_id=organization.id,
                             update=RpcOrganizationMappingUpdate(name=organization.name),

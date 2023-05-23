@@ -2,6 +2,7 @@ from typing import Optional
 
 from django.db import transaction
 
+from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
     OrganizationMappingService,
@@ -23,6 +24,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         # There's only a customer_id when updating an org slug
         customer_id: Optional[str] = None,
         user: Optional[int] = None,
+        status: Optional[OrganizationStatus] = None,
     ) -> RpcOrganizationMapping:
 
         if idempotency_key:
@@ -30,10 +32,11 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
                 slug=slug,
                 idempotency_key=idempotency_key,
                 region_name=region_name,
+                organization_id=organization_id,
                 defaults={
                     "customer_id": customer_id,
-                    "organization_id": organization_id,
                     "name": name,
+                    "status": status,
                 },
             )
         else:
@@ -44,6 +47,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
                 idempotency_key=idempotency_key,
                 region_name=region_name,
                 customer_id=customer_id,
+                status=status,
             )
 
         return serialize_organization_mapping(org_mapping)
