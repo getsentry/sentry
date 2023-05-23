@@ -71,19 +71,10 @@ def process_organization_integration_update(object_identifier: int, **kwds: Any)
 def process_async_webhooks(payload: Any, region_name: str, **kwds: Any):
     from sentry.models.outbox import ControlOutbox
     from sentry.silo.client import RegionSiloClient
-    from sentry.types.region import RegionResolutionError, get_region_by_name
+    from sentry.types.region import get_region_by_name
 
-    try:
-        region = get_region_by_name(name=region_name)
-    except RegionResolutionError as e:
-        logger.error("webhook_proxy.region_resolution_error", extra={"error": e})
-        return
-
-    try:
-        webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
-    except Exception as e:
-        logger.error("webhook_proxy.invalid_payload_error", extra={"error": e})
-        return
+    region = get_region_by_name(name=region_name)
+    webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
 
     response = RegionSiloClient(region=region).request(
         method=webhook_payload.method,

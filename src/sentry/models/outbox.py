@@ -360,7 +360,6 @@ class ControlOutbox(OutboxBase):
             result.category = OutboxCategory.WEBHOOK_PROXY
             result.region_name = region_name
             payload: OutboxWebhookPayload = result.get_webhook_payload_from_request(request)
-
             result.payload = dataclasses.asdict(payload)
             yield result
 
