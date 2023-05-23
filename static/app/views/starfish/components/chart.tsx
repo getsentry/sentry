@@ -12,7 +12,7 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import {DateString} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import {EChartClickHandler, Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -38,6 +38,7 @@ type Props = {
   isBarChart?: boolean;
   isLineChart?: boolean;
   log?: boolean;
+  onClick?: EChartClickHandler;
   previousData?: Series[];
   scatterPlot?: Series[];
   showLegend?: boolean;
@@ -107,6 +108,7 @@ function Chart({
   scatterPlot,
   throughput,
   aggregateOutputFormat,
+  onClick,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -117,12 +119,12 @@ function Chart({
 
   const colors = chartColors ?? theme.charts.getColorPalette(4);
 
-  const durationOnly = data.every(
-    value => aggregateOutputType(value.seriesName) === 'duration'
-  );
-  const percentOnly = data.every(
-    value => aggregateOutputType(value.seriesName) === 'percentage'
-  );
+  const durationOnly =
+    aggregateOutputFormat === 'duration' ||
+    data.every(value => aggregateOutputType(value.seriesName) === 'duration');
+  const percentOnly =
+    aggregateOutputFormat === 'percentage' ||
+    data.every(value => aggregateOutputType(value.seriesName) === 'percentage');
 
   let dataMax = durationOnly
     ? computeAxisMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
@@ -261,6 +263,7 @@ function Chart({
               colors={colors}
               grid={grid}
               legend={showLegend ? {top: 0, right: 0} : undefined}
+              onClick={onClick}
               series={[
                 ...series.map(({seriesName, data: seriesData, ...options}) =>
                   LineSeries({
