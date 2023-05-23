@@ -81,8 +81,9 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.OK
             assert monitor_environment.last_checkin == checkin.date_added
-            assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
-                checkin.date_added
+            assert (
+                monitor_environment.next_checkin
+                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
             )
 
             # Confirm next check-in is populated with config and expected time
@@ -116,8 +117,9 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.ERROR
             assert monitor_environment.last_checkin == checkin.date_added
-            assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
-                checkin.date_added
+            assert (
+                monitor_environment.next_checkin
+                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
             )
 
     def test_disabled(self):
@@ -137,8 +139,9 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             # is disabled
             assert monitor_environment.status == MonitorStatus.ACTIVE
             assert monitor_environment.last_checkin == checkin.date_added
-            assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
-                checkin.date_added
+            assert (
+                monitor_environment.next_checkin
+                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
             )
 
     def test_pending_deletion(self):

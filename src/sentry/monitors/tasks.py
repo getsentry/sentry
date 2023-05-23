@@ -77,9 +77,7 @@ def check_monitors(current_datetime=None):
             monitor = monitor_environment.monitor
             expected_time = None
             if monitor_environment.last_checkin:
-                expected_time = monitor.get_next_scheduled_checkin_without_margin(
-                    monitor_environment.last_checkin
-                )
+                expected_time = monitor.get_next_scheduled_checkin(monitor_environment.last_checkin)
 
             # add missed checkin
             checkin = MonitorCheckIn.objects.create(

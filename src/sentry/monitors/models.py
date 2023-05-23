@@ -265,7 +265,7 @@ class Monitor(Model):
     def get_audit_log_data(self):
         return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
 
-    def get_next_scheduled_checkin_without_margin(self, last_checkin):
+    def get_next_scheduled_checkin(self, last_checkin):
         tz = pytz.timezone(self.config.get("timezone") or "UTC")
         schedule_type = self.config.get("schedule_type", ScheduleType.CRONTAB)
         next_checkin = get_next_schedule(
@@ -273,8 +273,8 @@ class Monitor(Model):
         )
         return next_checkin
 
-    def get_next_scheduled_checkin(self, last_checkin):
-        next_checkin = self.get_next_scheduled_checkin_without_margin(last_checkin)
+    def get_next_scheduled_checkin_with_margin(self, last_checkin):
+        next_checkin = self.get_next_scheduled_checkin(last_checkin)
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
     def update_config(self, config_payload, validated_config):
@@ -436,7 +436,7 @@ class MonitorEnvironment(Model):
                 Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
             )
             .update(
-                next_checkin=self.monitor.get_next_scheduled_checkin(next_checkin_base),
+                next_checkin=self.monitor.get_next_scheduled_checkin_with_margin(next_checkin_base),
                 status=new_status,
                 last_checkin=last_checkin,
             )
@@ -465,7 +465,7 @@ class MonitorEnvironment(Model):
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
         params = {
             "last_checkin": ts,
-            "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
+            "next_checkin": self.monitor.get_next_scheduled_checkin_with_margin(ts),
         }
         if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
             params["status"] = MonitorStatus.OK

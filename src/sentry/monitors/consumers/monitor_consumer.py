@@ -229,7 +229,7 @@ def _process_message(wrapper: Dict) -> None:
 
                 expected_time = None
                 if monitor_environment.last_checkin:
-                    expected_time = monitor.get_next_scheduled_checkin_without_margin(
+                    expected_time = monitor.get_next_scheduled_checkin(
                         monitor_environment.last_checkin
                     )
 

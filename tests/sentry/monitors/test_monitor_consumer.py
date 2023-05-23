@@ -112,7 +112,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
 
@@ -137,7 +137,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
 
@@ -161,7 +161,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
 
@@ -180,7 +180,7 @@ class MonitorConsumerTest(TestCase):
         # disabled
         assert monitor_environment.status == MonitorStatus.ACTIVE
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
 
@@ -223,7 +223,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.environment.name == "jungle"
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
 
@@ -245,7 +245,9 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.last_checkin == checkin.date_added
         assert (
             monitor_environment.next_checkin
-            == monitor_environment.monitor.get_next_scheduled_checkin(checkin.date_added)
+            == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
+                checkin.date_added
+            )
         )
 
     @pytest.mark.django_db
@@ -270,7 +272,9 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.last_checkin == checkin.date_added
         assert (
             monitor_environment.next_checkin
-            == monitor_environment.monitor.get_next_scheduled_checkin(checkin.date_added)
+            == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
+                checkin.date_added
+            )
         )
 
     def test_rate_limit(self):
