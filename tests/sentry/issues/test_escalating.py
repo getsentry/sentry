@@ -282,7 +282,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         assert get_group_hourly_count(group) == 1
 
 
-class ManageIssueStatesTest(TestCase):
+class ManageIssueStatesTest(TestCase):  # type: ignore[misc]
     def test_status_changes(self) -> None:
         state_change_details = [
             {
