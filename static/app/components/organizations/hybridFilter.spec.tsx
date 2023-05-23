@@ -16,9 +16,9 @@ describe('ProjectPageFilter', function () {
   it('renders', async function () {
     render(<HybridFilter {...props} value={[]} onChange={() => {}} />);
 
-    // Open menu, search input is focused & all the options are there
+    // Open menu, search input & all the options are there
     await userEvent.click(screen.getByRole('button', {expanded: false}));
-    expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
+    expect(screen.getByPlaceholderText('Search…')).toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Option One'})).toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Option Three'})).toBeInTheDocument();
@@ -107,12 +107,8 @@ describe('ProjectPageFilter', function () {
     const onChange = jest.fn();
     render(<HybridFilter {...props} value={[]} onChange={onChange} />);
 
-    // Open the menu, focus is on search input
+    // Open the menu, Option One is focused
     await userEvent.click(screen.getByRole('button', {expanded: false}));
-    expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
-
-    // Press Arrow Down to move focus to Option One
-    await userEvent.keyboard('{ArrowDown}');
     expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus();
 
     // Press Arrow Right to move focus to the checkbox

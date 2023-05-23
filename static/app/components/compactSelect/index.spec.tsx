@@ -131,6 +131,22 @@ describe('CompactSelect', function () {
       // only Option Two should be available, Option One should be filtered out
       expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+
+      // Clear search value
+      await userEvent.clear(screen.getByPlaceholderText('Search here…'));
+
+      // Move focus to Option One
+      await userEvent.keyboard('{ArrowDown}');
+      expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+
+      // Pressing any chracter key brings focus back to the search box
+      await userEvent.keyboard('two');
+      expect(screen.getByPlaceholderText('Search here…')).toHaveFocus();
+      expect(screen.getByPlaceholderText('Search here…')).toHaveValue('two');
+
+      // only Option Two should be available, Option One should be filtered out
+      expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
 
     it('can limit the number of options', async function () {
@@ -161,7 +177,6 @@ describe('CompactSelect', function () {
       expect(screen.getByText('Use search for more options…')).toBeInTheDocument();
 
       // Option Three is not reachable via keyboard, focus wraps back to Option One
-      await userEvent.keyboard(`{ArrowDown}`);
       expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
       await userEvent.keyboard(`{ArrowDown>2}`);
       expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
@@ -395,6 +410,22 @@ describe('CompactSelect', function () {
       // only Option Two should be available, Option One should be filtered out
       expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
       expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
+
+      // Clear search value
+      await userEvent.clear(screen.getByPlaceholderText('Search here…'));
+
+      // Move focus to Option One
+      await userEvent.keyboard('{ArrowDown}');
+      expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus();
+
+      // Pressing any chracter key brings focus back to the search box
+      await userEvent.keyboard('two');
+      expect(screen.getByPlaceholderText('Search here…')).toHaveFocus();
+      expect(screen.getByPlaceholderText('Search here…')).toHaveValue('two');
+
+      // only Option Two should be available, Option One should be filtered out
+      expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
+      expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
     });
 
     it('can limit the number of options', async function () {
@@ -424,7 +455,6 @@ describe('CompactSelect', function () {
       expect(screen.getByText('Use search for more options…')).toBeInTheDocument();
 
       // Option Three is not reachable via keyboard, focus wraps back to Option One
-      await userEvent.keyboard(`{ArrowDown}`);
       expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus();
       await userEvent.keyboard(`{ArrowDown>2}`);
       expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus();

@@ -243,6 +243,22 @@ describe('CompactSelect', function () {
 
     // Region 2's label isn't rendered because the region is empty
     expect(screen.queryByRole('Region 2')).not.toBeInTheDocument();
+
+    // Clear search value
+    await userEvent.clear(screen.getByPlaceholderText('Search placeholder…'));
+
+    // Move focus to Choice One
+    await userEvent.keyboard('{ArrowDown}');
+    expect(screen.getByRole('option', {name: 'Choice One'})).toHaveFocus();
+
+    // Pressing any chracter key brings focus back to the search box
+    await userEvent.keyboard('two');
+    expect(screen.getByPlaceholderText('Search placeholder…')).toHaveFocus();
+    expect(screen.getByPlaceholderText('Search placeholder…')).toHaveValue('two');
+
+    // only Choice Two should be available, Choice One should be filtered out
+    expect(screen.getByRole('option', {name: 'Choice Two'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Choice One'})).not.toBeInTheDocument();
   });
 
   it('works with grid lists', async function () {

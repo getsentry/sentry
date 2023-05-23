@@ -112,12 +112,10 @@ describe('ProjectPageFilter', function () {
       organization,
     });
 
-    // Open the menu, search input has focus
+    // Open the menu
     await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
-    expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
 
-    // Move focus to Option One
-    await userEvent.keyboard('{ArrowDown}');
+    // Option One has focus
     const optionOne = screen.getByRole('row', {name: 'project-1'});
     expect(optionOne).toHaveFocus();
 
