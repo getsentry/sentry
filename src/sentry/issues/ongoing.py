@@ -1,3 +1,5 @@
+from typing import Any, Mapping, Optional
+
 from django.db.models.signals import post_save
 
 from sentry.models import (
@@ -14,7 +16,10 @@ from sentry.types.group import GroupSubStatus
 
 
 def transition_group_to_ongoing(
-    from_status: GroupStatus, from_substatus: GroupSubStatus, group: Group
+    from_status: GroupStatus,
+    from_substatus: GroupSubStatus,
+    group: Group,
+    activity_data: Optional[Mapping[str, Any]] = None,
 ) -> None:
     # make sure we don't update the Group when its already updated by conditionally updating the Group
     updated = Group.objects.filter(
@@ -35,7 +40,7 @@ def transition_group_to_ongoing(
         add_group_to_inbox(group, GroupInboxReason.ONGOING)
 
         Activity.objects.create_group_activity(
-            group, ActivityType.AUTO_SET_ONGOING, send_notification=False
+            group, ActivityType.AUTO_SET_ONGOING, data=activity_data, send_notification=False
         )
 
         record_group_history_from_activity_type(
