@@ -515,8 +515,6 @@ class ArtifactLookupTest(APITestCase):
 
     @freeze_time("2023-05-23 10:00:00")
     def test_renewal_with_debug_id(self):
-        date_added = datetime.now(tz=pytz.UTC) - timedelta(days=93)
-
         debug_id = "cccccccc-0000-0000-0000-000000000000"
         file = make_compressed_zip_file(
             "bundle_c.zip",
@@ -532,58 +530,62 @@ class ArtifactLookupTest(APITestCase):
             },
         )
 
-        bundle_id = uuid4()
-        artifact_bundle = ArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            bundle_id=bundle_id,
-            file=file,
-            artifact_count=1,
-            date_added=date_added,
-        )
-        ProjectArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            artifact_bundle=artifact_bundle,
-            date_added=date_added,
-        )
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id=debug_id,
-            artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.SOURCE_MAP.value,
-            date_added=date_added,
-        )
+        for days_before, expected_date_added in (
+            (93, datetime.now(tz=pytz.UTC)),
+            (93, datetime.now(tz=pytz.UTC)),
+        ):
+            bundle_id = uuid4()
+            date_added = datetime.now(tz=pytz.UTC) - timedelta(days=days_before)
 
-        self.login_as(user=self.user)
+            artifact_bundle = ArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                bundle_id=bundle_id,
+                file=file,
+                artifact_count=1,
+                date_added=date_added,
+            )
+            ProjectArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                artifact_bundle=artifact_bundle,
+                date_added=date_added,
+            )
+            DebugIdArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                debug_id=debug_id,
+                artifact_bundle=artifact_bundle,
+                source_file_type=SourceFileType.SOURCE_MAP.value,
+                date_added=date_added,
+            )
 
-        url = reverse(
-            "sentry-api-0-project-artifact-lookup",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
+            self.login_as(user=self.user)
 
-        # query by another debug-id pointing to different bundles
-        with self.tasks():
-            self.client.get(f"{url}?debug_id={debug_id}").json()
+            url = reverse(
+                "sentry-api-0-project-artifact-lookup",
+                kwargs={
+                    "organization_slug": self.project.organization.slug,
+                    "project_slug": self.project.slug,
+                },
+            )
 
-        now = datetime.now(pytz.UTC)
+            # query by another debug-id pointing to different bundles
+            with self.tasks():
+                self.client.get(f"{url}?debug_id={debug_id}").json()
 
-        assert ArtifactBundle.objects.get(id=artifact_bundle.id).date_added == now
-        assert (
-            ProjectArtifactBundle.objects.get(artifact_bundle_id=artifact_bundle.id).date_added
-            == now
-        )
-        assert (
-            DebugIdArtifactBundle.objects.get(artifact_bundle_id=artifact_bundle.id).date_added
-            == now
-        )
+            assert (
+                ArtifactBundle.objects.get(id=artifact_bundle.id).date_added == expected_date_added
+            )
+            assert (
+                ProjectArtifactBundle.objects.get(artifact_bundle_id=artifact_bundle.id).date_added
+                == expected_date_added
+            )
+            assert (
+                DebugIdArtifactBundle.objects.get(artifact_bundle_id=artifact_bundle.id).date_added
+                == expected_date_added
+            )
 
     @freeze_time("2023-05-23 10:00:00")
     def test_renewal_with_url(self):
-        date_added = datetime.now(tz=pytz.UTC) - timedelta(days=93)
-
         file = make_compressed_zip_file(
             "bundle_c.zip",
             {
@@ -597,51 +599,58 @@ class ArtifactLookupTest(APITestCase):
 
         dist = self.release.add_dist("android")
 
-        bundle_id = uuid4()
-        artifact_bundle = ArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            bundle_id=bundle_id,
-            file=file,
-            artifact_count=1,
-            date_added=date_added,
-        )
-        ProjectArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            artifact_bundle=artifact_bundle,
-            date_added=date_added,
-        )
-        ReleaseArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            release_name=self.release.version,
-            dist_name=dist.name,
-            artifact_bundle=artifact_bundle,
-        )
+        for days_before, expected_date_added in (
+            (2, datetime.now(tz=pytz.UTC) - timedelta(days=2)),
+            (93, datetime.now(tz=pytz.UTC)),
+        ):
+            bundle_id = uuid4()
+            date_added = datetime.now(tz=pytz.UTC) - timedelta(days=days_before)
 
-        self.login_as(user=self.user)
+            artifact_bundle = ArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                bundle_id=bundle_id,
+                file=file,
+                artifact_count=1,
+                date_added=date_added,
+            )
+            ProjectArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                artifact_bundle=artifact_bundle,
+                date_added=date_added,
+            )
+            ReleaseArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                release_name=self.release.version,
+                dist_name=dist.name,
+                artifact_bundle=artifact_bundle,
+                date_added=date_added,
+            )
 
-        url = reverse(
-            "sentry-api-0-project-artifact-lookup",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
+            self.login_as(user=self.user)
 
-        # query by another debug-id pointing to different bundles
-        with self.tasks():
-            self.client.get(
-                f"{url}?release={self.release.version}&dist={dist.name}&url=path/to/app"
-            ).json()
+            url = reverse(
+                "sentry-api-0-project-artifact-lookup",
+                kwargs={
+                    "organization_slug": self.project.organization.slug,
+                    "project_slug": self.project.slug,
+                },
+            )
 
-        now = datetime.now(pytz.UTC)
+            # query by another debug-id pointing to different bundles
+            with self.tasks():
+                self.client.get(
+                    f"{url}?release={self.release.version}&dist={dist.name}&url=path/to/app"
+                ).json()
 
-        assert ArtifactBundle.objects.get(id=artifact_bundle.id).date_added == now
-        assert (
-            ProjectArtifactBundle.objects.get(artifact_bundle_id=artifact_bundle.id).date_added
-            == now
-        )
-        assert (
-            ReleaseArtifactBundle.objects.get(artifact_bundle_id=artifact_bundle.id).date_added
-            == now
-        )
+            assert (
+                ArtifactBundle.objects.get(id=artifact_bundle.id).date_added == expected_date_added
+            )
+            assert (
+                ProjectArtifactBundle.objects.get(artifact_bundle_id=artifact_bundle.id).date_added
+                == expected_date_added
+            )
+            assert (
+                ReleaseArtifactBundle.objects.get(artifact_bundle_id=artifact_bundle.id).date_added
+                == expected_date_added
+            )
