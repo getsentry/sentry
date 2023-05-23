@@ -12,7 +12,6 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
 import TagStore from 'sentry/stores/tagStore';
 import {TOP_N} from 'sentry/utils/discover/types';
@@ -647,7 +646,14 @@ describe('WidgetBuilder', function () {
   });
 
   it('can respond to validation feedback', async function () {
-    jest.spyOn(indicators, 'addErrorMessage');
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/widgets/',
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        title: ['This field may not be blank.'],
+      },
+    });
 
     renderTestComponent();
 
@@ -659,9 +665,9 @@ describe('WidgetBuilder', function () {
 
     await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
 
-    await userEvent.keyboard('{enter}');
+    await userEvent.click(screen.getByText('Add Widget'));
 
-    expect(indicators.addErrorMessage).toHaveBeenCalledWith('Widget title is required');
+    await screen.findByText('This field may not be blank.');
   });
 
   it('sets up widget data in edit correctly', async function () {
