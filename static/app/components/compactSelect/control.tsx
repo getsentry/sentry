@@ -275,6 +275,7 @@ export function Control({
     overlayRef,
     overlayProps,
   } = useOverlay({
+    disableTrigger: disabled,
     type: grid ? 'menu' : 'listbox',
     position,
     offset,

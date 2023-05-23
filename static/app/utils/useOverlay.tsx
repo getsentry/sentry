@@ -75,6 +75,7 @@ export interface UseOverlayProps
   extends Partial<OverlayProps>,
     Partial<OverlayTriggerProps>,
     Partial<OverlayTriggerStateProps> {
+  disableTrigger?: boolean;
   /**
    * Offset along the main axis.
    */
@@ -105,6 +106,7 @@ function useOverlay({
   isKeyboardDismissDisabled,
   shouldCloseOnInteractOutside,
   onInteractOutside,
+  disableTrigger,
 }: UseOverlayProps = {}) {
   // Callback refs for react-popper
   const [triggerElement, setTriggerElement] = useState<HTMLButtonElement | null>(null);
@@ -194,7 +196,10 @@ function useOverlay({
   } = usePopper(triggerElement, overlayElement, {modifiers, placement: position});
 
   // Get props for trigger button
-  const {buttonProps} = useButton({onPress: openState.toggle}, triggerRef);
+  const {buttonProps} = useButton(
+    {onPress: openState.toggle, isDisabled: disableTrigger},
+    triggerRef
+  );
   const {triggerProps, overlayProps: overlayTriggerProps} = useOverlayTrigger(
     {type},
     openState,
