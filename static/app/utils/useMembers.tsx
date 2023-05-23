@@ -22,6 +22,8 @@ type State = {
   /**
    * Indicates that User results (from API) are paginated and there are more
    * Users that are not in the initial response.
+   *
+   * A null value indicates that we don't know if there are more values.
    */
   hasMore: null | boolean;
   /**
