@@ -216,6 +216,9 @@ class User(BaseModel, AbstractBaseUser):
     def get_verified_emails(self):
         return self.emails.filter(is_verified=True)
 
+    def has_verified_emails(self):
+        return self.get_verified_emails().exists()
+
     def has_unverified_emails(self):
         return self.get_unverified_emails().exists()
 

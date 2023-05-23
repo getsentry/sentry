@@ -5,17 +5,22 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.invite_helper import (
     ApiInviteHelper,
     add_invite_details_to_session,
     remove_invite_details_from_session,
 )
-from sentry.models import AuthProvider, OrganizationMember
+from sentry.models import AuthProvider, OrganizationMemberMapping
+from sentry.services.hybrid_cloud.organization import (
+    RpcUserInviteContext,
+    RpcUserOrganizationContext,
+    organization_service,
+)
 from sentry.utils import auth
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class AcceptOrganizationInvite(Endpoint):
     # Disable authentication and permission requirements.
     permission_classes = []
@@ -24,25 +29,50 @@ class AcceptOrganizationInvite(Endpoint):
     def respond_invalid() -> Response:
         return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid invite code"})
 
-    def get_helper(self, request: Request, member_id: int, token: str) -> ApiInviteHelper:
-        return ApiInviteHelper(request=request, member_id=member_id, instance=self, token=token)
+    def get_helper(
+        self, request: Request, token: str, invite_context: RpcUserOrganizationContext
+    ) -> ApiInviteHelper:
+        return ApiInviteHelper(request=request, token=token, invite_context=invite_context)
+
+    def get_invite_state(
+        self,
+        member_id: int,
+        organization_slug: Optional[str],
+        user_id: int,
+    ) -> Optional[RpcUserInviteContext]:
+        if organization_slug is None:
+            member_mapping = OrganizationMemberMapping.objects.filter(
+                organizationmember_id=member_id
+            ).first()
+            if member_mapping is None:
+                return None
+            invite_context = organization_service.get_invite_by_id(
+                organization_id=member_mapping.organization_id,
+                organization_member_id=member_id,
+                user_id=user_id,
+            )
+        else:
+            invite_context = organization_service.get_invite_by_slug(
+                organization_member_id=member_id,
+                slug=organization_slug,
+                user_id=user_id,
+            )
+
+        return invite_context
 
     def get(
         self, request: Request, member_id: int, token: str, organization_slug: Optional[str] = None
     ) -> Response:
-        try:
-            helper = self.get_helper(request, member_id, token)
-        except OrganizationMember.DoesNotExist:
+        invite_context = self.get_invite_state(
+            member_id=int(member_id), organization_slug=organization_slug, user_id=request.user.id
+        )
+        if invite_context is None:
             return self.respond_invalid()
 
-        organization_member = helper.om
-        organization = helper.organization
+        helper = self.get_helper(request, token, invite_context)
 
-        if organization_slug:
-            if organization_slug != organization.slug:
-                return self.respond_invalid()
-        else:
-            organization_slug = organization.slug
+        organization_member = invite_context.member
+        organization = invite_context.organization
 
         if (
             not helper.member_pending
@@ -77,7 +107,10 @@ class AcceptOrganizationInvite(Endpoint):
         if not helper.user_authenticated:
             request.session["can_register"] = True
             add_invite_details_to_session(
-                request, organization_member.id, organization_member.token
+                request,
+                organization_member.id,
+                organization_member.token,
+                invite_context.organization.id,
             )
 
             # When SSO is required do *not* set a next_url to return to accept
@@ -95,7 +128,10 @@ class AcceptOrganizationInvite(Endpoint):
         # required if SSO is required.
         if auth_provider is not None:
             add_invite_details_to_session(
-                request, organization_member.id, organization_member.token
+                request,
+                organization_member.id,
+                organization_member.token,
+                organization_member.organization_id,
             )
 
             provider = auth_provider.get_provider()
@@ -105,7 +141,10 @@ class AcceptOrganizationInvite(Endpoint):
         data.update(onboarding_steps)
         if any(onboarding_steps.values()):
             add_invite_details_to_session(
-                request, organization_member.id, organization_member.token
+                request,
+                organization_member.id,
+                organization_member.token,
+                invite_context.organization.id,
             )
 
         response.data = data
@@ -115,29 +154,27 @@ class AcceptOrganizationInvite(Endpoint):
     def post(
         self, request: Request, member_id: int, token: str, organization_slug: Optional[str] = None
     ) -> Response:
-        try:
-            helper = self.get_helper(request, member_id, token)
-        except OrganizationMember.DoesNotExist:
+        invite_context = self.get_invite_state(
+            member_id=int(member_id),
+            organization_slug=organization_slug,
+            user_id=request.user.id,
+        )
+        if invite_context is None:
             return self.respond_invalid()
 
-        if not helper.valid_request:
-            return Response(
-                status=status.HTTP_400_BAD_REQUEST,
-                data={"details": "unable to accept organization invite"},
-            )
+        helper = self.get_helper(request, token, invite_context)
 
         if helper.member_already_exists:
             response = Response(
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "member already exists"}
             )
+        elif not helper.valid_request:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={"details": "unable to accept organization invite"},
+            )
         else:
             response = Response(status=status.HTTP_204_NO_CONTENT)
-
-        organization = helper.organization
-
-        if organization_slug:
-            if organization_slug != organization.slug:
-                return self.respond_invalid()
 
         helper.accept_invite()
         remove_invite_details_from_session(request)

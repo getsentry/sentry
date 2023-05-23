@@ -35,7 +35,7 @@ from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
-from sentry.services.hybrid_cloud import coerce_id_from, extract_id_from
+from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
@@ -259,8 +259,8 @@ class OrganizationMember(Model):
         super().refresh_from_db(*args, **kwargs)
         self.__org_roles_from_teams = None
 
-    def set_user(self, user):
-        self.user_id = coerce_id_from(user)
+    def set_user(self, user_id: int):
+        self.user_id = user_id
         self.email = None
         self.token = None
         self.token_expires_at = None
