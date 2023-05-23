@@ -12,14 +12,12 @@ import GroupEventDetails, {
   GroupEventDetailsProps,
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
-import {RouteContext} from 'sentry/views/routeContext';
 
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 
 const makeDefaultMockData = (
   organization?: Organization,
-  project?: Project,
-  environments?: string[]
+  project?: Project
 ): {
   event: Event;
   group: Group;
@@ -31,13 +29,7 @@ const makeDefaultMockData = (
     organization: organization ?? initializeOrg().organization,
     project: project ?? initializeOrg().project,
     group: TestStubs.Group(),
-    router: TestStubs.router({
-      location: TestStubs.location({
-        query: {
-          environment: environments,
-        },
-      }),
-    }),
+    router: TestStubs.router({}),
     event: TestStubs.Event({
       size: 1,
       dateCreated: '2019-03-20T00:00:00.000Z',
@@ -59,13 +51,10 @@ const makeDefaultMockData = (
   };
 };
 
-function TestComponent(
-  props: Partial<GroupEventDetailsProps> & {environments?: string[]}
-) {
+function TestComponent(props: Partial<GroupEventDetailsProps>) {
   const {organization, project, group, event, router} = makeDefaultMockData(
     props.organization,
-    props.project,
-    props.environments ?? ['dev']
+    props.project
   );
 
   const mergedProps: GroupEventDetailsProps = {
@@ -74,6 +63,7 @@ function TestComponent(
     event,
     project,
     organization,
+    environments: [{id: '1', name: 'dev', displayName: 'Dev'}],
     params: {groupId: group.id, eventId: '1'},
     router,
     location: {} as Location<any>,
@@ -88,18 +78,7 @@ function TestComponent(
     ...props,
   };
 
-  return (
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: router.params,
-        routes: router.routes,
-      }}
-    >
-      <GroupEventDetails {...mergedProps} />;
-    </RouteContext.Provider>
-  );
+  return <GroupEventDetails {...mergedProps} />;
 }
 
 const mockedTrace = (project: Project) => {
@@ -284,7 +263,9 @@ describe('groupEventDetails', () => {
     });
     expect(browserHistory.replace).not.toHaveBeenCalled();
 
-    rerender(<TestComponent environments={['prod']} />);
+    rerender(
+      <TestComponent environments={[{id: '1', name: 'prod', displayName: 'Prod'}]} />
+    );
 
     await waitFor(() => expect(browserHistory.replace).toHaveBeenCalled());
   });

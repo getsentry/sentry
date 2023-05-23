@@ -22,7 +22,14 @@ import {backend, frontend} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {AvatarUser, CurrentRelease, Group, Organization, Project} from 'sentry/types';
+import {
+  AvatarUser,
+  CurrentRelease,
+  Environment,
+  Group,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -33,7 +40,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
 type Props = {
-  environments: string[];
+  environments: Environment[];
   group: Group;
   organization: Organization;
   project: Project;
