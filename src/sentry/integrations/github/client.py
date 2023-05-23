@@ -656,6 +656,12 @@ class GitHubClientMixin(GithubProxyClient):
 
             return []
 
+    def update_comment(
+        self, repo: Repository, comment_id: str, data: Mapping[str, Any]
+    ) -> JSONData:
+        endpoint = f"/repos/{repo}/issues/comments/{comment_id}/"
+        return self.patch(endpoint, data=data)
+
 
 class GitHubAppsClient(GitHubClientMixin):
     def __init__(
