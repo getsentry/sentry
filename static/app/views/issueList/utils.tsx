@@ -62,7 +62,7 @@ export function getTabs(organization: Organization) {
         enabled: true,
         tooltipTitle: hasEscalatingIssuesUi
           ? t(
-              'Issues are marked for review when they are created, unresolved, unarchived, or escalating. Issues are automatically marked reviewed in 7 days.'
+              'Issues are marked for review if they are new or escalating, and have not been resolved or archived. Issues are automatically marked reviewed in 7 days.'
             )
           : t(`Issues are marked for review when they are created, unresolved, or unignored.
           Mark an issue reviewed to move it out of this list.
