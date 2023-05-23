@@ -6,6 +6,7 @@ import pytz
 from sentry.models import (
     Activity,
     Group,
+    GroupHistory,
     GroupHistoryStatus,
     GroupInbox,
     GroupInboxReason,
@@ -51,6 +52,8 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             group=group, type=ActivityType.AUTO_SET_ONGOING.value
         ).get()
         assert set_ongoing_activity.data == {"after_days": 3}
+
+        assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ONGOING).exists()
 
     @patch("sentry.signals.inbox_in.send_robust")
     def test_reprocessed(self, inbox_in):
@@ -224,3 +227,7 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
             group=group, type=ActivityType.AUTO_SET_ONGOING.value
         ).get()
         assert set_ongoing_activity.data == {"after_days": 3}
+
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.ONGOING.value
+        ).exists()
