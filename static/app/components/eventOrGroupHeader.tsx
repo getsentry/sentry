@@ -148,9 +148,7 @@ function EventOrGroupHeader({
 
   return (
     <div className={className} data-test-id="event-issue-header">
-      <Title size={size} hasGroupingTreeUI={hasGroupingTreeUI}>
-        {getTitle()}
-      </Title>
+      <Title>{getTitle()}</Title>
       {eventLocation && <Location size={size}>{eventLocation}</Location>}
       {message && (
         <StyledTagAndMessageWrapper size={size}>
@@ -176,8 +174,7 @@ const getMargin = ({size}: {size: Size}) => {
   return 'margin: 0 0 5px';
 };
 
-const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
-  line-height: 1;
+const Title = styled('div')`
   margin-bottom: ${space(0.25)};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
