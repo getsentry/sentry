@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0445_drop_deprecated_monitor_next_last_checkin_db_op"),
+        ("sentry", "0456_add_organization_status_to_org_mapping"),
     ]
 
     operations = [
