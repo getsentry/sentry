@@ -128,7 +128,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
         with outbox_runner():
             user = self.create_user(email="foo@example.com")
-            member.set_user(user)
+            member.set_user(user.id)
             member.save()
 
         assert member.is_pending is False

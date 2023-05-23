@@ -21,8 +21,9 @@ class OrganizationMemberMapping(Model):
     __include_in_export__ = False
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
-    # TODO: allow null values for organizationmember_id column. We will later repair and populate these columns with
-    # values; and remove null=True.
+    # These values are ONLY set for historical US SaaS region.  This helps bridge support for member invite tools that
+    # did not require an organization context, and only had a member_id.  However, organization member ids are not
+    # globally unique -- do not expect these to be set for other regions.
     organizationmember_id = BoundedBigIntegerField(db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
 

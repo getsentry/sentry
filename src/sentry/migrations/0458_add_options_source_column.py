@@ -34,7 +34,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0456_add_organization_status_to_org_mapping"),
+        ("sentry", "0457_sentry_monitorcheckin_date_added_index"),
     ]
 
     operations = [
