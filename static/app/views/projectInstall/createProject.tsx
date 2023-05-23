@@ -2,38 +2,33 @@ import {Fragment, useCallback, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
-import {openCreateTeamModal} from 'sentry/actionCreators/modal';
+import {openCreateTeamModal, openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import PlatformPicker from 'sentry/components/platformPicker';
+import {SUPPORTED_LANGUAGES} from 'sentry/components/onboarding/frameworkSuggestionModal';
+import PlatformPicker, {Platform} from 'sentry/components/platformPicker';
 import {canCreateProject} from 'sentry/components/projects/utils';
 import TeamSelector from 'sentry/components/teamSelector';
-import categoryList from 'sentry/data/platformCategories';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {Team} from 'sentry/types';
+import {OnboardingSelectedSDK, Team} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getPlatformName from 'sentry/utils/getPlatformName';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
-const getCategoryName = (category?: string) =>
-  categoryList.find(({id}) => id === category)?.id;
-
-type PlatformName = React.ComponentProps<typeof PlatformIcon>['platform'];
 type IssueAlertFragment = Parameters<
   React.ComponentProps<typeof IssueAlertOptions>['onChange']
 >[0];
@@ -42,9 +37,6 @@ function CreateProject() {
   const api = useApi();
   const organization = useOrganization();
 
-  const location = useLocation();
-  const {query} = location;
-
   const accessTeams = useTeams().teams.filter((team: Team) => team.hasAccess);
 
   useRouteAnalyticsEventNames(
@@ -52,19 +44,9 @@ function CreateProject() {
     'Project Create: Creation page viewed'
   );
 
-  const platformQuery = Array.isArray(query.platform)
-    ? query.platform[0]
-    : query.platform ?? null;
-
-  const platformName = getPlatformName(platformQuery);
-
-  const defaultCategory = getCategoryName(
-    Array.isArray(query.category) ? query.category[0] : query.category ?? undefined
-  );
-
-  const [projectName, setProjectName] = useState(platformName ?? '');
-  const [platform, setPlatform] = useState(platformName ? platformQuery : '');
-  const [team, setTeam] = useState(query.team || accessTeams?.[0]?.slug);
+  const [projectName, setProjectName] = useState('');
+  const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(undefined);
+  const [team, setTeam] = useState(accessTeams?.[0]?.slug);
 
   const [error, setError] = useState(false);
   const [inFlight, setInFlight] = useState(false);
@@ -73,9 +55,12 @@ function CreateProject() {
     undefined
   );
 
+  const frameworkSelectionEnabled = !!organization?.features.includes(
+    'onboarding-sdk-selection'
+  );
+
   const createProject = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
+    async (selectedFramework?: OnboardingSelectedSDK) => {
       const {slug} = organization;
       const {
         shouldCreateCustomRule,
@@ -87,6 +72,12 @@ function CreateProject() {
         defaultRules,
       } = alertRuleConfig || {};
 
+      const selectedPlatform = selectedFramework?.key ?? platform?.key;
+
+      if (!selectedPlatform) {
+        return;
+      }
+
       setInFlight(true);
 
       try {
@@ -94,7 +85,7 @@ function CreateProject() {
           method: 'POST',
           data: {
             name: projectName,
-            platform,
+            platform: selectedPlatform,
             default_rules: defaultRules ?? true,
           },
         });
@@ -129,11 +120,9 @@ function CreateProject() {
 
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
-        const platformKey = platform || 'other';
-
         browserHistory.push(
           normalizeUrl(
-            `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`
+            `/${organization.slug}/${projectData.slug}/getting-started/${selectedPlatform}/`
           )
         );
       } catch (err) {
@@ -154,17 +143,60 @@ function CreateProject() {
     [api, alertRuleConfig, organization, platform, projectName, team]
   );
 
-  function handlePlatformChange(platformKey: PlatformName | null) {
-    if (!platformKey) {
-      setPlatform(null);
+  const handleProjectCreation = useCallback(async () => {
+    const selectedPlatform = platform;
+
+    if (!selectedPlatform) {
+      return;
+    }
+
+    if (
+      selectedPlatform.type !== 'language' ||
+      !Object.values(SUPPORTED_LANGUAGES).includes(
+        selectedPlatform.language as SUPPORTED_LANGUAGES
+      )
+    ) {
+      createProject();
+      return;
+    }
+
+    const {FrameworkSuggestionModal, modalCss} = await import(
+      'sentry/components/onboarding/frameworkSuggestionModal'
+    );
+
+    openModal(
+      deps => (
+        <FrameworkSuggestionModal
+          {...deps}
+          organization={organization}
+          selectedPlatform={selectedPlatform}
+          onConfigure={selectedFramework => {
+            createProject(selectedFramework);
+          }}
+          onSkip={createProject}
+        />
+      ),
+      {
+        modalCss,
+      }
+    );
+  }, [platform, createProject, organization]);
+
+  function handlePlatformChange(selectedPlatform: Platform | null) {
+    if (!selectedPlatform?.id) {
+      setPlatform(undefined);
       setProjectName('');
       return;
     }
 
-    const userModifiedName = projectName && projectName !== platform;
-    const newName = userModifiedName ? projectName : platformKey;
+    const userModifiedName = !!projectName && projectName !== platform?.key;
+    const newName = userModifiedName ? projectName : selectedPlatform.id;
 
-    setPlatform(platformKey);
+    setPlatform({
+      ...omit(selectedPlatform, 'id'),
+      key: selectedPlatform.id,
+    });
+
     setProjectName(newName);
   }
 
@@ -182,11 +214,17 @@ function CreateProject() {
       <Layout.Title withMargins>
         {t('3. Name your project and assign it a team')}
       </Layout.Title>
-      <CreateProjectForm onSubmit={createProject}>
+      <CreateProjectForm
+        onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
+          // Prevent the page from reloading
+          event.preventDefault();
+          frameworkSelectionEnabled ? handleProjectCreation() : createProject();
+        }}
+      >
         <div>
           <FormLabel>{t('Project name')}</FormLabel>
           <ProjectNameInputWrap>
-            <StyledPlatformIcon platform={platform ?? ''} size={20} />
+            <StyledPlatformIcon platform={platform?.key ?? 'other'} size={20} />
             <ProjectNameInput
               type="text"
               name="name"
@@ -241,7 +279,6 @@ function CreateProject() {
   return (
     <Fragment>
       {error && <Alert type="error">{error}</Alert>}
-
       <div data-test-id="onboarding-info">
         <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
         <HelpText>
@@ -256,16 +293,13 @@ function CreateProject() {
         </HelpText>
         <Layout.Title withMargins>{t('1. Choose your platform')}</Layout.Title>
         <PlatformPicker
-          platform={platform}
-          defaultCategory={defaultCategory}
-          setPlatform={selectedPlatform =>
-            handlePlatformChange(selectedPlatform?.id ?? null)
-          }
+          platform={platform?.key}
+          defaultCategory={platform?.category}
+          setPlatform={handlePlatformChange}
           organization={organization}
           showOther
         />
         <IssueAlertOptions onChange={updatedData => setAlertRuleConfig(updatedData)} />
-
         {createProjectForm}
       </div>
     </Fragment>
