@@ -41,7 +41,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
       window,
       user_count: userCount,
       user_window: userWindow,
-    } = reasonDetails;
+    } = reasonDetails ?? {};
     if (until) {
       // Was ignored until `until` has passed.
       // `until` format: "2021-01-20T03:59:03+00:00"
@@ -176,14 +176,14 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
 
   const {tooltipText, tooltipDescription, reasonBadgeText, tagType} = getReasonDetails();
 
-  const disabledMarkReviewed = organization.features.includes('remove-mark-reviewed');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
   const tooltip = (tooltipText || tooltipDescription) && (
     <TooltipWrapper>
       {tooltipText && <div>{tooltipText}</div>}
       {tooltipDescription && (
         <TooltipDescription>{tooltipDescription}</TooltipDescription>
       )}
-      {disabledMarkReviewed ? null : (
+      {hasEscalatingIssuesUi ? null : (
         <TooltipDescription>{t('Mark Reviewed to remove this label')}</TooltipDescription>
       )}
     </TooltipWrapper>

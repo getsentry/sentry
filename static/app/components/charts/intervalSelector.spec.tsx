@@ -14,14 +14,16 @@ describe('IntervalSelector', function () {
     projects: [project.id],
   });
   it('resets small interval', function () {
-    let interval = '1s';
+    let interval: string | undefined = '1s';
     eventView.interval = interval;
     eventView.statsPeriod = '90d';
     const intervalSelector = (
       <IntervalSelector
         eventView={eventView}
         displayMode={DisplayModes.DEFAULT}
-        onIntervalChange={newInterval => (interval = newInterval)}
+        onIntervalChange={newInterval => {
+          interval = newInterval;
+        }}
       />
     );
     render(intervalSelector);
