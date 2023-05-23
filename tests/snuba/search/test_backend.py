@@ -2121,11 +2121,6 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             PerformanceRenderBlockingAssetSpanGroupType,
             "noise_config",
             new=NoiseConfig(0, timedelta(minutes=1)),
-        ), self.options(
-            {
-                "performance.issues.send_to_issues_platform": True,
-                "performance.issues.create_issues_through_platform": True,
-            }
         ), self.feature(
             "organizations:issue-platform"
         ):
@@ -2216,7 +2211,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "organizations:issue-platform",
                 self.perf_group_1.issue_type.build_visible_feature_name(),
             ]
-        ), self.options({"performance.issues.send_to_issues_platform": True}):
+        ):
             results = self.make_query(search_filter_query="!issue.category:error my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
@@ -2321,11 +2316,6 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             PerformanceRenderBlockingAssetSpanGroupType,
             "noise_config",
             new=NoiseConfig(0, timedelta(minutes=1)),
-        ), self.options(
-            {
-                "performance.issues.send_to_issues_platform": True,
-                "performance.issues.create_issues_through_platform": True,
-            }
         ), self.feature(
             "organizations:issue-platform"
         ):
@@ -2389,11 +2379,6 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             PerformanceRenderBlockingAssetSpanGroupType,
             "noise_config",
             new=NoiseConfig(0, timedelta(minutes=1)),
-        ), self.options(
-            {
-                "performance.issues.send_to_issues_platform": True,
-                "performance.issues.create_issues_through_platform": True,
-            }
         ), self.feature(
             "organizations:issue-platform"
         ):
@@ -2590,9 +2575,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         event_id = uuid.uuid4().hex
         group_type = PerformanceNPlusOneGroupType
 
-        with self.options(
-            {"performance.issues.create_issues_through_platform": True}
-        ), mock.patch.object(
+        with mock.patch.object(
             PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
         ):
             with self.feature(group_type.build_ingest_feature_name()):

@@ -1,27 +1,25 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
+import orderBy from 'lodash/orderBy';
 import moment, {Moment} from 'moment';
+import * as qs from 'query-string';
 
 import Duration from 'sentry/components/duration';
+import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/formatters';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
-import {
-  getEndpointDetailSeriesQuery,
-  getEndpointDetailTableQuery,
-} from 'sentry/views/starfish/modules/APIModule/queries';
 import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
-import {HOST} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {
-  getOverallAggregatesQuery,
-  getSidebarAggregatesQuery,
-  getSidebarSeriesQuery,
-  getUniqueTransactionCountQuery,
+  useQueryGetFacetsBreakdown,
+  useQueryGetSpanAggregatesQuery,
+  useQueryGetSpanSeriesData,
+  useQueryGetUniqueTransactionCount,
 } from 'sentry/views/starfish/views/spanSummary/queries';
 
 type Props = {
@@ -30,6 +28,7 @@ type Props = {
   spanGroupOperation: string;
   transactionName: string;
   description?: string;
+  module?: string;
 };
 
 export default function Sidebar({
@@ -37,80 +36,38 @@ export default function Sidebar({
   groupId,
   description,
   transactionName,
+  module,
 }: Props) {
   const theme = useTheme();
   const pageFilter = usePageFilters();
-  const {getSeriesQuery, getAggregatesQuery} = getQueries(spanGroupOperation);
-  const module = spanGroupOperation;
-  const seriesQuery = getSeriesQuery({
-    description,
-    transactionName,
-    datetime: pageFilter.selection.datetime,
-    groupId,
-    module,
-    interval: 12,
-  });
-  const aggregatesQuery = getAggregatesQuery({
-    description,
-    transactionName,
-    datetime: pageFilter.selection.datetime,
-    groupId,
-    module,
-  });
-  // This is supposed to a metrics span query that fetches aggregate metric data
-  const {isLoading: _isLoadingSideBarAggregateData, data: spanAggregateData} = useQuery({
-    queryKey: ['span-aggregates'],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${aggregatesQuery}&referrer=sidebar-aggregates`).then(res =>
-        res.json()
-      ),
-    retry: false,
-    initialData: [],
-  });
+  const location = useLocation();
 
-  const {isLoading: _isLoadingSideBarOverallAggregateData} = useQuery({
-    queryKey: ['overall-aggregates'],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getOverallAggregatesQuery(
-          pageFilter.selection.datetime
-        )}&referrer=overall-aggregates`
-      ).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
+  const {isLoading: isFacetBreakdownLoading, data: facetBreakdownData} =
+    useQueryGetFacetsBreakdown({groupId, transactionName});
+
+  // This is supposed to a metrics span query that fetches aggregate metric data
+  const {isLoading: _isLoadingSideBarAggregateData, data: spanAggregateData} =
+    useQueryGetSpanAggregatesQuery({
+      description,
+      groupId,
+      module,
+      transactionName,
+    });
 
   // Also a metrics span query that fetches series data
-  const {isLoading: isLoadingSeriesData, data: seriesData} = useQuery({
-    enabled: !!module && !!transactionName && !!groupId,
-    queryKey: [
-      'seriesdata',
-      transactionName,
-      module,
-      pageFilter.selection.datetime,
-      groupId,
-    ],
-    queryFn: () => fetch(`${HOST}/?query=${seriesQuery}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
+  const {isLoading: isLoadingSeriesData, data: seriesData} = useQueryGetSpanSeriesData({
+    description,
+    groupId,
+    module,
+    spanGroupOperation,
+    transactionName,
   });
 
   // This is a metrics request on transactions data!
   // We're fetching the count of events on a specific transaction so we can
   // calculate span frequency using metrics spans vs metrics transactions
-  const countUniqueQuery = getUniqueTransactionCountQuery({
-    transactionName,
-    datetime: pageFilter.selection.datetime,
-  });
-  const {data: transactionData, isLoading: _isTransactionDataLoading} = useQuery({
-    queryKey: [countUniqueQuery],
-    queryFn: () =>
-      fetch(`/api/0/organizations/sentry/events/${countUniqueQuery}`).then(res =>
-        res.json()
-      ),
-    retry: false,
-    initialData: [],
-  });
+  const {data: transactionData, isLoading: _isTransactionDataLoading} =
+    useQueryGetUniqueTransactionCount({transactionName});
 
   const {failure_rate, count, total_exclusive_time, count_unique_transaction_id} =
     spanAggregateData[0] || {};
@@ -184,6 +141,50 @@ export default function Sidebar({
           </FlexFullWidthItem>
         )
       }
+      <FlexFullWidthItem>
+        {isFacetBreakdownLoading ? (
+          <span>LOADING</span>
+        ) : (
+          <div>
+            <h3>{t('Facets')}</h3>
+            {['user'].map(facet => {
+              const values = facetBreakdownData.map(datum => datum[facet]);
+
+              const uniqueValues: string[] = Array.from(new Set(values));
+
+              let totalValues = 0;
+
+              const segments = orderBy(
+                uniqueValues.map(uniqueValue => {
+                  const valueCount = values.filter(v => v === uniqueValue).length;
+                  totalValues += valueCount;
+
+                  const newQuery = {...location.query, [facet]: uniqueValue};
+
+                  return {
+                    key: facet,
+                    name: uniqueValue,
+                    value: uniqueValue,
+                    url: `/starfish/span/${groupId}?${qs.stringify(newQuery)}`,
+                    count,
+                  };
+                }),
+                'count',
+                'desc'
+              );
+
+              return (
+                <TagDistributionMeter
+                  key={facet}
+                  title={facet}
+                  segments={segments}
+                  totalValues={totalValues}
+                />
+              );
+            })}
+          </div>
+        )}
+      </FlexFullWidthItem>
     </FlexContainer>
   );
 }
@@ -266,27 +267,6 @@ export function queryDataToChartData(data: any) {
     });
   });
   return series;
-}
-
-export function getQueries(spanGroupOperation: string) {
-  switch (spanGroupOperation) {
-    case 'db':
-    case 'cache':
-      return {
-        getSeriesQuery: getSidebarSeriesQuery,
-        getAggregatesQuery: getSidebarAggregatesQuery,
-      };
-    case 'http.client':
-      return {
-        getSeriesQuery: getEndpointDetailSeriesQuery,
-        getAggregatesQuery: getEndpointDetailTableQuery,
-      };
-    default:
-      return {
-        getSeriesQuery: getSidebarSeriesQuery,
-        getAggregatesQuery: getSidebarAggregatesQuery,
-      };
-  }
 }
 
 export const getTransactionBasedSeries = (

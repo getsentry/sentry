@@ -87,7 +87,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           const transformedData: Series[] | undefined = eventData.timeseriesData?.map(
             series => ({
               data: series.data,
-              seriesName: t('Failure Rate'),
+              seriesName: t('Error Rate'),
               color: CHART_PALETTE[5][3],
               silent: true,
             })

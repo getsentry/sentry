@@ -9,7 +9,7 @@ from requests import Request
 from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
 from sentry.silo.base import SiloMode
 from sentry.silo.util import clean_proxy_headers
-from sentry.types.region import Region, get_region_by_id
+from sentry.types.region import Region, get_region_by_name
 
 INVALID_PROXY_HEADERS = ["Host"]
 
@@ -100,7 +100,7 @@ class RegionSiloClient(BaseSiloClient):
             raise SiloClientError(f"Invalid region provided. Received {type(region)} type instead.")
 
         # Ensure the region is registered
-        self.region = get_region_by_id(region.id)
+        self.region = get_region_by_name(region.name)
         self.base_url = self.region.address
 
 

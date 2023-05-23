@@ -1010,14 +1010,14 @@ CELERYBEAT_SCHEDULE = {
     },
     "schedule_auto_transition_new": {
         "task": "sentry.tasks.schedule_auto_transition_new",
-        # Run job once a day at 00:30
-        "schedule": crontab(minute=30, hour="0"),
+        # Run job every 6 hours
+        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
     "schedule_auto_transition_regressed": {
         "task": "sentry.tasks.schedule_auto_transition_regressed",
-        # Run job once a day at 02:30
-        "schedule": crontab(minute=30, hour="2"),
+        # Run job every 6 hours
+        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
 }
@@ -1225,20 +1225,10 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable flamegraph view for profiling
-    "organizations:profiling-flamegraphs": False,
     # Enable ui frames in flamecharts
     "organizations:profiling-ui-frames": False,
-    # Enable the profiling aggregate flamegraph
-    "organizations:profiling-aggregate-flamegraph": False,
-    # Enable the profiling previews
-    "organizations:profiling-previews": False,
-    # Enable the profiling span previews
-    "organizations:profiling-span-previews": False,
     # Enable the transactions backed profiling views
     "organizations:profiling-using-transactions": False,
-    # Enable the sentry sample format response
-    "organizations:profiling-sampled-format": False,
     # Enabled for those orgs who participated in the profiling Beta program
     "organizations:profiling-beta": False,
     # Enable profiling GA messaging (update paths from AM1 to AM2)
@@ -3260,9 +3250,6 @@ FAIL_ON_UNAVAILABLE_API_CALL = False
 DEV_HYBRID_CLOUD_RPC_SENDER = os.environ.get("SENTRY_DEV_HYBRID_CLOUD_RPC_SENDER", None)
 
 DISALLOWED_CUSTOMER_DOMAINS = []
-
-SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
-SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE = False
 
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
