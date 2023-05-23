@@ -1010,14 +1010,14 @@ CELERYBEAT_SCHEDULE = {
     },
     "schedule_auto_transition_new": {
         "task": "sentry.tasks.schedule_auto_transition_new",
-        # Run job once a day at 00:30
-        "schedule": crontab(minute=30, hour="0"),
+        # Run job every 6 hours
+        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
     "schedule_auto_transition_regressed": {
         "task": "sentry.tasks.schedule_auto_transition_regressed",
-        # Run job once a day at 02:30
-        "schedule": crontab(minute=30, hour="2"),
+        # Run job every 6 hours
+        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
 }
@@ -1225,24 +1225,18 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable flamegraph view for profiling
-    "organizations:profiling-flamegraphs": False,
     # Enable ui frames in flamecharts
     "organizations:profiling-ui-frames": False,
-    # Enable the profiling aggregate flamegraph
-    "organizations:profiling-aggregate-flamegraph": False,
-    # Enable the profiling previews
-    "organizations:profiling-previews": False,
-    # Enable the profiling span previews
-    "organizations:profiling-span-previews": False,
     # Enable the transactions backed profiling views
     "organizations:profiling-using-transactions": False,
-    # Enable the sentry sample format response
-    "organizations:profiling-sampled-format": False,
     # Enabled for those orgs who participated in the profiling Beta program
     "organizations:profiling-beta": False,
     # Enable profiling GA messaging (update paths from AM1 to AM2)
     "organizations:profiling-ga": False,
+    # Enable stacktrace linking of multiple frames in profiles
+    "organizations:profiling-stacktrace-links": False,
+    # Enable global suspect functions in profiling
+    "organizations:profiling-global-suspect-functions": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -2324,7 +2318,8 @@ SENTRY_DEVSERVICES = {
             "volumes": {"kafka_6": {"bind": "/var/lib/kafka/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
-            or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS,
+            or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS
+            or settings.SENTRY_USE_PROFILING,
         }
     ),
     "clickhouse": lambda settings, options: (
@@ -2445,6 +2440,20 @@ SENTRY_DEVSERVICES = {
             "only_if": settings.SENTRY_USE_CDC_DEV,
             "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
             "volumes": {settings.CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
+        }
+    ),
+    "vroom": lambda settings, options: (
+        {
+            "image": "us.gcr.io/sentryio/vroom:nightly",
+            "pull": True,
+            "volumes": {"profiles": {"bind": "/var/lib/sentry-profiles"}},
+            "environment": {
+                "SENTRY_KAFKA_BROKERS_PROFILING": "{containers[kafka][name]}:9093",
+                "SENTRY_KAFKA_BROKERS_OCCURRENCES": "{containers[kafka][name]}:9093",
+                "SENTRY_SNUBA_HOST": "http://{containers[snuba][name]}:1218",
+            },
+            "ports": {"8085/tcp": 8085},
+            "only_if": settings.SENTRY_USE_PROFILING,
         }
     ),
 }
@@ -3183,7 +3192,7 @@ ANOMALY_DETECTION_URL = "127.0.0.1:9091"
 ANOMALY_DETECTION_TIMEOUT = 30
 
 # This is the URL to the profiling service
-SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
+SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 
@@ -3245,9 +3254,6 @@ FAIL_ON_UNAVAILABLE_API_CALL = False
 DEV_HYBRID_CLOUD_RPC_SENDER = os.environ.get("SENTRY_DEV_HYBRID_CLOUD_RPC_SENDER", None)
 
 DISALLOWED_CUSTOMER_DOMAINS = []
-
-SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
-SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE = False
 
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000

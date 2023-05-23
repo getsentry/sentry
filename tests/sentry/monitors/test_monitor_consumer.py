@@ -48,6 +48,7 @@ class MonitorConsumerTest(TestCase):
             "start_time": now.timestamp(),
             "project_id": self.project.id,
             "payload": json.dumps(payload),
+            "sdk": "test/1.0",
         }
 
         return wrapper
@@ -71,6 +72,7 @@ class MonitorConsumerTest(TestCase):
             "start_time": datetime.now().timestamp(),
             "project_id": self.project.id,
             "payload": self.valid_payload(monitor_slug),
+            "sdk": "test/1.0",
         }
 
     def valid_payload(self, monitor_slug: str) -> str:

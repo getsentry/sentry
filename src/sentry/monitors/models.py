@@ -54,6 +54,7 @@ MONITOR_CONFIG = {
         "timezone": {"type": ["string", "null"]},
         "schedule_type": {"type": "integer"},
         "schedule": {"type": ["string", "array"]},
+        "alert_rule_id": {"type": ["integer", "null"]},
     },
     # TODO(davidenwang): Old monitors may not have timezone or schedule_type, these should be added here once we've cleaned up old data
     "required": ["checkin_margin", "max_runtime", "schedule"],
@@ -320,7 +321,7 @@ class MonitorCheckIn(Model):
     )
     config = JSONField(default=dict)
     duration = BoundedPositiveIntegerField(null=True)
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
     date_updated = models.DateTimeField(default=timezone.now)
     attachment_id = BoundedBigIntegerField(null=True)
     # Holds the time we expected to receive this check-in without factoring in margin
