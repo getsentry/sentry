@@ -10,13 +10,13 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {CurrentRelease, Group, Organization, Project} from 'sentry/types';
+import {CurrentRelease, Environment, Group, Organization, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 type Props = {
   allEnvironments: Group | undefined;
   currentRelease: CurrentRelease | undefined;
-  environments: string[];
+  environments: Environment[];
   group: Group | undefined;
   organization: Organization;
   project: Project;
@@ -30,14 +30,17 @@ function GroupReleaseStats({
   group,
   currentRelease,
 }: Props) {
-  const environment = environments.length > 0 ? environments.join(', ') : undefined;
+  const environment =
+    environments.length > 0
+      ? environments.map(env => env.displayName).join(', ')
+      : undefined;
   const environmentLabel = environment ? environment : t('All Environments');
 
   const shortEnvironmentLabel =
     environments.length > 1
       ? t('selected environments')
       : environments.length === 1
-      ? environments[0]
+      ? environments[0].displayName
       : undefined;
 
   const projectId = project.id;

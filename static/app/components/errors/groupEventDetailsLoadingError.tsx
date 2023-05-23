@@ -2,9 +2,10 @@ import DetailedError from 'sentry/components/errors/detailedError';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
+import {Environment} from 'sentry/types';
 
 type Props = {
-  environments: string[];
+  environments: Environment[];
   onRetry?: (e: React.MouseEvent) => void;
 };
 
