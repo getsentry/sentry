@@ -190,11 +190,9 @@ function ActionSet({
     },
   ];
 
-  const hasEscalatingIssuesUI = organization.features.includes('escalating-issues-ui');
-
   return (
     <Fragment>
-      {hasEscalatingIssuesUI ? (
+      {hasEscalatingIssuesUi ? (
         <ArchiveActions
           onUpdate={onUpdate}
           shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
@@ -243,7 +241,7 @@ function ActionSet({
           }}
         />
       )}
-      {hasEscalatingIssuesUI ? null : (
+      {hasEscalatingIssuesUi ? null : (
         <IgnoreActions
           onUpdate={onUpdate}
           shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
