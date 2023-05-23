@@ -198,6 +198,10 @@ type Props = WithRouterProps &
      * Disables wildcard searches (in freeText and in the value of key:value searches mode)
      */
     disallowWildcard?: boolean;
+    /**
+     * Custom message that will be displayed when the prop `disallowWildcard` is true and the user types a wildcard
+     */
+    disallowWildcardReason?: string;
     dropdownClassName?: string;
     /**
      * A list of tags to exclude from the autocompletion list, for ex environment may be excluded
@@ -354,6 +358,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
       disallowWildcard: this.props.disallowWildcard,
+      disallowWildcardReason: this.props.disallowWildcardReason,
     }),
     searchTerm: '',
     searchGroups: [],
@@ -415,6 +420,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
       disallowWildcard: this.props.disallowWildcard,
+      disallowWildcardReason: this.props.disallowWildcardReason,
     };
     return {
       query,
@@ -1923,6 +1929,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             customInvalidTagMessage={this.props.customInvalidTagMessage}
             mergeItemsWith={this.props.mergeSearchGroupWith}
             disallowWildcard={this.props.disallowWildcard}
+            disallowWildcardReason={this.props.disallowWildcardReason}
           />
         )}
       </Container>

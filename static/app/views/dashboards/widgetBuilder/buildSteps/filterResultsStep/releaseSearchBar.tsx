@@ -92,6 +92,7 @@ export function ReleaseSearchBar({
           searchSource="widget_builder"
           query={widgetQuery.conditions}
           savedSearchType={SavedSearchType.SESSION}
+          disallowWildcardReason={t("Release queries don't support wildcards.")}
           hasRecentSearches
           highlightUnsupportedTags
           disallowWildcard

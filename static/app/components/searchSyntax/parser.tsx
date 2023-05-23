@@ -636,7 +636,11 @@ export class TokenConverter {
    */
   checkInvalidFreeText = (value: string) => {
     if (this.config.disallowWildcard && value.includes('*')) {
-      return {reason: t('Invalid query. Wildcards not supported in search.')};
+      return {
+        reason:
+          this.config.disallowWildcardReason ??
+          t('Invalid query. Wildcards not supported in search.'),
+      };
     }
 
     return null;
@@ -743,7 +747,10 @@ export class TokenConverter {
    */
   checkInvalidTextValue = (value: TextFilter['value']) => {
     if (this.config.disallowWildcard && value.value.includes('*')) {
-      return {reason: t('Wildcards not supported in search')};
+      return {
+        reason:
+          this.config.disallowWildcardReason ?? t('Wildcards not supported in search'),
+      };
     }
 
     if (!value.quoted && /(^|[^\\])"/.test(value.value)) {
@@ -770,7 +777,11 @@ export class TokenConverter {
     const hasWildCard = items.some(item => item.value.value.includes('*'));
 
     if (this.config.disallowWildcard && hasWildCard) {
-      return {reason: t('Lists should not have wildcard values')};
+      return {
+        reason:
+          this.config.disallowWildcardReason ??
+          t('Lists should not have wildcard values'),
+      };
     }
 
     return null;
@@ -855,6 +866,10 @@ export type SearchConfig = {
    * Text filter keys we allow to have operators
    */
   textOperatorKeys: Set<string>;
+  /**
+   * Custom message that will be displayed when the prop `disallowWildcard` is true and the user types a wildcard
+   */
+  disallowWildcardReason?: string;
   /**
    * If validateKeys is set to true, tag keys that don't exist in supportedTags will be consider invalid
    */
