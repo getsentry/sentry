@@ -28,7 +28,7 @@ class OrganizationMappingService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def create(
+    def reserve_slug_for_organization(
         self,
         *,
         organization_id: int,

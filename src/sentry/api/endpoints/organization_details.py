@@ -522,7 +522,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     result = serializer.validated_data
 
                     if "slug" in changed_data:
-                        organization_mapping_service.create(
+                        organization_mapping_service.reserve_slug_for_organization(
                             organization_id=organization.id,
                             slug=organization.slug,
                             name=organization.name,
@@ -530,6 +530,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                             customer_id=organization.customer_id,
                             region_name=settings.SENTRY_REGION or "us",
                         )
+                        # Add status as modifiable field
                     elif "name" in changed_data:
                         organization_mapping_service.update(
                             organization_id=organization.id,

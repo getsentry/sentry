@@ -21,7 +21,7 @@ class OrganizationMappingTest(TransactionTestCase):
             "name": "test name",
             "region_name": "us",
         }
-        rpc_org_mapping = organization_mapping_service.create(**fields)
+        rpc_org_mapping = organization_mapping_service.reserve_slug_for_organization(**fields)
         org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert org_mapping.idempotency_key == ""
         assert (
@@ -43,7 +43,7 @@ class OrganizationMappingTest(TransactionTestCase):
         }
         self.create_organization_mapping(self.organization, **data)
         next_organization_id = 7654321
-        rpc_org_mapping = organization_mapping_service.create(
+        rpc_org_mapping = organization_mapping_service.reserve_slug_for_organization(
             **{**data, "organization_id": next_organization_id}
         )
 
@@ -68,7 +68,7 @@ class OrganizationMappingTest(TransactionTestCase):
         self.create_organization_mapping(self.organization, **data)
 
         with pytest.raises(IntegrityError):
-            organization_mapping_service.create(
+            organization_mapping_service.reserve_slug_for_organization(
                 **{
                     **data,
                     "organization_id": 7654321,
@@ -85,7 +85,7 @@ class OrganizationMappingTest(TransactionTestCase):
             "slug": self.organization.slug,
             "region_name": "us",
         }
-        rpc_org_mapping = organization_mapping_service.create(**fields)
+        rpc_org_mapping = organization_mapping_service.reserve_slug_for_organization(**fields)
         assert rpc_org_mapping.customer_id is None
 
         organization_mapping_service.update(

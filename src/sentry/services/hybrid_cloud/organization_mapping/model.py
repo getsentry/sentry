@@ -21,6 +21,7 @@ class RpcOrganizationMapping(RpcModel):
     date_created: datetime = Field(default_factory=timezone.now)
     verified: bool = False
     customer_id: Optional[str] = None
+    status: Optional[int] = None
 
 
 class RpcOrganizationMappingUpdate(TypedDict):
@@ -33,3 +34,4 @@ class RpcOrganizationMappingUpdate(TypedDict):
 
     name: str
     customer_id: Optional[str]
+    status: Optional[int]

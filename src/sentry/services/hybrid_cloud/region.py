@@ -53,7 +53,8 @@ class ByOrganizationId(RegionResolution):
 
     def resolve(self, arguments: ArgumentDict) -> Region:
         organization_id = arguments[self.parameter_name]
-        mapping = self.organization_mapping_manager.get(organization_id=organization_id)
+        # Validate invariant that all org mappings for org exist in the same region
+        mapping = self.organization_mapping_manager.filter(organization_id=organization_id).first()
         return self._resolve_from_mapping(mapping)
 
 

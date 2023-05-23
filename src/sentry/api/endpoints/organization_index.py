@@ -209,7 +209,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 with transaction.atomic():
                     org = Organization.objects.create(name=result["name"], slug=result.get("slug"))
 
-                    organization_mapping_service.create(
+                    organization_mapping_service.reserve_slug_for_organization(
                         organization_id=org.id,
                         slug=org.slug,
                         name=org.name,

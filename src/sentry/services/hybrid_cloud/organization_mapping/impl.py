@@ -12,7 +12,7 @@ from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_o
 
 
 class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
-    def create(
+    def reserve_slug_for_organization(
         self,
         *,
         organization_id: int,
