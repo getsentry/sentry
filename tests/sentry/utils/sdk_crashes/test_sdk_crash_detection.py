@@ -315,9 +315,8 @@ class CococaSDKFramesTestMixin(BaseSDKCrashDetectionMixin):
 
 class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
     @pytest.mark.django_db
-    @with_feature("organizations:sdk-crash-monitoring")
+    @with_feature("organizations:sdk-crash-reporting")
     def test_event_stored_to_project(self):
-        eventstore = SnubaEventStorage()
 
         cocoa_sdk_crashes_project = self.create_project(
             name="Cocoa SDK Crashes",
@@ -334,12 +333,14 @@ class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
         with override_settings(SDK_CRASH_DETECTION_PROJECT_ID=cocoa_sdk_crashes_project.id):
             sdk_crash_event = sdk_crash_detection.detect_sdk_crash(event=event)
 
-            fetched_sdk_crash_event = eventstore.get_event_by_id(
+            assert sdk_crash_event is not None
+
+            event_store = SnubaEventStorage()
+            fetched_sdk_crash_event = event_store.get_event_by_id(
                 cocoa_sdk_crashes_project.id, sdk_crash_event.event_id
             )
 
             assert sdk_crash_event.project_id == cocoa_sdk_crashes_project.id
-
             assert sdk_crash_event.event_id == fetched_sdk_crash_event.event_id
 
 
