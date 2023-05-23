@@ -1450,6 +1450,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
+    @with_feature("organizations:sdk-crash-reporting")
     def test_sdk_crash_monitoring_is_called_with_event(self, mock_sdk_crash_reporter):
         event = self.create_event(
             data=get_crash_event(),
