@@ -537,12 +537,7 @@ class PerformanceIssueTestCase(BaseTestCase):
         ), mock.patch.object(
             issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
         ), override_options(
-            {
-                "performance.issues.all.problem-detection": 1.0,
-                detector_option: 1.0,
-                "performance.issues.send_to_issues_platform": True,
-                "performance.issues.create_issues_through_platform": True,
-            }
+            {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
         ), self.feature(
             [
                 "projects:performance-suspect-spans-ingestion",
