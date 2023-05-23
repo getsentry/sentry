@@ -1809,6 +1809,7 @@ class IntegrationRepositoryTestCase(APITestCase):
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
+    @exempt_from_silo_limits()
     def create_repository(
         self, repository_config, integration_id, organization_slug=None, add_responses=True
     ):
