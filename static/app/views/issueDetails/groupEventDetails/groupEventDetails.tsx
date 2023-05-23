@@ -143,7 +143,10 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
       return (
         <GroupStatusBannerWrapper>
           {hasEscalatingIssuesUi ? (
-            <ArchivedBox statusDetails={group.statusDetails} />
+            <ArchivedBox
+              substatus={group.substatus}
+              statusDetails={group.statusDetails}
+            />
           ) : (
             <MutedBox statusDetails={group.statusDetails} />
           )}
