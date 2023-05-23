@@ -1010,14 +1010,14 @@ CELERYBEAT_SCHEDULE = {
     },
     "schedule_auto_transition_new": {
         "task": "sentry.tasks.schedule_auto_transition_new",
-        # Run job once a day at 00:30
-        "schedule": crontab(minute=30, hour="0"),
+        # Run job every 6 hours
+        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
     "schedule_auto_transition_regressed": {
         "task": "sentry.tasks.schedule_auto_transition_regressed",
-        # Run job once a day at 02:30
-        "schedule": crontab(minute=30, hour="2"),
+        # Run job every 6 hours
+        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
 }

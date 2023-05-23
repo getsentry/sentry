@@ -1,7 +1,7 @@
 from typing import Any
 from unittest.mock import patch
 
-from sentry.issues.ongoing import transition_new_to_ongoing, transition_regressed_to_ongoing
+from sentry.issues.ongoing import transition_group_to_ongoing
 from sentry.models import (
     Activity,
     GroupHistory,
@@ -9,7 +9,6 @@ from sentry.models import (
     GroupInbox,
     GroupInboxReason,
     GroupStatus,
-    add_group_to_inbox,
 )
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
@@ -20,12 +19,8 @@ class TransitionNewToOngoingTest(TestCase):  # type: ignore
     @patch("sentry.signals.inbox_in.send_robust")
     def test_new_to_ongoing(self, inbox_in: Any) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
-        add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
-        assert not inbox_in.called
-
-        transition_new_to_ongoing(group)
+        transition_group_to_ongoing(GroupStatus.UNRESOLVED, GroupSubStatus.NEW, group)
         assert GroupInbox.objects.filter(
             group=group, reason=GroupInboxReason.ONGOING.value
         ).exists()
@@ -40,14 +35,8 @@ class TransitionNewToOngoingTest(TestCase):  # type: ignore
     @patch("sentry.signals.inbox_in.send_robust")
     def test_regressed_to_ongoing(self, inbox_in: Any) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED)
-        add_group_to_inbox(group, GroupInboxReason.REGRESSION)
 
-        assert GroupInbox.objects.filter(
-            group=group, reason=GroupInboxReason.REGRESSION.value
-        ).exists()
-        assert inbox_in.called
-
-        transition_regressed_to_ongoing(group)
+        transition_group_to_ongoing(GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED, group)
         assert GroupInbox.objects.filter(
             group=group, reason=GroupInboxReason.ONGOING.value
         ).exists()
@@ -58,4 +47,3 @@ class TransitionNewToOngoingTest(TestCase):  # type: ignore
         assert GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.UNRESOLVED
         ).exists()
-        assert inbox_in.call_count == 2
