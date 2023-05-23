@@ -1024,7 +1024,14 @@ function buildRoutes() {
         component={make(() => import('sentry/views/projectInstall/gettingStarted'))}
       >
         <IndexRoute
-          component={make(() => import('sentry/views/projectInstall/overview'))}
+          component={make(async () => {
+            const {ProjectInstallOverview} = await import(
+              'sentry/views/projectInstall/overview'
+            );
+            return {
+              default: ProjectInstallOverview,
+            };
+          })}
         />
         <Route
           path=":platform/"
@@ -1991,7 +1998,14 @@ function buildRoutes() {
   const gettingStartedChildRoutes = (
     <Fragment>
       <IndexRoute
-        component={make(() => import('sentry/views/projectInstall/overview'))}
+        component={make(async () => {
+          const {ProjectInstallOverview} = await import(
+            'sentry/views/projectInstall/overview'
+          );
+          return {
+            default: ProjectInstallOverview,
+          };
+        })}
       />
       <Route
         path=":platform/"
