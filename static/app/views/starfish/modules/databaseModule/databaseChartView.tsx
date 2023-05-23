@@ -80,7 +80,7 @@ export default function DatabaseChartView({table, onChange}: Props) {
 
     tableGraphData.forEach(datum => {
       seriesByDomain[datum.domain].data.push({
-        value: datum.p75,
+        value: datum.p50,
         name: datum.interval,
       });
       tpmByDomain[datum.domain].data.push({
@@ -124,7 +124,7 @@ export default function DatabaseChartView({table, onChange}: Props) {
 
     topGraphData.forEach(datum => {
       seriesByQuery[datum.action].data.push({
-        value: datum.p75,
+        value: datum.p50,
         name: datum.interval,
       });
       tpmByQuery[datum.action].data.push({
@@ -145,7 +145,7 @@ export default function DatabaseChartView({table, onChange}: Props) {
         <Fragment>
           <ChartsContainer>
             <ChartsContainerItem>
-              <ChartPanel title={t('Slowest Tables P75')}>
+              <ChartPanel title={t('Slowest Tables P50')}>
                 <Chart
                   statsPeriod="24h"
                   height={180}
@@ -195,7 +195,7 @@ export default function DatabaseChartView({table, onChange}: Props) {
             <CompactSelect
               value={table}
               triggerProps={{prefix: t('Table')}}
-              options={parseOptions(tableData, 'p75')}
+              options={parseOptions(tableData, 'p50')}
               menuTitle="Table"
               onChange={opt => onChange(opt.value)}
             />
