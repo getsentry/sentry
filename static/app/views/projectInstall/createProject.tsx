@@ -240,6 +240,7 @@ function CreateProject() {
           <TeamSelectInput>
             <TeamSelector
               name="select-team"
+              aria-label={t('Select a Team')}
               menuPlacement="auto"
               clearable={false}
               value={team}

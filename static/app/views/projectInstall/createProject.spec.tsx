@@ -1,13 +1,53 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
-import {openCreateTeamModal} from 'sentry/actionCreators/modal';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {Organization} from 'sentry/types';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 
-jest.mock('sentry/actionCreators/modal');
+function renderFrameworkModalMockRequests({
+  organization,
+  teamSlug,
+}: {
+  organization: Organization;
+  teamSlug: string;
+}) {
+  MockApiClient.addMockResponse({
+    url: `/projects/${organization.slug}/rule-conditions/`,
+    body: [],
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/teams/`,
+    body: [TestStubs.Team({slug: teamSlug})],
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/`,
+    body: organization,
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/projects/`,
+    body: [],
+  });
+
+  const projectCreationMockRequest = MockApiClient.addMockResponse({
+    url: `/teams/${organization.slug}/${teamSlug}/projects/`,
+    method: 'POST',
+  });
+
+  return {projectCreationMockRequest};
+}
 
 describe('CreateProject', function () {
-  const organization = TestStubs.Organization();
   const teamNoAccess = TestStubs.Team({
     slug: 'test',
     id: '1',
@@ -45,11 +85,22 @@ describe('CreateProject', function () {
       context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
     });
 
+    renderGlobalModal();
+
     await userEvent.click(screen.getByRole('button', {name: 'Create a team'}));
-    expect(openCreateTeamModal).toHaveBeenCalled();
+
+    expect(
+      await screen.findByText(
+        'Members of a team have access to specific areas, such as a new release or a new application feature.'
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
   });
 
   it('should fill in project name if its empty when platform is chosen', async function () {
+    const organization = TestStubs.Organization();
+
     const {container} = render(<CreateProject />, {
       context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
       organization,
@@ -71,7 +122,91 @@ describe('CreateProject', function () {
     expect(container).toSnapshot();
   });
 
+  it('does not render framework selection modal if vanilla js is NOT selected', async function () {
+    const {organization} = initializeOrg({
+      organization: {
+        features: ['onboarding-sdk-selection'],
+      },
+    });
+
+    const frameWorkModalMockRequests = renderFrameworkModalMockRequests({
+      organization,
+      teamSlug: teamWithAccess.slug,
+    });
+
+    TeamStore.loadUserTeams([teamWithAccess]);
+    OrganizationStore.onUpdate(organization, {replace: true});
+
+    render(<CreateProject />, {
+      organization,
+    });
+
+    // Select the React platform
+    await userEvent.click(screen.getByTestId('platform-javascript-react'));
+
+    await userEvent.type(screen.getByLabelText('Select a Team'), 'test');
+    await userEvent.click(screen.getByText('#test'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();
+    });
+
+    renderGlobalModal();
+
+    // Click on 'configure SDK' button
+    await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+
+    // Modal shall not be open
+    expect(screen.queryByText('Do you use a framework?')).not.toBeInTheDocument();
+
+    expect(frameWorkModalMockRequests.projectCreationMockRequest).toHaveBeenCalled();
+  });
+
+  it('renders framework selection modal if vanilla js is selected', async function () {
+    const {organization} = initializeOrg({
+      organization: {
+        features: ['onboarding-sdk-selection'],
+      },
+    });
+
+    const frameWorkModalMockRequests = renderFrameworkModalMockRequests({
+      organization,
+      teamSlug: teamWithAccess.slug,
+    });
+
+    TeamStore.loadUserTeams([teamWithAccess]);
+    OrganizationStore.onUpdate(organization, {replace: true});
+
+    render(<CreateProject />, {
+      organization,
+    });
+
+    // Select the JavaScript platform
+    await userEvent.click(screen.getByTestId('platform-javascript'));
+
+    await userEvent.type(screen.getByLabelText('Select a Team'), 'test');
+    await userEvent.click(screen.getByText('#test'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();
+    });
+
+    renderGlobalModal();
+
+    // Click on 'configure SDK' button
+    await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+
+    // Modal is open
+    await screen.findByText('Do you use a framework?');
+
+    // Close modal
+    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
+
+    expect(frameWorkModalMockRequests.projectCreationMockRequest).not.toHaveBeenCalled();
+  });
+
   describe('Issue Alerts Options', function () {
+    const organization = TestStubs.Organization();
     beforeEach(() => {
       TeamStore.loadUserTeams([teamWithAccess]);
 
