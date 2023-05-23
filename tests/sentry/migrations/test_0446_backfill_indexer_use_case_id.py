@@ -21,5 +21,8 @@ class PerfIndexerUseCaseIdBackfillTest(TestMigrations):
         )
 
     def test(self):
-        for i in PerfStringIndexer.objects.all():
-            assert i.use_case_id == "transactions"
+        # "hello" recprd should have been changed to "transactions"
+        assert not PerfStringIndexer.objects.filter(string="hello", use_case_id="performance")
+        # we keep the old performance record because we already have
+        # the new use_case_id
+        assert len(PerfStringIndexer.objects.filter(string="bye")) == 2
