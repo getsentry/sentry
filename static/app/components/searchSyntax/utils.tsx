@@ -84,6 +84,8 @@ export function treeResultLocator<T>({
       throw result;
     }
 
+    console.log({result});
+
     // Don't traverse into any nested tokens
     if (result === skipTokenMarker) {
       return;

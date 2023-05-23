@@ -199,9 +199,15 @@ type Props = WithRouterProps &
      */
     disabled?: boolean;
     /**
+<<<<<<< HEAD
      * Disables wildcard searches (in freeText and in the value of key:value searches mode)
      */
     disallowWildcard?: boolean;
+=======
+     * Disables wildcard searches
+     */
+    disallowWildCard?: boolean;
+>>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
     dropdownClassName?: string;
     /**
      * A list of tags to exclude from the autocompletion list, for ex environment may be excluded
@@ -357,8 +363,12 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
+<<<<<<< HEAD
       disallowWildcard: this.props.disallowWildcard,
       invalidMessages: this.props.invalidMessages,
+=======
+      disallowWildCard: this.props.disallowWildCard,
+>>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
     }),
     searchTerm: '',
     searchGroups: [],
@@ -419,8 +429,12 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
+<<<<<<< HEAD
       disallowWildcard: this.props.disallowWildcard,
       invalidMessages: this.props.invalidMessages,
+=======
+      disallowWildCard: this.props.disallowWildCard,
+>>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
     };
     return {
       query,
@@ -1928,8 +1942,12 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             supportedTags={supportedTags}
             customInvalidTagMessage={this.props.customInvalidTagMessage}
             mergeItemsWith={this.props.mergeSearchGroupWith}
+<<<<<<< HEAD
             disallowWildcard={this.props.disallowWildcard}
             invalidMessages={this.props.invalidMessages}
+=======
+            disallowWildCard={this.props.disallowWildCard}
+>>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
           />
         )}
       </Container>

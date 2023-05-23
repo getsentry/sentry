@@ -100,7 +100,11 @@ export function ReleaseSearchBar({
           }}
           hasRecentSearches
           highlightUnsupportedTags
+<<<<<<< HEAD
           disallowWildcard
+=======
+          disallowWildCard
+>>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
         />
       )}
     </ClassNames>

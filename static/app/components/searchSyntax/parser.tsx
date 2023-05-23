@@ -405,6 +405,7 @@ export class TokenConverter {
     };
   };
 
+<<<<<<< HEAD
   tokenFreeText = (value: string, quoted: boolean) => ({
     ...this.defaultTokenFields,
     type: Token.FreeText as const,
@@ -412,6 +413,17 @@ export class TokenConverter {
     quoted,
     invalid: this.checkInvalidFreeText(value),
   });
+=======
+  tokenFreeText = (value: string, quoted: boolean) => {
+    return {
+      ...this.defaultTokenFields,
+      type: Token.FreeText as const,
+      value,
+      quoted,
+      invalid: this.checkInvalidFreeText(value),
+    };
+  };
+>>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
 
   tokenLogicGroup = (
     inner: Array<
@@ -576,6 +588,10 @@ export class TokenConverter {
   });
 
   tokenValueText = (value: string, quoted: boolean) => {
+<<<<<<< HEAD
+=======
+    console.log('A');
+>>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
     return {
       ...this.defaultTokenFields,
       type: Token.ValueText as const,
@@ -649,10 +665,15 @@ export class TokenConverter {
    * Checks the validity of a free text based on the provided search configuration
    */
   checkInvalidFreeText = (value: string) => {
+<<<<<<< HEAD
     if (this.config.disallowWildcard && value.includes('*')) {
       return {
         reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED],
       };
+=======
+    if (this.config.disallowWildCard && value.includes('*')) {
+      return {reason: t('Invalid query. Wildcards not supported in search.')};
+>>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
     }
 
     return null;
@@ -756,10 +777,15 @@ export class TokenConverter {
    * Validates the value of a text filter
    */
   checkInvalidTextValue = (value: TextFilter['value']) => {
+<<<<<<< HEAD
     if (this.config.disallowWildcard && value.value.includes('*')) {
       return {
         reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED],
       };
+=======
+    if (this.config.disallowWildCard && value.value.includes('*')) {
+      return {reason: t('Wildcards not supported in search')};
+>>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
     }
 
     if (!value.quoted && /(^|[^\\])"/.test(value.value)) {
@@ -780,6 +806,7 @@ export class TokenConverter {
     const hasEmptyValue = items.some(item => item.value === null);
 
     if (hasEmptyValue) {
+<<<<<<< HEAD
       return {
         reason:
           this.config.invalidMessages[InvalidReason.EMPTY_VALUE_IN_LIST_NOT_ALLOWED],
@@ -791,6 +818,15 @@ export class TokenConverter {
       items.some(item => item.value.value.includes('*'))
     ) {
       return {reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED]};
+=======
+      return {reason: t('Lists should not have empty VALUES')};
+    }
+
+    const hasWildCard = items.some(item => item.value.value.includes('*'));
+
+    if (this.config.disallowWildCard && hasWildCard) {
+      return {reason: t('Wildcards not supported in search')};
+>>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
     }
 
     return null;
@@ -851,9 +887,15 @@ export type SearchConfig = {
    */
   dateKeys: Set<string>;
   /**
+<<<<<<< HEAD
    * Disallow wildcards in free text search AND in tag values
    */
   disallowWildcard: boolean;
+=======
+   * Disallow wildcards in free text search
+   */
+  disallowWildCard: boolean;
+>>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
   /**
    * Keys which are considered valid for duration filters
    */
@@ -928,6 +970,7 @@ const defaultConfig: SearchConfig = {
   ]),
   sizeKeys: new Set([]),
   allowBoolean: true,
+<<<<<<< HEAD
   disallowWildcard: false,
   invalidMessages: {
     [InvalidReason.WILDCARD_NOT_ALLOWED]: t('Wildcards not supported in search'),
@@ -944,6 +987,9 @@ const defaultConfig: SearchConfig = {
       'Lists should not have empty values'
     ),
   },
+=======
+  disallowWildCard: false,
+>>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
 };
 
 const options = {
@@ -963,6 +1009,7 @@ export function parseSearch(
   const configCopy = {...defaultConfig};
 
   // Merge additionalConfig with defaultConfig
+<<<<<<< HEAD
   const config = mergeWith(configCopy, additionalConfig, (srcValue, destValue) => {
     if (destValue instanceof Set) {
       return new Set([...destValue, ...srcValue]);
@@ -971,6 +1018,29 @@ export function parseSearch(
     // Use default merge behavior
     return undefined;
   });
+=======
+  const config = additionalConfig
+    ? {
+        ...additionalConfig,
+        ...Object.keys(defaultConfig).reduce((configAccumulator, key) => {
+          if (typeof defaultConfig[key] === 'object') {
+            configAccumulator[key] = new Set([
+              ...defaultConfig[key],
+              ...(additionalConfig[key] ?? []),
+            ]);
+            return configAccumulator;
+          }
+          if (typeof defaultConfig[key] === 'boolean') {
+            configAccumulator[key] = additionalConfig[key] || defaultConfig[key];
+            return configAccumulator;
+          }
+
+          configAccumulator[key] = defaultConfig[key];
+          return configAccumulator;
+        }, {}),
+      }
+    : defaultConfig;
+>>>>>>> 90142ef67b (feat(smart-search): Add disallow wildcard)
 
   try {
     return grammar.parse(query, {...options, config});

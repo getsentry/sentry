@@ -46,6 +46,12 @@ function ViewEditDashboard(props: Props) {
   const [newWidget, setNewWidget] = useState<Widget | undefined>();
   const [dashboardInitialState, setDashboardInitialState] = useState(DashboardState.VIEW);
 
+  organization.features = [
+    ...organization.features,
+    'dashboards-edit',
+    'dashboards-rh-widget',
+  ];
+
   useEffect(() => {
     if (dashboardId && dashboardId !== 'default-overview') {
       updateDashboardVisit(api, orgSlug, dashboardId);
