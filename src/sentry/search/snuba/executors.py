@@ -455,7 +455,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 def better_priority_aggregation(
     start: datetime,
     end: datetime,
-    aggregate_kwargs: Optional[PrioritySortWeights] = None,
+    aggregate_kwargs: PrioritySortWeights,
 ) -> Sequence[str]:
     issue_age_weight = 1  # [0, 5]
     event_age_weight = 1  # [0, 5]
