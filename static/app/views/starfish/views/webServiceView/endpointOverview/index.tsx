@@ -272,7 +272,7 @@ export default function EndpointOverview() {
                             }}
                           />
                         </ChartPanel>
-                        <ChartPanel title={t('Througput')}>
+                        <ChartPanel title={t('Throughput')}>
                           <Chart
                             statsPeriod={(statsPeriod as string) ?? '24h'}
                             height={80}
