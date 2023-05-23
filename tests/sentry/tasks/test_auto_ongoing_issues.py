@@ -228,6 +228,4 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
         ).get()
         assert set_ongoing_activity.data == {"after_days": 3}
 
-        assert GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.ONGOING.value
-        ).exists()
+        assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ONGOING).exists()
