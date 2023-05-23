@@ -27,7 +27,6 @@ interface ResolveActionsProps {
   confirmLabel?: string;
   confirmMessage?: React.ReactNode;
   disableDropdown?: boolean;
-  disableTooltip?: boolean;
   disabled?: boolean;
   isAutoResolved?: boolean;
   isResolved?: boolean;
@@ -53,7 +52,6 @@ function ResolveActions({
   disableDropdown,
   priority,
   projectFetchError,
-  disableTooltip,
   onUpdate,
 }: ResolveActionsProps) {
   const organization = useOrganization();
@@ -242,7 +240,7 @@ function ResolveActions({
           priority={priority}
           size={size}
           title={t("We'll nag you with a notification if the issue's seen again.")}
-          tooltipProps={{delay: 1000, disabled: disabled || disableTooltip}}
+          tooltipProps={{delay: 1000, disabled}}
           onClick={() =>
             openConfirmModal({
               bypass: !shouldConfirm,
