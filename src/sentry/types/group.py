@@ -32,13 +32,19 @@ IGNORED_SUBSTATUS_CHOICES = {
 }
 
 SUBSTATUS_UPDATE_CHOICES: Mapping[str, int] = {
-    "until_escalating": GroupSubStatus.UNTIL_ESCALATING,
+    "archived_until_escalating": GroupSubStatus.UNTIL_ESCALATING,
+    "archived_until_condition_met": GroupSubStatus.UNTIL_CONDITION_MET,
+    "archived_forever": GroupSubStatus.FOREVER,
     "escalating": GroupSubStatus.ESCALATING,
     "ongoing": GroupSubStatus.ONGOING,
-    "forever": GroupSubStatus.FOREVER,
-    "until_condition_met": GroupSubStatus.UNTIL_CONDITION_MET,
     "regressed": GroupSubStatus.REGRESSED,
     "new": GroupSubStatus.NEW,
+    # Deprecated
+    "until_escalating": GroupSubStatus.UNTIL_ESCALATING,
+    # Deprecated
+    "until_condition_met": GroupSubStatus.UNTIL_CONDITION_MET,
+    # Deprecated
+    "forever": GroupSubStatus.FOREVER,
 }
 
 SUBSTATUS_TO_STR: Mapping[int, str] = {
