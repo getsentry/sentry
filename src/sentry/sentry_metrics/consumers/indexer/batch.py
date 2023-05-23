@@ -2,6 +2,8 @@ import logging
 import random
 import re
 from collections import defaultdict
+from datetime import timedelta
+from time import time
 from typing import (
     Any,
     Dict,
@@ -146,6 +148,11 @@ class IndexerBatch:
                     extra={"payload_value": str(msg.payload.value)},
                     exc_info=True,
                 )
+                continue
+
+            if time() - parsed_payload["timestamp"] > timedelta(days=5).total_seconds():
+                self.skipped_offsets.add(partition_offset)
+                metrics.incr("sentry_metrics.indexer.process_messages.dropped_message")
                 continue
 
             # Ensure that the parsed_payload can be cast back to to

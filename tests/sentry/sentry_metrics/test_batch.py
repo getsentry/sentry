@@ -1,6 +1,6 @@
 import logging
 from collections.abc import MutableMapping
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any
 from unittest.mock import patch
@@ -665,6 +665,48 @@ def test_all_resolved(caplog, settings):
             [("mapping_sources", b"cd"), ("metric_type", "s")],
         ),
     ]
+
+
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
+def test_invalid_timestamp_dropped(caplog, settings):
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+    invalid_timestamp_payload = counter_payload.copy()
+    invalid_timestamp_payload["timestamp"] = int((datetime.now() - timedelta(days=5)).timestamp())
+    invalid_timestamp_payload["tags"] = invalid_timestamp_payload["tags"].copy()
+    invalid_timestamp_payload["tags"]["should_not_be_processed"] = "abc"
+    invalid_timestamp_payload["tags"]["also_should_not_be_processed"] = ""
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, []),
+            (invalid_timestamp_payload, []),
+            (distribution_payload, []),
+            (set_payload, []),
+        ]
+    )
+
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        input_codec=_INGEST_CODEC,
+    )
+    assert batch.extract_strings() == (
+        {
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "errored",
+                    "healthy",
+                    "init",
+                    "production",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
+            }
+        }
+    )
 
 
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
