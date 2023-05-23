@@ -14,7 +14,6 @@ interface ArchiveActionProps {
   className?: string;
   confirmLabel?: string;
   confirmMessage?: () => React.ReactNode;
-  disableTooltip?: boolean;
   disabled?: boolean;
   isArchived?: boolean;
   shouldConfirm?: boolean;
@@ -81,7 +80,6 @@ export function getArchiveActions({
 function ArchiveActions({
   size = 'xs',
   disabled,
-  disableTooltip,
   className,
   shouldConfirm,
   confirmLabel,
@@ -112,7 +110,7 @@ function ArchiveActions({
     <ButtonBar className={className} merged>
       <ArchiveButton
         size={size}
-        tooltipProps={{delay: 1000, disabled: disabled || disableTooltip}}
+        tooltipProps={{delay: 1000, disabled}}
         title={t('Hides the issue until the sh*t hits the fan and events escalate.')}
         onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
         disabled={disabled}
