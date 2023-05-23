@@ -164,9 +164,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         """Temporary function to be used while developing the new priority sort"""
         return {
             "better_priority": {
-                "log_level": request.GET.get("logLevel", 1),
-                "frequency": request.GET.get("frequency", 1),
-                "has_stacktrace": request.GET.get("hasStacktrace", 1),
+                "log_level": request.GET.get("logLevel", 0),
+                "frequency": request.GET.get("frequency", 0),
+                "has_stacktrace": request.GET.get("hasStacktrace", 0),
             }
         }
 

@@ -417,11 +417,10 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             data={
                 "fingerprint": ["put-me-in-group1"],
                 "event_id": "a" * 32,
-                "message": "foo. Also, this message is intended to be greater than 256 characters so that we can put some unique string identifier after that point in the string. The purpose of this is in order to verify we are using snuba to search messages instead of Postgres (postgres truncates at 256 characters and clickhouse does not). santryrox.",
-                "environment": "production",
-                "tags": {"server": "example.com", "sentry:user": "event1@example.com"},
-                "timestamp": iso_format(base_datetime),
+                "timestamp": iso_format(base_datetime - timedelta(hours=1)),
+                "message": "foo",
                 "stacktrace": {"frames": [{"module": "group1"}]},
+                "environment": "staging",
                 "level": "fatal",
             },
             project_id=self.project.id,
@@ -434,11 +433,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 "message": "bar",
                 "stacktrace": {"frames": [{"module": "group2"}]},
                 "environment": "staging",
-                "tags": {
-                    "server": "example.com",
-                    "url": "http://example.com",
-                    "sentry:user": "event2@example.com",
-                },
                 "level": "error",
             },
             project_id=self.project.id,
@@ -446,7 +440,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         group1 = Group.objects.get(id=event1.group.id)
         group2 = Group.objects.get(id=event2.group.id)
 
-        agg_kwargs = {"better_priority": {"log_level": 1, "frequency": 1, "has_stacktrace": 1}}
+        agg_kwargs = {"better_priority": {"log_level": 0, "frequency": 0, "has_stacktrace": 0}}
         query_executor = self.backend._get_query_executor()
         results = query_executor.snuba_search(
             start=None,
@@ -459,12 +453,10 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             limit=150,
             aggregate_kwargs=agg_kwargs,
         )[0]
-        group1_score = results[0][1]
-        group2_score = results[1][1]
-
-        # ensure fatal has a higher score than error
-        assert group1_score > group2_score
-        assert results == ([(self.group1.id, group1_score), (self.group2.id, group2_score)], 2)
+        group1_score_before = results[0][1]
+        group2_score_before = results[1][1]
+        # initially group 2's score is higher since it has a more recent event
+        assert group2_score_before > group1_score_before
 
         agg_kwargs["better_priority"].update({"log_level": 5})
         results = query_executor.snuba_search(
@@ -477,14 +469,21 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             group_ids=[group1.id, group2.id],
             limit=150,
             aggregate_kwargs=agg_kwargs,
-        )
+        )[0]
+        group1_score_after = results[0][1]
+        group2_score_after = results[1][1]
+        # ensure fatal has a higher score than error
+        assert group1_score_after > group2_score_after
         # check that passing a higher log level weight changes the score from when it was just 1
-        assert results != ([(self.group1.id, group1_score), (self.group2.id, group2_score)], 2)
+        assert results != (
+            [(self.group1.id, group1_score_before), (self.group2.id, group2_score_before)],
+            2,
+        )
 
     def test_better_priority_has_stacktrace_results(self):
         """Test that the scoring results change when we pass in different has_stacktrace weights"""
         base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
-        agg_kwargs = {"better_priority": {"log_level": 1, "frequency": 1, "has_stacktrace": 0}}
+        agg_kwargs = {"better_priority": {"log_level": 0, "frequency": 0, "has_stacktrace": 0}}
         query_executor = self.backend._get_query_executor()
 
         no_stacktrace_event = self.store_event(
