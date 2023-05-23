@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta
 from typing import Any, Dict
 
 from django.http import HttpResponse, HttpResponseRedirect
@@ -17,7 +16,6 @@ from sentry.api.utils import generate_organization_url
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.profiles.flamegraph import MAX_RETENTION_DAYS, get_profiles_id
 from sentry.profiles.utils import (
     get_from_profiling_service,
     parse_profile_filters,
@@ -142,18 +140,11 @@ class ProjectProfilingFlamegraphEndpoint(ProjectProfilingBaseEndpoint):
     def get(self, request: Request, project: Project) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
-        params = self.get_profiling_params(request, project)
-        profiles_id = get_profiles_id(
-            project.organization_id,
-            project.id,
-            params["transaction_name"],
-            params.get("start", datetime.utcnow() - timedelta(days=MAX_RETENTION_DAYS)),
-            params.get("end", datetime.utcnow()),
-        )
+
         kwargs: Dict[str, Any] = {
-            "method": "POST",
+            "method": "GET",
             "path": f"/organizations/{project.organization_id}/projects/{project.id}/flamegraph",
-            "json_data": profiles_id,
+            "params": self.get_profiling_params(request, project),
         }
         return proxy_profiling_service(**kwargs)
 

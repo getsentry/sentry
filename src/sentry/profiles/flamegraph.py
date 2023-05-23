@@ -1,46 +1,36 @@
-from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Optional
 
-from snuba_sdk import Column, Condition, Entity, Op, Query, Request
+from snuba_sdk import Column, Condition, Op
 
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.types import ParamsType
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
-MAX_RETENTION_DAYS = 90
-
 
 def get_profiles_id(
-    organization_id: int,
-    project_id: int,
-    transaction_name: str,
-    start: datetime,
-    end: datetime,
+    params: ParamsType,
+    query: Optional[str] = None,
 ) -> Dict[str, List[str]]:
-    query = Query(
-        match=Entity(EntityKey.Profiles.value),
-        select=[
-            Column("profile_id"),
-        ],
-        where=[
-            Condition(Column("organization_id"), Op.EQ, organization_id),
-            Condition(Column("project_id"), Op.EQ, project_id),
-            Condition(Column("transaction_name"), Op.EQ, transaction_name),
-            Condition(Column("received"), Op.GTE, start),
-            Condition(Column("received"), Op.LT, end),
-        ],
-    ).set_limit(100)
-    request = Request(
-        dataset=Dataset.Profiles.value,
-        app_id="default",
+    builder = QueryBuilder(
+        dataset=Dataset.Discover,
+        params=params,
         query=query,
-        tenant_ids={
-            "referrer": Referrer.API_PROFILING_PROFILE_SUMMARY_TABLE.value,
-            "organization_id": 8,
-        },
+        selected_columns=["profile.id"],
+        limit=100,
     )
+
+    builder.add_conditions(
+        [
+            Condition(Column("type"), Op.EQ, "transaction"),
+            Condition(Column("profile_id"), Op.IS_NOT_NULL),
+        ]
+    )
+
+    snql_query = builder.get_snql_query()
     data = raw_snql_query(
-        request,
-        referrer=Referrer.API_PROFILING_PROFILE_SUMMARY_TABLE.value,
+        snql_query,
+        referrer=Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value,
     )["data"]
-    return {"profiles_id": [row["profile_id"] for row in data]}
+    return {"profile_ids": [row["profile.id"] for row in data]}
