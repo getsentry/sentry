@@ -403,58 +403,65 @@ function useFetchGroupDetails({
   }, [group, event, router, organization]);
 
   useEffect(() => {
-    if (group?.project) {
-      const matchingProject = projects?.find(p => p.id === group.project.id);
+    const matchingProject = projects?.find(p => p.id === group?.project.id);
 
-      if (!matchingProject) {
-        Sentry.withScope(scope => {
-          const projectIds = projects.map(item => item.id);
-          scope.setContext('missingProject', {
-            projectId: group.project.id,
-            availableProjects: projectIds,
-          });
-          Sentry.captureException(new Error('Project not found'));
+    if (group && !matchingProject) {
+      Sentry.withScope(scope => {
+        const projectIds = projects.map(item => item.id);
+        scope.setContext('missingProject', {
+          projectId: group?.project.id,
+          availableProjects: projectIds,
         });
-      } else {
-        if (!group.hasSeen) {
-          markEventSeen(api, organization.slug, matchingProject.slug, params.groupId);
-        }
+        Sentry.captureException(new Error('Project not found'));
+      });
+    }
+  }, [projects, group]);
 
-        if (group.hasSeen) {
-          const locationQuery = qs.parse(window.location.search) || {};
+  useEffect(() => {
+    const matchingProjectSlug = group?.project?.slug;
 
-          if (locationQuery.project === undefined && locationQuery._allp === undefined) {
-            // We use _allp as a temporary measure to know they came from the
-            // issue list page with no project selected (all projects included in
-            // filter).
-            //
-            // If it is not defined, we add the locked project id to the URL
-            // (this is because if someone navigates directly to an issue on
-            // single-project priveleges, then goes back - they were getting
-            // assigned to the first project).
-            //
-            // If it is defined, we do not so that our back button will bring us
-            // to the issue list page with no project selected instead of the
-            // locked project.
-            locationQuery.project = matchingProject.id;
-          }
-          // We delete _allp from the URL to keep the hack a bit cleaner, but
-          // this is not an ideal solution and will ultimately be replaced with
-          // something smarter.
-          delete locationQuery._allp;
-          browserHistory.replace({...window.location, query: locationQuery});
-        }
-      }
+    if (!matchingProjectSlug) {
+      return;
+    }
+
+    if (!group.hasSeen) {
+      markEventSeen(api, organization.slug, matchingProjectSlug, params.groupId);
     }
   }, [
-    group?.project,
-    group?.hasSeen,
-    loadingGroup,
-    projects,
     api,
+    group?.hasSeen,
+    group?.project?.id,
+    group?.project?.slug,
     organization.slug,
     params.groupId,
   ]);
+
+  const allProjectsFlag = router.location.query._allp;
+
+  useEffect(() => {
+    const locationQuery = qs.parse(window.location.search) || {};
+
+    // We use _allp as a temporary measure to know they came from the
+    // issue list page with no project selected (all projects included in
+    // filter).
+    //
+    // If it is not defined, we add the locked project id to the URL
+    // (this is because if someone navigates directly to an issue on
+    // single-project priveleges, then goes back - they were getting
+    // assigned to the first project).
+    //
+    // If it is defined, we do not so that our back button will bring us
+    // to the issue list page with no project selected instead of the
+    // locked project.
+    if (allProjectsFlag) {
+      delete locationQuery.project;
+      // We delete _allp from the URL to keep the hack a bit cleaner, but
+      // this is not an ideal solution and will ultimately be replaced with
+      // something smarter.
+      delete locationQuery._allp;
+      browserHistory.replace({...window.location, query: locationQuery});
+    }
+  }, [allProjectsFlag]);
 
   const handleError = useCallback((e: RequestError) => {
     Sentry.captureException(e);
