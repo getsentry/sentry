@@ -252,12 +252,25 @@ describe('groupDetails', () => {
         },
       },
     });
-    act(() => ProjectsStore.reset());
     createWrapper();
-
-    act(() => ProjectsStore.loadInitialData(defaultInit.organization.projects));
-
     expect(await screen.findByText('New Issue')).toBeInTheDocument();
+  });
+
+  it('renders substatus badge', async function () {
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/`,
+      body: {
+        ...group,
+        inbox: null,
+        status: 'unresolved',
+        substatus: 'ongoing',
+      },
+    });
+    createWrapper({
+      ...defaultInit,
+      organization: {...defaultInit.organization, features: ['escalating-issues-ui']},
+    });
+    expect(await screen.findByText('Ongoing')).toBeInTheDocument();
   });
 
   it('renders alert for sample event', async function () {
