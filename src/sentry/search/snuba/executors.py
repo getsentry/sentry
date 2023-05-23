@@ -56,6 +56,7 @@ class PrioritySortWeights(TypedDict):
     log_level: int
     frequency: int
     has_stacktrace: int
+    event_halflife_hours: int
 
 
 def get_search_filter(
@@ -463,7 +464,7 @@ def better_priority_aggregation(
     max_pow = 16
     min_score = 0.01
     event_age_hours = "divide(now() - timestamp, 3600)"
-    event_halflife_hours = 4  # halves score every 4 hours
+    event_halflife_hours = aggregate_kwargs["event_halflife_hours"]  # halves score every 4 hours
     issue_age_hours = "divide(now() - min(timestamp), 3600)"
     issue_halflife_hours = 24 * 7  # issues half in value every week
 

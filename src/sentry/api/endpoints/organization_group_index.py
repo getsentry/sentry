@@ -167,6 +167,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 "log_level": request.GET.get("logLevel", 0),
                 "frequency": request.GET.get("frequency", 0),
                 "has_stacktrace": request.GET.get("hasStacktrace", 0),
+                "event_halflife_hours": request.GET.get("eventHalflifeHours", 4),
             }
         }
 
