@@ -282,15 +282,6 @@ export const getTransactionBasedSeries = (
     12
   )[0];
 
-  const p95TransactionSeries = queryToSeries(
-    data,
-    'group',
-    'p95(transaction.duration)',
-    dateFilter.startTime,
-    dateFilter.endTime,
-    12
-  )[0];
-
   const throughputTransactionSeries = queryToSeries(
     data,
     'group',
@@ -301,9 +292,8 @@ export const getTransactionBasedSeries = (
   )[0];
   if (data.length) {
     p50TransactionSeries.seriesName = 'p50()';
-    p95TransactionSeries.seriesName = 'p95()';
     throughputTransactionSeries.seriesName = 'epm()';
   }
 
-  return {p50TransactionSeries, p95TransactionSeries, throughputTransactionSeries};
+  return {p50TransactionSeries, throughputTransactionSeries};
 };
