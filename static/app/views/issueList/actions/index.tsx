@@ -138,7 +138,7 @@ function IssueListActions({
     );
 
     if (data.status === 'ignored') {
-      trackAnalytics('issue_stream.archived', {
+      trackAnalytics('issues_stream.archived', {
         status_details: data.statusDetails,
         substatus: data.substatus,
         organization,

@@ -237,7 +237,7 @@ describe('IssueListActions', function () {
         );
 
         expect(analyticsSpy).toHaveBeenCalledWith(
-          'issue_stream.archived',
+          'issues_stream.archived',
           expect.objectContaining({
             status_details: {
               ignoreUserCount: 300,
@@ -278,7 +278,7 @@ describe('IssueListActions', function () {
     );
 
     expect(analyticsSpy).toHaveBeenCalledWith(
-      'issue_stream.archived',
+      'issues_stream.archived',
       expect.objectContaining({
         status_details: {},
         substatus: 'until_escalating',
