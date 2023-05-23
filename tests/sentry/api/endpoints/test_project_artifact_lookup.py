@@ -522,7 +522,7 @@ class ArtifactLookupTest(APITestCase):
                     datetime.now(tz=pytz.UTC) - timedelta(days=2),
                     "2432d9ad-fe87-4f77-938d-50cc9b2b2e2a",
                 ),
-                (93, datetime.now(tz=pytz.UTC), "ef88bc3e-d334-4809-9723-5c5dbc8bd4e9"),
+                (35, datetime.now(tz=pytz.UTC), "ef88bc3e-d334-4809-9723-5c5dbc8bd4e9"),
             ):
                 file = make_compressed_zip_file(
                     "bundle_c.zip",
@@ -611,7 +611,7 @@ class ArtifactLookupTest(APITestCase):
                     datetime.now(tz=pytz.UTC) - timedelta(days=2),
                     self.create_release(version="1.0"),
                 ),
-                (93, datetime.now(tz=pytz.UTC), self.create_release(version="2.0")),
+                (35, datetime.now(tz=pytz.UTC), self.create_release(version="2.0")),
             ):
                 dist = release.add_dist("android")
                 bundle_id = uuid4()
