@@ -18,10 +18,11 @@ import {space} from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-export const PLATFORM_CATEGORIES = [
-  ...categoryList,
-  {id: 'all', name: t('All')},
-] as const;
+export const PLATFORM_CATEGORIES: {
+  id: string;
+  name: string;
+  platforms?: PlatformKey[];
+}[] = [...JSON.parse(JSON.stringify(categoryList)), {id: 'all', name: t('All')}];
 
 const PlatformList = styled('div')`
   display: grid;
@@ -32,7 +33,7 @@ const PlatformList = styled('div')`
 
 export type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
 
-type Platform = PlatformIntegration & {
+export type Platform = PlatformIntegration & {
   category: Category;
 };
 

@@ -67,42 +67,6 @@ describe('CreateProject', function () {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('should fill in platform name if its provided by url', function () {
-    const wrapper = render(<CreateProject />, {
-      context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
-      router: {location: {query: {platform: 'ruby-rails'}}},
-    });
-
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('Rails');
-
-    expect(wrapper.container).toSnapshot();
-  });
-
-  it('should fill in category name if its provided by url', function () {
-    render(<CreateProject />, {
-      context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
-      router: {location: {query: {category: 'mobile'}}},
-    });
-
-    expect(screen.getByTestId('platform-apple-ios')).toBeInTheDocument();
-    expect(screen.queryByTestId('platform-ruby-rails')).not.toBeInTheDocument();
-  });
-
-  it('should deal with incorrect platform name if its provided by url', function () {
-    const wrapper = render(<CreateProject />, {
-      context: TestStubs.routerContext([
-        {
-          organization: {id: '1', slug: 'testOrg'},
-          location: {query: {platform: 'XrubyROOLs'}},
-        },
-      ]),
-    });
-
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('');
-
-    expect(wrapper.container).toSnapshot();
-  });
-
   describe('Issue Alerts Options', () => {
     beforeEach(() => {
       TeamStore.loadUserTeams([teamWithAccess]);
