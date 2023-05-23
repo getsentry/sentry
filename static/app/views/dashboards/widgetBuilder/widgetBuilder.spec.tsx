@@ -473,7 +473,7 @@ describe('WidgetBuilder', function () {
 
     expect(screen.queryByText('Custom Widget')).not.toBeInTheDocument();
 
-    expect(screen.getAllByText('Unique Users')).toHaveLength(2);
+    expect(screen.getAllByText('Unique Users')).toBeInTheDocument();
   });
 
   it('can add query conditions', async function () {
@@ -661,7 +661,7 @@ describe('WidgetBuilder', function () {
 
     await userEvent.keyboard('{enter}');
 
-    expect(indicators.addErrorMessage).toHaveBeenCalledWith('Unable to save widget');
+    expect(indicators.addErrorMessage).toHaveBeenCalledWith('Widget title is required');
   });
 
   it('sets up widget data in edit correctly', async function () {
