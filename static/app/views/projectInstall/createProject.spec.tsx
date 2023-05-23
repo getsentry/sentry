@@ -1,4 +1,4 @@
-import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import TeamStore from 'sentry/stores/teamStore';
@@ -8,8 +8,13 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('CreateProject', function () {
   const organization = TestStubs.Organization();
+  const teamNoAccess = TestStubs.Team({
+    slug: 'test',
+    id: '1',
+    name: 'test',
+    hasAccess: false,
+  });
 
-  const teamNoAccess = {slug: 'test', id: '1', name: 'test', hasAccess: false};
   const teamWithAccess = {...teamNoAccess, hasAccess: true};
 
   beforeEach(() => {
@@ -29,11 +34,10 @@ describe('CreateProject', function () {
   });
 
   it('should block if you have access to no teams', function () {
-    const wrapper = render(<CreateProject />, {
+    const {container} = render(<CreateProject />, {
       context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
     });
-
-    expect(wrapper.container).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('can create a new team', async function () {
@@ -46,9 +50,9 @@ describe('CreateProject', function () {
   });
 
   it('should fill in project name if its empty when platform is chosen', async function () {
-    const wrapper = render(<CreateProject />, {
-      router: {location: {query: {}}},
+    const {container} = render(<CreateProject />, {
       context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
+      organization,
     });
 
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
@@ -64,15 +68,16 @@ describe('CreateProject', function () {
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('another');
 
-    expect(wrapper.container).toSnapshot();
+    expect(container).toSnapshot();
   });
 
-  describe('Issue Alerts Options', () => {
+  describe('Issue Alerts Options', function () {
     beforeEach(() => {
       TeamStore.loadUserTeams([teamWithAccess]);
 
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/rule-conditions/`,
+        // @ts-ignore TODO: fix this type
         body: TestStubs.MOCK_RESP_VERBOSE,
       });
     });
@@ -81,7 +86,7 @@ describe('CreateProject', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('should enabled the submit button if and only if all the required information has been filled', async () => {
+    it('should enabled the submit button if and only if all the required information has been filled', async function () {
       render(<CreateProject />);
 
       const createProjectButton = screen.getByRole('button', {name: 'Create Project'});
@@ -102,7 +107,7 @@ describe('CreateProject', function () {
       await userEvent.type(screen.getByTestId('range-input'), '2712');
       expect(createProjectButton).toBeEnabled();
 
-      fireEvent.change(screen.getByTestId('range-input'), {target: {value: ''}});
+      await userEvent.clear(screen.getByTestId('range-input'));
       expect(createProjectButton).toBeDisabled();
 
       await userEvent.click(screen.getByText("I'll create my own alerts later"));
