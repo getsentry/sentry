@@ -325,6 +325,7 @@ function useFetchGroupDetails({
   const [error, setError] = useState<boolean>(false);
   const [errorType, setErrorType] = useState<Error | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
+  const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
 
   const groupId = params.groupId;
   const eventId = params.eventId ?? 'latest';
@@ -453,15 +454,26 @@ function useFetchGroupDetails({
     // If it is defined, we do not so that our back button will bring us
     // to the issue list page with no project selected instead of the
     // locked project.
-    if (allProjectsFlag) {
+    if (
+      locationQuery.project === undefined &&
+      !allProjectsFlag &&
+      !allProjectChanged &&
+      group?.project.id
+    ) {
+      locationQuery.project = group?.project.id;
+      browserHistory.replace({...window.location, query: locationQuery});
+    }
+
+    if (allProjectsFlag && !allProjectChanged) {
       delete locationQuery.project;
       // We delete _allp from the URL to keep the hack a bit cleaner, but
       // this is not an ideal solution and will ultimately be replaced with
       // something smarter.
       delete locationQuery._allp;
       browserHistory.replace({...window.location, query: locationQuery});
+      setAllProjectChanged(true);
     }
-  }, [allProjectsFlag]);
+  }, [allProjectsFlag, group?.project.id, allProjectChanged]);
 
   const handleError = useCallback((e: RequestError) => {
     Sentry.captureException(e);
