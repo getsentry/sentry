@@ -7,6 +7,7 @@ and perform RPC calls to propagate changes to relevant region(s).
 """
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from django.dispatch import receiver
@@ -21,6 +22,8 @@ from sentry.models import (
     process_control_outbox,
 )
 from sentry.receivers.outbox import maybe_process_tombstone
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.USER_UPDATE)
@@ -62,3 +65,26 @@ def process_organization_integration_update(object_identifier: int, **kwds: Any)
     ) is None:
         return
     organization_integration  # Currently we do not sync any other organization integration changes, but if we did, you can use this variable.
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.WEBHOOK_PROXY)
+def process_async_webhooks(payload: Any, region_name: str, **kwds: Any):
+    from sentry.models.outbox import ControlOutbox
+    from sentry.silo.client import RegionSiloClient
+    from sentry.types.region import get_region_by_name
+
+    region = get_region_by_name(name=region_name)
+    webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
+
+    response = RegionSiloClient(region=region).request(
+        method=webhook_payload.method,
+        path=webhook_payload.path,
+        headers=webhook_payload.headers,
+        # We need to send the body as raw bytes to avoid interfering with webhook signatures
+        data=webhook_payload.body,
+        json=False,
+        raw_response=True,
+    )
+    logger.info(
+        "webhook_proxy.complete", extra={"status": response.status_code, "url": response.url}
+    )

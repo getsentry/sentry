@@ -1,8 +1,10 @@
+import dataclasses
 from datetime import datetime, timedelta
 from typing import ContextManager
 from unittest.mock import call, patch
 
 import pytest
+from django.test import RequestFactory
 from freezegun import freeze_time
 from pytest import raises
 
@@ -138,6 +140,7 @@ def test_region_sharding_keys():
 @pytest.mark.django_db(transaction=True)
 @control_silo_test(stable=True)
 def test_control_sharding_keys():
+    request = RequestFactory().get("/extensions/slack/webhook/")
     with exempt_from_silo_limits():
         org = Factories.create_organization(no_mapping=True)
         Factories.create_org_mapping(org, region_name=MONOLITH_REGION_NAME)
@@ -162,12 +165,14 @@ def test_control_sharding_keys():
     for inst in ControlOutbox.for_webhook_update(
         webhook_identifier=WebhookProviderIdentifier.SLACK,
         region_names=[MONOLITH_REGION_NAME, "special-slack-region"],
+        request=request,
     ):
         inst.save()
 
     for inst in ControlOutbox.for_webhook_update(
         webhook_identifier=WebhookProviderIdentifier.GITHUB,
         region_names=[MONOLITH_REGION_NAME, "special-github-region"],
+        request=request,
     ):
         inst.save()
 
@@ -187,6 +192,48 @@ def test_control_sharding_keys():
             "special-github-region",
         ),
     }
+
+
+@pytest.mark.django_db(transaction=True)
+@control_silo_test(stable=True)
+def test_control_outbox_for_webhooks():
+    request = RequestFactory().post(
+        "/extensions/github/webhook/",
+        data={"installation": {"id": "github:1"}},
+        content_type="application/json",
+        HTTP_X_GITHUB_EMOTICON=">:^]",
+    )
+    [outbox] = ControlOutbox.for_webhook_update(
+        webhook_identifier=WebhookProviderIdentifier.GITHUB,
+        region_names=["webhook-region"],
+        request=request,
+    )
+    assert outbox.shard_scope == OutboxScope.WEBHOOK_SCOPE
+    assert outbox.shard_identifier == WebhookProviderIdentifier.GITHUB
+    assert outbox.category == OutboxCategory.WEBHOOK_PROXY
+    assert outbox.region_name == "webhook-region"
+
+    payload_from_request = outbox.get_webhook_payload_from_request(request)
+    assert outbox.payload == dataclasses.asdict(payload_from_request)
+    payload_from_outbox = outbox.get_webhook_payload_from_outbox(outbox.payload)
+    assert payload_from_request == payload_from_outbox
+
+    assert outbox.payload["method"] == "POST"
+    assert outbox.payload["path"] == "/extensions/github/webhook/"
+    assert outbox.payload["uri"] == "http://testserver/extensions/github/webhook/"
+    # Request factory expects transformed headers, but the outbox stores raw headers
+    assert outbox.payload["headers"]["X-Github-Emoticon"] == ">:^]"
+    assert outbox.payload["body"] == '{"installation": {"id": "github:1"}}'
+
+    # After saving, data shouldn't mutate
+    outbox.save()
+    outbox = ControlOutbox.objects.all().first()
+    assert outbox.payload["method"] == "POST"
+    assert outbox.payload["path"] == "/extensions/github/webhook/"
+    assert outbox.payload["uri"] == "http://testserver/extensions/github/webhook/"
+    # Request factory expects transformed headers, but the outbox stores raw headers
+    assert outbox.payload["headers"]["X-Github-Emoticon"] == ">:^]"
+    assert outbox.payload["body"] == '{"installation": {"id": "github:1"}}'
 
 
 @pytest.mark.django_db(transaction=True)
