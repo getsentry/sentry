@@ -647,13 +647,7 @@ export const StyledLink = styled(Link)`
 `;
 
 export const TransactionLink = styled(Link)`
-  & div {
-    display: block;
-    overflow: hidden;
-    max-width: 100%;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledIcon = styled(IconStack)`
