@@ -180,21 +180,26 @@ def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
 
     for (artifact_bundle_id, date_added) in used_artifact_bundles.items():
         metrics.incr("artifact_lookup.get.renew_artifact_bundles.can_be_renewed")
-        # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
-        with transaction.atomic():
-            updated_rows_count = ArtifactBundle.objects.filter(
-                id=artifact_bundle_id, date_added__lte=threshold_date
-            ).update(date_added=now)
-            if updated_rows_count > 0:
-                ProjectArtifactBundle.objects.filter(
-                    artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+        if ArtifactBundle.can_be_renewed(date_added=date_added):
+            metrics.incr("artifact_lookup.get.renew_artifact_bundles.renewal")
+            # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
+            with transaction.atomic():
+                # We check again for the date_added condition in order to achieve consistency, this is done because
+                # the `can_be_renewed` call is using a time which differs from the one of the actual update in the db.
+                updated_rows_count = ArtifactBundle.objects.filter(
+                    id=artifact_bundle_id, date_added__lte=threshold_date
                 ).update(date_added=now)
-                ReleaseArtifactBundle.objects.filter(
-                    artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                ).update(date_added=now)
-                DebugIdArtifactBundle.objects.filter(
-                    artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                ).update(date_added=now)
+                # We want to make cascading queries only if there were actual changes in the db.
+                if updated_rows_count > 0:
+                    ProjectArtifactBundle.objects.filter(
+                        artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+                    ).update(date_added=now)
+                    ReleaseArtifactBundle.objects.filter(
+                        artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+                    ).update(date_added=now)
+                    DebugIdArtifactBundle.objects.filter(
+                        artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+                    ).update(date_added=now)
 
 
 def get_artifact_bundles_containing_debug_id(

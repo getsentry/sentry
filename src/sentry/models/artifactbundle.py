@@ -1,7 +1,9 @@
 import zipfile
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import IO, Callable, Dict, List, Optional, Tuple
 
+import pytz
 from django.db import models
 from django.db.models.signals import post_delete
 from django.utils import timezone
@@ -81,6 +83,15 @@ class ArtifactBundle(Model):
         if dist is not None:
             return sha1_text(url + "\x00\x00" + dist).hexdigest()
         return sha1_text(url).hexdigest()
+
+    @classmethod
+    def can_be_renewed(cls, date_added: datetime):
+        current_date = datetime.now(tz=pytz.UTC)
+
+        expiration_date = date_added + timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
+
+        # We can renew a bundle if the current date is at least 30 days from the creation of the date of the bundle.
+        return expiration_date <= current_date
 
 
 def delete_file_for_artifact_bundle(instance, **kwargs):
