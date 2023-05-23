@@ -17,14 +17,28 @@ NoneType = type(None)
 
 
 class UpdateChannel(Enum):
-    """Enumerated type referring to potential sources of Sentry Options"""
+    """
+    There are multiple channels to update an option. This enum is used
+    to identify the channel that is trying to update an option or that
+    last updated the option.
+    """
 
+    # Legacy changes made by code that is not aware of this enum.
+    # They should disappear over time.
     UNKNOWN = "unknown"
+    # Any change made directly by the application through the `options`
+    # module not included in the categories below.
     APPLICATION = "application"
-    AUTOMATOR = "automator"
-    CLI = "cli"
-    KILLSWITCH = "killswitch"
+    # Any change made by the sentry Admin UI.
     ADMIN = "admin"
+    # Any change made by the Options Automator.
+    AUTOMATOR = "automator"
+    # Any change made through the sentry CLI with the exceptions of
+    # killswitches.
+    CLI = "cli"
+    # Any change made through the killswitches CLI. This CLI is different
+    # from the CLI above.
+    KILLSWITCH = "killswitch"
 
     @classmethod
     def choices(cls):
