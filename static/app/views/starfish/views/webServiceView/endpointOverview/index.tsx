@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -10,9 +11,11 @@ import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -85,7 +88,7 @@ export default function EndpointOverview() {
     isLoading: isTableDataLoading,
     data: tableData,
     isRefetching: isTableRefetching,
-  } = useQueryMainTable({transaction: (transaction as string) ?? ''});
+  } = useQueryMainTable({transaction: (transaction as string) ?? '', limit: 5});
 
   const {data: dbAggregateData} = useQuery({
     queryKey: ['dbAggregates', transaction, pageFilter.selection.datetime],
@@ -137,6 +140,67 @@ export default function EndpointOverview() {
     version: 2,
   };
 
+  function renderFailureRateChart() {
+    return (
+      <EventsRequest
+        query={query.formatString()}
+        includePrevious={false}
+        partial
+        interval="1h"
+        includeTransformedData
+        limit={1}
+        environment={eventView.environment}
+        project={eventView.project}
+        period={eventView.statsPeriod}
+        referrer="starfish-homepage-failure-rate"
+        start={eventView.start}
+        end={eventView.end}
+        organization={organization}
+        yAxis="equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))"
+      >
+        {eventData => {
+          const transformedData: Series[] | undefined = eventData.timeseriesData?.map(
+            series => ({
+              data: series.data,
+              seriesName: t('Error Rate'),
+              color: CHART_PALETTE[5][3],
+              silent: true,
+            })
+          );
+
+          if (!transformedData) {
+            return null;
+          }
+
+          return (
+            <Fragment>
+              <Chart
+                statsPeriod={eventView.statsPeriod}
+                height={80}
+                data={transformedData}
+                start={eventView.start as string}
+                end={eventView.end as string}
+                loading={eventData.loading}
+                utc={false}
+                grid={{
+                  left: '0',
+                  right: '0',
+                  top: '8px',
+                  bottom: '0',
+                }}
+                definedAxisTicks={2}
+                isLineChart
+                chartColors={theme.charts.getColorPalette(2)}
+                disableXAxis
+                aggregateOutputFormat="percentage"
+              />
+            </Fragment>
+          );
+        }}
+      </EventsRequest>
+    );
+  }
+
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
   return (
@@ -162,74 +226,79 @@ export default function EndpointOverview() {
               <ChartsContainerItem>
                 <SpanGroupBreakdownContainer transaction={transaction as string} />
               </ChartsContainerItem>
-              <EventsRequest
-                query={query.formatString()}
-                includePrevious={false}
-                partial
-                limit={5}
-                interval="1h"
-                includeTransformedData
-                environment={eventView.environment}
-                project={eventView.project}
-                period={pageFilter.selection.datetime.period}
-                referrer="starfish-endpoint-overview"
-                start={pageFilter.selection.datetime.start}
-                end={pageFilter.selection.datetime.end}
-                organization={organization}
-                yAxis={['tpm()', 'p50(transaction.duration)']}
-                queryExtras={{dataset: 'metrics'}}
-              >
-                {({results, loading}) => {
-                  return (
-                    <ChartsContainerItem2>
-                      <ChartPanel title={t('Througput')}>
-                        <Chart
-                          statsPeriod={(statsPeriod as string) ?? '24h'}
-                          height={150}
-                          data={results?.[0] ? [results?.[0]] : []}
-                          start=""
-                          end=""
-                          loading={loading}
-                          utc={false}
-                          stacked
-                          isLineChart
-                          disableXAxis
-                          hideYAxisSplitLine
-                          chartColors={[theme.charts.getColorPalette(0)[0]]}
-                          grid={{
-                            left: '0',
-                            right: '0',
-                            top: '8px',
-                            bottom: '16px',
-                          }}
-                        />
-                      </ChartPanel>
-                      <ChartPanel title={t('p50(duration)')}>
-                        <Chart
-                          statsPeriod={(statsPeriod as string) ?? '24h'}
-                          height={150}
-                          data={results?.[1] ? [results?.[1]] : []}
-                          start=""
-                          end=""
-                          loading={loading}
-                          utc={false}
-                          stacked
-                          isLineChart
-                          disableXAxis
-                          hideYAxisSplitLine
-                          chartColors={[theme.charts.getColorPalette(0)[1]]}
-                          grid={{
-                            left: '0',
-                            right: '0',
-                            top: '8px',
-                            bottom: '16px',
-                          }}
-                        />
-                      </ChartPanel>
-                    </ChartsContainerItem2>
-                  );
-                }}
-              </EventsRequest>
+              <ChartsContainerItem2>
+                <ChartPanel title={t('Error Rate')}>
+                  {renderFailureRateChart()}
+                </ChartPanel>
+                <EventsRequest
+                  query={query.formatString()}
+                  includePrevious={false}
+                  partial
+                  limit={5}
+                  interval="1h"
+                  includeTransformedData
+                  environment={eventView.environment}
+                  project={eventView.project}
+                  period={pageFilter.selection.datetime.period}
+                  referrer="starfish-endpoint-overview"
+                  start={pageFilter.selection.datetime.start}
+                  end={pageFilter.selection.datetime.end}
+                  organization={organization}
+                  yAxis={['tpm()', 'p50(transaction.duration)']}
+                  queryExtras={{dataset: 'metrics'}}
+                >
+                  {({results, loading}) => {
+                    return (
+                      <Fragment>
+                        <ChartPanel title={t('p50(duration)')}>
+                          <Chart
+                            statsPeriod={(statsPeriod as string) ?? '24h'}
+                            height={80}
+                            data={results?.[1] ? [results?.[1]] : []}
+                            start=""
+                            end=""
+                            loading={loading}
+                            utc={false}
+                            stacked
+                            isLineChart
+                            disableXAxis
+                            definedAxisTicks={2}
+                            chartColors={[theme.charts.getColorPalette(0)[1]]}
+                            grid={{
+                              left: '0',
+                              right: '0',
+                              top: '8px',
+                              bottom: '16px',
+                            }}
+                          />
+                        </ChartPanel>
+                        <ChartPanel title={t('Througput')}>
+                          <Chart
+                            statsPeriod={(statsPeriod as string) ?? '24h'}
+                            height={80}
+                            data={results?.[0] ? [results?.[0]] : []}
+                            start=""
+                            end=""
+                            loading={loading}
+                            utc={false}
+                            stacked
+                            isLineChart
+                            disableXAxis
+                            definedAxisTicks={2}
+                            chartColors={[theme.charts.getColorPalette(0)[0]]}
+                            grid={{
+                              left: '0',
+                              right: '0',
+                              top: '8px',
+                              bottom: '16px',
+                            }}
+                          />
+                        </ChartPanel>
+                      </Fragment>
+                    );
+                  }}
+                </EventsRequest>
+              </ChartsContainerItem2>
             </ChartsContainer>
           </StyledRow>
           <SubHeader>{t('Sample Events')}</SubHeader>
