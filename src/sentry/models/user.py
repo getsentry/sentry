@@ -322,7 +322,8 @@ class User(BaseModel, AbstractBaseUser):
         for obj in OrganizationMember.objects.filter(user_id=from_user.id):
             try:
                 with transaction.atomic():
-                    obj.update(user_id=to_user.id)
+                    obj.user_id = to_user.id
+                    obj.save()
             # this will error if both users are members of obj.org
             except IntegrityError:
                 pass
@@ -334,7 +335,8 @@ class User(BaseModel, AbstractBaseUser):
                 organization=obj.organization_id, user_id=to_user.id
             )
             if roles.get(obj.role).priority > roles.get(to_member.role).priority:
-                to_member.update(role=obj.role)
+                to_member.role = obj.role
+                to_member.save()
 
             for team in obj.teams.all():
                 try:

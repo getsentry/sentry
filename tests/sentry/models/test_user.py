@@ -11,12 +11,13 @@ from sentry.models import (
 )
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
-class UserTest(TestCase):
+class UserTest(TestCase, HybridCloudTestMixin):
     def test_get_orgs(self):
         user = self.create_user()
         org = self.create_organization(owner=user)
@@ -98,6 +99,10 @@ class UserMergeToTest(TestCase):
 
         from_user.merge_to(to_user)
 
+        assert not OrganizationMember.objects.filter(user_id=from_user.id).exists()
+        for member in OrganizationMember.objects.filter(user_id=to_user.id):
+            self.assert_org_member_mapping(org_member=member)
+
         assert UserEmail.objects.filter(
             user=to_user, email=to_user.email, is_verified=True
         ).exists()
@@ -124,6 +129,11 @@ class UserMergeToTest(TestCase):
         self.create_member(organization=org_1, user=to_user, role="member", teams=[team_2, team_3])
 
         from_user.merge_to(to_user)
+
+        for member in OrganizationMember.objects.filter(user_id__in=[from_user.id, to_user.id]):
+            self.assert_org_member_mapping(org_member=member)
+
+        assert OrganizationMember.objects.filter(user_id=from_user.id).exists()
 
         member = OrganizationMember.objects.get(user=to_user)
 

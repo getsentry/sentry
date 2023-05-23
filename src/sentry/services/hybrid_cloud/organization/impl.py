@@ -379,11 +379,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return serialize_member(org_member)
 
     def reset_idp_flags(self, *, organization_id: int) -> None:
-        OrganizationMember.objects.filter(
-            organization_id=organization_id,
-            flags=models.F("flags").bitor(OrganizationMember.flags["idp:provisioned"]),
-        ).update(
-            flags=models.F("flags")
-            .bitand(~OrganizationMember.flags["idp:provisioned"])
-            .bitand(~OrganizationMember.flags["idp:role-restricted"])
-        )
+        with in_test_psql_role_override("postgres"):
+            # Flags are not replicated -- these updates are safe without outbox application.
+            OrganizationMember.objects.filter(
+                organization_id=organization_id,
+                flags=models.F("flags").bitor(OrganizationMember.flags["idp:provisioned"]),
+            ).update(
+                flags=models.F("flags")
+                .bitand(~OrganizationMember.flags["idp:provisioned"])
+                .bitand(~OrganizationMember.flags["idp:role-restricted"])
+            )
