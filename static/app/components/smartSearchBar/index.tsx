@@ -923,12 +923,13 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     return treeResultLocator<boolean>({
       tree: parsedQuery,
       noResultValue: true,
-      visitorTest: ({token, returnResult, skipToken}) =>
-        token.type !== Token.Filter
+      visitorTest: ({token, returnResult, skipToken}) => {
+        return token.type !== Token.Filter && token.type !== Token.FreeText
           ? null
           : token.invalid
           ? returnResult(false)
-          : skipToken,
+          : skipToken;
+      },
     });
   }
 

@@ -562,7 +562,6 @@ export class TokenConverter {
   });
 
   tokenValueText = (value: string, quoted: boolean) => {
-    console.log('A');
     return {
       ...this.defaultTokenFields,
       type: Token.ValueText as const,
@@ -765,13 +764,13 @@ export class TokenConverter {
     const hasEmptyValue = items.some(item => item.value === null);
 
     if (hasEmptyValue) {
-      return {reason: t('Lists should not have empty VALUES')};
+      return {reason: t('Lists should not have empty values')};
     }
 
     const hasWildCard = items.some(item => item.value.value.includes('*'));
 
     if (this.config.disallowWildCard && hasWildCard) {
-      return {reason: t('Wildcards not supported in search')};
+      return {reason: t('Lists should not have wildcard values')};
     }
 
     return null;
