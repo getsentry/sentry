@@ -60,8 +60,11 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: true,
-        tooltipTitle:
-          t(`Issues are marked for review when they are created, unresolved, or unignored.
+        tooltipTitle: hasEscalatingIssuesUi
+          ? t(
+              'Issues are marked for review when they are created, unresolved, unarchived, or escalating. Issues are automatically marked reviewed in 7 days.'
+            )
+          : t(`Issues are marked for review when they are created, unresolved, or unignored.
           Mark an issue reviewed to move it out of this list.
           Issues are automatically marked reviewed in 7 days.`),
       },
