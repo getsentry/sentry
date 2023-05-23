@@ -8,7 +8,7 @@ import GroupSidebar from './groupSidebar';
 describe('GroupSidebar', function () {
   let group = TestStubs.Group({tags: TestStubs.Tags()});
   const {organization, project} = initializeOrg();
-  const environment = 'production';
+  const environment = {name: 'production', displayName: 'Production', id: '1'};
   let tagsMock;
 
   beforeEach(function () {
@@ -114,7 +114,7 @@ describe('GroupSidebar', function () {
 
   describe('environment toggle', function () {
     it('re-requests tags with correct environment', async function () {
-      const stagingEnv = 'staging';
+      const stagingEnv = {name: 'staging', displayName: 'Staging', id: '2'};
       const {rerender} = render(
         <GroupSidebar
           group={group}

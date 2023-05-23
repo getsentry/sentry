@@ -19,6 +19,7 @@ describe('groupDetails', () => {
   const group = TestStubs.Group({issueCategory: IssueCategory.ERROR});
   const event = TestStubs.Event();
   const project = TestStubs.Project({teams: [TestStubs.Team()]});
+  const selection = {environments: []};
 
   const routes = [
     {path: '/', childRoutes: [], component: null},
@@ -36,22 +37,20 @@ describe('groupDetails', () => {
     },
   ];
 
-  const initRouter = {
-    location: {
-      pathname: `/organizations/org-slug/issues/${group.id}/`,
-      query: {},
-      search: '?foo=bar',
-      hash: '#hash',
-    },
-    params: {
-      groupId: group.id,
-    },
-    routes,
-  };
-
-  const defaultInit = initializeOrg({
+  const {organization, router, routerContext} = initializeOrg({
     project,
-    router: initRouter,
+    router: {
+      location: {
+        pathname: `/organizations/org-slug/issues/${group.id}/`,
+        query: {},
+        search: '?foo=bar',
+        hash: '#hash',
+      },
+      params: {
+        groupId: group.id,
+      },
+      routes,
+    },
   });
 
   function MockComponent({group: groupProp, environments, eventError}) {
@@ -65,22 +64,23 @@ describe('groupDetails', () => {
     );
   }
 
-  const createWrapper = (init = defaultInit) => {
+  const createWrapper = (props = {selection}, org = organization) => {
     return render(
       <GroupDetails
-        {...init.router}
-        router={init.router}
-        organization={init.organization}
+        {...router}
+        router={router}
+        selection={props.selection}
+        organization={org}
       >
         <MockComponent />
       </GroupDetails>,
-      {context: init.routerContext, organization: init.organization, router: init.router}
+      {context: routerContext, organization: org, router}
     );
   };
 
   beforeEach(() => {
-    OrganizationStore.onUpdate(defaultInit.organization);
-    act(() => ProjectsStore.loadInitialData(defaultInit.organization.projects));
+    OrganizationStore.onUpdate(organization);
+    act(() => ProjectsStore.loadInitialData(organization.projects));
 
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
@@ -109,7 +109,7 @@ describe('groupDetails', () => {
       body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/events/`,
+      url: `/organizations/${organization.slug}/events/`,
       statusCode: 200,
       body: {
         data: [
@@ -120,7 +120,7 @@ describe('groupDetails', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/environments/`,
+      url: `/organizations/${organization.slug}/environments/`,
       body: TestStubs.Environments(),
     });
     MockApiClient.addMockResponse({
@@ -142,7 +142,7 @@ describe('groupDetails', () => {
 
     expect(screen.queryByText(group.title)).not.toBeInTheDocument();
 
-    act(() => ProjectsStore.loadInitialData(defaultInit.organization.projects));
+    act(() => ProjectsStore.loadInitialData(organization.projects));
 
     expect(await screen.findByText(group.title, {exact: false})).toBeInTheDocument();
 
@@ -195,16 +195,9 @@ describe('groupDetails', () => {
   });
 
   it('fetches issue details for a given environment', async function () {
-    const init = initializeOrg({
-      router: {
-        ...initRouter,
-        location: TestStubs.location({
-          ...initRouter.location,
-          query: {environment: 'staging'},
-        }),
-      },
+    createWrapper({
+      selection: {environments: ['staging']},
     });
-    createWrapper({router: init.router});
 
     await waitFor(() =>
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
@@ -266,10 +259,7 @@ describe('groupDetails', () => {
         substatus: 'ongoing',
       },
     });
-    createWrapper({
-      ...defaultInit,
-      organization: {...defaultInit.organization, features: ['escalating-issues-ui']},
-    });
+    createWrapper(undefined, {...organization, features: ['escalating-issues-ui']});
     expect(await screen.findByText('Ongoing')).toBeInTheDocument();
   });
 
