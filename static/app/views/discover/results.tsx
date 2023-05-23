@@ -758,6 +758,7 @@ function ResultsContainer(props: Props) {
 
   return (
     <PageFiltersContainer
+      disablePersistence
       skipLoadLastUsed={
         props.organization.features.includes('global-views') && !!props.savedQuery
       }
