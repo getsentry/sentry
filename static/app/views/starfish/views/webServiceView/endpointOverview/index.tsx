@@ -88,7 +88,7 @@ export default function EndpointOverview() {
     isLoading: isTableDataLoading,
     data: tableData,
     isRefetching: isTableRefetching,
-  } = useQueryMainTable({transaction: (transaction as string) ?? '', limit: 5});
+  } = useQueryMainTable({transaction: (transaction as string) ?? '', limit: 8});
 
   const {data: dbAggregateData} = useQuery({
     queryKey: ['dbAggregates', transaction, pageFilter.selection.datetime],
