@@ -49,6 +49,7 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
+from sentry.search.snuba.executors import PrioritySortWeights
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -113,7 +114,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
-    def test_sort_by_trend(self):
+    @with_feature("organizations:issue-list-better-priority-sort")
+    def test_sort_by_better_priority(self):
         group = self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=10)),
@@ -152,27 +154,22 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         self.login_as(user=self.user)
 
-        response = self.get_success_response(
-            sort="trend",
-            query="is:unresolved",
-            limit=1,
-            start=iso_format(before_now(days=1)),
-            end=iso_format(before_now(seconds=1)),
-        )
-        assert len(response.data) == 1
-        assert [item["id"] for item in response.data] == [str(group.id)]
+        aggregate_kwargs: PrioritySortWeights = {
+            "log_level": 3,
+            "frequency": 5,
+            "has_stacktrace": 5,
+        }
 
-        header_links = parse_link_header(response["Link"])
-        cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
         response = self.get_success_response(
-            sort="trend",
+            sort="betterPriority",
             query="is:unresolved",
-            limit=1,
+            limit=25,
             start=iso_format(before_now(days=1)),
             end=iso_format(before_now(seconds=1)),
-            cursor=cursor,
+            aggregate_kwargs={"better_priority": aggregate_kwargs},
         )
-        assert [item["id"] for item in response.data] == [str(group_2.id)]
+        assert len(response.data) == 2
+        assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
 
     def test_sort_by_inbox(self):
         group_1 = self.store_event(

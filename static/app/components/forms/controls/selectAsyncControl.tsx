@@ -5,7 +5,8 @@ import debounce from 'lodash/debounce';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import RequestError from 'sentry/utils/requestError/requestError';
 
 import SelectControl, {ControlProps, GeneralSelectValue} from './selectControl';
 
@@ -91,9 +92,9 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
         const {onResults} = this.props;
         return typeof onResults === 'function' ? onResults(resp) : resp;
       },
-      err => {
+      (err: RequestError) => {
         addErrorMessage(t('There was a problem with the request.'));
-        handleXhrErrorResponse('SelectAsync failed')(err);
+        handleXhrErrorResponse('SelectAsync failed', err);
         // eslint-disable-next-line no-console
         console.error(err);
       }

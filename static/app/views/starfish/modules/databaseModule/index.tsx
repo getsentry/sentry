@@ -25,6 +25,7 @@ import {
 } from 'sentry/views/starfish/modules/databaseModule/queries';
 import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combineTableDataWithSparklineData';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 
 import DatabaseChartView from './databaseChartView';
 import DatabaseTableView, {DataRow, MainTableSort} from './databaseTableView';
@@ -42,6 +43,7 @@ function DatabaseModule() {
   const [table, setTable] = useState<string>('ALL');
   const [filterNew, setFilterNew] = useState<boolean>(false);
   const [filterOld, setFilterOld] = useState<boolean>(false);
+  const [filterOutlier, setFilterOutlier] = useState<boolean>(true);
   const [transaction, setTransaction] = useState<string>('');
   const [sort, setSort] = useState<MainTableSort>({
     direction: undefined,
@@ -61,10 +63,15 @@ function DatabaseModule() {
     table,
     filterNew,
     filterOld,
+    filterOutlier,
     sortKey: sort.sortHeader?.key,
     sortDirection: sort.direction,
   });
   const pageFilters = usePageFilters();
+
+  // Experiments
+  const [p95asNumber, setp95asNumber] = useState<boolean>(false);
+  const [noP95, setnoP95] = useState<boolean>(false);
 
   const {selection} = pageFilters;
   const {projects, environments, datetime} = selection;
@@ -88,7 +95,13 @@ function DatabaseModule() {
   );
 
   const {data: dbAggregateData} = useQuery({
-    queryKey: ['dbAggregates', transaction, filterNew, filterOld],
+    queryKey: [
+      'dbAggregates',
+      transaction,
+      filterNew,
+      filterOld,
+      pageFilters.selection.datetime,
+    ],
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getDbAggregatesQuery({
@@ -100,20 +113,17 @@ function DatabaseModule() {
     initialData: [],
   });
 
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
+    pageFilters.selection.datetime
+  );
+
   const combinedDbData = combineTableDataWithSparklineData(
     tableData,
     dbAggregateData,
-    moment.duration(12, 'hours')
+    moment.duration(12, 'hours'),
+    moment(start_timestamp),
+    moment(end_timestamp)
   );
-
-  const aggregatesGroupedByQuery = {};
-  dbAggregateData.forEach(({description, interval, count, p75}) => {
-    if (description in aggregatesGroupedByQuery) {
-      aggregatesGroupedByQuery[description].push({name: interval, count, p75});
-    } else {
-      aggregatesGroupedByQuery[description] = [{name: interval, count, p75}];
-    }
-  });
 
   useEffect(() => {
     function handleKeyDown({keyCode}) {
@@ -149,6 +159,15 @@ function DatabaseModule() {
     if (!filterOld) {
       setFilterNew(false);
     }
+  };
+  const toggleOutlier = () => {
+    setFilterOutlier(!filterOutlier);
+  };
+  const toggleNoP95 = () => {
+    setnoP95(!noP95);
+  };
+  const toggleP95asNumber = () => {
+    setp95asNumber(!p95asNumber);
   };
 
   const getUpdatedRows = (row: DataRow, rowIndex?: number) => {
@@ -208,6 +227,12 @@ function DatabaseModule() {
                 size="lg"
                 toggle={toggleFilterOld}
               />
+              <LabelledSwitch
+                label="Exclude Outliers"
+                isActive={filterOutlier}
+                size="lg"
+                toggle={toggleOutlier}
+              />
             </SearchFilterContainer>
             <SearchFilterContainer>
               <TransactionNameSearchBar
@@ -224,6 +249,8 @@ function DatabaseModule() {
               onSelect={setSelectedRow}
               onSortChange={setSort}
               selectedRow={rows.selected}
+              p95asNumber={p95asNumber}
+              noP95={noP95}
             />
             <QueryDetail
               isDataLoading={isTableDataLoading || isTableRefetching}
@@ -236,6 +263,19 @@ function DatabaseModule() {
               prevRow={rows.prev}
               onClose={unsetSelectedSpanGroup}
               transaction={transaction}
+            />
+            <div>Experiments</div>
+            <LabelledSwitch
+              label="p95 as number"
+              isActive={p95asNumber}
+              size="lg"
+              toggle={toggleP95asNumber}
+            />
+            <LabelledSwitch
+              label="No p95"
+              isActive={noP95}
+              size="lg"
+              toggle={toggleNoP95}
             />
           </Layout.Main>
         </Layout.Body>

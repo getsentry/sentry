@@ -22,10 +22,10 @@ from sentry.services.hybrid_cloud.user import (
     RpcUser,
     UserFilterArgs,
     UserSerializeType,
-    UserService,
     UserUpdateArgs,
 )
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+from sentry.services.hybrid_cloud.user.service import UserService
 
 
 class DatabaseBackedUserService(UserService):
@@ -87,12 +87,6 @@ class DatabaseBackedUserService(UserService):
                 # email isn't guaranteed unique
                 return list(qs.filter(email__iexact=username))
         return []
-
-    def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
-        # TODO(actorid) this method needs to be removed too
-        return [
-            self._FQ.serialize_rpc(u) for u in self._FQ.base_query().filter(actor_id__in=actor_ids)
-        ]
 
     def flush_nonce(self, *, user_id: int) -> None:
         user = User.objects.filter(id=user_id).first()

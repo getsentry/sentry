@@ -7,8 +7,10 @@ from sentry.mediators.token_exchange import Refresher
 from sentry.models import ApiApplication, ApiToken, SentryApp, SentryAppInstallation
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class TestRefresher(TestCase):
     def setUp(self):
         self.orm_install = self.create_sentry_app_installation()

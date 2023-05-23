@@ -2,6 +2,7 @@ from sentry.db.models.query import in_iexact
 from sentry.models import Organization, User
 from sentry.models.userreport import UserReport
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.query import RangeQuerySetWrapper, bulk_delete_objects
 
 
@@ -16,6 +17,7 @@ class InIexactQueryTest(TestCase):
         assert Organization.objects.filter(in_iexact("slug", [])).count() == 0
 
 
+@control_silo_test(stable=True)
 class RangeQuerySetWrapperTest(TestCase):
     def test_basic(self):
         total = 10

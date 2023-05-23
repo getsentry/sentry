@@ -49,6 +49,7 @@ class RpcTeam(RpcModel):
 
 class RpcTeamMember(RpcModel):
     id: int = -1
+    slug: str = ""
     is_active: bool = False
     role_id: str = ""
     project_ids: List[int] = Field(default_factory=list)
@@ -101,16 +102,30 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     project_ids: List[int] = Field(default_factory=list)
     scopes: List[str] = Field(default_factory=list)
     invite_status: int = Field(default_factory=_DefaultEnumHelpers.get_default_invite_status_value)
+    token: str = ""
+    is_pending: bool = False
+    invite_approved: bool = False
+    token_expired: bool = False
+    legacy_token: str = ""
+    email: str = ""
 
-    def get_audit_log_metadata(self, user_email: str) -> Mapping[str, Any]:
+    def get_audit_log_metadata(self, user_email: Optional[str] = None) -> Mapping[str, Any]:
+        from sentry.models.organizationmember import invite_status_names
+
         team_ids = [mt.team_id for mt in self.member_teams]
+        team_slugs = [mt.slug for mt in self.member_teams]
+
+        if user_email is None:
+            user_email = self.email
 
         return {
             "email": user_email,
             "teams": team_ids,
             "has_global_access": self.has_global_access,
             "role": self.role,
-            "invite_status": self.invite_status,
+            "invite_status": invite_status_names[self.invite_status],
+            "user": self.user_id,
+            "teams_slugs": team_slugs,
         }
 
 
@@ -178,3 +193,13 @@ class RpcUserOrganizationContext(RpcModel):
         # Ensures that outer user_id always agrees with the inner member object.
         if self.user_id is not None and self.member is not None:
             assert self.user_id == self.member.user_id
+
+
+class RpcUserInviteContext(RpcUserOrganizationContext):
+    """
+    A context containing an intended organization member object as a potential invite, and the true
+    inner organization member state as found for a given user_id if it exists, or just the organization
+    member state of the invite if none such exists.
+    """
+
+    invite_organization_member_id: int = 0

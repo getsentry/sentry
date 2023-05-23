@@ -4,12 +4,14 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
+import {Project} from 'sentry/types';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {
   useHasOrganizationSentAnyReplayEvents,
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import ReplayReader from 'sentry/utils/replays/replayReader';
+import useProjects from 'sentry/utils/useProjects';
 
 const mockReplay = ReplayReader.factory({
   replayRecord: TestStubs.ReplayRecord({}),
@@ -17,6 +19,7 @@ const mockReplay = ReplayReader.factory({
   attachments: TestStubs.ReplaySegmentInit({}),
 });
 
+jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 
 jest.mock('screenfull', () => ({
@@ -43,6 +46,8 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
 
+  const MockUseProjects = useProjects as jest.MockedFunction<typeof useProjects>;
+
   const MockUseReplayOnboardingSidebarPanel =
     useReplayOnboardingSidebarPanel as jest.MockedFunction<
       typeof useReplayOnboardingSidebarPanel
@@ -54,6 +59,15 @@ describe('Breadcrumbs', () => {
     >;
 
   beforeEach(() => {
+    MockUseProjects.mockReturnValue({
+      fetchError: null,
+      fetching: false,
+      hasMore: false,
+      initiallyLoaded: false,
+      onSearch: () => Promise.resolve(),
+      placeholders: [],
+      projects: [TestStubs.Project({platform: 'javascript'}) as Project],
+    });
     MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
       hasOrgSentReplays: false,
       fetching: false,
@@ -61,6 +75,7 @@ describe('Breadcrumbs', () => {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
+
     props = {
       organization: TestStubs.Organization(),
       projectSlug: 'project-slug',
@@ -345,7 +360,6 @@ describe('Breadcrumbs', () => {
           }}
         />
       );
-
       const breadcrumbsBefore = screen.getAllByTestId(/crumb/i);
       expect(breadcrumbsBefore).toHaveLength(4); // Virtual exception crumb added to 3 in props
 

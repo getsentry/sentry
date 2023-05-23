@@ -1024,7 +1024,14 @@ function buildRoutes() {
         component={make(() => import('sentry/views/projectInstall/gettingStarted'))}
       >
         <IndexRoute
-          component={make(() => import('sentry/views/projectInstall/overview'))}
+          component={make(async () => {
+            const {ProjectInstallOverview} = await import(
+              'sentry/views/projectInstall/overview'
+            );
+            return {
+              default: ProjectInstallOverview,
+            };
+          })}
         />
         <Route
           path=":platform/"
@@ -1226,10 +1233,7 @@ function buildRoutes() {
               component={make(() => import('sentry/views/alerts/edit'))}
             />
           </Route>
-          <Route
-            path=":projectId/:ruleId/details/"
-            component={make(() => import('sentry/views/alerts/rules/issue/details'))}
-          >
+          <Route path=":projectId/:ruleId/details/">
             <IndexRoute
               component={make(
                 () => import('sentry/views/alerts/rules/issue/details/ruleDetails')
@@ -1725,7 +1729,6 @@ function buildRoutes() {
       />
     </Fragment>
   );
-
   const starfishRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1995,7 +1998,14 @@ function buildRoutes() {
   const gettingStartedChildRoutes = (
     <Fragment>
       <IndexRoute
-        component={make(() => import('sentry/views/projectInstall/overview'))}
+        component={make(async () => {
+          const {ProjectInstallOverview} = await import(
+            'sentry/views/projectInstall/overview'
+          );
+          return {
+            default: ProjectInstallOverview,
+          };
+        })}
       />
       <Route
         path=":platform/"

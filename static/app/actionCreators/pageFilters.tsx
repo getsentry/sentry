@@ -122,6 +122,12 @@ export type InitializeUrlStateParams = {
   defaultSelection?: Partial<PageFilters>;
   forceProject?: MinimalProject | null;
   shouldForceProject?: boolean;
+  /**
+   * Whether to save changes to local storage. This setting should be page-specific:
+   * most pages should have it on (default) and some, like Dashboard Details, need it
+   * off.
+   */
+  shouldPersist?: boolean;
   showAbsolute?: boolean;
   /**
    * When used with shouldForceProject it will not persist the project id
@@ -145,6 +151,7 @@ export function initializeUrlState({
   router,
   memberProjects,
   skipLoadLastUsed,
+  shouldPersist = true,
   shouldForceProject,
   shouldEnforceSingleProject,
   defaultSelection,
@@ -247,8 +254,10 @@ export function initializeUrlState({
     project = newProject;
   }
 
-  const pinnedFilters = storedPageFilters?.pinnedFilters ?? new Set();
-  PageFiltersStore.onInitializeUrlState(pageFilters, pinnedFilters);
+  const pinnedFilters = organization.features.includes('new-page-filter')
+    ? new Set<PinnedPageFilter>(['projects', 'environments', 'datetime'])
+    : storedPageFilters?.pinnedFilters ?? new Set();
+  PageFiltersStore.onInitializeUrlState(pageFilters, pinnedFilters, shouldPersist);
   updateDesyncedUrlState(router, shouldForceProject);
 
   const newDatetime = {
@@ -349,6 +358,13 @@ export function pinFilter(filter: PinnedPageFilter, pin: boolean) {
 }
 
 /**
+ * Changes whether any value updates will be persisted into local storage.
+ */
+export function updatePersistence(shouldPersist: boolean) {
+  PageFiltersStore.updatePersistence(shouldPersist);
+}
+
+/**
  * Updates router/URL with new query params
  *
  * @param obj New query params
@@ -379,7 +395,7 @@ function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options
  * Pinned state is always persisted.
  */
 async function persistPageFilters(filter: PinnedPageFilter | null, options?: Options) {
-  if (!options?.save) {
+  if (!options?.save || !PageFiltersStore.shouldPersist) {
     return;
   }
 
@@ -409,7 +425,7 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
  */
 async function updateDesyncedUrlState(router?: Router, shouldForceProject?: boolean) {
   // Cannot compare URL state without the router
-  if (!router) {
+  if (!router || !PageFiltersStore.shouldPersist) {
     return;
   }
 

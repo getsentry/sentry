@@ -13,7 +13,8 @@ import {
 import {metric} from 'sentry/utils/analytics';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
-import createRequestError from 'sentry/utils/requestError/createRequestError';
+import RequestError from 'sentry/utils/requestError/requestError';
+import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
 
 export class Request {
   /**
@@ -467,11 +468,13 @@ export class Client {
         const {status, statusText} = response;
         let {ok} = response;
         let errorReason = 'Request not OK'; // the default error reason
+        let twoHundredErrorReason;
 
         // Try to get text out of the response no matter the status
         try {
           responseText = await response.text();
         } catch (error) {
+          twoHundredErrorReason = 'Failed awaiting response.text()';
           ok = false;
           if (error.name === 'AbortError') {
             errorReason = 'Request was aborted';
@@ -488,6 +491,7 @@ export class Client {
           try {
             responseJSON = JSON.parse(responseText);
           } catch (error) {
+            twoHundredErrorReason = 'Failed trying to parse responseText';
             if (error.name === 'AbortError') {
               ok = false;
               errorReason = 'Request was aborted';
@@ -514,6 +518,47 @@ export class Client {
         if (ok) {
           successHandler(responseMeta, statusText, responseData);
         } else {
+          // There's no reason we should be here with a 200 response, but we get
+          // tons of events from this codepath with a 200 status nonetheless.
+          // Until we know why, let's do what is essentially some very fancy print debugging.
+          if (status === 200) {
+            const responseTextUndefined = responseText === undefined;
+            const responseTextEmpty = responseText === '';
+            const parameterizedPath = sanitizePath(path);
+
+            // Pass a scope object rather than using `withScope` to avoid even
+            // the possibility of scope bleed.
+            const scope = new Sentry.Scope();
+            scope.setTags({endpoint: `${method} ${parameterizedPath}`});
+
+            if (!responseTextUndefined && !responseTextEmpty) {
+              // Grab everything that could conceivably be helpful to know
+              scope.setTags({errorReason});
+              scope.setExtras({
+                twoHundredErrorReason,
+                responseJSON,
+                // Force `undefined` and the empty string to print so they're differentiable in the UI
+                responseText: String(responseText) || '[empty string]',
+                responseContentType,
+                errorReason,
+              });
+            }
+
+            const message = responseTextUndefined
+              ? '200 API response with undefined responseText'
+              : responseTextEmpty
+              ? '200 API response with empty responseText'
+              : '200 treated as error';
+
+            // Make sure all of these errors group, so we don't produce a bunch of noise
+            scope.setFingerprint([message]);
+
+            Sentry.captureException(
+              new Error(`${message}: ${method} ${parameterizedPath}`),
+              scope
+            );
+          }
+
           const shouldSkipErrorHandler =
             globalErrorHandlers.map(handler => handler(responseMeta)).filter(Boolean)
               .length > 0;
@@ -562,11 +607,11 @@ export class Client {
           }
         },
         error: (resp: ResponseMeta) => {
-          const errorObjectToUse = createRequestError(
-            resp,
-            preservedError,
+          const errorObjectToUse = new RequestError(
             options.method,
-            path
+            path,
+            preservedError,
+            resp
           );
 
           // Although `this.request` logs all error responses, this error object can

@@ -16,8 +16,9 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisallowed
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
-from sentry.models import Authenticator
+from sentry.models import Authenticator, User
 from sentry.security import capture_security_activity
+from sentry.services.hybrid_cloud.organization import organization_service
 
 logger = logging.getLogger(__name__)
 
@@ -176,6 +177,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             )
 
         # Using `request.user` here because superuser should not be able to set a user's 2fa
+        if user.id != request.user.id:
+            user = User.objects.get(id=request.user.id)
 
         # start activation
         serializer_cls = serializer_map.get(interface_id, None)
@@ -188,7 +191,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        interface = Authenticator.objects.get_interface(request.user, interface_id)
+        interface = Authenticator.objects.get_interface(user, interface_id)
 
         # Check if the 2FA interface allows new enrollment, if not we should error
         # on any POSTs
@@ -257,7 +260,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             interface.rotate_in_place()
         else:
             try:
-                interface.enroll(request.user)
+                interface.enroll(user)
             except Authenticator.AlreadyEnrolled:
                 return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
             except NewEnrollmentDisallowed:
@@ -265,26 +268,38 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         context.update({"authenticator": interface.authenticator})
         capture_security_activity(
-            account=request.user,
+            account=user,
             type="mfa-added",
-            actor=request.user,
+            actor=user,
             ip_address=request.META["REMOTE_ADDR"],
             context=context,
             send_email=True,
         )
-        request.user.clear_lost_passwords()
-        request.user.refresh_session_nonce(self.request)
-        request.user.save()
-        Authenticator.objects.auto_add_recovery_codes(request.user)
+
+        user.clear_lost_passwords()
+        user.refresh_session_nonce(self.request)
+        user.save()
+        Authenticator.objects.auto_add_recovery_codes(user)
 
         response = Response(status=status.HTTP_204_NO_CONTENT)
 
         # If there is a pending organization invite accept after the
         # authenticator has been configured.
-        invite_helper = ApiInviteHelper.from_session(request=request, instance=self, logger=logger)
+        request.user = (
+            user  # Load in the canonical user object so the invite helper references it correctly.
+        )
+        invite_helper = ApiInviteHelper.from_session(request=request, logger=logger)
 
-        if invite_helper and invite_helper.valid_request:
-            invite_helper.accept_invite()
-            remove_invite_details_from_session(request)
+        if invite_helper:
+            if invite_helper.member_already_exists:
+                invite_helper.handle_member_already_exists()
+                organization_service.delete_organization_member(
+                    organization_member_id=invite_helper.invite_context.invite_organization_member_id,
+                    organization_id=invite_helper.invite_context.organization.id,
+                )
+                remove_invite_details_from_session(request)
+            elif invite_helper.valid_request:
+                invite_helper.accept_invite()
+                remove_invite_details_from_session(request)
 
         return response

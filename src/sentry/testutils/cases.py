@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import responses
+import sentry_kafka_schemas
 
 from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
+from sentry.utils.dates import to_timestamp
 
 __all__ = (
     "TestCase",
@@ -41,7 +43,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from io import BytesIO
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, List, Literal, Optional, Sequence, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -83,6 +85,7 @@ from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
 from sentry.event_manager import EventManager
+from sentry.eventstore.models import Event
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
@@ -106,6 +109,7 @@ from sentry.models import (
     IdentityStatus,
     NotificationSetting,
     Organization,
+    Project,
     ProjectOption,
     Release,
     ReleaseCommit,
@@ -136,6 +140,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
+from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
@@ -486,44 +491,63 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 class PerformanceIssueTestCase(BaseTestCase):
     def create_performance_issue(
-        self, tags=None, contexts=None, fingerprint="group1", transaction=None
+        self,
+        tags=None,
+        contexts=None,
+        fingerprint=None,
+        transaction=None,
+        event_data=None,
+        issue_type=None,
+        noise_limit=0,
+        project_id=None,
+        detector_option="performance.issues.n_plus_one_db.problem-creation",
     ):
-        event_data = load_data(
-            "transaction-n-plus-one",
-            timestamp=before_now(minutes=10),
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"],
-        )
+        if issue_type is None:
+            issue_type = PerformanceNPlusOneGroupType
+        if event_data is None:
+            event_data = load_data(
+                "transaction-n-plus-one",
+                timestamp=before_now(minutes=10),
+            )
         if tags is not None:
             event_data["tags"] = tags
         if contexts is not None:
             event_data["contexts"] = contexts
         if transaction:
             event_data["transaction"] = transaction
+        if project_id is None:
+            project_id = self.project.id
 
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
 
+        def detect_performance_problems_interceptor(data: Event, project: Project):
+            perf_problems = detect_performance_problems(data, project)
+            if fingerprint:
+                for perf_problem in perf_problems:
+                    perf_problem.fingerprint = fingerprint
+            return perf_problems
+
         with mock.patch(
             "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
             side_effect=send_issue_occurrence_to_eventstream,
-        ) as mock_eventstream, mock.patch.object(
-            PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
+        ) as mock_eventstream, mock.patch(
+            "sentry.event_manager.detect_performance_problems",
+            side_effect=detect_performance_problems_interceptor,
+        ), mock.patch.object(
+            issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
         ), override_options(
-            {
-                "performance.issues.all.problem-detection": 1.0,
-                "performance.issues.n_plus_one_db.problem-creation": 1.0,
-                "performance.issues.send_to_issues_platform": True,
-                "performance.issues.create_issues_through_platform": True,
-            }
+            {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
         ), self.feature(
             [
                 "projects:performance-suspect-spans-ingestion",
             ]
         ):
-            event = perf_event_manager.save(self.project.id)
-            group_event = event.for_group(mock_eventstream.call_args[0][2].group)
-            group_event.occurrence = mock_eventstream.call_args[0][1]
-            return group_event
+            event = perf_event_manager.save(project_id)
+            if mock_eventstream.call_args:
+                event = event.for_group(mock_eventstream.call_args[0][2].group)
+                event.occurrence = mock_eventstream.call_args[0][1]
+            return event
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
@@ -1206,7 +1230,11 @@ class BaseMetricsTestCase(SnubaTestCase):
                 type,
                 mri,
                 {**tags, **base_tags},
-                session["started"],
+                int(
+                    session["started"]
+                    if isinstance(session["started"], (int, float))
+                    else to_timestamp(session["started"])
+                ),
                 value,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
             )
@@ -1249,10 +1277,10 @@ class BaseMetricsTestCase(SnubaTestCase):
         cls,
         org_id: int,
         project_id: int,
-        type: str,
+        type: Literal["counter", "set", "distribution"],
         name: str,
         tags: Dict[str, str],
-        timestamp: int | float,
+        timestamp: int,
         value,
         use_case_id: UseCaseKey,
     ):
@@ -1278,10 +1306,14 @@ class BaseMetricsTestCase(SnubaTestCase):
             )
             assert res is not None, name
             mapping_meta[str(res)] = name
-            return res
+            return str(res)
 
         def tag_value(name):
             assert isinstance(name, str)
+
+            if use_case_id == UseCaseKey.PERFORMANCE:
+                return name
+
             res = indexer.record(
                 use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
                 org_id=org_id,
@@ -1308,10 +1340,11 @@ class BaseMetricsTestCase(SnubaTestCase):
             "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
             "value": value,
             "retention_days": 90,
-            "use_case_id": use_case_id,
+            "use_case_id": use_case_id.value,
             # making up a sentry_received_timestamp, but it should be sometime
             # after the timestamp of the event
             "sentry_received_timestamp": timestamp + 10,
+            "version": 2 if use_case_id == UseCaseKey.PERFORMANCE else 1,
         }
 
         msg["mapping_meta"] = {}
@@ -1322,13 +1355,21 @@ class BaseMetricsTestCase(SnubaTestCase):
         else:
             entity = f"metrics_{type}s"
 
-        cls._send_buckets([msg], entity)
+        cls.__send_buckets([msg], entity)
 
     @classmethod
-    def _send_buckets(cls, buckets, entity):
-        # XXX(markus): do not use this method in your tests, use store_metric
-        # instead. we need to be able to make changes to the indexer's output
-        # protocol without having to update a million tests
+    def __send_buckets(cls, buckets, entity):
+        # DO NOT USE THIS METHOD IN YOUR TESTS, use store_metric instead. we
+        # need to be able to make changes to the indexer's output protocol
+        # without having to update a million tests
+        if entity.startswith("generic_"):
+            codec = sentry_kafka_schemas.get_codec("snuba-generic-metrics")
+        else:
+            codec = sentry_kafka_schemas.get_codec("snuba-metrics")
+
+        for bucket in buckets:
+            codec.validate(bucket)
+
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + cls.snuba_endpoint.format(entity=entity),
@@ -1401,17 +1442,19 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             type=self._extract_entity_from_mri(name) if type is None else type,
             name=name,
             tags=tags,
-            timestamp=(
-                self.adjust_timestamp(
-                    self.now
-                    - timedelta(
-                        days=days_before_now,
-                        hours=hours_before_now,
-                        minutes=minutes_before_now,
-                        seconds=seconds_before_now,
+            timestamp=int(
+                (
+                    self.adjust_timestamp(
+                        self.now
+                        - timedelta(
+                            days=days_before_now,
+                            hours=hours_before_now,
+                            minutes=minutes_before_now,
+                            seconds=seconds_before_now,
+                        )
                     )
-                )
-            ).timestamp(),
+                ).timestamp()
+            ),
             value=value,
             use_case_id=use_case_id,
         )
@@ -1451,7 +1494,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         self,
         name: str,
         tags: Dict[str, str],
-        value: int,
+        value: int | float,
         type: Optional[str] = None,
         org_id: Optional[int] = None,
         project_id: Optional[int] = None,
@@ -1616,7 +1659,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 self.TYPE_MAP[entity],
                 internal_metric,
                 tags,
-                metric_timestamp,
+                int(metric_timestamp),
                 subvalue,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
@@ -1766,6 +1809,7 @@ class IntegrationRepositoryTestCase(APITestCase):
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
+    @exempt_from_silo_limits()
     def create_repository(
         self, repository_config, integration_id, organization_slug=None, add_responses=True
     ):
@@ -2268,78 +2312,53 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
         self.login_as(user=self.user)
         now = int(time.time())
 
-        # TODO: move _send to SnubaMetricsTestCase
         org_id = self.organization.id
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.__indexer_record(org_id, "metric1"),
-                    "timestamp": now,
-                    "tags": {
-                        self.__indexer_record(org_id, "tag1"): self.__indexer_record(
-                            org_id, "value1"
-                        ),
-                        self.__indexer_record(org_id, "tag2"): self.__indexer_record(
-                            org_id, "value2"
-                        ),
-                    },
-                    "type": "c",
-                    "value": 1,
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.__indexer_record(org_id, "metric1"),
-                    "timestamp": now,
-                    "tags": {
-                        self.__indexer_record(org_id, "tag3"): self.__indexer_record(
-                            org_id, "value3"
-                        ),
-                    },
-                    "type": "c",
-                    "value": 1,
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_counters",
+        self.store_metric(
+            org_id=org_id,
+            project_id=self.project.id,
+            name="metric1",
+            timestamp=now,
+            tags={
+                "tag1": "value1",
+                "tag2": "value2",
+            },
+            type="counter",
+            value=1,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.__indexer_record(org_id, "metric2"),
-                    "timestamp": now,
-                    "tags": {
-                        self.__indexer_record(org_id, "tag4"): self.__indexer_record(
-                            org_id, "value3"
-                        ),
-                        self.__indexer_record(org_id, "tag1"): self.__indexer_record(
-                            org_id, "value2"
-                        ),
-                        self.__indexer_record(org_id, "tag2"): self.__indexer_record(
-                            org_id, "value1"
-                        ),
-                    },
-                    "type": "s",
-                    "value": [123],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.__indexer_record(org_id, "metric3"),
-                    "timestamp": now,
-                    "tags": {},
-                    "type": "s",
-                    "value": [123],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_sets",
+        self.store_metric(
+            org_id=org_id,
+            project_id=self.project.id,
+            name="metric1",
+            timestamp=now,
+            tags={"tag3": "value3"},
+            type="counter",
+            value=1,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
+        self.store_metric(
+            org_id=org_id,
+            project_id=self.project.id,
+            name="metric2",
+            timestamp=now,
+            tags={
+                "tag4": "value3",
+                "tag1": "value2",
+                "tag2": "value1",
+            },
+            type="set",
+            value=123,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
+        self.store_metric(
+            org_id=org_id,
+            project_id=self.project.id,
+            name="metric3",
+            timestamp=now,
+            tags={},
+            type="set",
+            value=123,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
 
 
@@ -2348,9 +2367,13 @@ class MonitorTestCase(APITestCase):
         return Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
             **kwargs,
         )
 
