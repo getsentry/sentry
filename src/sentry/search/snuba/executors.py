@@ -473,7 +473,7 @@ def better_priority_aggregation(
     # frequency_score = f"countIf(and(greater(toDateTime('{start_str}'), timestamp), lessOrEquals(toDateTime('{end_str}'), timestamp))) / count()"
 
     log_level_score = "multiIf(equals(level, 'fatal'), 1.0, equals(level, 'error'), 0.66, equals(level, 'warning'), 0.33, 0.0)"
-    stacktrace_score = "if(equals(exception_frames.module, array()), 0.0, 1.0)"
+    stacktrace_score = "if(notEmpty(exception_stacks.type), 1.0, 0.0)"
     event_agg_numerator = f"plus(plus(multiply({log_level_score}, {log_level_weight}), multiply({stacktrace_score}, {stacktrace_weight})), {event_age_weight})"
     event_agg_denominator = (
         f"plus(plus({log_level_weight}, {stacktrace_weight}), {event_age_weight})"

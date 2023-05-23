@@ -484,7 +484,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
     def test_better_priority_has_stacktrace_results(self):
         """Test that the scoring results change when we pass in different has_stacktrace weights"""
         base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
-        agg_kwargs = {"better_priority": {"log_level": 1, "frequency": 1, "has_stacktrace": 1}}
+        agg_kwargs = {"better_priority": {"log_level": 1, "frequency": 1, "has_stacktrace": 0}}
         query_executor = self.backend._get_query_executor()
 
         no_stacktrace_event = self.store_event(
@@ -500,7 +500,22 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         stacktrace_event = self.store_event(
             data={
                 "event_id": "d" * 32,
-                "stacktrace": {"frames": [{"module": "group2"}]},
+                "exception": {
+                    "values": [
+                        {
+                            "type": "AnError",
+                            "value": "Bad request",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "module": "<my module>",
+                                        # "function": "main",
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
                 "timestamp": iso_format(base_datetime - timedelta(hours=1)),
             },
             project_id=self.project.id,
