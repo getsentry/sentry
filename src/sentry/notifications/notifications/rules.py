@@ -38,7 +38,7 @@ from sentry.utils.http import absolute_uri
 logger = logging.getLogger(__name__)
 
 
-def get_group_substatus_text(group: Group):
+def get_group_substatus_text(group: Group) -> str:
     if group.substatus == GroupSubStatus.NEW:
         return "New issue"
     elif group.substatus == GroupSubStatus.REGRESSED:
