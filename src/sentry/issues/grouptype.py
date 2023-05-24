@@ -316,7 +316,7 @@ class ProfileJSONDecodeType(GroupType):
 
 @dataclass(frozen=True)
 class MonitorCheckInFailure(GroupType):
-    type = 4001
+    type_id = 4001
     slug = "monitor_check_in_failure"
     description = "Monitor Check In Failed"
     category = GroupCategory.MONITOR.value
@@ -324,7 +324,7 @@ class MonitorCheckInFailure(GroupType):
 
 @dataclass(frozen=True)
 class MonitorCheckInTimeout(GroupType):
-    type = 4002
+    type_id = 4002
     slug = "monitor_check_in_timeout"
     description = "Monitor Check In Timeout"
     category = GroupCategory.MONITOR.value
@@ -332,7 +332,7 @@ class MonitorCheckInTimeout(GroupType):
 
 @dataclass(frozen=True)
 class MonitorCheckInMissed(GroupType):
-    type = 4003
+    type_id = 4003
     slug = "monitor_check_in_missed"
     description = "Monitor Check In Missed"
     category = GroupCategory.MONITOR.value
