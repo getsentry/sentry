@@ -55,12 +55,12 @@ class PullRequest(Model):
 
     key = models.CharField(max_length=64)  # example, 5131 on github
 
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     title = models.TextField(null=True)
     message = models.TextField(null=True)
     author = FlexibleForeignKey("sentry.CommitAuthor", null=True)
-    merge_commit_sha = models.CharField(max_length=64, null=True)
+    merge_commit_sha = models.CharField(max_length=64, null=True, db_index=True)
 
     objects = PullRequestManager()
 
