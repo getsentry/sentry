@@ -275,7 +275,7 @@ export default function EndpointOverview() {
                             }}
                           />
                         </MiniChartPanel>
-                        <MiniChartPanel title={t('Througput')}>
+                        <MiniChartPanel title={t('Throughput')}>
                           <Chart
                             statsPeriod={(statsPeriod as string) ?? '24h'}
                             height={80}
