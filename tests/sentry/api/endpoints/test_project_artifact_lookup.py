@@ -92,7 +92,7 @@ class ArtifactLookupTest(APITestCase):
                 "path/in/zip/a": {
                     "url": "~/path/to/app.js",
                     "type": "source_map",
-                    "content": b"foo",
+                    "content": b"foo_id",
                     "headers": {
                         "debug-id": debug_id_a,
                     },
@@ -100,7 +100,7 @@ class ArtifactLookupTest(APITestCase):
                 "path/in/zip/b": {
                     "url": "~/path/to/app.js",
                     "type": "source_map",
-                    "content": b"bar",
+                    "content": b"bar_id",
                     "headers": {
                         "debug-id": debug_id_b,
                     },
@@ -115,7 +115,11 @@ class ArtifactLookupTest(APITestCase):
             file=file_ab,
             artifact_count=2,
         )
-
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle_ab,
+        )
         DebugIdArtifactBundle.objects.create(
             organization_id=self.organization.id,
             debug_id=debug_id_a,
@@ -136,7 +140,7 @@ class ArtifactLookupTest(APITestCase):
                 "path/in/zip/c": {
                     "url": "~/path/to/app.js",
                     "type": "source_map",
-                    "content": b"baz",
+                    "content": b"baz_id",
                     "headers": {
                         "debug-id": debug_id_c,
                     },
@@ -151,7 +155,11 @@ class ArtifactLookupTest(APITestCase):
             file=file_c,
             artifact_count=1,
         )
-
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle_c,
+        )
         DebugIdArtifactBundle.objects.create(
             organization_id=self.organization.id,
             debug_id=debug_id_c,
@@ -198,7 +206,7 @@ class ArtifactLookupTest(APITestCase):
                 "path/in/zip": {
                     "url": "~/path/to/app.js",
                     "type": "source_map",
-                    "content": b"foo",
+                    "content": b"foo_url",
                     "headers": {
                         "debug-id": debug_id_a,
                     },
@@ -211,12 +219,12 @@ class ArtifactLookupTest(APITestCase):
                 "path/in/zip_a": {
                     "url": "~/path/to/app.js",
                     "type": "source_map",
-                    "content": b"foo",
+                    "content": b"foo_url",
                 },
                 "path/in/zip_b": {
                     "url": "~/path/to/other/app.js",
                     "type": "source_map",
-                    "content": b"bar",
+                    "content": b"bar_url",
                 },
             },
         )
@@ -224,7 +232,6 @@ class ArtifactLookupTest(APITestCase):
         artifact_bundle_a = ArtifactBundle.objects.create(
             organization_id=self.organization.id, bundle_id=uuid4(), file=file_a, artifact_count=1
         )
-
         DebugIdArtifactBundle.objects.create(
             organization_id=self.organization.id,
             debug_id=debug_id_a,
@@ -337,8 +344,8 @@ class ArtifactLookupTest(APITestCase):
         archive1, archive1_file = self.create_archive(
             fields={},
             files={
-                "foo": "foo",
-                "bar": "bar",
+                "foo": "foo1",
+                "bar": "bar1",
             },
         )
 
@@ -348,15 +355,15 @@ class ArtifactLookupTest(APITestCase):
                     "archive_ident": archive1.ident,
                     "date_created": "2021-06-11T09:13:01.317902Z",
                     "filename": "foo",
-                    "sha1": "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
-                    "size": 3,
+                    "sha1": "18a16d4530763ef43321d306c9f6c59ffed33072",
+                    "size": 4,
                 },
                 "fake://bar": {
                     "archive_ident": archive1.ident,
                     "date_created": "2021-06-11T09:13:01.317902Z",
                     "filename": "bar",
-                    "sha1": "62cdb7020ff920e5aa642c3d4066950dd1f01f4d",
-                    "size": 3,
+                    "sha1": "763675d6a1d8d0a3a28deca62bb68abd8baf86f3",
+                    "size": 4,
                 },
             },
         }
@@ -372,7 +379,7 @@ class ArtifactLookupTest(APITestCase):
         archive2, archive2_file = self.create_archive(
             fields={},
             files={
-                "bar": "BAR",
+                "bar": "BAR1",
             },
         )
 
@@ -382,15 +389,15 @@ class ArtifactLookupTest(APITestCase):
                     "archive_ident": archive1.ident,
                     "date_created": "2021-06-11T09:13:01.317902Z",
                     "filename": "foo",
-                    "sha1": "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
-                    "size": 3,
+                    "sha1": "18a16d4530763ef43321d306c9f6c59ffed33072",
+                    "size": 4,
                 },
                 "fake://bar": {
                     "archive_ident": archive2.ident,
                     "date_created": "2021-06-11T09:13:01.317902Z",
                     "filename": "bar",
-                    "sha1": "a5d5c1bba91fdb6c669e1ae0413820885bbfc455",
-                    "size": 3,
+                    "sha1": "7f9353c7b307875542883ba558a1692706fcad33",
+                    "size": 4,
                 },
             },
         }
@@ -427,8 +434,8 @@ class ArtifactLookupTest(APITestCase):
         archive1, archive1_file = self.create_archive(
             fields={},
             files={
-                "foo": "foo",
-                "bar": "bar",
+                "foo": "foo2",
+                "bar": "bar2",
             },
             dist=dist,
         )
@@ -442,15 +449,15 @@ class ArtifactLookupTest(APITestCase):
                     "archive_ident": archive1.ident,
                     "date_created": "2021-06-11T09:13:01.317902Z",
                     "filename": "foo",
-                    "sha1": "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
-                    "size": 3,
+                    "sha1": "aaadd94977b8fbf3f6fb09fc3bbbc9edbdfa8427",
+                    "size": 4,
                 },
                 "fake://bar": {
                     "archive_ident": archive1.ident,
                     "date_created": "2021-06-11T09:13:01.317902Z",
                     "filename": "bar",
-                    "sha1": "62cdb7020ff920e5aa642c3d4066950dd1f01f4d",
-                    "size": 3,
+                    "sha1": "033c4846b506a4a48e32cdf54515c91d3499adb3",
+                    "size": 4,
                 },
             },
         }
@@ -468,7 +475,7 @@ class ArtifactLookupTest(APITestCase):
         archive2, archive2_file = self.create_archive(
             fields={},
             files={
-                "bar": "BAR",
+                "bar": "BAR2",
             },
             dist=dist,
         )
@@ -479,15 +486,15 @@ class ArtifactLookupTest(APITestCase):
                     "archive_ident": archive1.ident,
                     "date_created": "2021-06-11T09:13:01.317902Z",
                     "filename": "foo",
-                    "sha1": "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
-                    "size": 3,
+                    "sha1": "aaadd94977b8fbf3f6fb09fc3bbbc9edbdfa8427",
+                    "size": 4,
                 },
                 "fake://bar": {
                     "archive_ident": archive2.ident,
                     "date_created": "2021-06-11T09:13:01.317902Z",
                     "filename": "bar",
-                    "sha1": "a5d5c1bba91fdb6c669e1ae0413820885bbfc455",
-                    "size": 3,
+                    "sha1": "528c5563f06a1e98954d17d365a219b68dd93baf",
+                    "size": 4,
                 },
             },
         }
@@ -530,7 +537,7 @@ class ArtifactLookupTest(APITestCase):
                         "path/in/zip/c": {
                             "url": "~/path/to/app.js",
                             "type": "source_map",
-                            "content": b"baz",
+                            "content": b"baz_renew",
                             "headers": {
                                 "debug-id": debug_id,
                             },
@@ -600,7 +607,7 @@ class ArtifactLookupTest(APITestCase):
                     "path/in/zip/c": {
                         "url": "~/path/to/app.js",
                         "type": "source_map",
-                        "content": b"baz",
+                        "content": b"baz_renew",
                     },
                 },
             )
