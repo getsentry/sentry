@@ -1,5 +1,5 @@
 import {Button} from 'sentry/components/button';
-import {canCreateProject} from 'sentry/components/projects/utils';
+import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -9,17 +9,15 @@ type Props = {
 };
 
 export default function CreateProjectButton({organization}: Props) {
-  const canCreateProjects = canCreateProject(organization);
+  const {canCreateProject} = useProjectCreationAccess(organization);
 
   return (
     <Button
       priority="primary"
       size="sm"
-      disabled={!canCreateProjects}
+      disabled={!canCreateProject}
       title={
-        !canCreateProjects
-          ? t('You do not have permission to create projects')
-          : undefined
+        !canCreateProject ? t('You do not have permission to create projects') : undefined
       }
       to={`/organizations/${organization.slug}/projects/new/`}
       icon={<IconAdd size="xs" isCircled />}
