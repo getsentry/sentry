@@ -346,12 +346,12 @@ function NativeFrame({
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
 
 const AddressCell = styled('div')`
+  font-family: ${p => p.theme.text.familyMono};
   ${p => p.onClick && `cursor: pointer`};
   ${p => p.onClick && `color:` + p.theme.linkColor};
 `;
 
 const FunctionNameCell = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
   word-break: break-all;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
