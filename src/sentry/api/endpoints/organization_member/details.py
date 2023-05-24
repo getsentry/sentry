@@ -295,7 +295,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 organizationmember=member, role__in=lesser_team_roles
             ).update(role=None)
 
-            member.update(role=role)
             member.role = role
             region_outbox = member.save()
             region_outbox.drain_shard(max_updates_to_drain=10)
