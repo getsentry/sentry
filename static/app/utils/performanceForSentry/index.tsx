@@ -484,6 +484,7 @@ export const addExtraMeasurements = (transaction: TransactionEvent) => {
   try {
     addAssetMeasurements(transaction);
     addCustomMeasurements(transaction);
+    addSlowAppInit(transaction);
   } catch (_) {
     // Defensive catch since this code is auxiliary.
   }
@@ -516,6 +517,27 @@ export const setGroupedEntityTag = (
   }
   groups = [...groups, +Infinity];
   setTag(`${tagName}.grouped`, `<=${groups.find(g => n <= g)}`);
+};
+
+export const addSlowAppInit = (transaction: TransactionEvent) => {
+  const appInitSpan = transaction.spans?.find(
+    s => s.description === 'sentry-tracing-init'
+  );
+  if (!appInitSpan || !transaction.spans) {
+    return;
+  }
+  const longTaskSpan = transaction.spans.find(
+    s =>
+      s.op === 'ui.long-task' &&
+      s.endTimestamp &&
+      appInitSpan.endTimestamp &&
+      s.endTimestamp > appInitSpan.endTimestamp &&
+      s.startTimestamp < appInitSpan.startTimestamp
+  );
+  if (!longTaskSpan) {
+    return;
+  }
+  longTaskSpan.op = `ui.long-task.app-init`;
 };
 
 /**
