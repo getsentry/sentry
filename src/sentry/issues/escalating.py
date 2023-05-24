@@ -260,7 +260,7 @@ def get_group_hourly_count(group: Group) -> int:
 
 def is_escalating(group: Group) -> Tuple[bool, Optional[int]]:
     """
-    Return boolean depending on if the group is escalating or not and the forecast if it exists.
+    Return whether the group is escalating and the daily forecast if it exists.
     """
     group_hourly_count = get_group_hourly_count(group)
     forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
