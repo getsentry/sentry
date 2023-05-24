@@ -519,7 +519,7 @@ export type ResolutionStatusDetails = {
 export type GroupStatusResolution = {
   status: ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
-  substatus?: 'until_escalating';
+  substatus?: GroupSubstatus;
 };
 
 export type GroupRelease = {
@@ -580,7 +580,7 @@ export interface GroupResolution
   // A proper fix for this would be to make the status field an enum or string and correctly extend it.
   extends Omit<BaseGroup, 'status'>,
     GroupStats,
-    Omit<GroupStatusResolution, 'substatus'> {}
+    GroupStatusResolution {}
 
 export type Group = GroupResolution | GroupReprocessing;
 export interface GroupCollapseRelease

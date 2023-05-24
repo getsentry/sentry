@@ -7,7 +7,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GroupStatusResolution, ResolutionStatus} from 'sentry/types';
+import {GroupStatusResolution, GroupSubstatus, ResolutionStatus} from 'sentry/types';
 
 interface ArchiveActionProps {
   onUpdate: (params: GroupStatusResolution) => void;
@@ -23,11 +23,12 @@ interface ArchiveActionProps {
 const ARCHIVE_UNTIL_ESCALATING: GroupStatusResolution = {
   status: ResolutionStatus.IGNORED,
   statusDetails: {},
-  substatus: 'until_escalating',
+  substatus: GroupSubstatus.ARCHIVED_UNTIL_ESCALATING,
 };
 const ARCHIVE_FOREVER: GroupStatusResolution = {
   status: ResolutionStatus.IGNORED,
   statusDetails: {},
+  substatus: GroupSubstatus.ARCHIVED_FOREVER,
 };
 
 export function getArchiveActions({
