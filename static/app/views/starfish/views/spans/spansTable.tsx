@@ -238,7 +238,7 @@ function renderBodyCell(
 // So we need to map them to the appropriate keys for the module details drawer
 // Not ideal, but this is a temporary fix until we match the column keys.
 // Also the type for this is not very consistent. We should fix that too.
-const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
+export const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
   switch (spanOperation) {
     case 'http.client':
       return {
