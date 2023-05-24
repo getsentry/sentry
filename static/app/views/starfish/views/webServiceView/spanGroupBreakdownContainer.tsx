@@ -185,7 +185,7 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
     topData.forEach(value => {
       seriesByDomain[
         getSegmentLabel(value.span_operation, value.action, value.domain)
-      ].data.push({value: value.p75, name: value.interval});
+      ].data.push({value: value.p50, name: value.interval});
     });
 
     seriesByDomain.Other = {
@@ -195,7 +195,7 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
     };
 
     otherData.forEach(value => {
-      seriesByDomain.Other.data.push({value: value.p75, name: value.interval});
+      seriesByDomain.Other.data.push({value: value.p50, name: value.interval});
     });
   }
 
