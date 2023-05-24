@@ -63,6 +63,7 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
         footer: str | None = None,
         color: str | None = None,
         actions: Sequence[MessageAction] | None = None,
+        is_unfurl: bool = False,
         **kwargs: Any,
     ) -> SlackBody:
         """
@@ -93,9 +94,10 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
 
         markdown_in = ["text"]
         if self.escape_text:
-            text = escape_slack_text(
-                escape_slack_text(text)
-            )  # Slack will un-escape so we have to double escape
+            text = escape_slack_text(text)
+            # for unfurling messages we need to double escape the text
+            if is_unfurl:
+                text = escape_slack_text(text)
             markdown_in = []
 
         return {
