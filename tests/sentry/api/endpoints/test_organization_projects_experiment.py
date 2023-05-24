@@ -86,7 +86,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
 
     @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
     @patch("sentry.models.team.Team.objects.filter")
-    def test_too_many_team_creation_attempts(self, mock_filter):
+    def test_exceed_unique_team_slug_attempts(self, mock_filter):
         mock_filter.exists.return_value = True
         response = self.get_error_response(self.organization.slug, name=self.p1, status_code=409)
         assert response.data == {
