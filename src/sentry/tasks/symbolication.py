@@ -179,7 +179,7 @@ def _do_symbolicate_event(
     _, symbolication_function = get_symbolication_function(data, True)
     symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
-    if killswitch_matches_context(
+    if symbolication_function is None or killswitch_matches_context(
         "store.load-shed-symbolicate-event-projects",
         {
             "project_id": project_id,
