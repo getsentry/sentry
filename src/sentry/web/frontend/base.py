@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import inspect
 import logging
 from typing import Any, Mapping, Protocol
@@ -418,7 +419,7 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
         return self.redirect(redirect_uri)
 
 
-class OrganizationView(BaseView):
+class OrganizationView(BaseView, abc.ABC):
     """
     A deprecated view used by endpoints that act on behalf of an organization.
     In the future, we should move endpoints to either of the subclasses, RegionSilo* or ControlSilo*, and
@@ -543,16 +544,17 @@ class OrganizationView(BaseView):
             return True
         return False
 
-    def _unpack_org(self) -> RpcOrganization | None:
-        return self.active_organization.organization if self.active_organization else None
+    @abc.abstractmethod
+    def _get_organization(self) -> Organization | RpcOrganization | None:
+        raise NotImplementedError
 
     def convert_args(
         self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         if "organization" not in kwargs:
-            kwargs["organization"] = self._unpack_org()
+            kwargs["organization"] = self._get_organization()
 
-        return args, kwargs
+        return super().convert_args(request, *args, **kwargs)
 
 
 class RegionSiloOrganizationView(OrganizationView):
@@ -563,23 +565,18 @@ class RegionSiloOrganizationView(OrganizationView):
     remain.
     """
 
-    def convert_args(
-        self, request: Any, organization_slug: str | None = None, *args: Any, **kwargs: Any
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        if "organization" not in kwargs:
-            kwargs["organization"] = self._unpack_org()
-
-        return args, kwargs
+    def _get_organization(self) -> Organization | None:
+        if not self.active_organization:
+            return None
+        try:
+            return Organization.objects.get(id=self.active_organization.organization.id)
+        except Organization.DoesNotExist:
+            return None
 
 
 class ControlSiloOrganizationView(OrganizationView):
-    def convert_args(
-        self, request: Any, *args: Any, **kwargs: Any
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        kwargs["organization"] = (
-            self.active_organization.organization if self.active_organization else None
-        )
-        return super().convert_args(request, *args, **kwargs)
+    def _get_organization(self) -> RpcOrganization | None:
+        return self.active_organization.organization if self.active_organization else None
 
 
 class ProjectView(RegionSiloOrganizationView):
@@ -628,7 +625,7 @@ class ProjectView(RegionSiloOrganizationView):
         organization: Organization | None = None
         active_project: Project | None = None
         if self.active_organization:
-            organization = self._unpack_org()
+            organization = self._get_organization()
 
             if organization:
                 active_project = self.get_active_project(

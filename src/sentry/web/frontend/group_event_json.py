@@ -5,10 +5,10 @@ from rest_framework.response import Response
 from sentry import eventstore
 from sentry.models import Group, GroupMeta, get_group_with_redirect
 from sentry.utils import json
-from sentry.web.frontend.base import OrganizationView
+from sentry.web.frontend.base import RegionSiloOrganizationView
 
 
-class GroupEventJsonView(OrganizationView):
+class GroupEventJsonView(RegionSiloOrganizationView):
     required_scope = "event:read"
 
     def get(self, request: Request, organization, group_id, event_id_or_latest) -> Response:
