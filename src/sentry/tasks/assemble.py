@@ -371,6 +371,7 @@ def _create_artifact_bundle(
                 artifact_count=artifact_count,
             )
 
+            # TODO: try to improve the performance of this code path, too many queries are executed.
             with transaction.atomic():
                 # If a release version is passed, we want to create the weak association between a bundle and a release.
                 if version:
@@ -405,7 +406,6 @@ def _create_artifact_bundle(
                 _align_date_added_field(
                     org_id=org_id, artifact_bundle=artifact_bundle, date_added=now
                 )
-
         else:
             raise AssembleArtifactsError(
                 "uploading a bundle without debug ids or release is prohibited"
