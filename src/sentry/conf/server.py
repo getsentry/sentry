@@ -1026,10 +1026,16 @@ CELERYBEAT_SCHEDULE = {
 # Queues that belong to the processing pipeline and need to be monitored
 # for backpressure management
 PROCESSING_QUEUES = [
-    "events.save_event",
-    "events.save_event_transaction",
-    "events.save_event_attachments",
+    "events.preprocess_event",
     "events.process_event",
+    "events.reprocess_events",
+    "events.reprocessing.preprocess_event",
+    "events.reprocessing.process_event",
+    "events.reprocessing.symbolicate_event",
+    "events.reprocessing.symbolicate_event_low_priority",
+    "events.save_event",
+    "events.save_event_attachments",
+    "events.save_event_transaction",
     "events.symbolicate_event",
     "events.symbolicate_event_low_priority",
     "events.symbolicate_js_event",
@@ -1037,12 +1043,6 @@ PROCESSING_QUEUES = [
     "post_process_errors",
     "post_process_issue_platform",
     "post_process_transactions",
-    "events.reprocess_events",
-    "events.reprocessing.preprocess_event",
-    "events.reprocessing.process_event",
-    "events.reprocessing.symbolicate_event",
-    "events.reprocessing.symbolicate_event_low_priority",
-    "events.preprocess_event",
     "profiles.process",
     "replays.ingest_replay",
 ]
