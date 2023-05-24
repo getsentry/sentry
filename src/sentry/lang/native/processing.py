@@ -1,6 +1,6 @@
 import logging
 import posixpath
-from typing import Any, Callable, Optional, Set
+from typing import Any, Callable, Set
 
 from symbolic import ParseDebugIdError, normalize_debug_id
 
@@ -446,7 +446,7 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     return data
 
 
-def get_native_symbolication_function(data) -> Optional[Callable[[Symbolicator, Any], Any]]:
+def get_native_symbolication_function(data) -> Callable[[Symbolicator, Any], Any]:
     if is_minidump_event(data):
         return process_minidump
     elif is_applecrashreport_event(data):

@@ -112,11 +112,7 @@ def _do_preprocess_event(
     project: Optional[Project],
     has_attachments: bool = False,
 ) -> None:
-    from sentry.tasks.symbolication import (
-        get_symbolication_function,
-        should_demote_symbolication,
-        submit_symbolicate,
-    )
+    from sentry.tasks.symbolication import should_demote_symbolication, submit_symbolicate
 
     if cache_key and data is None:
         data = processing.event_processing_store.get(cache_key)
@@ -143,7 +139,19 @@ def _do_preprocess_event(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
-    is_js, symbolication_function = get_symbolication_function(data)
+    is_js = False
+    if data["platform"] in ("javascript", "node"):
+        from sentry.lang.javascript.processing import (
+            get_js_symbolication_function as get_symbolication_function,
+        )
+
+        is_js = True
+    else:
+        from sentry.lang.native.processing import (
+            get_native_symbolication_function as get_symbolication_function,
+        )
+
+    symbolication_function = get_symbolication_function(data)
     if symbolication_function:
         symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
