@@ -30,7 +30,7 @@ def generate_three_letter_string():
     return "".join(random.choice(letters) for _ in range(3))
 
 
-# This endpoint is intented to be available to all members of an
+# This endpoint is intended to be available to all members of an
 # organization so we include "project:read" in the POST scopes.
 
 
@@ -80,12 +80,22 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
         ):
             raise ResourceDoesNotExist(detail=MISSING_PERMISSION_ERROR_STRING)
 
+        project_name = result["name"]
         default_team_slug = f"default-team-{request.user.username}"
         suffixed_team_slug = default_team_slug
+        attempts = 0
 
         # add suffix to default team name until name is available
         while Team.objects.filter(organization=organization, slug=suffixed_team_slug).exists():
             suffixed_team_slug = f"{default_team_slug}-{generate_three_letter_string()}"
+            attempts += 1
+            # limit to a maximum of 5 attempts
+            if attempts > 4:
+                raise ConflictError(
+                    {
+                        "detail": "Unable to create a default team for this user. Please try again.",
+                    }
+                )
         default_team_slug = suffixed_team_slug
 
         try:
@@ -95,7 +105,6 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
                     slug=default_team_slug,
                     idp_provisioned=result.get("idp_provisioned", False),
                     organization=organization,
-                    through_project_creation=True,
                 )
                 member = OrganizationMember.objects.get(
                     user=request.user, organization=organization
@@ -106,7 +115,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
                     role="admin",
                 )
                 project = Project.objects.create(
-                    name=result["name"],
+                    name=project_name,
                     # slug is set to None to avoid a duplicate slug error
                     slug=None,
                     organization=organization,
@@ -156,5 +165,11 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             default_rules=result.get("default_rules", True),
             sender=self,
         )
+        # self.create_audit_entry(
+        #     request=request,
+        #     organization=team.organization,
+        #     event=audit_log.get_event_id("TEAM_AND_PROJECT_CREATED"),
+        #     data={"team_slug": default_team_slug, "project_slug": project_name},
+        # )
 
         return Response(serialize(project, request.user), status=201)

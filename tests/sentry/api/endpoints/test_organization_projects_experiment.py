@@ -76,10 +76,19 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         }
 
     @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    @patch("sentry.models.team.Team.objects.filter")
+    def test_too_many_team_creation_attempts(self, mock_filter):
+        mock_filter.exists.return_value = True
+        response = self.get_error_response(self.organization.slug, name=self.p1, status_code=409)
+        assert response.data == {
+            "detail": "Unable to create a default team for this user. Please try again.",
+        }
+
+    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
     def test_valid_params(self):
         response = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
 
-        team = Team.objects.get(slug=self.t1, name=self.t1, through_project_creation=True)
+        team = Team.objects.get(slug=self.t1, name=self.t1)
         assert not team.idp_provisioned
         assert team.organization == self.organization
         assert team.name == team.slug == self.t1
@@ -119,7 +128,9 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
     def test_consecutive_reqs_adds_team_suffix(self):
         resp1 = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
         resp2 = self.get_success_response(self.organization.slug, name=self.p2, status_code=201)
-        teams = Team.objects.filter(through_project_creation=True)
+        teams = Team.objects.filter(slug__icontains=self.t1)
+        assert len(teams) == 2
+
         if teams[0].slug == self.t1:
             team1, team2 = teams[0], teams[1]
         else:
@@ -140,7 +151,9 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
     def test_consecutive_reqs_with_duplicate_project_names(self):
         resp1 = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
         resp2 = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
-        teams = Team.objects.filter(through_project_creation=True)
+        teams = Team.objects.filter(slug__icontains=self.t1)
+        assert len(teams) == 2
+
         if teams[0].slug == self.t1:
             team1, team2 = teams[0], teams[1]
         else:
