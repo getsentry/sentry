@@ -50,27 +50,27 @@ const HTTP_SPAN_COLUMN_ORDER = [
   },
   {
     key: 'throughput',
-    name: 'Throughput',
+    name: 'Throughput (SPM)',
     width: 350,
   },
   {
     key: 'p50_trend',
-    name: 'p50 Trend',
-    width: 200,
-  },
-  {
-    key: 'p50(exclusive_time)',
     name: 'p50',
-    width: COL_WIDTH_UNDEFINED,
+    width: 175,
   },
   {
-    key: 'transaction_count',
+    key: 'p95_trend',
+    name: 'p95',
+    width: 175,
+  },
+  {
+    key: 'count_unique(transaction)',
     name: 'Transactions',
     width: COL_WIDTH_UNDEFINED,
   },
 
   {
-    key: 'total_exclusive_time',
+    key: 'sum(span.self_time)',
     name: 'Total Time',
     width: COL_WIDTH_UNDEFINED,
   },
@@ -254,7 +254,7 @@ export default function EndpointOverview() {
                   {({results, loading}) => {
                     return (
                       <Fragment>
-                        <MiniChartPanel title={t('Response Times')}>
+                        <MiniChartPanel title={t('Duration')}>
                           <Chart
                             statsPeriod={(statsPeriod as string) ?? '24h'}
                             height={110}
