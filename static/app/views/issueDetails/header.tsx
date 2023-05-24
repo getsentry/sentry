@@ -334,7 +334,7 @@ function GroupHeader({
           <TitleWrapper>
             <TitleHeading>
               <h3>
-                <StyledEventOrGroupTitle hasGuideAnchor data={group} />
+                <StyledEventOrGroupTitle data={group} />
               </h3>
               {!hasEscalatingIssuesUi && group.inbox && (
                 <InboxReason inbox={group.inbox} fontSize="md" />
