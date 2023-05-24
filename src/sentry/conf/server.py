@@ -1220,10 +1220,6 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-ui": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
-    # Enable the task to transition new issues that are 3+ days old to (Unresolved, Ongoing) state
-    "organizations:issue-states-auto-transition-new-ongoing": False,
-    # Enable the task to transition regressed issues that are 14+ days old to (Unresolved, Ongoing) state
-    "organizations:issue-states-auto-transition-regressed-ongoing": False,
     # Enable the new issue states and substates
     "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1494,6 +1490,8 @@ SENTRY_FEATURES = {
     "organizations:u2f-superuser-form": False,
     # Enable project creation for all
     "organizations:team-project-creation-all": False,
+    # Enable project creation for all and puts organization into test group
+    "organizations:team-project-creation-all-allowlist": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
     # Enable team member role provisioning through scim
