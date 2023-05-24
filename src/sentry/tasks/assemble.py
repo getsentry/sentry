@@ -291,15 +291,21 @@ def _remove_duplicate_artifact_bundles(
     dist: Optional[str],
 ):
     with transaction.atomic():
-        # Even though we delete via a QuerySet the associated file is also deleted, because django will still
-        # fire the on_delete signal.
-        release_filter = Q()
+        # In case we create a new bundle with a version we deduplicate by checking if there exists another one with
+        # the same id and release/dist pair. In case we create a new bundle without a version we deduplicate by
+        # checking if there exists another one with no release/dist connected. This is required, since if we don't do
+        # this check, and we upload without a version the system will just check if another bundle with the same id
+        # exists, irrespectively of the release association.
         if version:
             release_filter = Q(
                 releaseartifactbundle__release_name=version,
                 releaseartifactbundle__dist_name=dist or "",
             )
+        else:
+            release_filter = Q(releaseartifactbundle=None)
 
+        # Even though we delete via a QuerySet the associated file is also deleted, because django will still
+        # fire the on_delete signal.
         ArtifactBundle.objects.filter(
             ~Q(id=bundle.id),
             release_filter,
