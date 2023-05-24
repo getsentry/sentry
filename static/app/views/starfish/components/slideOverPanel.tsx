@@ -35,7 +35,7 @@ function SlideOverPanel(
 
 const _SlideOverPanel = styled(motion.div, {
   shouldForwardProp: prop =>
-    ['animate', 'transition'].includes(prop) ||
+    ['animate', 'transition', 'initial'].includes(prop) ||
     (prop !== 'collapsed' && isPropValid(prop)),
 })<{
   collapsed: boolean;
