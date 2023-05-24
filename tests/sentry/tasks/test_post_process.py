@@ -1454,6 +1454,32 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.NEW
 
+    @with_feature("organizations:escalating-issues")
+    @patch("sentry.issues.escalating.is_escalating", return_value=(True, 0))
+    def test_forecast_in_activity(self, mock_is_escalating):
+        """
+        Test that the forecast is added to the activity for escalating issues that were
+        previously ignored until_escalating.
+        """
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        group = event.group
+        group.status = GroupStatus.IGNORED
+        group.substatus = GroupSubStatus.UNTIL_ESCALATING
+        group.save()
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        assert Activity.objects.filter(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_UNRESOLVED.value,
+            data={"event_id": event.event_id, "forecast": 0},
+        ).exists()
+
 
 @region_silo_test
 class PostProcessGroupErrorTest(
