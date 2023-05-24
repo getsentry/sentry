@@ -66,7 +66,7 @@ function isLayout(val: string): val is LayoutKey {
   return val in LayoutKey;
 }
 
-function useActiveReplayTab() {
+function useReplayLayout() {
   const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
   const defaultLayout = getDefaultLayout(collapsed);
   const organization = useOrganization();
@@ -97,4 +97,4 @@ function useActiveReplayTab() {
   };
 }
 
-export default useActiveReplayTab;
+export default useReplayLayout;
