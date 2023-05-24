@@ -26,7 +26,8 @@ export function zeroFillSeries(
 
   const newData: SeriesDataUnit[] = [];
 
-  const startTimeNearestInterval = startTime && roundUpToNearest12HourInterval(startTime);
+  const startTimeNearestInterval =
+    startTime && roundDownToNearest12HourInterval(startTime);
   const endTimeNearestInterval = endTime && roundDownToNearest12HourInterval(endTime);
 
   const seriesData = [
@@ -82,10 +83,6 @@ export function zeroFillSeries(
     ...series,
     data: newData,
   };
-}
-
-function roundUpToNearest12HourInterval(time: moment.Moment) {
-  return roundDownToNearest12HourInterval(time.clone().add(12, 'hour').subtract(1, 'ms'));
 }
 
 function roundDownToNearest12HourInterval(time: moment.Moment) {

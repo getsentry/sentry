@@ -114,7 +114,7 @@ type FormatterOptions = Pick<NonNullable<ChartProps['tooltip']>, TooltipFormatte
     subLabels?: TooltipSubLabel[];
   };
 
-function getFormatter({
+export function getFormatter({
   filter,
   isGroupedByDate,
   showTimeInTooltip,

@@ -95,6 +95,7 @@ def _process_message(wrapper: Dict) -> None:
     params = json.loads(wrapper["payload"])
     start_time = to_datetime(float(wrapper["start_time"]))
     project_id = int(wrapper["project_id"])
+    source_sdk = wrapper["sdk"]
 
     environment = params.get("environment")
     project = Project.objects.get_from_cache(id=project_id)
@@ -103,7 +104,7 @@ def _process_message(wrapper: Dict) -> None:
 
     metric_kwargs = {
         "source": "consumer",
-        "source_sdk": params.get("sdk", {}).get("name", "unknown"),
+        "source_sdk": source_sdk,
     }
 
     if ratelimits.is_limited(

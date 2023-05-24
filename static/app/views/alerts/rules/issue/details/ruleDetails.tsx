@@ -235,7 +235,6 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       referrer: 'issue_rule_details',
     },
   };
-
   function renderIncompatibleAlert() {
     const incompatibleRule = findIncompatibleRules(rule);
     if (

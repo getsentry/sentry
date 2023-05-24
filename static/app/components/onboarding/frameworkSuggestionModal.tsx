@@ -54,6 +54,7 @@ type Props = ModalRenderProps & {
   onSkip: () => void;
   organization: Organization;
   selectedPlatform: OnboardingSelectedSDK;
+  newOrg?: boolean;
 };
 
 export function FrameworkSuggestionModal({
@@ -65,6 +66,7 @@ export function FrameworkSuggestionModal({
   closeModal,
   CloseButton,
   organization,
+  newOrg,
 }: Props) {
   const [selectedFramework, setSelectedFramework] = useState<
     OnboardingSelectedSDK | undefined
@@ -76,33 +78,57 @@ export function FrameworkSuggestionModal({
   );
 
   useEffect(() => {
-    trackAnalytics('onboarding.select_framework_modal_rendered', {
-      platform: selectedPlatform.key,
-      organization,
-    });
-  }, [selectedPlatform.key, organization]);
+    trackAnalytics(
+      newOrg
+        ? 'onboarding.select_framework_modal_rendered'
+        : 'project_creation.select_framework_modal_rendered',
+      {
+        platform: selectedPlatform.key,
+        organization,
+      }
+    );
+  }, [selectedPlatform.key, organization, newOrg]);
 
   const handleConfigure = useCallback(() => {
     if (!selectedFramework) {
       return;
     }
-    trackAnalytics('onboarding.select_framework_modal_configure_sdk_button_clicked', {
-      platform: selectedPlatform.key,
-      framework: selectedFramework.key,
-      organization,
-    });
+
+    trackAnalytics(
+      newOrg
+        ? 'onboarding.select_framework_modal_configure_sdk_button_clicked'
+        : 'project_creation.select_framework_modal_configure_sdk_button_clicked',
+      {
+        platform: selectedPlatform.key,
+        framework: selectedFramework.key,
+        organization,
+      }
+    );
+
     onConfigure(selectedFramework);
     closeModal();
-  }, [selectedPlatform, selectedFramework, organization, onConfigure, closeModal]);
+  }, [
+    selectedPlatform,
+    selectedFramework,
+    organization,
+    onConfigure,
+    closeModal,
+    newOrg,
+  ]);
 
   const handleSkip = useCallback(() => {
-    trackAnalytics('onboarding.select_framework_modal_skip_button_clicked', {
-      platform: selectedPlatform.key,
-      organization,
-    });
+    trackAnalytics(
+      newOrg
+        ? 'onboarding.select_framework_modal_skip_button_clicked'
+        : 'project_creation.select_framework_modal_skip_button_clicked',
+      {
+        platform: selectedPlatform.key,
+        organization,
+      }
+    );
     onSkip();
     closeModal();
-  }, [selectedPlatform, organization, closeModal, onSkip]);
+  }, [selectedPlatform, organization, closeModal, onSkip, newOrg]);
 
   return (
     <Fragment>

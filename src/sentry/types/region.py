@@ -32,11 +32,16 @@ class Region:
     name: str
     """The region's unique identifier."""
 
-    id: int
-    """The region's unique numeric representation.
+    snowflake_id: int
+    """The region's unique numeric representation for composing "snowflake" IDs.
 
-    This number is used for composing "snowflake" IDs, and must fit inside the
-    maximum bit length specified by our snowflake ID schema.
+    Avoid using this in any context other than creating a new snowflake ID. Prefer
+    the name as the region's unique identifier. Snowflake IDs need to remain mutually
+    unique only within the same timestamp, so the meaning of a number may not be
+    stable over time if we ever choose to reassign or reuse the values.
+
+    The number must fit inside the maximum bit length specified by our snowflake ID
+    schema.
     """
 
     address: str
@@ -61,7 +66,7 @@ class Region:
         from sentry.api.utils import generate_region_url
         from sentry.utils.snowflake import REGION_ID
 
-        REGION_ID.validate(self.id)
+        REGION_ID.validate(self.snowflake_id)
 
         # Validate address with respect to self.name for multi-tenant regions.
         region_url_template: str | None = options.get("system.region-api-url-template")
@@ -98,7 +103,6 @@ class _RegionMapping:
     def __init__(self, regions: Iterable[Region]) -> None:
         self.regions = frozenset(regions)
         self.by_name = {r.name: r for r in self.regions}
-        self.by_id = {r.id: r for r in self.regions}
 
 
 def _parse_config(region_config: str) -> Iterable[Region]:
@@ -129,14 +133,6 @@ def get_region_by_name(name: str) -> Region:
         raise RegionResolutionError(f"No region with name: {name!r}")
 
 
-def get_region_by_id(id: int) -> Region:
-    """Look up a region by numeric ID."""
-    try:
-        return _load_global_regions().by_id[id]
-    except KeyError:
-        raise RegionResolutionError(f"No region with numeric ID: {id}")
-
-
 def get_region_for_organization(organization: Organization) -> Region:
     """Resolve an organization to the region where its data is stored.
 
@@ -165,7 +161,7 @@ def get_local_region() -> Region:
         # This is a dummy value used to make region.to_url work
         return Region(
             name=MONOLITH_REGION_NAME,
-            id=0,
+            snowflake_id=0,
             address="/",
             category=RegionCategory.MULTI_TENANT,
         )
