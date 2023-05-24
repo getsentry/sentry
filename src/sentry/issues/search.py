@@ -255,6 +255,10 @@ def get_search_strategies() -> Mapping[int, GroupSearchStrategy]:
             strategy = functools.partial(
                 _query_params_for_generic, categories=[GroupCategory.PERFORMANCE]
             )
+        elif group_category == GroupCategory.MONITOR:
+            strategy = functools.partial(
+                _query_params_for_generic, categories=[GroupCategory.MONITOR]
+            )
         else:
             strategy = functools.partial(
                 _query_params_for_generic, categories=[GroupCategory.PROFILE]

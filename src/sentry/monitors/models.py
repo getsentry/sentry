@@ -29,6 +29,11 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.issues.grouptype import (
+    MonitorCheckInFailure,
+    MonitorCheckInMissed,
+    MonitorCheckInTimeout,
+)
 from sentry.locks import locks
 from sentry.models import Environment
 from sentry.utils.retries import TimedRetryPolicy
@@ -452,28 +457,28 @@ class MonitorEnvironment(Model):
         failure_occurrence["event"] = {
             "environment": self.environment.name,
             "event_id": uuid.uuid4().hex,
+            "platform": "crons",
             "project_id": self.monitor.project_id,
-            "received": last_checkin,
+            "received": timezone.now(),
+            "sdk": None,
             "tags": {
                 "monitor.id": str(self.monitor.guid),
                 "monitor.slug": self.monitor.slug,
             },
-            "timestamp": last_checkin,
+            "timestamp": timezone.now(),
         }
 
         failure_occurrence["issue_title"] = f"Monitor failure: {self.monitor.name} ({reason})"
         failure_occurrence["subtitle"] = f"{self.environment.name}"
         failure_occurrence["resource_id"] = None
-        failure_occurrence["type"] = "TODO"
-        failure_occurrence["level"] = "TODO"
-
+        failure_occurrence["type"], failure_occurrence["level"] = get_group_type_and_level(reason)
         failure_occurrence["evidence_data"] = {"Timestamp": last_checkin}
         failure_occurrence["evidence_display"] = [
             {"name": "Failure reason", "value": reason, "important": True},
             {"name": "Environment", "value": self.environment.name, "important": False},
         ]
 
-        failure_occurrence["detection_time"] = datetime.utcnow().timestamp()
+        failure_occurrence["detection_time"] = timezone.now()
         failure_occurrence["id"] = uuid.uuid4().hex
         failure_occurrence["project_id"] = self.monitor.project_id
         failure_occurrence["fingerprint"] = [f"monitor-{str(self.monitor.guid)}-{reason}"]
@@ -516,6 +521,15 @@ class MonitorEnvironment(Model):
             params["status"] = MonitorStatus.OK
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
+
+
+def get_group_type_and_level(reason: str):
+    if reason == MonitorFailure.MISSED_CHECKIN:
+        return MonitorCheckInMissed.type_id, "warning"
+    elif reason == MonitorFailure.DURATION:
+        return MonitorCheckInTimeout.type_id, "error"
+
+    return MonitorCheckInFailure.type_id, "error"
 
 
 @receiver(pre_save, sender=MonitorEnvironment)

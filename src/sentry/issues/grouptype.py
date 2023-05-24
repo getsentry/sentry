@@ -320,6 +320,7 @@ class MonitorCheckInFailure(GroupType):
     slug = "monitor_check_in_failure"
     description = "Monitor Check In Failed"
     category = GroupCategory.MONITOR.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -328,6 +329,7 @@ class MonitorCheckInTimeout(GroupType):
     slug = "monitor_check_in_timeout"
     description = "Monitor Check In Timeout"
     category = GroupCategory.MONITOR.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -336,6 +338,7 @@ class MonitorCheckInMissed(GroupType):
     slug = "monitor_check_in_missed"
     description = "Monitor Check In Missed"
     category = GroupCategory.MONITOR.value
+    released = True
 
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
