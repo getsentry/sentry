@@ -32,6 +32,7 @@ class ThresholdVariables:
     min_bursty_multiplier: int = 2
     max_bursty_multiplier: int = 5
 
+
 standard_version = ThresholdVariables()
 looser_version = ThresholdVariables(6, 5, 9, 2, 6)
 tighter_version = ThresholdVariables(4, 4, 7, 2, 4)
