@@ -587,14 +587,18 @@ export interface GroupCollapseRelease
   extends Omit<Group, keyof GroupRelease>,
     Partial<GroupRelease> {}
 
-export type GroupTombstone = {
+export interface GroupTombstone {
   actor: AvatarUser;
   culprit: string;
   id: string;
   level: Level;
   metadata: EventMetadata;
-  title: string;
-};
+  type: EventOrGroupType;
+  title?: string;
+}
+export interface GroupTombstoneHelper extends GroupTombstone {
+  isTombstone: true;
+}
 
 export type ProcessingIssueItem = {
   checksum: string;
