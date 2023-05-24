@@ -113,7 +113,7 @@ function BaseDropdownMenuItem(
       return;
     }
     if (isSubmenu) {
-      state.selectionManager.select(node.key);
+      state.selectionManager.toggleSelection(node.key);
       return;
     }
     onAction?.(key);
@@ -134,7 +134,7 @@ function BaseDropdownMenuItem(
 
     if (isHovered && isFocused) {
       if (isSubmenu) {
-        state.selectionManager.select(node.key);
+        state.selectionManager.replaceSelection(node.key);
         return;
       }
       state.selectionManager.clearSelection();
@@ -162,7 +162,7 @@ function BaseDropdownMenuItem(
       }
 
       if (e.key === 'ArrowRight' && isSubmenu) {
-        state.selectionManager.select(node.key);
+        state.selectionManager.replaceSelection(node.key);
         return;
       }
 
