@@ -155,5 +155,5 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
     ...fastestSamplesData.data,
   ];
 
-  return {isLoading: false, data: combinedData};
+  return {isLoading: false, data: combinedData, aggregatesData: aggregatesData.data[0]};
 }

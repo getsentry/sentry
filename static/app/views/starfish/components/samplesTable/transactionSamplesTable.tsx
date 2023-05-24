@@ -4,6 +4,7 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
+import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import useSlowMedianFastSamplesQuery from 'sentry/views/starfish/components/samplesTable/useSlowMedianFastSamplesQuery';
 import {TextAlignLeft} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 
@@ -44,7 +45,7 @@ type DataRow = {
 
 export function TransactionSamplesTable({eventView}: Props) {
   const location = useLocation();
-  const {isLoading, data} = useSlowMedianFastSamplesQuery(eventView);
+  const {isLoading, data, aggregatesData} = useSlowMedianFastSamplesQuery(eventView);
 
   function renderBodyCell(column: TableColumnHeader, row: DataRow): React.ReactNode {
     if (column.key === 'id') {
@@ -67,6 +68,15 @@ export function TransactionSamplesTable({eventView}: Props) {
 
     if (column.key === 'timestamp') {
       return <DateTime date={row[column.key]} year timeZone seconds />;
+    }
+
+    if (column.key === 'p50_comparison') {
+      return (
+        <DurationComparisonCell
+          duration={row['transaction.duration']}
+          p50={aggregatesData['p50(transaction.duration)']}
+        />
+      );
     }
 
     return <TextAlignLeft>{row[column.key]}</TextAlignLeft>;
