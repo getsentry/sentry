@@ -97,7 +97,7 @@ function GroupTombstones({project}: GroupTombstonesProps) {
       `/projects/${organization.slug}/${project.slug}/tombstones/`,
       {query: {...location.query}},
     ],
-    {staleTime: 0, refetchOnWindowFocus: false}
+    {staleTime: 0}
   );
   const tombstonesPageLinks = getResponseHeader?.('Link');
 
