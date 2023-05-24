@@ -1,10 +1,10 @@
 import hashlib
 import logging
+from datetime import datetime
 from os import path
 from typing import List, Optional, Set, Tuple
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Q
 from django.utils import timezone
 from symbolic import SymbolicError, normalize_debug_id
 
@@ -284,34 +284,48 @@ def _extract_debug_ids_from_manifest(
     return bundle_id, debug_ids_with_types
 
 
-def _remove_duplicate_artifact_bundles(
-    bundle: ArtifactBundle,
-    bundle_id: str,
-    version: Optional[str],
-    dist: Optional[str],
-):
-    with transaction.atomic():
-        # In case we create a new bundle with a version we deduplicate by checking if there exists another one with
-        # the same id and release/dist pair. In case we create a new bundle without a version we deduplicate by
-        # checking if there exists another one with no release/dist connected. This is required, since if we don't do
-        # this check, and we upload without a version the system will just check if another bundle with the same id
-        # exists, irrespectively of the release association.
-        if version:
-            release_filter = Q(
-                releaseartifactbundle__release_name=version,
-                releaseartifactbundle__dist_name=dist or "",
-            )
-        else:
-            release_filter = Q(releaseartifactbundle=None)
+def _bind_or_create_artifact_bundle(
+    bundle_id: uuid,
+    now: datetime,
+    org_id: int,
+    archive_file: File,
+    artifact_count: int,
+) -> Tuple[ArtifactBundle, bool]:
+    try:
+        existing_artifact_bundle = ArtifactBundle.objects.get(
+            organization_id=org_id, bundle_id=bundle_id
+        )
+    except ArtifactBundle.DoesNotExist:
+        existing_artifact_bundle = None
 
-        # Even though we delete via a QuerySet the associated file is also deleted, because django will still
-        # fire the on_delete signal.
-        ArtifactBundle.objects.filter(
-            ~Q(id=bundle.id),
-            release_filter,
-            bundle_id=bundle_id,
-            organization_id=bundle.organization_id,
-        ).delete()
+    # In case there is not ArtifactBundle with a specific bundle_id, we just create it and return.
+    if existing_artifact_bundle is None:
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=org_id,
+            # In case we didn't find the bundle_id in the manifest, we will just generate our own.
+            bundle_id=bundle_id or uuid.uuid4().hex,
+            file=archive_file,
+            artifact_count=artifact_count,
+            # For now these two fields will have the same value but in separate tasks we will update "date_added"
+            # in order to perform partitions rebalancing in the database.
+            date_added=now,
+            date_uploaded=now,
+        )
+
+        return artifact_bundle, True
+
+    with transaction.atomic():
+        # We store a reference to the previous file to which the bundle was pointing to.
+        existing_file = existing_artifact_bundle.file
+
+        # In case there is an ArtifactBundle with a specific bundle_id, we want to change its underlying File model
+        # with its corresponding artifact count.
+        existing_artifact_bundle.update(file=archive_file, artifact_count=artifact_count)
+
+        # We now delete that file, in order to avoid orphan files in the database.
+        existing_file.delete()
+
+    return existing_artifact_bundle, False
 
 
 def _create_artifact_bundle(
@@ -321,7 +335,7 @@ def _create_artifact_bundle(
     project_ids: Optional[List[int]],
     archive_file: File,
     artifact_count: int,
-):
+) -> None:
     with ReleaseArchive(archive_file.getfile()) as archive:
         bundle_id, debug_ids_with_types = _extract_debug_ids_from_manifest(archive.manifest)
 
@@ -330,21 +344,17 @@ def _create_artifact_bundle(
         if len(debug_ids_with_types) > 0 or version:
             now = timezone.now()
 
-            artifact_bundle = ArtifactBundle.objects.create(
-                organization_id=org_id,
-                # In case we didn't find the bundle_id in the manifest, we will just generate our own.
-                bundle_id=bundle_id or uuid.uuid4().hex,
-                file=archive_file,
+            artifact_bundle, created = _bind_or_create_artifact_bundle(
+                bundle_id=bundle_id,
+                now=now,
+                org_id=org_id,
+                archive_file=archive_file,
                 artifact_count=artifact_count,
-                # For now these two fields will have the same value but in separate tasks we will update "date_added"
-                # in order to perform partitions rebalancing in the database.
-                date_added=now,
-                date_uploaded=now,
             )
 
             # If a release version is passed, we want to create the weak association between a bundle and a release.
             if version:
-                ReleaseArtifactBundle.objects.create(
+                ReleaseArtifactBundle.objects.create_or_update(
                     organization_id=org_id,
                     release_name=version,
                     # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our tables.
@@ -354,7 +364,7 @@ def _create_artifact_bundle(
                 )
 
             for project_id in project_ids or ():
-                ProjectArtifactBundle.objects.create(
+                ProjectArtifactBundle.objects.create_or_update(
                     organization_id=org_id,
                     project_id=project_id,
                     artifact_bundle=artifact_bundle,
@@ -362,15 +372,13 @@ def _create_artifact_bundle(
                 )
 
             for source_file_type, debug_id in debug_ids_with_types:
-                DebugIdArtifactBundle.objects.create(
+                DebugIdArtifactBundle.objects.create_or_update(
                     organization_id=org_id,
                     debug_id=debug_id,
                     artifact_bundle=artifact_bundle,
                     source_file_type=source_file_type.value,
                     date_added=now,
                 )
-
-            _remove_duplicate_artifact_bundles(artifact_bundle, bundle_id, version, dist)
         else:
             raise AssembleArtifactsError(
                 "uploading a bundle without debug ids or release is prohibited"

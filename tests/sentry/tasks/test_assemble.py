@@ -385,14 +385,14 @@ class AssembleArtifactsTest(BaseAssembleTest):
             )
 
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
-        assert len(artifact_bundles) == len(combinations)
+        assert len(artifact_bundles) == 1
 
         files = File.objects.filter()
-        assert len(files) == len(combinations)
+        assert len(files) == 1
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
         # We have * 2 entries, since we have multiple files in the artifact bundle.
-        assert len(debug_id_artifact_bundles) == len(combinations) * 2
+        assert len(debug_id_artifact_bundles) == 2
 
         for version, dist in combinations:
             release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
@@ -401,7 +401,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             assert len(release_artifact_bundle) == 1
 
         release_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
-        assert len(release_artifact_bundle) == len(combinations)
+        assert len(release_artifact_bundle) == 1
 
     def test_upload_multiple_artifact_with_first_release_and_second_no_release_and_same_bundle_id(
         self,
@@ -425,20 +425,20 @@ class AssembleArtifactsTest(BaseAssembleTest):
             )
 
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
-        assert len(artifact_bundles) == 2
+        assert len(artifact_bundles) == 1
 
         files = File.objects.filter()
-        assert len(files) == 2
+        assert len(files) == 1
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
         # We have two entries, since we have multiple files in the artifact bundle.
-        assert len(debug_id_artifact_bundles) == 4
+        assert len(debug_id_artifact_bundles) == 2
 
         release_artifact_bundle = ReleaseArtifactBundle.objects.filter(release_name="1.0")
         assert len(release_artifact_bundle) == 1
 
         release_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
-        assert len(release_artifact_bundle) == 2
+        assert len(release_artifact_bundle) == 1
 
     def test_artifacts_without_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
