@@ -15,7 +15,7 @@ from sentry.utils.db import atomic_transaction
 )
 def delete_file(path, checksum, **kwargs):
     from sentry.locks import locks
-    from sentry.models.file import FileBlob, get_storage
+    from sentry.models.files.file import FileBlob, get_storage
     from sentry.utils.retries import TimedRetryPolicy
 
     lock = locks.get(f"fileblob:upload:{checksum}", duration=60 * 10, name="fileblob_upload")
