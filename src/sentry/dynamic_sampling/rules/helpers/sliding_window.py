@@ -22,7 +22,7 @@ def generate_sliding_window_executed_cache_key(org_id: int) -> str:
     return f"ds::o:{org_id}:sliding_window_executed"
 
 
-def mark_sliding_window_executed_for_orgs(org_ids: Sequence[int]):
+def mark_sliding_window_executed_for_orgs(org_ids: Sequence[int]) -> None:
     redis_client = get_redis_client_for_ds()
 
     for org_id in org_ids:
@@ -35,7 +35,7 @@ def was_sliding_window_executed(org_id: int) -> bool:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_sliding_window_executed_cache_key(org_id=org_id)
 
-    return redis_client.exists(cache_key)
+    return bool(redis_client.exists(cache_key))
 
 
 def generate_sliding_window_cache_key(org_id: int) -> str:
