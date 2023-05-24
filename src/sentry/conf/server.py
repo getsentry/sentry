@@ -1043,6 +1043,8 @@ PROCESSING_QUEUES = [
     "events.reprocessing.symbolicate_event",
     "events.reprocessing.symbolicate_event_low_priority",
     "events.preprocess_event",
+    "profiles.process",
+    "replays.ingest_replay",
 ]
 
 
