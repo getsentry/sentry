@@ -112,3 +112,9 @@ export type NoteType = {
   mentions: string[];
   text: string;
 };
+
+export enum RuleActionsCategories {
+  AllDefault = 'all_default',
+  SomeDefault = 'some_default',
+  NoDefault = 'no_default',
+}

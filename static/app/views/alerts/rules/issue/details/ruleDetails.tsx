@@ -26,6 +26,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types';
 import type {IssueAlertRule} from 'sentry/types/alerts';
+import {RuleActionsCategories} from 'sentry/types/alerts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   ApiQueryKey,
@@ -219,12 +220,12 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     action => action.id === 'sentry.mail.actions.NotifyEmailAction'
   ).length;
 
-  const defaultRuleActions =
+  const ruleActionCategory =
     numDefaultActions === rule.actions.length
-      ? 'all'
+      ? RuleActionsCategories.AllDefault
       : numDefaultActions === 0
-      ? 'none'
-      : 'some';
+      ? RuleActionsCategories.NoDefault
+      : RuleActionsCategories.SomeDefault;
 
   const duplicateLink = {
     pathname: `/organizations/${organization.slug}/alerts/new/issue/`,
@@ -308,7 +309,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                     onSnooze={onSnooze}
                     ruleId={rule.id}
                     projectSlug={projectSlug}
-                    defaultRuleActions={defaultRuleActions}
+                    ruleActionCategory={ruleActionCategory}
                     hasAccess={hasAccess}
                   />
                 )}
@@ -338,7 +339,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
           {renderIncompatibleAlert()}
           {hasSnoozeFeature && isSnoozed && (
             <Alert showIcon>
-              {defaultRuleActions === 'none'
+              {ruleActionCategory === RuleActionsCategories.NoDefault
                 ? tct(
                     "[creator] muted this alert so these notifications won't be sent in the future.",
                     {creator: rule.snoozeCreatedBy}
