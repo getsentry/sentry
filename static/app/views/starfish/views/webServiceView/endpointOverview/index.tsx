@@ -223,38 +223,37 @@ export default function EndpointOverview() {
         <Layout.Main fullWidth>
           <SubHeader>{t('Endpoint URL')}</SubHeader>
           <pre>{`${method} ${transaction}`}</pre>
-          <EventsRequest
-            query={query.formatString()}
-            includePrevious={false}
-            partial
-            limit={5}
-            interval="1h"
-            includeTransformedData
-            environment={eventView.environment}
-            project={eventView.project}
-            period={pageFilter.selection.datetime.period}
-            referrer="starfish-endpoint-overview"
-            start={pageFilter.selection.datetime.start}
-            end={pageFilter.selection.datetime.end}
-            organization={organization}
-            yAxis={['tpm()', 'p50(transaction.duration)']}
-            queryExtras={{dataset: 'metrics'}}
-          >
-            {({results, loading}) => {
-              return (
-                <Fragment>
-                  <StyledRow minSize={200}>
-                    <ChartsContainer>
-                      <ChartsContainerItem>
-                        <SpanGroupBreakdownContainer
-                          transaction={transaction as string}
-                        />
-                      </ChartsContainerItem>
-                      <ChartsContainerItem2>
-                        <ChartPanel title={t('Error Rate')}>
-                          {renderFailureRateChart()}
-                        </ChartPanel>
 
+          <Fragment>
+            <StyledRow minSize={200}>
+              <ChartsContainer>
+                <ChartsContainerItem>
+                  <SpanGroupBreakdownContainer transaction={transaction as string} />
+                </ChartsContainerItem>
+                <ChartsContainerItem2>
+                  <ChartPanel title={t('Error Rate')}>
+                    {renderFailureRateChart()}
+                  </ChartPanel>
+
+                  <EventsRequest
+                    query={query.formatString()}
+                    includePrevious={false}
+                    partial
+                    limit={5}
+                    interval="1h"
+                    includeTransformedData
+                    environment={eventView.environment}
+                    project={eventView.project}
+                    period={pageFilter.selection.datetime.period}
+                    referrer="starfish-endpoint-overview"
+                    start={pageFilter.selection.datetime.start}
+                    end={pageFilter.selection.datetime.end}
+                    organization={organization}
+                    yAxis={['tpm()', 'p50(transaction.duration)']}
+                    queryExtras={{dataset: 'metrics'}}
+                  >
+                    {({results, loading}) => {
+                      return (
                         <Fragment>
                           <ChartPanel title={t('p50(duration)')}>
                             <Chart
@@ -278,7 +277,7 @@ export default function EndpointOverview() {
                               }}
                             />
                           </ChartPanel>
-                          <ChartPanel title={t('Througput')}>
+                          <ChartPanel title={t('Throughput')}>
                             <Chart
                               statsPeriod={(statsPeriod as string) ?? '24h'}
                               height={80}
@@ -301,15 +300,16 @@ export default function EndpointOverview() {
                             />
                           </ChartPanel>
                         </Fragment>
-                      </ChartsContainerItem2>
-                    </ChartsContainer>
-                  </StyledRow>
-                  <SubHeader>{t('Sample Events')}</SubHeader>
-                  <TransactionSamplesTable eventView={eventView} />
-                </Fragment>
-              );
-            }}
-          </EventsRequest>
+                      );
+                    }}
+                  </EventsRequest>
+                </ChartsContainerItem2>
+              </ChartsContainer>
+            </StyledRow>
+            <SubHeader>{t('Sample Events')}</SubHeader>
+            <TransactionSamplesTable eventView={eventView} />
+          </Fragment>
+
           <FacetInsights eventView={eventView} />
           <SubHeader>{t('HTTP Spans')}</SubHeader>
           <EndpointTable
