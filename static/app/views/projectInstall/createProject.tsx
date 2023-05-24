@@ -7,6 +7,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openCreateTeamModal, openModal} from 'sentry/actionCreators/modal';
+import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
@@ -289,32 +290,34 @@ function CreateProject() {
   );
 
   return (
-    <Fragment>
-      {error && <Alert type="error">{error}</Alert>}
-      <div data-test-id="onboarding-info">
-        <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
-        <HelpText>
-          {tct(
-            'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/" />
-              ),
-            }
-          )}
-        </HelpText>
-        <Layout.Title withMargins>{t('1. Choose your platform')}</Layout.Title>
-        <PlatformPicker
-          platform={platform?.key}
-          defaultCategory={platform?.category}
-          setPlatform={handlePlatformChange}
-          organization={organization}
-          showOther
-        />
-        <IssueAlertOptions onChange={updatedData => setAlertRuleConfig(updatedData)} />
-        {createProjectForm}
-      </div>
-    </Fragment>
+    <Access access={canCreateProject ? ['project:read'] : ['project:write']}>
+      <Fragment>
+        {error && <Alert type="error">{error}</Alert>}
+        <div data-test-id="onboarding-info">
+          <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
+          <HelpText>
+            {tct(
+              'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/" />
+                ),
+              }
+            )}
+          </HelpText>
+          <Layout.Title withMargins>{t('1. Choose your platform')}</Layout.Title>
+          <PlatformPicker
+            platform={platform?.key}
+            defaultCategory={platform?.category}
+            setPlatform={handlePlatformChange}
+            organization={organization}
+            showOther
+          />
+          <IssueAlertOptions onChange={updatedData => setAlertRuleConfig(updatedData)} />
+          {createProjectForm}
+        </div>
+      </Fragment>
+    </Access>
   );
 }
 
