@@ -33,6 +33,7 @@ from sentry.dynamic_sampling.rules.helpers.sliding_window import (
     get_sliding_window_org_sample_rate,
     get_sliding_window_sample_rate,
     get_sliding_window_size,
+    mark_sliding_window_executed_for_orgs,
 )
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
@@ -402,6 +403,9 @@ def sliding_window() -> None:
             for orgs in get_orgs_with_project_counts_without_modulo(
                 MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY
             ):
+                # We want to mark the sliding window job to be executed for this specific org.
+                mark_sliding_window_executed_for_orgs(org_ids=orgs)
+                # We iterate over each set of orgs and compute the total root counts for each project.
                 for (
                     org_id,
                     projects_with_total_root_count,
@@ -466,11 +470,12 @@ def adjust_base_sample_rate_per_project(
 
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:
-        cache_key = generate_sliding_window_cache_key(org_id=org_id)
-        # We want to delete the Redis hash before adding new sample rate since we don't backfill projects that have no
+        # We want to delete the Redis hash before adding new sample rate since we don't back-fill projects that have no
         # root count metrics in the considered window.
-        pipeline.hdel(cache_key)
+        cache_key = generate_sliding_window_cache_key(org_id=org_id)
+        pipeline.delete(cache_key)
 
+        # For each project we want to now save the new sample rate.
         for project_id, sample_rate in projects_with_rebalanced_sample_rate:  # type:ignore
             pipeline.hset(cache_key, project_id, sample_rate)
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
