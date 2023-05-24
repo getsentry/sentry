@@ -55,7 +55,7 @@ class Rule(Model):
         choices=((RuleStatus.ACTIVE, "Active"), (RuleStatus.INACTIVE, "Inactive")),
         db_index=True,
     )
-    # source is currently used as a way to distinguish rules created specificly
+    # source is currently used as a way to distinguish rules created specifically
     # for use in other parts of the product (e.g. cron monitor alerting rules)
     source = BoundedPositiveIntegerField(
         default=RuleSource.ISSUE,
