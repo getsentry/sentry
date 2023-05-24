@@ -70,6 +70,11 @@ const COLUMN_ORDER = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
+    key: 'p95(span.self_time)',
+    name: 'p95',
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
     key: 'count_unique(user)',
     name: 'Users',
     width: COL_WIDTH_UNDEFINED,
@@ -111,11 +116,11 @@ export default function EndpointTable({
     });
 
   const aggregatesGroupedByURL = {};
-  endpointsThroughputData.forEach(({description, interval, count, p50}) => {
+  endpointsThroughputData.forEach(({description, interval, count, p50, p95}) => {
     if (description in aggregatesGroupedByURL) {
-      aggregatesGroupedByURL[description].push({name: interval, count, p50});
+      aggregatesGroupedByURL[description].push({name: interval, count, p50, p95});
     } else {
-      aggregatesGroupedByURL[description] = [{name: interval, count, p50}];
+      aggregatesGroupedByURL[description] = [{name: interval, count, p50, p95}];
     }
   });
 
@@ -138,12 +143,26 @@ export default function EndpointTable({
       })),
     };
 
+    const p95Series: Series = {
+      seriesName: 'p95 Trend',
+      data: aggregatesGroupedByURL[url]?.map(({name, p95}) => ({
+        name,
+        value: p95,
+      })),
+    };
+
     const zeroFilledThroughput = zeroFillSeries(
       throughputSeries,
       moment.duration(12, 'hours')
     );
     const zeroFilledP50 = zeroFillSeries(p50Series, moment.duration(12, 'hours'));
-    return {...data, throughput: zeroFilledThroughput, p50_trend: zeroFilledP50};
+    const zeroFilledP95 = zeroFillSeries(p95Series, moment.duration(12, 'hours'));
+    return {
+      ...data,
+      throughput: zeroFilledThroughput,
+      p50_trend: zeroFilledP50,
+      p95_trend: zeroFilledP95,
+    };
   });
 
   return (
@@ -202,21 +221,44 @@ export function renderBodyCell(
 
   if (column.key === 'throughput') {
     return (
-      <Sparkline
-        color={CHART_PALETTE[3][0]}
-        series={row[column.key]}
-        width={column.width ? column.width - column.width / 5 : undefined}
-      />
+      <GraphRow>
+        <span>{row.count.toFixed(2)}</span>
+        <Sparkline
+          color={CHART_PALETTE[3][0]}
+          series={row[column.key]}
+          width={column.width ? column.width - column.width / 5 : undefined}
+        />
+      </GraphRow>
     );
   }
 
   if (column.key === 'p50_trend') {
     return (
-      <Sparkline
-        color={CHART_PALETTE[3][3]}
-        series={row[column.key]}
-        width={column.width ? column.width - column.width / 5 : undefined}
-      />
+      <GraphRow>
+        <span>{row['p50(span.self_time)'].toFixed(2)}</span>
+        <Graphline>
+          <Sparkline
+            color={CHART_PALETTE[3][1]}
+            series={row[column.key]}
+            width={column.width ? column.width - column.width / 5 - 50 : undefined}
+          />
+        </Graphline>
+      </GraphRow>
+    );
+  }
+
+  if (column.key === 'p95_trend') {
+    return (
+      <GraphRow>
+        <span>{row['p95(span.self_time)'].toFixed(2)}</span>
+        <Graphline>
+          <Sparkline
+            color={CHART_PALETTE[3][2]}
+            series={row[column.key]}
+            width={column.width ? column.width - column.width / 5 - 50 : undefined}
+          />
+        </Graphline>
+      </GraphRow>
     );
   }
 
@@ -258,4 +300,11 @@ export const TextAlignRight = styled('span')`
 export const TextAlignLeft = styled('span')`
   text-align: left;
   width: 100%;
+`;
+
+const Graphline = styled('div')`
+  margin-left: auto;
+`;
+const GraphRow = styled('div')`
+  display: inline-flex;
 `;
