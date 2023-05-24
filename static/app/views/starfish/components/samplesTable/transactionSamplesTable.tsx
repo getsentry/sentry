@@ -6,7 +6,11 @@ import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import useSlowMedianFastSamplesQuery from 'sentry/views/starfish/components/samplesTable/useSlowMedianFastSamplesQuery';
-import {TextAlignLeft} from 'sentry/views/starfish/modules/APIModule/endpointTable';
+import {
+  OverflowEllipsisTextContainer,
+  TextAlignLeft,
+  TextAlignRight,
+} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 
 type Keys = 'id' | 'timestamp' | 'transaction.duration' | 'p50_comparison';
 type TableColumnHeader = GridColumnHeader<Keys>;
@@ -46,6 +50,18 @@ type DataRow = {
 export function TransactionSamplesTable({eventView}: Props) {
   const location = useLocation();
   const {isLoading, data, aggregatesData} = useSlowMedianFastSamplesQuery(eventView);
+
+  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+    if (column.key === 'p50_comparison') {
+      return (
+        <TextAlignRight>
+          <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
+        </TextAlignRight>
+      );
+    }
+
+    return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
+  }
 
   function renderBodyCell(column: TableColumnHeader, row: DataRow): React.ReactNode {
     if (column.key === 'id') {
@@ -90,6 +106,7 @@ export function TransactionSamplesTable({eventView}: Props) {
       columnSortBy={[]}
       location={location}
       grid={{
+        renderHeadCell,
         renderBodyCell,
       }}
     />
