@@ -15,7 +15,7 @@ from django.conf import settings
 from sentry.metrics.base import MetricsBackend, MutableTags, Tags
 from sentry.metrics.middleware import MiddlewareWrapper, add_global_tags, global_tags
 
-metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL", False)
+metrics_skip_all_internal = settings.SENTRY_METRICS_SKIP_ALL_INTERNAL
 metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
 
 __all__ = [

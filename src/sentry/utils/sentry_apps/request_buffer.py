@@ -37,7 +37,7 @@ class SentryAppWebhookRequestsBuffer:
     def __init__(self, sentry_app):
         self.sentry_app = sentry_app
 
-        cluster_id = getattr(settings, "SENTRY_WEBHOOK_LOG_REDIS_CLUSTER", "default")
+        cluster_id = settings.SENTRY_WEBHOOK_LOG_REDIS_CLUSTER
         self.client = redis.redis_clusters.get(cluster_id)
 
     def _get_redis_key(self, event, error=False):
