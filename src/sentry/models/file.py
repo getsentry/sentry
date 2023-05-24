@@ -34,7 +34,7 @@ from sentry.utils.retries import TimedRetryPolicy
 ONE_DAY = 60 * 60 * 24
 ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
 
-UPLOAD_RETRY_TIME = getattr(settings, "SENTRY_UPLOAD_RETRY_TIME", 60)  # 1min
+UPLOAD_RETRY_TIME = settings.SENTRY_UPLOAD_RETRY_TIME
 
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
 CHUNK_STATE_HEADER = "__state"
