@@ -99,6 +99,16 @@ export function TransactionSamplesTable({eventView, p50}: Props) {
       },
     ]);
 
+  // const sampleEventsEventViewMedian = eventView
+  //   .clone()
+  //   .withColumns(commonColumns)
+  //   .withSorts([
+  //     {
+  //       field: 'transaction.duration',
+  //       kind: 'asc',
+  //     },
+  //   ]);
+
   function renderBodyCell(column: TableColumnHeader, row: DataRow): React.ReactNode {
     if (column.key === 'id') {
       return (
@@ -125,7 +135,10 @@ export function TransactionSamplesTable({eventView, p50}: Props) {
     return <TextAlignLeft>{row[column.key]}</TextAlignLeft>;
   }
 
-  const {isLoading, data} = useGenericDiscoverQuery<any, DiscoverQueryProps>({
+  const {isLoading: isLoadingSlowest, data: slowestSamples} = useGenericDiscoverQuery<
+    any,
+    DiscoverQueryProps
+  >({
     route: 'events',
     eventView: sampleEventsEventViewSlowest,
     referrer: 'starfish-transaction-summary-sample-events',
@@ -137,7 +150,7 @@ export function TransactionSamplesTable({eventView, p50}: Props) {
     }),
   });
 
-  const {isLoading: isLoading2, data: data2} = useGenericDiscoverQuery<
+  const {isLoading: isLoadingFastest, data: fastestSamples} = useGenericDiscoverQuery<
     any,
     DiscoverQueryProps
   >({
@@ -152,12 +165,12 @@ export function TransactionSamplesTable({eventView, p50}: Props) {
     }),
   });
 
-  console.dir(data2);
+  const combinedData = [...slowestSamples?.data, ...fastestSamples.data];
 
   return (
     <GridEditable
-      isLoading={isLoading}
-      data={data?.data}
+      isLoading={isLoadingSlowest || isLoadingFastest}
+      data={combinedData}
       columnOrder={COLUMN_ORDER}
       columnSortBy={[]}
       location={location}

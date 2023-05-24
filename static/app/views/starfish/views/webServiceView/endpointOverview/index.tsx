@@ -133,10 +133,6 @@ export default function EndpointOverview() {
   ];
 
   const query = new MutableSearch(queryConditions);
-  const samplesQueryMedian = new MutableSearch([
-    ...queryConditions,
-    'transaction.duration:>',
-  ]);
 
   const savedQuery: NewQuery = {
     id: undefined,
