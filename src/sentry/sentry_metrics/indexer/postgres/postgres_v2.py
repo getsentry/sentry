@@ -17,6 +17,8 @@ from sentry.sentry_metrics.indexer.base import (
     UseCaseKeyCollection,
     UseCaseKeyResult,
     UseCaseKeyResults,
+    metric_path_key_compatible_resolve,
+    metric_path_key_compatible_rev_resolve,
 )
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
 from sentry.sentry_metrics.indexer.limiters.writes import writes_limiter_factory
@@ -243,26 +245,34 @@ class PGStringIndexerV2(StringIndexer):
         result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
         return result[use_case_id][org_id][string]
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    @metric_path_key_compatible_resolve
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Returns None if the entry cannot be found.
 
         """
-        table = self._get_table_from_metric_path_key(use_case_id)
+        metric_path_key = METRIC_PATH_MAPPING[use_case_id]
+        table = self._get_table_from_metric_path_key(metric_path_key)
         try:
-            id: int = table.objects.using_replica().get(organization_id=org_id, string=string).id
+            if metric_path_key is UseCaseKey.PERFORMANCE:
+                return int(
+                    table.objects.using_replica()
+                    .get(organization_id=org_id, string=string, use_case_id=use_case_id.value)
+                    .id
+                )
+            return int(table.objects.using_replica().get(organization_id=org_id, string=string).id)
         except table.DoesNotExist:
             return None
 
-        return id
-
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    @metric_path_key_compatible_rev_resolve
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.
         """
-        table = self._get_table_from_metric_path_key(use_case_id)
+        metric_path_key = METRIC_PATH_MAPPING[use_case_id]
+        table = self._get_table_from_metric_path_key(metric_path_key)
         try:
             obj = table.objects.get_from_cache(id=id, use_replica=True)
         except table.DoesNotExist:
