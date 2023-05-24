@@ -1,3 +1,4 @@
+import {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import newFeatureImage from 'sentry-images/spot/alerts-new-feature-banner.svg';
@@ -5,12 +6,11 @@ import newFeatureImage from 'sentry-images/spot/alerts-new-feature-banner.svg';
 import {IconBroadcast, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 interface NewFeatureBannerProps {
   description: React.ReactNode;
-  dismissKey: string;
   heading: React.ReactNode;
+  onDismiss: () => void;
   button?: React.ReactNode;
 }
 
@@ -18,22 +18,16 @@ export function NewFeatureBanner({
   heading,
   description,
   button,
-  dismissKey,
+  onDismiss,
 }: NewFeatureBannerProps) {
-  const {dismiss, isDismissed} = useDismissAlert({
-    key: dismissKey,
-  });
-  if (isDismissed) {
-    return null;
-  }
   return (
     <Wrapper>
-      <CloseBtn onClick={dismiss}>
+      <CloseBtn onClick={onDismiss}>
         <IconClose size="xs" />
       </CloseBtn>
       <Background />
       <Stack>
-        <SubText uppercase>
+        <SubText uppercase fontWeight={500}>
           <IconBroadcast />
           <span>{t('Whats New')}</span>
         </SubText>
@@ -106,12 +100,17 @@ const TextContainer = styled('div')`
   }
 `;
 
-const SubText = styled('div')<{uppercase?: boolean}>`
+const SubText = styled('div')<{
+  fontSize?: 'sm';
+  fontWeight?: CSSProperties['fontWeight'];
+  uppercase?: boolean;
+}>`
   display: flex;
   text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
   color: ${p => p.theme.subText};
   line-height: ${p => p.theme.fontSizeMedium};
   font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.fontWeight};
   align-items: center;
   gap: ${space(0.5)};
 `;

@@ -95,7 +95,7 @@ function ReplaysListTable({
 
   return (
     <Fragment>
-      <ReplaySearchAlert />
+      <ReplaySearchAlert needSdkUpdates={Boolean(allSelectedProjectsNeedUpdates)} />
       <ReplayTable
         fetchError={fetchError}
         isFetching={isFetching}
