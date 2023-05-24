@@ -31,9 +31,9 @@ ITERATOR_CHUNK = 10_000
 
 
 @instrumented_task(
-    name="sentry.tasks.auto_transition_issues_ongoing_to_archived",
+    name="sentry.tasks.auto_archive_issues.run_auto_archive",
     queue="auto_transition_issue_states",
-    max_retries=0,  # TODO: Increase this when the task is changed to run weekly
+    max_retries=3,
 )  # type: ignore
 @monitor(monitor_slug="auto-archive-job-monitor")
 def run_auto_archive() -> None:
@@ -55,7 +55,7 @@ def run_auto_archive() -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.auto_transition_issues_ongoing_to_archived_for_projects",
+    name="sentry.tasks.auto_archive_issues.run_auto_archive_for_projects",
     queue="auto_transition_issue_states",
     max_retries=3,
     default_retry_delay=60,
