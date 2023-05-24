@@ -13,6 +13,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.endpoints.team_projects import ProjectSerializer
 from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.experiments import manager as expt_manager
 from sentry.models import Project
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -74,9 +75,12 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             )
 
         result = serializer.validated_data
+        exposed = expt_manager.get(
+            "ProjectCreationForAllExperiment", org=organization, actor=request.user
+        )
 
         if not features.has("organizations:team-roles", organization) or not features.has(
-            "organizations:team-project-creation-all", organization
+            "organizations:team-project-creation-all", organization or exposed != 1
         ):
             raise ResourceDoesNotExist(detail=MISSING_PERMISSION_ERROR_STRING)
 
