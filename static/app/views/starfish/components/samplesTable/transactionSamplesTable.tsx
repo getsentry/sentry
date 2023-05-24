@@ -3,6 +3,7 @@ import Duration from 'sentry/components/duration';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import EventView from 'sentry/utils/discover/eventView';
+import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryProps,
   useGenericDiscoverQuery,
@@ -56,6 +57,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
 
 type Props = {
   eventView: EventView;
+  p50: number;
 };
 
 type DataRow = {
@@ -63,26 +65,40 @@ type DataRow = {
   'transaction.duration': number;
 };
 
-export function TransactionSamplesTable({eventView}: Props) {
+export function TransactionSamplesTable({eventView, p50}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
-  const sampleEventsEventView = eventView
+  console.log(p50);
+
+  const commonColumns: QueryFieldValue[] = [
+    {
+      field: 'transaction.duration',
+      kind: 'field',
+    },
+    {
+      field: 'timestamp',
+      kind: 'field',
+    },
+  ];
+
+  const sampleEventsEventViewSlowest = eventView
     .clone()
-    .withColumns([
-      {
-        field: 'transaction.duration',
-        kind: 'field',
-      },
-      {
-        field: 'timestamp',
-        kind: 'field',
-      },
-    ])
+    .withColumns(commonColumns)
     .withSorts([
       {
         field: 'transaction.duration',
         kind: 'desc',
+      },
+    ]);
+
+  const sampleEventsEventViewFastest = eventView
+    .clone()
+    .withColumns(commonColumns)
+    .withSorts([
+      {
+        field: 'transaction.duration',
+        kind: 'asc',
       },
     ]);
 
@@ -114,15 +130,32 @@ export function TransactionSamplesTable({eventView}: Props) {
 
   const {isLoading, data} = useGenericDiscoverQuery<any, DiscoverQueryProps>({
     route: 'events',
-    eventView: sampleEventsEventView,
+    eventView: sampleEventsEventViewSlowest,
     referrer: 'starfish-transaction-summary-sample-events',
-    limit: 5,
+    limit: 3,
     location,
     orgSlug: organization.slug,
     getRequestPayload: () => ({
-      ...sampleEventsEventView.getEventsAPIPayload(location),
+      ...sampleEventsEventViewSlowest.getEventsAPIPayload(location),
     }),
   });
+
+  const {isLoading: isLoading2, data: data2} = useGenericDiscoverQuery<
+    any,
+    DiscoverQueryProps
+  >({
+    route: 'events',
+    eventView: sampleEventsEventViewFastest,
+    referrer: 'starfish-transaction-summary-sample-events',
+    limit: 3,
+    location,
+    orgSlug: organization.slug,
+    getRequestPayload: () => ({
+      ...sampleEventsEventViewFastest.getEventsAPIPayload(location),
+    }),
+  });
+
+  console.dir(data2);
 
   return (
     <GridEditable

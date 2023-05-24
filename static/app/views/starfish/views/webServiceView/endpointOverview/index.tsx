@@ -40,6 +40,7 @@ import {HOST} from 'sentry/views/starfish/utils/constants';
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 import {getTransactionSamplesQuery} from 'sentry/views/starfish/views/webServiceView/endpointOverview/queries';
+import meanBy from 'lodash/meanBy';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -125,11 +126,17 @@ export default function EndpointOverview() {
     moment(end_timestamp)
   );
 
-  const query = new MutableSearch([
+  const queryConditions = [
     'has:http.method',
     'transaction.op:http.server',
     `transaction:${transaction}`,
     `http.method:${method}`,
+  ];
+
+  const query = new MutableSearch(queryConditions);
+  const samplesQueryMedian = new MutableSearch([
+    ...queryConditions,
+    'transaction.duration:>',
   ]);
 
   const savedQuery: NewQuery = {
@@ -140,24 +147,6 @@ export default function EndpointOverview() {
     fields: [],
     version: 2,
   };
-
-  console.log(method);
-
-  const {isLoading: isTransactionSamplesDataLoading, data: transactionSamplesData} =
-    useQuery({
-      queryKey: ['transactionSamplesTable', transaction, method],
-      queryFn: () =>
-        fetch(
-          `${HOST}/?query=${getTransactionSamplesQuery({
-            transaction,
-            method,
-          })}`
-        ).then(res => res.json()),
-      retry: false,
-      initialData: [],
-    });
-
-  console.dir(transactionSamplesData);
 
   function renderFailureRateChart() {
     return (
@@ -240,88 +229,95 @@ export default function EndpointOverview() {
         <Layout.Main fullWidth>
           <SubHeader>{t('Endpoint URL')}</SubHeader>
           <pre>{`${method} ${transaction}`}</pre>
-          <StyledRow minSize={200}>
-            <ChartsContainer>
-              <ChartsContainerItem>
-                <SpanGroupBreakdownContainer transaction={transaction as string} />
-              </ChartsContainerItem>
-              <ChartsContainerItem2>
-                <ChartPanel title={t('Error Rate')}>
-                  {renderFailureRateChart()}
-                </ChartPanel>
-                <EventsRequest
-                  query={query.formatString()}
-                  includePrevious={false}
-                  partial
-                  limit={5}
-                  interval="1h"
-                  includeTransformedData
-                  environment={eventView.environment}
-                  project={eventView.project}
-                  period={pageFilter.selection.datetime.period}
-                  referrer="starfish-endpoint-overview"
-                  start={pageFilter.selection.datetime.start}
-                  end={pageFilter.selection.datetime.end}
-                  organization={organization}
-                  yAxis={['tpm()', 'p50(transaction.duration)']}
-                  queryExtras={{dataset: 'metrics'}}
-                >
-                  {({results, loading}) => {
-                    return (
-                      <Fragment>
-                        <ChartPanel title={t('p50(duration)')}>
-                          <Chart
-                            statsPeriod={(statsPeriod as string) ?? '24h'}
-                            height={80}
-                            data={results?.[1] ? [results?.[1]] : []}
-                            start=""
-                            end=""
-                            loading={loading}
-                            utc={false}
-                            stacked
-                            isLineChart
-                            disableXAxis
-                            definedAxisTicks={2}
-                            chartColors={[theme.charts.getColorPalette(0)[1]]}
-                            grid={{
-                              left: '0',
-                              right: '0',
-                              top: '8px',
-                              bottom: '16px',
-                            }}
-                          />
+          <EventsRequest
+            query={query.formatString()}
+            includePrevious={false}
+            partial
+            limit={5}
+            interval="1h"
+            includeTransformedData
+            environment={eventView.environment}
+            project={eventView.project}
+            period={pageFilter.selection.datetime.period}
+            referrer="starfish-endpoint-overview"
+            start={pageFilter.selection.datetime.start}
+            end={pageFilter.selection.datetime.end}
+            organization={organization}
+            yAxis={['tpm()', 'p50(transaction.duration)']}
+            queryExtras={{dataset: 'metrics'}}
+          >
+            {({results, loading}) => {
+              const p50Series = results?.[1].data ?? [];
+              const p50 = meanBy(p50Series, item => item.value);
+              return (
+                <Fragment>
+                  <StyledRow minSize={200}>
+                    <ChartsContainer>
+                      <ChartsContainerItem>
+                        <SpanGroupBreakdownContainer
+                          transaction={transaction as string}
+                        />
+                      </ChartsContainerItem>
+                      <ChartsContainerItem2>
+                        <ChartPanel title={t('Error Rate')}>
+                          {renderFailureRateChart()}
                         </ChartPanel>
-                        <ChartPanel title={t('Througput')}>
-                          <Chart
-                            statsPeriod={(statsPeriod as string) ?? '24h'}
-                            height={80}
-                            data={results?.[0] ? [results?.[0]] : []}
-                            start=""
-                            end=""
-                            loading={loading}
-                            utc={false}
-                            stacked
-                            isLineChart
-                            disableXAxis
-                            definedAxisTicks={2}
-                            chartColors={[theme.charts.getColorPalette(0)[0]]}
-                            grid={{
-                              left: '0',
-                              right: '0',
-                              top: '8px',
-                              bottom: '16px',
-                            }}
-                          />
-                        </ChartPanel>
-                      </Fragment>
-                    );
-                  }}
-                </EventsRequest>
-              </ChartsContainerItem2>
-            </ChartsContainer>
-          </StyledRow>
-          <SubHeader>{t('Sample Events')}</SubHeader>
-          <TransactionSamplesTable eventView={eventView} />
+
+                        <Fragment>
+                          <ChartPanel title={t('p50(duration)')}>
+                            <Chart
+                              statsPeriod={(statsPeriod as string) ?? '24h'}
+                              height={80}
+                              data={results?.[1] ? [results?.[1]] : []}
+                              start=""
+                              end=""
+                              loading={loading}
+                              utc={false}
+                              stacked
+                              isLineChart
+                              disableXAxis
+                              definedAxisTicks={2}
+                              chartColors={[theme.charts.getColorPalette(0)[1]]}
+                              grid={{
+                                left: '0',
+                                right: '0',
+                                top: '8px',
+                                bottom: '16px',
+                              }}
+                            />
+                          </ChartPanel>
+                          <ChartPanel title={t('Througput')}>
+                            <Chart
+                              statsPeriod={(statsPeriod as string) ?? '24h'}
+                              height={80}
+                              data={results?.[0] ? [results?.[0]] : []}
+                              start=""
+                              end=""
+                              loading={loading}
+                              utc={false}
+                              stacked
+                              isLineChart
+                              disableXAxis
+                              definedAxisTicks={2}
+                              chartColors={[theme.charts.getColorPalette(0)[0]]}
+                              grid={{
+                                left: '0',
+                                right: '0',
+                                top: '8px',
+                                bottom: '16px',
+                              }}
+                            />
+                          </ChartPanel>
+                        </Fragment>
+                      </ChartsContainerItem2>
+                    </ChartsContainer>
+                  </StyledRow>
+                  <SubHeader>{t('Sample Events')}</SubHeader>
+                  <TransactionSamplesTable eventView={eventView} p50={p50} />
+                </Fragment>
+              );
+            }}
+          </EventsRequest>
           <FacetInsights eventView={eventView} />
           <SubHeader>{t('HTTP Spans')}</SubHeader>
           <EndpointTable
