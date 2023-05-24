@@ -15,12 +15,14 @@
 /src/sentry/eventstream/                                 @getsentry/owners-snuba
 /src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/discover-n-dashboards
 /src/sentry/utils/snql.py                                @getsentry/owners-snuba
+/src/sentry/utils/arroyo.py                              @getsentry/owners-snuba
+/src/sentry/utils/arroyo_producer.py                     @getsentry/owners-snuba
 /src/sentry/tsdb/snuba.py                                @getsentry/owners-snuba
 /src/sentry/tsdb/redissnuba.py                           @getsentry/owners-snuba
 /src/sentry/search/snuba/                                @getsentry/owners-snuba @getsentry/issues
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
 /src/sentry/sentry_metrics/                              @getsentry/owners-snuba
-/tests/sentry/sentry_metrics/
+/tests/sentry/sentry_metrics/                            @getsentry/owners-snuba
 
 ## Event Ingestion
 /src/sentry/attachments/                                 @getsentry/owners-ingest
