@@ -8,7 +8,7 @@ and perform RPC calls to propagate changes to relevant region(s).
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Mapping
 
 from django.dispatch import receiver
 
