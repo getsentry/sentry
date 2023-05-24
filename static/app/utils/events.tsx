@@ -401,10 +401,17 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
   };
 }
 
-export function eventIsProfilingIssue(event: Event | BaseGroup): event is Event {
-  const evidenceData = event?.occurrence?.evidenceData ?? {};
-  return (
-    evidenceData.templateName === 'profile' ||
-    event.issueCategory === IssueCategory.PROFILE
-  );
+export function eventIsProfilingIssue(event: Event | BaseGroup) {
+  if (isIssue(event)) {
+    const evidenceData = event?.occurrence?.evidenceData ?? {};
+    return (
+      evidenceData.templateName === 'profile' ||
+      event.issueCategory === IssueCategory.PROFILE
+    );
+  }
+  return false;
+}
+
+function isIssue(event: Event | BaseGroup): event is Event {
+  return event.hasOwnProperty('occurrence');
 }
