@@ -31,7 +31,7 @@ def update_queue_stats(queue_name: str) -> Dict[str, Any]:
     return {}
 
 
-def run_queue_stats_updater():
+def run_queue_stats_updater() -> None:
     # bonus point if we manage to use asyncio and launch all tasks at once
     # in case we have many queues to check
     while True:
