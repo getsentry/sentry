@@ -284,12 +284,27 @@ def _extract_debug_ids_from_manifest(
     return bundle_id, debug_ids_with_types
 
 
-def _remove_duplicate_artifact_bundles(bundle: ArtifactBundle, bundle_id: str):
+def _remove_duplicate_artifact_bundles(
+    bundle: ArtifactBundle,
+    bundle_id: str,
+    version: Optional[str],
+    dist: Optional[str],
+):
     with transaction.atomic():
         # Even though we delete via a QuerySet the associated file is also deleted, because django will still
         # fire the on_delete signal.
+        release_filter = Q()
+        if version:
+            release_filter = Q(
+                releaseartifactbundle__release_name=version,
+                releaseartifactbundle__dist_name=dist or "",
+            )
+
         ArtifactBundle.objects.filter(
-            ~Q(id=bundle.id), bundle_id=bundle_id, organization_id=bundle.organization_id
+            ~Q(id=bundle.id),
+            release_filter,
+            bundle_id=bundle_id,
+            organization_id=bundle.organization_id,
         ).delete()
 
 
@@ -349,7 +364,7 @@ def _create_artifact_bundle(
                     date_added=now,
                 )
 
-            _remove_duplicate_artifact_bundles(artifact_bundle, bundle_id)
+            _remove_duplicate_artifact_bundles(artifact_bundle, bundle_id, version, dist)
         else:
             raise AssembleArtifactsError(
                 "uploading a bundle without debug ids or release is prohibited"
