@@ -286,7 +286,7 @@ def _extract_debug_ids_from_manifest(
 
 def _bind_or_create_artifact_bundle(
     bundle_id: uuid,
-    now: datetime,
+    date_added: datetime,
     org_id: int,
     archive_file: File,
     artifact_count: int,
@@ -298,34 +298,53 @@ def _bind_or_create_artifact_bundle(
     except ArtifactBundle.DoesNotExist:
         existing_artifact_bundle = None
 
-    # In case there is not ArtifactBundle with a specific bundle_id, we just create it and return.
-    if existing_artifact_bundle is None:
-        artifact_bundle = ArtifactBundle.objects.create(
-            organization_id=org_id,
-            # In case we didn't find the bundle_id in the manifest, we will just generate our own.
-            bundle_id=bundle_id or uuid.uuid4().hex,
-            file=archive_file,
-            artifact_count=artifact_count,
-            # For now these two fields will have the same value but in separate tasks we will update "date_added"
-            # in order to perform partitions rebalancing in the database.
-            date_added=now,
-            date_uploaded=now,
-        )
-
-        return artifact_bundle, True
-
     with transaction.atomic():
+        # In case there is not ArtifactBundle with a specific bundle_id, we just create it and return.
+        if existing_artifact_bundle is None:
+            artifact_bundle = ArtifactBundle.objects.create(
+                organization_id=org_id,
+                # In case we didn't find the bundle_id in the manifest, we will just generate our own.
+                bundle_id=bundle_id or uuid.uuid4().hex,
+                file=archive_file,
+                artifact_count=artifact_count,
+                # For now these two fields will have the same value but in separate tasks we will update "date_added"
+                # in order to perform partitions rebalancing in the database.
+                date_added=date_added,
+                date_uploaded=date_added,
+            )
+
+            return artifact_bundle, True
+
         # We store a reference to the previous file to which the bundle was pointing to.
         existing_file = existing_artifact_bundle.file
 
         # In case there is an ArtifactBundle with a specific bundle_id, we want to change its underlying File model
         # with its corresponding artifact count.
-        existing_artifact_bundle.update(file=archive_file, artifact_count=artifact_count)
+        existing_artifact_bundle.update(
+            date_added=date_added, file=archive_file, artifact_count=artifact_count
+        )
 
         # We now delete that file, in order to avoid orphan files in the database.
         existing_file.delete()
 
     return existing_artifact_bundle, False
+
+
+def _align_date_added_field(org_id: int, artifact_bundle: ArtifactBundle, date_added: datetime):
+    ReleaseArtifactBundle.objects.filter(
+        organization_id=org_id,
+        artifact_bundle=artifact_bundle,
+    ).update(date_added=date_added)
+
+    ProjectArtifactBundle.objects.filter(
+        organization_id=org_id,
+        artifact_bundle=artifact_bundle,
+    ).update(date_added=date_added)
+
+    DebugIdArtifactBundle.objects.filter(
+        organization_id=org_id,
+        artifact_bundle=artifact_bundle,
+    ).update(date_added=date_added)
 
 
 def _create_artifact_bundle(
@@ -346,39 +365,47 @@ def _create_artifact_bundle(
 
             artifact_bundle, created = _bind_or_create_artifact_bundle(
                 bundle_id=bundle_id,
-                now=now,
+                date_added=now,
                 org_id=org_id,
                 archive_file=archive_file,
                 artifact_count=artifact_count,
             )
 
-            # If a release version is passed, we want to create the weak association between a bundle and a release.
-            if version:
-                ReleaseArtifactBundle.objects.create_or_update(
-                    organization_id=org_id,
-                    release_name=version,
-                    # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our tables.
-                    dist_name=dist or "",
-                    artifact_bundle=artifact_bundle,
-                    date_added=now,
+            with transaction.atomic():
+                # If a release version is passed, we want to create the weak association between a bundle and a release.
+                if version:
+                    ReleaseArtifactBundle.objects.create_or_update(
+                        organization_id=org_id,
+                        release_name=version,
+                        # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our
+                        # tables.
+                        dist_name=dist or "",
+                        artifact_bundle=artifact_bundle,
+                        date_added=now,
+                    )
+
+                for project_id in project_ids or ():
+                    ProjectArtifactBundle.objects.create_or_update(
+                        organization_id=org_id,
+                        project_id=project_id,
+                        artifact_bundle=artifact_bundle,
+                        date_added=now,
+                    )
+
+                for source_file_type, debug_id in debug_ids_with_types:
+                    DebugIdArtifactBundle.objects.create_or_update(
+                        organization_id=org_id,
+                        debug_id=debug_id,
+                        artifact_bundle=artifact_bundle,
+                        source_file_type=source_file_type.value,
+                        date_added=now,
+                    )
+
+                # Once all the entities have been created, we want to update them.
+                _align_date_added_field(
+                    org_id=org_id, artifact_bundle=artifact_bundle, date_added=now
                 )
 
-            for project_id in project_ids or ():
-                ProjectArtifactBundle.objects.create_or_update(
-                    organization_id=org_id,
-                    project_id=project_id,
-                    artifact_bundle=artifact_bundle,
-                    date_added=now,
-                )
-
-            for source_file_type, debug_id in debug_ids_with_types:
-                DebugIdArtifactBundle.objects.create_or_update(
-                    organization_id=org_id,
-                    debug_id=debug_id,
-                    artifact_bundle=artifact_bundle,
-                    source_file_type=source_file_type.value,
-                    date_added=now,
-                )
         else:
             raise AssembleArtifactsError(
                 "uploading a bundle without debug ids or release is prohibited"
