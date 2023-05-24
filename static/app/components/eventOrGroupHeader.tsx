@@ -57,8 +57,6 @@ function EventOrGroupHeader({
 }: Props) {
   const location = useLocation();
 
-  const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
-
   function getTitleChildren() {
     const {level, status, isBookmarked, hasSeen} = data as Group;
     return (
@@ -88,7 +86,8 @@ function EventOrGroupHeader({
           <StyledEventOrGroupTitle
             data={data}
             organization={organization}
-            hasSeen={hasGroupingTreeUI && hasSeen === undefined ? true : hasSeen}
+            // hasSeen is undefined for GroupTombstone
+            hasSeen={hasSeen === undefined ? true : hasSeen}
             withStackTracePreview
             hasGuideAnchor={index === 0}
             grouping={grouping}

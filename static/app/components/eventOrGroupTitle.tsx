@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {BaseGroup, GroupTombstone, Organization} from 'sentry/types';
@@ -31,13 +30,17 @@ function EventOrGroupTitle({
   const groupingCurrentLevel = (data as BaseGroup).metadata?.current_level;
   const groupingIssueCategory = (data as BaseGroup)?.issueCategory;
 
-  const hasGroupingTreeUI = !!organization?.features.includes('grouping-tree-ui');
   const {id, eventID, groupID, projectID} = event;
 
   const {title, subtitle, treeLabel} = getTitle(event, organization?.features, grouping);
+  const titleLabel = treeLabel ? (
+    <EventTitleTreeLabel treeLabel={treeLabel} />
+  ) : (
+    title ?? ''
+  );
 
   return (
-    <Wrapper className={className} hasGroupingTreeUI={hasGroupingTreeUI}>
+    <Wrapper className={className}>
       {withStackTracePreview ? (
         <GroupPreviewTooltip
           groupId={groupID ? groupID : id}
@@ -46,12 +49,10 @@ function EventOrGroupTitle({
           eventId={eventID}
           projectId={projectID}
         >
-          {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title ?? ''}
+          {titleLabel}
         </GroupPreviewTooltip>
-      ) : treeLabel ? (
-        <EventTitleTreeLabel treeLabel={treeLabel} />
       ) : (
-        title
+        titleLabel
       )}
       {subtitle && (
         <Fragment>
@@ -76,23 +77,16 @@ function Spacer() {
 }
 
 const Subtitle = styled('em')`
+  ${p => p.theme.overflowEllipsis};
+  display: inline-block;
   color: ${p => p.theme.gray300};
   font-style: normal;
+  height: 100%;
 `;
 
-const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
+const Wrapper = styled('span')`
   font-size: ${p => p.theme.fontSizeLarge};
-  ${p =>
-    p.hasGroupingTreeUI &&
-    css`
-      display: inline-grid;
-      grid-template-columns: auto max-content 1fr max-content;
-      align-items: baseline;
-
-      ${Subtitle} {
-        ${p.theme.overflowEllipsis};
-        display: inline-block;
-        height: 100%;
-      }
-    `}
+  display: inline-grid;
+  grid-template-columns: auto max-content 1fr max-content;
+  align-items: baseline;
 `;
