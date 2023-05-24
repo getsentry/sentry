@@ -168,6 +168,39 @@ export function TransactionSamplesTable({eventView, p50}: Props) {
     limit: 5,
   });
 
+  const fastestSamplesEventView = eventView
+    .clone()
+    .withColumns(commonColumns)
+    .withSorts([
+      {
+        field: 'transaction.duration',
+        kind: 'asc',
+      },
+    ]);
+
+  fastestSamplesEventView.additionalConditions = new MutableSearch(
+    `transaction.duration:<=${
+      aggregatesData?.data?.[0]?.['p50(transaction.duration)'] ?? 0
+    }`
+  );
+
+  const {isLoading: isLoadingFastest, data: fastestSamplesData} = useGenericDiscoverQuery<
+    any,
+    DiscoverQueryProps
+  >({
+    route: 'events',
+    eventView: fastestSamplesEventView,
+    referrer: 'starfish-transaction-summary-sample-events',
+    location,
+    orgSlug: organization.slug,
+    getRequestPayload: () => ({
+      ...fastestSamplesEventView.getEventsAPIPayload(location),
+    }),
+    limit: 5,
+  });
+
+  console.dir(fastestSamplesData);
+
   return (
     <GridEditable
       isLoading={isLoadingSlowest}
