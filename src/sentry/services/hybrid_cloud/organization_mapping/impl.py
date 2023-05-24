@@ -75,11 +75,16 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
 
     def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         with transaction.atomic():
-            (
+            updated_mappings = (
                 OrganizationMapping.objects.filter(organization_id=organization_id)
                 .select_for_update()
                 .update(**update)
             )
+
+            if len(updated_mappings) == 0:
+                raise Exception(
+                    "Expected to update 1 or more organization mappings, but 0 were updated"
+                )
 
     def verify_mappings(self, organization_id: int, slug: str) -> None:
         try:

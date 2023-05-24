@@ -487,7 +487,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         Update various attributes and configurable settings for the given
         organization.
 
-        :pparam string organization_slug: the slug of the organization the
+        :param string organization_slug: the slug of the organization the
                                           team should be created for.
         :param string name: an optional new name for the organization.
         :param string slug: an optional new slug for the organization.  Needs
