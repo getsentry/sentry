@@ -76,6 +76,13 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         }
 
     @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    def test_missing_experiment(self):
+        response = self.get_error_response(self.organization.slug, name=self.p1, status_code=404)
+        assert response.data == {
+            "detail": "You do not have permission to join a new team as a Team Admin."
+        }
+
+    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
     @patch("sentry.models.team.Team.objects.filter")
     def test_too_many_team_creation_attempts(self, mock_filter):
         mock_filter.exists.return_value = True

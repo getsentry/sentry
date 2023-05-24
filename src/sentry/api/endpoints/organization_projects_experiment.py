@@ -79,8 +79,10 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             "ProjectCreationForAllExperiment", org=organization, actor=request.user
         )
 
-        if not features.has("organizations:team-roles", organization) or not features.has(
-            "organizations:team-project-creation-all", organization or exposed != 1
+        if (
+            not features.has("organizations:team-roles", organization)
+            or not features.has("organizations:team-project-creation-all", organization)
+            or exposed != 1
         ):
             raise ResourceDoesNotExist(detail=MISSING_PERMISSION_ERROR_STRING)
 
