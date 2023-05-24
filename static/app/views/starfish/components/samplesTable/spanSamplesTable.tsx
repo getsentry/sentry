@@ -2,13 +2,9 @@ import {Link} from 'react-router';
 
 import DateTime from 'sentry/components/dateTime';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
-import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
-import {
-  ComparisonLabel,
-  PlaintextLabel,
-} from 'sentry/views/starfish/components/samplesTable/labels';
+import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import {TextAlignRight} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/views/spanSummary';
 
@@ -97,16 +93,7 @@ export function SpanSamplesTable({isLoading, data, p50}: Props) {
     }
 
     if (column.key === 'p50_comparison') {
-      const diff = row.spanDuration - p50;
-
-      if (Math.floor(row.spanDuration) === Math.floor(p50)) {
-        return <PlaintextLabel>{t('At baseline')}</PlaintextLabel>;
-      }
-
-      const labelString =
-        diff > 0 ? `+${diff.toFixed(2)}ms above` : `${diff.toFixed(2)}ms below`;
-
-      return <ComparisonLabel value={diff}>{labelString}</ComparisonLabel>;
+      return <DurationComparisonCell duration={row.spanDuration} p50={p50} />;
     }
 
     if (column.key === 'timestamp') {
