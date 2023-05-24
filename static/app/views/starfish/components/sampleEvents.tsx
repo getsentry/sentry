@@ -17,16 +17,22 @@ type Props = {
 
 type DataRow = {
   id: string;
+  profile_id: string;
   timestamp: string;
   'transaction.duration': number;
 };
 
-type Keys = 'id' | 'transaction.duration' | 'timestamp';
+type Keys = 'id' | 'profile_id' | 'transaction.duration' | 'timestamp';
 type TableColumnHeader = GridColumnHeader<Keys>;
 const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'id',
     name: 'Event ID',
+    width: 300,
+  },
+  {
+    key: 'profile_id',
+    name: 'Profile ID',
     width: 300,
   },
   {
@@ -53,6 +59,10 @@ export function SampleEvents({eventView}: Props) {
         kind: 'field',
       },
       {
+        field: 'profile_id',
+        kind: 'field',
+      },
+      {
         field: 'timestamp',
         kind: 'field',
       },
@@ -70,6 +80,18 @@ export function SampleEvents({eventView}: Props) {
         <Link to={`/performance/${row['project.name']}:${row.id}`}>
           {row.id.slice(0, 8)}
         </Link>
+      );
+    }
+
+    if (column.key === 'profile_id') {
+      return row.profile_id ? (
+        <Link
+          to={`/profiling/profile/${row['project.name']}/${row.profile_id}/flamechart/`}
+        >
+          {row.profile_id.slice(0, 8)}
+        </Link>
+      ) : (
+        '(no value)'
       );
     }
 
