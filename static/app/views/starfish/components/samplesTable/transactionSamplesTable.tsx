@@ -11,6 +11,7 @@ import {
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useCherryPickedSamplesQuery from 'sentry/views/starfish/components/samplesTable/useCherryPickedSamplesQuery';
 import {TextAlignLeft} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 
 type Keys = 'id' | 'timestamp' | 'transaction.duration' | 'p50_comparison';
@@ -51,23 +52,7 @@ type DataRow = {
 
 export function TransactionSamplesTable({eventView, p50}: Props) {
   const location = useLocation();
-  const organization = useOrganization();
-
-  const commonColumns: QueryFieldValue[] = [
-    {
-      field: 'transaction.duration',
-      kind: 'field',
-    },
-    {
-      field: 'timestamp',
-      kind: 'field',
-    },
-  ];
-
-  const eventViewAggregates = eventView.clone().withColumns([
-    {kind: 'function', function: ['p50', 'transaction.duration']},
-    {kind: 'function', function: ['p95', 'transaction.duration']},
-  ]);
+  const {isLoading, data} = useCherryPickedSamplesQuery(eventView);
 
   function renderBodyCell(column: TableColumnHeader, row: DataRow): React.ReactNode {
     if (column.key === 'id') {
@@ -95,116 +80,10 @@ export function TransactionSamplesTable({eventView, p50}: Props) {
     return <TextAlignLeft>{row[column.key]}</TextAlignLeft>;
   }
 
-  const {isLoading: isLoadingAgg, data: aggregatesData} = useGenericDiscoverQuery<
-    any,
-    DiscoverQueryProps
-  >({
-    route: 'events',
-    eventView: eventViewAggregates,
-    referrer: 'starfish-transaction-summary-sample-events',
-    location,
-    orgSlug: organization.slug,
-  });
-
-  const slowestSamplesEventView = eventView
-    .clone()
-    .withColumns(commonColumns)
-    .withSorts([
-      {
-        field: 'transaction.duration',
-        kind: 'desc',
-      },
-    ]);
-
-  slowestSamplesEventView.additionalConditions = new MutableSearch(
-    `transaction.duration:>${
-      aggregatesData?.data?.[0]?.['p95(transaction.duration)'] ?? 0
-    }`
-  );
-
-  const {isLoading: isLoadingSlowest, data: slowestSamplesData} = useGenericDiscoverQuery<
-    any,
-    DiscoverQueryProps
-  >({
-    route: 'events',
-    eventView: slowestSamplesEventView,
-    referrer: 'starfish-transaction-summary-sample-events',
-    location,
-    orgSlug: organization.slug,
-    getRequestPayload: () => ({
-      ...slowestSamplesEventView.getEventsAPIPayload(location),
-    }),
-    limit: 5,
-  });
-
-  const medianSamplesEventView = eventView
-    .clone()
-    .withColumns(commonColumns)
-    .withSorts([
-      {
-        field: 'transaction.duration',
-        kind: 'desc',
-      },
-    ]);
-
-  medianSamplesEventView.additionalConditions = new MutableSearch(
-    `transaction.duration:<=${
-      aggregatesData?.data?.[0]?.['p50(transaction.duration)'] ?? 0
-    }`
-  );
-
-  const {isLoading: isLoadingMedian, data: medianSamplesData} = useGenericDiscoverQuery<
-    any,
-    DiscoverQueryProps
-  >({
-    route: 'events',
-    eventView: medianSamplesEventView,
-    referrer: 'starfish-transaction-summary-sample-events',
-    location,
-    orgSlug: organization.slug,
-    getRequestPayload: () => ({
-      ...medianSamplesEventView.getEventsAPIPayload(location),
-    }),
-    limit: 5,
-  });
-
-  const fastestSamplesEventView = eventView
-    .clone()
-    .withColumns(commonColumns)
-    .withSorts([
-      {
-        field: 'transaction.duration',
-        kind: 'asc',
-      },
-    ]);
-
-  fastestSamplesEventView.additionalConditions = new MutableSearch(
-    `transaction.duration:<=${
-      aggregatesData?.data?.[0]?.['p50(transaction.duration)'] ?? 0
-    }`
-  );
-
-  const {isLoading: isLoadingFastest, data: fastestSamplesData} = useGenericDiscoverQuery<
-    any,
-    DiscoverQueryProps
-  >({
-    route: 'events',
-    eventView: fastestSamplesEventView,
-    referrer: 'starfish-transaction-summary-sample-events',
-    location,
-    orgSlug: organization.slug,
-    getRequestPayload: () => ({
-      ...fastestSamplesEventView.getEventsAPIPayload(location),
-    }),
-    limit: 5,
-  });
-
-  console.dir(fastestSamplesData);
-
   return (
     <GridEditable
-      isLoading={isLoadingSlowest}
-      data={slowestSamplesData?.data}
+      isLoading={isLoading}
+      data={data}
       columnOrder={COLUMN_ORDER}
       columnSortBy={[]}
       location={location}
