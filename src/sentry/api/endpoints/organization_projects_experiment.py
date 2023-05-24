@@ -1,3 +1,4 @@
+import logging
 import random
 import string
 
@@ -44,6 +45,7 @@ class OrgProjectPermission(OrganizationPermission):
 @region_silo_endpoint
 class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
     permission_classes = (OrgProjectPermission,)
+    logger = logging.getLogger("team-project.create")
 
     def should_add_creator_to_team(self, request: Request):
         return request.user.is_authenticated
@@ -177,6 +179,10 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             organization=team.organization,
             event=audit_log.get_event_id("TEAM_AND_PROJECT_CREATED"),
             data={"team_slug": default_team_slug, "project_slug": project_name},
+        )
+        self.logger.info(
+            "created team through project creation flow",
+            extra={"team_slug": default_team_slug, "project_slug": project_name},
         )
 
         return Response(serialize(project, request.user), status=201)
