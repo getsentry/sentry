@@ -401,7 +401,7 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
   };
 }
 
-export function eventIsProfilingIssue(event: Event) {
+export function eventIsProfilingIssue(event: Event | BaseGroup) {
   const evidenceData = event.occurrence?.evidenceData ?? {};
   return (
     evidenceData.templateName === 'profile' ||
