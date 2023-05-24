@@ -13,7 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
-  defaultRuleActions: string;
+  defaultRuleActions: 'some' | 'all' | 'none';
   hasAccess: boolean;
   isSnoozed: boolean;
   onSnooze: (nextState: {
@@ -124,12 +124,13 @@ function SnoozeAlert({
       key: 'me',
       label: t('Mute for me'),
       onAction: () => handleMute('me'),
-      hidden: defaultRuleActions !== 'all',
+      hidden: defaultRuleActions !== 'some',
     },
     {
       key: 'everyone',
       label: t('Mute for everyone'),
       onAction: () => handleMute('everyone'),
+      hidden: defaultRuleActions !== 'all',
     },
   ];
 
@@ -151,25 +152,28 @@ function SnoozeAlert({
         size="sm"
         icon={<IconSound />}
         disabled={disabled || !hasAccess}
+        hasDropdown={defaultRuleActions !== 'none'}
         onClick={() => {
           const target = defaultRuleActions !== 'all' ? 'everyone' : 'me';
           handleMute(target);
         }}
       >
-        {t('Mute')}
+        {defaultRuleActions === 'all' ? t('Mute for me') : t('Mute for everyone')}
       </MuteButton>
-      <DropdownMenu
-        size="sm"
-        trigger={triggerProps => (
-          <DropdownTrigger
-            {...triggerProps}
-            aria-label={t('Mute alert options')}
-            icon={<IconChevron direction="down" size="xs" />}
-          />
-        )}
-        items={dropdownItems}
-        isDisabled={disabled || !hasAccess}
-      />
+      {defaultRuleActions !== 'none' && (
+        <DropdownMenu
+          size="sm"
+          trigger={triggerProps => (
+            <DropdownTrigger
+              {...triggerProps}
+              aria-label={t('Mute alert options')}
+              icon={<IconChevron direction="down" size="xs" />}
+            />
+          )}
+          items={dropdownItems}
+          isDisabled={disabled || !hasAccess}
+        />
+      )}
     </ButtonBar>
   );
 }
@@ -182,7 +186,8 @@ const DropdownTrigger = styled(Button)`
   border-left: none;
 `;
 
-const MuteButton = styled(Button)`
+const MuteButton = styled(Button)<{hasDropdown: boolean}>`
   box-shadow: none;
-  border-radius: ${p => p.theme.borderRadiusLeft};
+  border-radius: ${p =>
+    p.hasDropdown ? p.theme.borderRadiusLeft : p.theme.borderRadius};
 `;
