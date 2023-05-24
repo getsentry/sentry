@@ -200,7 +200,7 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
   }
 
   const data = Object.values(seriesByDomain).map(series =>
-    zeroFillSeries(series, moment.duration(1, 'hour'), start, end)
+    zeroFillSeries(series, moment.duration(12, 'hour'), start, end)
   );
 
   const initialShowSeries = transformedData.map(

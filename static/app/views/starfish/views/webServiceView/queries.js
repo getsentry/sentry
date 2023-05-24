@@ -33,7 +33,7 @@ export const getTopDomainsActionsAndOpTimeseries = ({
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
  quantile(0.50)(exclusive_time) as p50, domain, action, span_operation, module,
- toStartOfInterval(start_timestamp, INTERVAL 1 HOUR) as interval
+ toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval
  FROM default.spans_experimental_starfish
  WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
  ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
