@@ -226,7 +226,7 @@ class TeamSerializer(Serializer):  # type: ignore
 
         is_superuser = request and is_active_superuser(request) and request.user == user
         result: MutableMapping[Team, MutableMapping[str, Any]] = {}
-        organization = Organization.objects.get_from_cache(id=org_ids[0])
+        organization = Organization.objects.get_from_cache(id=list(org_ids)[0])
 
         for team in item_list:
             is_member = team.id in team_memberships
