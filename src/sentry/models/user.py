@@ -153,11 +153,6 @@ class User(BaseModel, AbstractBaseUser):
     )
 
     session_nonce = models.CharField(max_length=12, null=True)
-    actor_id = models.BigIntegerField(
-        db_index=True,
-        unique=True,
-        null=True,
-    )
 
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
@@ -215,6 +210,9 @@ class User(BaseModel, AbstractBaseUser):
 
     def get_verified_emails(self):
         return self.emails.filter(is_verified=True)
+
+    def has_verified_emails(self):
+        return self.get_verified_emails().exists()
 
     def has_unverified_emails(self):
         return self.get_unverified_emails().exists()

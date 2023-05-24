@@ -89,7 +89,6 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      */
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.whitelistUrls,
-    denyUrls: [/^file:\/\//],
     integrations: getSentryIntegrations(sentryConfig, routes),
     tracesSampleRate,
     // @ts-ignore not part of browser SDK types yet
@@ -141,9 +140,11 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       "NotFoundError: Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node.",
     ],
 
-    // Temporary fix while `ignoreErrors` bug is fixed and request error handling is cleaned up
     beforeSend(event, _hint) {
-      return isFilteredRequestErrorEvent(event) ? null : event;
+      if (isFilteredRequestErrorEvent(event) || isEventWithFileUrl(event)) {
+        return null;
+      }
+      return event;
     },
   });
 
@@ -208,4 +209,8 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
   }
 
   return false;
+}
+
+export function isEventWithFileUrl(event: Event): boolean {
+  return !!event.request?.url?.startsWith('file://');
 }

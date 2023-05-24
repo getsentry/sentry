@@ -102,6 +102,11 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     project_ids: List[int] = Field(default_factory=list)
     scopes: List[str] = Field(default_factory=list)
     invite_status: int = Field(default_factory=_DefaultEnumHelpers.get_default_invite_status_value)
+    token: str = ""
+    is_pending: bool = False
+    invite_approved: bool = False
+    token_expired: bool = False
+    legacy_token: str = ""
     email: str = ""
 
     def get_audit_log_metadata(self, user_email: Optional[str] = None) -> Mapping[str, Any]:
@@ -188,3 +193,13 @@ class RpcUserOrganizationContext(RpcModel):
         # Ensures that outer user_id always agrees with the inner member object.
         if self.user_id is not None and self.member is not None:
             assert self.user_id == self.member.user_id
+
+
+class RpcUserInviteContext(RpcUserOrganizationContext):
+    """
+    A context containing an intended organization member object as a potential invite, and the true
+    inner organization member state as found for a given user_id if it exists, or just the organization
+    member state of the invite if none such exists.
+    """
+
+    invite_organization_member_id: int = 0

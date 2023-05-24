@@ -29,7 +29,8 @@ class TeamAlertsTriggeredTotalsEndpoint(TeamEndpoint, EnvironmentMixin):  # type
         Return a time-bucketed (by day) count of triggered alerts owned by a given team.
         """
         project_list = Project.objects.get_for_team_ids([team.id])
-        owner_ids = [team.actor_id] + list(team.member_set.values_list("user__actor_id", flat=True))
+        owner_ids = team.get_member_actor_ids()
+
         start, end = get_date_range_from_params(request.GET)
         end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         start = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
@@ -120,8 +121,7 @@ class TeamAlertsTriggeredIndexEndpoint(TeamEndpoint, EnvironmentMixin):  # type:
         """
         Returns alert rules ordered by highest number of alerts fired this week.
         """
-        owner_ids = [team.actor_id] + list(team.member_set.values_list("user__actor_id", flat=True))
-
+        owner_ids = team.get_member_actor_ids()
         end = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         start = end - timedelta(days=7)
 
