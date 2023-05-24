@@ -1,4 +1,3 @@
-from datetime import timedelta
 from unittest import mock
 from unittest.mock import patch
 from uuid import UUID
@@ -6,11 +5,11 @@ from uuid import UUID
 from django.conf import settings
 from django.test.utils import override_settings
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.http import urlquote
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
+from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -77,6 +76,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
             assert checkin.status == CheckInStatus.OK
+            assert checkin.monitor_config == monitor.config
 
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.OK
@@ -84,6 +84,12 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
                 checkin.date_added
             )
+
+            # Confirm next check-in is populated with config and expected time
+            expected_time = monitor_environment.next_checkin
+            resp = self.client.post(path, {"status": "ok"}, **self.token_auth_headers)
+            checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
+            assert checkin.expected_time == expected_time
 
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_checkins
@@ -126,7 +132,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             assert checkin.status == CheckInStatus.ERROR
 
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
-            assert monitor_environment.status == MonitorStatus.DISABLED
+
+            # The created monitor environment is active, but the parent monitor
+            # is disabled
+            assert monitor_environment.status == MonitorStatus.ACTIVE
             assert monitor_environment.last_checkin == checkin.date_added
             assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
                 checkin.date_added
@@ -140,6 +149,27 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             resp = self.client.post(path, {"status": "error"}, **self.token_auth_headers)
             assert resp.status_code == 404
+
+    def test_invalid_duration(self):
+        monitor = self._create_monitor(slug="my-monitor")
+
+        path = reverse(self.endpoint_with_org, args=[self.organization.slug, monitor.slug])
+        resp = self.client.post(path, {"status": "ok", "duration": -1}, **self.token_auth_headers)
+
+        assert resp.status_code == 400, resp.content
+        assert resp.data["duration"][0] == "Ensure this value is greater than or equal to 0."
+
+        resp = self.client.post(
+            path,
+            {"status": "ok", "duration": BoundedPositiveIntegerField.MAX_VALUE + 1},
+            **self.token_auth_headers,
+        )
+
+        assert resp.status_code == 400, resp.content
+        assert (
+            resp.data["duration"][0]
+            == f"Ensure this value is less than or equal to {BoundedPositiveIntegerField.MAX_VALUE}."
+        )
 
     def test_deletion_in_progress(self):
         monitor = self._create_monitor(status=ObjectStatus.DELETION_IN_PROGRESS)
@@ -159,13 +189,18 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 path,
                 {
                     "status": "ok",
-                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
+                    "monitor_config": {
+                        "schedule_type": "crontab",
+                        "schedule": "5 * * * *",
+                        "checkin_margin": 5,
+                    },
                 },
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 201, resp.content
             monitor = Monitor.objects.get(slug=slug)
             assert monitor.config["schedule"] == "5 * * * *"
+            assert monitor.config["checkin_margin"] == 5
 
             checkins = MonitorCheckIn.objects.filter(monitor=monitor)
             assert len(checkins) == 1
@@ -182,6 +217,8 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             monitor = Monitor.objects.get(guid=monitor.guid)
             assert monitor.config["schedule"] == "10 * * * *"
+            # The monitor config is merged, so checkin_margin is not overwritten
+            assert monitor.config["checkin_margin"] == 5
 
             checkins = MonitorCheckIn.objects.filter(monitor=monitor)
             assert len(checkins) == 2
@@ -307,7 +344,6 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
         monitor = Monitor.objects.create(
             organization_id=project2.organization_id,
             project_id=project2.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
         )
@@ -329,7 +365,6 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
         monitor = Monitor.objects.create(
             organization_id=org2.id,
             project_id=project2.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
@@ -376,3 +411,22 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                     path, {"status": "ok", "environment": "dev"}, **self.token_auth_headers
                 )
                 assert resp.status_code == 429, resp.content
+
+    def test_bad_config(self):
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+            monitor.config = {
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+            }
+            monitor.save()
+
+            path = path_func(monitor.guid)
+
+            resp = self.client.post(path, {"status": "ok"}, **self.token_auth_headers)
+            assert resp.status_code == 201, resp.content
+
+            checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
+            assert checkin.status == CheckInStatus.OK
+            # Monitor config will not be saved because it is missing margin and max runtime
+            assert not checkin.monitor_config

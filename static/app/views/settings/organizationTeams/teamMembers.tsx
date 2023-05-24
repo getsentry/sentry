@@ -10,6 +10,7 @@ import {
 } from 'sentry/actionCreators/modal';
 import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
 import {Client} from 'sentry/api';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
@@ -17,7 +18,6 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {IconUser} from 'sentry/icons';
@@ -28,7 +28,11 @@ import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import TeamMembersRow from 'sentry/views/settings/organizationTeams/teamMembersRow';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+
+import {getButtonHelpText} from './utils';
 
 type RouteParams = {
   teamId: string;
@@ -44,7 +48,6 @@ type Props = {
 type State = {
   dropdownBusy: boolean;
   error: boolean;
-  loading: boolean;
   orgMembers: Member[];
   teamMembers: TeamMember[];
 } & AsyncView['state'];
@@ -53,7 +56,6 @@ class TeamMembers extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      loading: true,
       error: false,
       dropdownBusy: false,
       teamMembers: [],
@@ -114,8 +116,6 @@ class TeamMembers extends AsyncView<Props, State> {
     const {organization, params} = this.props;
     const {orgMembers, teamMembers} = this.state;
 
-    this.setState({loading: true});
-
     // Reset members list after adding member to team
     this.debouncedFetchMembersRequest('');
 
@@ -133,14 +133,12 @@ class TeamMembers extends AsyncView<Props, State> {
             return;
           }
           this.setState({
-            loading: false,
             error: false,
             teamMembers: teamMembers.concat([orgMember as TeamMember]),
           });
           addSuccessMessage(t('Successfully added member to team.'));
         },
         error: () => {
-          this.setState({loading: false});
           addErrorMessage(t('Unable to add team member.'));
         },
       }
@@ -208,7 +206,7 @@ class TeamMembers extends AsyncView<Props, State> {
     this.debouncedFetchMembersRequest(e.target.value);
   };
 
-  renderDropdown(hasWriteAccess: boolean, isOrgOwner: boolean) {
+  renderDropdown(isTeamAdmin: boolean) {
     const {organization, params, team} = this.props;
     const {orgMembers} = this.state;
     const existingMembers = new Set(this.state.teamMembers.map(member => member.id));
@@ -216,10 +214,9 @@ class TeamMembers extends AsyncView<Props, State> {
     // members can add other members to a team if the `Open Membership` setting is enabled
     // otherwise, `org:write` or `team:admin` permissions are required
     const hasOpenMembership = !!organization?.openMembership;
-    const canAddMembers = hasOpenMembership || hasWriteAccess;
+    const canAddMembers = hasOpenMembership || isTeamAdmin;
 
-    const isDropdownDisabled =
-      team.flags['idp:provisioned'] || (team.orgRole !== null && !isOrgOwner);
+    const isDropdownDisabled = team.flags['idp:provisioned'];
 
     const items = (orgMembers || [])
       .filter(m => !existingMembers.has(m.id))
@@ -249,6 +246,7 @@ class TeamMembers extends AsyncView<Props, State> {
 
     return (
       <DropdownAutoComplete
+        closeOnSelect={false}
         items={items}
         alignMenu="right"
         onSelect={
@@ -267,6 +265,7 @@ class TeamMembers extends AsyncView<Props, State> {
         busy={this.state.dropdownBusy}
         onClose={() => this.debouncedFetchMembersRequest('')}
         disabled={isDropdownDisabled}
+        data-test-id="add-member-menu"
       >
         {({isOpen}) => (
           <DropdownButton
@@ -282,46 +281,67 @@ class TeamMembers extends AsyncView<Props, State> {
     );
   }
 
-  render() {
-    if (this.state.loading) {
-      return <LoadingIndicator />;
+  renderPageTextBlock() {
+    const {organization, team} = this.props;
+    const {openMembership} = organization;
+    const isIdpProvisioned = team.flags['idp:provisioned'];
+
+    if (isIdpProvisioned) {
+      return getButtonHelpText(isIdpProvisioned);
     }
 
+    return openMembership
+      ? t(
+          '"Open Membership" is enabled for the organization. Anyone can add members for this team.'
+        )
+      : t(
+          '"Open Membership" is disabled for the organization. Org Owner/Manager/Admin, or Team Admins can add members for this team.'
+        );
+  }
+
+  render() {
     if (this.state.error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
     const {organization, config, team} = this.props;
     const {teamMembersPageLinks} = this.state;
-    const {access} = organization;
-    const hasWriteAccess = access.includes('org:write') || access.includes('team:admin');
+    const {access, openMembership} = organization;
 
-    // TODO(team-roles): team admins can also manage membership
+    const hasOrgWriteAccess = hasEveryAccess(['org:write'], {organization, team});
+    const hasTeamAdminAccess = hasEveryAccess(['team:admin'], {organization, team});
+    const isTeamAdmin = hasOrgWriteAccess || hasTeamAdminAccess;
+
     // org:admin is a unique scope that only org owners have
     const isOrgOwner = access.includes('org:admin');
 
     return (
       <Fragment>
+        <TextBlock>{this.renderPageTextBlock()}</TextBlock>
+
+        <PermissionAlert
+          access={openMembership ? ['org:read'] : ['team:write']}
+          team={team}
+        />
+
         <Panel>
           <PanelHeader hasButtons>
             <div>{t('Members')}</div>
-            <div style={{textTransform: 'none'}}>
-              {this.renderDropdown(hasWriteAccess, isOrgOwner)}
-            </div>
+            <div style={{textTransform: 'none'}}>{this.renderDropdown(isTeamAdmin)}</div>
           </PanelHeader>
           {this.state.teamMembers.length ? (
             this.state.teamMembers.map(member => {
               return (
                 <TeamMembersRow
                   key={member.id}
-                  hasWriteAccess={hasWriteAccess}
+                  hasWriteAccess={isTeamAdmin}
                   isOrgOwner={isOrgOwner}
+                  organization={organization}
                   team={team}
                   member={member}
-                  organization={organization}
+                  user={config.user}
                   removeMember={this.removeTeamMember}
                   updateMemberRole={this.updateTeamMemberRole}
-                  user={config.user}
                 />
               );
             })

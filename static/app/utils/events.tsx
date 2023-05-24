@@ -15,11 +15,12 @@ import {
   IssueType,
   TreeLabelPart,
 } from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 
 function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {
   return !maybe.hasOwnProperty('type');
@@ -119,11 +120,7 @@ export function getTitle(
   grouping = false
 ) {
   const {metadata, type, culprit, title} = event;
-
-  const customTitle =
-    features.includes('custom-event-title') && metadata?.title
-      ? metadata.title
-      : undefined;
+  const customTitle = metadata?.title;
 
   switch (type) {
     case EventOrGroupType.ERROR: {
@@ -223,18 +220,49 @@ function hasTrace(event: Event) {
 
 /**
  * Function to determine if an event has source maps
+ * by ensuring that every inApp frame has a valid sourcemap
  */
 export function eventHasSourceMaps(event: Event) {
-  return event.entries?.some(entry => {
-    return (
-      entry.type === EntryType.EXCEPTION &&
-      entry.data.values?.some(value => !!value.rawStacktrace && !!value.stacktrace)
-    );
-  });
+  const inAppFrames = getInAppFrames(event);
+
+  // the map field tells us if it's sourcemapped
+  return inAppFrames.every(frame => !!frame.map);
+}
+
+/**
+ * Function to get status about how many frames have source maps
+ */
+export function getFrameBreakdownOfSourcemaps(event?: Event | null) {
+  if (!event) {
+    // return undefined if there is no event
+    return {};
+  }
+  const inAppFrames = getInAppFrames(event);
+  if (!inAppFrames.length) {
+    return {};
+  }
+
+  return {
+    framesWithSourcemapsPercent:
+      (inAppFrames.filter(frame => !!frame.map).length * 100) / inAppFrames.length,
+    framesWithoutSourceMapsPercent:
+      (inAppFrames.filter(frame => !frame.map).length * 100) / inAppFrames.length,
+  };
+}
+
+function getInAppFrames(event: Event) {
+  const exceptions = getExceptionEntries(event);
+  return exceptions
+    .map(exception => exception.data.values || [])
+    .flat()
+    .map(exceptionValue => exceptionValue?.stacktrace?.frames || [])
+    .flat()
+    .filter(frame => frame.inApp);
 }
 
 function getExceptionEntries(event: Event) {
-  return event.entries?.filter(entry => entry.type === 'exception') as EntryException[];
+  return (event.entries?.filter(entry => entry.type === 'exception') ||
+    []) as EntryException[];
 }
 
 function getNumberOfStackFrames(event: Event) {
@@ -298,7 +326,9 @@ function getAssignmentIntegration(group: Group) {
   return integrationAssignments?.data.integration || '';
 }
 
-export function getAnalyticsDataForEvent(event?: Event): BaseEventAnalyticsParams {
+export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyticsParams {
+  const {framesWithSourcemapsPercent, framesWithoutSourceMapsPercent} =
+    getFrameBreakdownOfSourcemaps(event);
   return {
     event_id: event?.eventID || '-1',
     num_commits: event?.release?.commitCount || 0,
@@ -312,10 +342,12 @@ export function getAnalyticsDataForEvent(event?: Event): BaseEventAnalyticsParam
     has_trace: event ? hasTrace(event) : false,
     has_commit: !!event?.release?.lastCommit,
     event_errors: event ? getEventErrorString(event) : '',
+    frames_with_sourcemaps_percent: framesWithSourcemapsPercent,
+    frames_without_source_maps_percent: framesWithoutSourceMapsPercent,
     sdk_name: event?.sdk?.name,
     sdk_version: event?.sdk?.version,
     release_user_agent: event?.release?.userAgent,
-    error_has_replay: Boolean(event?.tags?.find(({key}) => key === 'replayId')),
+    error_has_replay: Boolean(getReplayIdFromEvent(event)),
     error_has_user_feedback: defined(event?.userReport),
     has_otel: event?.contexts?.otel !== undefined,
   };
@@ -324,7 +356,6 @@ export function getAnalyticsDataForEvent(event?: Event): BaseEventAnalyticsParam
 export type CommonGroupAnalyticsData = {
   days_since_last_seen: number;
   error_count: number;
-  group_has_replay: boolean;
   group_id: number;
   group_num_user_feedback: number;
   has_external_issue: boolean;
@@ -360,13 +391,12 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
     issue_level: group?.level,
     is_assigned: !!group?.assignedTo,
     error_count: Number(group?.count || -1),
-    group_has_replay: Boolean(group?.tags?.find(({key}) => key === 'replayId')),
     num_comments: group ? group.numComments : -1,
     has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
     has_owner: group?.owners ? group?.owners.length > 0 : false,
     integration_assignment_source: group ? getAssignmentIntegration(group) : '',
-    num_participants: group?.participants.length ?? 0,
-    num_viewers: group?.seenBy.filter(user => user.id !== activeUser?.id).length ?? 0,
+    num_participants: group?.participants?.length ?? 0,
+    num_viewers: group?.seenBy?.filter(user => user.id !== activeUser?.id).length ?? 0,
     group_num_user_feedback: group?.userReportCount ?? 0,
   };
 }

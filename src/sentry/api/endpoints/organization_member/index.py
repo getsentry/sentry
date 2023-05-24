@@ -90,7 +90,7 @@ class OrganizationMemberSerializer(serializers.Serializer):
     def validate_teams(self, teams):
         valid_teams = list(
             Team.objects.filter(
-                organization=self.context["organization"], status=TeamStatus.VISIBLE, slug__in=teams
+                organization=self.context["organization"], status=TeamStatus.ACTIVE, slug__in=teams
             )
         )
 
@@ -126,8 +126,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 organization=organization,
                 invite_status=InviteStatus.APPROVED.value,
             )
-            .select_related("user")
-            .order_by("email", "user__email")
+            # TODO(hybridcloud) Cross silo joins here.
+            .select_related("user").order_by("email", "user__email")
         )
 
         query = request.GET.get("query")
@@ -163,6 +163,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                         queryset = queryset.filter(flags=F("flags").bitand(~ssoFlag))
 
                 elif key == "has2fa":
+                    # TODO(hybridcloud) Cross silo joins here.
                     has2fa = "true" in value
                     if has2fa:
                         types = [a.type for a in available_authenticators(ignore_backup=True)]
@@ -172,22 +173,18 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     else:
                         queryset = queryset.filter(user__authenticator__isnull=True)
                 elif key == "hasExternalUsers":
+                    externalactor_user_ids = ExternalActor.objects.filter(
+                        organization=organization,
+                    ).values_list("actor__user_id", flat=True)
+
                     hasExternalUsers = "true" in value
                     if hasExternalUsers:
-                        queryset = queryset.filter(
-                            user__actor_id__in=ExternalActor.objects.filter(
-                                organization=organization
-                            ).values_list("actor_id")
-                        )
+                        queryset = queryset.filter(user_id__in=externalactor_user_ids)
                     else:
-                        queryset = queryset.exclude(
-                            user__actor_id__in=ExternalActor.objects.filter(
-                                organization=organization
-                            ).values_list("actor_id")
-                        )
-
+                        queryset = queryset.exclude(user_id__in=externalactor_user_ids)
                 elif key == "query":
                     value = " ".join(value)
+                    # TODO(hybridcloud) Cross silo joins.
                     queryset = queryset.filter(
                         Q(email__icontains=value)
                         | Q(user__email__icontains=value)
@@ -261,14 +258,17 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
             return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
+        region_outbox = None
         with transaction.atomic():
             # remove any invitation requests for this email before inviting
-            OrganizationMember.objects.filter(
+            existing_invite = OrganizationMember.objects.filter(
                 Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
                 | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value),
                 email=result["email"],
                 organization=organization,
-            ).delete()
+            )
+            for om in existing_invite:
+                om.delete()
 
             om = OrganizationMember(
                 organization=organization,
@@ -280,6 +280,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             if settings.SENTRY_ENABLE_INVITES:
                 om.token = om.generate_token()
             om.save()
+            region_outbox = om.save_outbox_for_create()
+        if region_outbox:
+            region_outbox.drain_shard(max_updates_to_drain=10)
 
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:

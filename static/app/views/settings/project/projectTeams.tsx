@@ -1,20 +1,18 @@
 import {RouteComponentProps} from 'react-router';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject, removeTeamFromProject} from 'sentry/actionCreators/projects';
-import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t, tct} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import {space} from 'sentry/styles/space';
 import {Organization, Project, Team} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TeamSelect from 'sentry/views/settings/components/teamSelect';
+import TeamSelectForProject from 'sentry/views/settings/components/teamSelect/teamSelectForProject';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = {
   organization: Organization;
@@ -125,68 +123,44 @@ class ProjectTeams extends AsyncView<Props, State> {
 
   renderBody() {
     const {project, organization} = this.props;
-
-    const canCreateTeam = this.canCreateTeam();
-    const hasAccess = organization.access.includes('project:write');
-    const confirmRemove = t(
-      'This is the last team with access to this project. Removing it will mean only organization owners and managers will be able to access the project pages. Are you sure you want to remove this team from the project %s?',
-      project.slug
-    );
     const {projectTeams} = this.state;
 
-    const menuHeader = (
-      <StyledTeamsLabel>
-        {t('Teams')}
-        <Tooltip
-          disabled={canCreateTeam}
-          title={t('You must be a project admin to create teams')}
-          position="top"
-        >
-          <StyledCreateTeamLink
-            to="#create-team"
-            disabled={!canCreateTeam}
-            onClick={this.handleCreateTeam}
-          >
-            {t('Create Team')}
-          </StyledCreateTeamLink>
-        </Tooltip>
-      </StyledTeamsLabel>
-    );
+    const canCreateTeam = this.canCreateTeam();
+    const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
 
     return (
       <div>
         <SettingsPageHeader title={t('Project Teams for %s', project.slug)} />
-        <TeamSelect
-          disabled={!hasAccess}
-          enforceIdpProvisioned={false}
+        <TextBlock>
+          {t(
+            'These teams and their members have access to this project. They can be assigned to issues and alerts created in it.'
+          )}
+        </TextBlock>
+        <TextBlock>
+          {t(
+            'Team Admins can grant other teams access to this project. However, they cannot revoke access unless they are admins for the other teams too.'
+          )}
+        </TextBlock>
+        <PermissionAlert project={project} />
+
+        <TeamSelectForProject
+          disabled={!hasWriteAccess}
+          canCreateTeam={canCreateTeam}
           organization={organization}
-          menuHeader={menuHeader}
+          project={project}
           selectedTeams={projectTeams ?? []}
           onAddTeam={this.handleAdd}
           onRemoveTeam={this.handleRemove}
-          confirmLastTeamRemoveMessage={confirmRemove}
+          onCreateTeam={(team: Team) => {
+            addTeamToProject(this.api, organization.slug, project.slug, team).then(
+              this.remountComponent,
+              this.remountComponent
+            );
+          }}
         />
       </div>
     );
   }
 }
-
-const StyledTeamsLabel = styled('div')`
-  font-size: 0.875em;
-  padding: ${space(0.5)} 0px;
-  text-transform: uppercase;
-`;
-
-const StyledCreateTeamLink = styled(Link)`
-  float: right;
-  text-transform: none;
-  ${p =>
-    p.disabled &&
-    css`
-      cursor: not-allowed;
-      color: ${p.theme.gray300};
-      opacity: 0.6;
-    `};
-`;
 
 export default ProjectTeams;

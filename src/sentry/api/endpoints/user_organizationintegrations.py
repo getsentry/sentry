@@ -28,8 +28,8 @@ class UserOrganizationIntegrationsEndpoint(UserEndpoint):
         ]
         queryset = OrganizationIntegration.objects.filter(
             organization_id__in=org_ids,
-            status=ObjectStatus.VISIBLE,
-            integration__status=ObjectStatus.VISIBLE,
+            status=ObjectStatus.ACTIVE,
+            integration__status=ObjectStatus.ACTIVE,
         )
         provider = request.GET.get("provider")
         if provider:

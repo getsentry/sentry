@@ -130,7 +130,8 @@ class Endpoint(APIView):
     def get_authenticators(self) -> List[BaseAuthentication]:
         """
         Instantiates and returns the list of authenticators that this view can use.
-        Aggregates together authenticators that can be supported using HybridCloud.
+        Aggregates together authenticators that should be called cross silo, while
+        leaving methods that should be run locally.
         """
 
         # TODO: Increase test coverage and get this working for monolith mode.
@@ -196,8 +197,8 @@ class Endpoint(APIView):
 
         :param request:          The incoming request.
         :param exc:              The exception raised during handling.
-        :param handler_context:  (Optional) Extra data which will be attached to the event sent
-                                 to Sentry, under the "Request Handler Data" heading.
+        :param handler_context:  (Optional) Extra data which will be attached to the event sent to
+                                 Sentry, under the "Request Handler Data" heading.
         :param scope:            (Optional) A `Scope` object containing extra data which will be
                                  attached to the event sent to Sentry.
 
@@ -222,6 +223,7 @@ class Endpoint(APIView):
             response_body = {"detail": "Internal Error", "errorId": event_id}
             response = Response(response_body, status=500)
             response.exception = True
+
         return response
 
     def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
@@ -404,6 +406,14 @@ class Endpoint(APIView):
         count_hits=None,
         **paginator_kwargs,
     ):
+        # XXX(epurkhiser): This is an experiment that overrides all paginated
+        # API requests so that we can more easily debug on the frontend the
+        # experiemce customers have when they have lots of entites.
+        override_limit = request.COOKIES.get("__sentry_dev_pagination_limit", None)
+        if override_limit is not None:
+            default_per_page = int(override_limit)
+            max_per_page = int(override_limit)
+
         try:
             per_page = self.get_per_page(request, default_per_page, max_per_page)
             cursor = self.get_cursor_from_request(request, cursor_cls)

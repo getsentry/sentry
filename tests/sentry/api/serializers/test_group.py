@@ -4,7 +4,6 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models import (
     Group,
     GroupLink,
@@ -17,13 +16,13 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
 @region_silo_test(stable=True)
-class GroupSerializerTest(TestCase):
+class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
     def test_project(self):
         user = self.create_user()
         group = self.create_group()
@@ -359,29 +358,9 @@ class GroupSerializerTest(TestCase):
         }
 
     def test_perf_issue(self):
-        cur_time = before_now(minutes=1)
-        event_data = {
-            "type": "transaction",
-            "level": "info",
-            "message": "transaction message",
-            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            "timestamp": cur_time.timestamp(),
-            "start_timestamp": cur_time.timestamp(),
-            "received": cur_time.timestamp(),
-            "fingerprint": [f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        }
-        event = self.store_event(
-            data=event_data,
-            project_id=self.project.id,
-        )
-        perf_group = event.groups[0]
+        event = self.create_performance_issue()
+        perf_group = event.group
         serialized = serialize(perf_group)
         assert serialized["count"] == "1"
         assert serialized["issueCategory"] == "performance"
         assert serialized["issueType"] == "performance_n_plus_one_db_queries"
-
-        with self.feature("organizations:issue-platform-search-perf-issues"):
-            serialized = serialize(perf_group)
-            assert serialized["count"] == "1"
-            assert serialized["issueCategory"] == "performance"
-            assert serialized["issueType"] == "performance_n_plus_one_db_queries"

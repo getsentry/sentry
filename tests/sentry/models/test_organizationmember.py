@@ -17,14 +17,16 @@ from sentry.models import (
 )
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
 @region_silo_test(stable=True)
-class OrganizationMemberTest(TestCase):
+class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
     def test_legacy_token_generation(self):
         member = OrganizationMember(id=1, organization_id=1, email="foo@example.com")
         with self.settings(SECRET_KEY="a"):
@@ -81,7 +83,8 @@ class OrganizationMemberTest(TestCase):
         provider = manager.get("dummy")
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            member.send_sso_unlink_email(user, provider)
+            rpc_user = user_service.get_user(user_id=user.id)
+            member.send_sso_unlink_email(rpc_user, provider)
 
         context = builder.call_args[1]["context"]
 
@@ -92,18 +95,22 @@ class OrganizationMemberTest(TestCase):
         assert "set_password_url" in context
 
     def test_token_expires_at_set_on_save(self):
-        member = OrganizationMember(organization=self.organization, email="foo@example.com")
-        member.token = member.generate_token()
-        member.save()
+        with outbox_runner():
+            member = OrganizationMember(organization=self.organization, email="foo@example.com")
+            member.token = member.generate_token()
+            member.save()
+        self.assert_org_member_mapping(org_member=member)
 
         expires_at = timezone.now() + timedelta(days=INVITE_DAYS_VALID)
         assert member.token_expires_at
         assert member.token_expires_at.date() == expires_at.date()
 
     def test_token_expiration(self):
-        member = OrganizationMember(organization=self.organization, email="foo@example.com")
-        member.token = member.generate_token()
-        member.save()
+        with outbox_runner():
+            member = OrganizationMember(organization=self.organization, email="foo@example.com")
+            member.token = member.generate_token()
+            member.save()
+        self.assert_org_member_mapping(org_member=member)
 
         assert member.is_pending
         assert member.token_expired is False
@@ -112,17 +119,24 @@ class OrganizationMemberTest(TestCase):
         assert member.token_expired
 
     def test_set_user(self):
-        member = OrganizationMember(organization=self.organization, email="foo@example.com")
-        member.token = member.generate_token()
-        member.save()
+        with outbox_runner():
+            member = OrganizationMember(organization=self.organization, email="foo@example.com")
+            member.token = member.generate_token()
+            member.save()
 
-        user = self.create_user(email="foo@example.com")
-        member.set_user(user)
+        self.assert_org_member_mapping(org_member=member)
+
+        with outbox_runner():
+            user = self.create_user(email="foo@example.com")
+            member.set_user(user.id)
+            member.save()
 
         assert member.is_pending is False
         assert member.token_expires_at is None
         assert member.token is None
         assert member.email is None
+        member.refresh_from_db()
+        self.assert_org_member_mapping(org_member=member)
 
     def test_regenerate_token(self):
         member = OrganizationMember(organization=self.organization, email="foo@example.com")
@@ -137,20 +151,23 @@ class OrganizationMemberTest(TestCase):
 
     def test_delete_expired_clear(self):
         ninety_one_days = timezone.now() - timedelta(days=1)
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=self.organization,
             role="member",
             email="test@example.com",
             token="abc-def",
             token_expires_at=ninety_one_days,
         )
-        OrganizationMember.objects.delete_expired(timezone.now())
+        with outbox_runner():
+            OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.filter(id=member.id).first() is None
+        self.assert_org_member_mapping_not_exists(org_member=member)
 
     def test_delete_identities(self):
         org = self.create_organization()
         user = self.create_user()
         member = self.create_member(user_id=user.id, organization_id=org.id)
+        self.assert_org_member_mapping(org_member=member)
         with exempt_from_silo_limits():
             ap = AuthProvider.objects.create(
                 organization_id=org.id, provider="sentry_auth_provider", config={}
@@ -160,7 +177,7 @@ class OrganizationMemberTest(TestCase):
             assert qs.exists()
 
         with outbox_runner():
-            member.outbox_for_update().save()
+            member.save_outbox_for_update()
 
         # ensure that even if the outbox sends a general, non delete update, it doesn't cascade
         # the delete to auth identity objects.
@@ -172,6 +189,7 @@ class OrganizationMemberTest(TestCase):
 
         with exempt_from_silo_limits():
             assert not qs.exists()
+            self.assert_org_member_mapping_not_exists(org_member=member)
 
     def test_delete_expired_SCIM_enabled(self):
         organization = self.create_organization()
@@ -188,61 +206,69 @@ class OrganizationMemberTest(TestCase):
                 flags=AuthProvider.flags["allow_unlinked"],
             )
         ninety_one_days = timezone.now() - timedelta(days=91)
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=organization,
             role="member",
             email="test@example.com",
             token="abc-def",
             token_expires_at=ninety_one_days,
         )
-        member2 = OrganizationMember.objects.create(
+        member2 = self.create_member(
             organization=org3,
             role="member",
             email="test2@example.com",
             token="abc-defg",
             token_expires_at=ninety_one_days,
         )
-        OrganizationMember.objects.delete_expired(timezone.now())
+        with outbox_runner():
+            OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.filter(id=member.id).exists()
         assert not OrganizationMember.objects.filter(id=member2.id).exists()
+        self.assert_org_member_mapping_not_exists(org_member=member2)
 
     def test_delete_expired_miss(self):
         tomorrow = timezone.now() + timedelta(days=1)
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=self.organization,
             role="member",
             email="test@example.com",
             token="abc-def",
             token_expires_at=tomorrow,
         )
-        OrganizationMember.objects.delete_expired(timezone.now())
-        assert OrganizationMember.objects.get(id=member.id)
+        with outbox_runner():
+            OrganizationMember.objects.delete_expired(timezone.now())
+        assert OrganizationMember.objects.filter(id=member.id).exists()
+        self.assert_org_member_mapping(org_member=member)
 
     def test_delete_expired_leave_claimed(self):
         user = self.create_user()
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=self.organization,
             role="member",
             user=user,
             token="abc-def",
             token_expires_at="2018-01-01 10:00:00",
         )
-        OrganizationMember.objects.delete_expired(timezone.now())
-        assert OrganizationMember.objects.get(id=member.id)
+        with outbox_runner():
+            OrganizationMember.objects.delete_expired(timezone.now())
+        assert OrganizationMember.objects.filter(id=member.id).exists()
+        self.assert_org_member_mapping(org_member=member)
 
     def test_delete_expired_leave_null_expires(self):
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=self.organization,
             role="member",
             email="test@example.com",
             token="abc-def",
             token_expires_at=None,
         )
-        OrganizationMember.objects.delete_expired(timezone.now())
+        with outbox_runner():
+            OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.get(id=member.id)
+        self.assert_org_member_mapping(org_member=member)
 
     def test_approve_invite(self):
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=self.organization,
             role="member",
             email="test@example.com",
@@ -251,8 +277,13 @@ class OrganizationMemberTest(TestCase):
         assert not member.invite_approved
 
         member.approve_invite()
+        member.save()
+        member.outbox_for_create().drain_shard(max_updates_to_drain=10)
+
+        member = OrganizationMember.objects.get(id=member.id)
         assert member.invite_approved
         assert member.invite_status == InviteStatus.APPROVED.value
+        self.assert_org_member_mapping(org_member=member)
 
     def test_scopes_with_member_admin_config(self):
         member = OrganizationMember.objects.create(
@@ -312,6 +343,7 @@ class OrganizationMemberTest(TestCase):
         team = self.create_team(organization=self.organization, org_role="owner")
         OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
 
+        member.refresh_from_db()
         assert member.get_scopes() == owner_member_scopes
 
     def test_get_contactable_members_for_org(self):
@@ -416,6 +448,7 @@ class OrganizationMemberTest(TestCase):
         )
         user = self.create_user()
         member.approve_member_invitation(user)
+        self.assert_org_member_mapping(org_member=member)
         assert member.invite_status == InviteStatus.APPROVED.value
 
     def test_reject_member_invitation(self):
@@ -428,6 +461,20 @@ class OrganizationMemberTest(TestCase):
         user = self.create_user()
         member.reject_member_invitation(user)
         assert not OrganizationMember.objects.filter(id=member.id).exists()
+        self.assert_org_member_mapping_not_exists(org_member=member)
+
+    def test_invalid_reject_member_invitation(self):
+        user = self.create_user(email="hello@sentry.io")
+        member = self.create_member(
+            organization=self.organization,
+            invite_status=InviteStatus.APPROVED.value,
+            user=user,
+            role="member",
+        )
+        user = self.create_user()
+        member.reject_member_invitation(user)
+        self.assert_org_member_mapping(org_member=member)
+        assert OrganizationMember.objects.filter(id=member.id).exists()
 
     def test_get_allowed_org_roles_to_invite(self):
         member = OrganizationMember.objects.get(user=self.user, organization=self.organization)

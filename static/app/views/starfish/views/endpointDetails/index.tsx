@@ -19,14 +19,18 @@ import Detail from 'sentry/views/starfish/components/detailPanel';
 import {
   OverflowEllipsisTextContainer,
   renderHeadCell,
-  TextAlignRight,
+  TextAlignLeft,
 } from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {
   getEndpointDetailSeriesQuery,
+  getEndpointDetailTableEventView,
   getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
+import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 export type EndpointDataRow = {
@@ -57,12 +61,12 @@ const COLUMN_ORDER = [
     width: 280,
   },
   {
-    key: 'count',
+    key: 'count()',
     name: 'Count',
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p50',
+    key: 'p50(span.self_time)',
     name: 'p50',
     width: COL_WIDTH_UNDEFINED,
   },
@@ -92,22 +96,26 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
     datetime: pageFilter.selection.datetime,
     groupId: row.group_id,
   });
-  const tableQuery = getEndpointDetailTableQuery({
-    description: null,
-    transactionName: null,
-    datetime: pageFilter.selection.datetime,
-    groupId: row.group_id,
-  });
   const {isLoading: seriesIsLoading, data: seriesData} = useQuery({
     queryKey: [seriesQuery],
     queryFn: () => fetch(`${HOST}/?query=${seriesQuery}`).then(res => res.json()),
     retry: false,
     initialData: [],
   });
-  const {isLoading: tableIsLoading, data: tableData} = useQuery({
-    queryKey: [tableQuery],
-    queryFn: () => fetch(`${HOST}/?query=${tableQuery}`).then(res => res.json()),
-    retry: false,
+
+  const {isLoading: tableIsLoading, data: tableData} = useSpansQuery({
+    queryString: getEndpointDetailTableQuery({
+      description: null,
+      transactionName: null,
+      datetime: pageFilter.selection.datetime,
+      groupId: row.group_id,
+    }),
+    eventView: getEndpointDetailTableEventView({
+      description: null,
+      transactionName: null,
+      datetime: pageFilter.selection.datetime,
+      groupId: row.group_id,
+    }),
     initialData: [],
   });
 
@@ -122,6 +130,30 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
     endpointDetailDataToChartData(seriesData).map(series =>
       zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
     );
+
+  const {isLoading: isP75GraphLoading, data: transactionGraphData} =
+    useQueryTransactionByTPMAndDuration(
+      tableData.map(d => d.transaction).splice(0, 5),
+      24
+    );
+
+  const tpmTransactionSeries = queryToSeries(
+    transactionGraphData,
+    'group',
+    'epm()',
+    startTime,
+    endTime,
+    24
+  );
+
+  const p50TransactionSeries = queryToSeries(
+    transactionGraphData,
+    'group',
+    'p50(transaction.duration)',
+    startTime,
+    endTime,
+    24
+  );
 
   return (
     <div>
@@ -140,7 +172,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
           <SubHeader>{t('Duration (P50)')}</SubHeader>
           <SubSubHeader>
             <Duration
-              seconds={row['p50(exclusive_time)'] / 1000}
+              seconds={row['p50(span.self_time)'] / 1000}
               fixedDigits={2}
               abbreviation
             />
@@ -156,7 +188,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
           <SubHeader>{t('Duration (P95)')}</SubHeader>
           <SubSubHeader>
             <Duration
-              seconds={row['p95(exclusive_time)'] / 1000}
+              seconds={row['p95(span.self_time)'] / 1000}
               fixedDigits={2}
               abbreviation
             />
@@ -187,6 +219,14 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
             index={1}
             outOf={4}
           />
+        </FlexRowItem>
+        <FlexRowItem>
+          <SubHeader>{t('Top 5 Transaction Throughput')}</SubHeader>
+          <APIDetailChart series={tpmTransactionSeries} isLoading={isP75GraphLoading} />
+        </FlexRowItem>
+        <FlexRowItem>
+          <SubHeader>{t('Top 5 Transaction P75')}</SubHeader>
+          <APIDetailChart series={p50TransactionSeries} isLoading={isP75GraphLoading} />
         </FlexRowItem>
       </FlexRowContainer>
       <GridEditable
@@ -224,19 +264,18 @@ function renderBodyCell(
     );
   }
 
-  // TODO: come up with a better way to identify number columns to align to the right
   if (column.key.toString().match(/^p\d\d/)) {
     return (
-      <TextAlignRight>
+      <TextAlignLeft>
         <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />
-      </TextAlignRight>
+      </TextAlignLeft>
     );
   }
   if (!['description', 'transaction'].includes(column.key.toString())) {
     return (
-      <TextAlignRight>
+      <TextAlignLeft>
         <OverflowEllipsisTextContainer>{row[column.key]}</OverflowEllipsisTextContainer>
-      </TextAlignRight>
+      </TextAlignLeft>
     );
   }
 
@@ -268,17 +307,19 @@ function endpointDetailDataToChartData(data: any) {
 }
 
 function APIDetailChart(props: {
-  index: number;
   isLoading: boolean;
-  outOf: number;
   series: any;
+  index?: number;
+  outOf?: number;
 }) {
   const theme = useTheme();
   return (
     <Chart
       statsPeriod="24h"
       height={110}
-      data={props.series ? [props.series] : []}
+      data={
+        Array.isArray(props.series) ? props.series : props.series ? [props.series] : []
+      }
       start=""
       end=""
       loading={props.isLoading}
@@ -287,7 +328,11 @@ function APIDetailChart(props: {
       isLineChart
       disableXAxis
       hideYAxisSplitLine
-      chartColors={[theme.charts.getColorPalette(props.outOf - 2)[props.index]]}
+      chartColors={
+        props.index && props.outOf
+          ? [theme.charts.getColorPalette(props.outOf - 2)[props.index]]
+          : undefined
+      }
       grid={{
         left: '0',
         right: '0',

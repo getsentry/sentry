@@ -26,7 +26,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import analytics, features, tagstore
+from sentry import analytics, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -69,10 +69,11 @@ from sentry.search.events.filter import convert_search_filter_to_snuba_query, fo
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken, auth_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -236,14 +237,14 @@ class GroupSerializerBase(Serializer, ABC):
 
         release_resolutions, commit_resolutions = self._resolve_resolutions(item_list, user)
 
-        actor_ids = {r[-1] for r in release_resolutions.values()}
-        actor_ids.update(r.actor_id for r in ignore_items.values())
-        if actor_ids:
+        user_ids = {r[-1] for r in release_resolutions.values()}
+        user_ids.update(r.actor_id for r in ignore_items.values())
+        if user_ids:
             serialized_users = user_service.serialize_many(
-                filter={"user_ids": actor_ids, "is_active": True},
+                filter={"user_ids": user_ids, "is_active": True},
                 as_user=user,
             )
-            actors = {id: u for id, u in zip(actor_ids, serialized_users)}
+            actors = {id: u for id, u in zip(user_ids, serialized_users)}
         else:
             actors = {}
 
@@ -339,6 +340,7 @@ class GroupSerializerBase(Serializer, ABC):
             "level": LOG_LEVELS.get(obj.level, "unknown"),
             "status": status_label,
             "statusDetails": status_details,
+            "substatus": SUBSTATUS_TO_STR[obj.substatus] if obj.substatus else None,
             "isPublic": share_id is not None,
             "platform": obj.platform,
             "project": {
@@ -370,12 +372,6 @@ class GroupSerializerBase(Serializer, ABC):
     @abstractmethod
     def _seen_stats_error(
         self, error_issue_list: Sequence[Group], user
-    ) -> Mapping[Group, SeenStats]:
-        pass
-
-    @abstractmethod
-    def _seen_stats_performance(
-        self, perf_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
         pass
 
@@ -478,32 +474,18 @@ class GroupSerializerBase(Serializer, ABC):
         if not item_list:
             return
 
-        organization = item_list[0].organization
-        search_perf_issues = features.has(
-            "organizations:issue-platform-search-perf-issues", organization, actor=user
-        )
         # partition the item_list by type
         error_issues = [group for group in item_list if GroupCategory.ERROR == group.issue_category]
-        perf_issues = [
-            group
-            for group in item_list
-            if GroupCategory.PERFORMANCE == group.issue_category and not search_perf_issues
-        ]
         generic_issues = [
-            group
-            for group in item_list
-            if group.issue_category
-            and group.issue_category != GroupCategory.ERROR
-            and (group.issue_category != GroupCategory.PERFORMANCE or search_perf_issues)
+            group for group in item_list if group.issue_category != GroupCategory.ERROR
         ]
 
         # bulk query for the seen_stats by type
         error_stats = (self._seen_stats_error(error_issues, user) if error_issues else {}) or {}
-        perf_stats = (self._seen_stats_performance(perf_issues, user) if perf_issues else {}) or {}
         generic_stats = (
             self._seen_stats_generic(generic_issues, user) if generic_issues else {}
         ) or {}
-        agg_stats = {**error_stats, **perf_stats, **generic_stats}
+        agg_stats = {**error_stats, **generic_stats}
         # combine results back
         return {group: agg_stats.get(group, {}) for group in item_list}
 
@@ -788,15 +770,6 @@ class GroupSerializer(GroupSerializerBase):
             item_list, tagstore.get_groups_user_counts, tagstore.get_group_list_tag_value
         )
 
-    def _seen_stats_performance(
-        self, perf_issue_list: Sequence[Group], user
-    ) -> Mapping[Group, SeenStats]:
-        return self.__seen_stats_impl(
-            perf_issue_list,
-            tagstore.get_perf_groups_user_counts,
-            tagstore.get_perf_group_list_tag_value,
-        )
-
     def _seen_stats_generic(
         self, generic_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
@@ -880,6 +853,7 @@ class SharedGroupSerializer(GroupSerializer):
 SKIP_SNUBA_FIELDS = frozenset(
     (
         "status",
+        "substatus",
         "bookmarked_by",
         "assigned_to",
         "for_review",
@@ -997,22 +971,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 environment_ids=self.environment_ids,
             ),
             error_issue_list,
-            bool(self.start or self.end or self.conditions),
-            self.environment_ids,
-        )
-
-    def _seen_stats_performance(
-        self, perf_issue_list: Sequence[Group], user
-    ) -> Mapping[Group, SeenStats]:
-        return self._parse_seen_stats_results(
-            self._execute_perf_seen_stats_query(
-                item_list=perf_issue_list,
-                start=self.start,
-                end=self.end,
-                conditions=self.conditions,
-                environment_ids=self.environment_ids,
-            ),
-            perf_issue_list,
             bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )

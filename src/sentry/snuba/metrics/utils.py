@@ -221,6 +221,7 @@ FILTERABLE_TAGS = {
     "tags[browser.name]",
     "tags[os.name]",
     "tags[release]",
+    "tags[histogram_outlier]",
 }
 
 

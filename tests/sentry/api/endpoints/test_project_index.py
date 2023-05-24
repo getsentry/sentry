@@ -1,8 +1,9 @@
 from django.urls import reverse
 from rest_framework import status
 
+from sentry.constants import ObjectStatus
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models import Project, ProjectKey, ProjectStatus, SentryAppInstallationToken
+from sentry.models import Project, ProjectKey, SentryAppInstallationToken
 from sentry.models.apitoken import ApiToken
 from sentry.testutils import APITestCase
 
@@ -67,7 +68,7 @@ class ProjectsListTest(APITestCase):
         org = self.create_organization()
         team = self.create_team(organization=org, members=[user])
         project1 = self.create_project(teams=[team])
-        project2 = self.create_project(teams=[team], status=ProjectStatus.PENDING_DELETION)
+        project2 = self.create_project(teams=[team], status=ObjectStatus.PENDING_DELETION)
 
         self.login_as(user=user)
 

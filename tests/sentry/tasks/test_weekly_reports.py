@@ -11,11 +11,12 @@ from freezegun import freeze_time
 
 from sentry.constants import DataCategory
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models import GroupStatus, OrganizationMember, Project, UserOption
+from sentry.models import GroupStatus, GroupSubStatus, OrganizationMember, Project, UserOption
 from sentry.tasks.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,
     deliver_reports,
+    organization_project_issue_substatus_summaries,
     organization_project_issue_summaries,
     prepare_organization_report,
     schedule_organizations,
@@ -168,6 +169,51 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         assert project_ctx.existing_issue_count == 0
         assert project_ctx.all_issue_count == 2
 
+    @with_feature("organizations:issue-states")
+    def test_organization_project_issue_substatus_summaries(self):
+        self.login_as(user=self.user)
+
+        now = timezone.now()
+        min_ago = iso_format(now - timedelta(minutes=1))
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        event1.group.substatus = GroupSubStatus.ONGOING
+        event1.group.save()
+
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        event2.group.substatus = GroupSubStatus.NEW
+        event2.group.save()
+        timestamp = to_timestamp(now)
+
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        organization_project_issue_substatus_summaries(ctx)
+
+        project_ctx = ctx.projects[self.project.id]
+
+        assert project_ctx.new_substatus_count == 1
+        assert project_ctx.escalating_substatus_count == 0
+        assert project_ctx.ongoing_substatus_count == 1
+        assert project_ctx.regression_substatus_count == 0
+        assert project_ctx.total_substatus_count == 2
+
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_simple(self, message_builder):
         now = timezone.now()
@@ -252,11 +298,77 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
                 "existing_issue_count": 0,
                 "new_issue_count": 2,
                 "reopened_issue_count": 0,
+                # New escalating-issues
+                "escalating_substatus_count": 0,
+                "new_substatus_count": 0,
+                "ongoing_substatus_count": 0,
+                "regression_substatus_count": 0,
+                "total_substatus_count": 0,
             }
             assert len(context["key_errors"]) == 2
             assert context["trends"]["total_error_count"] == 2
             assert context["trends"]["total_transaction_count"] == 10
             assert "Weekly Report for" in message_params["subject"]
+
+    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    @with_feature("organizations:issue-states")
+    def test_message_builder_substatus_simple(self, message_builder):
+        now = timezone.now()
+        three_days_ago = now - timedelta(days=3)
+
+        self.create_member(
+            teams=[self.team], user=self.create_user(), organization=self.organization
+        )
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": iso_format(three_days_ago),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        group1 = event1.group
+        group1.substatus = GroupSubStatus.NEW
+        group1.save()
+
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": iso_format(three_days_ago),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        group2 = event2.group
+        group2.substatus = GroupSubStatus.ONGOING
+        group2.save()
+
+        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+
+        for call_args in message_builder.call_args_list:
+            message_params = call_args.kwargs
+            context = message_params["context"]
+
+            assert message_params["template"] == "sentry/emails/reports/body.txt"
+            assert message_params["html_template"] == "sentry/emails/reports/body.html"
+
+            assert context["organization"] == self.organization
+            assert context["issue_summary"] == {
+                "all_issue_count": 0,
+                "existing_issue_count": 0,
+                "new_issue_count": 0,
+                "reopened_issue_count": 0,
+                "escalating_substatus_count": 0,
+                "new_substatus_count": 1,
+                "ongoing_substatus_count": 1,
+                "regression_substatus_count": 0,
+                "total_substatus_count": 2,
+            }
 
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_advanced(self, message_builder):

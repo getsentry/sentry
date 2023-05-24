@@ -36,7 +36,8 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import Team
 from sentry.roles.manager import Role
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin, generate_snowflake_id
@@ -84,7 +85,7 @@ class OrganizationManager(BaseManager):
     def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
         """Returns the QuerySet of all organizations that a set of Users have access to."""
         return self.filter(
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
             member_set__user_id__in=user_ids,
         )
 
@@ -93,7 +94,7 @@ class OrganizationManager(BaseManager):
         from sentry.models import Team
 
         return self.filter(
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
             id__in=Team.objects.filter(id__in=team_ids).values("organization"),
         )
 
@@ -130,13 +131,13 @@ class OrganizationManager(BaseManager):
 
         orgs = Organization.objects.filter(
             member_set__user_id=user_id,
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
         )
 
         # get owners from orgs
         owner_role_orgs = Organization.objects.filter(
             member_set__user_id=user_id,
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
             member_set__role=roles.get_top_dog().id,
         )
 
@@ -402,7 +403,7 @@ class Organization(Model, SnowflakeIdMixin):
         ):
             try:
                 to_member = OrganizationMember.objects.get(
-                    organization=to_org, user=from_member.user
+                    organization=to_org, user_id=from_member.user.id
                 )
             except OrganizationMember.DoesNotExist:
                 from_member.update(organization=to_org)

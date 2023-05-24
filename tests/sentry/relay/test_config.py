@@ -83,7 +83,6 @@ DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
 
 def _validate_project_config(config):
     # Relay keeps BTreeSets for these, so sort here as well:
-    config.get("transactionMetrics", {}).get("extractMetrics", []).sort()
     for rule in config.get("metricConditionalTagging", []):
         rule["targetMetrics"] = sorted(rule["targetMetrics"])
 
@@ -159,8 +158,6 @@ def test_get_experimental_config_transaction_metrics_exception(
 
     config = cfg.to_dict()["config"]
 
-    # we check that due to exception we don't add `d:transactions/breakdowns.span_ops.ops.{op_name}@millisecond`
-    assert "breakdowns.span_ops.ops" not in config["transactionMetrics"]["extractMetrics"]
     assert config["transactionMetrics"]["extractCustomTags"] == []
     assert mock_capture_exception.call_count == 2
 
@@ -322,26 +319,26 @@ def test_project_config_with_all_biases_enabled(
                 },
                 "id": 1002,
             },
-            # {
-            #     "condition": {
-            #         "inner": {
-            #             "name": "trace.replay_id",
-            #             "op": "eq",
-            #             "options": {"ignoreCase": True},
-            #             "value": None,
-            #         },
-            #         "op": "not",
-            #     },
-            #     "id": 1005,
-            #     "samplingValue": {"type": "sampleRate", "value": 1.0},
-            #     "type": "trace",
-            # },
             {
-                "condition": {"inner": [], "op": "and"},
-                "id": 1004,
-                "samplingValue": {"type": "factor", "value": default_factor},
+                "condition": {
+                    "inner": {
+                        "name": "trace.replay_id",
+                        "op": "eq",
+                        "options": {"ignoreCase": True},
+                        "value": None,
+                    },
+                    "op": "not",
+                },
+                "id": 1005,
+                "samplingValue": {"type": "sampleRate", "value": 1.0},
                 "type": "trace",
             },
+            # {
+            #     "condition": {"inner": [], "op": "and"},
+            #     "id": 1004,
+            #     "samplingValue": {"type": "factor", "value": default_factor},
+            #     "type": "trace",
+            # },
             {
                 "samplingValue": {"type": "sampleRate", "value": 1.0},
                 "type": "trace",
@@ -535,7 +532,6 @@ def test_has_metric_extraction(default_project, feature_flag, killswitch):
             assert "transactionMetrics" not in config
         else:
             config = config["transactionMetrics"]
-            assert config["extractMetrics"]
             assert config["customMeasurements"]["limit"] > 0
 
 
@@ -553,6 +549,20 @@ def test_accept_transaction_names(default_project):
         transaction_metrics_config = config["transactionMetrics"]
 
         assert transaction_metrics_config["acceptTransactionNames"] == "clientBased"
+
+
+@pytest.mark.parametrize("num_clusterer_runs", [9, 10])
+@pytest.mark.django_db
+def test_txnames_ready(default_project, num_clusterer_runs):
+    with mock.patch(
+        "sentry.relay.config.get_clusterer_meta", return_value={"runs": num_clusterer_runs}
+    ):
+        config = get_project_config(default_project).to_dict()["config"]
+    _validate_project_config(config)
+    if num_clusterer_runs == 9:
+        assert "txNameReady" not in config
+    elif num_clusterer_runs == 10:
+        assert config["txNameReady"] is True
 
 
 @pytest.mark.django_db

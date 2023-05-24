@@ -1,8 +1,10 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
@@ -12,64 +14,116 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {getMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {
+  getDbAggregatesQuery,
+  useQueryMainTable,
+} from 'sentry/views/starfish/modules/databaseModule/queries';
+import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combineTableDataWithSparklineData';
+import {HOST} from 'sentry/views/starfish/utils/constants';
+import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 
 import DatabaseChartView from './databaseChartView';
-import DatabaseTableView, {DataRow, TableColumnHeader} from './databaseTableView';
+import DatabaseTableView, {DataRow, MainTableSort} from './databaseTableView';
 import QueryDetail from './panel';
 
-const HOST = 'http://localhost:8080';
+export type Sort<T> = {
+  direction: 'desc' | 'asc' | undefined;
+  sortHeader: T | undefined;
+};
 
 function DatabaseModule() {
   const location = useLocation();
   const organization = useOrganization();
   const eventView = EventView.fromLocation(location);
-  const [action, setAction] = useState<string>('ALL');
   const [table, setTable] = useState<string>('ALL');
   const [filterNew, setFilterNew] = useState<boolean>(false);
   const [filterOld, setFilterOld] = useState<boolean>(false);
-  const toggleFilterNew = () => {
-    setFilterNew(!filterNew);
-    if (!filterNew) {
-      setFilterOld(false);
-    }
-  };
-  const toggleFilterOld = () => {
-    setFilterOld(!filterOld);
-    if (!filterOld) {
-      setFilterNew(false);
-    }
-  };
+  const [filterOutlier, setFilterOutlier] = useState<boolean>(true);
   const [transaction, setTransaction] = useState<string>('');
-  const [sort, setSort] = useState<{
-    direction: 'desc' | 'asc' | undefined;
-    sortHeader: TableColumnHeader | undefined;
-  }>({direction: undefined, sortHeader: undefined});
+  const [sort, setSort] = useState<MainTableSort>({
+    direction: undefined,
+    sortHeader: undefined,
+  });
   const [rows, setRows] = useState<{next?: DataRow; prev?: DataRow; selected?: DataRow}>({
     selected: undefined,
     next: undefined,
     prev: undefined,
   });
+  const {
+    isLoading: isTableDataLoading,
+    data: tableData,
+    isRefetching: isTableRefetching,
+  } = useQueryMainTable({
+    transaction,
+    table,
+    filterNew,
+    filterOld,
+    filterOutlier,
+    sortKey: sort.sortHeader?.key,
+    sortDirection: sort.direction,
+  });
+  const pageFilters = usePageFilters();
 
-  const tableFilter = table !== 'ALL' ? `domain = '${table}'` : undefined;
-  const actionFilter = action !== 'ALL' ? `action = '${action}'` : undefined;
-  const newFilter: string | undefined = filterNew ? 'newish = 1' : undefined;
-  const oldFilter: string | undefined = filterOld ? 'retired = 1' : undefined;
+  // Experiments
+  const [p95asNumber, setp95asNumber] = useState<boolean>(false);
+  const [noP95, setnoP95] = useState<boolean>(false);
 
-  const pageFilter = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilter);
-  const DATE_FILTERS = `
-  greater(start_timestamp, fromUnixTimestamp(${startTime.unix()})) and
-  less(start_timestamp, fromUnixTimestamp(${endTime.unix()}))
-`;
-  const transactionFilter =
-    transaction.length > 0 ? `transaction='${transaction}'` : null;
+  const {selection} = pageFilters;
+  const {projects, environments, datetime} = selection;
+
+  useApiQuery<null>(
+    [
+      `/organizations/${organization.slug}/events-starfish/`,
+      {
+        query: {
+          ...{
+            environment: environments,
+            project: projects.map(proj => String(proj)),
+          },
+          ...normalizeDateTimeParams(datetime),
+        },
+      },
+    ],
+    {
+      staleTime: 10,
+    }
+  );
+
+  const {data: dbAggregateData} = useQuery({
+    queryKey: [
+      'dbAggregates',
+      transaction,
+      filterNew,
+      filterOld,
+      pageFilters.selection.datetime,
+    ],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getDbAggregatesQuery({
+          datetime: pageFilters.selection.datetime,
+          transaction,
+        })}`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
+    pageFilters.selection.datetime
+  );
+
+  const combinedDbData = combineTableDataWithSparklineData(
+    tableData,
+    dbAggregateData,
+    moment.duration(12, 'hours'),
+    moment(start_timestamp),
+    moment(end_timestamp)
+  );
 
   useEffect(() => {
     function handleKeyDown({keyCode}) {
@@ -92,43 +146,29 @@ function DatabaseModule() {
       document.removeEventListener('keydown', handleKeyDown);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [tableData]);
 
-  const {
-    isLoading: isTableDataLoading,
-    data: tableData,
-    isRefetching: isTableRefetching,
-  } = useQuery<DataRow[]>({
-    queryKey: [
-      'endpoints',
-      action,
-      table,
-      pageFilter.selection.datetime,
-      transaction,
-      sort.sortHeader?.key,
-      sort.direction,
-      newFilter,
-      oldFilter,
-    ],
-    cacheTime: 10000,
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getMainTable(
-          startTime,
-          DATE_FILTERS,
-          endTime,
-          transactionFilter,
-          tableFilter,
-          actionFilter,
-          sort.sortHeader?.key,
-          sort.direction,
-          newFilter,
-          oldFilter
-        )}&format=sql`
-      ).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
+  const toggleFilterNew = () => {
+    setFilterNew(!filterNew);
+    if (!filterNew) {
+      setFilterOld(false);
+    }
+  };
+  const toggleFilterOld = () => {
+    setFilterOld(!filterOld);
+    if (!filterOld) {
+      setFilterNew(false);
+    }
+  };
+  const toggleOutlier = () => {
+    setFilterOutlier(!filterOutlier);
+  };
+  const toggleNoP95 = () => {
+    setnoP95(!noP95);
+  };
+  const toggleP95asNumber = () => {
+    setp95asNumber(!p95asNumber);
+  };
 
   const getUpdatedRows = (row: DataRow, rowIndex?: number) => {
     rowIndex ??= tableData.findIndex(data => data.group_id === row.group_id);
@@ -173,46 +213,69 @@ function DatabaseModule() {
             <FilterOptionsContainer>
               <DatePageFilter alignDropdown="left" />
             </FilterOptionsContainer>
-            <DatabaseChartView
-              location={location}
-              action={action}
-              table={table}
-              onChange={(key, val) => {
-                if (key === 'action') {
-                  setAction(val);
-                  setTable('ALL');
-                } else {
-                  setTable(val);
-                }
-              }}
-            />
-            Filter New Queries
-            <Switch isActive={filterNew} size="lg" toggle={toggleFilterNew} />
-            Filter Old Queries
-            <Switch isActive={filterOld} size="lg" toggle={toggleFilterOld} />
-            <TransactionNameSearchBar
-              organization={organization}
-              eventView={eventView}
-              onSearch={(query: string) => handleSearch(query)}
-              query={transaction}
-            />
+            <DatabaseChartView location={location} table={table} onChange={setTable} />
+            <SearchFilterContainer>
+              <LabelledSwitch
+                label="Filter New Queries"
+                isActive={filterNew}
+                size="lg"
+                toggle={toggleFilterNew}
+              />
+              <LabelledSwitch
+                label="Filter Old Queries"
+                isActive={filterOld}
+                size="lg"
+                toggle={toggleFilterOld}
+              />
+              <LabelledSwitch
+                label="Exclude Outliers"
+                isActive={filterOutlier}
+                size="lg"
+                toggle={toggleOutlier}
+              />
+            </SearchFilterContainer>
+            <SearchFilterContainer>
+              <TransactionNameSearchBar
+                organization={organization}
+                eventView={eventView}
+                onSearch={(query: string) => handleSearch(query)}
+                query={transaction}
+              />
+            </SearchFilterContainer>
             <DatabaseTableView
               location={location}
-              data={tableData}
+              data={combinedDbData as DataRow[]}
               isDataLoading={isTableDataLoading || isTableRefetching}
               onSelect={setSelectedRow}
               onSortChange={setSort}
               selectedRow={rows.selected}
+              p95asNumber={p95asNumber}
+              noP95={noP95}
             />
             <QueryDetail
               isDataLoading={isTableDataLoading || isTableRefetching}
               onRowChange={row => {
                 setSelectedRow(row);
               }}
+              mainTableSort={sort}
               row={rows.selected}
               nextRow={rows.next}
               prevRow={rows.prev}
               onClose={unsetSelectedSpanGroup}
+              transaction={transaction}
+            />
+            <div>Experiments</div>
+            <LabelledSwitch
+              label="p95 as number"
+              isActive={p95asNumber}
+              size="lg"
+              toggle={toggleP95asNumber}
+            />
+            <LabelledSwitch
+              label="No p95"
+              isActive={noP95}
+              size="lg"
+              toggle={toggleNoP95}
             />
           </Layout.Main>
         </Layout.Body>
@@ -229,3 +292,23 @@ const FilterOptionsContainer = styled('div')`
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 `;
+
+const SearchFilterContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
+function LabelledSwitch(props) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        gap: space(1),
+        paddingRight: space(2),
+        alignItems: 'center',
+      }}
+    >
+      <span>{props.label}</span>
+      <Switch {...props} />
+    </span>
+  );
+}

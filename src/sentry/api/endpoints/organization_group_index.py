@@ -160,6 +160,16 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         },
     }
 
+    def build_better_priority_sort_kwargs(self, request: Request):
+        """Temporary function to be used while developing the new priority sort"""
+        return {
+            "better_priority": {
+                "log_level": request.GET.get("logLevel", 5),
+                "frequency": request.GET.get("frequency", 5),
+                "has_stacktrace": request.GET.get("hasStacktrace", 5),
+            }
+        }
+
     def _search(
         self, request: Request, organization, projects, environments, extra_query_kwargs=None
     ):
@@ -170,6 +180,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             if extra_query_kwargs is not None:
                 assert "environment" not in extra_query_kwargs
                 query_kwargs.update(extra_query_kwargs)
+
+            if query_kwargs["sort_by"] == "betterPriority":
+                query_kwargs["aggregate_kwargs"] = self.build_better_priority_sort_kwargs(request)
 
             query_kwargs["environments"] = environments if environments else None
 
@@ -226,6 +239,14 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :qparam list expand: an optional list of strings to opt in to additional data. Supports `inbox`
         :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`
         """
+
+        if request.GET.get("sort") == "betterPriority" and not features.has(
+            "organizations:issue-list-better-priority-sort", organization, actor=request.user
+        ):
+            return Response(
+                {"detail": "This organization does not have the better priority sort feature."},
+                status=400,
+            )
         stats_period = request.GET.get("groupStatsPeriod")
         try:
             start, end = get_date_range_from_stats_period(request.GET)
@@ -248,8 +269,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         if not projects:
             return Response([])
 
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400
@@ -264,6 +288,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             expand=expand,
             collapse=collapse,
             project_ids=project_ids,
+            organization_id=organization.id,
         )
 
         # we ignore date range for both short id and event ids
@@ -428,8 +453,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :auth: required
         """
         projects = self.get_projects(request, organization)
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400
@@ -469,8 +498,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :auth: required
         """
         projects = self.get_projects(request, organization)
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400

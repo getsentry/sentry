@@ -4,7 +4,7 @@ import responses
 from sentry.coreapi import APIError
 from sentry.mediators.external_requests import IssueLinkRequester
 from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json

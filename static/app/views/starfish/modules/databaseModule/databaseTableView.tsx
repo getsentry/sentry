@@ -1,13 +1,20 @@
 import {CSSProperties, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Badge from 'sentry/components/badge';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
-import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
-import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel';
+import {Series} from 'sentry/types/echarts';
+import {getDuration} from 'sentry/utils/formatters';
+import Sparkline, {
+  generateHorizontalLine,
+} from 'sentry/views/starfish/components/sparkline';
+import {Sort} from 'sentry/views/starfish/modules/databaseModule';
+import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
 
 type Props = {
   isDataLoading: boolean;
@@ -15,13 +22,9 @@ type Props = {
   onSelect: (row: DataRow, rowIndex: number) => void;
   columns?: any;
   data?: DataRow[];
-  onSortChange?: ({
-    direction,
-    sortHeader,
-  }: {
-    direction: 'desc' | 'asc' | undefined;
-    sortHeader: TableColumnHeader;
-  }) => void;
+  noP95?: boolean;
+  onSortChange?: ({direction, sortHeader}: MainTableSort) => void;
+  p95asNumber?: boolean;
   selectedRow?: DataRow;
 };
 
@@ -38,45 +41,30 @@ export type DataRow = {
   group_id: string;
   lastSeen: string;
   newish: number;
+  p50: number;
+  p50_trend: Series;
   p75: number;
+  p95: number;
+  p95_trend: Series;
   retired: number;
+  throughput: Series;
   total_time: number;
   transactions: number;
 };
 
-type Keys = 'description' | 'domain' | 'epm' | 'p75' | 'transactions' | 'total_time';
+export type Keys =
+  | 'description'
+  | 'domain'
+  | 'p50'
+  | 'p95'
+  | 'epm'
+  | 'p95'
+  | 'transactions'
+  | 'total_time';
 export type TableColumnHeader = GridColumnHeader<Keys>;
+export type MainTableSort = Sort<TableColumnHeader>;
 
-const COLUMN_ORDER: TableColumnHeader[] = [
-  {
-    key: 'description',
-    name: 'Query',
-    width: 600,
-  },
-  {
-    key: 'domain',
-    name: 'Table',
-    width: 200,
-  },
-  {
-    key: 'epm',
-    name: 'Tpm',
-  },
-  {
-    key: 'p75',
-    name: 'p75',
-  },
-  {
-    key: 'transactions',
-    name: 'transactions',
-  },
-  {
-    key: 'total_time',
-    name: 'Total Time',
-  },
-];
-
-function similarity(value: string, other: string): number {
+export function similarity(value: string, other: string): number {
   // If they're identical we don't care
   if (value === other || other === undefined || value === undefined) {
     return -1;
@@ -92,6 +80,7 @@ function similarity(value: string, other: string): number {
       short_words.splice(short_words.indexOf(word), 1);
     }
   }
+
   return count / total;
 }
 
@@ -126,10 +115,12 @@ function renderBadge(row, selectedRow) {
   return response;
 }
 
-export default function APIModuleView({
+export default function DatabaseTableView({
   location,
   data,
   onSelect,
+  p95asNumber,
+  noP95,
   onSortChange,
   selectedRow,
   isDataLoading,
@@ -139,13 +130,52 @@ export default function APIModuleView({
     direction: 'desc' | 'asc' | undefined;
     sortHeader: TableColumnHeader | undefined;
   }>({direction: undefined, sortHeader: undefined});
+  const theme = useTheme();
+  let COLUMN_ORDER: TableColumnHeader[] = [
+    {
+      key: 'description',
+      name: 'Query',
+      width: 550,
+    },
+    {
+      key: 'domain',
+      name: 'Table',
+      width: 175,
+    },
+    {
+      key: 'epm',
+      name: 'Throughput (SPM)',
+      width: 175,
+    },
+    {
+      key: 'p50',
+      name: 'P50',
+      width: 175,
+    },
+    {
+      key: 'p95',
+      name: 'P95',
+      width: !p95asNumber ? 175 : undefined,
+    },
+    {
+      key: 'transactions',
+      name: 'transactions',
+    },
+    {
+      key: 'total_time',
+      name: 'Total Time',
+    },
+  ];
+  if (noP95) {
+    COLUMN_ORDER = COLUMN_ORDER.filter(col => col.key !== 'p95');
+  }
 
   function onSortClick(col: TableColumnHeader) {
     let direction: 'desc' | 'asc' | undefined = undefined;
-    if (sort.direction === 'desc') {
-      direction = 'asc';
-    } else if (!sort.direction) {
+    if (!sort.direction || col.key !== sort.sortHeader?.key) {
       direction = 'desc';
+    } else if (sort.direction === 'desc') {
+      direction = 'asc';
     }
     if (onSortChange) {
       setSort({direction, sortHeader: col});
@@ -154,7 +184,14 @@ export default function APIModuleView({
   }
 
   function renderHeadCell(col: TableColumnHeader): React.ReactNode {
-    const sortableKeys: Keys[] = ['p75', 'epm', 'total_time', 'domain', 'transactions'];
+    const sortableKeys: Keys[] = [
+      'p50',
+      'p95',
+      'epm',
+      'total_time',
+      'domain',
+      'transactions',
+    ];
     if (sortableKeys.includes(col.key)) {
       const isBeingSorted = col.key === sort.sortHeader?.key;
       const direction = isBeingSorted ? sort.direction : undefined;
@@ -182,28 +219,72 @@ export default function APIModuleView({
       : undefined;
 
     if (key === 'description') {
-      const value = row[key];
-
-      let headerExtra = '';
-      if (row.newish === 1) {
-        headerExtra = `Query (First seen ${row.firstSeen})`;
-      } else if (row.retired === 1) {
-        headerExtra = `Query (Last seen ${row.lastSeen})`;
-      }
+      const value = row.description;
       return (
-        <Hovercard header={headerExtra} body={value}>
-          <Link onClick={() => onSelect(row, rowIndex)} to="" style={rowStyle}>
-            {value.substring(0, 30)}
-            {value.length > 30 ? '...' : ''}
-            {value.length > 30 ? value.substring(value.length - 30) : ''}
-          </Link>
+        <Link onClick={() => onSelect(row, rowIndex)} to="" style={rowStyle}>
+          {value.substring(0, 30)}
+          {value.length > 30 ? '...' : ''}
+          {value.length > 30 ? value.substring(value.length - 30) : ''}
           {renderBadge(row, selectedRow)}
-        </Hovercard>
+        </Link>
       );
     }
-    if (key === 'p75' || key === 'total_time') {
-      const value = row[key];
-      return <span style={rowStyle}>{value.toFixed(2)}ms</span>;
+
+    if (key === 'epm') {
+      const horizontalLine = generateHorizontalLine('', row.epm, theme);
+      return (
+        <GraphRow>
+          <span style={rowStyle}>{row.epm.toFixed(2)}</span>
+          <Graphline>
+            <Sparkline
+              color={CHART_PALETTE[3][0]}
+              series={row.throughput}
+              markLine={horizontalLine}
+              width={column.width ? column.width - column.width / 5 - 50 : undefined}
+            />
+          </Graphline>
+        </GraphRow>
+      );
+    }
+
+    if (key === 'p50') {
+      const horizontalLine = generateHorizontalLine('', row.p50, theme);
+      return (
+        <GraphRow>
+          <span style={rowStyle}>{getDuration(row.p50 / 1000, 2, true)}</span>
+          <Graphline>
+            <Sparkline
+              color={CHART_PALETTE[3][1]}
+              series={row.p50_trend}
+              markLine={horizontalLine}
+              width={column.width ? column.width - column.width / 5 - 50 : undefined}
+            />
+          </Graphline>
+        </GraphRow>
+      );
+    }
+
+    if (key === 'p95') {
+      const horizontalLine = generateHorizontalLine('', row.p95, theme);
+      return (
+        <GraphRow>
+          <span style={rowStyle}>{getDuration(row.p95 / 1000, 2, true)}</span>
+          <Graphline>
+            {!p95asNumber && (
+              <Sparkline
+                color={CHART_PALETTE[3][2]}
+                series={row.p95_trend}
+                markLine={horizontalLine}
+                width={column.width ? column.width - column.width / 5 - 50 : undefined}
+              />
+            )}
+          </Graphline>
+        </GraphRow>
+      );
+    }
+
+    if (key === 'total_time') {
+      return <span style={rowStyle}>{getDuration(row.total_time / 1000, 2, true)}</span>;
     }
     return <span style={rowStyle}>{row[key]}</span>;
   }
@@ -225,4 +306,11 @@ export default function APIModuleView({
 
 const StyledBadge = styled(Badge)`
   margin-left: ${space(0.75)};
+`;
+
+const Graphline = styled('div')`
+  margin-left: auto;
+`;
+const GraphRow = styled('div')`
+  display: inline-flex;
 `;

@@ -1,3 +1,89 @@
+23.5.1
+------
+
+### Issue States and Filters (ongoing)
+
+By: @scttcper (#49578, #49157)
+
+### JS Project Cleanup (ongoing)
+
+By: @scttcper (#49381, #49255, #49210, #49159)
+
+### Various fixes & improvements
+
+- fix(hc): Change integration search endpoint to control silo (#49589) by @RyanSkonnord
+- fix(starfish): Zerofill round up (#49598) by @shruthilayaj
+- feat(starfish): Update endpoint overview to be consistent (#49607) by @shruthilayaj
+- ref(performance): Move metrics histogram outlier filtering (#48731) by @mjq-sentry
+- feat(starfish): Add top endpoints chart to web service view (#49603) by @shruthilayaj
+- feat(starfish): Fix span summary chart styling (#49463) by @0Calories
+- feat(starfish): Updated WSV span group chart (#49499) by @shruthilayaj
+- ref(perf): Mark long-task with sentry-tracing-init (#49481) by @k-fish
+- chore(profiling): Add flags for more profiling features (#49461) by @Zylphrex
+- feat(starfish): Switch top graph to p50 (#49510) by @wmak
+- feat(starfish): adds synchronized axis markers to starfish charts (#49504) by @edwardgou-sentry
+- deps: bump profiling to alpha.6 (#49127) by @JonasBa
+- feat(create-project): Add framework selection modal tests (#49305) by @priscilawebdev
+- chore(discover-transactions-cell-action): Removed go to summary cell … (#49406) by @Abdkhan14
+- Add index on sentry_monitorchecking.date_added to avoid seq scans during cleanup (#49310) by @beezz
+- Add a utility to query the memory usage percentage of a configured redis cluster (#49459) by @Swatinem
+- ref(createProject): convert test from jsx to tsx (#49304) by @priscilawebdev
+- ref(project-creation): Convert overview from class to func (#49303) by @priscilawebdev
+- feat(project-creation): Add framework selection modal (#49300) by @priscilawebdev
+- chore(js): Use FormFieldProps vs FormField['props'] (#49591) by @evanpurkhiser
+- feat(hybrid-cloud): Update api invite helper (#48829) by @dashed
+- chore(js): Convert Form to a FC (#49525) by @evanpurkhiser
+- ref(js): Convert SentryAppExternalIssueForm for a FC (#49581) by @evanpurkhiser
+- feat(issue-states): auto transition new and regressed issues to ongoing (#49522) by @barkbarkimashark
+
+_Plus 306 more_
+
+23.5.0
+------
+
+### Escalating Issues V1 (ongoing)
+
+This will allow marking an issue as archived until escalating.
+
+By: @scttcper (#48498, #47408), @armenzg (#48257, #48369, #48332, #48272, #48247, #48102, #48104, #47626, #47822, #47625), @jangjodi (#47954, #47843, #47716, #47601, #47593, #47586, #47578, #47496, #47419), @snigdhas (#47789, #47681, #47437), @NisanthanNanthakumar (#47799, #47749)
+
+### Issue States and Filters (ongoing)
+
+By: @scttcper (#48047), @barkbarkimashark (#47691, #48042, #47881, #48043, #47753, #47720), @snigdhas (#48289, #47909, #48164, #47785, #47832, #47689, #47687, #47604, #47603, #47420)
+
+### JS Project Cleanup (ongoing)
+
+By: @lobsterkatie (#49060, #49045), @scttcper (#48873, #48883, #48841, #48825, #48379)
+
+### Various fixes & improvements
+
+- fix(onboarding): Add missing `useEffect` dependency (#49105) by @lobsterkatie
+- ref(api): Rename `handleXhrErrorResponse` to `getXhrErrorResponseHandler` (#49100) by @lobsterkatie
+- chore(starfish): Remove the count if query (#49097) by @shruthilayaj
+- fix(issue-platform): Fix `get_event_by_id` to correctly return occurrence information for transactions (#49059) by @wedamija
+- feat(starfish): Compare span samples to p50 baseline in table column (#48959) by @0Calories
+- feat(source-maps): adds new case for source map debugging (#49061) by @scefali
+- feat(starfish): Add releases to db module (#48782) by @wmak
+- ref(trends): Impose strict top event limit (#49098) by @udameli
+- feat(replays): Log to stdout when a slow click event is detected (#48775) by @cmanallen
+- fix(txnames): Revert high threshold for running the clusterer (#49087) by @jjbayer
+- instr(txnames): Count number of discovered rules (#49085) by @jjbayer
+- Allow defining different symbolicator for JS LPQ (#49072) by @Swatinem
+- feat(transaction-summary): Add analytics to track biases sufficiency assessment (#48865) by @priscilawebdev
+- chore(hybrid-cloud): save outbox messages when creating them for org members (#49055) by @dashed
+- feat(api): Allow overriding default pagination limits for testing (#49056) by @evanpurkhiser
+- feat(js): Add useMembers hook (#49043) by @evanpurkhiser
+- feat(issues): Add archived issue tag (#49044) by @scttcper
+- fix(issues): Remove resolve/archive/ignore action icons (#49058) by @scttcper
+- ref(pageFilters): Add ability to disable persistence (#49048) by @vuluongj20
+- ref(js): Export useTeams as a named export (#49052) by @evanpurkhiser
+- chore(roles): Pixel Matters for Project/Team Settings Pages (#49042) by @leedongwei
+- ref(hc): Create ControlOption to support cross silo options (#48833) by @corps
+- chore(issue-platform): Remove project level option for creating issues via platform (#48911) by @wedamija
+- fix(issue-states): increase time limits for auto transitioning to ongoing issues (#49033) by @barkbarkimashark
+
+_Plus 1059 more_
+
 23.4.0
 ------
 

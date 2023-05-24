@@ -5,8 +5,6 @@ from django.db.models import Max, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import RuleSerializer
-from sentry.incidents.endpoints.utils import translate_threshold
-from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivity,
@@ -16,15 +14,11 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     Incident,
 )
-from sentry.models import (
-    ACTOR_TYPES,
-    Rule,
-    actor_type_to_class,
-    actor_type_to_string,
-    fetch_actors_by_actor_ids,
-)
+from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
+from sentry.models.rule import Rule
 from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 
 
@@ -99,10 +93,11 @@ class AlertRuleSerializer(Serializer):
 
         resolved_actors = {}
         for k, v in ACTOR_TYPES.items():
-            resolved_actors[k] = {
-                a.actor_id: a.id
-                for a in fetch_actors_by_actor_ids(actor_type_to_class(v), owners_by_type[k])
-            }
+            actors = Actor.objects.filter(type=v, id__in=owners_by_type[k])
+            if k == "team":
+                resolved_actors[k] = {actor.id: actor.team_id for actor in actors}
+            if k == "user":
+                resolved_actors[k] = {actor.id: actor.user_id for actor in actors}
 
         for alert_rule in alert_rules.values():
             if alert_rule.owner_id:
@@ -137,6 +132,9 @@ class AlertRuleSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
+        from sentry.incidents.endpoints.utils import translate_threshold
+        from sentry.incidents.logic import translate_aggregate_field
+
         env = obj.snuba_query.environment
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)

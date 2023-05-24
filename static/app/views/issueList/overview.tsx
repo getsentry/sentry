@@ -327,9 +327,6 @@ class IssueListOverview extends Component<Props, State> {
     let currentPeriod: string;
     if (typeof this.props.location.query?.groupStatsPeriod === 'string') {
       currentPeriod = this.props.location.query.groupStatsPeriod;
-    } else if (this.getSort() === IssueSortOptions.TREND) {
-      // Default to the larger graph when sorting by relative change
-      currentPeriod = 'auto';
     } else {
       currentPeriod = DEFAULT_GRAPH_STATS_PERIOD;
     }
@@ -727,10 +724,11 @@ class IssueListOverview extends Component<Props, State> {
     }
   };
 
-  onRealtimePoll = (data: any, _links: any) => {
+  onRealtimePoll = (data: any, {queryCount}: {queryCount: number}) => {
     // Note: We do not update state with cursors from polling,
     // `CursorPoller` updates itself with new cursors
     GroupStore.addToFront(data);
+    this.setState({queryCount});
   };
 
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
@@ -836,6 +834,7 @@ class IssueListOverview extends Component<Props, State> {
       num_old_issues: numOldIssues,
       num_new_issues: numNewIssues,
       num_issues: data.length,
+      sort: this.getSort(),
     });
   }
 
@@ -1150,7 +1149,7 @@ class IssueListOverview extends Component<Props, State> {
     // validate that it's correct at the first and last page
     if (!links?.next?.results || this.allResultsVisible()) {
       // On last available page
-      numPreviousIssues = queryCount - groupIds.length;
+      numPreviousIssues = Math.max(queryCount - groupIds.length, 0);
     } else if (!links?.previous?.results) {
       // On first available page
       numPreviousIssues = 0;
@@ -1235,6 +1234,7 @@ class IssueListOverview extends Component<Props, State> {
                 <VisuallyCompleteWithData
                   hasData={this.state.groupIds.length > 0}
                   id="IssueList-Body"
+                  isLoading={this.state.issuesLoading}
                 >
                   <GroupListBody
                     memberList={this.state.memberList}
@@ -1253,7 +1253,7 @@ class IssueListOverview extends Component<Props, State> {
             </Panel>
             <StyledPagination
               caption={
-                !issuesLoading
+                !issuesLoading && modifiedQueryCount > 0
                   ? tct('[start]-[end] of [total]', {
                       start: numPreviousIssues + 1,
                       end: numPreviousIssues + numIssuesOnPage,

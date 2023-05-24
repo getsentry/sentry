@@ -46,6 +46,10 @@ import {
   ProfilingEventParameters,
 } from './analytics/profilingAnalyticsEvents';
 import {
+  projectCreationEventMap,
+  ProjectCreationEventParameters,
+} from './analytics/projectCreationAnalyticsEvents';
+import {
   releasesEventMap,
   ReleasesEventParameters,
 } from './analytics/releasesAnalyticsEvents';
@@ -82,7 +86,8 @@ type EventParameters = GrowthEventParameters &
   StackTraceEventParameters &
   AiSuggestedSolutionEventParameters &
   EcosystemEventParameters &
-  IntegrationEventParameters;
+  IntegrationEventParameters &
+  ProjectCreationEventParameters;
 
 const allEventMap: Record<string, string | null> = {
   ...coreUIEventMap,
@@ -104,6 +109,7 @@ const allEventMap: Record<string, string | null> = {
   ...aiSuggestedSolutionEventMap,
   ...ecosystemEventMap,
   ...integrationEventMap,
+  ...projectCreationEventMap,
 };
 
 /**

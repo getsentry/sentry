@@ -8,7 +8,7 @@ from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
 
 from django.utils import timezone
 
-from sentry import features, release_health, tsdb
+from sentry import release_health, tsdb
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupSerializer,
@@ -347,17 +347,10 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         if not groups:
             return
 
-        organization = groups[0].organization
-        search_perf_issues = features.has(
-            "organizations:issue-platform-search-perf-issues", organization, actor=user
-        )
-
-        error_issue_ids, perf_issue_ids, generic_issue_ids = [], [], []
+        error_issue_ids, generic_issue_ids = [], []
         for group in groups:
             if GroupCategory.ERROR == group.issue_category:
                 error_issue_ids.append(group.id)
-            elif GroupCategory.PERFORMANCE == group.issue_category and not search_perf_issues:
-                perf_issue_ids.append(group.id)
             else:
                 generic_issue_ids.append(group.id)
 
@@ -372,10 +365,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         )
         if error_issue_ids:
             results.update(get_range(model=snuba_tsdb.models.group, keys=error_issue_ids))
-        if perf_issue_ids:
-            results.update(
-                get_range(model=snuba_tsdb.models.group_performance, keys=perf_issue_ids)
-            )
         if generic_issue_ids:
             results.update(get_range(model=snuba_tsdb.models.group_generic, keys=generic_issue_ids))
         return results
@@ -384,11 +373,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self, error_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(error_issue_list, self._execute_error_seen_stats_query)
-
-    def _seen_stats_performance(
-        self, perf_issue_list: Sequence[Group], user
-    ) -> Mapping[Group, SeenStats]:
-        return self.__seen_stats_impl(perf_issue_list, self._execute_perf_seen_stats_query)
 
     def _seen_stats_generic(
         self, generic_issue_list: Sequence[Group], user

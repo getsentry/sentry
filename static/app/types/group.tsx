@@ -171,9 +171,9 @@ export type TagWithTopValues = {
 };
 
 export const enum GroupSubstatus {
-  UNTIL_ESCALATING = 'until_escalating',
-  UNTIL_CONDITION_MET = 'until_condition_met',
-  FOREVER = 'forever',
+  ARCHIVED_UNTIL_ESCALATING = 'archived_until_escalating',
+  ARCHIVED_UNTIL_CONDITION_MET = 'archived_until_condition_met',
+  ARCHIVED_FOREVER = 'archived_forever',
   ESCALATING = 'escalating',
   ONGOING = 'ongoing',
   REGRESSED = 'regressed',
@@ -198,12 +198,13 @@ export const enum GroupInboxReason {
   MANUAL = 3,
   REPROCESSED = 4,
   ESCALATING = 5,
+  ONGOING = 6,
 }
 
 export type InboxDetails = {
-  reason_details: InboxReasonDetails;
   date_added?: string;
   reason?: GroupInboxReason;
+  reason_details?: InboxReasonDetails | null;
 };
 
 export type SuggestedOwnerReason =
@@ -260,6 +261,7 @@ export enum GroupActivityType {
   MERGE = 'merge',
   REPROCESS = 'reprocess',
   MARK_REVIEWED = 'mark_reviewed',
+  AUTO_SET_ONGOING = 'auto_set_ongoing',
 }
 
 interface GroupActivityBase {
@@ -335,14 +337,14 @@ export interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
 
 interface GroupActivitySetByResolvedInCommit extends GroupActivityBase {
   data: {
-    commit: Commit;
+    commit?: Commit;
   };
   type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
 }
 
 interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
   data: {
-    pullRequest: PullRequest;
+    pullRequest?: PullRequest;
   };
   type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST;
 }
@@ -352,6 +354,8 @@ export interface GroupActivitySetIgnored extends GroupActivityBase {
     ignoreCount?: number;
     ignoreDuration?: number;
     ignoreUntil?: string;
+    /** Archived until escalating */
+    ignoreUntilEscalating?: boolean;
     ignoreUserCount?: number;
     ignoreUserWindow?: number;
     ignoreWindow?: number;
@@ -395,6 +399,13 @@ interface GroupActivityMerge extends GroupActivityBase {
     issues: Array<any>;
   };
   type: GroupActivityType.MERGE;
+}
+
+interface GroupActivityAutoSetOngoing extends GroupActivityBase {
+  data: {
+    afterDays?: number;
+  };
+  type: GroupActivityType.AUTO_SET_ONGOING;
 }
 
 export interface GroupActivityAssigned extends GroupActivityBase {
@@ -442,7 +453,8 @@ export type GroupActivity =
   | GroupActivityRegression
   | GroupActivityUnmergeSource
   | GroupActivityAssigned
-  | GroupActivityCreateIssue;
+  | GroupActivityCreateIssue
+  | GroupActivityAutoSetOngoing;
 
 export type Activity = GroupActivity;
 
@@ -489,6 +501,7 @@ export type ResolutionStatusDetails = {
   // Sent in requests. ignoreUntil is used in responses.
   ignoreDuration?: number;
   ignoreUntil?: string;
+  ignoreUntilEscalating?: boolean;
   ignoreUserCount?: number;
   ignoreUserWindow?: number;
   ignoreWindow?: number;
@@ -501,13 +514,12 @@ export type ResolutionStatusDetails = {
   inNextRelease?: boolean;
   inRelease?: string;
   repository?: string;
-  untilEscalating?: boolean;
 };
 
 export type GroupStatusResolution = {
   status: ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
-  substatus?: GroupSubstatus;
+  substatus?: 'until_escalating';
 };
 
 export type GroupRelease = {
@@ -548,7 +560,6 @@ export interface BaseGroup extends GroupRelease {
   shortId: string;
   status: string;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
@@ -569,7 +580,7 @@ export interface GroupResolution
   // A proper fix for this would be to make the status field an enum or string and correctly extend it.
   extends Omit<BaseGroup, 'status'>,
     GroupStats,
-    GroupStatusResolution {}
+    Omit<GroupStatusResolution, 'substatus'> {}
 
 export type Group = GroupResolution | GroupReprocessing;
 export interface GroupCollapseRelease

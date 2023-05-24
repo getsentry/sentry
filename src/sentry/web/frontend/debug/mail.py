@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime, timedelta
 from random import Random
 from typing import Any, MutableMapping
+from unittest import mock
 from urllib.parse import urlencode
 
 import pytz
@@ -28,12 +29,14 @@ from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
+from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.mail.notifications import get_builder_args
 from sentry.models import (
     Activity,
     Group,
     GroupStatus,
+    GroupSubStatus,
     Organization,
     OrganizationMember,
     Project,
@@ -44,11 +47,11 @@ from sentry.models import (
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
+from sentry.notifications.notifications.rules import get_group_substatus_text
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
-from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.notifications import SAMPLE_TO_OCCURRENCE_MAP, TEST_ISSUE_OCCURRENCE
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
@@ -189,40 +192,28 @@ def make_error_event(request, project, platform):
 
 
 def make_performance_event(project, sample_name: str):
-    with override_options(
-        {
-            "performance.issues.all.problem-detection": 1.0,
-            "performance.issues.n_plus_one_db.problem-creation": 1.0,
-            "performance.issues.n_plus_one_api_calls.problem-creation": 1.0,
-            "performance.issues.render_blocking_assets.problem-creation": 1.0,
-        }
-    ), Feature(
-        {
-            "organizations:performance-n-plus-one-api-calls-detector": True,
-            "organizations:performance-issues-render-blocking-assets-detector": True,
-        }
+    timestamp = datetime(2017, 9, 6, 0, 0)
+    start_timestamp = timestamp - timedelta(seconds=3)
+    event_id = "44f1419e73884cd2b45c79918f4b6dc4"
+    occurrence_data = SAMPLE_TO_OCCURRENCE_MAP[sample_name].to_dict()
+    occurrence_data["event_id"] = event_id
+    perf_data = dict(load_data(sample_name, start_timestamp=start_timestamp, timestamp=timestamp))
+    perf_data["event_id"] = event_id
+    perf_data["project_id"] = project.id
+
+    with mock.patch.object(
+        PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
     ):
-        timestamp = datetime(2017, 9, 6, 0, 0)
-        start_timestamp = timestamp - timedelta(seconds=3)
-
-        perf_data = dict(
-            load_data(
-                sample_name,
-                start_timestamp=start_timestamp,
-                timestamp=timestamp,
-            )
+        occurrence, group_info = process_event_and_issue_occurrence(
+            occurrence_data,
+            perf_data,
         )
-        perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
-        perf_event_manager = EventManager(perf_data)
-        perf_event_manager.normalize()
-        perf_data = perf_event_manager.get_data()
-        perf_event = perf_event_manager.save(project.id)
-        # Prevent CI screenshot from constantly changing
-        perf_event.data["timestamp"] = timestamp.timestamp()
-        perf_event.data["start_timestamp"] = start_timestamp.timestamp()
-
-    perf_event = perf_event.for_group(perf_event.groups[0])
-    return perf_event
+    generic_group = group_info.group
+    group_event = generic_group.get_latest_event()
+    # Prevent CI screenshot from constantly changing
+    group_event.data["timestamp"] = timestamp.timestamp()
+    group_event.data["start_timestamp"] = start_timestamp.timestamp()
+    return group_event
 
 
 def make_generic_event(project):
@@ -249,6 +240,7 @@ def get_shared_context(rule, org, project, group, event):
         "rule": rule,
         "rules": rules,
         "group": group,
+        "group_header": get_group_substatus_text(group),
         "event": event,
         "timezone": pytz.timezone("Europe/Vienna"),
         # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
@@ -413,6 +405,9 @@ class ActivityMailDebugView(View):
         )
 
 
+has_issue_states = True
+
+
 @login_required
 def alert(request):
     random = get_random(request)
@@ -422,6 +417,10 @@ def alert(request):
 
     event = make_error_event(request, project, platform)
     group = event.group
+
+    group.substatus = random.choice(
+        [GroupSubStatus.ESCALATING, GroupSubStatus.NEW, GroupSubStatus.REGRESSED]
+    )
 
     rule = Rule(id=1, label="An example rule")
     notification_reason = (
@@ -443,7 +442,10 @@ def alert(request):
             "notification_settings_link": absolute_uri(
                 "/settings/account/notifications/alerts/?referrer=alert_email"
             ),
+            "culprit": random.choice(["sentry.tasks.culprit.culprit", None]),
+            "subtitle": random.choice(["subtitles are cool", None]),
             "issue_type": group.issue_type.description,
+            "has_issue_states": has_issue_states,
         },
     ).render(request)
 
@@ -455,7 +457,6 @@ def digest(request):
     # TODO: Refactor all of these into something more manageable.
     org = Organization(id=1, slug="example", name="Example Organization")
     project = Project(id=1, slug="example", name="Example Project", organization=org)
-    project.update_option("sentry:performance_issue_creation_rate", 1.0)
     rules = {
         i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
     }

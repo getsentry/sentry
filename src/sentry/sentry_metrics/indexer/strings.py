@@ -1,13 +1,16 @@
 from typing import Mapping, Optional, Set
 
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
-    KeyCollection,
-    KeyResult,
-    KeyResults,
+    OrgId,
     StringIndexer,
+    UseCaseKeyCollection,
+    UseCaseKeyResult,
+    UseCaseKeyResults,
+    metric_path_key_compatible_resolve,
+    metric_path_key_compatible_rev_resolve,
 )
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 # !!! DO NOT CHANGE THESE VALUES !!!
 #
@@ -76,7 +79,7 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/measurements.time_to_full_display@millisecond": PREFIX + 127,
 }
 
-# 200 - 299
+# 200 - 399
 SHARED_TAG_STRINGS = {
     # release health
     "abnormal": PREFIX + 200,
@@ -125,10 +128,33 @@ SHARED_TAG_STRINGS = {
     "drop": PREFIX + 239,
     "decision": PREFIX + 240,
     "keep": PREFIX + 241,
+    # Spans
+    "span.op": PREFIX + 242,
+    "span.module": PREFIX + 243,
+    "span.action": PREFIX + 244,
+    "span.system": PREFIX + 245,
+    "span.status": PREFIX + 246,
+    "span.status_code": PREFIX + 247,
+    "span.domain": PREFIX + 248,
+    "span.description": PREFIX + 249,
+    "http.status_code": PREFIX + 250,
+    "geo.country_code": PREFIX + 251,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
-SHARED_STRINGS = {**SESSION_METRIC_NAMES, **TRANSACTION_METRICS_NAMES, **SHARED_TAG_STRINGS}
+
+# 400-499
+SPAN_METRICS_NAMES = {
+    "s:transactions/span.user@none": PREFIX + 400,
+    "d:transactions/span.duration@millisecond": PREFIX + 401,
+}
+
+SHARED_STRINGS = {
+    **SESSION_METRIC_NAMES,
+    **TRANSACTION_METRICS_NAMES,
+    **SPAN_METRICS_NAMES,
+    **SHARED_TAG_STRINGS,
+}
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}
 
 # Make sure there are no accidental duplicates
@@ -144,42 +170,47 @@ class StaticStringIndexer(StringIndexer):
         self.indexer = indexer
 
     def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
-        static_keys = KeyCollection(org_strings)
-        static_key_results = KeyResults()
-        for org_id, string in static_keys.as_tuples():
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+    ) -> UseCaseKeyResults:
+        static_keys = UseCaseKeyCollection(strings)
+        static_key_results = UseCaseKeyResults()
+        for use_case_id, org_id, string in static_keys.as_tuples():
             if string in SHARED_STRINGS:
                 id = SHARED_STRINGS[string]
-                static_key_results.add_key_result(
-                    KeyResult(org_id, string, id), FetchType.HARDCODED
+                static_key_results.add_use_case_key_result(
+                    UseCaseKeyResult(use_case_id, org_id, string, id), FetchType.HARDCODED
                 )
 
-        org_strings_left = static_key_results.get_unmapped_keys(static_keys)
+        org_strings_left = static_key_results.get_unmapped_use_case_keys(static_keys)
 
         if org_strings_left.size == 0:
             return static_key_results
 
         indexer_results = self.indexer.bulk_record(
-            use_case_id=use_case_id, org_strings=org_strings_left.mapping
+            {
+                use_case_id: key_collection.mapping
+                for use_case_id, key_collection in org_strings_left.mapping.items()
+            }
         )
 
         return static_key_results.merge(indexer_results)
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    @metric_path_key_compatible_resolve
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
-        return self.indexer.resolve(use_case_id=use_case_id, org_id=org_id, string=string)
+        return self.indexer.resolve(use_case_id, org_id, string)
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    @metric_path_key_compatible_rev_resolve
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
-        return self.indexer.reverse_resolve(use_case_id=use_case_id, org_id=org_id, id=id)
+        return self.indexer.reverse_resolve(use_case_id, org_id, id)
 
     def resolve_shared_org(self, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:

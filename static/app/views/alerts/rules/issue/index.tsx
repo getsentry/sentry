@@ -175,6 +175,7 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 class IssueRuleEditor extends AsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
   trackIncompatibleAnalytics: boolean = false;
+  isUnmounted = false;
 
   get isDuplicateRule(): boolean {
     const {location} = this.props;
@@ -187,8 +188,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   componentWillUnmount() {
+    this.isUnmounted = true;
     GroupStore.reset();
     window.clearTimeout(this.pollingTimeout);
+    this.checkIncompatibleRuleDebounced.cancel();
+    this.fetchPreviewDebounced.cancel();
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
@@ -201,7 +205,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         incompatibleFilters: null,
       });
       this.fetchPreviewDebounced();
-      this.checkIncompatibleRule();
+      this.checkIncompatibleRuleDebounced();
     }
     if (prevState.project.id === this.state.project.id) {
       return;
@@ -229,7 +233,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const ruleName = rule?.name;
 
     return routeTitleGen(
-      ruleName ? t('Alert %s', ruleName) : '',
+      ruleName ? t('Alert - %s', ruleName) : t('New Alert Rule'),
       organization.slug,
       false,
       project?.slug
@@ -327,6 +331,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       );
     }
   }
+
   pollHandler = async (quitTime: number) => {
     if (Date.now() > quitTime) {
       addErrorMessage(t('Looking for that channel took too long :('));
@@ -403,6 +408,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         },
       })
       .then(([data, _, resp]) => {
+        if (this.isUnmounted) {
+          return;
+        }
+
         GroupStore.add(data);
 
         const pageLinks = resp?.getResponseHeader('Link');
@@ -436,7 +445,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }, 1000);
 
   // As more incompatible combinations are added, we will need a more generic way to check for incompatibility.
-  checkIncompatibleRule = debounce(() => {
+  checkIncompatibleRuleDebounced = debounce(() => {
     if (this.props.organization.features.includes('issue-alert-incompatible-rules')) {
       const {conditionIndices, filterIndices} = findIncompatibleRules(this.state.rule);
       if (

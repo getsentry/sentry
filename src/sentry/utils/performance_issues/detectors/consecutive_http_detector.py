@@ -4,14 +4,19 @@ from datetime import timedelta
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
+from sentry.utils.event import is_event_from_browser_javascript_sdk
+from sentry.utils.safe import get_path
 
 from ..base import (
     DetectorType,
     PerformanceDetector,
     fingerprint_http_spans,
     get_duration_between_spans,
+    get_notification_attachment_body,
     get_span_duration,
+    get_span_evidence_value,
 )
 from ..performance_problem import PerformanceProblem
 from ..types import Span
@@ -26,8 +31,17 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
     def init(self):
         self.stored_problems: dict[str, PerformanceProblem] = {}
         self.consecutive_http_spans: list[Span] = []
+        self.lcp = None
+
+        lcp_value = get_path(self.event(), "measurements", "lcp", "value")
+        lcp_unit = get_path(self.event(), "measurements", "lcp", "unit")
+        if lcp_value and (lcp_unit is None or lcp_unit == "millisecond"):
+            self.lcp = lcp_value
 
     def visit_span(self, span: Span) -> None:
+        if is_event_from_browser_javascript_sdk(self.event()):
+            return
+
         span_id = span.get("span_id", None)
 
         if not span_id or not self._is_eligible_http_span(span):
@@ -80,12 +94,28 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             cause_span_ids=[],
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
-            evidence_display=[],
+            evidence_display=[
+                IssueEvidence(
+                    name="Offending Spans",
+                    value=get_notification_attachment_body(
+                        "http",
+                        desc,
+                    ),
+                    # Has to be marked important to be displayed in the notifications
+                    important=True,
+                )
+            ],
             evidence_data={
                 "parent_span_ids": [],
                 "cause_span_ids": [],
                 "offender_span_ids": offender_span_ids,
                 "op": "http",
+                "transaction_name": self._event.get("transaction", ""),
+                "repeating_spans": get_span_evidence_value(self.consecutive_http_spans[0]),
+                "repeating_spans_compact": get_span_evidence_value(
+                    self.consecutive_http_spans[0], include_op=False
+                ),
+                "num_repeating_spans": str(len(self.consecutive_http_spans)),
             },
         )
 

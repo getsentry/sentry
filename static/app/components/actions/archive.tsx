@@ -5,18 +5,16 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconArchive, IconChevron} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GroupStatusResolution, GroupSubstatus, ResolutionStatus} from 'sentry/types';
+import {GroupStatusResolution, ResolutionStatus} from 'sentry/types';
 
 interface ArchiveActionProps {
   onUpdate: (params: GroupStatusResolution) => void;
   className?: string;
   confirmLabel?: string;
   confirmMessage?: () => React.ReactNode;
-  disableTooltip?: boolean;
   disabled?: boolean;
-  hideIcon?: boolean;
   isArchived?: boolean;
   shouldConfirm?: boolean;
   size?: 'xs' | 'sm';
@@ -25,7 +23,7 @@ interface ArchiveActionProps {
 const ARCHIVE_UNTIL_ESCALATING: GroupStatusResolution = {
   status: ResolutionStatus.IGNORED,
   statusDetails: {},
-  substatus: GroupSubstatus.UNTIL_ESCALATING,
+  substatus: 'until_escalating',
 };
 const ARCHIVE_FOREVER: GroupStatusResolution = {
   status: ResolutionStatus.IGNORED,
@@ -82,9 +80,7 @@ export function getArchiveActions({
 function ArchiveActions({
   size = 'xs',
   disabled,
-  disableTooltip,
   className,
-  hideIcon,
   shouldConfirm,
   confirmLabel,
   isArchived,
@@ -99,7 +95,6 @@ function ArchiveActions({
         title={t('Change status to unresolved')}
         onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})}
         aria-label={t('Unarchive')}
-        icon={<IconArchive size="xs" />}
       />
     );
   }
@@ -115,9 +110,8 @@ function ArchiveActions({
     <ButtonBar className={className} merged>
       <ArchiveButton
         size={size}
-        tooltipProps={{delay: 1000, disabled: disabled || disableTooltip}}
+        tooltipProps={{delay: 1000, disabled}}
         title={t('Hides the issue until the sh*t hits the fan and events escalate.')}
-        icon={hideIcon ? null : <IconArchive size={size} />}
         onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
         disabled={disabled}
       >

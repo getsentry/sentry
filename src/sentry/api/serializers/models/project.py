@@ -19,7 +19,7 @@ from sentry.api.serializers.models.team import get_org_roles
 from sentry.app import env
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import StatsPeriod
+from sentry.constants import ObjectStatus, StatsPeriod
 from sentry.digests import backend as digests
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
@@ -34,7 +34,6 @@ from sentry.models import (
     ProjectBookmark,
     ProjectOption,
     ProjectPlatform,
-    ProjectStatus,
     ProjectTeam,
     Release,
     Team,
@@ -54,10 +53,10 @@ from sentry.tasks.symbolication import should_demote_symbolication
 from sentry.utils import json
 
 STATUS_LABELS = {
-    ProjectStatus.VISIBLE: "active",
-    ProjectStatus.HIDDEN: "deleted",
-    ProjectStatus.PENDING_DELETION: "deleted",
-    ProjectStatus.DELETION_IN_PROGRESS: "deleted",
+    ObjectStatus.ACTIVE: "active",
+    ObjectStatus.DISABLED: "deleted",
+    ObjectStatus.PENDING_DELETION: "deleted",
+    ObjectStatus.DELETION_IN_PROGRESS: "deleted",
 }
 
 STATS_PERIOD_CHOICES = {
@@ -197,15 +196,6 @@ def format_options(attrs: defaultdict(dict)):
             options.get("sentry:csp_ignored_sources", []) or []
         ),
         "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
-        "sentry:performance_issue_creation_rate": options.get(
-            "sentry:performance_issue_creation_rate"
-        ),
-        "sentry:performance_issue_send_to_issues_platform": options.get(
-            "sentry:performance_issue_send_to_issues_platform"
-        ),
-        "sentry:performance_issue_create_issue_through_plaform": options.get(
-            "sentry:performance_issue_create_issue_through_plaform"
-        ),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
         "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
         f"filters:{FilterTypes.RELEASES}": "\n".join(
@@ -923,15 +913,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "dynamicSamplingBiases": get_value_with_default("sentry:dynamic_sampling_biases"),
-                "performanceIssueCreationRate": get_value_with_default(
-                    "sentry:performance_issue_creation_rate"
-                ),
-                "performanceIssueSendToPlatform": get_value_with_default(
-                    "sentry:performance_issue_send_to_issues_platform"
-                ),
-                "performanceIssueCreationThroughPlatform": get_value_with_default(
-                    "sentry:performance_issue_create_issue_through_plaform"
-                ),
                 "eventProcessing": {
                     "symbolicationDegraded": False,
                 },

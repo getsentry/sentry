@@ -107,6 +107,13 @@ SENTRY_DISALLOWED_IPS = ()
 # search domains.
 SENTRY_ENSURE_FQDN = False
 
+SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER = "default"
+SENTRY_INCIDENT_RULES_REDIS_CLUSTER = "default"
+SENTRY_RATE_LIMIT_REDIS_CLUSTER = "default"
+SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
+SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
+SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
+
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
 INTERNAL_SYSTEM_IPS = (
@@ -301,6 +308,8 @@ USE_TZ = True
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE = (
+    # Uncomment to enable Content Security Policy on this Sentry installation (experimental)
+    # "csp.middleware.CSPMiddleware",
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -406,6 +415,63 @@ SILENCED_SYSTEM_CHECKS = (
     # It's not our problem; refer to Django issue 32260.
     "urls.E007",
 )
+
+CSP_INCLUDE_NONCE_IN = [
+    "script-src",
+]
+
+CSP_DEFAULT_SRC = [
+    "'none'",
+]
+CSP_SCRIPT_SRC = [
+    "'self'",
+    "'unsafe-inline'",
+    "'report-sample'",
+]
+CSP_FONT_SRC = [
+    "'self'",
+    "data:",
+]
+CSP_CONNECT_SRC = [
+    "'self'",
+]
+CSP_FRAME_ANCESTORS = [
+    "'none'",
+]
+CSP_OBJECT_SRC = [
+    "'none'",
+]
+CSP_BASE_URI = [
+    "'none'",
+]
+CSP_STYLE_SRC = [
+    "'self'",
+    "'unsafe-inline'",
+]
+CSP_IMG_SRC = [
+    "'self'",
+    "blob:",
+    "data:",
+    "https://secure.gravatar.com",
+]
+
+if ENVIRONMENT == "development":
+    CSP_SCRIPT_SRC += [
+        "'unsafe-eval'",
+    ]
+    CSP_CONNECT_SRC += [
+        "ws://127.0.0.1:8000",
+    ]
+
+# Before enforcing Content Security Policy, we recommend creating a separate
+# Sentry project and collecting CSP violations in report only mode:
+# https://docs.sentry.io/product/security-policy-reporting/
+
+# Point this parameter to your Sentry installation:
+# CSP_REPORT_URI = "https://example.com/api/{PROJECT_ID}/security/?sentry_key={SENTRY_KEY}"
+
+# To enforce CSP (block violated resources), update the following parameter to False
+CSP_REPORT_ONLY = True
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
@@ -755,7 +821,6 @@ for queue in CELERY_QUEUES:
 
 from celery.schedules import crontab
 
-# XXX: Make sure to register the monitor_slug for each job in `SENTRY_CELERYBEAT_MONITORS`!
 CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
 CELERYBEAT_SCHEDULE = {
     "check-auth": {
@@ -928,6 +993,16 @@ CELERYBEAT_SCHEDULE = {
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
+    "dynamic-sampling-sliding-window": {
+        "task": "sentry.dynamic_sampling.tasks.sliding_window",
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
+    },
+    "dynamic-sampling-sliding-window-org": {
+        "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
+    },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
@@ -942,14 +1017,14 @@ CELERYBEAT_SCHEDULE = {
     },
     "schedule_auto_transition_new": {
         "task": "sentry.tasks.schedule_auto_transition_new",
-        # Run job once a day at 00:30
-        "schedule": crontab(minute=30, hour="0"),
+        # Run job every 6 hours
+        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
     "schedule_auto_transition_regressed": {
         "task": "sentry.tasks.schedule_auto_transition_regressed",
-        # Run job once a day at 02:30
-        "schedule": crontab(minute=30, hour="2"),
+        # Run job every 6 hours
+        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
 }
@@ -1091,8 +1166,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
-    # Enables the new artifact bundle uploads
-    "organizations:artifact-bundles": False,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     "organizations:alert-allow-indexed": False,
     # Enables tagging javascript errors from the browser console.
@@ -1159,24 +1232,18 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable flamegraph view for profiling
-    "organizations:profiling-flamegraphs": False,
     # Enable ui frames in flamecharts
     "organizations:profiling-ui-frames": False,
-    # Enable the profiling aggregate flamegraph
-    "organizations:profiling-aggregate-flamegraph": False,
-    # Enable the profiling previews
-    "organizations:profiling-previews": False,
-    # Enable the profiling span previews
-    "organizations:profiling-span-previews": False,
     # Enable the transactions backed profiling views
     "organizations:profiling-using-transactions": False,
-    # Enable the sentry sample format response
-    "organizations:profiling-sampled-format": False,
     # Enabled for those orgs who participated in the profiling Beta program
     "organizations:profiling-beta": False,
     # Enable profiling GA messaging (update paths from AM1 to AM2)
     "organizations:profiling-ga": False,
+    # Enable stacktrace linking of multiple frames in profiles
+    "organizations:profiling-stacktrace-links": False,
+    # Enable global suspect functions in profiling
+    "organizations:profiling-global-suspect-functions": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1189,8 +1256,6 @@ SENTRY_FEATURES = {
     "organizations:grouping-title-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
-    # Lets organizations set a custom title through fingerprinting
-    "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature
@@ -1282,10 +1347,14 @@ SENTRY_FEATURES = {
     "organizations:sql-format": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
+    # Enable better priority sort algorithm.
+    "organizations:issue-list-better-priority-sort": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
     "organizations:mobile-cpu-memory-in-transactions": False,
+    # Enable new page filter UI
+    "organizations:new-page-filter": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1317,6 +1386,8 @@ SENTRY_FEATURES = {
     "organizations:performance-metrics-backed-transaction-summary": False,
     # Enable new trends
     "organizations:performance-new-trends": False,
+    # Enable debug views for trendsv2 to be used internally
+    "organizations:performance-trendsv2-dev-only": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
@@ -1344,8 +1415,6 @@ SENTRY_FEATURES = {
     "organizations:session-replay": False,
     # Enable Session Replay showing in the sidebar
     "organizations:session-replay-ui": True,
-    # Enable Session Replay DOM search
-    "organizations:session-replay-dom-search": False,
     # Enabled for those orgs who participated in the Replay Beta program
     "organizations:session-replay-beta-grace": False,
     # Enable replay GA messaging (update paths from AM1 to AM2)
@@ -1355,8 +1424,6 @@ SENTRY_FEATURES = {
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
-    # Enable temporary underfetching to improve Replay List query performance
-    "organizations:session-replay-slim-table": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
     # Enables subquery optimizations for the replay_index page
@@ -1365,6 +1432,8 @@ SENTRY_FEATURES = {
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
+    # Enable starfish endpoint that's used for regressing testing purposes
+    "organizations:starfish-test-endpoint": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -1423,6 +1492,8 @@ SENTRY_FEATURES = {
     "organizations:team-insights": True,
     # Enable u2f verification on superuser form
     "organizations:u2f-superuser-form": False,
+    # Enable project creation for all
+    "organizations:team-project-creation-all": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
     # Enable team member role provisioning through scim
@@ -1552,12 +1623,6 @@ SENTRY_REPROCESSING_APM_SAMPLING = 0
 # end APM config
 # ----
 
-# DSN to use for Sentry monitors
-SENTRY_MONITOR_DSN = None
-SENTRY_MONITOR_API_ROOT = None
-SENTRY_CELERYBEAT_MONITORS = {
-    # 'scheduled-name': 'monitor_guid',
-}
 
 # Web Service
 SENTRY_WEB_HOST = "127.0.0.1"
@@ -1619,6 +1684,8 @@ SENTRY_SMTP_DISABLED_BACKENDS = frozenset(
         "sentry.utils.email.PreviewBackend",
     )
 )
+
+SENTRY_UPLOAD_RETRY_TIME = 60  # 1 min
 
 # Should users without superuser permissions be allowed to
 # make projects public
@@ -1755,6 +1822,7 @@ SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+SENTRY_METRICS_SKIP_ALL_INTERNAL = False
 SENTRY_METRICS_DISALLOW_BAD_TAGS = IS_DEV
 
 # Metrics product
@@ -2031,14 +2099,14 @@ SENTRY_TEAM_ROLES = (
         "scopes": {
             "event:read",
             "event:write",
-            "event:admin",
+            # "event:admin",  # Scope granted/withdrawn by "sentry:events_member_admin" to org-level role
             "project:releases",
             "project:read",
             "org:read",
             "member:read",
             "team:read",
             "alerts:read",
-            "alerts:write",
+            # "alerts:write",  # Scope granted/withdrawn by "sentry:alerts_member_write" to org-level role
         },
     },
     {
@@ -2260,7 +2328,8 @@ SENTRY_DEVSERVICES = {
             "volumes": {"kafka_6": {"bind": "/var/lib/kafka/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
-            or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS,
+            or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS
+            or settings.SENTRY_USE_PROFILING,
         }
     ),
     "clickhouse": lambda settings, options: (
@@ -2381,6 +2450,20 @@ SENTRY_DEVSERVICES = {
             "only_if": settings.SENTRY_USE_CDC_DEV,
             "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
             "volumes": {settings.CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
+        }
+    ),
+    "vroom": lambda settings, options: (
+        {
+            "image": "us.gcr.io/sentryio/vroom:nightly",
+            "pull": True,
+            "volumes": {"profiles": {"bind": "/var/lib/sentry-profiles"}},
+            "environment": {
+                "SENTRY_KAFKA_BROKERS_PROFILING": "{containers[kafka][name]}:9093",
+                "SENTRY_KAFKA_BROKERS_OCCURRENCES": "{containers[kafka][name]}:9093",
+                "SENTRY_SNUBA_HOST": "http://{containers[snuba][name]}:1218",
+            },
+            "ports": {"8085/tcp": 8085},
+            "only_if": settings.SENTRY_USE_PROFILING,
         }
     ),
 }
@@ -2784,7 +2867,6 @@ KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
 KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
 KAFKA_INGEST_MONITORS = "ingest-monitors"
-KAFKA_REGION_TO_CONTROL = "region-to-control"
 KAFKA_EVENTSTREAM_GENERIC = "generic-events"
 KAFKA_GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
 
@@ -2829,8 +2911,6 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
     KAFKA_INGEST_OCCURRENCES: {"cluster": "default"},
     KAFKA_INGEST_MONITORS: {"cluster": "default"},
-    # Region to Control Silo messaging - eg UserIp and AuditLog
-    KAFKA_REGION_TO_CONTROL: {"cluster": "default"},
     KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
     KAFKA_GENERIC_EVENTS_COMMIT_LOG: {"cluster": "default"},
 }
@@ -2923,9 +3003,10 @@ SYMBOLICATOR_MAX_RETRY_AFTER = 2
 
 # The `url` of the different Symbolicator pools.
 # We want to route different workloads to a different set of Symbolicator pools.
-# This can be as fine-grained as using a different pool for `js` symbolication,
-# for the `lpq` (See `SENTRY_LPQ_OPTIONS` and related settings) and for normal
-# symbolication. The keys here should match the `SymbolicatorPools` enum
+# This can be as fine-grained as using a different pool for normal "native"
+# symbolication, `js` symbolication, and for `lpq` / `lpq-js`.
+# (See `SENTRY_LPQ_OPTIONS` and related settings)
+# The keys here should match the `SymbolicatorPools` enum
 # defined in `src/sentry/lang/native/symbolicator.py`.
 # If a specific setting does not exist, this will fall back to the `default` pool.
 # If that is not configured, it will fall back to the `url` configured in
@@ -2934,8 +3015,9 @@ SYMBOLICATOR_MAX_RETRY_AFTER = 2
 # `symbolicator.options` for backwards compatibility.
 SYMBOLICATOR_POOL_URLS = {
     # "js": "...",
-    # "lpq": "...",
     # "default": "...",
+    # "lpq": "...",
+    # "lpq_js": "...",
 }
 
 SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
@@ -3120,7 +3202,7 @@ ANOMALY_DETECTION_URL = "127.0.0.1:9091"
 ANOMALY_DETECTION_TIMEOUT = 30
 
 # This is the URL to the profiling service
-SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
+SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 
@@ -3182,9 +3264,6 @@ FAIL_ON_UNAVAILABLE_API_CALL = False
 DEV_HYBRID_CLOUD_RPC_SENDER = os.environ.get("SENTRY_DEV_HYBRID_CLOUD_RPC_SENDER", None)
 
 DISALLOWED_CUSTOMER_DOMAINS = []
-
-SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
-SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE = False
 
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000

@@ -56,6 +56,22 @@ class ListMonitorCheckInsTest(MonitorTestCase):
             date_added=self.monitor.date_added + timedelta(hours=1, minutes=2),
             status=CheckInStatus.ERROR,
         )
+        MonitorCheckIn.objects.create(
+            monitor=self.monitor,
+            monitor_environment=monitor_environment_production,
+            project_id=self.project.id,
+            duration=3000,
+            date_added=self.monitor.date_added + timedelta(hours=1, minutes=1),
+            status=CheckInStatus.TIMEOUT,
+        )
+        MonitorCheckIn.objects.create(
+            monitor=self.monitor,
+            monitor_environment=monitor_environment_debug,
+            project_id=self.project.id,
+            duration=3000,
+            date_added=self.monitor.date_added + timedelta(hours=1, minutes=2),
+            status=CheckInStatus.TIMEOUT,
+        )
 
     def test_simple(self):
         resp = self.get_success_response(
@@ -73,11 +89,13 @@ class ListMonitorCheckInsTest(MonitorTestCase):
         assert hour_one["ok"] == 2
         assert hour_one["missed"] == 0
         assert hour_one["error"] == 0
+        assert hour_one["timeout"] == 0
 
-        assert hour_two["duration"] == 2000
+        assert hour_two["duration"] == 2500
         assert hour_two["ok"] == 0
         assert hour_two["missed"] == 1
         assert hour_two["error"] == 1
+        assert hour_two["timeout"] == 2
 
     def test_simple_environment(self):
         resp = self.get_success_response(
@@ -96,11 +114,13 @@ class ListMonitorCheckInsTest(MonitorTestCase):
         assert hour_one["ok"] == 1
         assert hour_one["missed"] == 0
         assert hour_one["error"] == 0
+        assert hour_one["timeout"] == 0
 
-        assert hour_two["duration"] == 1500
+        assert hour_two["duration"] == 2250
         assert hour_two["ok"] == 0
         assert hour_two["missed"] == 1
         assert hour_two["error"] == 0
+        assert hour_two["timeout"] == 1
 
     def test_multiple_environment(self):
         resp = self.get_success_response(
@@ -119,11 +139,13 @@ class ListMonitorCheckInsTest(MonitorTestCase):
         assert hour_one["ok"] == 2
         assert hour_one["missed"] == 0
         assert hour_one["error"] == 0
+        assert hour_one["timeout"] == 0
 
-        assert hour_two["duration"] == 2000
+        assert hour_two["duration"] == 2500
         assert hour_two["ok"] == 0
         assert hour_two["missed"] == 1
         assert hour_two["error"] == 1
+        assert hour_two["timeout"] == 2
 
     def test_bad_monitorenvironment(self):
         self.create_environment(name="empty", project=self.project)
@@ -143,8 +165,10 @@ class ListMonitorCheckInsTest(MonitorTestCase):
         assert hour_one["ok"] == 0
         assert hour_one["missed"] == 0
         assert hour_one["error"] == 0
+        assert hour_one["timeout"] == 0
 
         assert hour_two["duration"] == 0
         assert hour_two["ok"] == 0
         assert hour_two["missed"] == 0
         assert hour_two["error"] == 0
+        assert hour_two["timeout"] == 0

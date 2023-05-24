@@ -13,9 +13,11 @@ from sentry.notifications.helpers import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
+@control_silo_test
 class SlackUninstallTest(APITestCase):
     """TODO(mgaeta): Extract the endpoint's DELETE logic to a helper and use it instead of API."""
 
@@ -39,7 +41,7 @@ class SlackUninstallTest(APITestCase):
         assert not OrganizationIntegration.objects.filter(
             integration=self.integration,
             organization_id=self.organization.id,
-            status=ObjectStatus.VISIBLE,
+            status=ObjectStatus.ACTIVE,
         ).exists()
         assert ScheduledDeletion.objects.filter(
             model_name="OrganizationIntegration", object_id=org_integration.id
@@ -99,6 +101,18 @@ class SlackUninstallTest(APITestCase):
 
         self.assert_settings(ExternalProviders.EMAIL, NotificationSettingOptionValues.NEVER)
         self.assert_settings(ExternalProviders.SLACK, NotificationSettingOptionValues.NEVER)
+
+    def test_uninstall_generates_settings_with_userid(self):
+        self.uninstall()
+
+        self.assert_settings(ExternalProviders.SLACK, NotificationSettingOptionValues.NEVER)
+        # Ensure uninstall sets user_id.
+        settings = NotificationSetting.objects.find_settings(
+            provider=ExternalProviders.SLACK,
+            type=NotificationSettingTypes.ISSUE_ALERTS,
+            user=self.user,
+        )
+        assert settings[0].user_id == self.user.id
 
     def test_uninstall_with_multiple_organizations(self):
         organization = self.create_organization(owner=self.user)

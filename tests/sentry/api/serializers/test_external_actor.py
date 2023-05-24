@@ -28,21 +28,18 @@ class ExternalActorSerializerTest(TestCase):
         self.org_integration = self.integration.add_organization(self.organization, self.user)
 
     def test_idempotent_actor(self):
-        get_actor_id_for_user(self.user)
-        self.user.actor_id = None
-        get_actor_id_for_user(self.user)
-        self.user.refresh_from_db()
-        assert self.user.actor_id
+        actor_id = get_actor_id_for_user(self.user)
+        other_actor_id = get_actor_id_for_user(self.user)
+        assert other_actor_id == actor_id
 
         get_actor_id_for_user(self.user)
-        assert self.user.actor_id
         assert Actor.objects.filter(user_id=self.user.id).count() == 1
 
     def test_user(self):
         external_actor, _ = ExternalActor.objects.get_or_create(
             actor_id=get_actor_id_for_user(self.user),
             organization=self.organization,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name="Marcos",
             external_id="Gaeta",
@@ -62,7 +59,7 @@ class ExternalActorSerializerTest(TestCase):
         external_actor, _ = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
             organization=self.organization,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name="Marcos",
             external_id="Gaeta",
