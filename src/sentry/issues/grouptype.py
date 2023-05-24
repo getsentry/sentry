@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 class GroupCategory(Enum):
     ERROR = 1
     PERFORMANCE = 2
+    PROFILE = 3  # deprecated, merging with PERFORMANCE
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
