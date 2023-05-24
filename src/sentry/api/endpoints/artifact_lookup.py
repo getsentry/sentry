@@ -179,6 +179,8 @@ def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
 
     for (artifact_bundle_id, date_added) in used_artifact_bundles.items():
         metrics.incr("artifact_lookup.get.renew_artifact_bundles.should_be_renewed")
+        # We perform the condition check also before running the query, in order to reduce the amount of queries to the
+        # database.
         if date_added <= threshold_date:
             metrics.incr("artifact_lookup.get.renew_artifact_bundles.renewed")
             # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
