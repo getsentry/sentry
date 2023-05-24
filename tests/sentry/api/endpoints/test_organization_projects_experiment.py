@@ -26,6 +26,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.t1 = f"default-team-{self.user}"
+        self.mock_experiment_get = patch("sentry.experiments.manager.get", return_value=1).start()
 
     @cached_property
     def path(self):
@@ -77,6 +78,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
 
     @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
     def test_missing_experiment(self):
+        self.mock_experiment_get.return_value = 0
         response = self.get_error_response(self.organization.slug, name=self.p1, status_code=404)
         assert response.data == {
             "detail": "You do not have permission to join a new team as a Team Admin."
