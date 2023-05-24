@@ -14,7 +14,6 @@ from sentry.models.files.utils import (
     locked_blob,
     nooplogger,
 )
-from sentry.tasks.files import delete_file as delete_file_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.retries import TimedRetryPolicy
@@ -34,6 +33,7 @@ class AbstractFileBlob(Model):
         abstract = True
 
     FILE_BLOB_OWNER_MODEL = None
+    DELETE_FILE_TASK = None
 
     @classmethod
     def from_files(cls, files, organization=None, logger=nooplogger):
@@ -210,7 +210,7 @@ class AbstractFileBlob(Model):
         # we avoid any transaction isolation where the
         # FileBlob row might still be visible by the
         # task before transaction is committed.
-        delete_file_task.apply_async(
+        self.DELETE_FILE_TASK.apply_async(
             kwargs={"path": self.path, "checksum": self.checksum}, countdown=60
         )
 

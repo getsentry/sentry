@@ -12,7 +12,6 @@ from django.utils import timezone
 
 from sentry.db.models import BoundedPositiveIntegerField, JSONField, Model
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, AssembleChecksumMismatch, nooplogger
-from sentry.tasks.files import delete_unreferenced_blobs
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 
@@ -199,6 +198,7 @@ class AbstractFile(Model):
 
     FILE_BLOB_MODEL = None
     FILE_BLOB_INDEX_MODEL = None
+    DELETE_UNREFERENCED_BLOB_TASK = None
 
     def _get_chunked_blob(self, mode=None, prefetch=False, prefetch_to=None, delete=True):
         return ChunkedFileBlobIndexWrapper(
@@ -336,7 +336,7 @@ class AbstractFile(Model):
         # Wait to delete blobs. This helps prevent
         # races around frequently used blobs in debug images and release files.
         transaction.on_commit(
-            lambda: delete_unreferenced_blobs.apply_async(
+            lambda: self.DELETE_UNREFERENCED_BLOB_TASK.apply_async(
                 kwargs={"blob_ids": blob_ids}, countdown=60 * 5
             ),
             using=router.db_for_write(type(self)),

@@ -5,6 +5,7 @@ from sentry.db.models.base import region_silo_only_model
 from sentry.models.files.abstractfile import AbstractFile
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
+from sentry.tasks.files import delete_unreferenced_blobs_region
 
 
 @region_silo_only_model
@@ -22,3 +23,4 @@ class File(AbstractFile):
 
     FILE_BLOB_MODEL = FileBlob
     FILE_BLOB_INDEX_MODEL = FileBlobIndex
+    DELETE_UNREFERENCED_BLOB_TASK = delete_unreferenced_blobs_region
