@@ -1,46 +1,9 @@
 import uuid
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Type
 
-from arroyo import Topic
-from arroyo.backends.kafka import KafkaPayload
-from django.conf import settings
-
-from sentry.issues.grouptype import ReplaySlowClickType
-from sentry.issues.producer import get_occurrence_producer, track_occurrence_producer_futures
-from sentry.utils import json
-
-
-class Event(TypedDict):
-    environment: str
-    event_id: str
-    platform: str
-    project_id: int
-    received: int
-    release: str
-    tags: Dict[str, str]
-    timestamp: int
-
-
-class Evidence(TypedDict):
-    name: str
-    value: str
-    important: bool
-
-
-class Occurrence(TypedDict):
-    culprint: Optional[str]
-    detection_time: int
-    event: Event
-    evidence_data: Dict[str, Any]
-    evidence_display: List[Evidence]
-    fingerprint: str
-    id: str
-    issue_title: str
-    level: Optional[str]
-    project_id: int
-    resource_id: str
-    subtitle: str
-    type: int
+from sentry.issues.grouptype import GroupType, ReplaySlowClickType
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.producer import produce_occurrence_to_kafka
 
 
 def new_slow_click_issue(
@@ -67,7 +30,7 @@ def new_slow_click_issue(
 def _new_issue_occurrence(
     environment: str,
     fingerprint: str,
-    issue_type: int,
+    issue_type: Type[GroupType],
     platform: str,
     project_id: int,
     release: str,
@@ -76,52 +39,32 @@ def _new_issue_occurrence(
     title: str,
 ) -> None:
     """Produce a new issue occurence to Kafka."""
-    occurrence: Occurrence = {
-        "culprint": None,
-        "detection_time": timestamp,
-        "event": {
-            "environment": environment,
-            "platform": platform,
-            "project_id": project_id,
-            "received": timestamp,
-            "release": release,
-            "tags": {},
-            "timestamp": timestamp,
-        },
-        "evidence_data": {},
-        "evidence_display": [],
-        "fingerprint": fingerprint,
-        "id": uuid.uuid4().hex,
-        "issue_title": title,
-        "level": "info",
+    event_id = uuid.uuid4().hex
+
+    occurrence = IssueOccurrence(
+        id=uuid.uuid4().hex,
+        project_id=project_id,
+        event_id=event_id,
+        fingerprint=fingerprint,
+        issue_title=title,
+        subtitle=subtitle,
+        resource_id=None,
+        evidence_data=[],
+        evidence_display=[],
+        type=issue_type,
+        detection_time=timestamp,
+        level="info",
+        culprit=None,
+    )
+
+    event_data = {
+        "id": event_id,
+        "environment": environment,
+        "platform": platform,
         "project_id": project_id,
-        "resource_id": None,
-        "subtitle": subtitle,
-        "type": issue_type,
+        "received": timestamp,
+        "release": release,
+        "timestamp": timestamp,
     }
 
-    # Helper function to initialize but to also re-use the global from the issue module if
-    # the producer has already been initialized.
-    occurrence_producer = get_occurrence_producer()
-
-    # This is ripped from "sentry.issues.producer.produce_occurrence_to_kafka". We don't build
-    # the `IssueOccurence` object because it requires an "event_id" parameter (which we don't
-    # have). We build the event manually so this code is copied from there.
-    occurence_json = KafkaPayload(None, json.dumps(occurrence).encode("utf-8"), [])
-    future = occurrence_producer.produce(Topic(settings.KAFKA_INGEST_OCCURRENCES), occurence_json)
-
-    # We don't produce to the topic synchronously so the above produce step will return a
-    # future. We could have many of these futures at once so this function keeps track of the
-    # number and errs if the value is too large.
-    #
-    # I don't anticipate we'll ever hit the configured limit considering the speed of our
-    # consumer is significantly slower than the speed of producing messages to Kafka.  But its
-    # fine to have it.
-    #
-    # In the event that a future produces an exception we don't have any ability to replay the
-    # offending payload and try again.
-    #
-    # This function squashes index errors. A call to `future.result()` is present in a try
-    # except block. As of writing I'm opening a separate pull request to address this issue.
-    # If the IndexError has been resolved you can remove this comment.
-    track_occurrence_producer_futures(future)
+    produce_occurrence_to_kafka(occurrence, event_data=event_data)
