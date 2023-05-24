@@ -103,16 +103,6 @@ class Migration(CheckedMigration):
         ),
         migrations.AddField(
             model_name="controlfile",
-            name="blob",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="legacy_blob",
-                to="sentry.ControlFileBlob",
-            ),
-        ),
-        migrations.AddField(
-            model_name="controlfile",
             name="blobs",
             field=models.ManyToManyField(
                 through="sentry.ControlFileBlobIndex", to="sentry.ControlFileBlob"

@@ -40,7 +40,7 @@ class FileBlobTest(TestCase):
         path2 = FileBlob.generate_unique_path()
         assert path != path2
 
-    @patch("sentry.tasks.files.delete_file_region")
+    @patch.object(FileBlob, "DELETE_FILE_TASK")
     def test_delete_handles_database_error(self, mock_delete_file_region):
         fileobj = ContentFile(b"foo bar")
         baz_file = File.objects.create(name="baz-v1.js", type="default", size=7)

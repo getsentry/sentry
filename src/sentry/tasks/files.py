@@ -20,7 +20,7 @@ def delete_file_region(path, checksum, **kwargs):
 
 
 @instrumented_task(
-    name="sentry.tasks.files.delete_file",
+    name="sentry.tasks.files.delete_file_control",
     queue="files.delete",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
@@ -57,7 +57,7 @@ def delete_unreferenced_blobs_region(blob_ids):
 
 
 @instrumented_task(
-    name="sentry.tasks.files.delete_unreferenced_blobs",
+    name="sentry.tasks.files.delete_unreferenced_blobs_control",
     queue="files.delete",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
