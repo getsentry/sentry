@@ -8,8 +8,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.ingest.transaction_clusterer import ClustererRuleNamespace
+from sentry.ingest.transaction_clusterer import rules as rule_store
 from sentry.ingest.transaction_clusterer.datasource import redis, snuba
-from sentry.ingest.transaction_clusterer.rules import get_redis_rules, get_rules
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 
 
@@ -54,8 +54,12 @@ class ProjectTransactionNamesCluster(ProjectEndpoint):
                     "unique_transaction_names": transaction_names
                     if return_all_names
                     else len(transaction_names),
-                    "rules_redis": get_redis_rules(project),
-                    "rules_projectoption": get_rules(ClustererRuleNamespace.TRANSACTIONS, project),
+                    "rules_redis": rule_store.get_redis_rules(
+                        ClustererRuleNamespace.TRANSACTIONS, project
+                    ),
+                    "rules_projectoption": rule_store.get_rules(
+                        ClustererRuleNamespace.TRANSACTIONS, project
+                    ),
                 },
             }
         )
