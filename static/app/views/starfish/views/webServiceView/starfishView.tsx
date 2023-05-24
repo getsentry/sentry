@@ -275,7 +275,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
             <MiniChartPanel title={t('Error Rate')}>
               {renderFailureRateChart()}
             </MiniChartPanel>
-            <MiniChartPanel title={t('Response Times')}>
+            <MiniChartPanel title={t('Duration')}>
               {renderEndpointPercentileChart()}
             </MiniChartPanel>
             <MiniChartPanel title={t('Throughput')}>
