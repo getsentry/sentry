@@ -378,7 +378,9 @@ def get_adjusted_base_rate_from_cache_or_compute(org_id: int) -> Optional[float]
             org_ids=[org_id], window_size=window_size
         )
         if (org_total_root_count := orgs_with_counts.get(org_id)) is not None:
-            return compute_sliding_window_sample_rate(org_id, org_total_root_count, window_size)
+            return compute_sliding_window_sample_rate(
+                org_id, None, org_total_root_count, window_size
+            )
 
     return None
 
@@ -439,13 +441,13 @@ def adjust_base_sample_rate_per_project(
     """
     projects_with_rebalanced_sample_rate = []
 
-    for project_id, total_root_count in augment_with_empty_projects(
-        org_id, projects_with_total_root_count
-    ).items():
+    for project_id, total_root_count in projects_with_total_root_count:
         try:
             # We want to compute the sliding window sample rate by considering a window of time.
             # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
-            sample_rate = compute_sliding_window_sample_rate(org_id, total_root_count, window_size)
+            sample_rate = compute_sliding_window_sample_rate(
+                org_id, project_id, total_root_count, window_size
+            )
         except Exception as e:
             sentry_sdk.capture_exception(e)
             sample_rate = None
@@ -470,7 +472,7 @@ def adjust_base_sample_rate_per_project(
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
 
             schedule_invalidate_project_config(
-                project_id=project_id, trigger="dynamic_sampling_prioritise_project_bias"
+                project_id=project_id, trigger="dynamic_sampling_sliding_window"
             )
 
         pipeline.execute()
@@ -530,7 +532,7 @@ def adjust_base_sample_rate_per_org(org_id: int, total_root_count: int, window_s
     """
     Adjusts the base sample rate per org by considering its volume and how it fits w.r.t. to the sampling tiers.
     """
-    sample_rate = compute_sliding_window_sample_rate(org_id, total_root_count, window_size)
+    sample_rate = compute_sliding_window_sample_rate(org_id, None, total_root_count, window_size)
     # If the sample rate is None, we don't want to store a value into Redis.
     if sample_rate is None:
         return
@@ -544,7 +546,7 @@ def adjust_base_sample_rate_per_org(org_id: int, total_root_count: int, window_s
 
 
 def compute_sliding_window_sample_rate(
-    org_id: int, total_root_count: int, window_size: int
+    org_id: int, project_id: Optional[int], total_root_count: int, window_size: int
 ) -> Optional[float]:
     """
     Computes the actual sample rate for the sliding window given the total root count and the size of the
@@ -562,6 +564,11 @@ def compute_sliding_window_sample_rate(
 
         return None
 
+    # We want to log the monthly volume for observability purposes.
+    log_extrapolated_monthly_volume(
+        org_id, project_id, total_root_count, extrapolated_volume, window_size
+    )
+
     sampling_tier = quotas.get_transaction_sampling_tier_for_volume(org_id, extrapolated_volume)
     if sampling_tier is None:
         return None
@@ -572,3 +579,22 @@ def compute_sliding_window_sample_rate(
 
     # We assume that the sample_rate is a float.
     return float(sample_rate)
+
+
+def log_extrapolated_monthly_volume(
+    org_id: int, project_id: Optional[int], volume: int, extrapolated_volume: int, window_size: int
+) -> None:
+    extra = {
+        "org_id": org_id,
+        "volume": volume,
+        "extrapolated_monthly_volume": extrapolated_volume,
+        "window_size_in_hours": window_size,
+    }
+
+    if project_id is not None:
+        extra["project_id"] = project_id
+
+    logger.info(
+        "compute_sliding_window_sample_rate.extrapolate_monthly_volume",
+        extra=extra,
+    )
