@@ -4,7 +4,7 @@ from datetime import datetime
 from os import path
 from typing import List, Optional, Set, Tuple
 
-from django.db import IntegrityError, router, transaction
+from django.db import IntegrityError, router
 from django.utils import timezone
 from symbolic import SymbolicError, normalize_debug_id
 
@@ -298,7 +298,7 @@ def _bind_or_create_artifact_bundle(
     except ArtifactBundle.DoesNotExist:
         existing_artifact_bundle = None
 
-    with transaction.atomic():
+    with atomic_transaction(using=(router.db_for_write(ArtifactBundle), router.db_for_write(File))):
         # In case there is not ArtifactBundle with a specific bundle_id, we just create it and return.
         if existing_artifact_bundle is None:
             artifact_bundle = ArtifactBundle.objects.create(
@@ -372,7 +372,13 @@ def _create_artifact_bundle(
             )
 
             # TODO: try to improve the performance of this code path, too many queries are executed.
-            with transaction.atomic():
+            with atomic_transaction(
+                using=(
+                    router.db_for_write(ReleaseArtifactBundle),
+                    router.db_for_write(ProjectArtifactBundle),
+                    router.db_for_write(DebugIdArtifactBundle),
+                )
+            ):
                 # If a release version is passed, we want to create the weak association between a bundle and a release.
                 if version:
                     ReleaseArtifactBundle.objects.create_or_update(
