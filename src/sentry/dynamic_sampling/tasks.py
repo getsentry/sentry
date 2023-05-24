@@ -345,6 +345,10 @@ def adjust_sample_rates(
     with redis_client.pipeline(transaction=False) as pipeline:
         for ds_project in ds_projects:
             cache_key = _generate_cache_key(org_id=org_id)
+            # We want to get the old sample rate, which will be None in case it was not set.
+            old_sample_rate = redis_client.hget(cache_key, ds_project.id)
+
+            # We want to store the new sample rate as a string.
             pipeline.hset(
                 cache_key,
                 ds_project.id,
@@ -352,9 +356,12 @@ def adjust_sample_rates(
             )
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
 
-            schedule_invalidate_project_config(
-                project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
-            )
+            # We invalidate the caches only if there was a change in the sample rate. This is to avoid flooding the
+            # system with project config invalidations, especially for projects with no volume.
+            if old_sample_rate != ds_project.new_sample_rate:
+                schedule_invalidate_project_config(
+                    project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
+                )
 
         pipeline.execute()
 
