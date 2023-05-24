@@ -68,7 +68,7 @@ def process_organization_integration_update(object_identifier: int, **kwds: Any)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.WEBHOOK_PROXY)
-def process_async_webhooks(payload: Any, region_name: str, **kwds: Any):
+def process_async_webhooks(payload: Mapping[str, Any], region_name: str, **kwds: Any):
     from sentry.models.outbox import ControlOutbox
     from sentry.silo.client import RegionSiloClient
     from sentry.types.region import get_region_by_name
