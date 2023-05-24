@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -413,10 +414,12 @@ class MonitorEnvironment(Model):
         return {"name": self.environment.name, "status": self.status, "monitor": self.monitor.name}
 
     def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
-        from sentry.coreapi import insert_data_to_database_legacy
-        from sentry.event_manager import EventManager
-        from sentry.models import Project
+        from confluent_kafka import Producer
+        from django.conf import settings
+
         from sentry.signals import monitor_environment_failed
+        from sentry.utils import json
+        from sentry.utils.kafka_config import get_kafka_producer_cluster_options
 
         if last_checkin is None:
             next_checkin_base = timezone.now()
@@ -444,21 +447,63 @@ class MonitorEnvironment(Model):
         if not affected:
             return False
 
-        event_manager = EventManager(
-            {
-                "logentry": {"message": f"Monitor failure: {self.monitor.name} ({reason})"},
-                "contexts": {"monitor": get_monitor_environment_context(self)},
-                "fingerprint": ["monitor", str(self.monitor.guid), reason],
-                "environment": self.environment.name,
-                # TODO: Both of these values should be get transformed from context to tags
-                # We should understand why that is not happening and remove these when it correctly is
-                "tags": {"monitor.id": str(self.monitor.guid), "monitor.slug": self.monitor.slug},
+        failure_occurrence = {}
+        # failure_occurrence load event
+        failure_occurrence["event"] = {
+            "environment": self.environment.name,
+            "event_id": uuid.uuid4().hex,
+            "project_id": self.monitor.project_id,
+            "received": last_checkin,
+            "tags": {
+                "monitor.id": str(self.monitor.guid),
+                "monitor.slug": self.monitor.slug,
             },
-            project=Project(id=self.monitor.project_id),
+            "timestamp": last_checkin,
+        }
+
+        failure_occurrence["issue_title"] = f"Monitor failure: {self.monitor.name} ({reason})"
+        failure_occurrence["subtitle"] = f"{self.environment.name}"
+        failure_occurrence["resource_id"] = None
+        failure_occurrence["type"] = "TODO"
+        failure_occurrence["level"] = "TODO"
+
+        failure_occurrence["evidence_data"] = {"Timestamp": last_checkin}
+        failure_occurrence["evidence_display"] = [
+            {"name": "Failure reason", "value": reason, "important": True},
+            {"name": "Environment", "value": self.environment.name, "important": False},
+        ]
+
+        failure_occurrence["detection_time"] = datetime.utcnow().timestamp()
+        failure_occurrence["id"] = uuid.uuid4().hex
+        failure_occurrence["project_id"] = self.monitor.project_id
+        failure_occurrence["fingerprint"] = [f"monitor-{str(self.monitor.guid)}-{reason}"]
+
+        topic = settings.KAFKA_INGEST_OCCURRENCES
+        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+        cluster_options = get_kafka_producer_cluster_options(cluster_name)
+        producer = Producer(cluster_options)
+
+        producer.produce(
+            topic=topic,
+            key=None,
+            value=json.dumps(failure_occurrence, default=str),
         )
-        event_manager.normalize()
-        data = event_manager.get_data()
-        insert_data_to_database_legacy(data)
+        producer.flush()
+
+        # event_manager = EventManager(
+        #     {
+        #         "contexts": {"monitor": get_monitor_environment_context(self)},
+        #         "fingerprint": ["monitor", str(self.monitor.guid), reason],
+        #         "environment": self.environment.name,
+        #         # TODO: Both of these values should be get transformed from context to tags
+        #         # We should understand why that is not happening and remove these when it correctly is
+        #         "tags": ,
+        #     },
+        #     project=Project(id=self.monitor.project_id),
+        # )
+        # event_manager.normalize()
+        # data = event_manager.get_data()
+        # insert_data_to_database_legacy(data)
         monitor_environment_failed.send(monitor_environment=self, sender=type(self))
         return True
 
