@@ -10,6 +10,7 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import InputField from 'sentry/components/forms/fields/inputField';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -59,6 +60,7 @@ import {
   DashboardsMEPProvider,
 } from '../widgetCard/dashboardsMEPContext';
 
+import {BuildStep} from './buildSteps/buildStep';
 import {ColumnsStep} from './buildSteps/columnsStep';
 import {DataSetStep} from './buildSteps/dataSetStep';
 import {FilterResultsStep} from './buildSteps/filterResultsStep';
@@ -976,17 +978,26 @@ function WidgetBuilder({
                     <Layout.Page>
                       <Header
                         orgSlug={orgSlug}
-                        title={state.title}
                         dashboardTitle={dashboard.title}
                         goBackLocation={previousLocation}
-                        onChangeTitle={newTitle => {
-                          handleDisplayTypeOrTitleChange('title', newTitle);
-                        }}
                       />
                       <Body>
                         <MainWrapper>
                           <Main>
                             <BuildSteps symbol="colored-numeric">
+                              <BuildStep title={t('Name your widget')}>
+                                <TitleInput
+                                  name="title"
+                                  inline={false}
+                                  aria-label={t('Widget title')}
+                                  placeholder={t('Widget Title')}
+                                  error={state.errors?.title}
+                                  onChange={newTitle => {
+                                    handleDisplayTypeOrTitleChange('title', newTitle);
+                                  }}
+                                  value={state.title}
+                                />
+                              </BuildStep>
                               <VisualizationStep
                                 location={location}
                                 widget={currentWidget}
@@ -1137,6 +1148,10 @@ function WidgetBuilder({
 }
 
 export default withPageFilters(withTags(WidgetBuilder));
+
+const TitleInput = styled(InputField)`
+  padding: 0 ${space(2)} 0 0;
+`;
 
 const BuildSteps = styled(List)`
   gap: ${space(4)};
