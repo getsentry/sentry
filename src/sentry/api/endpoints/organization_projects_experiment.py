@@ -62,9 +62,9 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
-        :qparam string name: the name for the new project.
-        :qparam string platform: the optional platform that this project is for.
-        :qparam bool default_rules: create default rules (defaults to True)
+        :param string name: the name for the new project.
+        :param string platform: the optional platform that this project is for.
+        :param bool default_rules: create default rules (defaults to True)
         :auth: required
         """
         serializer = ProjectSerializer(data=request.data)
