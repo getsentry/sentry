@@ -1,8 +1,8 @@
 import EventView from 'sentry/utils/discover/eventView';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
-  useGenericDiscoverQuery,
   DiscoverQueryProps,
+  useGenericDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -37,8 +37,8 @@ export default function useCherryPickedSamplesQuery(eventView: EventView) {
   ];
 
   const eventViewAggregates = eventView.clone().withColumns([
-    {kind: 'function', function: ['p50', 'transaction.duration']},
-    {kind: 'function', function: ['p95', 'transaction.duration']},
+    {kind: 'function', function: ['p50', 'transaction.duration', undefined, undefined]},
+    {kind: 'function', function: ['p95', 'transaction.duration', undefined, undefined]},
   ]);
 
   const {isLoading: isLoadingAgg, data: aggregatesData} = useGenericDiscoverQuery<
@@ -145,7 +145,7 @@ export default function useCherryPickedSamplesQuery(eventView: EventView) {
     limit: LIMIT_PER_POPULATION,
   });
 
-  if (isLoadingSlowest || isLoadingMedian || isLoadingFastest) {
+  if (isLoadingAgg || isLoadingSlowest || isLoadingMedian || isLoadingFastest) {
     return {isLoading: true, data: []};
   }
 

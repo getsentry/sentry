@@ -3,14 +3,7 @@ import Duration from 'sentry/components/duration';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import EventView from 'sentry/utils/discover/eventView';
-import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {
-  DiscoverQueryProps,
-  useGenericDiscoverQuery,
-} from 'sentry/utils/discover/genericDiscoverQuery';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import useCherryPickedSamplesQuery from 'sentry/views/starfish/components/samplesTable/useCherryPickedSamplesQuery';
 import {TextAlignLeft} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 
