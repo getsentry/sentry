@@ -491,12 +491,13 @@ def better_priority_aggregation(
     event_agg_rank = f"divide({event_agg_numerator}, {event_agg_denominator})"
 
     v2 = aggregate_kwargs["v2"]
-    event_count_60_mins = 2
-    avg_hourly_event_count_last_7_days = 3
+    event_count_60_mins = "countIf(lessOrEquals(minus(now(), timestamp), 3600))"
+    week = 3600 * 24 * 7
+    avg_hourly_event_count_last_7_days = f"countIf(lessOrEquals(minus(now(), timestamp), {week}))"
     relative_volume_score = 1
     if v2:
         issue_halflife_hours = 4  # issues half in value every 4 hours
-        aggregate_event_score = f"log(sum(divide({event_agg_rank}, pow(2, divide({event_age_hours}, {event_halflife_hours})))))"
+        aggregate_event_score = f"log(greatest(1, sum(divide({event_agg_rank}, pow(2, divide({event_age_hours}, {event_halflife_hours}))))))"
         relative_volume_score = (
             f"divide(plus({event_count_60_mins}, 1), plus({avg_hourly_event_count_last_7_days}, 1))"
         )
