@@ -47,4 +47,4 @@ def produce_occurrence_to_kafka(
     if event_data:
         payload_data["event"] = event_data
     payload = KafkaPayload(None, json.dumps(payload_data).encode("utf-8"), [])
-    future = _occurrence_producer.produce(Topic(settings.KAFKA_INGEST_OCCURRENCES), payload)
+    _occurrence_producer.produce(Topic(settings.KAFKA_INGEST_OCCURRENCES), payload)
