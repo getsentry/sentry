@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0457_sentry_monitorcheckin_date_added_index"),
+        ("sentry", "0458_add_options_source_column"),
     ]
 
     operations = [
