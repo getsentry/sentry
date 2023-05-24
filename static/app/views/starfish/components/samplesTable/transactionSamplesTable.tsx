@@ -4,7 +4,7 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
-import useCherryPickedSamplesQuery from 'sentry/views/starfish/components/samplesTable/useCherryPickedSamplesQuery';
+import useSlowMedianFastSamplesQuery from 'sentry/views/starfish/components/samplesTable/useSlowMedianFastSamplesQuery';
 import {TextAlignLeft} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 
 type Keys = 'id' | 'timestamp' | 'transaction.duration' | 'p50_comparison';
@@ -44,7 +44,7 @@ type DataRow = {
 
 export function TransactionSamplesTable({eventView}: Props) {
   const location = useLocation();
-  const {isLoading, data} = useCherryPickedSamplesQuery(eventView);
+  const {isLoading, data} = useSlowMedianFastSamplesQuery(eventView);
 
   function renderBodyCell(column: TableColumnHeader, row: DataRow): React.ReactNode {
     if (column.key === 'id') {

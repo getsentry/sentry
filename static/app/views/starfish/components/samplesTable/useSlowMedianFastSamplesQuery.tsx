@@ -21,7 +21,7 @@ const LIMIT_PER_POPULATION = 5;
  *
  * @param eventView An eventView containing query information, such as the transaction and other filters
  */
-export default function useCherryPickedSamplesQuery(eventView: EventView) {
+export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
   const location = useLocation();
   const organization = useOrganization();
 
