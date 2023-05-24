@@ -452,36 +452,34 @@ class MonitorEnvironment(Model):
         if not affected:
             return False
 
-        failure_occurrence = {}
-        # failure_occurrence load event
-        failure_occurrence["event"] = {
-            "environment": self.environment.name,
-            "event_id": uuid.uuid4().hex,
-            "platform": "crons",
-            "project_id": self.monitor.project_id,
-            "received": timezone.now(),
-            "sdk": None,
-            "tags": {
-                "monitor.id": str(self.monitor.guid),
-                "monitor.slug": self.monitor.slug,
+        failure_occurrence = {
+            "event": {
+                "environment": self.environment.name,
+                "event_id": uuid.uuid4().hex,
+                "platform": "crons",
+                "project_id": self.monitor.project_id,
+                "received": timezone.now(),
+                "sdk": None,
+                "tags": {
+                    "monitor.id": str(self.monitor.guid),
+                    "monitor.slug": self.monitor.slug,
+                },
+                "timestamp": timezone.now(),
             },
-            "timestamp": timezone.now(),
+            "issue_title": f"Monitor failure: {self.monitor.name} ({reason})",
+            "subtitle": f"{self.environment.name}",
+            "resource_id": None,
+            "evidence_data": {"Timestamp": last_checkin},
+            "evidence_display": [
+                {"name": "Failure reason", "value": reason, "important": True},
+                {"name": "Environment", "value": self.environment.name, "important": False},
+            ],
+            "detection_time": timezone.now(),
+            "id": uuid.uuid4().hex,
+            "project_id": self.monitor.project_id,
+            "fingerprint": [f"monitor-{str(self.monitor.guid)}-{reason}"],
         }
-
-        failure_occurrence["issue_title"] = f"Monitor failure: {self.monitor.name} ({reason})"
-        failure_occurrence["subtitle"] = f"{self.environment.name}"
-        failure_occurrence["resource_id"] = None
         failure_occurrence["type"], failure_occurrence["level"] = get_group_type_and_level(reason)
-        failure_occurrence["evidence_data"] = {"Timestamp": last_checkin}
-        failure_occurrence["evidence_display"] = [
-            {"name": "Failure reason", "value": reason, "important": True},
-            {"name": "Environment", "value": self.environment.name, "important": False},
-        ]
-
-        failure_occurrence["detection_time"] = timezone.now()
-        failure_occurrence["id"] = uuid.uuid4().hex
-        failure_occurrence["project_id"] = self.monitor.project_id
-        failure_occurrence["fingerprint"] = [f"monitor-{str(self.monitor.guid)}-{reason}"]
 
         topic = settings.KAFKA_INGEST_OCCURRENCES
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
@@ -494,21 +492,6 @@ class MonitorEnvironment(Model):
             value=json.dumps(failure_occurrence, default=str),
         )
         producer.flush()
-
-        # event_manager = EventManager(
-        #     {
-        #         "contexts": {"monitor": get_monitor_environment_context(self)},
-        #         "fingerprint": ["monitor", str(self.monitor.guid), reason],
-        #         "environment": self.environment.name,
-        #         # TODO: Both of these values should be get transformed from context to tags
-        #         # We should understand why that is not happening and remove these when it correctly is
-        #         "tags": ,
-        #     },
-        #     project=Project(id=self.monitor.project_id),
-        # )
-        # event_manager.normalize()
-        # data = event_manager.get_data()
-        # insert_data_to_database_legacy(data)
         monitor_environment_failed.send(monitor_environment=self, sender=type(self))
         return True
 
