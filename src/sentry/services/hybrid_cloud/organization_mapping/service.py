@@ -6,6 +6,7 @@
 from abc import abstractmethod
 from typing import Optional, cast
 
+from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMapping,
     RpcOrganizationMappingUpdate,
@@ -28,6 +29,24 @@ class OrganizationMappingService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def create(
+        self,
+        *,
+        organization_id: int,
+        slug: str,
+        name: str,
+        region_name: str,
+        idempotency_key: Optional[str] = "",
+        customer_id: Optional[str],
+        status: Optional[OrganizationStatus],
+    ) -> RpcOrganizationMapping:
+        """
+        Old deprecated name for `reserve_slug_for_organization`, which will be phased out in a later commit
+        """
+        pass
+
+    @rpc_method
+    @abstractmethod
     def reserve_slug_for_organization(
         self,
         *,
@@ -37,7 +56,7 @@ class OrganizationMappingService(RpcService):
         region_name: str,
         idempotency_key: Optional[str] = "",
         customer_id: Optional[str],
-        user: Optional[int] = None,
+        status: Optional[OrganizationStatus],
     ) -> RpcOrganizationMapping:
         """
         This method returns a new or recreated OrganizationMapping object.
@@ -50,7 +69,16 @@ class OrganizationMappingService(RpcService):
         :param slug:
         A slug to reserve for this organization
         :param customer_id:
-        A unique per customer billing identifier
+        :param name:
+        The organization's name
+        A unique per-customer billing identifier
+        :param region_name:
+        The name of the region where the org exists
+        :param idempotency_key:
+        A unique string that ensures subsequent creation requests for an org
+        mapping will always succeed given the same parameters
+        :param status:
+        The current status of the organization
         :return:
         """
         pass

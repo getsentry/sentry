@@ -13,7 +13,7 @@ from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_o
 
 
 class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
-    def reserve_slug_for_organization(
+    def create(
         self,
         *,
         organization_id: int,
@@ -23,7 +23,6 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         idempotency_key: Optional[str] = "",
         # There's only a customer_id when updating an org slug
         customer_id: Optional[str] = None,
-        user: Optional[int] = None,
         status: Optional[OrganizationStatus] = None,
     ) -> RpcOrganizationMapping:
 
@@ -32,8 +31,9 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
                 slug=slug,
                 idempotency_key=idempotency_key,
                 region_name=region_name,
-                organization_id=organization_id,
+                verified=False,
                 defaults={
+                    "organization_id": organization_id,
                     "customer_id": customer_id,
                     "name": name,
                     "status": status,
@@ -51,6 +51,27 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             )
 
         return serialize_organization_mapping(org_mapping)
+
+    def reserve_slug_for_organization(
+        self,
+        *,
+        organization_id: int,
+        slug: str,
+        name: str,
+        region_name: str,
+        idempotency_key: Optional[str] = "",
+        customer_id: Optional[str] = None,
+        status: Optional[OrganizationStatus] = None,
+    ) -> RpcOrganizationMapping:
+        return self.create(
+            name=name,
+            slug=slug,
+            organization_id=organization_id,
+            region_name=region_name,
+            idempotency_key=idempotency_key,
+            customer_id=customer_id,
+            status=status,
+        )
 
     def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         with transaction.atomic():
