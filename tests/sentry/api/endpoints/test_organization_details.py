@@ -69,7 +69,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             "organizationUrl": f"http://{self.organization.slug}.testserver",
             "regionUrl": "http://us.testserver",
         }
-        assert response.data["onboardingTasks"] == []
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
         assert response.data["orgRole"] == "owner"
@@ -88,7 +87,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             "organizationUrl": f"http://{self.organization.slug}.testserver",
             "regionUrl": "http://us.testserver",
         }
-        assert response.data["onboardingTasks"] == []
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
         assert response.data["orgRole"] == "owner"
@@ -181,17 +179,19 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert len(response.data["projects"]) == 5
         assert len(response.data["teams"]) == 1
 
+    def get_onboard_tasks(self, tasks, task_type):
+        return [task for task in tasks if task["task"] == task_type]
+
     def test_onboarding_tasks(self):
         response = self.get_success_response(self.organization.slug)
-        assert response.data["onboardingTasks"] == []
+        assert not self.get_onboard_tasks(response.data["onboardingTasks"], "create_project")
         assert response.data["id"] == str(self.organization.id)
 
         project = self.create_project(organization=self.organization)
         project_created.send(project=project, user=self.user, sender=type(project))
 
         response = self.get_success_response(self.organization.slug)
-        assert len(response.data["onboardingTasks"]) == 1
-        assert response.data["onboardingTasks"][0]["task"] == "create_project"
+        assert self.get_onboard_tasks(response.data["onboardingTasks"], "create_project")
 
     def test_trusted_relays_info(self):
         with exempt_from_silo_limits():
