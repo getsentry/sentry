@@ -95,7 +95,8 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
         markdown_in = ["text"]
         if self.escape_text:
             text = escape_slack_text(text)
-            # for unfurling messages we need to double escape the text
+            # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
+            # If we figure out why this is required we should note it here because it's quite strange
             if is_unfurl:
                 text = escape_slack_text(text)
             markdown_in = []
