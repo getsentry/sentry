@@ -78,12 +78,15 @@ export function FrameworkSuggestionModal({
   );
 
   useEffect(() => {
-    if (newOrg) {
-      trackAnalytics('onboarding.select_framework_modal_rendered', {
+    trackAnalytics(
+      newOrg
+        ? 'onboarding.select_framework_modal_rendered'
+        : 'project_creation.select_framework_modal_rendered',
+      {
         platform: selectedPlatform.key,
         organization,
-      });
-    }
+      }
+    );
   }, [selectedPlatform.key, organization, newOrg]);
 
   const handleConfigure = useCallback(() => {
@@ -91,13 +94,16 @@ export function FrameworkSuggestionModal({
       return;
     }
 
-    if (newOrg) {
-      trackAnalytics('onboarding.select_framework_modal_configure_sdk_button_clicked', {
+    trackAnalytics(
+      newOrg
+        ? 'onboarding.select_framework_modal_configure_sdk_button_clicked'
+        : 'project_creation.select_framework_modal_configure_sdk_button_clicked',
+      {
         platform: selectedPlatform.key,
         framework: selectedFramework.key,
         organization,
-      });
-    }
+      }
+    );
 
     onConfigure(selectedFramework);
     closeModal();
@@ -111,12 +117,15 @@ export function FrameworkSuggestionModal({
   ]);
 
   const handleSkip = useCallback(() => {
-    if (newOrg) {
-      trackAnalytics('onboarding.select_framework_modal_skip_button_clicked', {
+    trackAnalytics(
+      newOrg
+        ? 'onboarding.select_framework_modal_skip_button_clicked'
+        : 'project_creation.select_framework_modal_skip_button_clicked',
+      {
         platform: selectedPlatform.key,
         organization,
-      });
-    }
+      }
+    );
     onSkip();
     closeModal();
   }, [selectedPlatform, organization, closeModal, onSkip, newOrg]);
