@@ -49,9 +49,9 @@ function renderFrameworkModalMockRequests({
 
 describe('CreateProject', function () {
   const teamNoAccess = TestStubs.Team({
-    slug: 'test',
+    slug: 'test-team',
     id: '1',
-    name: 'test',
+    name: 'test team',
     hasAccess: false,
   });
 
@@ -96,6 +96,75 @@ describe('CreateProject', function () {
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
+  });
+
+  it('can see all teams with org access', async function () {
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:write'],
+      },
+    });
+    renderFrameworkModalMockRequests({
+      organization,
+      teamSlug: teamWithAccess.slug,
+    });
+    TeamStore.loadUserTeams([teamWithAccess]);
+    OrganizationStore.onUpdate(organization, {replace: true});
+
+    render(<CreateProject />, {
+      organization,
+    });
+
+    await userEvent.type(screen.getByLabelText('Select a Team'), 'test');
+    expect(screen.getByText('#test-team')).toBeVisible();
+  });
+
+  it('cannot see accessed teams without write permission', async function () {
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+      },
+    });
+
+    renderFrameworkModalMockRequests({
+      organization,
+      teamSlug: teamWithAccess.slug,
+    });
+
+    TeamStore.loadUserTeams([teamWithAccess]);
+    OrganizationStore.onUpdate(organization, {replace: true});
+
+    render(<CreateProject />, {
+      organization,
+    });
+
+    await userEvent.type(screen.getByLabelText('Select a Team'), 'test');
+    expect(screen.queryAllByText('#test-team')).toEqual([]);
+  });
+
+  it('can see adminned teams without org write permission', async function () {
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+      },
+    });
+
+    const adminnedTeam = {...teamWithAccess, access: ['project:write']};
+
+    renderFrameworkModalMockRequests({
+      organization,
+      teamSlug: adminnedTeam.slug,
+    });
+
+    TeamStore.loadUserTeams([adminnedTeam]);
+    OrganizationStore.onUpdate(organization, {replace: true});
+
+    render(<CreateProject />, {
+      organization,
+    });
+
+    await userEvent.type(screen.getByLabelText('Select a Team'), 'test');
+    expect(screen.getByText('#test-team')).toBeVisible();
   });
 
   it('should fill in project name if its empty when platform is chosen', async function () {
@@ -145,7 +214,7 @@ describe('CreateProject', function () {
     await userEvent.click(screen.getByTestId('platform-javascript-react'));
 
     await userEvent.type(screen.getByLabelText('Select a Team'), 'test');
-    await userEvent.click(screen.getByText('#test'));
+    await userEvent.click(screen.getByText('#test-team'));
 
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();
@@ -185,7 +254,7 @@ describe('CreateProject', function () {
     await userEvent.click(screen.getByTestId('platform-javascript'));
 
     await userEvent.type(screen.getByLabelText('Select a Team'), 'test');
-    await userEvent.click(screen.getByText('#test'));
+    await userEvent.click(screen.getByText('#test-team'));
 
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();

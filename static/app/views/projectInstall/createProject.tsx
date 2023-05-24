@@ -215,6 +215,7 @@ function CreateProject() {
     projectName !== '' &&
     (!shouldCreateCustomRule || conditions?.every?.(condition => condition.value));
 
+  const hasOrgAccess = organization.access.includes('project:write');
   const createProjectForm = (
     <Fragment>
       <Layout.Title withMargins>
@@ -252,7 +253,11 @@ function CreateProject() {
               value={team}
               placeholder={t('Select a Team')}
               onChange={choice => setTeam(choice.value)}
-              teamFilter={(filterTeam: Team) => filterTeam.hasAccess}
+              teamFilter={(filterTeam: Team) =>
+                hasOrgAccess
+                  ? filterTeam.hasAccess
+                  : filterTeam.access.includes('project:write')
+              }
             />
             <Button
               borderless
