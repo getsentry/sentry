@@ -162,18 +162,21 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
     def build_better_priority_sort_kwargs(self, request: Request):
         """Temporary function to be used while developing the new priority sort"""
-        return {
+        kwargs = {
             "better_priority": {
                 "log_level": request.GET.get("logLevel", DEFAULT_PRIORITY_WEIGHTS["log_level"]),
                 "frequency": request.GET.get("frequency", DEFAULT_PRIORITY_WEIGHTS["frequency"]),
                 "has_stacktrace": request.GET.get(
                     "hasStacktrace", DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"]
                 ),
-                "event_halflife_hours": request.GET.get(
-                    "eventHalflifeHours", DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"]
-                ),
             }
         }
+
+        default_halflife = 12 if kwargs["better_priority"]["v2"] else 4
+        kwargs["better_priority"]["event_halflife_hours"] = request.GET.get(
+            "eventHalflifeHours", default_halflife
+        )
+        return kwargs
 
     def _search(
         self, request: Request, organization, projects, environments, extra_query_kwargs=None

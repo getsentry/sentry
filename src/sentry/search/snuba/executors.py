@@ -57,6 +57,7 @@ class PrioritySortWeights(TypedDict):
     frequency: int
     has_stacktrace: int
     event_halflife_hours: int
+    v2: bool
 
 
 DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
@@ -64,6 +65,7 @@ DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
     "frequency": 0,
     "has_stacktrace": 0,
     "event_halflife_hours": 4,
+    "v2": False,
 }
 
 
@@ -465,18 +467,17 @@ def better_priority_aggregation(
     end: datetime,
     aggregate_kwargs: PrioritySortWeights,
 ) -> Sequence[str]:
-    issue_age_weight = 1  # [0, 5]
-    event_age_weight = 1  # [0, 5]
+    issue_age_weight = 1  # [1, 5]
+    event_age_weight = 1  # [1, 5]
     log_level_weight = aggregate_kwargs["log_level"]  # [0, 10]
     stacktrace_weight = aggregate_kwargs["has_stacktrace"]  # [0, 3]
     max_pow = 16
     min_score = 0.01
     event_age_hours = "divide(now() - timestamp, 3600)"
-    event_halflife_hours = aggregate_kwargs["event_halflife_hours"]  # halves score every 4 hours
+    event_halflife_hours = aggregate_kwargs["event_halflife_hours"]  # halves score every x hours
     issue_age_hours = "divide(now() - min(timestamp), 3600)"
-    issue_halflife_hours = 24 * 7  # issues half in value every week
 
-    # TODO: we have no way of aggregating to account for frequency:
+    # TODO: we have no way of aggregating to account for frequency
     #  (errors within group) / (total events grouped by project)
     # frequency_weight = aggregate_kwargs["frequency"]  # [0, 5]
     # frequency_score = f"countIf(and(greater(toDateTime('{start_str}'), timestamp), lessOrEquals(toDateTime('{end_str}'), timestamp))) / count()"
@@ -489,9 +490,27 @@ def better_priority_aggregation(
     )
     event_agg_rank = f"divide({event_agg_numerator}, {event_agg_denominator})"
 
-    aggregate_event_score = f"greatest({min_score}, sum(divide({event_agg_rank}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
+    v2 = aggregate_kwargs["v2"]
+    event_count_60_mins = 2
+    avg_hourly_event_count_last_7_days = 3
+    relative_volume_score = 1
+    if v2:
+        issue_halflife_hours = 4  # issues half in value every 4 hours
+        aggregate_event_score = f"log(sum(divide({event_agg_rank}, pow(2, divide({event_age_hours}, {event_halflife_hours})))))"
+        relative_volume_score = (
+            f"divide(plus({event_count_60_mins}, 1), plus({avg_hourly_event_count_last_7_days}, 1))"
+        )
+    else:
+        issue_halflife_hours = 24 * 7  # issues half in value every week
+        aggregate_event_score = f"greatest({min_score}, sum(divide({event_agg_rank}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
+
     aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
 
+    if v2:
+        return [
+            f"multiply(multiply({aggregate_issue_score}, {aggregate_event_score}), {relative_volume_score})",
+            "",
+        ]
     return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
 
 

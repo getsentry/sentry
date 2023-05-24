@@ -159,6 +159,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             "frequency": 5,
             "has_stacktrace": 5,
             "eventHalflifeHours": 4,
+            "v2": False,
         }
 
         response = self.get_success_response(
