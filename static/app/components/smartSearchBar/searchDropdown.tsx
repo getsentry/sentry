@@ -328,6 +328,14 @@ function DropdownItem({
         }
       />
     );
+  } else if (item.type === ItemType.INVALID_FREE_TEXT_WITH_WILDCARD) {
+    children = (
+      <SearchInvalidTag
+        message={tct("Wildcards aren't supported here.", {
+          field: <code>{item.desc}</code>,
+        })}
+      />
+    );
   } else if (item.type === ItemType.LINK) {
     children = (
       <Fragment>

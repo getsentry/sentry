@@ -10,6 +10,7 @@ export enum ItemType {
   TAG_OPERATOR = 'tag-operator',
   FIRST_RELEASE = 'first-release',
   INVALID_TAG = 'invalid-tag',
+  INVALID_FREE_TEXT_WITH_WILDCARD = 'invalid-free-text-with-wildcard',
   RECENT_SEARCH = 'recent-search',
   PROPERTY = 'property',
   LINK = 'link',

@@ -290,6 +290,10 @@ type InvalidFilter = {
    * This may be multiple filter types.
    */
   expectedType?: FilterType[];
+  /**
+   * The invalid reason type
+   */
+  type?: InvalidReasonType;
 };
 
 type FilterMap = {

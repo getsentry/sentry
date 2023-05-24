@@ -182,7 +182,10 @@ export function createSearchGroups(
 
   const searchGroup: SearchGroup = {
     title: getTitleForType(type),
-    type: type === ItemType.INVALID_TAG ? type : 'header',
+    type:
+      type === ItemType.INVALID_TAG || type === ItemType.INVALID_FREE_TEXT_WITH_WILDCARD
+        ? type
+        : 'header',
     icon: getIconForTypeAndTag(type, tagName),
     children: [...filteredSearchItems],
   };
@@ -598,6 +601,26 @@ export const getDateTagAutocompleteGroups = (tagName: string): AutocompleteGroup
     },
   ];
 };
+
+export function getGroupWithInvalidWildcard(desc: string) {
+  return [
+    {
+      searchItems: [
+        {
+          type: ItemType.INVALID_FREE_TEXT_WITH_WILDCARD,
+          desc,
+          callback: () =>
+            window.open(
+              'https://docs.sentry.io/product/sentry-basics/search/searchable-properties/'
+            ),
+        },
+      ],
+      recentSearchItems: [],
+      tagName: desc,
+      type: ItemType.INVALID_FREE_TEXT_WITH_WILDCARD,
+    },
+  ];
+}
 
 export const getSearchConfigFromCustomPerformanceMetrics = (
   customPerformanceMetrics?: CustomMeasurementCollection

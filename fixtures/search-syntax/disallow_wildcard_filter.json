@@ -182,6 +182,7 @@
         "value": "rele*ase",
         "quoted": false,
         "invalid": {
+          "type": "wildcard-not-allowed",
           "reason": "Release queries don't support wildcards"
         }
       },
