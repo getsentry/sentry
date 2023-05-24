@@ -182,7 +182,7 @@ export function getTitle(
         treeLabel: undefined,
       };
     case EventOrGroupType.GENERIC:
-      const isProfilingIssue = eventIsProfilingIssue(event);
+      const isProfilingIssue = eventIsProfilingIssue(event as Event);
       return {
         title: isProfilingIssue ? metadata.title : customTitle ?? title,
         subtitle: isProfilingIssue ? culprit : '',
@@ -401,7 +401,7 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
   };
 }
 
-export function eventIsProfilingIssue(event: Event | BaseGroup) {
+export function eventIsProfilingIssue(event: Event) {
   const evidenceData = event.occurrence?.evidenceData ?? {};
   return (
     evidenceData.templateName === 'profile' ||
