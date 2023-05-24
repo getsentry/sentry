@@ -171,11 +171,11 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             default_rules=result.get("default_rules", True),
             sender=self,
         )
-        # self.create_audit_entry(
-        #     request=request,
-        #     organization=team.organization,
-        #     event=audit_log.get_event_id("TEAM_AND_PROJECT_CREATED"),
-        #     data={"team_slug": default_team_slug, "project_slug": project_name},
-        # )
+        self.create_audit_entry(
+            request=request,
+            organization=team.organization,
+            event=audit_log.get_event_id("TEAM_AND_PROJECT_CREATED"),
+            data={"team_slug": default_team_slug, "project_slug": project_name},
+        )
 
         return Response(serialize(project, request.user), status=201)
