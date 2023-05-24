@@ -35,7 +35,6 @@ const COLUMN_ORDER: TableColumnHeader[] = [
 
 type Props = {
   eventView: EventView;
-  p50: number;
 };
 
 type DataRow = {
@@ -43,7 +42,7 @@ type DataRow = {
   'transaction.duration': number;
 };
 
-export function TransactionSamplesTable({eventView, p50}: Props) {
+export function TransactionSamplesTable({eventView}: Props) {
   const location = useLocation();
   const {isLoading, data} = useCherryPickedSamplesQuery(eventView);
 

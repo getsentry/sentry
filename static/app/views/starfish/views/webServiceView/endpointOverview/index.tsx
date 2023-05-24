@@ -39,7 +39,6 @@ import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combi
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
-import meanBy from 'lodash/meanBy';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -242,9 +241,6 @@ export default function EndpointOverview() {
             queryExtras={{dataset: 'metrics'}}
           >
             {({results, loading}) => {
-              const p50Series = results?.[1].data ?? [];
-              const p50 = meanBy(p50Series, item => item.value);
-
               return (
                 <Fragment>
                   <StyledRow minSize={200}>
@@ -309,7 +305,7 @@ export default function EndpointOverview() {
                     </ChartsContainer>
                   </StyledRow>
                   <SubHeader>{t('Sample Events')}</SubHeader>
-                  <TransactionSamplesTable eventView={eventView} p50={p50} />
+                  <TransactionSamplesTable eventView={eventView} />
                 </Fragment>
               );
             }}
