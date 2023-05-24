@@ -709,4 +709,4 @@ register("sourcemaps.enable-artifact-bundles", default=0.0)
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1)
 # Decides whether artifact bundles asynchronous renewal is enabled.
-register("sourcemaps.artifact-bundles.asynchronous-renewal", default=0.0)
+register("sourcemaps.artifact-bundles.enable-renewal", default=0.0)

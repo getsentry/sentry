@@ -85,7 +85,7 @@ class ArtifactBundle(Model):
         return sha1_text(url).hexdigest()
 
     @classmethod
-    def can_be_renewed(cls, date_added: datetime):
+    def should_be_renewed(cls, date_added: datetime):
         current_date = datetime.now(tz=pytz.UTC)
 
         expiration_date = date_added + timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)

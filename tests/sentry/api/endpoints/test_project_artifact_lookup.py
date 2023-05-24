@@ -515,7 +515,7 @@ class ArtifactLookupTest(APITestCase):
 
     @freeze_time("2023-05-23 10:00:00")
     def test_renewal_with_debug_id(self):
-        with self.options({"sourcemaps.artifact-bundles.asynchronous-renewal": 1.0}):
+        with self.options({"sourcemaps.artifact-bundles.enable-renewal": 1.0}):
             for days_before, expected_date_added, debug_id in (
                 (
                     2,
@@ -593,7 +593,7 @@ class ArtifactLookupTest(APITestCase):
 
     @freeze_time("2023-05-23 10:00:00")
     def test_renewal_with_url(self):
-        with self.options({"sourcemaps.artifact-bundles.asynchronous-renewal": 1.0}):
+        with self.options({"sourcemaps.artifact-bundles.enable-renewal": 1.0}):
             file = make_compressed_zip_file(
                 "bundle_c.zip",
                 {

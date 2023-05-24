@@ -115,61 +115,60 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 used_artifact_bundles[bundle_id] = date_added
                 bundle_file_ids.add(file_id)
 
-        with metrics.timer("artifact_lookup.get.renew_artifact_bundles.core"):
-            if debug_id:
-                bundles = get_artifact_bundles_containing_debug_id(debug_id, project)
-                update_bundles(bundles)
+        if debug_id:
+            bundles = get_artifact_bundles_containing_debug_id(debug_id, project)
+            update_bundles(bundles)
 
-            individual_files = set()
-            if url and release_name and not bundle_file_ids:
-                # Get both the newest X release artifact bundles,
-                # and also query the legacy artifact bundles. One of those should have the
-                # file we are looking for. We want to return more here, even bundles that
-                # do *not* contain the file, rather than opening up each bundle. We want to
-                # avoid opening up bundles at all cost.
-                bundles = get_release_artifacts(project, release_name, dist_name)
-                update_bundles(bundles)
+        individual_files = set()
+        if url and release_name and not bundle_file_ids:
+            # Get both the newest X release artifact bundles,
+            # and also query the legacy artifact bundles. One of those should have the
+            # file we are looking for. We want to return more here, even bundles that
+            # do *not* contain the file, rather than opening up each bundle. We want to
+            # avoid opening up bundles at all cost.
+            bundles = get_release_artifacts(project, release_name, dist_name)
+            update_bundles(bundles)
 
-                release, dist = try_resolve_release_dist(project, release_name, dist_name)
-                if release:
-                    bundle_file_ids |= get_legacy_release_bundles(release, dist)
-                    individual_files = get_legacy_releasefile_by_file_url(release, dist, url)
+            release, dist = try_resolve_release_dist(project, release_name, dist_name)
+            if release:
+                bundle_file_ids |= get_legacy_release_bundles(release, dist)
+                individual_files = get_legacy_releasefile_by_file_url(release, dist, url)
 
-            if options.get("sourcemaps.artifact-bundles.asynchronous-renewal") == 1.0:
-                with metrics.timer("artifact_lookup.get.renew_artifact_bundles"):
-                    # Before constructing the response, we want to asynchronously update the artifact bundles renewal
-                    # date.
-                    renew_artifact_bundles(used_artifact_bundles)
+        if options.get("sourcemaps.artifact-bundles.enable-renewal") == 1.0:
+            with metrics.timer("artifact_lookup.get.renew_artifact_bundles"):
+                # Before constructing the response, we want to asynchronously update the artifact bundles renewal
+                # date.
+                renew_artifact_bundles(used_artifact_bundles)
 
-            # Then: Construct our response
-            url_constructor = UrlConstructor(request, project)
+        # Then: Construct our response
+        url_constructor = UrlConstructor(request, project)
 
-            found_artifacts = []
-            for file_id in bundle_file_ids:
-                found_artifacts.append(
-                    {
-                        "id": str(file_id),
-                        "type": "bundle",
-                        "url": url_constructor.url_for_file_id(file_id),
-                    }
-                )
+        found_artifacts = []
+        for file_id in bundle_file_ids:
+            found_artifacts.append(
+                {
+                    "id": str(file_id),
+                    "type": "bundle",
+                    "url": url_constructor.url_for_file_id(file_id),
+                }
+            )
 
-            for release_file in individual_files:
-                found_artifacts.append(
-                    {
-                        "id": str(release_file.file.id),
-                        "type": "file",
-                        "url": url_constructor.url_for_file_id(release_file.file.id),
-                        # The `name` is the url/abs_path of the file,
-                        # as in: `"~/path/to/file.min.js"`.
-                        "abs_path": release_file.name,
-                        # These headers should ideally include the `Sourcemap` reference
-                        "headers": release_file.file.headers,
-                    }
-                )
+        for release_file in individual_files:
+            found_artifacts.append(
+                {
+                    "id": str(release_file.file.id),
+                    "type": "file",
+                    "url": url_constructor.url_for_file_id(release_file.file.id),
+                    # The `name` is the url/abs_path of the file,
+                    # as in: `"~/path/to/file.min.js"`.
+                    "abs_path": release_file.name,
+                    # These headers should ideally include the `Sourcemap` reference
+                    "headers": release_file.file.headers,
+                }
+            )
 
-            # NOTE: We do not paginate this response, as we have very tight limits on all the individual queries.
-            return Response(serialize(found_artifacts, request.user))
+        # NOTE: We do not paginate this response, as we have very tight limits on all the individual queries.
+        return Response(serialize(found_artifacts, request.user))
 
 
 def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
@@ -179,8 +178,8 @@ def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
     threshold_date = datetime.now(tz=pytz.UTC) - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
 
     for (artifact_bundle_id, date_added) in used_artifact_bundles.items():
-        metrics.incr("artifact_lookup.get.renew_artifact_bundles.can_be_renewed")
-        if ArtifactBundle.can_be_renewed(date_added=date_added):
+        metrics.incr("artifact_lookup.get.renew_artifact_bundles.should_be_renewed")
+        if ArtifactBundle.should_be_renewed(date_added=date_added):
             metrics.incr("artifact_lookup.get.renew_artifact_bundles.renewal")
             # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
             with transaction.atomic():
