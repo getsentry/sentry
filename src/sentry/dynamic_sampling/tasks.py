@@ -258,7 +258,8 @@ def prioritise_projects() -> None:
             for org_id, projects_with_tx_count_and_rates in fetch_projects_with_total_volumes(
                 org_ids=orgs
             ).items():
-                process_projects_sample_rates.delay(org_id, projects_with_tx_count_and_rates)
+                if org_id not in [228005]:
+                    process_projects_sample_rates.delay(org_id, projects_with_tx_count_and_rates)
 
 
 @instrumented_task(
@@ -441,9 +442,7 @@ def adjust_base_sample_rate_per_project(
     """
     projects_with_rebalanced_sample_rate = []
 
-    for project_id, total_root_count in augment_with_empty_projects(
-        org_id, projects_with_total_root_count
-    ).items():
+    for project_id, total_root_count in projects_with_total_root_count:
         try:
             # We want to compute the sliding window sample rate by considering a window of time.
             # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
@@ -474,7 +473,7 @@ def adjust_base_sample_rate_per_project(
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
 
             schedule_invalidate_project_config(
-                project_id=project_id, trigger="dynamic_sampling_prioritise_project_bias"
+                project_id=project_id, trigger="dynamic_sampling_sliding_window"
             )
 
         pipeline.execute()

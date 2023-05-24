@@ -381,6 +381,16 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
           author,
         });
       }
+      case GroupActivityType.AUTO_SET_ONGOING: {
+        return activity.data?.afterDays
+          ? tct(
+              '[author] automatically marked this issue as ongoing after [afterDays] days',
+              {author, afterDays: activity.data.afterDays}
+            )
+          : tct('[author] automatically marked this issue as ongoing', {
+              author,
+            });
+      }
       default:
         return ''; // should never hit (?)
     }
