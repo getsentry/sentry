@@ -193,7 +193,7 @@ def protect_hybrid_cloud_writes_and_deletes(request):
             restrict_role(role="postgres_unprivileged", model=fk_model, revocation_type="DELETE")
 
     # Protect organization members from being updated without also invoking the correct outbox logic.
-    # If you hit test failures as  aresult of lacking these privileges, first ensure that you create the correct
+    # If you hit test failures as a result of lacking these privileges, first ensure that you create the correct
     # outboxes in a transaction, and cover that transaction with `in_test_psql_role_override`
     restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="INSERT")
     restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="UPDATE")
