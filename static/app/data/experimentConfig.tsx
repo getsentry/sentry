@@ -24,6 +24,12 @@ export const experimentList = [
     parameter: 'exposed',
     assignments: [0, 1],
   },
+  {
+    key: 'ProjectCreationForAllExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'exposed',
+    assignments: [0, 1],
+  },
 ] as const;
 
 export const experimentConfig = experimentList.reduce(
