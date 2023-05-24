@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from sentry import features
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -14,6 +16,10 @@ from ..base import (
 )
 from ..performance_problem import PerformanceProblem
 from ..types import Span
+
+# Matches a file extension, ignoring query parameters at the end
+EXTENSION_REGEX = re.compile(r"\.([a-zA-Z0-9]+)/?(?!/)(\?.*)?$")
+EXTENSION_ALLOW_LIST = ("JSON",)
 
 
 class LargeHTTPPayloadDetector(PerformanceDetector):
@@ -98,9 +104,8 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         ):  # Just using all methods to see if anything interesting pops up
             return False
 
-        if normalized_description.endswith(
-            (".JS", ".CSS", ".SVG", ".PNG", ".MP3", ".JPG", ".JPEG")
-        ):
+        extension = EXTENSION_REGEX.search(normalized_description)
+        if extension and extension.group(1) not in EXTENSION_ALLOW_LIST:
             return False
 
         if any([x in description for x in ["_next/static/", "_next/data/"]]):
