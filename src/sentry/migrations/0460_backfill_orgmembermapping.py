@@ -43,7 +43,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0457_sentry_monitorcheckin_date_added_index"),
+        ("sentry", "0459_remove_user_actorid"),
     ]
 
     operations = [

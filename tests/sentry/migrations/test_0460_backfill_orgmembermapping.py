@@ -4,8 +4,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class BackfillNotificationSettingTest(TestMigrations):
-    migrate_from = "0457_sentry_monitorcheckin_date_added_index"
-    migrate_to = "0458_backfill_orgmembermapping"
+    migrate_from = "0459_remove_user_actorid"
+    migrate_to = "0460_backfill_orgmembermapping"
 
     def setup_initial_state(self):
         self.owner = self.create_user()
