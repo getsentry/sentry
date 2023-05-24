@@ -182,7 +182,7 @@ export function getTitle(
         treeLabel: undefined,
       };
     case EventOrGroupType.GENERIC:
-      const isProfilingIssue = eventIsProfilingIssue(event as unknown as Event);
+      const isProfilingIssue = eventIsProfilingIssue(event);
       return {
         title: isProfilingIssue ? metadata.title : customTitle ?? title,
         subtitle: isProfilingIssue ? culprit : '',
@@ -401,8 +401,8 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
   };
 }
 
-export function eventIsProfilingIssue(event: Event) {
-  const evidenceData = event.occurrence?.evidenceData ?? {};
+export function eventIsProfilingIssue(event: Event | BaseGroup): event is Event {
+  const evidenceData = event?.occurrence?.evidenceData ?? {};
   return (
     evidenceData.templateName === 'profile' ||
     event.issueCategory === IssueCategory.PROFILE
