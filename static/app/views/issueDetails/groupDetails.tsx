@@ -82,7 +82,6 @@ type FetchGroupDetailsState = {
   group: Group | null;
   loadingEvent: boolean;
   loadingGroup: boolean;
-  project: Project | null;
   refetchData: () => void;
   refetchGroup: () => void;
 };
@@ -315,7 +314,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const organization = useOrganization();
   const router = useRouter();
   const params = router.params;
-  const {projects} = useProjects();
 
   const [error, setError] = useState<boolean>(false);
   const [errorType, setErrorType] = useState<Error | null>(null);
@@ -372,9 +370,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [groupReleaseData, groupId, group]);
 
-  const project =
-    projects?.find(({id}) => id === group?.project?.id) ?? group?.project ?? null;
-
   useSyncGroupStore(environments);
 
   useEffect(() => {
@@ -398,21 +393,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       }
     }
   }, [group, event, router, organization]);
-
-  useEffect(() => {
-    const matchingProject = projects?.find(p => p.id === group?.project.id);
-
-    if (group && !matchingProject) {
-      Sentry.withScope(scope => {
-        const projectIds = projects.map(item => item.id);
-        scope.setContext('missingProject', {
-          projectId: group?.project.id,
-          availableProjects: projectIds,
-        });
-        Sentry.captureException(new Error('Project not found'));
-      });
-    }
-  }, [projects, group]);
 
   useEffect(() => {
     const matchingProjectSlug = group?.project?.slug;
@@ -484,8 +464,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [isGroupError, groupError, handleError]);
 
-  useTrackView({group, event, project});
-
   const refetchGroup = useCallback(() => {
     if (
       group?.status !== ReprocessingStatus.REPROCESSING ||
@@ -527,7 +505,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   }, []);
 
   return {
-    project,
     loadingGroup,
     loadingEvent,
     group,
@@ -547,7 +524,7 @@ function useTrackView({
 }: {
   event: Event | null;
   group: Group | null;
-  project: Project | null;
+  project?: Project;
 }) {
   const location = useLocation();
   const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
@@ -666,6 +643,8 @@ function GroupDetailsContent({
 
   const environments = useEnvironmentsFromUrl();
 
+  useTrackView({group, event, project});
+
   useEffect(() => {
     if (
       currentTab === Tab.DETAILS &&
@@ -716,16 +695,28 @@ function GroupDetailsContent({
 }
 
 function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsState) {
+  const projectSlug = props.group?.project?.slug;
   const {
     projects,
     initiallyLoaded: projectsLoaded,
     fetchError: errorFetchingProjects,
-  } = useProjects({slugs: props.project?.slug ? [props.project.slug] : []});
+  } = useProjects({slugs: projectSlug ? [projectSlug] : []});
 
-  const project =
-    (props.project?.slug
-      ? projects.find(({slug}) => slug === props.project?.slug)
-      : undefined) ?? projects[0];
+  const project = projects.find(({slug}) => slug === projectSlug);
+  const projectWithFallback = project ?? projects[0];
+
+  useEffect(() => {
+    if (props.group && projectsLoaded && !project) {
+      Sentry.withScope(scope => {
+        const projectIds = projects.map(item => item.id);
+        scope.setContext('missingProject', {
+          projectId: props.group?.project.id,
+          availableProjects: projectIds,
+        });
+        Sentry.captureException(new Error('Project not found'));
+      });
+    }
+  }, [props.group, project, projects, projectsLoaded]);
 
   if (props.error) {
     return (
@@ -737,18 +728,20 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     return <StyledLoadingError message={t('Error loading the specified project')} />;
   }
 
-  if (!projectsLoaded || !project || !props.group) {
+  if (!projectsLoaded || !projectWithFallback || !props.group) {
     return <LoadingIndicator />;
   }
 
-  return <GroupDetailsContent {...props} project={project} group={props.group} />;
+  return (
+    <GroupDetailsContent {...props} project={projectWithFallback} group={props.group} />
+  );
 }
 
 function GroupDetails(props: GroupDetailsProps) {
   const organization = useOrganization();
   const router = useRouter();
 
-  const {project, group, ...fetchGroupDetailsProps} = useFetchGroupDetails();
+  const {group, ...fetchGroupDetailsProps} = useFetchGroupDetails();
 
   const environments = useEnvironmentsFromUrl();
 
@@ -783,16 +776,19 @@ function GroupDetails(props: GroupDetailsProps) {
 
   return (
     <Fragment>
-      {isSampleError && project && (
-        <SampleEventAlert project={project} organization={organization} />
+      {isSampleError && group && (
+        <SampleEventAlert project={group.project} organization={organization} />
       )}
       <SentryDocumentTitle noSuffix title={getGroupDetailsTitle()}>
-        <PageFiltersContainer skipLoadLastUsed forceProject={project} shouldForceProject>
+        <PageFiltersContainer
+          skipLoadLastUsed
+          forceProject={group?.project}
+          shouldForceProject
+        >
           <GroupDetailsPageContent
             {...props}
             {...{
               group,
-              project,
               ...fetchGroupDetailsProps,
             }}
           />
