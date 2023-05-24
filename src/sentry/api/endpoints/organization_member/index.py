@@ -126,8 +126,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 organization=organization,
                 invite_status=InviteStatus.APPROVED.value,
             )
-            .select_related("user")
-            .order_by("email", "user__email")
+            # TODO(hybridcloud) Cross silo joins here.
+            .select_related("user").order_by("email", "user__email")
         )
 
         query = request.GET.get("query")
@@ -163,6 +163,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                         queryset = queryset.filter(flags=F("flags").bitand(~ssoFlag))
 
                 elif key == "has2fa":
+                    # TODO(hybridcloud) Cross silo joins here.
                     has2fa = "true" in value
                     if has2fa:
                         types = [a.type for a in available_authenticators(ignore_backup=True)]
@@ -172,22 +173,18 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     else:
                         queryset = queryset.filter(user__authenticator__isnull=True)
                 elif key == "hasExternalUsers":
+                    externalactor_user_ids = ExternalActor.objects.filter(
+                        organization=organization,
+                    ).values_list("actor__user_id", flat=True)
+
                     hasExternalUsers = "true" in value
                     if hasExternalUsers:
-                        queryset = queryset.filter(
-                            user__actor_id__in=ExternalActor.objects.filter(
-                                organization=organization
-                            ).values_list("actor_id")
-                        )
+                        queryset = queryset.filter(user_id__in=externalactor_user_ids)
                     else:
-                        queryset = queryset.exclude(
-                            user__actor_id__in=ExternalActor.objects.filter(
-                                organization=organization
-                            ).values_list("actor_id")
-                        )
-
+                        queryset = queryset.exclude(user_id__in=externalactor_user_ids)
                 elif key == "query":
                     value = " ".join(value)
+                    # TODO(hybridcloud) Cross silo joins.
                     queryset = queryset.filter(
                         Q(email__icontains=value)
                         | Q(user__email__icontains=value)
