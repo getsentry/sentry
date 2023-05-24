@@ -3,13 +3,11 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -20,6 +18,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
+import CreateProjectButton from 'sentry/views/settings/organizationProjects/createProjectButton';
 
 import ProjectStatsGraph from './projectStatsGraph';
 
@@ -80,24 +79,8 @@ class OrganizationProjects extends AsyncView<Props, State> {
   renderBody(): React.ReactNode {
     const {projectList, projectListPageLinks, projectStats} = this.state;
     const {organization} = this.props;
-    const canCreateProjects = organization.access.includes('project:admin');
 
-    const action = (
-      <Button
-        priority="primary"
-        size="sm"
-        disabled={!canCreateProjects}
-        title={
-          !canCreateProjects
-            ? t('You do not have permission to create projects')
-            : undefined
-        }
-        to={`/organizations/${organization.slug}/projects/new/`}
-        icon={<IconAdd size="xs" isCircled />}
-      >
-        {t('Create Project')}
-      </Button>
-    );
+    const action = <CreateProjectButton organization={organization} />;
 
     return (
       <Fragment>

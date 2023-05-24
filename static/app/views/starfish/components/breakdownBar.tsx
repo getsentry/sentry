@@ -46,6 +46,17 @@ export function getSegmentLabel(span_operation, action, domain) {
   return span_operation || domain || undefined;
 }
 
+export function getSegmentLabelForTable(span_operation, action, domain) {
+  const label = getSegmentLabel(span_operation, action, domain);
+  if (span_operation === 'http.client') {
+    return t('%s (http.client spans)', label);
+  }
+  if (span_operation === 'db') {
+    return t('%s (db spans)', label);
+  }
+  return t('%s spans', label);
+}
+
 function getNumSpansLabel(segment) {
   if (segment.span_operation === 'other' && segment.num_spans === 0) {
     return t('Other');
@@ -77,21 +88,27 @@ function FacetBreakdownBar({transaction: maybeTransaction}: Props) {
   const transaction = maybeTransaction ?? '';
 
   const {data: segments} = useQuery({
-    queryKey: ['webServiceSpanGrouping', transaction],
+    queryKey: ['webServiceSpanGrouping', transaction, selection.datetime],
     queryFn: () =>
-      fetch(`${HOST}/?query=${getTopDomainsActionsAndOp({transaction})}`).then(res =>
-        res.json()
-      ),
+      fetch(
+        `${HOST}/?query=${getTopDomainsActionsAndOp({
+          transaction,
+          datetime: selection.datetime,
+        })}`
+      ).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
   const {data: cumulativeTime} = useQuery({
-    queryKey: ['totalCumulativeTime', transaction],
+    queryKey: ['totalCumulativeTime', transaction, selection.datetime],
     queryFn: () =>
-      fetch(`${HOST}/?query=${totalCumulativeTime({transaction})}`).then(res =>
-        res.json()
-      ),
+      fetch(
+        `${HOST}/?query=${totalCumulativeTime({
+          transaction,
+          datetime: selection.datetime,
+        })}`
+      ).then(res => res.json()),
     retry: false,
     initialData: [],
   });
@@ -126,12 +143,13 @@ function FacetBreakdownBar({transaction: maybeTransaction}: Props) {
   }
 
   const {isLoading: isTopDataLoading, data: topData} = useQuery({
-    queryKey: ['topSpanGroupTimeseries', transaction, topConditions],
+    queryKey: ['topSpanGroupTimeseries', transaction, topConditions, selection.datetime],
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getTopDomainsActionsAndOpTimeseries({
           transaction,
           topConditions,
+          datetime: selection.datetime,
         })}`
       ).then(res => res.json()),
     retry: false,
@@ -139,12 +157,18 @@ function FacetBreakdownBar({transaction: maybeTransaction}: Props) {
   });
 
   const {isLoading: isOtherDataLoading, data: otherData} = useQuery({
-    queryKey: ['otherSpanGroupTimeseries', transaction, topConditions],
+    queryKey: [
+      'otherSpanGroupTimeseries',
+      transaction,
+      topConditions,
+      selection.datetime,
+    ],
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getOtherDomainsActionsAndOpTimeseries({
           transaction,
           topConditions,
+          datetime: selection.datetime,
         })}`
       ).then(res => res.json()),
     retry: false,

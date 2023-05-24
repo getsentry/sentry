@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import AuthIdentity, OrganizationMember
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
@@ -13,7 +14,7 @@ logger = logging.getLogger("sentry.auth")
 AUTH_CHECK_INTERVAL = 3600
 
 
-@instrumented_task(name="sentry.tasks.check_auth", queue="auth")
+@instrumented_task(name="sentry.tasks.check_auth", queue="auth", silo_mode=SiloMode.CONTROL)
 def check_auth(**kwargs):
     """
     Iterates over all accounts which have not been verified in the required
@@ -38,7 +39,9 @@ def check_auth(**kwargs):
             )
 
 
-@instrumented_task(name="sentry.tasks.check_auth_identity", queue="auth")
+@instrumented_task(
+    name="sentry.tasks.check_auth_identity", queue="auth", silo_mode=SiloMode.CONTROL
+)
 def check_auth_identity(auth_identity_id, **kwargs):
     try:
         auth_identity = AuthIdentity.objects.get(id=auth_identity_id)
@@ -49,6 +52,8 @@ def check_auth_identity(auth_identity_id, **kwargs):
     auth_provider = auth_identity.auth_provider
 
     try:
+        # TODO(hybridcloud) We either need to use orgmembermapping or make this use
+        # RPC services to work on AuthIdentity and AuthProvider.
         om = OrganizationMember.objects.get(
             user_id=auth_identity.user.id, organization=auth_provider.organization_id
         )

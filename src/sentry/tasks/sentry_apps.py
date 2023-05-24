@@ -7,6 +7,7 @@ from typing import Any, Mapping
 import celery
 
 from sentry.services.hybrid_cloud.app import app_service
+from sentry.silo.base import SiloMode
 from sentry.tasks.sentry_functions import send_sentry_function_webhook
 
 if celery.version_info >= (5, 2):
@@ -238,7 +239,9 @@ def process_resource_change_bound(self, action, sender, instance_id, *args, **kw
     _process_resource_change(action, sender, instance_id, retryer=self, *args, **kwargs)
 
 
-@instrumented_task(name="sentry.tasks.sentry_apps.installation_webhook", **TASK_OPTIONS)
+@instrumented_task(
+    name="sentry.tasks.sentry_apps.installation_webhook", silo_mode=SiloMode.CONTROL, **TASK_OPTIONS
+)
 @retry(**RETRY_OPTIONS)
 def installation_webhook(installation_id, user_id, *args, **kwargs):
     from sentry.mediators.sentry_app_installations import InstallationNotifier
@@ -305,6 +308,8 @@ def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwa
 def get_webhook_data(installation_id, issue_id, user_id):
     extra = {"installation_id": installation_id, "issue_id": issue_id}
     try:
+        # TODO(hybridcloud) This needs to use the sentryapp service
+        # as we call this from region silos
         install = SentryAppInstallation.objects.get(
             id=installation_id, status=SentryAppInstallationStatus.INSTALLED
         )
