@@ -1,128 +1,135 @@
+import {useCallback, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import PlatformPicker from 'sentry/components/platformPicker';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PlatformPicker, {PLATFORM_CATEGORIES} from 'sentry/components/platformPicker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {PlatformKey} from 'sentry/data/platformCategories';
+import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
-type Props = RouteComponentProps<{projectId: string}, {}> & {
-  organization: Organization;
-} & AsyncComponent['props'];
+type Props = RouteComponentProps<{projectId: string}, {}>;
 
-type State = {
-  keyList: Array<ProjectKey> | null;
-} & AsyncComponent['state'];
+export function ProjectInstallOverview({params, routes, location}: Props) {
+  const [showDsn, setShowDsn] = useState(false);
+  const {projectId: projectSlug} = params;
+  const organization = useOrganization();
+  const {projects} = useProjects();
 
-class ProjectInstallOverview extends AsyncComponent<Props, State> {
-  get isGettingStarted() {
-    return window.location.href.indexOf('getting-started') > 0;
+  const issueStreamLink = `/organizations/${organization.slug}/issues/#welcome`;
+  const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
+
+  const project = projects.find(p => p.slug === projectSlug);
+  const platform = project ? platforms.find(p => p.id === project.platform) : undefined;
+  const category = PLATFORM_CATEGORIES.find(c =>
+    c.platforms?.some(p => p === platform?.id)
+  )?.id;
+
+  const {
+    data: keyList,
+    isLoading,
+    isError,
+    refetch,
+  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectSlug}/keys/`], {
+    staleTime: Infinity,
+  });
+
+  const redirectToDocs = useCallback(
+    (platformKey: PlatformKey | null) => {
+      const installUrl = isGettingStarted
+        ? `/organizations/${organization.slug}/projects/${projectSlug}/getting-started/${platformKey}/`
+        : recreateRoute(`${platformKey}/`, {
+            routes,
+            location,
+            params,
+            stepBack: -1,
+          });
+
+      browserHistory.push(normalizeUrl(installUrl));
+    },
+    [projectSlug, isGettingStarted, organization.slug, routes, location, params]
+  );
+
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
-    return [['keyList', `/projects/${organization.slug}/${projectId}/keys/`]];
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
 
-  redirectToDocs = (platform: PlatformKey | null) => {
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
-
-    const installUrl = this.isGettingStarted
-      ? `/organizations/${organization.slug}/projects/${projectId}/getting-started/${platform}/`
-      : recreateRoute(`${platform}/`, {
-          ...this.props,
-          stepBack: -1,
-        });
-
-    browserHistory.push(normalizeUrl(installUrl));
-  };
-
-  toggleDsn = () => {
-    this.setState(state => ({showDsn: !state.showDsn}));
-  };
-
-  render() {
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
-    const {keyList, showDsn} = this.state;
-
-    const issueStreamLink = `/organizations/${organization.slug}/issues/#welcome`;
-
-    return (
-      <div>
-        <SentryDocumentTitle title={t('Instrumentation')} projectSlug={projectId} />
-        <SettingsPageHeader title={t('Configure your application')} />
-        <TextBlock>
-          {t(
-            'Get started by selecting the platform or language that powers your application.'
-          )}
-        </TextBlock>
-
-        {showDsn ? (
-          <DsnInfo>
-            <DsnContainer>
-              <strong>{t('DSN')}</strong>
-              <DsnValue>{keyList?.[0].dsn.public}</DsnValue>
-            </DsnContainer>
-
-            <Button priority="primary" to={issueStreamLink}>
-              {t('Got it! Take me to the Issue Stream.')}
-            </Button>
-          </DsnInfo>
-        ) : (
-          <p>
-            <small>
-              {tct('Already have things setup? [link:Get your DSN]', {
-                link: (
-                  <Button
-                    priority="link"
-                    onClick={this.toggleDsn}
-                    aria-label={t('Get your DSN')}
-                  />
-                ),
-              })}
-              .
-            </small>
-          </p>
+  return (
+    <div>
+      <SentryDocumentTitle title={t('Instrumentation')} projectSlug={projectSlug} />
+      <SettingsPageHeader title={t('Configure your application')} />
+      <TextBlock>
+        {t(
+          'Get started by selecting the platform or language that powers your application.'
         )}
-        <PlatformPicker
-          setPlatform={selectedPlatform =>
-            this.redirectToDocs(selectedPlatform?.id ?? null)
-          }
-          showOther={false}
-          organization={this.props.organization}
-        />
+      </TextBlock>
+
+      {showDsn ? (
+        <DsnInfo>
+          <DsnContainer>
+            <strong>{t('DSN')}</strong>
+            <DsnValue>
+              <AutoSelectText>{keyList?.[0].dsn.public}</AutoSelectText>
+            </DsnValue>
+          </DsnContainer>
+
+          <Button priority="primary" to={issueStreamLink}>
+            {t('Got it! Take me to the Issue Stream.')}
+          </Button>
+        </DsnInfo>
+      ) : (
         <p>
-          {tct(
-            `For a complete list of client integrations, please see
-             [docLink:our in-depth documentation].`,
-            {docLink: <ExternalLink href="https://docs.sentry.io" />}
-          )}
+          <small>
+            {tct('Already have things setup? [link:Get your DSN]', {
+              link: (
+                <Button
+                  priority="link"
+                  onClick={() => setShowDsn(!showDsn)}
+                  aria-label={t('Get your DSN')}
+                />
+              ),
+            })}
+            .
+          </small>
         </p>
-      </div>
-    );
-  }
+      )}
+      <PlatformPicker
+        setPlatform={selectedPlatform => redirectToDocs(selectedPlatform?.id ?? null)}
+        showOther={false}
+        organization={organization}
+        defaultCategory={category}
+        platform={platform?.id}
+      />
+      <p>
+        {tct(
+          `For a complete list of client integrations, please see
+             [docLink:our in-depth documentation].`,
+          {docLink: <ExternalLink href="https://docs.sentry.io" />}
+        )}
+      </p>
+    </div>
+  );
 }
 
-const DsnValue = styled(p => (
-  <code {...p}>
-    <AutoSelectText>{p.children}</AutoSelectText>
-  </code>
-))`
+const DsnValue = styled('code')`
   overflow: hidden;
 `;
 
@@ -137,5 +144,3 @@ const DsnContainer = styled('div')`
   align-items: center;
   margin-bottom: ${space(2)};
 `;
-
-export default withOrganization(ProjectInstallOverview);

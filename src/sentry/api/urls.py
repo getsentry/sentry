@@ -453,6 +453,7 @@ from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndp
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
 from .endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
+from .endpoints.project_stacktrace_links import ProjectStacktraceLinksEndpoint
 from .endpoints.project_stats import ProjectStatsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
@@ -2249,6 +2250,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stacktrace-link/$",
         ProjectStacktraceLinkEndpoint.as_view(),
         name="sentry-api-0-project-stacktrace-link",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stacktrace-links/$",
+        ProjectStacktraceLinksEndpoint.as_view(),
+        name="sentry-api-0-project-stacktrace-links",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/repo-path-parsing/$",

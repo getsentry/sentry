@@ -5,7 +5,7 @@ type TopResultsIndicatorProps = {
   index: number;
 };
 
-const TopResultsIndicator = styled('div')<TopResultsIndicatorProps>`
+export const TopResultsIndicator = styled('div')<TopResultsIndicatorProps>`
   position: absolute;
   left: -1px;
   margin-top: 4.5px;
