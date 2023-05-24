@@ -431,7 +431,7 @@ def process_sliding_window(
     window_size: int,
 ) -> None:
     with metrics.timer(
-        "sentry.tasks.dynamic_sampling.process_sliding_window.adjust_base_sample_rate_per_project"
+        "sentry.dynamic_sampling.tasks.sliding_window.adjust_base_sample_rate_per_project"
     ):
         adjust_base_sample_rate_per_project(org_id, projects_with_total_root_count, window_size)
 

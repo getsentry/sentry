@@ -13,7 +13,7 @@ FALLBACK_SLIDING_WINDOW_SIZE = 24
 # Sentinel value used to mark that an error happened when computing the sliding window sample rate for a specific
 # project.
 SLIDING_WINDOW_CALCULATION_ERROR = "sliding_window_error"
-# We want to keep the entry for 1 hour, so that in case an org is not considered for 1 hour, the system will fallback
+# We want to keep the entry for 1 hour, so that in case an org is not considered for 1 hour, the system will fall back
 # to the blended sample rate.
 EXECUTED_CACHE_KEY_TTL = 60 * 60 * 1000
 
