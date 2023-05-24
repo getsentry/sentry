@@ -13,8 +13,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
+  defaultRuleActions: string;
   hasAccess: boolean;
-  isSlackIntegration: boolean;
   isSnoozed: boolean;
   onSnooze: (nextState: {
     snooze: boolean;
@@ -30,7 +30,7 @@ function SnoozeAlert({
   onSnooze,
   projectSlug,
   ruleId,
-  isSlackIntegration,
+  defaultRuleActions,
   hasAccess,
 }: Props) {
   const organization = useOrganization();
@@ -114,17 +114,17 @@ function SnoozeAlert({
 
   useEffect(() => {
     if (location.query.mute === '1' && !isSnoozed) {
-      const target = isSlackIntegration ? `everyone` : `me`;
+      const target = defaultRuleActions !== 'all' ? `everyone` : `me`;
       handleMute(target, true);
     }
-  }, [location.query, isSnoozed, handleMute, isSlackIntegration]);
+  }, [location.query, isSnoozed, handleMute, defaultRuleActions]);
 
   const dropdownItems: MenuItemProps[] = [
     {
       key: 'me',
       label: t('Mute for me'),
       onAction: () => handleMute('me'),
-      hidden: isSlackIntegration,
+      hidden: defaultRuleActions !== 'all',
     },
     {
       key: 'everyone',
@@ -152,7 +152,7 @@ function SnoozeAlert({
         icon={<IconSound />}
         disabled={disabled || !hasAccess}
         onClick={() => {
-          const target = isSlackIntegration ? 'everyone' : 'me';
+          const target = defaultRuleActions !== 'all' ? 'everyone' : 'me';
           handleMute(target);
         }}
       >

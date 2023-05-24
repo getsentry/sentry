@@ -255,10 +255,17 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
     const hasSnoozeFeature = organization.features.includes('mute-alerts');
     const isSnoozed = rule.snooze;
-    const slackIntegrationId =
-      'sentry.integrations.slack.notify_action.SlackNotifyServiceAction';
-    const isRuleSlackIntegration =
-      rule.actions.filter(action => action.id === slackIntegrationId).length > 0;
+
+    const numDefaultActions = rule.actions.filter(
+      action => action.id === 'sentry.mail.actions.NotifyEmailAction'
+    ).length;
+
+    const defaultRuleActions =
+      numDefaultActions === rule.actions.length
+        ? 'all'
+        : numDefaultActions === 0
+        ? 'none'
+        : 'some';
 
     const duplicateLink = {
       pathname: `/organizations/${organization.slug}/alerts/new/issue/`,
@@ -317,7 +324,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
                       onSnooze={this.onSnooze}
                       ruleId={rule.id}
                       projectSlug={projectId}
-                      isSlackIntegration={isRuleSlackIntegration}
+                      defaultRuleActions={defaultRuleActions}
                       hasAccess={hasAccess}
                     />
                   )}
@@ -347,9 +354,9 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             {this.renderIncompatibleAlert()}
             {hasSnoozeFeature && isSnoozed && (
               <Alert showIcon>
-                {isRuleSlackIntegration
+                {defaultRuleActions === 'none'
                   ? tct(
-                      "[creator] muted this alert so these Slack notifications won't be sent in the future",
+                      "[creator] muted this alert so these notifications won't be sent in the future.",
                       {creator: rule.snoozeCreatedBy}
                     )
                   : tct(
