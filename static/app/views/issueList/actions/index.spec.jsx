@@ -272,7 +272,7 @@ describe('IssueListActions', function () {
         data: {
           status: 'ignored',
           statusDetails: {},
-          substatus: 'until_escalating',
+          substatus: 'archived_until_escalating',
         },
       })
     );
@@ -281,7 +281,7 @@ describe('IssueListActions', function () {
       'issues_stream.archived',
       expect.objectContaining({
         status_details: {},
-        substatus: 'until_escalating',
+        substatus: 'archived_until_escalating',
       })
     );
   });
