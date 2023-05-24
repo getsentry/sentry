@@ -93,8 +93,6 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
 
         # add suffix to default team name until name is available
         while Team.objects.filter(organization=organization, slug=suffixed_team_slug).exists():
-            suffixed_team_slug = f"{default_team_slug}-{generate_three_letter_string()}"
-            attempts += 1
             # limit to a maximum of 5 attempts
             if attempts > 4:
                 raise ConflictError(
@@ -102,6 +100,9 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
                         "detail": "Unable to create a default team for this user. Please try again.",
                     }
                 )
+            suffixed_team_slug = f"{default_team_slug}-{generate_three_letter_string()}"
+            attempts += 1
+
         default_team_slug = suffixed_team_slug
 
         try:
