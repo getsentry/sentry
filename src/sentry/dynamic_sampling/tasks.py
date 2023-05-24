@@ -66,6 +66,9 @@ MAX_TRANSACTIONS_PER_PROJECT = 20
 MIN_REBALANCE_FACTOR = 0.1
 MAX_REBALANCE_FACTOR = 10
 
+# Error threshold for floating point comparison.
+EPSILON = 1e-6
+
 logger = logging.getLogger(__name__)
 
 
@@ -346,7 +349,10 @@ def adjust_sample_rates(
         for ds_project in ds_projects:
             cache_key = _generate_cache_key(org_id=org_id)
             # We want to get the old sample rate, which will be None in case it was not set.
-            old_sample_rate = redis_client.hget(cache_key, ds_project.id)
+            try:
+                old_sample_rate = float(redis_client.hget(cache_key, ds_project.id))
+            except (TypeError, ValueError):
+                old_sample_rate = None
 
             # We want to store the new sample rate as a string.
             pipeline.hset(
@@ -358,12 +364,22 @@ def adjust_sample_rates(
 
             # We invalidate the caches only if there was a change in the sample rate. This is to avoid flooding the
             # system with project config invalidations, especially for projects with no volume.
-            if old_sample_rate != ds_project.new_sample_rate:
+            if not are_equal_with_epsilon(old_sample_rate, ds_project.new_sample_rate):
                 schedule_invalidate_project_config(
                     project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
                 )
 
         pipeline.execute()
+
+
+def are_equal_with_epsilon(a: Optional[float], b: Optional[float]) -> bool:
+    """
+    Checks if two floating point numbers are equal within an error boundary.
+    """
+    if a is None or b is None:
+        return False
+
+    return abs(a - b) < EPSILON
 
 
 def get_adjusted_base_rate_from_cache_or_compute(org_id: int) -> Optional[float]:
