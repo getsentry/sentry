@@ -1,0 +1,83 @@
+#!/usr/bin/env python
+
+from typing import List
+
+import click
+from django.apps import apps
+
+import docker
+from sentry.runner import configure
+from sentry.silo.base import SiloMode
+
+configure()
+
+
+def exec_run(container, command):
+    wrapped_command = f'sh -c "{" ".join(command)}"'
+    exit_code, output = container.exec_run(cmd=wrapped_command, stdout=True, stderr=True)
+    if exit_code:
+        click.echo("Container operation Failed!")
+        click.echo(f"Container operation failed with {output}")
+
+
+def split_database(tables: List[str], source: str, destination: str, reset: bool, verbose: bool):
+    click.echo(f">> Dumping tables from {source} database")
+    command = ["pg_dump", "-U", "postgres", "-d", source, "--clean"]
+    for table in tables:
+        command.extend(["-t", table])
+    command.extend([">", f"/tmp/{destination}-tables.sql"])
+
+    client = docker.from_env()
+    postgres = client.containers.get("sentry_postgres")
+
+    if verbose:
+        click.echo(f">> Running {' '.join(command)}")
+    exec_run(postgres, command)
+
+    if reset:
+        click.echo(f">> Dropping existing {destination} database")
+        exec_run(postgres, ["dropdb", "-U", "postgres", "--if-exists", destination])
+        exec_run(postgres, ["createdb", "-U", "postgres", destination])
+
+    # Use the dump file to build control silo tables.
+    click.echo(f">> Building {destination} database from dump file")
+    import_command = ["psql", "-U", "postgres", destination, "<", f"/tmp/{destination}-tables.sql"]
+    if verbose:
+        click.echo(f">> Running {' '.join(import_command)}")
+    exec_run(postgres, import_command)
+
+
+@click.command()
+@click.option("--verbose", default=False, is_flag=True, help="Enable verbose logging")
+@click.option(
+    "--reset",
+    default=False,
+    is_flag=True,
+    help="Reset the target databases to be empty before loading extracted data and schema.",
+)
+@click.option("--database", default="sentry", help="Which database to derive splits from")
+def main(database: str, reset: bool, verbose: bool):
+    """
+    This is a development tool that can convert a monolith database into
+    control + region databases by using silo annotations.
+
+    This operation will not modify the original source database.
+    """
+    region_models = []
+    control_models = []
+    for model in apps.get_models():
+        silo_limit = getattr(model._meta, "silo_limit", None)
+        if not silo_limit:
+            click.echo(f"> Could not find silo assignment for {model._meta.db_table}")
+            continue
+        if SiloMode.CONTROL in silo_limit.modes:
+            control_models.append(model._meta.db_table)
+        if SiloMode.REGION in silo_limit.modes:
+            region_models.append(model._meta.db_table)
+
+    split_database(control_models, database, "control", reset=reset, verbose=verbose)
+    split_database(region_models, database, "region", reset=reset, verbose=verbose)
+
+
+if __name__ == "__main__":
+    main()
