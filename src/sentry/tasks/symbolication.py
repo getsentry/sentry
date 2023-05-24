@@ -1,7 +1,7 @@
 import logging
 import random
 from time import sleep, time
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Tuple
 
 import sentry_sdk
 from django.conf import settings
@@ -80,6 +80,29 @@ def should_demote_symbolication(project_id: int) -> bool:
             return False
 
 
+def get_symbolication_function(
+    data: Any, is_in_symbolicate_event: bool = False
+) -> Tuple[bool, Optional[Callable[[Symbolicator, Any], Any]]]:
+    # for JS events that have *not* been processed yet:
+    if data["platform"] in ("javascript", "node") and not data.get(
+        "processed_by_symbolicator", False
+    ):
+        from sentry.lang.javascript.processing import (
+            get_js_symbolication_function,
+            process_js_stacktraces,
+        )
+
+        # if we are already in `symbolicate_event`, we do *not* want to sample events
+        if is_in_symbolicate_event:
+            return True, process_js_stacktraces
+        else:
+            return True, get_js_symbolication_function(data)
+    else:
+        from sentry.lang.native.processing import get_native_symbolication_function
+
+        return False, get_native_symbolication_function(data)
+
+
 def _do_symbolicate_event(
     cache_key: str,
     start_time: Optional[int],
@@ -127,7 +150,22 @@ def _do_symbolicate_event(
             )
             return
 
-    def _continue_to_process_event() -> None:
+    def _continue_to_process_event(was_killswitched: bool = False) -> None:
+        # for JS events, we check `get_symbolication_function` again *after*
+        # symbolication, because maybe we need to feed it to another round of
+        # `symbolicate_event`, but for *native* that time.
+        if not was_killswitched and task_kind.is_js:
+            _, symbolication_function = get_symbolication_function(data, True)
+            if symbolication_function:
+                submit_symbolicate(
+                    task_kind=task_kind.with_js(False),
+                    cache_key=cache_key,
+                    event_id=event_id,
+                    start_time=start_time,
+                    has_attachments=has_attachments,
+                )
+                return
+        # else:
         store.submit_process(
             from_reprocessing=task_kind.is_reprocessing,
             cache_key=cache_key,
@@ -138,15 +176,7 @@ def _do_symbolicate_event(
             has_attachments=has_attachments,
         )
 
-    if data["platform"] in ("javascript", "node"):
-        from sentry.lang.javascript.processing import process_js_stacktraces
-
-        symbolication_function = process_js_stacktraces
-    else:
-        from sentry.lang.native.processing import get_native_symbolication_function
-
-        symbolication_function = get_native_symbolication_function(data)
-
+    _, symbolication_function = get_symbolication_function(data, True)
     symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
     if killswitch_matches_context(
@@ -158,7 +188,7 @@ def _do_symbolicate_event(
             "symbolication_function": symbolication_function_name,
         },
     ):
-        return _continue_to_process_event()
+        return _continue_to_process_event(True)
 
     symbolication_start_time = time()
 
