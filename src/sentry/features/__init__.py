@@ -110,7 +110,7 @@ default_manager.add("organizations:anr-analyze-frames", OrganizationFeature, Fea
 default_manager.add("organizations:anr-rate", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:device-classification", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:device-class-synthesis", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:monitors", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:monitors", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:new-weekly-report", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:notification-all-recipients", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
