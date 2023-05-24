@@ -14,7 +14,7 @@ from sentry.utils.db import atomic_transaction
     acks_late=True,
 )
 def delete_file_region(path, checksum, **kwargs):
-    from sentry.models.files.file import FileBlob
+    from sentry.models.files import FileBlob
 
     delete_file(FileBlob, path, checksum, **kwargs)
 
@@ -28,14 +28,14 @@ def delete_file_region(path, checksum, **kwargs):
     acks_late=True,
 )
 def delete_file_control(path, checksum, **kwargs):
-    from sentry.models.files.file import ControlFileBlob
+    from sentry.models.files import ControlFileBlob
 
     delete_file(ControlFileBlob, path, checksum, **kwargs)
 
 
 def delete_file(file_blob_model, path, checksum, **kwargs):
     from sentry.locks import locks
-    from sentry.models.files.file import get_storage
+    from sentry.models.files import get_storage
     from sentry.utils.retries import TimedRetryPolicy
 
     lock = locks.get(f"fileblob:upload:{checksum}", duration=60 * 10, name="fileblob_upload")
