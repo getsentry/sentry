@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import meanBy from 'lodash/meanBy';
 import moment from 'moment';
 import * as qs from 'query-string';
 
@@ -40,6 +39,7 @@ import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combi
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import meanBy from 'lodash/meanBy';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -244,6 +244,7 @@ export default function EndpointOverview() {
             {({results, loading}) => {
               const p50Series = results?.[1].data ?? [];
               const p50 = meanBy(p50Series, item => item.value);
+
               return (
                 <Fragment>
                   <StyledRow minSize={200}>

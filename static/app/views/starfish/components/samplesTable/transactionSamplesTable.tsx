@@ -8,23 +8,10 @@ import {
   DiscoverQueryProps,
   useGenericDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TextAlignLeft} from 'sentry/views/starfish/modules/APIModule/endpointTable';
-
-/* Two types of sample tables
-  1: Transaction Focused
-    - Gets sample transaction events
-    - Duration is for the whole txn
-    - p50 comparison is for the whole txn p50 compared to sample event
-    - Will not have a span count column, as it is not span focused
-
-  2: Span Focused
-    - Gets transaction events containing a specific span
-    - Duration is scoped to the single span
-    - p50 comparison is specific to the span
-    - Needs span count in a specific txn event
-**/
 
 type Keys = 'id' | 'timestamp' | 'transaction.duration' | 'p50_comparison';
 type TableColumnHeader = GridColumnHeader<Keys>;
@@ -66,8 +53,6 @@ export function TransactionSamplesTable({eventView, p50}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
-  console.log(p50);
-
   const commonColumns: QueryFieldValue[] = [
     {
       field: 'transaction.duration',
@@ -79,35 +64,10 @@ export function TransactionSamplesTable({eventView, p50}: Props) {
     },
   ];
 
-  const sampleEventsEventViewSlowest = eventView
-    .clone()
-    .withColumns(commonColumns)
-    .withSorts([
-      {
-        field: 'transaction.duration',
-        kind: 'desc',
-      },
-    ]);
-
-  const sampleEventsEventViewFastest = eventView
-    .clone()
-    .withColumns(commonColumns)
-    .withSorts([
-      {
-        field: 'transaction.duration',
-        kind: 'asc',
-      },
-    ]);
-
-  // const sampleEventsEventViewMedian = eventView
-  //   .clone()
-  //   .withColumns(commonColumns)
-  //   .withSorts([
-  //     {
-  //       field: 'transaction.duration',
-  //       kind: 'asc',
-  //     },
-  //   ]);
+  const eventViewAggregates = eventView.clone().withColumns([
+    {kind: 'function', function: ['p50', 'transaction.duration']},
+    {kind: 'function', function: ['p95', 'transaction.duration']},
+  ]);
 
   function renderBodyCell(column: TableColumnHeader, row: DataRow): React.ReactNode {
     if (column.key === 'id') {
@@ -135,42 +95,83 @@ export function TransactionSamplesTable({eventView, p50}: Props) {
     return <TextAlignLeft>{row[column.key]}</TextAlignLeft>;
   }
 
-  const {isLoading: isLoadingSlowest, data: slowestSamples} = useGenericDiscoverQuery<
+  const {isLoading: isLoadingAgg, data: aggregatesData} = useGenericDiscoverQuery<
     any,
     DiscoverQueryProps
   >({
     route: 'events',
-    eventView: sampleEventsEventViewSlowest,
+    eventView: eventViewAggregates,
     referrer: 'starfish-transaction-summary-sample-events',
-    limit: 3,
     location,
     orgSlug: organization.slug,
-    getRequestPayload: () => ({
-      ...sampleEventsEventViewSlowest.getEventsAPIPayload(location),
-    }),
   });
 
-  const {isLoading: isLoadingFastest, data: fastestSamples} = useGenericDiscoverQuery<
+  const slowestSamplesEventView = eventView
+    .clone()
+    .withColumns(commonColumns)
+    .withSorts([
+      {
+        field: 'transaction.duration',
+        kind: 'desc',
+      },
+    ]);
+
+  slowestSamplesEventView.additionalConditions = new MutableSearch(
+    `transaction.duration:>${
+      aggregatesData?.data?.[0]?.['p95(transaction.duration)'] ?? 0
+    }`
+  );
+
+  const {isLoading: isLoadingSlowest, data: slowestSamplesData} = useGenericDiscoverQuery<
     any,
     DiscoverQueryProps
   >({
     route: 'events',
-    eventView: sampleEventsEventViewFastest,
+    eventView: slowestSamplesEventView,
     referrer: 'starfish-transaction-summary-sample-events',
-    limit: 3,
     location,
     orgSlug: organization.slug,
     getRequestPayload: () => ({
-      ...sampleEventsEventViewFastest.getEventsAPIPayload(location),
+      ...slowestSamplesEventView.getEventsAPIPayload(location),
     }),
+    limit: 5,
   });
 
-  const combinedData = [...slowestSamples?.data, ...fastestSamples.data];
+  const medianSamplesEventView = eventView
+    .clone()
+    .withColumns(commonColumns)
+    .withSorts([
+      {
+        field: 'transaction.duration',
+        kind: 'desc',
+      },
+    ]);
+
+  medianSamplesEventView.additionalConditions = new MutableSearch(
+    `transaction.duration:<=${
+      aggregatesData?.data?.[0]?.['p50(transaction.duration)'] ?? 0
+    }`
+  );
+
+  const {isLoading: isLoadingMedian, data: medianSamplesData} = useGenericDiscoverQuery<
+    any,
+    DiscoverQueryProps
+  >({
+    route: 'events',
+    eventView: medianSamplesEventView,
+    referrer: 'starfish-transaction-summary-sample-events',
+    location,
+    orgSlug: organization.slug,
+    getRequestPayload: () => ({
+      ...medianSamplesEventView.getEventsAPIPayload(location),
+    }),
+    limit: 5,
+  });
 
   return (
     <GridEditable
-      isLoading={isLoadingSlowest || isLoadingFastest}
-      data={combinedData}
+      isLoading={isLoadingSlowest}
+      data={slowestSamplesData?.data}
       columnOrder={COLUMN_ORDER}
       columnSortBy={[]}
       location={location}
