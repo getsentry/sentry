@@ -26,6 +26,7 @@ import {space} from 'sentry/styles/space';
 import {AvatarProject, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -237,6 +238,8 @@ function ChangedTransactions(props: Props) {
   } = props;
   const api = useApi();
 
+  const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
+
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
   modifyTrendView(trendView, location, trendChangeType, projects, organization);
@@ -260,7 +263,7 @@ function ChangedTransactions(props: Props) {
       cursor={cursor}
       limit={5}
       setError={error => setError(error?.message)}
-      withBreakpoint={withBreakpoint}
+      withBreakpoint={withBreakpoint && !outcome?.forceTransactionsOnly}
     >
       {({isLoading, trendsData, pageLinks}) => {
         const trendFunction = getCurrentTrendFunction(location);
@@ -298,10 +301,10 @@ function ChangedTransactions(props: Props) {
           <TransactionsListContainer data-test-id="changed-transactions">
             <TrendsTransactionPanel>
               <StyledHeaderTitleLegend>
-                {chartTitle} {!withBreakpoint && 'Indexed'}
+                {chartTitle}
                 <QuestionTooltip size="sm" position="top" title={titleTooltipContent} />
               </StyledHeaderTitleLegend>
-              {isLoading ? (
+              {isLoading || isCardinalityCheckLoading ? (
                 <LoadingIndicator
                   style={{
                     margin: '237px auto',
