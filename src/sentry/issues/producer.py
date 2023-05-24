@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import cast, MutableMapping, Any, Optional, Dict
+from typing import Any, Dict, MutableMapping, Optional, cast
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
