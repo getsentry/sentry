@@ -40,10 +40,10 @@ export default class RequestError extends Error {
     responseMetadata?: ResponseMeta
   ) {
     const options = cause instanceof Error ? {cause} : {};
-    super(`${method || 'GET'} "${sanitizePath(path)}"`, options);
+    super(`${method || 'GET'} ${sanitizePath(path)}`, options);
     // TODO (kmclb) This is here to compensate for a bug in the SDK wherein it
     // ignores subclassing of `Error` when getting error type. Once that's
-    // fixed, this can go.
+    // fixed, this can go. See https://github.com/getsentry/sentry-javascript/pull/8161.
     this.name = 'RequestError';
     this.addResponseMetadata(responseMetadata);
   }
