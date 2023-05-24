@@ -185,7 +185,14 @@ def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
         if date_added <= threshold_date:
             metrics.incr("artifact_lookup.get.renew_artifact_bundles.renewed")
             # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
-            with atomic_transaction(using=router.db_for_write(File)):
+            with atomic_transaction(
+                using=(
+                    router.db_for_write(ArtifactBundle),
+                    router.db_for_write(ProjectArtifactBundle),
+                    router.db_for_write(ReleaseArtifactBundle),
+                    router.db_for_write(DebugIdArtifactBundle),
+                )
+            ):
                 # We check again for the date_added condition in order to achieve consistency, this is done because
                 # the `can_be_renewed` call is using a time which differs from the one of the actual update in the db.
                 updated_rows_count = ArtifactBundle.objects.filter(
