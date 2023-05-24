@@ -1,4 +1,4 @@
-import {captureException, captureMessage} from '@sentry/react';
+import {captureMessage} from '@sentry/react';
 import {LegendComponentOption} from 'echarts';
 
 import {t} from 'sentry/locale';
