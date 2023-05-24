@@ -4,10 +4,12 @@ from base64 import b64encode
 from collections.abc import MutableMapping
 from uuid import uuid4
 
+from django.conf import settings
 from django.db.models.signals import post_delete
 
 from sentry import nodestore
 from sentry.db.models.utils import Creator
+from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.utils.strings import compress, decompress
@@ -17,6 +19,8 @@ from .gzippeddict import GzippedDictField
 __all__ = ("NodeField", "NodeData")
 
 logger = logging.getLogger("sentry")
+
+PICKLE_WRITE_JSON = True
 
 
 class NodeIntegrityFailure(Exception):
@@ -162,6 +166,7 @@ class NodeField(GzippedDictField):
     """
 
     def __init__(self, *args, **kwargs):
+        self.write_json = kwargs.pop("write_json", PICKLE_WRITE_JSON)
         self.ref_func = kwargs.pop("ref_func", None)
         self.ref_version = kwargs.pop("ref_version", None)
         self.wrapper = kwargs.pop("wrapper", None)
@@ -187,15 +192,18 @@ class NodeField(GzippedDictField):
         # with a dict.
         if value and isinstance(value, str):
             try:
-                value = pickle.loads(decompress(value))
-            except Exception as e:
-                # TODO this is a bit dangerous as a failure to read/decode the
-                # node_id will end up with this record being replaced with an
-                # empty value under a new key, potentially orphaning an
-                # original value in nodestore. OTOH if we can't decode the info
-                # here, the node was already effectively orphaned.
-                logger.exception(e)
-                value = None
+                value = json.loads(value)
+            except (ValueError, TypeError):
+                try:
+                    value = pickle.loads(decompress(value))
+                except Exception as e:
+                    # TODO this is a bit dangerous as a failure to read/decode the
+                    # node_id will end up with this record being replaced with an
+                    # empty value under a new key, potentially orphaning an
+                    # original value in nodestore. OTOH if we can't decode the info
+                    # here, the node was already effectively orphaned.
+                    logger.exception(e)
+                    value = None
 
         if value:
             if "node_id" in value:
@@ -236,4 +244,11 @@ class NodeField(GzippedDictField):
             value.id = self.id_func()
 
         value.save()
+
+        if self.write_json:
+            return json.dumps({"node_id": value.id})
+
+        if settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE:
+            json.dumps({"node_id": value.id})  # dry run
+
         return compress(pickle.dumps({"node_id": value.id}))
