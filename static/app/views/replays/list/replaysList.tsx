@@ -1,8 +1,10 @@
 import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Pagination from 'sentry/components/pagination';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
@@ -13,6 +15,8 @@ import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/h
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import {ReplaySearchAlert} from 'sentry/views/replays/list/replaySearchAlert';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -56,6 +60,8 @@ function ReplaysList() {
   );
 }
 
+const MIN_REPLAY_CLICK_SDK = '7.44.0';
+
 function ReplaysListTable({
   eventView,
   location,
@@ -70,6 +76,22 @@ function ReplaysListTable({
     location,
     organization,
   });
+
+  const {
+    selection: {projects},
+  } = usePageFilters();
+
+  const {needsUpdate: allSelectedProjectsNeedUpdates} = useProjectSdkNeedsUpdate({
+    minVersion: MIN_REPLAY_CLICK_SDK,
+    organization,
+    projectId: projects.map(p => String(p)),
+  });
+
+  const conditions = useMemo(() => {
+    return new MutableSearch(decodeScalar(location.query.query, ''));
+  }, [location.query.query]);
+
+  const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
 
   return (
     <Fragment>
@@ -87,6 +109,19 @@ function ReplaysListTable({
           ReplayColumns.countErrors,
           ReplayColumns.activity,
         ]}
+        emptyMessage={
+          allSelectedProjectsNeedUpdates && hasReplayClick ? (
+            <Fragment>
+              {t('The search query could not be made.')}
+              <EmptyStateSubheading>
+                {tct('Field [field] requires an [sdkPrompt]', {
+                  field: <strong>'click'</strong>,
+                  sdkPrompt: <strong>{t('SDK version >= 7.44.0')}</strong>,
+                })}
+              </EmptyStateSubheading>
+            </Fragment>
+          ) : undefined
+        }
       />
       <Pagination
         pageLinks={pageLinks}
@@ -104,5 +139,10 @@ function ReplaysListTable({
     </Fragment>
   );
 }
+
+const EmptyStateSubheading = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
 
 export default ReplaysList;
