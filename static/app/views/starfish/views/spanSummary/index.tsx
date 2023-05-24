@@ -515,6 +515,11 @@ function SpanGroupKeyValueList({
         <KeyValueList
           data={[
             {
+              key: 'op',
+              value: spanGroupOperation,
+              subject: 'Operation',
+            },
+            {
               key: 'desc',
               value:
                 action && spanDomain ? (
@@ -534,6 +539,11 @@ function SpanGroupKeyValueList({
       return (
         <KeyValueList
           data={[
+            {
+              key: 'op',
+              value: spanGroupOperation,
+              subject: 'Operation',
+            },
             {key: 'desc', value: spanDescription, subject: 'URL'},
             {key: 'domain', value: spanDomain, subject: 'Domain'},
           ]}
