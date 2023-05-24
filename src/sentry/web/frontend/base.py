@@ -543,26 +543,14 @@ class OrganizationView(BaseView):
             return True
         return False
 
-    def _lookup_orm_org(self) -> Organization | None:
-        """
-        Used by convert_args to convert the hybrid cloud safe active_organization object into an org ORM.
-        This should really only be used by the Region or Monolith silo modes -- calling this in a Control silo
-        endpoint or codepath will result in exceptions.
-        :return:
-        """
-        organization: Organization | None = None
-        if self.active_organization:
-            try:
-                organization = Organization.objects.get(id=self.active_organization.organization.id)
-            except Organization.DoesNotExist:
-                pass
-        return organization
+    def _unpack_org(self) -> RpcOrganization | None:
+        return self.active_organization.organization if self.active_organization else None
 
     def convert_args(
         self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         if "organization" not in kwargs:
-            kwargs["organization"] = self._lookup_orm_org()
+            kwargs["organization"] = self._unpack_org()
 
         return args, kwargs
 
@@ -579,7 +567,7 @@ class RegionSiloOrganizationView(OrganizationView):
         self, request: Any, organization_slug: str | None = None, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         if "organization" not in kwargs:
-            kwargs["organization"] = self._lookup_orm_org()
+            kwargs["organization"] = self._unpack_org()
 
         return args, kwargs
 
@@ -640,7 +628,7 @@ class ProjectView(RegionSiloOrganizationView):
         organization: Organization | None = None
         active_project: Project | None = None
         if self.active_organization:
-            organization = self._lookup_orm_org()
+            organization = self._unpack_org()
 
             if organization:
                 active_project = self.get_active_project(
