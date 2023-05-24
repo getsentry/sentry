@@ -472,7 +472,7 @@ def adjust_base_sample_rate_per_project(
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
 
             schedule_invalidate_project_config(
-                project_id=project_id, trigger="dynamic_sampling_prioritise_project_bias"
+                project_id=project_id, trigger="dynamic_sampling_sliding_window"
             )
 
         pipeline.execute()
