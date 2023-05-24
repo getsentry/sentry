@@ -88,17 +88,6 @@ class IssueBasicMixin:
             output.extend(["", "```", body, "```"])
         return "\n".join(output)
 
-    def get_performance_issue_description_data(self, event):
-        """Generate the span evidence data from a performance issue to populate
-        an integration's ticket description. Each integration will need to take
-        this data and format it appropriately.
-        """
-        transaction_name = event.occurrence.evidence_data.get("transaction_name", "")
-        parent_span = event.occurrence.evidence_data.get("parent_span", "")
-        repeating_spans = event.occurrence.evidence_data.get("repeating_spans", "")
-        num_repeating_spans = event.occurrence.evidence_data.get("num_repeating_spans", 0)
-        return transaction_name, parent_span, num_repeating_spans, repeating_spans
-
     def get_create_issue_config(self, group, user, **kwargs):
         """
         These fields are used to render a form for the user,
