@@ -100,9 +100,9 @@ class IndexerBatch:
         self.is_output_sliced = is_output_sliced
         self.__input_codec = input_codec
 
-        self.__message_count = defaultdict(int)
-        self.__message_size_sum = defaultdict(int)
-        self.__message_size_max = defaultdict(int)
+        self.__message_count: MutableMapping[UseCaseID, int] = defaultdict(int)
+        self.__message_size_sum: MutableMapping[UseCaseID, int] = defaultdict(int)
+        self.__message_size_max: MutableMapping[UseCaseID, int] = defaultdict(int)
 
         self._extract_messages()
 
