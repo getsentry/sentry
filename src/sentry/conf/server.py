@@ -1020,6 +1020,12 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
+    "schedule_auto_transition_archived": {
+        "task": "sentry.tasks.auto_archive_issues.run_auto_archive",
+        # Run job every 6 hours
+        "schedule": crontab(minute=0, hour="*/6"),
+        "options": {"expires": 3600},
+    },
 }
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
