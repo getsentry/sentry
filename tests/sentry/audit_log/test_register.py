@@ -75,6 +75,7 @@ class AuditLogEventRegisterTest(TestCase):
             "notification_action.create",
             "notification_action.edit",
             "notification_action.remove",
+            "team-and-project.created",
         ]
 
         assert set(audit_log.get_api_names()) == set(audit_log_api_name_list)
