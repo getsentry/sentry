@@ -59,6 +59,14 @@ class PrioritySortWeights(TypedDict):
     event_halflife_hours: int
 
 
+DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
+    "log_level": 0,
+    "frequency": 0,
+    "has_stacktrace": 0,
+    "event_halflife_hours": 4,
+}
+
+
 def get_search_filter(
     search_filters: Optional[Sequence[SearchFilter]], name: str, operator: str
 ) -> Optional[Any]:
@@ -214,7 +222,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
                 else:
-                    aggregation = aggregation(start, end)
+                    aggregation = aggregation(start, end, DEFAULT_PRIORITY_WEIGHTS)
             aggregations.append(aggregation + [alias])
 
         return aggregations
