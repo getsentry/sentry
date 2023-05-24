@@ -136,8 +136,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
         if options.get("sourcemaps.artifact-bundles.enable-renewal") == 1.0:
             with metrics.timer("artifact_lookup.get.renew_artifact_bundles"):
-                # Before constructing the response, we want to asynchronously update the artifact bundles renewal
-                # date.
+                # Before constructing the response, we want to update the artifact bundles renewal date.
                 renew_artifact_bundles(used_artifact_bundles)
 
         # Then: Construct our response
@@ -180,7 +179,7 @@ def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
     for (artifact_bundle_id, date_added) in used_artifact_bundles.items():
         metrics.incr("artifact_lookup.get.renew_artifact_bundles.should_be_renewed")
         if ArtifactBundle.should_be_renewed(date_added=date_added):
-            metrics.incr("artifact_lookup.get.renew_artifact_bundles.renewal")
+            metrics.incr("artifact_lookup.get.renew_artifact_bundles.renewed")
             # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
             with transaction.atomic():
                 # We check again for the date_added condition in order to achieve consistency, this is done because
