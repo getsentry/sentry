@@ -803,6 +803,26 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 organization_id=organization_id, name="SaNtRy"
             ).exists()
 
+    def test_update_status_with_mapping(self):
+        org = Organization.objects.get(id=self.organization.id)
+        org.status = OrganizationStatus.PENDING_DELETION
+        org.save()
+        response = self.get_success_response(self.organization.slug, name="SaNtRy")
+
+        organization_id = response.data["id"]
+
+        org.refresh_from_db()
+        assert org.name == "SaNtRy"
+
+        with exempt_from_silo_limits():
+            org_mapping_query = OrganizationMapping.objects.filter(
+                organization_id=organization_id, name="SaNtRy"
+            )
+            assert org_mapping_query.exists()
+            assert len(org_mapping_query) == 1
+            org_mapping = org_mapping_query.first()
+            assert org_mapping.status == OrganizationStatus.PENDING_DELETION
+
     def test_org_mapping_already_taken(self):
         OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
         self.get_error_response(self.organization.slug, slug="taken", status_code=409)
