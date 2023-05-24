@@ -8,12 +8,9 @@ import {
   DiscoverQueryProps,
   useGenericDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TextAlignLeft} from 'sentry/views/starfish/modules/APIModule/endpointTable';
-import {HOST} from 'sentry/views/starfish/utils/constants';
-import {getTransactionSamplesQuery} from 'sentry/views/starfish/views/webServiceView/endpointOverview/queries';
 
 /* Two types of sample tables
   1: Transaction Focused
@@ -122,7 +119,7 @@ export function TransactionSamplesTable({eventView, p50}: Props) {
     }
 
     if (column.key === 'timestamp') {
-      return <DateTime date={row['timestamp']} year timeZone seconds />;
+      return <DateTime date={row[column.key]} year timeZone seconds />;
     }
 
     return <TextAlignLeft>{row[column.key]}</TextAlignLeft>;

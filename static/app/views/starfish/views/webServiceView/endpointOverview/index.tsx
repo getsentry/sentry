@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import meanBy from 'lodash/meanBy';
 import moment from 'moment';
 import * as qs from 'query-string';
 
@@ -39,8 +40,6 @@ import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combi
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
-import {getTransactionSamplesQuery} from 'sentry/views/starfish/views/webServiceView/endpointOverview/queries';
-import meanBy from 'lodash/meanBy';
 
 const EventsRequest = withApi(_EventsRequest);
 
