@@ -225,11 +225,8 @@ export function StarfishView(props: BasePerformanceViewProps) {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis="p50(transaction.duration)"
+        yAxis={['p95(transaction.duration)', 'p50(transaction.duration)']}
         queryExtras={{dataset: 'metrics'}}
-        orderby="-sum_transaction_duration"
-        topEvents={5}
-        field={['transaction', 'sum(transaction.duration)', 'p50(transaction.duration)']}
       >
         {({loading, results}) => {
           const transformedData: Series[] | undefined = results?.map(series => ({
@@ -260,7 +257,6 @@ export function StarfishView(props: BasePerformanceViewProps) {
               chartColors={theme.charts.getColorPalette(2)}
               disableXAxis
               aggregateOutputFormat="duration"
-              showLegend
             />
           );
         }}
@@ -279,7 +275,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
             <MiniChartPanel title={t('Error Rate')}>
               {renderFailureRateChart()}
             </MiniChartPanel>
-            <MiniChartPanel title={t('Top Endpoint Response Times')}>
+            <MiniChartPanel title={t('Response Times')}>
               {renderEndpointPercentileChart()}
             </MiniChartPanel>
             <MiniChartPanel title={t('Throughput')}>
