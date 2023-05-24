@@ -20,6 +20,7 @@ class GithubRequestParserTest(TestCase):
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
 
     def setUp(self):
+        super().setUp()
         self.integration = self.create_integration(
             organization=self.organization, external_id="github:1", provider="github"
         )
