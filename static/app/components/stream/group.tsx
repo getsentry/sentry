@@ -433,7 +433,6 @@ function BaseGroupRow({
         <EventOrGroupHeader
           index={index}
           organization={organization}
-          includeLink
           data={group}
           query={query}
           size="normal"

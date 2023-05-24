@@ -10,7 +10,7 @@ import {
   Group,
   GroupActivityAssigned,
   GroupActivityType,
-  GroupTombstone,
+  GroupTombstoneHelper,
   IssueCategory,
   IssueType,
   TreeLabelPart,
@@ -22,15 +22,17 @@ import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 
-function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {
-  return !maybe.hasOwnProperty('type');
+export function isTombstone(
+  maybe: BaseGroup | Event | GroupTombstoneHelper
+): maybe is GroupTombstoneHelper {
+  return 'isTombstone' in maybe && maybe.isTombstone;
 }
 
 /**
  * Extract the display message from an event.
  */
 export function getMessage(
-  event: Event | BaseGroup | GroupTombstone
+  event: Event | BaseGroup | GroupTombstoneHelper
 ): string | undefined {
   if (isTombstone(event)) {
     return event.culprit || '';
@@ -58,7 +60,7 @@ export function getMessage(
 /**
  * Get the location from an event.
  */
-export function getLocation(event: Event | BaseGroup | GroupTombstone) {
+export function getLocation(event: Event | BaseGroup | GroupTombstoneHelper) {
   if (isTombstone(event)) {
     return undefined;
   }
@@ -115,7 +117,7 @@ function computeTitleWithTreeLabel(metadata: EventMetadata) {
 }
 
 export function getTitle(
-  event: Event | BaseGroup,
+  event: Event | BaseGroup | GroupTombstoneHelper,
   features: string[] = [],
   grouping = false
 ) {
@@ -133,6 +135,7 @@ export function getTitle(
       }
 
       const displayTitleWithTreeLabel =
+        !isTombstone(event) &&
         features.includes('grouping-title-ui') &&
         (grouping ||
           isNativePlatform(event.platform) ||
@@ -175,14 +178,16 @@ export function getTitle(
         treeLabel: undefined,
       };
     case EventOrGroupType.TRANSACTION:
-      const isPerfIssue = event.issueCategory === IssueCategory.PERFORMANCE;
+      const isPerfIssue =
+        !isTombstone(event) && event.issueCategory === IssueCategory.PERFORMANCE;
       return {
         title: isPerfIssue ? metadata.title : customTitle ?? title,
         subtitle: isPerfIssue ? culprit : '',
         treeLabel: undefined,
       };
     case EventOrGroupType.GENERIC:
-      const isProfilingIssue = event.issueCategory === IssueCategory.PROFILE;
+      const isProfilingIssue =
+        !isTombstone(event) && event.issueCategory === IssueCategory.PROFILE;
       return {
         title: isProfilingIssue ? metadata.title : customTitle ?? title,
         subtitle: isProfilingIssue ? culprit : '',
