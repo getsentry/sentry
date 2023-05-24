@@ -1,4 +1,4 @@
-import {captureException} from '@sentry/react';
+import {captureException, captureMessage} from '@sentry/react';
 import {LegendComponentOption} from 'echarts';
 
 import {t} from 'sentry/locale';
@@ -147,7 +147,7 @@ export function axisDuration(value: number, durationUnit?: number): string {
 export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponentOption) {
   const range: {max: number; min: number} = {
     max: 0,
-    min: Infinity, // We don't have negative numbers in charts, or if we do we shouldn't show them.
+    min: Infinity,
   };
 
   if (!series[0]?.data) {
@@ -156,21 +156,22 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
 
   for (const {seriesName, data} of series) {
     if (legend?.selected?.[seriesName] !== false) {
-      continue;
-    }
+      const max = Math.max(...data.map(({value}) => value).filter(Number.isFinite));
+      const min = Math.min(...data.map(({value}) => value).filter(Number.isFinite));
 
-    const max = Math.max(...data.map(({value}) => value).filter(Number.isFinite));
-    const min = Math.min(...data.map(({value}) => value).filter(Number.isFinite));
-
-    if (max > range.max) {
-      range.max = max;
+      if (max > range.max) {
+        range.max = max;
+      }
+      if (min < range.min) {
+        range.min = min;
+      }
+      if (min < 0) {
+        captureMessage('Found negative min value in multiseries');
+      }
     }
-    if (min < range.min) {
-      range.min = min;
-    }
-    if (min < 0) {
-      captureException(new Error('Found negative min value in multiseries'));
-    }
+  }
+  if (range.max === 0 && range.min === Infinity) {
+    return undefined;
   }
   return range;
 }
