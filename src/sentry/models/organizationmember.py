@@ -245,7 +245,7 @@ class OrganizationMember(Model):
         ), "Must set either user or email"
         if self.token and not self.token_expires_at:
             self.refresh_expires_at()
-        is_new = bool(self.id)
+        is_new = not bool(self.id)
         super().save(*args, **kwargs)
         region_outbox = None
         if is_new:

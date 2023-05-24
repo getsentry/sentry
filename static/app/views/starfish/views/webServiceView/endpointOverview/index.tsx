@@ -10,9 +10,12 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -20,8 +23,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
-import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
 import {SampleEvents} from 'sentry/views/starfish/components/sampleEvents';
 import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
@@ -34,6 +37,8 @@ import {
 } from 'sentry/views/starfish/modules/databaseModule/queries';
 import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combineTableDataWithSparklineData';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
+import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -71,44 +76,6 @@ const HTTP_SPAN_COLUMN_ORDER = [
   },
 ];
 
-const DATABASE_SPAN_COLUMN_ORDER = [
-  {
-    key: 'description',
-    name: 'Query',
-    width: 400,
-  },
-  {
-    key: 'domain',
-    name: 'Table',
-    width: 100,
-  },
-  {
-    key: 'throughput',
-    name: 'Throughput',
-    width: 200,
-  },
-  {
-    key: 'p75_trend',
-    name: 'P75 Trend',
-    width: 200,
-  },
-  {
-    key: 'epm',
-    name: 'Tpm',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'p75',
-    name: 'p75',
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'total_time',
-    name: 'Total Time',
-    width: COL_WIDTH_UNDEFINED,
-  },
-];
-
 export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
@@ -121,10 +88,10 @@ export default function EndpointOverview() {
     isLoading: isTableDataLoading,
     data: tableData,
     isRefetching: isTableRefetching,
-  } = useQueryMainTable({});
+  } = useQueryMainTable({transaction: (transaction as string) ?? '', limit: 8});
 
   const {data: dbAggregateData} = useQuery({
-    queryKey: ['dbAggregates'],
+    queryKey: ['dbAggregates', transaction, pageFilter.selection.datetime],
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getDbAggregatesQuery({
@@ -145,10 +112,16 @@ export default function EndpointOverview() {
     }
   });
 
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
+    pageFilter.selection.datetime
+  );
+
   const combinedDbData = combineTableDataWithSparklineData(
     tableData,
     dbAggregateData,
-    moment.duration(12, 'hours')
+    moment.duration(12, 'hours'),
+    moment(start_timestamp),
+    moment(end_timestamp)
   );
 
   const query = new MutableSearch([
@@ -166,6 +139,67 @@ export default function EndpointOverview() {
     fields: [],
     version: 2,
   };
+
+  function renderFailureRateChart() {
+    return (
+      <EventsRequest
+        query={query.formatString()}
+        includePrevious={false}
+        partial
+        interval="1h"
+        includeTransformedData
+        limit={1}
+        environment={eventView.environment}
+        project={eventView.project}
+        period={eventView.statsPeriod}
+        referrer="starfish-homepage-failure-rate"
+        start={eventView.start}
+        end={eventView.end}
+        organization={organization}
+        yAxis="equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))"
+      >
+        {eventData => {
+          const transformedData: Series[] | undefined = eventData.timeseriesData?.map(
+            series => ({
+              data: series.data,
+              seriesName: t('Error Rate'),
+              color: CHART_PALETTE[5][3],
+              silent: true,
+            })
+          );
+
+          if (!transformedData) {
+            return null;
+          }
+
+          return (
+            <Fragment>
+              <Chart
+                statsPeriod={eventView.statsPeriod}
+                height={80}
+                data={transformedData}
+                start={eventView.start as string}
+                end={eventView.end as string}
+                loading={eventData.loading}
+                utc={false}
+                grid={{
+                  left: '0',
+                  right: '0',
+                  top: '8px',
+                  bottom: '0',
+                }}
+                definedAxisTicks={2}
+                isLineChart
+                chartColors={theme.charts.getColorPalette(2)}
+                disableXAxis
+                aggregateOutputFormat="percentage"
+              />
+            </Fragment>
+          );
+        }}
+      </EventsRequest>
+    );
+  }
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
@@ -187,85 +221,88 @@ export default function EndpointOverview() {
         <Layout.Main fullWidth>
           <SubHeader>{t('Endpoint URL')}</SubHeader>
           <pre>{`${method} ${transaction}`}</pre>
-          <EventsRequest
-            query={query.formatString()}
-            includePrevious={false}
-            partial
-            limit={5}
-            interval="1h"
-            includeTransformedData
-            environment={eventView.environment}
-            project={eventView.project}
-            period={pageFilter.selection.datetime.period}
-            referrer="starfish-endpoint-overview"
-            start={pageFilter.selection.datetime.start}
-            end={pageFilter.selection.datetime.end}
-            organization={organization}
-            yAxis={['tpm()', 'p50(transaction.duration)']}
-            queryExtras={{dataset: 'metrics'}}
-          >
-            {({results, loading}) => {
-              return (
-                <Fragment>
-                  <FlexRowContainer>
-                    <FlexRowItem>
-                      <SubHeader>{t('Throughput')}</SubHeader>
-                      <Chart
-                        statsPeriod={(statsPeriod as string) ?? '24h'}
-                        height={150}
-                        data={results?.[0] ? [results?.[0]] : []}
-                        start=""
-                        end=""
-                        loading={loading}
-                        utc={false}
-                        stacked
-                        isLineChart
-                        disableXAxis
-                        hideYAxisSplitLine
-                        chartColors={[theme.charts.getColorPalette(0)[0]]}
-                        grid={{
-                          left: '0',
-                          right: '0',
-                          top: '8px',
-                          bottom: '16px',
-                        }}
-                      />
-                    </FlexRowItem>
-                    <FlexRowItem>
-                      <SubHeader>{t('p50(duration)')}</SubHeader>
-                      <Chart
-                        statsPeriod={(statsPeriod as string) ?? '24h'}
-                        height={150}
-                        data={results?.[1] ? [results?.[1]] : []}
-                        start=""
-                        end=""
-                        loading={loading}
-                        utc={false}
-                        stacked
-                        isLineChart
-                        disableXAxis
-                        hideYAxisSplitLine
-                        chartColors={[theme.charts.getColorPalette(0)[1]]}
-                        grid={{
-                          left: '0',
-                          right: '0',
-                          top: '8px',
-                          bottom: '16px',
-                        }}
-                      />
-                    </FlexRowItem>
-                  </FlexRowContainer>
-                </Fragment>
-              );
-            }}
-          </EventsRequest>
-          <FacetBreakdownBar
-            title={t('Where is time spent in this endpoint?')}
-            transaction={transaction as string}
-          />
+          <StyledRow minSize={200}>
+            <ChartsContainer>
+              <ChartsContainerItem>
+                <SpanGroupBreakdownContainer transaction={transaction as string} />
+              </ChartsContainerItem>
+              <ChartsContainerItem2>
+                <ChartPanel title={t('Error Rate')}>
+                  {renderFailureRateChart()}
+                </ChartPanel>
+                <EventsRequest
+                  query={query.formatString()}
+                  includePrevious={false}
+                  partial
+                  limit={5}
+                  interval="1h"
+                  includeTransformedData
+                  environment={eventView.environment}
+                  project={eventView.project}
+                  period={pageFilter.selection.datetime.period}
+                  referrer="starfish-endpoint-overview"
+                  start={pageFilter.selection.datetime.start}
+                  end={pageFilter.selection.datetime.end}
+                  organization={organization}
+                  yAxis={['tpm()', 'p50(transaction.duration)']}
+                  queryExtras={{dataset: 'metrics'}}
+                >
+                  {({results, loading}) => {
+                    return (
+                      <Fragment>
+                        <ChartPanel title={t('p50(duration)')}>
+                          <Chart
+                            statsPeriod={(statsPeriod as string) ?? '24h'}
+                            height={80}
+                            data={results?.[1] ? [results?.[1]] : []}
+                            start=""
+                            end=""
+                            loading={loading}
+                            utc={false}
+                            stacked
+                            isLineChart
+                            disableXAxis
+                            definedAxisTicks={2}
+                            chartColors={[theme.charts.getColorPalette(0)[1]]}
+                            grid={{
+                              left: '0',
+                              right: '0',
+                              top: '8px',
+                              bottom: '16px',
+                            }}
+                          />
+                        </ChartPanel>
+                        <ChartPanel title={t('Througput')}>
+                          <Chart
+                            statsPeriod={(statsPeriod as string) ?? '24h'}
+                            height={80}
+                            data={results?.[0] ? [results?.[0]] : []}
+                            start=""
+                            end=""
+                            loading={loading}
+                            utc={false}
+                            stacked
+                            isLineChart
+                            disableXAxis
+                            definedAxisTicks={2}
+                            chartColors={[theme.charts.getColorPalette(0)[0]]}
+                            grid={{
+                              left: '0',
+                              right: '0',
+                              top: '8px',
+                              bottom: '16px',
+                            }}
+                          />
+                        </ChartPanel>
+                      </Fragment>
+                    );
+                  }}
+                </EventsRequest>
+              </ChartsContainerItem2>
+            </ChartsContainer>
+          </StyledRow>
           <SubHeader>{t('Sample Events')}</SubHeader>
           <SampleEvents eventView={eventView} />
-          <SubHeader>{t('Correlations')}</SubHeader>
           <FacetInsights eventView={eventView} />
           <SubHeader>{t('HTTP Spans')}</SubHeader>
           <EndpointTable
@@ -288,6 +325,8 @@ export default function EndpointOverview() {
           <SubHeader>{t('Database Spans')}</SubHeader>
           <DatabaseTableView
             location={location}
+            data={combinedDbData as DataRow[]}
+            isDataLoading={isTableDataLoading || isTableRefetching}
             onSelect={r => {
               browserHistory.push(
                 `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
@@ -295,9 +334,6 @@ export default function EndpointOverview() {
                 })}`
               );
             }}
-            isDataLoading={isTableDataLoading || isTableRefetching}
-            data={combinedDbData as DataRow[]}
-            columns={DATABASE_SPAN_COLUMN_ORDER}
           />
         </Layout.Main>
       </Layout.Body>
@@ -324,14 +360,21 @@ const SearchContainerWithFilterAndMetrics = styled('div')`
   }
 `;
 
-const FlexRowContainer = styled('div')`
-  display: flex;
-  & > div:last-child {
-    padding-right: ${space(1)};
-  }
+const StyledRow = styled(PerformanceLayoutBodyRow)`
+  margin-bottom: ${space(2)};
 `;
 
-const FlexRowItem = styled('div')`
-  padding-right: ${space(4)};
+const ChartsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: ${space(2)};
+`;
+
+const ChartsContainerItem = styled('div')`
+  flex: 1.5;
+`;
+
+const ChartsContainerItem2 = styled('div')`
   flex: 1;
 `;

@@ -68,7 +68,8 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                     clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
                     clusterer.add_input(tx_names)
                     new_rules = clusterer.get_rules()
-                    track_clusterer_run(project)
+
+                track_clusterer_run(project)
 
                 # The Redis store may have more up-to-date last_seen values,
                 # so we must update the stores to bring these values to
