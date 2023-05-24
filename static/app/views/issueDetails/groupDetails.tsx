@@ -287,13 +287,23 @@ function makeFetchGroupQueryKey({
   return [`/issues/${groupId}/`, {query: getGroupQuery({environments})}];
 }
 
-function useSyncGroupStore(environments: string[]) {
+/**
+ * This is a temporary measure to ensure that the GroupStore and query cache
+ * are both up to date while we are still using both in the issue details page.
+ * Once we remove all references to GroupStore in the issue details page we
+ * should remove this.
+ */
+function useSyncGroupStore(incomingEnvs: string[]) {
   const queryClient = useQueryClient();
+
+  const environmentsRef = useRef<string[]>(incomingEnvs);
+  environmentsRef.current = incomingEnvs;
 
   const unlisten = useRef<Function>();
   if (unlisten.current === undefined) {
     unlisten.current = GroupStore.listen(() => {
       const [storeGroup] = GroupStore.getState();
+      const environments = environmentsRef.current;
       if (defined(storeGroup)) {
         setApiQueryData(
           queryClient,
