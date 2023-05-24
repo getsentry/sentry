@@ -17,7 +17,6 @@ from sentry.api.serializers import serialize
 from sentry.auth.system import is_system_auth
 from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
 from sentry.models import (
-    AVAILABLE_FOR_RENEWAL_DAYS,
     ArtifactBundle,
     DebugIdArtifactBundle,
     Distribution,
@@ -38,6 +37,8 @@ RELEASE_BUNDLE_TYPE = "release.bundle"
 MAX_BUNDLES_QUERY = 5
 # The number of files returned by the `get_releasefiles` query
 MAX_RELEASEFILES_QUERY = 10
+# Number of days that determine whether an artifact bundle is ready for being renewed.
+AVAILABLE_FOR_RENEWAL_DAYS = 30
 
 
 @region_silo_endpoint
@@ -173,12 +174,12 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
     # We take a snapshot in time that MUST be consistent across all updates.
     now = datetime.now(tz=pytz.UTC)
-    # We compute the threshold used to determine whether we want to renew the specific bundle
-    threshold_date = datetime.now(tz=pytz.UTC) - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
+    # We compute the threshold used to determine whether we want to renew the specific bundle.
+    threshold_date = now - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
 
     for (artifact_bundle_id, date_added) in used_artifact_bundles.items():
         metrics.incr("artifact_lookup.get.renew_artifact_bundles.should_be_renewed")
-        if ArtifactBundle.should_be_renewed(date_added=date_added):
+        if date_added <= threshold_date:
             metrics.incr("artifact_lookup.get.renew_artifact_bundles.renewed")
             # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
             with transaction.atomic():
