@@ -9,9 +9,16 @@ export function handleXhrErrorResponse(message: string, err: RequestError): void
     return;
   }
 
-  const {responseJSON, status} = err;
+  const {responseJSON, status, message: causeMessage} = err;
 
   Sentry.withScope(scope => {
+    // Turn `GET /dogs/are/great 500` into just `GET /dogs/are/great`
+    const endpoint = causeMessage?.replace(new RegExp(` ${status}$`), '');
+
+    scope.setTags({
+      responseStatus: status,
+      endpoint,
+    });
     scope.setExtras({
       status,
       responseJSON,
