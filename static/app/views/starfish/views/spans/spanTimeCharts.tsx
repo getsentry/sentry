@@ -2,7 +2,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import {DateTimeObject} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -10,12 +9,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {
-  datetimeToClickhouseFilterTimestamps,
-  PERIOD_REGEX,
-} from 'sentry/views/starfish/utils/dates';
+import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import {getSpanTotalTimeChartQuery} from 'sentry/views/starfish/views/spans/queries';
 
 type Props = {
   descriptionFilter: string;
@@ -34,7 +31,9 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
       : moment(pageFilter.selection.datetime.start);
   const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
 
-  const {isLoading, data} = useSpansQuery({
+  const {isLoading, data} = useSpansQuery<
+    {interval: string; p50: number; spm: number; total_time: number}[]
+  >({
     queryString: `${getSpanTotalTimeChartQuery(
       pageFilter.selection.datetime,
       descriptionFilter,
@@ -182,30 +181,6 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
     </ChartsContainer>
   );
 }
-
-export const getSpanTotalTimeChartQuery = (
-  datetime: DateTimeObject,
-  descriptionFilter: string | undefined,
-  conditions: string[] = []
-) => {
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
-  const validConditions = conditions.filter(Boolean);
-
-  return `SELECT
-    divide(count(), multiply(12, 60)) as spm,
-    sum(exclusive_time) AS total_time,
-    quantile(0.50)(exclusive_time) AS p50,
-    toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
-    FROM spans_experimental_starfish
-    WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
-    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    ${validConditions.length > 0 ? 'AND' : ''}
-    ${validConditions.join(' AND ')}
-    ${descriptionFilter ? `AND match(lower(description), '${descriptionFilter}')` : ''}
-    GROUP BY interval
-    ORDER BY interval ASC
-  `;
-};
 
 const ChartsContainer = styled('div')`
   display: flex;

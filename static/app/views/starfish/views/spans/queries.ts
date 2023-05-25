@@ -77,3 +77,27 @@ export const getSpansTrendsQuery = (
     ORDER BY interval asc
   `;
 };
+
+export const getSpanTotalTimeChartQuery = (
+  datetime: DateTimeObject,
+  descriptionFilter: string | undefined,
+  conditions: string[] = []
+) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
+  const validConditions = conditions.filter(Boolean);
+
+  return `SELECT
+    divide(count(), multiply(12, 60)) as spm,
+    sum(exclusive_time) AS total_time,
+    quantile(0.50)(exclusive_time) AS p50,
+    toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
+    FROM spans_experimental_starfish
+    WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
+    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
+    ${validConditions.length > 0 ? 'AND' : ''}
+    ${validConditions.join(' AND ')}
+    ${descriptionFilter ? `AND match(lower(description), '${descriptionFilter}')` : ''}
+    GROUP BY interval
+    ORDER BY interval ASC
+  `;
+};
