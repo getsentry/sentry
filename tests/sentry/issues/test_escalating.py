@@ -90,9 +90,7 @@ class HistoricGroupCounts(
         )
         assert len(Group.objects.all()) == 2
 
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            perf_event = self.create_performance_issue()
-
+        perf_event = self.create_performance_issue()
         error_event = self._create_events_for_group()
 
         # store_search_issue created two groups
@@ -237,7 +235,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             self.save_mock_escalating_group_forecast(
                 group=archived_group, forecast_values=forecast_values, date_added=datetime.now()
             )
-            assert is_escalating(archived_group)
+            assert is_escalating(archived_group) == (True, 5)
 
             # Test cache
             assert (
@@ -263,8 +261,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
                 forecast_values=forecast_values,
                 date_added=datetime.now() - timedelta(days=1),
             )
-            group_is_escalating = is_escalating(group)
-            assert not group_is_escalating
+            assert is_escalating(group) == (False, None)
             assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
             assert group.status == GroupStatus.IGNORED
             assert not GroupInbox.objects.filter(group=group).exists()
