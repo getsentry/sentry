@@ -1,6 +1,6 @@
 from typing import Optional
 
-from django.db import transaction
+from django.db import router
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
@@ -13,6 +13,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.artifactbundle import ArtifactBundlesSerializer
 from sentry.models import ArtifactBundle, ProjectArtifactBundle
+from sentry.utils.db import atomic_transaction
 
 
 class InvalidSortByParameter(SentryAPIException):
@@ -113,7 +114,10 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
 
         if bundle_id:
             try:
-                with transaction.atomic():
+                # TODO: if we delete a specific bundle with a bundle_id, do we want to do reference counting before
+                #  actually deleting it? Or we just delete it and all of its release associations? This heavily depends
+                #  on the UI that we will develop above.
+                with atomic_transaction(using=(router.db_for_write(ArtifactBundle))):
                     ArtifactBundle.objects.get(
                         organization_id=project.organization_id, bundle_id=bundle_id
                     ).delete()
