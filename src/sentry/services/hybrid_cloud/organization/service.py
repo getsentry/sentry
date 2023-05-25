@@ -205,6 +205,11 @@ class OrganizationService(RpcService):
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
+        pass
+
     @regional_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
     @abstractmethod
     def get_all_org_roles(
