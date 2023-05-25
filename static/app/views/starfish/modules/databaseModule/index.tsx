@@ -4,6 +4,7 @@ import moment from 'moment';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import Switch from 'sentry/components/switchButton';
@@ -209,74 +210,76 @@ function DatabaseModule() {
 
         <Layout.Body>
           <Layout.Main fullWidth>
-            <PageErrorAlert />
-            <FilterOptionsContainer>
-              <DatePageFilter alignDropdown="left" />
-            </FilterOptionsContainer>
-            <DatabaseChartView location={location} table={table} onChange={setTable} />
-            <SearchFilterContainer>
+            <PageFiltersContainer>
+              <PageErrorAlert />
+              <FilterOptionsContainer>
+                <DatePageFilter alignDropdown="left" />
+              </FilterOptionsContainer>
+              <DatabaseChartView location={location} table={table} onChange={setTable} />
+              <SearchFilterContainer>
+                <LabelledSwitch
+                  label="Filter New Queries"
+                  isActive={filterNew}
+                  size="lg"
+                  toggle={toggleFilterNew}
+                />
+                <LabelledSwitch
+                  label="Filter Old Queries"
+                  isActive={filterOld}
+                  size="lg"
+                  toggle={toggleFilterOld}
+                />
+                <LabelledSwitch
+                  label="Exclude Outliers"
+                  isActive={filterOutlier}
+                  size="lg"
+                  toggle={toggleOutlier}
+                />
+              </SearchFilterContainer>
+              <SearchFilterContainer>
+                <TransactionNameSearchBar
+                  organization={organization}
+                  eventView={eventView}
+                  onSearch={(query: string) => handleSearch(query)}
+                  query={transaction}
+                />
+              </SearchFilterContainer>
+              <DatabaseTableView
+                location={location}
+                data={combinedDbData as DataRow[]}
+                isDataLoading={isTableDataLoading || isTableRefetching}
+                onSelect={setSelectedRow}
+                onSortChange={setSort}
+                selectedRow={rows.selected}
+                p95asNumber={p95asNumber}
+                noP95={noP95}
+              />
+              <QueryDetail
+                isDataLoading={isTableDataLoading || isTableRefetching}
+                onRowChange={row => {
+                  setSelectedRow(row);
+                }}
+                mainTableSort={sort}
+                row={rows.selected}
+                nextRow={rows.next}
+                prevRow={rows.prev}
+                onClose={unsetSelectedSpanGroup}
+                transaction={transaction}
+              />
+              <div>Experiments</div>
               <LabelledSwitch
-                label="Filter New Queries"
-                isActive={filterNew}
+                label="p95 as number"
+                isActive={p95asNumber}
                 size="lg"
-                toggle={toggleFilterNew}
+                toggle={toggleP95asNumber}
               />
               <LabelledSwitch
-                label="Filter Old Queries"
-                isActive={filterOld}
+                label="No p95"
+                isActive={noP95}
                 size="lg"
-                toggle={toggleFilterOld}
+                toggle={toggleNoP95}
               />
-              <LabelledSwitch
-                label="Exclude Outliers"
-                isActive={filterOutlier}
-                size="lg"
-                toggle={toggleOutlier}
-              />
-            </SearchFilterContainer>
-            <SearchFilterContainer>
-              <TransactionNameSearchBar
-                organization={organization}
-                eventView={eventView}
-                onSearch={(query: string) => handleSearch(query)}
-                query={transaction}
-              />
-            </SearchFilterContainer>
-            <DatabaseTableView
-              location={location}
-              data={combinedDbData as DataRow[]}
-              isDataLoading={isTableDataLoading || isTableRefetching}
-              onSelect={setSelectedRow}
-              onSortChange={setSort}
-              selectedRow={rows.selected}
-              p95asNumber={p95asNumber}
-              noP95={noP95}
-            />
-            <QueryDetail
-              isDataLoading={isTableDataLoading || isTableRefetching}
-              onRowChange={row => {
-                setSelectedRow(row);
-              }}
-              mainTableSort={sort}
-              row={rows.selected}
-              nextRow={rows.next}
-              prevRow={rows.prev}
-              onClose={unsetSelectedSpanGroup}
-              transaction={transaction}
-            />
-            <div>Experiments</div>
-            <LabelledSwitch
-              label="p95 as number"
-              isActive={p95asNumber}
-              size="lg"
-              toggle={toggleP95asNumber}
-            />
-            <LabelledSwitch
-              label="No p95"
-              isActive={noP95}
-              size="lg"
-              toggle={toggleNoP95}
-            />
+            </PageFiltersContainer>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
