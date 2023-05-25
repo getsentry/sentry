@@ -83,7 +83,7 @@ class UserDetailsTest(TestCase):
 
 
 @control_silo_test
-class UserMergeToTest(TestCase):
+class UserMergeToTest(TestCase, HybridCloudTestMixin):
     def test_simple(self):
         from_user = self.create_user("foo@example.com")
         UserEmail.objects.create_or_update(
@@ -128,7 +128,8 @@ class UserMergeToTest(TestCase):
         # to_user should have less roles
         self.create_member(organization=org_1, user=to_user, role="member", teams=[team_2, team_3])
 
-        from_user.merge_to(to_user)
+        with outbox_runner():
+            from_user.merge_to(to_user)
 
         for member in OrganizationMember.objects.filter(user_id__in=[from_user.id, to_user.id]):
             self.assert_org_member_mapping(org_member=member)
