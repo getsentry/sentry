@@ -177,7 +177,7 @@ function useReplayData({
     });
 
     for await (const pagedResults of paginatedErrors) {
-      setErrors(prev => [...prev, ...pagedResults]);
+      setErrors(prev => [...prev, ...(pagedResults || [])]);
     }
 
     setState(prev => ({...prev, fetchingErrors: false}));
