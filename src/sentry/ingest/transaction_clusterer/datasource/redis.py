@@ -7,11 +7,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry import options
-from sentry.ingest.transaction_clusterer import (
-    CLUSTERER_NAMESPACE_OPTIONS,
-    ClustererNamespace,
-    NamespaceOption,
-)
+from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
     HTTP_404_TAG,
     TRANSACTION_SOURCE_SANITIZED,
@@ -35,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def _get_redis_key(namespace: ClustererNamespace, project: Project) -> str:
-    prefix = CLUSTERER_NAMESPACE_OPTIONS[namespace][NamespaceOption.DATA]
+    prefix = namespace.value.data
     return f"{prefix}:o:{project.organization_id}:p:{project.id}"
 
 
@@ -47,7 +43,7 @@ def get_redis_client() -> Any:
 
 def _get_all_keys(namespace: ClustererNamespace) -> Iterator[str]:
     client = get_redis_client()
-    prefix = CLUSTERER_NAMESPACE_OPTIONS[namespace][NamespaceOption.DATA]
+    prefix = namespace.value.data
     return client.scan_iter(match=f"{prefix}:*")  # type: ignore
 
 

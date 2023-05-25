@@ -3,11 +3,7 @@ from typing import Dict, List, Mapping, Protocol, Sequence, Tuple
 
 import sentry_sdk
 
-from sentry.ingest.transaction_clusterer import (
-    CLUSTERER_NAMESPACE_OPTIONS,
-    ClustererNamespace,
-    NamespaceOption,
-)
+from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource.redis import get_redis_client
 from sentry.models import Project
 from sentry.utils import metrics
@@ -46,7 +42,7 @@ class RedisRuleStore:
     """
 
     def __init__(self, namespace: ClustererNamespace):
-        self._rules_prefix = CLUSTERER_NAMESPACE_OPTIONS[namespace][NamespaceOption.RULES]
+        self._rules_prefix = namespace.value.rules
 
     def _get_rules_key(self, project: Project) -> str:
         return f"{self._rules_prefix}:o:{project.organization_id}:p:{project.id}"
@@ -83,8 +79,8 @@ class RedisRuleStore:
 
 class ProjectOptionRuleStore:
     def __init__(self, namespace: ClustererNamespace):
-        self._storage = CLUSTERER_NAMESPACE_OPTIONS[namespace][NamespaceOption.PERSISTENT_STORAGE]
-        self._tracker = CLUSTERER_NAMESPACE_OPTIONS[namespace][NamespaceOption.TRACKER]
+        self._storage = namespace.value.persistent_storage
+        self._tracker = namespace.value.tracker
 
     def read_sorted(self, project: Project) -> List[Tuple[ReplacementRule, int]]:
         ret = project.get_option(self._storage, default=[])
@@ -155,7 +151,7 @@ class CompositeRuleStore:
                         "discarded_rules": sorted_rules[self.MERGE_MAX_RULES :],
                     },
                 )
-                sentry_sdk.set_tag("namespace", self._namespace.value)
+                sentry_sdk.set_tag("namespace", self._namespace.value.name)
                 sentry_sdk.capture_message("Clusterer discarded rules", level="warn")
             sorted_rules = sorted_rules[: self.MERGE_MAX_RULES]
 
