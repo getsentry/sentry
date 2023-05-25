@@ -239,7 +239,7 @@ describe('GroupSidebar', function () {
       );
       await waitFor(() => expect(tagsMock).toHaveBeenCalled());
       expect(
-        within(screen.getByTestId('top-distribution-wrapper')).getByText('device')
+        within(await screen.findByTestId('top-distribution-wrapper')).getByText('device')
       ).toBeInTheDocument();
     });
 
@@ -259,7 +259,9 @@ describe('GroupSidebar', function () {
       );
       await waitFor(() => expect(tagsMock).toHaveBeenCalled());
       expect(
-        within(screen.getByTestId('top-distribution-wrapper')).queryByText('device')
+        within(await screen.findByTestId('top-distribution-wrapper')).queryByText(
+          'device'
+        )
       ).not.toBeInTheDocument();
     });
   });
