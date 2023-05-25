@@ -12,6 +12,7 @@ import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {Group, PageFilters} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
@@ -135,6 +136,14 @@ function IssueListActions({
     const hasIssueListRemovalAction = organization.features.includes(
       'issue-list-removal-action'
     );
+
+    if (data.status === 'ignored') {
+      trackAnalytics('issues_stream.archived', {
+        status_details: data.statusDetails,
+        substatus: data.substatus,
+        organization,
+      });
+    }
 
     actionSelectedGroups(itemIds => {
       // TODO(Kelly): remove once issue-list-removal-action feature is stable

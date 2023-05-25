@@ -13,6 +13,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {IssueCategory} from 'sentry/types';
+import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 
 const organization = TestStubs.Organization();
@@ -189,6 +190,7 @@ describe('IssueListActions', function () {
       });
 
       it('can ignore selected items (custom)', async function () {
+        const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
@@ -233,8 +235,55 @@ describe('IssueListActions', function () {
             },
           })
         );
+
+        expect(analyticsSpy).toHaveBeenCalledWith(
+          'issues_stream.archived',
+          expect.objectContaining({
+            status_details: {
+              ignoreUserCount: 300,
+              ignoreUserWindow: 10080,
+            },
+          })
+        );
       });
     });
+  });
+
+  it('can archive an issue until escalating', async () => {
+    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const org_escalating = {...organization, features: ['escalating-issues-ui']};
+    const apiMock = MockApiClient.addMockResponse({
+      url: `/organizations/${org_escalating.slug}/issues/`,
+      method: 'PUT',
+    });
+    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+
+    render(<WrappedComponent {...defaultProps} />, {organization: org_escalating});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Archive'}));
+
+    expect(apiMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          id: ['1'],
+          project: [1],
+        },
+        data: {
+          status: 'ignored',
+          statusDetails: {},
+          substatus: 'archived_until_escalating',
+        },
+      })
+    );
+
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'issues_stream.archived',
+      expect.objectContaining({
+        status_details: {},
+        substatus: 'archived_until_escalating',
+      })
+    );
   });
 
   it('can resolve but not merge issues from different projects', function () {
