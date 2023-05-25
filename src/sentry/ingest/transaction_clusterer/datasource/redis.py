@@ -36,7 +36,7 @@ def _get_redis_key(project: Project) -> str:
 
 
 def get_redis_client() -> Any:
-    cluster_key = getattr(settings, "SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER", "default")
+    cluster_key = settings.SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER
     return redis.redis_clusters.get(cluster_key)
 
 

@@ -23,6 +23,7 @@ from sentry.constants import ObjectStatus
 from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, ScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
+from sentry.monitors.utils import create_alert_rule, update_alert_rule
 from sentry.monitors.validators import MonitorValidator
 
 from .base import MonitorEndpoint
@@ -53,9 +54,12 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         """
 
         environments = get_environments(request, organization)
+        expand = request.GET.getlist("expand", [])
 
         return self.respond(
-            serialize(monitor, request.user, MonitorSerializer(environments=environments))
+            serialize(
+                monitor, request.user, MonitorSerializer(environments=environments, expand=expand)
+            )
         )
 
     @extend_schema(
@@ -106,6 +110,24 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             params["config"] = result["config"]
         if "project" in result and result["project"].id != monitor.project_id:
             raise ParameterValidationError("existing monitors may not be moved between projects")
+        if "alert_rule" in result:
+            # Check to see if rule exists
+            alert_rule = monitor.get_alert_rule()
+            # If rule exists, update as necessary
+            if alert_rule:
+                alert_rule_id = update_alert_rule(
+                    request, project, alert_rule, result["alert_rule"]
+                )
+            # If rule does not exist, create
+            else:
+                alert_rule_id = create_alert_rule(request, project, monitor, result["alert_rule"])
+
+            if alert_rule_id:
+                # If config is not sent, use existing config to update alert_rule_id
+                if "config" not in params:
+                    params["config"] = monitor.config
+
+                params["config"]["alert_rule_id"] = alert_rule_id
 
         if params:
             monitor.update(**params)
@@ -167,16 +189,26 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     ]
                 )
                 event = audit_log.get_event_id("MONITOR_REMOVE")
-                # TODO(rjo100): Make this more resilient to out of band modifications/deletions
                 alert_rule_id = monitor_objects.first().config.get("alert_rule_id")
                 if alert_rule_id:
-                    rule = Rule.objects.filter(
-                        project_id=monitor.project_id, id=alert_rule_id
-                    ).first()
-                    rule.update(status=RuleStatus.PENDING_DELETION)
-                    RuleActivity.objects.create(
-                        rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+                    rule = (
+                        Rule.objects.filter(
+                            project_id=monitor.project_id,
+                            id=alert_rule_id,
+                        )
+                        .exclude(
+                            status__in=[
+                                RuleStatus.PENDING_DELETION,
+                                RuleStatus.DELETION_IN_PROGRESS,
+                            ]
+                        )
+                        .first()
                     )
+                    if rule:
+                        rule.update(status=RuleStatus.PENDING_DELETION)
+                        RuleActivity.objects.create(
+                            rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+                        )
 
             # create copy of queryset as update will remove objects
             monitor_objects_list = list(monitor_objects)

@@ -29,7 +29,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models import Environment
+from sentry.models import Environment, Rule, RuleSource
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
@@ -292,6 +292,43 @@ class Monitor(Model):
         except jsonschema.ValidationError:
             logging.error(f"Monitor: {self.id} invalid config: {self.config}")
 
+    def get_alert_rule(self):
+        alert_rule_id = self.config.get("alert_rule_id")
+        if alert_rule_id:
+            alert_rule = Rule.objects.filter(
+                project_id=self.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
+            ).first()
+            if alert_rule:
+                return alert_rule
+
+            # If alert_rule_id is stale, clear it from the config
+            clean_config = self.config.copy()
+            clean_config.pop("alert_rule_id", None)
+            self.update(config=clean_config)
+
+        return None
+
+    def get_alert_rule_data(self):
+        alert_rule = self.get_alert_rule()
+        if alert_rule:
+            data = alert_rule.data
+            alert_rule_data = {}
+
+            # Build up alert target data
+            targets = []
+            for action in data.get("actions", []):
+                # Only include email alerts for now
+                if action.get("id") == "sentry.mail.actions.NotifyEmailAction":
+                    targets.append(
+                        {
+                            "targetIdentifier": action.get("targetIdentifier"),
+                            "targetType": action.get("targetType"),
+                        }
+                    )
+            alert_rule_data["targets"] = targets
+
+            return alert_rule_data
+
         return None
 
 
@@ -321,7 +358,7 @@ class MonitorCheckIn(Model):
     )
     config = JSONField(default=dict)
     duration = BoundedPositiveIntegerField(null=True)
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
     date_updated = models.DateTimeField(default=timezone.now)
     attachment_id = BoundedBigIntegerField(null=True)
     # Holds the time we expected to receive this check-in without factoring in margin
