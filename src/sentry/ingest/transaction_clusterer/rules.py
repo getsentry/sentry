@@ -4,9 +4,9 @@ from typing import Dict, List, Mapping, Protocol, Sequence, Tuple
 import sentry_sdk
 
 from sentry.ingest.transaction_clusterer import (
-    PROJECT_OPTION_KEYS,
-    PROJECT_OPTION_NAMES,
-    ClustererRuleNamespace,
+    CLUSTERER_NAMESPACE_OPTIONS,
+    ClustererNamespace,
+    NamespaceOption,
 )
 from sentry.ingest.transaction_clusterer.datasource.redis import get_redis_client
 from sentry.models import Project
@@ -45,11 +45,11 @@ class RedisRuleStore:
     responsible for that.
     """
 
-    def __init__(self, namespace: ClustererRuleNamespace):
-        self._namespace = namespace
+    def __init__(self, namespace: ClustererNamespace):
+        self._rules_prefix = CLUSTERER_NAMESPACE_OPTIONS[namespace][NamespaceOption.RULES]
 
     def _get_rules_key(self, project: Project) -> str:
-        return f"{self._namespace.value}:o:{project.organization_id}:p:{project.id}"
+        return f"{self._rules_prefix}:o:{project.organization_id}:p:{project.id}"
 
     def read(self, project: Project) -> RuleSet:
         client = get_redis_client()
@@ -82,14 +82,12 @@ class RedisRuleStore:
 
 
 class ProjectOptionRuleStore:
-    def __init__(self, namespace: ClustererRuleNamespace):
-        self._storage_option_name = PROJECT_OPTION_NAMES[namespace][PROJECT_OPTION_KEYS.STORAGE]
-        self._rule_tracker_option_name = PROJECT_OPTION_NAMES[namespace][
-            PROJECT_OPTION_KEYS.TRACKER
-        ]
+    def __init__(self, namespace: ClustererNamespace):
+        self._storage = CLUSTERER_NAMESPACE_OPTIONS[namespace][NamespaceOption.PERSISTENT_STORAGE]
+        self._tracker = CLUSTERER_NAMESPACE_OPTIONS[namespace][NamespaceOption.TRACKER]
 
     def read_sorted(self, project: Project) -> List[Tuple[ReplacementRule, int]]:
-        ret = project.get_option(self._storage_option_name, default=[])
+        ret = project.get_option(self._storage, default=[])
         # normalize tuple vs. list for json writing
         return [tuple(lst) for lst in ret]  # type: ignore[misc]
 
@@ -108,16 +106,16 @@ class ProjectOptionRuleStore:
         converted_rules = [list(tup) for tup in self._sort(rules)]
 
         # Track the number of rules per project.
-        metrics.timing(self._rule_tracker_option_name, len(converted_rules))
+        metrics.timing(self._tracker, len(converted_rules))
 
-        project.update_option(self._storage_option_name, converted_rules)
+        project.update_option(self._storage, converted_rules)
 
 
 class CompositeRuleStore:
     #: Maximum number (non-negative integer) of rules to write to stores.
     MERGE_MAX_RULES: int = 50
 
-    def __init__(self, namespace: ClustererRuleNamespace, stores: List[RuleStore]):
+    def __init__(self, namespace: ClustererNamespace, stores: List[RuleStore]):
         self._namespace = namespace
         self._stores = stores
 
@@ -179,18 +177,18 @@ def _now() -> int:
     return int(datetime.now(timezone.utc).timestamp())
 
 
-def get_rules(namespace: ClustererRuleNamespace, project: Project) -> RuleSet:
+def get_rules(namespace: ClustererNamespace, project: Project) -> RuleSet:
     """Get rules from project options."""
     return ProjectOptionRuleStore(namespace).read(project)
 
 
-def get_redis_rules(namespace: ClustererRuleNamespace, project: Project) -> RuleSet:
+def get_redis_rules(namespace: ClustererNamespace, project: Project) -> RuleSet:
     """Get rules from Redis."""
     return RedisRuleStore(namespace).read(project)
 
 
 def get_sorted_rules(
-    namespace: ClustererRuleNamespace, project: Project
+    namespace: ClustererNamespace, project: Project
 ) -> List[Tuple[ReplacementRule, int]]:
     """Public interface for fetching rules for a project.
 
@@ -204,7 +202,7 @@ def get_sorted_rules(
 
 
 def update_rules(
-    namespace: ClustererRuleNamespace, project: Project, new_rules: Sequence[ReplacementRule]
+    namespace: ClustererNamespace, project: Project, new_rules: Sequence[ReplacementRule]
 ) -> int:
     """Write newly discovered rules to projection option and redis, and update last_used.
 
@@ -234,7 +232,7 @@ def update_rules(
     return num_rules_added
 
 
-def bump_last_used(namespace: ClustererRuleNamespace, project: Project, pattern: str) -> None:
+def bump_last_used(namespace: ClustererNamespace, project: Project, pattern: str) -> None:
     """If an entry for `pattern` exists, bump its last_used timestamp in redis.
 
     The updated last_used timestamps are transferred from redis to project options

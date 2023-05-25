@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.ingest.transaction_clusterer import ClustererDataNamespace
+from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource.redis import _get_redis_key, get_redis_client
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -36,7 +36,7 @@ class ProjectTransactionNamesClusterTest(APITestCase):
             self.store_event(event, project_id=self.project.id)
 
             redis_client.sadd(
-                _get_redis_key(ClustererDataNamespace.TRANSACTIONS, self.project), transaction
+                _get_redis_key(ClustererNamespace.TRANSACTIONS, self.project), transaction
             )
 
     def _test_get(self, datasource):
