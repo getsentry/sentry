@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -11,6 +11,7 @@ import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -38,6 +39,7 @@ import {
 import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combineTableDataWithSparklineData';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
+import {GenericSpansTable} from 'sentry/views/starfish/views/webServiceView/endpointOverview/genericSpansTable';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const EventsRequest = withApi(_EventsRequest);
@@ -76,53 +78,24 @@ const HTTP_SPAN_COLUMN_ORDER = [
   },
 ];
 
+type State = {
+  spansFilter: string;
+};
+
 export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
   const theme = useTheme();
 
-  const {endpoint: transaction, method, statsPeriod} = location.query;
+  const {endpoint, method, statsPeriod} = location.query;
+  const transaction = endpoint
+    ? Array.isArray(endpoint)
+      ? endpoint[0]
+      : endpoint
+    : undefined;
   const pageFilter = usePageFilters();
 
-  const {
-    isLoading: isTableDataLoading,
-    data: tableData,
-    isRefetching: isTableRefetching,
-  } = useQueryMainTable({transaction: (transaction as string) ?? '', limit: 8});
-
-  const {data: dbAggregateData} = useQuery({
-    queryKey: ['dbAggregates', transaction, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getDbAggregatesQuery({
-          datetime: pageFilter.selection.datetime,
-          transaction,
-        })}`
-      ).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
-  const aggregatesGroupedByQuery = {};
-  dbAggregateData.forEach(({description, interval, count, p75}) => {
-    if (description in aggregatesGroupedByQuery) {
-      aggregatesGroupedByQuery[description].push({name: interval, count, p75});
-    } else {
-      aggregatesGroupedByQuery[description] = [{name: interval, count, p75}];
-    }
-  });
-
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
-    pageFilter.selection.datetime
-  );
-
-  const combinedDbData = combineTableDataWithSparklineData(
-    tableData,
-    dbAggregateData,
-    moment.duration(12, 'hours'),
-    moment(start_timestamp),
-    moment(end_timestamp)
-  );
+  const [state, setState] = useState<State>({spansFilter: 'all'});
 
   const query = new MutableSearch([
     'has:http.method',
@@ -306,42 +279,116 @@ export default function EndpointOverview() {
           </StyledRow>
           <SubHeader>{t('Sample Events')}</SubHeader>
           <SampleEvents eventView={eventView} />
+          <SegmentedControlContainer>
+            <SegmentedControl
+              size="xs"
+              aria-label={t('Filter Spans')}
+              value={state.spansFilter}
+              onChange={key => setState({...state, spansFilter: key})}
+            >
+              <SegmentedControl.Item key="all">{t('All Spans')}</SegmentedControl.Item>
+              <SegmentedControl.Item key="http">{t('http')}</SegmentedControl.Item>
+              <SegmentedControl.Item key="db">{t('db')}</SegmentedControl.Item>
+            </SegmentedControl>
+          </SegmentedControlContainer>
+          <SpanMetricsTable filter={state.spansFilter} transaction={transaction} />
           <FacetInsights eventView={eventView} />
-          <SubHeader>{t('HTTP Spans')}</SubHeader>
-          <EndpointTable
-            location={location}
-            onSelect={r => {
-              browserHistory.push(
-                `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
-                  transaction,
-                })}`
-              );
-            }}
-            columns={HTTP_SPAN_COLUMN_ORDER}
-            filterOptions={{
-              action: '',
-              domain: '',
-              transaction: (transaction as string) ?? '',
-              datetime: pageFilter.selection.datetime,
-            }}
-          />
-          <SubHeader>{t('Database Spans')}</SubHeader>
-          <DatabaseTableView
-            location={location}
-            data={combinedDbData as DataRow[]}
-            isDataLoading={isTableDataLoading || isTableRefetching}
-            onSelect={r => {
-              browserHistory.push(
-                `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
-                  transaction,
-                })}`
-              );
-            }}
-          />
         </Layout.Main>
       </Layout.Body>
     </Layout.Page>
   );
+}
+
+function SpanMetricsTable({
+  filter,
+  transaction,
+}: {
+  filter: string;
+  transaction: string | undefined;
+}) {
+  const location = useLocation();
+  const pageFilter = usePageFilters();
+
+  const {
+    isLoading: isTableDataLoading,
+    data: tableData,
+    isRefetching: isTableRefetching,
+  } = useQueryMainTable({transaction: (transaction as string) ?? '', limit: 8});
+
+  const {data: dbAggregateData} = useQuery({
+    queryKey: ['dbAggregates', transaction, pageFilter.selection.datetime],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getDbAggregatesQuery({
+          datetime: pageFilter.selection.datetime,
+          transaction,
+        })}`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const aggregatesGroupedByQuery = {};
+  dbAggregateData.forEach(({description, interval, count, p75}) => {
+    if (description in aggregatesGroupedByQuery) {
+      aggregatesGroupedByQuery[description].push({name: interval, count, p75});
+    } else {
+      aggregatesGroupedByQuery[description] = [{name: interval, count, p75}];
+    }
+  });
+
+  switch (filter) {
+    case 'all':
+    case 'resource':
+    default:
+      return <GenericSpansTable transaction={transaction} />;
+    case 'http':
+      return (
+        <EndpointTable
+          location={location}
+          onSelect={r => {
+            browserHistory.push(
+              `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
+                transaction,
+              })}`
+            );
+          }}
+          columns={HTTP_SPAN_COLUMN_ORDER}
+          filterOptions={{
+            action: '',
+            domain: '',
+            transaction: (transaction as string) ?? '',
+            datetime: pageFilter.selection.datetime,
+          }}
+        />
+      );
+    case 'db':
+      const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
+        pageFilter.selection.datetime
+      );
+      const combinedDbData = combineTableDataWithSparklineData(
+        tableData,
+        dbAggregateData,
+        moment.duration(12, 'hours'),
+        moment(start_timestamp),
+        moment(end_timestamp)
+      );
+
+      return (
+        <DatabaseTableView
+          location={location}
+          data={combinedDbData as DataRow[]}
+          isDataLoading={isTableDataLoading || isTableRefetching}
+          onSelect={r => {
+            browserHistory.push(
+              `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
+                transaction,
+              })}`
+            );
+          }}
+        />
+      );
+  }
 }
 
 const SubHeader = styled('h3')`
@@ -380,4 +427,8 @@ const ChartsContainerItem = styled('div')`
 
 const ChartsContainerItem2 = styled('div')`
   flex: 1;
+`;
+
+const SegmentedControlContainer = styled('div')`
+  margin-bottom: ${space(2)};
 `;

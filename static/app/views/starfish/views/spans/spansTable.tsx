@@ -31,6 +31,7 @@ type Props = {
   queryConditions: string[];
   spansData: SpanDataRow[];
   spansTrendsData: SpanTrendDataRow[];
+  columnOrder?: GridColumnOrder[];
 };
 
 export type SpanDataRow = {
@@ -61,6 +62,7 @@ export default function SpansTable({
   spansTrendsData,
   isLoading,
   onSelect,
+  columnOrder,
 }: Props) {
   const theme = useTheme();
   const spansTrendsGrouped = {p50_trend: {}, p95_trend: {}, throughput: {}};
@@ -120,7 +122,7 @@ export default function SpansTable({
     <GridEditable
       isLoading={isLoading}
       data={combinedSpansData}
-      columnOrder={getColumns(queryConditions)}
+      columnOrder={columnOrder ?? getColumns(queryConditions)}
       columnSortBy={
         orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<string>]
       }
