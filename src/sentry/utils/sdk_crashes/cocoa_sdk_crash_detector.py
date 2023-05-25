@@ -15,8 +15,7 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
         # The frames are ordered from caller to callee, or oldest to youngest.
         # The last frame is the one creating the exception.
         # Therefore, we must iterate in reverse order.
-        frames_reversed = frames[::-1]
-        for frame in frames_reversed:
+        for frame in reversed(frames):
             if self.is_sdk_frame(frame):
                 return True
 
