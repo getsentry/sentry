@@ -829,15 +829,51 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
 
         org = self.create_organization(name="sample-org")
 
-        project = self.create_project_without_metrics("a", org)
+        # In case an org has at least one project with metrics and all the other ones without, the ones without should
+        # fall back to 100%.
+        project_a = self.create_project_and_add_metrics("a", 100, org)
+        project_b = self.create_project_without_metrics("b", org)
 
         with self.tasks():
             sliding_window()
 
         with self.feature("organizations:ds-sliding-window"):
-            # We expect that the system forecasts 100% sample rate, since a project with no metrics is considered
-            # as having 0 transactions.
-            assert generate_rules(project)[0]["samplingValue"] == {
+            assert generate_rules(project_a)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": 0.2,
+            }
+            assert generate_rules(project_b)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": 1.0,
+            }
+
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    def test_sliding_window_with_all_projects_without_metrics(
+        self,
+        extrapolate_monthly_volume,
+        get_transaction_sampling_tier_for_volume,
+        get_blended_sample_rate,
+    ):
+        extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
+        get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
+        get_blended_sample_rate.return_value = 0.5
+
+        org = self.create_organization(name="sample-org")
+
+        project_a = self.create_project_without_metrics("a", org)
+        project_b = self.create_project_without_metrics("b", org)
+
+        with self.tasks():
+            sliding_window()
+
+        with self.feature("organizations:ds-sliding-window"):
+            assert generate_rules(project_a)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": 1.0,
+            }
+            assert generate_rules(project_b)[0]["samplingValue"] == {
                 "type": "sampleRate",
                 "value": 1.0,
             }
