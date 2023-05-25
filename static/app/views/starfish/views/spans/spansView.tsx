@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/spanOperationSelector';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
 import {getSpanListQuery, getSpansTrendsQuery} from './queries';
@@ -40,19 +41,17 @@ export default function SpansView(props: Props) {
 
   const descriptionFilter = didConfirmSearch && searchTerm ? `${searchTerm}` : undefined;
   const queryConditions = buildQueryFilterFromLocation(location);
+  const query = getSpanListQuery(
+    descriptionFilter,
+    pageFilter.selection.datetime,
+    queryConditions,
+    orderBy,
+    LIMIT
+  );
 
   const {isLoading: areSpansLoading, data: spansData} = useQuery<SpanDataRow[]>({
-    queryKey: ['spans', descriptionFilter, orderBy, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getSpanListQuery(
-          descriptionFilter,
-          pageFilter.selection.datetime,
-          queryConditions,
-          orderBy,
-          LIMIT
-        )}&format=sql`
-      ).then(res => res.json()),
+    queryKey: ['spans', query],
+    queryFn: () => fetch(`${HOST}/?query=${query}&format=sql`).then(res => res.json()),
     retry: false,
     refetchOnWindowFocus: false,
     initialData: [],
@@ -83,7 +82,9 @@ export default function SpansView(props: Props) {
       <FilterOptionsContainer>
         <DatePageFilter alignDropdown="left" />
 
-        {SPAN_FILTER_KEYS.map(filterKey => {
+        <SpanOperationSelector value={props.appliedFilters.span_operation} />
+
+        {['domain', 'action'].map(filterKey => {
           const value = props.appliedFilters[filterKey];
 
           return value ? (
