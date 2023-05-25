@@ -26,6 +26,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types';
 import type {IssueAlertRule} from 'sentry/types/alerts';
+import {RuleActionsCategories} from 'sentry/types/alerts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   ApiQueryKey,
@@ -67,6 +68,23 @@ const getIssueAlertDetailsQueryKey = ({
   `/projects/${orgSlug}/${projectSlug}/rules/${ruleId}/`,
   {query: {expand: 'lastTriggered'}},
 ];
+
+function getRuleActionCategory(rule: IssueAlertRule) {
+  const numDefaultActions = rule.actions.filter(
+    action => action.id === 'sentry.mail.actions.NotifyEmailAction'
+  ).length;
+
+  switch (numDefaultActions) {
+    // Are all actions default actions?
+    case rule.actions.length:
+      return RuleActionsCategories.AllDefault;
+    // Are none of the actions default actions?
+    case 0:
+      return RuleActionsCategories.NoDefault;
+    default:
+      return RuleActionsCategories.SomeDefault;
+  }
+}
 
 function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   const queryClient = useQueryClient();
@@ -215,6 +233,8 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   const hasSnoozeFeature = organization.features.includes('mute-alerts');
   const isSnoozed = rule.snooze;
 
+  const ruleActionCategory = getRuleActionCategory(rule);
+
   const duplicateLink = {
     pathname: `/organizations/${organization.slug}/alerts/new/issue/`,
     query: {
@@ -224,7 +244,6 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       referrer: 'issue_rule_details',
     },
   };
-
   function renderIncompatibleAlert() {
     const incompatibleRule = findIncompatibleRules(rule);
     if (
@@ -298,6 +317,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                     onSnooze={onSnooze}
                     ruleId={rule.id}
                     projectSlug={projectSlug}
+                    ruleActionCategory={ruleActionCategory}
                     hasAccess={hasAccess}
                   />
                 )}
@@ -327,13 +347,18 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
           {renderIncompatibleAlert()}
           {hasSnoozeFeature && isSnoozed && (
             <Alert showIcon>
-              {tct(
-                "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
-                {
-                  creator: rule.snoozeCreatedBy,
-                  forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
-                }
-              )}
+              {ruleActionCategory === RuleActionsCategories.NoDefault
+                ? tct(
+                    "[creator] muted this alert so these notifications won't be sent in the future.",
+                    {creator: rule.snoozeCreatedBy}
+                  )
+                : tct(
+                    "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
+                    {
+                      creator: rule.snoozeCreatedBy,
+                      forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
+                    }
+                  )}
             </Alert>
           )}
           <StyledPageTimeRangeSelector

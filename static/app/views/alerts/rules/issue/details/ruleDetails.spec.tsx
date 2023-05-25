@@ -198,12 +198,12 @@ describe('AlertRuleDetails', () => {
       method: 'DELETE',
     });
     createWrapper();
-    expect(await screen.findByText('Mute')).toBeInTheDocument();
+    expect(await screen.findByText('Mute for everyone')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Mute'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Mute for everyone'}));
     expect(postRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({data: {target: 'me'}})
+      expect.objectContaining({data: {target: 'everyone'}})
     );
 
     expect(await screen.findByText('Unmute')).toBeInTheDocument();
@@ -230,7 +230,7 @@ describe('AlertRuleDetails', () => {
     expect(request).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: {target: 'me'},
+        data: {target: 'everyone'},
       })
     );
   });
@@ -247,7 +247,7 @@ describe('AlertRuleDetails', () => {
 
     createWrapper({}, contextWithoutAccess, orgWithoutAccess);
 
-    expect(await screen.findByRole('button', {name: 'Mute'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Mute for everyone'})).toBeDisabled();
   });
 
   it('inserts user email into rule notify action', async () => {
