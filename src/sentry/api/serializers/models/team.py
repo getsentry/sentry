@@ -31,6 +31,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     ExternalActor,
     InviteStatus,
+    Organization,
     OrganizationAccessRequest,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -208,7 +209,10 @@ class TeamSerializer(Serializer):  # type: ignore
         self, item_list: Sequence[Team], user: User, **kwargs: Any
     ) -> MutableMapping[Team, MutableMapping[str, Any]]:
         request = env.request
-        org_ids = {t.organization_id for t in item_list}
+        org_ids: Set[int] = {t.organization_id for t in item_list}
+
+        assert len(org_ids) == 1, "Cross organization query for teams"
+
         optimization = (
             maybe_singular_rpc_access_org_context(self.access, org_ids) if self.access else None
         )
@@ -222,6 +226,7 @@ class TeamSerializer(Serializer):  # type: ignore
 
         is_superuser = request and is_active_superuser(request) and request.user == user
         result: MutableMapping[Team, MutableMapping[str, Any]] = {}
+        organization = Organization.objects.get_from_cache(id=list(org_ids)[0])
 
         for team in item_list:
             is_member = team.id in team_memberships
@@ -231,7 +236,7 @@ class TeamSerializer(Serializer):  # type: ignore
             has_access = bool(
                 is_member
                 or is_superuser
-                or team.organization.flags.allow_joinleave
+                or organization.flags.allow_joinleave
                 or any(roles.get(org_role).is_global for org_role in org_roles)
             )
 
@@ -338,6 +343,7 @@ class TeamWithProjectsSerializer(TeamSerializer):
 def get_scim_teams_members(
     team_list: Sequence[Team],
 ) -> MutableMapping[Team, MutableSequence[MutableMapping[str, Any]]]:
+    # TODO(hybridcloud) Another cross silo join
     members = RangeQuerySetWrapper(
         OrganizationMember.objects.filter(teams__in=team_list)
         .select_related("user")

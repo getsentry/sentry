@@ -259,12 +259,11 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
     def test_escape_slack_message(self):
         group = self.create_group(
             project=self.project,
-            message="<https://example.com/|*Click Here*>",
             data={"type": "error", "metadata": {"value": "<https://example.com/|*Click Here*>"}},
         )
         assert (
             SlackIssuesMessageBuilder(group, None).build()["text"]
-            == "&amp;lt;https://example.com/|*Click Here*&amp;gt;"
+            == "&lt;https://example.com/|*Click Here*&gt;"
         )
 
 
@@ -554,7 +553,7 @@ class DummySlackNotificationTest(TestCase):
     def test_with_escape(self):
         raw_text = "<https://example.com/|*Click Here*>"
         assert DummySlackNotification(raw_text, True).build() == {
-            "text": "&amp;lt;https://example.com/|*Click Here*&amp;gt;",
+            "text": "&lt;https://example.com/|*Click Here*&gt;",
             "mrkdwn_in": [],
             "color": "#2788CE",
         }

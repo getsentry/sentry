@@ -112,9 +112,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     def test_member_disabled(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
 
-        OrganizationMember.objects.filter(user=self.user).update(
-            flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
-        )
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(user=self.user).update(
+                flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
+            )
 
         # disabled
         deliver_reports(ctx)

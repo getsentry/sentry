@@ -10,6 +10,7 @@ import {
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import isEmpty from 'lodash/isEmpty';
 import * as qs from 'query-string';
 
 import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
@@ -98,7 +99,7 @@ function getGroupQuery({
 }: Pick<GroupDetailsProps, 'environments'>): Record<string, string | string[]> {
   // Note, we do not want to include the environment key at all if there are no environments
   const query: Record<string, string | string[]> = {
-    ...(environments ? {environment: environments} : {}),
+    ...(!isEmpty(environments) ? {environment: environments} : {}),
     expand: ['inbox', 'owners'],
     collapse: ['release', 'tags'],
   };
