@@ -1422,7 +1422,7 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
-    # Enables subquery optimizations for the replay_index page
+    # Enable subquery optimizations for the replay_index page
     "organizations:session-replay-index-subquery": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
@@ -1430,6 +1430,8 @@ SENTRY_FEATURES = {
     "organizations:starfish-view": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
+    # Replace the footer Sentry logo with a Sentry pride logo
+    "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee

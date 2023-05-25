@@ -179,6 +179,7 @@ default_manager.add("organizations:starfish-view", OrganizationFeature, FeatureH
 default_manager.add("organizations:starfish-test-endpoint", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:streamline-targeting-context", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:symbol-sources", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:sentry-pride-logo-footer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add('organizations:team-project-creation-all', OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add('organizations:team-project-creation-all-allowlist', OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:team-roles", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
