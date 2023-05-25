@@ -416,6 +416,10 @@ def sliding_window() -> None:
                             org_id, projects_with_total_root_count, window_size
                         )
 
+            # Due to the synchronous nature of the sliding window, when we arrived here, we can confidently say that the
+            # execution of the sliding window was successful. We will keep this state for 1 hour.
+            mark_sliding_window_executed()
+
 
 def adjust_base_sample_rate_per_project(
     org_id: int, projects_with_total_root_count: Sequence[Tuple[ProjectId, int]], window_size: int
@@ -467,10 +471,6 @@ def adjust_base_sample_rate_per_project(
             )
 
         pipeline.execute()
-
-    # Due to the synchronous nature of the sliding window, when we arrived here, we can confidently say that the
-    # execution of the sliding window was successful. We will keep this state for 1 hour.
-    mark_sliding_window_executed()
 
 
 @instrumented_task(

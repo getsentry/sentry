@@ -795,8 +795,6 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
 
         org = self.create_organization(name="sample-org")
 
-        # In case an org has all projects without metrics, we can't do much, we will fall back to the error sample rate
-        # which is our case is the blended sample rate.
         project_a = self.create_project_without_metrics("a", org)
         project_b = self.create_project_without_metrics("b", org)
 
@@ -806,11 +804,11 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         with self.feature("organizations:ds-sliding-window"):
             assert generate_rules(project_a)[0]["samplingValue"] == {
                 "type": "sampleRate",
-                "value": 0.5,
+                "value": 1.0,
             }
             assert generate_rules(project_b)[0]["samplingValue"] == {
                 "type": "sampleRate",
-                "value": 0.5,
+                "value": 1.0,
             }
 
     def test_sliding_window_with_none_window_size(self):
