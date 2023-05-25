@@ -3,24 +3,20 @@ import type {Location} from 'history';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import {useLocation} from 'sentry/utils/useLocation';
-
 import useUrlParams from './useUrlParams';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
-const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-const mockBrowserHistoryPush = browserHistory.push as jest.MockedFunction<
-  typeof browserHistory.push
+const mockGetCurrentLocation = browserHistory.getCurrentLocation as jest.MockedFunction<
+  typeof browserHistory.getCurrentLocation
 >;
 
 type Query = {limit: string; page: string};
 
 describe('useUrlParams', () => {
   beforeEach(() => {
-    mockBrowserHistoryPush.mockReset();
-    mockUseLocation.mockReturnValue({
+    mockGetCurrentLocation.mockReturnValue({
       query: {
         page: '3',
         limit: '50',

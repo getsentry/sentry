@@ -1,3 +1,4 @@
+import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
@@ -16,10 +17,12 @@ type Props = {
 
 type DataRow = {
   id: string;
+  profile_id: string;
+  timestamp: string;
   'transaction.duration': number;
 };
 
-type Keys = 'id' | 'transaction.duration';
+type Keys = 'id' | 'profile_id' | 'transaction.duration' | 'timestamp';
 type TableColumnHeader = GridColumnHeader<Keys>;
 const COLUMN_ORDER: TableColumnHeader[] = [
   {
@@ -28,8 +31,18 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 300,
   },
   {
+    key: 'profile_id',
+    name: 'Profile ID',
+    width: 300,
+  },
+  {
     key: 'transaction.duration',
     name: 'Duration',
+    width: -1,
+  },
+  {
+    key: 'timestamp',
+    name: 'Timestamp',
     width: -1,
   },
 ];
@@ -43,6 +56,14 @@ export function SampleEvents({eventView}: Props) {
     .withColumns([
       {
         field: 'transaction.duration',
+        kind: 'field',
+      },
+      {
+        field: 'profile_id',
+        kind: 'field',
+      },
+      {
+        field: 'timestamp',
         kind: 'field',
       },
     ])
@@ -60,6 +81,22 @@ export function SampleEvents({eventView}: Props) {
           {row.id.slice(0, 8)}
         </Link>
       );
+    }
+
+    if (column.key === 'profile_id') {
+      return row.profile_id ? (
+        <Link
+          to={`/profiling/profile/${row['project.name']}/${row.profile_id}/flamechart/`}
+        >
+          {row.profile_id.slice(0, 8)}
+        </Link>
+      ) : (
+        '(no value)'
+      );
+    }
+
+    if (column.key === 'timestamp') {
+      return <DateTime date={row.timestamp} year timeZone seconds />;
     }
 
     if (column.key === 'transaction.duration') {

@@ -35,28 +35,24 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
         feature_enabled=True,
         project_id=1234,
     ):
-        @override_settings(SDK_CRASH_DETECTION_PROJECT_ID=project_id)
-        def _execute_test(self):
-            event = self.create_event(
-                data=event_data,
-                project_id=self.project.id,
-            )
+        with override_settings(SDK_CRASH_DETECTION_PROJECT_ID=project_id):
+            with Feature({"organizations:sdk-crash-reporting": feature_enabled}):
+                event = self.create_event(
+                    data=event_data,
+                    project_id=self.project.id,
+                )
 
-            sdk_crash_detection.detect_sdk_crash(event=event)
+                sdk_crash_detection.detect_sdk_crash(event=event)
 
-            if should_be_reported:
-                mock_sdk_crash_reporter.report.assert_called_once()
+                if should_be_reported:
+                    mock_sdk_crash_reporter.report.assert_called_once()
 
-                reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
-                assert reported_event_data["contexts"]["sdk_crash_detection"]["detected"] is True
-            else:
-                mock_sdk_crash_reporter.report.assert_not_called()
-
-        if feature_enabled:
-            with Feature("organizations:sdk-crash-reporting"):
-                _execute_test(self)
-        else:
-            _execute_test(self)
+                    reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
+                    assert (
+                        reported_event_data["contexts"]["sdk_crash_detection"]["detected"] is True
+                    )
+                else:
+                    mock_sdk_crash_reporter.report.assert_not_called()
 
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
