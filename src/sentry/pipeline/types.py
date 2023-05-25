@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from sentry.models import Model
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 
-from ..services.hybrid_cloud.organization import RpcOrganization
 from .store import PipelineSessionStore
 
 
