@@ -11,7 +11,7 @@ import pytest
 from sentry import options
 from sentry.models import ReleaseFile
 from sentry.models.distribution import Distribution
-from sentry.models.file import File
+from sentry.models.files.file import File
 from sentry.models.releasefile import (
     ARTIFACT_INDEX_FILENAME,
     _ArtifactIndexGuard,

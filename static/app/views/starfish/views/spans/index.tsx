@@ -1,23 +1,21 @@
 import {useState} from 'react';
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
-import {Filter} from 'sentry/views/starfish/views/spans/filter';
+import {ModuleName} from 'sentry/views/starfish/types';
 import SpanDetail from 'sentry/views/starfish/views/spans/spanDetails';
 import {SpanDataRow} from 'sentry/views/starfish/views/spans/spansTable';
 
-import SpansView, {SPAN_FILTER_KEY_LABELS} from './spansView';
+import SpansView from './spansView';
 
 type State = {
   selectedRow?: SpanDataRow;
@@ -47,31 +45,12 @@ export default function Spans(props: Props) {
     setState({selectedRow: row});
   };
 
-  const appliedFilters = Object.keys(props.location.query)
-    .map(queryKey => {
-      const queryKeyLabel = SPAN_FILTER_KEY_LABELS[queryKey];
-      const queryValue = props.location.query[queryKey];
-
-      return queryKeyLabel && queryValue
-        ? {kkey: queryKeyLabel, value: queryValue}
-        : null;
-    })
-    .filter((item): item is NonNullable<typeof item> => Boolean(item));
-
   return (
     <Layout.Page>
       <PageErrorProvider>
         <Layout.Header>
           <Layout.HeaderContent>
             <Layout.Title>{t('Spans')}</Layout.Title>
-            {appliedFilters.length > 0 ? (
-              <FiltersContainer>
-                {t('Applied Filters:')}
-                {appliedFilters.map(filterProps => {
-                  return <Filter key={filterProps.kkey} {...filterProps} />;
-                })}
-              </FiltersContainer>
-            ) : null}
           </Layout.HeaderContent>
         </Layout.Header>
 
@@ -79,7 +58,12 @@ export default function Spans(props: Props) {
           <Layout.Main fullWidth>
             <PageErrorAlert />
             <PageFiltersContainer>
-              <SpansView location={props.location} onSelect={setSelectedRow} />
+              <SpansView
+                location={props.location}
+                onSelect={setSelectedRow}
+                moduleName={props.location.query.moduleName ?? ModuleName.ALL}
+                appliedFilters={props.location.query}
+              />
               <SpanDetail row={selectedRow} onClose={unsetSelectedSpanGroup} />
             </PageFiltersContainer>
           </Layout.Main>
@@ -88,9 +72,3 @@ export default function Spans(props: Props) {
     </Layout.Page>
   );
 }
-
-const FiltersContainer = styled('span')`
-  display: flex;
-  gap: ${space(1)};
-  padding: ${space(1)};
-`;

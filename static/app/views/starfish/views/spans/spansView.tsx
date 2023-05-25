@@ -7,9 +7,12 @@ import _orderBy from 'lodash/orderBy';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import {space} from 'sentry/styles/space';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {ModuleName} from 'sentry/views/starfish/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
+import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
+import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/selectors/spanOperationSelector';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
 import {getSpanListQuery, getSpansTrendsQuery} from './queries';
@@ -19,8 +22,10 @@ import SpansTable, {mapRowKeys} from './spansTable';
 const LIMIT: number = 25;
 
 type Props = {
+  appliedFilters: {[key: string]: string};
   location: Location;
   onSelect: (row: SpanDataRow) => void;
+  moduleName?: ModuleName;
 };
 
 type State = {
@@ -38,19 +43,17 @@ export default function SpansView(props: Props) {
 
   const descriptionFilter = didConfirmSearch && searchTerm ? `${searchTerm}` : undefined;
   const queryConditions = buildQueryFilterFromLocation(location);
+  const query = getSpanListQuery(
+    descriptionFilter,
+    pageFilter.selection.datetime,
+    queryConditions,
+    orderBy,
+    LIMIT
+  );
 
   const {isLoading: areSpansLoading, data: spansData} = useQuery<SpanDataRow[]>({
-    queryKey: ['spans', descriptionFilter, orderBy, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getSpanListQuery(
-          descriptionFilter,
-          pageFilter.selection.datetime,
-          queryConditions,
-          orderBy,
-          LIMIT
-        )}&format=sql`
-      ).then(res => res.json()),
+    queryKey: ['spans', query],
+    queryFn: () => fetch(`${HOST}/?query=${query}&format=sql`).then(res => res.json()),
     retry: false,
     refetchOnWindowFocus: false,
     initialData: [],
@@ -78,8 +81,7 @@ export default function SpansView(props: Props) {
 
   // Initialize the selected span group if it exists in the URL
   const {onSelect} = props;
-  const {query} = useLocation();
-  const selectedSpanGroup = query.group_id;
+  const selectedSpanGroup = location.query.group_id;
   const [initializedSelectedSpan, setInitializedSelectedSpan] = useState(false);
   useEffect(() => {
     if (
@@ -102,6 +104,18 @@ export default function SpansView(props: Props) {
     <Fragment>
       <FilterOptionsContainer>
         <DatePageFilter alignDropdown="left" />
+
+        <SpanOperationSelector value={props.appliedFilters.span_operation} />
+
+        <DomainSelector
+          moduleName={props.moduleName}
+          value={props.appliedFilters.domain}
+        />
+
+        <ActionSelector
+          moduleName={props.moduleName}
+          value={props.appliedFilters.action}
+        />
       </FilterOptionsContainer>
 
       <PaddedContainer>
@@ -152,17 +166,13 @@ const FilterOptionsContainer = styled(PaddedContainer)`
   margin-bottom: ${space(2)};
 `;
 
-export const SPAN_FILTER_KEYS = ['action', 'span_operation', 'domain'];
-export const SPAN_FILTER_KEY_LABELS = {
-  action: 'Action',
-  span_operation: 'Operation',
-  domain: 'Domain',
-};
+const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
 
 const buildQueryFilterFromLocation = (location: Location) => {
   const {query} = location;
   const result = Object.keys(query)
     .filter(key => SPAN_FILTER_KEYS.includes(key))
+    .filter(key => Boolean(query[key]))
     .map(key => {
       return `${key} = '${query[key]}'`;
     });
