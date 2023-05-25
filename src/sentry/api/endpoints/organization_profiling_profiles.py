@@ -51,11 +51,13 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
             return Response(status=404)
 
         params = self.get_snuba_params(request, organization, check_global_views=False)
-        project_id = params["project_id"][0]
+        project_ids = params["project_id"]
+        if len(project_ids) > 1:
+            raise ParseError(detail="You cannot get a flamegraph from multiple projects.")
         profile_ids = get_profiles_id(params, request.query_params.get("query", None))
         kwargs: Dict[str, Any] = {
             "method": "POST",
-            "path": f"/organizations/{organization.id}/projects/{project_id}/flamegraph",
+            "path": f"/organizations/{organization.id}/projects/{project_ids[0]}/flamegraph",
             "json_data": profile_ids,
         }
         return proxy_profiling_service(**kwargs)
