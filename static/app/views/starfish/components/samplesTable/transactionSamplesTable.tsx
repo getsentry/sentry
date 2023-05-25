@@ -109,7 +109,7 @@ export function TransactionSamplesTable({eventView}: Props) {
       return (
         <DurationComparisonCell
           duration={row['transaction.duration']}
-          p50={aggregatesData['p50(transaction.duration)']}
+          p50={(aggregatesData?.['p50(transaction.duration)'] as number) ?? 0}
         />
       );
     }
@@ -120,7 +120,7 @@ export function TransactionSamplesTable({eventView}: Props) {
   return (
     <GridEditable
       isLoading={isLoading}
-      data={data}
+      data={data as DataRow[]}
       columnOrder={COLUMN_ORDER}
       columnSortBy={[]}
       location={location}

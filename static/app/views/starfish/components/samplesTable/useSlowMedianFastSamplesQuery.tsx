@@ -1,9 +1,6 @@
+import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {
-  DiscoverQueryProps,
-  useGenericDiscoverQuery,
-} from 'sentry/utils/discover/genericDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -45,11 +42,7 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
     {kind: 'function', function: ['p95', 'transaction.duration', undefined, undefined]},
   ]);
 
-  const {isLoading: isLoadingAgg, data: aggregatesData} = useGenericDiscoverQuery<
-    any,
-    DiscoverQueryProps
-  >({
-    route: 'events',
+  const {isLoading: isLoadingAgg, data: aggregatesData} = useDiscoverQuery({
     eventView: eventViewAggregates,
     referrer: 'starfish-transaction-summary-sample-events',
     location,
@@ -72,11 +65,7 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
     }`
   );
 
-  const {isLoading: isLoadingSlowest, data: slowestSamplesData} = useGenericDiscoverQuery<
-    any,
-    DiscoverQueryProps
-  >({
-    route: 'events',
+  const {isLoading: isLoadingSlowest, data: slowestSamplesData} = useDiscoverQuery({
     eventView: slowestSamplesEventView,
     referrer: 'starfish-transaction-summary-sample-events',
     location,
@@ -101,11 +90,7 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
     }`
   );
 
-  const {isLoading: isLoadingMedian, data: medianSamplesData} = useGenericDiscoverQuery<
-    any,
-    DiscoverQueryProps
-  >({
-    route: 'events',
+  const {isLoading: isLoadingMedian, data: medianSamplesData} = useDiscoverQuery({
     eventView: medianSamplesEventView,
     referrer: 'starfish-transaction-summary-sample-events',
     location,
@@ -129,11 +114,7 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
     }`
   );
 
-  const {isLoading: isLoadingFastest, data: fastestSamplesData} = useGenericDiscoverQuery<
-    any,
-    DiscoverQueryProps
-  >({
-    route: 'events',
+  const {isLoading: isLoadingFastest, data: fastestSamplesData} = useDiscoverQuery({
     eventView: fastestSamplesEventView,
     referrer: 'starfish-transaction-summary-sample-events',
     location,
@@ -146,10 +127,14 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
   }
 
   const combinedData = [
-    ...slowestSamplesData.data,
-    ...medianSamplesData.data,
-    ...fastestSamplesData.data,
+    ...(slowestSamplesData?.data ?? []),
+    ...(medianSamplesData?.data ?? []),
+    ...(fastestSamplesData?.data ?? []),
   ];
 
-  return {isLoading: false, data: combinedData, aggregatesData: aggregatesData.data[0]};
+  return {
+    isLoading: false,
+    data: combinedData,
+    aggregatesData: aggregatesData?.data[0] ?? [],
+  };
 }
