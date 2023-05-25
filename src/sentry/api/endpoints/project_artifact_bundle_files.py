@@ -94,6 +94,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
             )
 
         def serialize_results(r):
+            # TODO: here we will have to show the user multiple release/dist pair.
             release, dist = ArtifactBundle.get_release_dist_pair(
                 project.organization.id, artifact_bundle
             )
