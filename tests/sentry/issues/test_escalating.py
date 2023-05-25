@@ -289,11 +289,11 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             self.archive_until_escalating(archived_group)
 
             # The escalating forecast was added 15 days ago, and thus is out of the 14 day range
-            forecast_values = [1] * 13 + [10]
+            forecast_values = [10] * 13 + [1]
             self.save_mock_escalating_group_forecast(
                 group=archived_group,
                 forecast_values=forecast_values,
                 date_added=datetime.now() - timedelta(15),
             )
-            assert is_escalating(archived_group) == (False, None)
+            assert is_escalating(archived_group) == (True, 1)
             logger.error.assert_called_once_with("Forecast list index is out of range")
