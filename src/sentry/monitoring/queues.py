@@ -94,3 +94,7 @@ try:
     backend = get_backend_for_broker(settings.BROKER_URL)
 except KeyError:
     backend = None
+
+
+def processing_queue_sizes(backend: AmqpBackend):
+    max(backend.bulk_get_sizes(settings.PROCESSING_QUEUES))
