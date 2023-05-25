@@ -15,6 +15,8 @@ FALLBACK_SLIDING_WINDOW_SIZE = 24
 SLIDING_WINDOW_CALCULATION_ERROR = "sliding_window_error"
 # We want to keep the entry for 1 hour, so that in case an org is not considered for 1 hour, the system will fall back
 # to the blended sample rate.
+# Important: this TTL should be a factor of the cron schedule for dynamic-sampling-sliding-window located in
+# sentry.conf.server.py.
 EXECUTED_CACHE_KEY_TTL = 60 * 60 * 1000
 
 
