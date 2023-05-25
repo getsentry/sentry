@@ -3,9 +3,11 @@ from datetime import datetime, timedelta
 from typing import ContextManager
 from unittest.mock import call, patch
 
-from django.test import RequestFactory
+import responses
+from django.test import RequestFactory, override_settings
 from freezegun import freeze_time
 from pytest import raises
+from rest_framework import status
 
 from sentry.models import (
     ControlOutbox,
@@ -18,17 +20,27 @@ from sentry.models import (
     WebhookProviderIdentifier,
 )
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits, region_silo_test
-from sentry.types.region import MONOLITH_REGION_NAME
+from sentry.types.region import MONOLITH_REGION_NAME, Region, RegionCategory
 
 
 @control_silo_test(stable=True)
 class ControlOutboxTest(TestCase):
+    webhook_request = RequestFactory().post(
+        "/extensions/github/webhook/",
+        data={"installation": {"id": "github:1"}},
+        content_type="application/json",
+        HTTP_X_GITHUB_EMOTICON=">:^]",
+    )
+    region = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
+    region_config = (region,)
+
     def test_creating_user_outboxes(self):
         with exempt_from_silo_limits():
             org = Factories.create_organization(no_mapping=True)
@@ -121,23 +133,17 @@ class ControlOutboxTest(TestCase):
         }
 
     def test_control_outbox_for_webhooks(self):
-        request = RequestFactory().post(
-            "/extensions/github/webhook/",
-            data={"installation": {"id": "github:1"}},
-            content_type="application/json",
-            HTTP_X_GITHUB_EMOTICON=">:^]",
-        )
         [outbox] = ControlOutbox.for_webhook_update(
             webhook_identifier=WebhookProviderIdentifier.GITHUB,
             region_names=["webhook-region"],
-            request=request,
+            request=self.webhook_request,
         )
         assert outbox.shard_scope == OutboxScope.WEBHOOK_SCOPE
         assert outbox.shard_identifier == WebhookProviderIdentifier.GITHUB
         assert outbox.category == OutboxCategory.WEBHOOK_PROXY
         assert outbox.region_name == "webhook-region"
 
-        payload_from_request = outbox.get_webhook_payload_from_request(request)
+        payload_from_request = outbox.get_webhook_payload_from_request(self.webhook_request)
         assert outbox.payload == dataclasses.asdict(payload_from_request)
         payload_from_outbox = outbox.get_webhook_payload_from_outbox(outbox.payload)
         assert payload_from_request == payload_from_outbox
@@ -158,6 +164,53 @@ class ControlOutboxTest(TestCase):
         # Request factory expects transformed headers, but the outbox stores raw headers
         assert outbox.payload["headers"]["X-Github-Emoticon"] == ">:^]"
         assert outbox.payload["body"] == '{"installation": {"id": "github:1"}}'
+
+    @responses.activate
+    @override_settings(SENTRY_REGION_CONFIG=region_config)
+    def test_drains_successful_success(self):
+        mock_response = responses.add(
+            self.webhook_request.method,
+            f"{self.region.address}{self.webhook_request.path}",
+            status=status.HTTP_200_OK,
+        )
+        expected_request_count = 1 if SiloMode.get_current_mode() == SiloMode.CONTROL else 0
+        [outbox] = ControlOutbox.for_webhook_update(
+            webhook_identifier=WebhookProviderIdentifier.GITHUB,
+            region_names=[self.region.name],
+            request=self.webhook_request,
+        )
+        outbox.save()
+
+        assert ControlOutbox.objects.filter(id=outbox.id).exists()
+        outbox.drain_shard()
+        assert mock_response.call_count == expected_request_count
+        assert not ControlOutbox.objects.filter(id=outbox.id).exists()
+
+    @responses.activate
+    @override_settings(SENTRY_REGION_CONFIG=region_config)
+    def test_drains_webhook_failure(self):
+        mock_response = responses.add(
+            self.webhook_request.method,
+            f"{self.region.address}{self.webhook_request.path}",
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+        [outbox] = ControlOutbox.for_webhook_update(
+            webhook_identifier=WebhookProviderIdentifier.GITHUB,
+            region_names=[self.region.name],
+            request=self.webhook_request,
+        )
+        outbox.save()
+
+        assert ControlOutbox.objects.filter(id=outbox.id).exists()
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            with raises(ApiError):
+                outbox.drain_shard()
+            assert mock_response.call_count == 1
+            assert ControlOutbox.objects.filter(id=outbox.id).exists()
+        else:
+            outbox.drain_shard()
+            assert mock_response.call_count == 0
+            assert not ControlOutbox.objects.filter(id=outbox.id).exists()
 
 
 @region_silo_test(stable=True)
