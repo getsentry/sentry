@@ -921,14 +921,14 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         test_org = self.create_organization(name="sample-org")
 
         # Create 2 projects
-        proj_a = self.create_project_and_add_metrics("a", 1, test_org)
-        proj_b = self.create_project_and_add_metrics("b", 10, test_org)
+        project_a = self.create_project_and_add_metrics("a", 1, test_org)
+        project_b = self.create_project_and_add_metrics("b", 10, test_org)
 
         self.add_sliding_window_sample_rate_per_project(
-            org_id=test_org.id, project_id=proj_a.id, sample_rate=0.1
+            org_id=test_org.id, project_id=project_a.id, sample_rate=0.1
         )
         self.add_sliding_window_sample_rate_per_project(
-            org_id=test_org.id, project_id=proj_b.id, sample_rate=0.2
+            org_id=test_org.id, project_id=project_b.id, sample_rate=0.2
         )
 
         with self.tasks():
@@ -954,14 +954,14 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         test_org = self.create_organization(name="sample-org")
 
         # Create 2 projects
-        proj_a = self.create_project_and_add_metrics("a", 2, test_org)
-        proj_b = self.create_project_and_add_metrics("b", 3, test_org)
+        project_a = self.create_project_and_add_metrics("a", 2, test_org)
+        project_b = self.create_project_and_add_metrics("b", 3, test_org)
 
         self.add_sliding_window_sample_rate_per_project(
-            org_id=test_org.id, project_id=proj_a.id, sample_rate=1.0
+            org_id=test_org.id, project_id=project_a.id, sample_rate=1.0
         )
         self.add_sliding_window_sample_rate_per_project(
-            org_id=test_org.id, project_id=proj_b.id, sample_rate=1.0
+            org_id=test_org.id, project_id=project_b.id, sample_rate=1.0
         )
 
         with self.tasks():
@@ -987,21 +987,35 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         test_org = self.create_organization(name="sample-org")
 
         # Create 2 projects
-        proj_a = self.create_project_and_add_metrics("a", 1, test_org)
-        proj_b = self.create_project_and_add_metrics("b", 10, test_org)
-        proj_c = self.create_project_without_metrics("c", test_org)
+        project_a = self.create_project_and_add_metrics("a", 1, test_org)
+        project_b = self.create_project_and_add_metrics("b", 10, test_org)
+        project_c = self.create_project_without_metrics("c", test_org)
 
         # We simulate that proj_c had an old sample rate but since it has no metrics, it should be deleted and no sample
         # rate for that project should be found.
         self.add_sliding_window_sample_rate_per_project(
-            org_id=test_org.id, project_id=proj_c.id, sample_rate=1.0
+            org_id=test_org.id, project_id=project_c.id, sample_rate=1.0
         )
 
         with self.tasks():
             sliding_window()
 
-        assert self.exists_sliding_window_sample_rate_for_project(test_org.id, proj_a.id)
-        assert self.exists_sliding_window_sample_rate_for_project(test_org.id, proj_b.id)
-        assert not self.exists_sliding_window_sample_rate_for_project(test_org.id, proj_c.id)
+        assert self.exists_sliding_window_sample_rate_for_project(test_org.id, project_a.id)
+        assert self.exists_sliding_window_sample_rate_for_project(test_org.id, project_b.id)
+        assert not self.exists_sliding_window_sample_rate_for_project(test_org.id, project_c.id)
 
         assert schedule_invalidate_project_config.call_count == 2
+
+        with self.feature("organizations:ds-sliding-window"):
+            assert generate_rules(project_a)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": 0.8,
+            }
+            assert generate_rules(project_b)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": 0.4,
+            }
+            assert generate_rules(project_c)[0]["samplingValue"] == {
+                "type": "sampleRate",
+                "value": 1.0,
+            }
