@@ -561,6 +561,8 @@ register(
 )
 # Use a fraction of Symbolicator Source Maps processing events for A/B testing.
 register("symbolicator.sourcemaps-processing-ab-test", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Gradually migrate from file_id to download_id
+register("symbolicator.sourcemap-lookup-id-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
