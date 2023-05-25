@@ -48,3 +48,45 @@ filterwarnings = [
     "ignore:The --looponfail command line argument.*",
 ]
 looponfailroots = ["src", "tests"]
+
+[tool.mypy]
+python_version = "3.8"
+mypy_path = ["fixtures/stubs-for-mypy"]
+plugins = ["pydantic.mypy"]
+files = ["."]
+exclude = ["^.venv/", "^self-hosted/"]
+
+# minimal strictness settings
+check_untyped_defs = true
+no_implicit_reexport = true
+warn_unreachable = true
+warn_unused_configs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+# these have py.typed but incorrect types
+[[tool.mypy.overrides]]
+module = [
+    # TODO: remove after https://github.com/getsentry/sentry/pull/50508
+    "docker.*",
+    # TODO: these cause type errors when followed
+    "snuba_sdk.*",
+    # this package marks itself as typed but has no annotations
+    "google.cloud.bigtable.*",
+    # https://github.com/googleapis/python-api-core/pull/453
+    "google.api_core.retry",
+]
+follow_imports = "skip"
+
+# https://github.com/python/mypy/issues/15343
+[[tool.mypy.overrides]]
+module = "google.*"
+ignore_missing_imports = true
+
+# python3 -m tools.mypy_helpers.make_stub_ignores
+# begin: missing 3rd party stubs
+# end: missing 3rd party stubs
+
+# python3 -m tools.mypy_helpers.make_module_ignores
+# begin: sentry modules with typing issues
+# end: sentry modules with typing issues
