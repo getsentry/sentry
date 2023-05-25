@@ -43,7 +43,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0467_control_files"),
+        ("sentry", "0468_backfill_orgmembermapping"),
     ]
 
     operations = [
