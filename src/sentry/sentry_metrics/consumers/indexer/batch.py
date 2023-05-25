@@ -100,10 +100,6 @@ class IndexerBatch:
         self.is_output_sliced = is_output_sliced
         self.__input_codec = input_codec
 
-        self.__message_count: MutableMapping[UseCaseID, int] = defaultdict(int)
-        self.__message_size_sum: MutableMapping[UseCaseID, int] = defaultdict(int)
-        self.__message_size_max: MutableMapping[UseCaseID, int] = defaultdict(int)
-
         self._extract_messages()
 
     @metrics.wraps("process_messages.extract_messages")
@@ -114,7 +110,6 @@ class IndexerBatch:
         for msg in self.outer_message.payload:
             assert isinstance(msg.value, BrokerValue)
             partition_offset = PartitionIdxOffset(msg.value.partition.index, msg.value.offset)
-
             try:
                 parsed_payload: ParsedMessage = json.loads(
                     msg.payload.value.decode("utf-8"), use_rapid_json=True
@@ -143,9 +138,7 @@ class IndexerBatch:
                 )
 
             try:
-                parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(
-                    parsed_payload["name"]
-                )
+                parsed_payload["use_case_id"] = extract_use_case_id(parsed_payload["name"])
             except ValidationError:
                 self.skipped_offsets.add(partition_offset)
                 logger.error(
@@ -154,12 +147,6 @@ class IndexerBatch:
                     exc_info=True,
                 )
                 continue
-
-            self.__message_count[use_case_id] += 1
-            self.__message_size_max[use_case_id] = max(
-                len(msg.payload.value), self.__message_size_max[use_case_id]
-            )
-            self.__message_size_sum[use_case_id] += len(msg.payload.value)
 
             # Ensure that the parsed_payload can be cast back to to
             # IngestMetric. If there are any schema changes, this check would
@@ -472,20 +459,5 @@ class IndexerBatch:
             else:
                 new_messages.append(Message(message.value.replace(kafka_payload)))
 
-        for use_case_id in self.__message_count:
-            metrics.incr(
-                "metrics_consumer.process_message.messages_seen",
-                amount=self.__message_count[use_case_id],
-                tags={"use_case_id": use_case_id.value},
-            )
-            metrics.timing(
-                "metrics_consumer.process_message.message.size.avg",
-                self.__message_size_sum[use_case_id] / self.__message_count[use_case_id],
-                tags={"use_case_id": use_case_id.value},
-            )
-            metrics.timing(
-                "metrics_consumer.process_message.message.size.max",
-                self.__message_size_max[use_case_id],
-                tags={"use_case_id": use_case_id.value},
-            )
+        metrics.incr("metrics_consumer.process_message.messages_seen", amount=len(new_messages))
         return new_messages

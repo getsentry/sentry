@@ -678,6 +678,12 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
 
         return volume * 1000
 
+    def add_sliding_window_sample_rate_per_project(
+        self, org_id: int, project_id: int, sample_rate: float
+    ):
+        redis_client = get_redis_client_for_ds()
+        redis_client.hset(generate_sliding_window_cache_key(org_id), project_id, sample_rate)
+
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
@@ -889,3 +895,69 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         with self.feature("organizations:ds-sliding-window"):
             with self.options({"dynamic-sampling:sliding_window.size": None}):
                 assert len(generate_rules(project)) == 0
+
+    @patch("sentry.dynamic_sampling.tasks.schedule_invalidate_project_config")
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    def test_config_invalidation_when_sample_rates_change(
+        self,
+        extrapolate_monthly_volume,
+        get_transaction_sampling_tier_for_volume,
+        get_blended_sample_rate,
+        schedule_invalidate_project_config,
+    ):
+        extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
+        get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
+        get_blended_sample_rate.return_value = 0.8
+        # Create a org
+        test_org = self.create_organization(name="sample-org")
+
+        # Create 2 projects
+        proj_a = self.create_project_and_add_metrics("a", 1, test_org)
+        proj_b = self.create_project_and_add_metrics("b", 10, test_org)
+
+        self.add_sliding_window_sample_rate_per_project(
+            org_id=test_org.id, project_id=proj_a.id, sample_rate=0.1
+        )
+        self.add_sliding_window_sample_rate_per_project(
+            org_id=test_org.id, project_id=proj_b.id, sample_rate=0.2
+        )
+
+        with self.tasks():
+            sliding_window()
+
+        assert schedule_invalidate_project_config.call_count == 2
+
+    @patch("sentry.dynamic_sampling.tasks.schedule_invalidate_project_config")
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    def test_config_invalidation_when_sample_rates_do_not_change(
+        self,
+        extrapolate_monthly_volume,
+        get_transaction_sampling_tier_for_volume,
+        get_blended_sample_rate,
+        schedule_invalidate_project_config,
+    ):
+        extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
+        get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
+        get_blended_sample_rate.return_value = 0.8
+        # Create a org
+        test_org = self.create_organization(name="sample-org")
+
+        # Create 2 projects
+        proj_a = self.create_project_and_add_metrics("a", 2, test_org)
+        proj_b = self.create_project_and_add_metrics("b", 3, test_org)
+
+        self.add_sliding_window_sample_rate_per_project(
+            org_id=test_org.id, project_id=proj_a.id, sample_rate=1.0
+        )
+        self.add_sliding_window_sample_rate_per_project(
+            org_id=test_org.id, project_id=proj_b.id, sample_rate=1.0
+        )
+
+        with self.tasks():
+            sliding_window()
+
+        schedule_invalidate_project_config.assert_not_called()
