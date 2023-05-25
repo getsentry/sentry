@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {DomainSelector} from 'sentry/views/starfish/views/spans/domainSelector';
 import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/spanOperationSelector';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
@@ -83,8 +84,9 @@ export default function SpansView(props: Props) {
         <DatePageFilter alignDropdown="left" />
 
         <SpanOperationSelector value={props.appliedFilters.span_operation} />
+        <DomainSelector value={props.appliedFilters.domain} />
 
-        {['domain', 'action'].map(filterKey => {
+        {['action'].map(filterKey => {
           const value = props.appliedFilters[filterKey];
 
           return value ? (
