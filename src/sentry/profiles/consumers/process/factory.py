@@ -1,4 +1,4 @@
-from multiprocessing import Process
+from threading import Thread
 from time import sleep
 from typing import Mapping
 
@@ -12,9 +12,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 
-from sentry.monitoring.queues import AmqpBackend
 from sentry.profiles.task import process_profile_task
-from sentry.server import settings
 from sentry.utils import redis
 
 QUEUES = ["profiles.process"]
@@ -41,31 +39,34 @@ def is_healthy(queue_size):
     return queue_size < 1000
 
 
-def update_queue_stats(redis_cluster, backend: AmqpBackend) -> None:
+def update_queue_stats(redis_cluster, backend) -> None:
     new_sizes = backend.bulk_get_sizes(QUEUES)
-    # compute this based on sizes
+    # compute unhealthiness based on sizes
     unhealthy = {queue for (queue, size) in new_sizes if not is_healthy(size)}
-    with redis_cluster.pipeline(transaction=True) as pipeline:
-        pipeline.delete(KEY_NAME)
-        pipeline.sadd(KEY_NAME, *unhealthy)
-        pipeline.execute()
+    if unhealthy:
+        with redis_cluster.pipeline(transaction=True) as pipeline:
+            pipeline.sadd(KEY_NAME, *unhealthy)
+            # expire in 1min if we haven't checked in
+            pipeline.expire(KEY_NAME, ttl=60)
+            pipeline.execute()
 
 
-def run_queue_stats_updater(broker_url: str, redis_cluster: str) -> None:
+def run_queue_stats_updater(redis_cluster: str) -> None:
     # bonus point if we manage to use asyncio and launch all tasks at once
     # in case we have many queues to check
     cluster = redis.redis_clusters.get(redis_cluster)
-    backend = AmqpBackend(broker_url)
+    from sentry.monitoring.queues import backend
+
+    if backend is None:
+        raise Exception("unknown broker type")
     while True:
         update_queue_stats(cluster, backend)
         sleep(5)
 
 
 class QueueMonitor:
-    def __init__(self, broker_url, redis_cluster: str):
-        queue_stats_updater_process = Process(
-            target=self.run_queue_stats_updater, args=(broker_url, redis_cluster)
-        )
+    def __init__(self, redis_cluster: str):
+        queue_stats_updater_process = Thread(target=run_queue_stats_updater, args=(redis_cluster,))
         queue_stats_updater_process.start()
 
 
@@ -75,7 +76,7 @@ class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        _ = QueueMonitor(settings.BROKER_URL, CLUSTER_NAME)
+        _ = QueueMonitor(CLUSTER_NAME)
         return RunTask(
             function=process_message,
             next_step=CommitOffsets(commit),
