@@ -27,7 +27,7 @@ CONFLICTING_TEAM_SLUG_ERROR = "A team with this slug already exists."
 MISSING_PERMISSION_ERROR_STRING = "You do not have permission to join a new team as a Team Admin."
 
 
-def generate_three_letter_string():
+def _generate_suffix():
     letters = string.ascii_lowercase
     return "".join(random.choice(letters) for _ in range(3))
 
@@ -91,18 +91,17 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
         project_name = result["name"]
         default_team_slug = f"default-team-{request.user.username}"
         suffixed_team_slug = default_team_slug
-        attempts = 0
 
-        # add suffix to default team name until name is available
+        # attempt to a maximum of 5 times to add suffix to team slug until it is unique
+        attempts = 0
         while Team.objects.filter(organization=organization, slug=suffixed_team_slug).exists():
-            # limit to a maximum of 5 attempts
             if attempts > 4:
                 raise ConflictError(
                     {
                         "detail": "Unable to create a default team for this user. Please try again.",
                     }
                 )
-            suffixed_team_slug = f"{default_team_slug}-{generate_three_letter_string()}"
+            suffixed_team_slug = f"{default_team_slug}-{_generate_suffix()}"
             attempts += 1
 
         default_team_slug = suffixed_team_slug
