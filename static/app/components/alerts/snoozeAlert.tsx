@@ -113,28 +113,33 @@ function SnoozeAlert({
     }
   }
 
+  const primaryMuteAction =
+    ruleActionCategory === RuleActionsCategories.AllDefault ? 'me' : 'everyone';
+
   useEffect(() => {
     if (location.query.mute === '1' && !isSnoozed) {
-      const target =
-        ruleActionCategory !== RuleActionsCategories.AllDefault ? `everyone` : `me`;
-      handleMute(target, true);
+      handleMute(primaryMuteAction, true);
     }
-  }, [location.query, isSnoozed, handleMute, ruleActionCategory]);
+  }, [location.query, isSnoozed, handleMute, primaryMuteAction]);
 
   const dropdownItems: MenuItemProps[] = [
     {
       key: 'me',
       label: t('Mute for me'),
       onAction: () => handleMute('me'),
+      // Hidden if all default actions because it will be the primary button and no default actions since it shouldn't be an option
       hidden: ruleActionCategory !== RuleActionsCategories.SomeDefault,
     },
     {
       key: 'everyone',
       label: t('Mute for everyone'),
       onAction: () => handleMute('everyone'),
+      // Hidden if some default or no default actions since it will be the primary button, not in dropdown
       hidden: ruleActionCategory !== RuleActionsCategories.AllDefault,
     },
   ];
+
+  const hasDropdown = dropdownItems.filter(item => !item.hidden).length > 0;
 
   if (isSnoozed) {
     return (
@@ -154,16 +159,12 @@ function SnoozeAlert({
         size="sm"
         icon={<IconSound />}
         disabled={disabled || !hasAccess}
-        hasDropdown={ruleActionCategory !== RuleActionsCategories.NoDefault}
+        hasDropdown={hasDropdown}
         onClick={() => {
-          const target =
-            ruleActionCategory !== RuleActionsCategories.AllDefault ? 'everyone' : 'me';
-          handleMute(target);
+          handleMute(primaryMuteAction);
         }}
       >
-        {ruleActionCategory === RuleActionsCategories.AllDefault
-          ? t('Mute for me')
-          : t('Mute for everyone')}
+        {primaryMuteAction === 'me' ? t('Mute for me') : t('Mute for everyone')}
       </MuteButton>
       {ruleActionCategory !== RuleActionsCategories.NoDefault && (
         <DropdownMenu

@@ -69,6 +69,23 @@ const getIssueAlertDetailsQueryKey = ({
   {query: {expand: 'lastTriggered'}},
 ];
 
+function getRuleActionCategory(rule: IssueAlertRule) {
+  const numDefaultActions = rule.actions.filter(
+    action => action.id === 'sentry.mail.actions.NotifyEmailAction'
+  ).length;
+
+  switch (numDefaultActions) {
+    // Are all actions default actions?
+    case rule.actions.length:
+      return RuleActionsCategories.AllDefault;
+    // Are none of the actions default actions?
+    case 0:
+      return RuleActionsCategories.NoDefault;
+    default:
+      return RuleActionsCategories.SomeDefault;
+  }
+}
+
 function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -216,16 +233,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   const hasSnoozeFeature = organization.features.includes('mute-alerts');
   const isSnoozed = rule.snooze;
 
-  const numDefaultActions = rule.actions.filter(
-    action => action.id === 'sentry.mail.actions.NotifyEmailAction'
-  ).length;
-
-  const ruleActionCategory =
-    numDefaultActions === rule.actions.length
-      ? RuleActionsCategories.AllDefault
-      : numDefaultActions === 0
-      ? RuleActionsCategories.NoDefault
-      : RuleActionsCategories.SomeDefault;
+  const ruleActionCategory = getRuleActionCategory(rule);
 
   const duplicateLink = {
     pathname: `/organizations/${organization.slug}/alerts/new/issue/`,

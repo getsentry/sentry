@@ -113,6 +113,11 @@ export type NoteType = {
   text: string;
 };
 
+/**
+ * Used when determining what types of actions a rule has. The default action is "sentry.mail.actions.NotifyEmailAction"
+ * while other actions can be integration (Slack, PagerDuty, etc) actions. We need to know this to determine what kind of muting
+ * the alert should have.
+ */
 export enum RuleActionsCategories {
   AllDefault = 'all_default',
   SomeDefault = 'some_default',
