@@ -215,9 +215,9 @@ function PageLayout(props: Props) {
             return <LoadingIndicator />;
           }
 
-          const selectableProjects = tableData?.data.map(
-            row => projects.find(project => project.slug === row.project) as Project
-          );
+          const selectableProjects = tableData?.data
+            .map(row => projects.find(project => project.slug === row.project))
+            .filter((p): p is Project => p !== undefined);
 
           return (
             selectableProjects && (
