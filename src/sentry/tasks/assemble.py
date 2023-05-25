@@ -314,20 +314,20 @@ def _bind_or_create_artifact_bundle(
             )
 
             return artifact_bundle, True
+        else:
+            # We store a reference to the previous file to which the bundle was pointing to.
+            existing_file = existing_artifact_bundle.file
 
-        # We store a reference to the previous file to which the bundle was pointing to.
-        existing_file = existing_artifact_bundle.file
+            # In case there is an ArtifactBundle with a specific bundle_id, we want to change its underlying File model
+            # with its corresponding artifact count.
+            existing_artifact_bundle.update(
+                date_added=date_added, file=archive_file, artifact_count=artifact_count
+            )
 
-        # In case there is an ArtifactBundle with a specific bundle_id, we want to change its underlying File model
-        # with its corresponding artifact count.
-        existing_artifact_bundle.update(
-            date_added=date_added, file=archive_file, artifact_count=artifact_count
-        )
+            # We now delete that file, in order to avoid orphan files in the database.
+            existing_file.delete()
 
-        # We now delete that file, in order to avoid orphan files in the database.
-        existing_file.delete()
-
-    return existing_artifact_bundle, False
+            return existing_artifact_bundle, False
 
 
 def _align_date_added_field(org_id: int, artifact_bundle: ArtifactBundle, date_added: datetime):
