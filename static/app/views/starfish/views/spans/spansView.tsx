@@ -6,7 +6,6 @@ import _orderBy from 'lodash/orderBy';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import SearchBar from 'sentry/components/searchBar';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModuleName} from 'sentry/views/starfish/types';
@@ -146,12 +145,7 @@ const FilterOptionsContainer = styled(PaddedContainer)`
   margin-bottom: ${space(2)};
 `;
 
-export const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
-export const SPAN_FILTER_KEY_LABELS = {
-  span_operation: t('Operation'),
-  domain: t('Domain'),
-  action: t('Action'),
-};
+const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
 
 const buildQueryFilterFromLocation = (location: Location) => {
   const {query} = location;
