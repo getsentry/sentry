@@ -54,6 +54,7 @@ export function SpanOperationSelector({value = ''}: Props) {
 function getQuery() {
   return `SELECT span_operation, count()
     FROM spans_experimental_starfish
+    WHERE span_operation != ''
     GROUP BY span_operation
     ORDER BY count() DESC
     LIMIT 25

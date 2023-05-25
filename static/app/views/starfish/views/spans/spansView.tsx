@@ -162,6 +162,7 @@ const buildQueryFilterFromLocation = (location: Location) => {
   const {query} = location;
   const result = Object.keys(query)
     .filter(key => SPAN_FILTER_KEYS.includes(key))
+    .filter(key => Boolean(query[key]))
     .map(key => {
       return `${key} = '${query[key]}'`;
     });
