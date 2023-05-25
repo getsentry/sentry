@@ -559,10 +559,8 @@ class OrganizationView(BaseView, abc.ABC):
 
 class RegionSiloOrganizationView(OrganizationView):
     """
-    A view which has direct ORM access to organization objects.  In practice, **only endpoints that exist in the
-    region silo should use this class**.  When All endpoints have been convert / tested against region silo compliance,
-    the base class (OrganizationView) will likely disappear and only either ControlSilo* or RegionSilo* classes will
-    remain.
+    A view which has direct ORM access to organization objects.  Only endpoints that exist in the
+    region silo should use this class.
     """
 
     def _get_organization(self) -> Organization | None:
@@ -575,6 +573,11 @@ class RegionSiloOrganizationView(OrganizationView):
 
 
 class ControlSiloOrganizationView(OrganizationView):
+    """A view which accesses organization objects over RPC.
+
+    Only endpoints on the control silo should use this class (but it works anywhere).
+    """
+
     def _get_organization(self) -> RpcOrganization | None:
         return self.active_organization.organization if self.active_organization else None
 
