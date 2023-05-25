@@ -765,9 +765,10 @@ export class TokenConverter {
       return {reason: t('Lists should not have empty values')};
     }
 
-    const hasWildCard = items.some(item => item.value.value.includes('*'));
-
-    if (this.config.disallowWildcard && hasWildCard) {
+    if (
+      this.config.disallowWildcard && 
+      items.some(item => item.value.value.includes('*')
+    ) {
       return {reason: t('Lists should not have wildcard values')};
     }
 
