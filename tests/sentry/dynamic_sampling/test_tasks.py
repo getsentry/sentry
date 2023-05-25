@@ -7,6 +7,7 @@ from freezegun import freeze_time
 
 from sentry.dynamic_sampling import generate_rules, get_redis_client_for_ds
 from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
+from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_cache_key
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     get_transactions_resampling_rates,
 )
@@ -72,6 +73,10 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
         self.disable_all_biases(project=proj)
 
         return proj
+
+    def add_sample_rate_per_project(self, org_id: int, project_id: int, sample_rate: float):
+        redis_client = get_redis_client_for_ds()
+        redis_client.hset(_generate_cache_key(org_id), project_id, sample_rate)
 
     @staticmethod
     def sampling_tier_side_effect(*args, **kwargs):
@@ -249,6 +254,68 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
             "value": pytest.approx(0.4444444444444444),
         }
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
+
+    @patch("sentry.dynamic_sampling.tasks.schedule_invalidate_project_config")
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    def test_config_invalidation_when_sample_rates_change(
+        self,
+        extrapolate_monthly_volume,
+        get_transaction_sampling_tier_for_volume,
+        get_blended_sample_rate,
+        schedule_invalidate_project_config,
+    ):
+        extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
+        get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
+        get_blended_sample_rate.return_value = 0.8
+        # Create a org
+        test_org = self.create_organization(name="sample-org")
+
+        # Create 2 projects
+        proj_a = self.create_project_and_add_metrics("a", 9, test_org)
+        proj_b = self.create_project_and_add_metrics("b", 7, test_org)
+
+        self.add_sample_rate_per_project(org_id=test_org.id, project_id=proj_a.id, sample_rate=0.1)
+        self.add_sample_rate_per_project(org_id=test_org.id, project_id=proj_b.id, sample_rate=0.2)
+
+        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
+            with self.feature("organizations:ds-sliding-window-org"):
+                with self.tasks():
+                    prioritise_projects()
+
+        assert schedule_invalidate_project_config.call_count == 2
+
+    @patch("sentry.dynamic_sampling.tasks.schedule_invalidate_project_config")
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    def test_config_invalidation_when_sample_rates_do_not_change(
+        self,
+        extrapolate_monthly_volume,
+        get_transaction_sampling_tier_for_volume,
+        get_blended_sample_rate,
+        schedule_invalidate_project_config,
+    ):
+        extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
+        get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
+        get_blended_sample_rate.return_value = 0.8
+        # Create a org
+        test_org = self.create_organization(name="sample-org")
+
+        # Create 2 projects
+        proj_a = self.create_project_and_add_metrics("a", 9, test_org)
+        proj_b = self.create_project_and_add_metrics("b", 7, test_org)
+
+        self.add_sample_rate_per_project(org_id=test_org.id, project_id=proj_a.id, sample_rate=1.0)
+        self.add_sample_rate_per_project(org_id=test_org.id, project_id=proj_b.id, sample_rate=1.0)
+
+        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
+            with self.feature("organizations:ds-sliding-window-org"):
+                with self.tasks():
+                    prioritise_projects()
+
+        schedule_invalidate_project_config.assert_not_called()
 
 
 @freeze_time(MOCK_DATETIME)
