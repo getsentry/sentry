@@ -222,7 +222,7 @@ const Negation = styled('span')`
   ${filterCss};
   border-right: none;
   padding-left: 1px;
-  margin-left: -2px;
+  margin-left: -1px;
   font-weight: bold;
   border-radius: 2px 0 0 2px;
   color: ${p => p.theme.red400};
