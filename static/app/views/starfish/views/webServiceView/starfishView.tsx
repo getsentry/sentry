@@ -20,7 +20,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
@@ -225,11 +225,8 @@ export function StarfishView(props: BasePerformanceViewProps) {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis="p50(transaction.duration)"
+        yAxis={['p95(transaction.duration)', 'p50(transaction.duration)']}
         queryExtras={{dataset: 'metrics'}}
-        orderby="-sum_transaction_duration"
-        topEvents={5}
-        field={['transaction', 'sum(transaction.duration)', 'p50(transaction.duration)']}
       >
         {({loading, results}) => {
           const transformedData: Series[] | undefined = results?.map(series => ({
@@ -260,13 +257,14 @@ export function StarfishView(props: BasePerformanceViewProps) {
               chartColors={theme.charts.getColorPalette(2)}
               disableXAxis
               aggregateOutputFormat="duration"
-              showLegend
             />
           );
         }}
       </EventsRequest>
     );
   }
+
+  useSynchronizeCharts();
 
   return (
     <div data-test-id="starfish-view">
@@ -279,7 +277,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
             <MiniChartPanel title={t('Error Rate')}>
               {renderFailureRateChart()}
             </MiniChartPanel>
-            <MiniChartPanel title={t('Top Endpoint Response Times')}>
+            <MiniChartPanel title={t('Duration')}>
               {renderEndpointPercentileChart()}
             </MiniChartPanel>
             <MiniChartPanel title={t('Throughput')}>
