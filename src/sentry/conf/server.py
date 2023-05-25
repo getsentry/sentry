@@ -1218,6 +1218,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues": False,
     # Enable archive/escalating issue workflow UI, enable everything except post processing
     "organizations:escalating-issues-ui": False,
+    # Enable escalating forecast threshold a/b experiment
+    "organizations:escalating-issues-experiment-group": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
     # Enable the new issue states and substates
