@@ -119,16 +119,26 @@ def test_can_update(
     options_flags: int,
     set_channel: Optional[UpdateChannel],
     check_channel: UpdateChannel,
-    set_reason: Optional[NotWritableReason],
+    set_to_same_value_reason: Optional[NotWritableReason],
     reset_reason: Optional[NotWritableReason],
     request: Any,
 ) -> None:
+    """
+    The option in this test is reset multiple times.
+
+    @param set_channel: the channel that sets the option first
+    @param check_channel: the channel we call can_update with
+    @param set_to_same_value_reason: We try to set the option without changing value.
+           this is the NotWritableReason we expect
+    @param reset_reason: The NotWritableReason we expect when trying to set to
+           a different value.
+    """
     manager = request.getfixturevalue(manager_fixture)
     manager.register("option", flags=options_flags)
     manager.register("another_option", flags=DEFAULT_FLAGS)
 
     reason = manager.can_update("option", "testval", check_channel)
-    assert reason == set_reason
+    assert reason == set_to_same_value_reason
 
     if set_channel:
         manager.set("option", "testval", channel=set_channel)
@@ -136,7 +146,7 @@ def test_can_update(
         manager.set("option", "testval")
 
     reason = manager.can_update("option", "testval", check_channel)
-    assert reason == set_reason
+    assert reason == set_to_same_value_reason
 
     reason = manager.can_update("option", "testval2", check_channel)
     assert reason == reset_reason
@@ -210,6 +220,9 @@ def test_non_writable_options(
 
 @pytest.mark.django_db
 def test_legacy_option(manager) -> None:
+    """
+    Tests legacy unregistered options.
+    """
     manager.set("sentry:something", "val")
     assert manager.get("sentry:something") == "val"
 

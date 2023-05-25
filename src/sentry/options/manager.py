@@ -46,21 +46,39 @@ class UpdateChannel(Enum):
 
 
 def required_flag_to_write(channel: UpdateChannel) -> int:
+    """
+    Returns the flag required in an option definition to allow
+    an update channel to write.
+    """
     if channel == UpdateChannel.ADMIN:
         return FLAG_ADMIN_MODIFIABLE
     elif channel == UpdateChannel.AUTOMATOR:
         return FLAG_AUTOMATOR_MODIFIABLE
     else:
+        # Other channels do not require any flag.
         return 0
 
 
 class NotWritableReason(Enum):
+    """
+    Represent the reason why an option cannot be updated on a
+    specific UpdateChannel.
+    """
+
+    # The option is registered with the FLAG_PRIORITIZE_DISK flag and it is
+    # also stored on disk as part of settings. Nobody can update this.
     OPTION_ON_DISK = "option_on_disk"
-    READONLY_DEFINITION = "readonly_definition"
+    # The option definition is read only. It cannot be updated by anybody.
     NOT_WRITABLE = "not_writable"
+    # The option cannot be updated by a specific channel because it is missing
+    # the required flag.
+    READONLY_DEFINITION = "readonly_definition"
+    # The option could be updated but it drifted and the channel we are trying
+    # to update with cannot overwrite.
     DRIFTED = "drifted"
 
 
+# These are the forbidden updates in case of drift.
 FORBIDDEN_TRANSITIONS = {
     UpdateChannel.UNKNOWN: {UpdateChannel.AUTOMATOR},
     UpdateChannel.APPLICATION: {UpdateChannel.AUTOMATOR},
@@ -103,6 +121,7 @@ FLAG_AUTOMATOR_MODIFIABLE = 1 << 11
 FLAG_MODIFIABLE_RATE = FLAG_ADMIN_MODIFIABLE | FLAG_RATE
 FLAG_MODIFIABLE_BOOL = FLAG_ADMIN_MODIFIABLE | FLAG_BOOL
 
+# These flags combinations prevent the `register` method from succeeding.
 INVALID_COMBINATIONS = {
     FLAG_ADMIN_MODIFIABLE | FLAG_NOSTORE,
     FLAG_ADMIN_MODIFIABLE | FLAG_IMMUTABLE,
@@ -154,6 +173,9 @@ class OptionsManager:
         """
         Set the value for an option. If the cache is unavailable the action will
         still succeed.
+
+        It also checks for drift and fails if the option value has drifted and the
+        `channel` is not authorized to overwrite.
 
         >>> from sentry import options
         >>> options.set('option', 'value')
@@ -432,13 +454,23 @@ class OptionsManager:
         return self.store.get_last_update_channel(opt)
 
     def has_changed(self, key: str, value, channel: UpdateChannel) -> bool:
+        """
+        Checks whether an option has changed.
+        Changed means either the last update channel changed or
+        The value changed.
+        """
         stored_value = self.get(key)
         last_updater = self.get_last_update_channel(key)
 
         return value != stored_value or channel != last_updater
 
     def can_update(self, key: str, value, channel: UpdateChannel) -> Optional[NotWritableReason]:
-        # TODO: embed this in the `set` method
+        """
+        Return the reason the provided channel cannot update the option
+        to the provided value or None if there is no reason and the update
+        is allowed.
+        """
+
         required_flag = required_flag_to_write(channel)
         opt = self.lookup_key(key)
         if opt.flags & (FLAG_NOSTORE | FLAG_IMMUTABLE):
