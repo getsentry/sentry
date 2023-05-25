@@ -65,7 +65,7 @@ Makefile                                                 @getsentry/owners-sentr
 .git-blame-ignore-revs                                   @getsentry/owners-sentry-dev
 
 mypy.ini                                                 @getsentry/python-typing
-/fixtures/stubs                                          @getsentry/python-typing
+/fixtures/stubs-for-mypy                                 @getsentry/python-typing
 
 # GitHub Routing Automations - notion.so/473791bae5bf43399d46093050b77bf0
 /.github/labels.yml                                      @getsentry/open-source
