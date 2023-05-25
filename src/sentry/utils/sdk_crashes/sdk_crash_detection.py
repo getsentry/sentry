@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict
 
 from django.conf import settings
@@ -12,6 +13,8 @@ from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetec
 from sentry.utils.sdk_crashes.event_stripper import EventStripper
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
+logger = logging.getLogger(__name__)
+
 
 class SDKCrashReporter:
     def __init__(self):
@@ -19,6 +22,8 @@ class SDKCrashReporter:
 
     def report(self, event_data: Dict[str, Any], event_project_id: int) -> Event:
         from sentry.event_manager import EventManager
+
+        logger.info("Detected SDK crash, reporting it to project with ID:%s", event_project_id)
 
         manager = EventManager(event_data)
         return manager.save(project_id=event_project_id)
@@ -70,6 +75,9 @@ class SDKCrashDetection:
             )
 
             if settings.SDK_CRASH_DETECTION_PROJECT_ID is None:
+                logger.error(
+                    "Detected SDK crash, but can't save it as SDK_CRASH_DETECTION_PROJECT_ID is none."
+                )
                 return None
 
             return self.sdk_crash_reporter.report(
