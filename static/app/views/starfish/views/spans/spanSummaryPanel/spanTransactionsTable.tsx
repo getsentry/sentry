@@ -166,12 +166,12 @@ const COLUMN_ORDER = [
   },
   {
     key: 'spm',
-    name: 'SPM',
+    name: 'Txn Throughput (TPM)',
     width: -1,
   },
   {
     key: 'p50',
-    name: 'p50',
+    name: 'Txn Duration (p50)',
     width: -1,
   },
 ];
