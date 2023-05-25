@@ -29,7 +29,6 @@ import {TextAlignRight} from 'sentry/views/starfish/modules/APIModule/endpointTa
 import {highlightSql} from 'sentry/views/starfish/modules/databaseModule/panel';
 import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {getDateFilters, PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import Sidebar, {
   getTransactionBasedSeries,
   queryDataToChartData,
@@ -163,20 +162,11 @@ export default function SpanSummary({location, params}: Props) {
     transactionAggregateData,
     dateFilter
   );
-
-  const [p50Series, spmSeries, _errorCountSeries] = queryDataToChartData(seriesData).map(
-    series => {
-      series.lineStyle = {type: 'dotted'};
-      const zerofilled = zeroFillSeries(
-        series,
-        moment.duration(12, 'hours'),
-        startTime,
-        endTime
-      );
-
-      return zerofilled;
-    }
-  );
+  const {
+    p50: p50Series,
+    spm: spmSeries,
+    failure_count: _errorCountSeries,
+  } = queryDataToChartData(seriesData, startTime, endTime, {lineStyle: {type: 'dotted'}});
 
   const {data: transactionData, isLoading: isTransactionDataLoading} = useApiQuery<{
     data: {data: Transaction[]};
