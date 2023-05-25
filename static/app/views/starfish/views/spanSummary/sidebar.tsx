@@ -9,6 +9,7 @@ import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/formatters';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
@@ -39,6 +40,7 @@ export default function Sidebar({
 }: Props) {
   const theme = useTheme();
   const pageFilter = usePageFilters();
+  const location = useLocation();
 
   const {isLoading: isFacetBreakdownLoading, data: facetBreakdownData} =
     useQueryGetFacetsBreakdown({groupId, transactionName});
@@ -157,13 +159,13 @@ export default function Sidebar({
                   const valueCount = values.filter(v => v === uniqueValue).length;
                   totalValues += valueCount;
 
+                  const newQuery = {...location.query, [facet]: uniqueValue};
+
                   return {
                     key: facet,
                     name: uniqueValue,
                     value: uniqueValue,
-                    url: `/starfish/span/${groupId}?${qs.stringify({
-                      [facet]: uniqueValue,
-                    })}`,
+                    url: `/starfish/span/${groupId}?${qs.stringify(newQuery)}`,
                     count,
                   };
                 }),
@@ -280,15 +282,6 @@ export const getTransactionBasedSeries = (
     12
   )[0];
 
-  const p95TransactionSeries = queryToSeries(
-    data,
-    'group',
-    'p95(transaction.duration)',
-    dateFilter.startTime,
-    dateFilter.endTime,
-    12
-  )[0];
-
   const throughputTransactionSeries = queryToSeries(
     data,
     'group',
@@ -299,9 +292,8 @@ export const getTransactionBasedSeries = (
   )[0];
   if (data.length) {
     p50TransactionSeries.seriesName = 'p50()';
-    p95TransactionSeries.seriesName = 'p95()';
     throughputTransactionSeries.seriesName = 'epm()';
   }
 
-  return {p50TransactionSeries, p95TransactionSeries, throughputTransactionSeries};
+  return {p50TransactionSeries, throughputTransactionSeries};
 };

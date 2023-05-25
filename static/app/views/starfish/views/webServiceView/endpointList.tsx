@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import {Location, LocationDescriptorObject} from 'history';
+import * as qs from 'query-string';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GridEditable, {
@@ -58,7 +59,6 @@ type Props = {
 function EndpointList({
   eventView,
   location,
-  onSelect,
   organization,
   setError,
   columnTitles,
@@ -81,7 +81,7 @@ function EndpointList({
     tableData: TableData | null,
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow,
-    deltaColumnMap: Record<string, string>
+    _deltaColumnMap: Record<string, string>
   ): React.ReactNode {
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -98,22 +98,18 @@ function EndpointList({
         prefix = `${dataRow['http.method']} `;
       }
 
-      const row = {
-        endpoint: `${prefix}${dataRow.transaction}`,
-        transaction: dataRow.transaction,
-        httpOp: dataRow['http.method'],
-        aggregateDetails: {
-          failureCount: dataRow['count_if(http.status_code,greaterOrEquals,500)'],
-          p50: dataRow['p50()'],
-          tpm: dataRow['tpm()'],
-          p50Delta: dataRow[deltaColumnMap['p50()']],
-        },
-      } as EndpointDataRow;
-
       return (
         <Link
-          onClick={() => onSelect(row)}
-          to=""
+          to={`/organizations/${
+            organization.slug
+          }/starfish/endpoint-overview/?${qs.stringify({
+            endpoint: dataRow.transaction,
+            method: dataRow['http.method'],
+            statsPeriod: eventView.statsPeriod,
+            project: eventView.project,
+            start: eventView.start,
+            end: eventView.end,
+          })}`}
           style={{display: `block`, width: `100%`}}
         >
           {prefix}

@@ -14,6 +14,7 @@ from sentry.options.manager import (
     FLAG_STOREONLY,
     OptionsManager,
     UnknownOption,
+    UpdateChannel,
 )
 from sentry.options.store import OptionsStore
 from sentry.testutils import TestCase
@@ -53,10 +54,23 @@ class OptionsManagerTest(TestCase):
         self.manager.set("foo", "bar")
 
         assert self.manager.get("foo") == "bar"
+        assert self.manager.get_last_update_channel("foo") == UpdateChannel.UNKNOWN
+
+        self.manager.set("foo", "baz", channel=UpdateChannel.CLI)
+
+        assert (
+            self.manager.get(
+                "foo",
+            )
+            == "baz"
+        )
+        assert self.manager.get_last_update_channel("foo") == UpdateChannel.CLI
 
         self.manager.delete("foo")
 
         assert self.manager.get("foo") == ""
+
+        assert self.manager.get_last_update_channel("foo") is None
 
     def test_register(self):
         with pytest.raises(UnknownOption):
