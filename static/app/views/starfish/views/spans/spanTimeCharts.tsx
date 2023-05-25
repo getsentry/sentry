@@ -87,7 +87,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
 
     return zeroFillSeries(
       {
-        seriesName: label ?? 'P50',
+        seriesName: label ?? 'p50()',
         data: groupData.map(datum => ({
           value: datum.p50,
           name: datum.interval,
@@ -148,6 +148,9 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
             isLineChart
             chartColors={themes.charts.getColorPalette(2)}
             disableXAxis
+            tooltipFormatterOptions={{
+              valueFormatter: value => `${value.toFixed(3)} / ${t('min')}`,
+            }}
           />
         </ChartPanel>
       </ChartsContainerItem>
