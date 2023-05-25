@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import ContextManager
 from unittest.mock import call, patch
 
+import pytest
 import responses
 from django.test import RequestFactory, override_settings
 from freezegun import freeze_time
@@ -28,6 +29,14 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits, region_silo_test
 from sentry.types.region import MONOLITH_REGION_NAME, Region, RegionCategory
+
+
+@pytest.fixture(autouse=True, scope="function")
+@pytest.mark.django_db(transaction=True)
+def setup_clear_fixture_outbox_messages():
+    with outbox_runner():
+        # flush all outbox messages associated with fixture setup to ensure a default empty state
+        pass
 
 
 @control_silo_test(stable=True)

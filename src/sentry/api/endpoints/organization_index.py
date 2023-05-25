@@ -250,6 +250,9 @@ class OrganizationIndexEndpoint(Endpoint):
                         actor_id=request.user.id if request.user.is_authenticated else None,
                     )
 
+                    # Queue outbox event to verify the new organization's mapping
+                    Organization.outbox_to_verify_mapping(org.id).save()
+
             # TODO(hybrid-cloud): We'll need to catch a more generic error
             # when the internal RPC is implemented.
             except IntegrityError:
