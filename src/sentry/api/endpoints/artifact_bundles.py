@@ -52,6 +52,10 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
         """
         query = request.GET.get("query")
 
+        # TODO: since we do a left join here, in case a bundle has at least one occurrence in the
+        #  ReleaseArtifactBundle table, we will not show its variant without a release. For example if a customer
+        #  uploads a bundle without a release and then re-uploads the same bundle with a release. We need to see if this
+        #  requires work on our end if customers do not like this behavior.
         q = Q()
         if query:
             q |= Q(bundle_id__icontains=query)
