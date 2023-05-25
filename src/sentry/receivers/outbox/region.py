@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.conf import settings
 from django.dispatch import receiver
 
 from sentry import roles
@@ -95,7 +96,7 @@ def process_organization_member_updates(
 
     rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(org_member)
 
-    if get_local_region().was_monolith:
+    if _was_monolith():
         organizationmember_mapping_service.update_with_organization_member(
             organizationmember_id=org_member.id,
             organization_id=shard_identifier,
@@ -103,6 +104,12 @@ def process_organization_member_updates(
         )
 
     maybe_handle_joined_user(org_member)
+
+
+def _was_monolith() -> bool:
+    if not settings.SENTRY_REGION:
+        return True
+    return get_local_region().was_monolith
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.TEAM_UPDATE)
