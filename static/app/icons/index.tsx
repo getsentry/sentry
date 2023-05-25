@@ -117,3 +117,4 @@ export {IconVercel} from './iconVercel';
 export {IconVsts} from './iconVsts';
 export {IconWarning} from './iconWarning';
 export {IconWindow} from './iconWindow';
+export {IconSentryPride} from './iconSentryPride';
