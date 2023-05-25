@@ -74,8 +74,8 @@ function OrganizationTeams({
   }
 
   const {slug: orgSlug, orgRole, orgRoleList, teamRoleList} = organization;
-  const filteredTeams = teams.filter(team =>
-    `#${team.slug}`.toLowerCase().includes(teamQuery.toLowerCase())
+  const filteredTeams = teams.filter(
+    team => team.slug && `#${team.slug}`.toLowerCase().includes(teamQuery.toLowerCase())
   );
   const [userTeams, otherTeams] = partition(filteredTeams, team => team.isMember);
 
