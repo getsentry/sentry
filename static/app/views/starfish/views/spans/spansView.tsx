@@ -4,8 +4,10 @@ import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import _orderBy from 'lodash/orderBy';
 
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import SearchBar from 'sentry/components/searchBar';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HOST} from 'sentry/views/starfish/utils/constants';
@@ -18,6 +20,7 @@ import SpansTable from './spansTable';
 const LIMIT: number = 25;
 
 type Props = {
+  appliedFilters: {[key: string]: string};
   location: Location;
   onSelect: (row: SpanDataRow) => void;
 };
@@ -79,6 +82,24 @@ export default function SpansView(props: Props) {
     <Fragment>
       <FilterOptionsContainer>
         <DatePageFilter alignDropdown="left" />
+
+        {SPAN_FILTER_KEYS.map(filterKey => {
+          const value = props.appliedFilters[filterKey];
+
+          return value ? (
+            <CompactSelect
+              key={filterKey}
+              triggerProps={{prefix: SPAN_FILTER_KEY_LABELS[filterKey]}}
+              value={props.appliedFilters[filterKey]}
+              options={[
+                {
+                  value,
+                  label: value,
+                },
+              ]}
+            />
+          ) : null;
+        })}
       </FilterOptionsContainer>
 
       <PaddedContainer>
@@ -129,11 +150,11 @@ const FilterOptionsContainer = styled(PaddedContainer)`
   margin-bottom: ${space(2)};
 `;
 
-export const SPAN_FILTER_KEYS = ['action', 'span_operation', 'domain'];
+export const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
 export const SPAN_FILTER_KEY_LABELS = {
-  action: 'Action',
-  span_operation: 'Operation',
-  domain: 'Domain',
+  span_operation: t('Operation'),
+  domain: t('Domain'),
+  action: t('Action'),
 };
 
 const buildQueryFilterFromLocation = (location: Location) => {
