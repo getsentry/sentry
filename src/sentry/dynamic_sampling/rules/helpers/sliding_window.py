@@ -55,8 +55,8 @@ def get_sliding_window_sample_rate(
             return error_sample_rate_fallback
 
         return float(value)
-    # Thrown if the input is not a valid float.
-    except ValueError:
+    # Throw if the input is not a string or a float (e.g., None).
+    except TypeError:
         # In case we couldn't convert the value to float, that is, it is a string or the value is not there, we want
         # to fall back to 100% in case we know that the sliding window was executed. We track whether the task was
         # executed and completed successfully under the assumption that, if that is the case, all orgs and projects
@@ -67,8 +67,8 @@ def get_sliding_window_sample_rate(
         # In the other case were the sliding window was not run, maybe because of an issue, we will just fallback to
         # blended sample rate, to avoid oversampling.
         return error_sample_rate_fallback
-    # Throw if the input is not a string or a float.
-    except TypeError:
+    # Thrown if the input is not a valid float.
+    except ValueError:
         return error_sample_rate_fallback
 
 
