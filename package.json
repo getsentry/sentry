@@ -25,7 +25,7 @@
     "@popperjs/core": "^2.11.5",
     "@react-aria/button": "^3.3.4",
     "@react-aria/focus": "^3.5.0",
-    "@react-aria/gridlist": "^3.1.2",
+    "@react-aria/gridlist": "^3.4.0",
     "@react-aria/interactions": "^3.7.0",
     "@react-aria/listbox": "^3.5.1",
     "@react-aria/menu": "^3.3.0",
