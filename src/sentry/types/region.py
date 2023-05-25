@@ -58,8 +58,12 @@ class Region:
     category: RegionCategory
     """The region's category."""
 
+    # TODO: Possibly change auth schema in final implementation.
     api_token: str | None = None
-    """An API token to authorize RPCs from here to the region's silo."""
+
+    was_monolith: bool = False
+    """Indicates that a region had a historical monolith database, allowing OrganizationMemberMapping to
+    handle historical organization_member.ids"""
 
     def validate(self) -> None:
         from sentry import options
@@ -164,6 +168,7 @@ def get_local_region() -> Region:
             snowflake_id=0,
             address="/",
             category=RegionCategory.MULTI_TENANT,
+            was_monolith=True,
         )
 
     if SiloMode.get_current_mode() != SiloMode.REGION:

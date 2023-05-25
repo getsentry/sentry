@@ -26,7 +26,14 @@ from sentry.types.region import Region, RegionCategory
 from sentry.utils import json
 
 _REGIONS = [
-    Region("north_america", 1, "http://na.sentry.io", RegionCategory.MULTI_TENANT, "swordfish"),
+    Region(
+        "north_america",
+        1,
+        "http://na.sentry.io",
+        RegionCategory.MULTI_TENANT,
+        "swordfish",
+        was_monolith=True,
+    ),
     Region("europe", 2, "http://eu.sentry.io", RegionCategory.MULTI_TENANT, "courage"),
 ]
 

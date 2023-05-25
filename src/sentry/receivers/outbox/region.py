@@ -33,6 +33,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
     organizationmember_mapping_service,
 )
 from sentry.signals import member_joined
+from sentry.types.region import get_local_region
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.VERIFY_ORGANIZATION_MAPPING)
@@ -94,11 +95,12 @@ def process_organization_member_updates(
 
     rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(org_member)
 
-    organizationmember_mapping_service.update_with_organization_member(
-        organizationmember_id=org_member.id,
-        organization_id=shard_identifier,
-        rpc_update_org_member=rpc_org_member_update,
-    )
+    if get_local_region().was_monolith:
+        organizationmember_mapping_service.update_with_organization_member(
+            organizationmember_id=org_member.id,
+            organization_id=shard_identifier,
+            rpc_update_org_member=rpc_org_member_update,
+        )
 
     maybe_handle_joined_user(org_member)
 

@@ -20,7 +20,9 @@ class SlackRequestParserTest(TestCase):
     middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
     path_base = f"{IntegrationControlMiddleware.webhook_prefix}slack"
-    region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
+    region = Region(
+        "na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT, was_monolith=True
+    )
 
     def setUp(self):
         self.user = self.create_user()
