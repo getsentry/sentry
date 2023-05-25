@@ -43,7 +43,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0459_remove_user_actorid"),
+        ("sentry", "0467_control_files"),
     ]
 
     operations = [

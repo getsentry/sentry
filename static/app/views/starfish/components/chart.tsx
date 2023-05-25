@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {RefObject, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {LineSeriesOption} from 'echarts';
 import * as echarts from 'echarts/core';
@@ -14,7 +14,10 @@ import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import BaseChart from 'sentry/components/charts/baseChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import {getFormatter} from 'sentry/components/charts/components/tooltip';
+import {
+  FormatterOptions,
+  getFormatter,
+} from 'sentry/components/charts/components/tooltip';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
@@ -39,8 +42,10 @@ type Props = {
   utc: boolean;
   aggregateOutputFormat?: 'number' | 'percentage' | 'duration';
   chartColors?: string[];
+  chartGroup?: string;
   definedAxisTicks?: number;
   disableXAxis?: boolean;
+  forwardedRef?: RefObject<ReactEchartsRef>;
   grid?: AreaChartProps['grid'];
   height?: number;
   hideYAxisSplitLine?: boolean;
@@ -53,6 +58,7 @@ type Props = {
   showLegend?: boolean;
   stacked?: boolean;
   throughput?: {count: number; interval: string}[];
+  tooltipFormatterOptions?: FormatterOptions;
 };
 
 function computeMax(data: Series[]) {
@@ -118,14 +124,19 @@ function Chart({
   throughput,
   aggregateOutputFormat,
   onClick,
+  forwardedRef,
+  chartGroup,
+  tooltipFormatterOptions = {},
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
-  const chart = useRef<ReactEchartsRef>(null);
 
-  const echartsInstance = chart.current?.getEchartsInstance();
+  const defaultRef = useRef<ReactEchartsRef>(null);
+  const chartRef = forwardedRef || defaultRef;
+
+  const echartsInstance = chartRef?.current?.getEchartsInstance();
   if (echartsInstance && !echartsInstance.group) {
-    echartsInstance.group = STARFISH_CHART_GROUP;
+    echartsInstance.group = chartGroup ?? STARFISH_CHART_GROUP;
   }
 
   if (!data || data.length <= 0) {
@@ -215,12 +226,13 @@ function Chart({
         return element.classList.contains('echarts-for-react');
       }
     );
-    if (hoveredEchartElement === chart.current?.ele) {
+    if (hoveredEchartElement === chartRef?.current?.ele) {
       // Return undefined to use default formatter
       return getFormatter({
         isGroupedByDate: true,
         showTimeInTooltip: true,
         utc,
+        ...tooltipFormatterOptions,
       })(params, asyncTicket);
     }
     // Return empty string, ie no tooltip
@@ -292,7 +304,7 @@ function Chart({
           return (
             <BaseChart
               {...zoomRenderProps}
-              ref={chart}
+              ref={chartRef}
               height={height}
               previousPeriod={previousData}
               additionalSeries={transformedThroughput}
@@ -345,7 +357,7 @@ function Chart({
 
         return (
           <AreaChart
-            forwardedRef={chart}
+            forwardedRef={chartRef}
             height={height}
             {...zoomRenderProps}
             series={series}
@@ -363,10 +375,10 @@ function Chart({
 
 export default Chart;
 
-export function useSynchronizeCharts(deps: boolean[]) {
+export function useSynchronizeCharts(deps: boolean[] = []) {
   const [synchronized, setSynchronized] = useState<boolean>(false);
   useEffect(() => {
-    if (deps.every(dep => dep) && !synchronized) {
+    if (deps.every(Boolean)) {
       echarts.connect(STARFISH_CHART_GROUP);
       setSynchronized(true);
     }

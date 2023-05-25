@@ -406,7 +406,9 @@ class Organization(Model, SnowflakeIdMixin):
                     organization=to_org, user_id=from_member.user.id
                 )
             except OrganizationMember.DoesNotExist:
-                from_member.update(organization=to_org)
+                with transaction.atomic():
+                    from_member.organization = to_org
+                    from_member.save()
                 to_member = from_member
             else:
                 qs = OrganizationMemberTeam.objects.filter(
