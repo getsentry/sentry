@@ -328,11 +328,6 @@ class Factories:
                 organization=team.organization,
                 defaults={"role": "member"},
             )
-            # if created:
-            #     member.outbox_for_create().drain_shard(max_updates_to_drain=10)
-            #     organizationmember_mapping_service.create_with_organization_member(
-            #         org_member=member
-            #     )
 
         return OrganizationMemberTeam.objects.create(
             team=team, organizationmember=member, is_active=True, role=role

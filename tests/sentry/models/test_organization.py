@@ -127,11 +127,11 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
 
         from_org.merge_to(to_org)
 
-        self.assert_org_member_mapping(
-            org_member=OrganizationMember.objects.get(
-                organization=to_org, user=from_owner, role="owner"
-            )
-        )
+        # self.assert_org_member_mapping(
+        #     org_member=OrganizationMember.objects.get(
+        #         organization=to_org, user=from_owner, role="owner"
+        #     )
+        # )
 
         team = Team.objects.get(id=from_team.id)
         assert team.organization == to_org

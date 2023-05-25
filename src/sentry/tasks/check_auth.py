@@ -53,8 +53,8 @@ def check_auth_identity(auth_identity_id, **kwargs):
 
     auth_provider = auth_identity.auth_provider
 
-    om: RpcOrganizationMember = organization_service.get_organization_by_id(
-        id=auth_provider.organization_id, user_id=auth_identity.user_id
+    om: RpcOrganizationMember = organization_service.check_membership_by_id(
+        organization_id=auth_provider.organization_id, user_id=auth_identity.user_id
     )
     if om is None:
         logger.warning(
