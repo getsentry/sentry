@@ -3,26 +3,29 @@ import styled from '@emotion/styled';
 
 import {SpanEvidenceKeyValueList} from 'sentry/components/events/interfaces/performance/spanEvidenceKeyValueList';
 import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
-import {useDelayedLoadingState} from 'sentry/components/groupPreviewTooltip/utils';
+import {
+  useDelayedLoadingState,
+  usePreviewEvent,
+} from 'sentry/components/groupPreviewTooltip/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EventTransaction} from 'sentry/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type SpanEvidencePreviewProps = {
   children: ReactChild;
+  groupId: string;
   eventId?: string;
-  groupId?: string;
   projectSlug?: string;
 };
 
 type SpanEvidencePreviewBodyProps = {
-  endpointUrl: string;
+  groupId: string;
   onRequestBegin: () => void;
   onRequestEnd: () => void;
   onUnmount: () => void;
+  eventId?: string;
   projectSlug?: string;
 };
 
@@ -49,16 +52,18 @@ const makeGroupPreviewRequestUrl = ({
 };
 
 function SpanEvidencePreviewBody({
-  endpointUrl,
+  groupId,
+  eventId,
   onRequestBegin,
   onRequestEnd,
   onUnmount,
   projectSlug,
 }: SpanEvidencePreviewBodyProps) {
-  const {data, isLoading, isError} = useApiQuery<EventTransaction>(
-    [endpointUrl, {query: {referrer: 'api.issues.preview-performance'}}],
-    {staleTime: 60000}
-  );
+  const {data, isLoading, isError} = usePreviewEvent<EventTransaction>({
+    groupId,
+    eventId,
+    projectSlug,
+  });
 
   useEffect(() => {
     if (isLoading) {
@@ -125,8 +130,9 @@ export function SpanEvidencePreview({
           onRequestBegin={onRequestBegin}
           onRequestEnd={onRequestEnd}
           onUnmount={reset}
-          endpointUrl={endpointUrl}
           projectSlug={projectSlug}
+          eventId={eventId}
+          groupId={groupId}
         />
       }
     >

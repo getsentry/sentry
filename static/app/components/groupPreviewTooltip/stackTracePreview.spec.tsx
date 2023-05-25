@@ -16,6 +16,9 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
 
 beforeEach(() => {
   MockApiClient.clearMockResponses();
+  MockApiClient.addMockResponse({
+    url: '/issues/group-id/',
+  });
 });
 
 describe('StackTracePreview', () => {
@@ -26,7 +29,7 @@ describe('StackTracePreview', () => {
     });
 
     render(
-      <StackTracePreview issueId="issue" eventId="event_id" projectSlug="project_slug">
+      <StackTracePreview groupId="group-id" eventId="event_id" projectSlug="project_slug">
         Preview Trigger
       </StackTracePreview>
     );
@@ -38,13 +41,13 @@ describe('StackTracePreview', () => {
     });
   });
 
-  it('fetches from issues when issueId when eventId and projectSlug are not provided', async () => {
+  it('fetches from issues when eventId and projectSlug are not provided', async () => {
     const mockGet = MockApiClient.addMockResponse({
-      url: `/issues/issue/events/latest/?collapse=stacktraceOnly`,
+      url: `/issues/group-id/events/latest/`,
       body: makeEvent({id: 'event_id', entries: []}),
     });
 
-    render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>);
+    render(<StackTracePreview groupId="group-id">Preview Trigger</StackTracePreview>);
 
     await userEvent.hover(screen.getByText(/Preview Trigger/));
 
@@ -55,11 +58,11 @@ describe('StackTracePreview', () => {
 
   it('renders error message', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/issue/events/latest/?collapse=stacktraceOnly`,
+      url: `/issues/group-id/events/latest/`,
       statusCode: 400,
     });
 
-    render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>);
+    render(<StackTracePreview groupId="group-id">Preview Trigger</StackTracePreview>);
 
     await userEvent.hover(screen.getByText(/Preview Trigger/));
 
@@ -68,11 +71,11 @@ describe('StackTracePreview', () => {
 
   it('warns about no stacktrace', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/issue/events/latest/?collapse=stacktraceOnly`,
+      url: `/issues/group-id/events/latest/`,
       body: makeEvent({id: 'event_id', entries: []}),
     });
 
-    render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>);
+    render(<StackTracePreview groupId="group-id">Preview Trigger</StackTracePreview>);
 
     await userEvent.hover(screen.getByText(/Preview Trigger/));
 
@@ -136,11 +139,11 @@ describe('StackTracePreview', () => {
     } as EventError;
 
     MockApiClient.addMockResponse({
-      url: `/issues/issue/events/latest/?collapse=stacktraceOnly`,
+      url: `/issues/group-id/events/latest/`,
       body: makeEvent(errorEvent),
     });
 
-    render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>, {
+    render(<StackTracePreview groupId="group-id">Preview Trigger</StackTracePreview>, {
       organization: {features},
     });
 
