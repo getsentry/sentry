@@ -7,14 +7,13 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GroupStatusResolution, ResolutionStatus} from 'sentry/types';
+import {GroupStatusResolution, GroupSubstatus, ResolutionStatus} from 'sentry/types';
 
 interface ArchiveActionProps {
   onUpdate: (params: GroupStatusResolution) => void;
   className?: string;
   confirmLabel?: string;
   confirmMessage?: () => React.ReactNode;
-  disableTooltip?: boolean;
   disabled?: boolean;
   isArchived?: boolean;
   shouldConfirm?: boolean;
@@ -24,11 +23,12 @@ interface ArchiveActionProps {
 const ARCHIVE_UNTIL_ESCALATING: GroupStatusResolution = {
   status: ResolutionStatus.IGNORED,
   statusDetails: {},
-  substatus: 'until_escalating',
+  substatus: GroupSubstatus.ARCHIVED_UNTIL_ESCALATING,
 };
 const ARCHIVE_FOREVER: GroupStatusResolution = {
   status: ResolutionStatus.IGNORED,
   statusDetails: {},
+  substatus: GroupSubstatus.ARCHIVED_FOREVER,
 };
 
 export function getArchiveActions({
@@ -81,7 +81,6 @@ export function getArchiveActions({
 function ArchiveActions({
   size = 'xs',
   disabled,
-  disableTooltip,
   className,
   shouldConfirm,
   confirmLabel,
@@ -112,7 +111,7 @@ function ArchiveActions({
     <ButtonBar className={className} merged>
       <ArchiveButton
         size={size}
-        tooltipProps={{delay: 1000, disabled: disabled || disableTooltip}}
+        tooltipProps={{delay: 1000, disabled}}
         title={t('Hides the issue until the sh*t hits the fan and events escalate.')}
         onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
         disabled={disabled}

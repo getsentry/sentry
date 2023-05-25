@@ -122,12 +122,7 @@ class Item extends Component<Props, State> {
             onChange={this.handleCheckClick}
           />
           <EventDetails>
-            <EventOrGroupHeader
-              data={issue}
-              includeLink
-              size="normal"
-              source="similar-issues"
-            />
+            <EventOrGroupHeader data={issue} size="normal" source="similar-issues" />
             <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
           </EventDetails>
 

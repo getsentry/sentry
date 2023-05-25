@@ -107,6 +107,13 @@ SENTRY_DISALLOWED_IPS = ()
 # search domains.
 SENTRY_ENSURE_FQDN = False
 
+SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER = "default"
+SENTRY_INCIDENT_RULES_REDIS_CLUSTER = "default"
+SENTRY_RATE_LIMIT_REDIS_CLUSTER = "default"
+SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
+SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
+SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
+
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
 INTERNAL_SYSTEM_IPS = (
@@ -1213,10 +1220,6 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-ui": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
-    # Enable the task to transition new issues that are 3+ days old to (Unresolved, Ongoing) state
-    "organizations:issue-states-auto-transition-new-ongoing": False,
-    # Enable the task to transition regressed issues that are 14+ days old to (Unresolved, Ongoing) state
-    "organizations:issue-states-auto-transition-regressed-ongoing": False,
     # Enable the new issue states and substates
     "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1419,7 +1422,7 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
-    # Enables subquery optimizations for the replay_index page
+    # Enable subquery optimizations for the replay_index page
     "organizations:session-replay-index-subquery": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
@@ -1427,6 +1430,8 @@ SENTRY_FEATURES = {
     "organizations:starfish-view": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
+    # Replace the footer Sentry logo with a Sentry pride logo
+    "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -1487,6 +1492,8 @@ SENTRY_FEATURES = {
     "organizations:u2f-superuser-form": False,
     # Enable project creation for all
     "organizations:team-project-creation-all": False,
+    # Enable project creation for all and puts organization into test group
+    "organizations:team-project-creation-all-allowlist": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
     # Enable team member role provisioning through scim
@@ -1678,6 +1685,8 @@ SENTRY_SMTP_DISABLED_BACKENDS = frozenset(
     )
 )
 
+SENTRY_UPLOAD_RETRY_TIME = 60  # 1 min
+
 # Should users without superuser permissions be allowed to
 # make projects public
 SENTRY_ALLOW_PUBLIC_PROJECTS = True
@@ -1813,6 +1822,7 @@ SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+SENTRY_METRICS_SKIP_ALL_INTERNAL = False
 SENTRY_METRICS_DISALLOW_BAD_TAGS = IS_DEV
 
 # Metrics product
