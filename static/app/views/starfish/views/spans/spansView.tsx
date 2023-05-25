@@ -10,9 +10,9 @@ import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {ActionSelector} from 'sentry/views/starfish/views/spans/actionSelector';
-import {DomainSelector} from 'sentry/views/starfish/views/spans/domainSelector';
-import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/spanOperationSelector';
+import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
+import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
+import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/selectors/spanOperationSelector';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
 import {getSpanListQuery, getSpansTrendsQuery} from './queries';
