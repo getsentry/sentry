@@ -324,7 +324,9 @@ class ReferrerBase(Enum):
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
+    API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
+    API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE = "api.profiling.profile-summary-functions-table"
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
@@ -335,7 +337,17 @@ class ReferrerBase(Enum):
     API_TRACE_VIEW_HOVER_CARD = "api.trace-view.hover-card"
     API_TRACE_VIEW_SPAN_DETAIL = "api.trace-view.span-detail"
     API_TRENDS_GET_EVENT_STATS = "api.trends.get-event-stats"
-    API_TRENDS_GET_EVENT_STATS_NEW = "api.trends.get-event-stats-new"
+    API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS = "api.trends.get-event-statsv2.top-events"
+    API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_PRIMARY = (
+        "api.trends.get-event-statsv2.top-events.primary"
+    )
+    API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_METRICS_ENHANCED = (
+        "api.trends.get-event-statsv2.top-events.metrics-enhanced"
+    )
+    API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES = "api.trends.get-event-statsv2.timeseries"
+    API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES_METRICS_ENHANCED = (
+        "api.trends.get-event-statsv2.timeseries.metrics-enhanced"
+    )
     API_TRENDS_GET_PERCENTAGE_CHANGE = "api.trends.get-percentage-change"
     API_VROOM = "api.vroom"
     BACKFILL_PERF_ISSUE_EVENTS = "migration.backfill_perf_issue_events_issue_platform"
@@ -539,8 +551,6 @@ class ReferrerBase(Enum):
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"
     TAGSTORE_GET_GROUPS_USER_COUNTS = "tagstore.get_groups_user_counts"
-    TAGSTORE_GET_PERF_GROUP_LIST_TAG_VALUE = "tagstore.get_perf_group_list_tag_value"
-    TAGSTORE_GET_PERF_GROUPS_USER_COUNTS = "tagstore.get_perf_groups_user_counts"
     TAGSTORE_GET_GENERIC_GROUP_LIST_TAG_VALUE = "tagstore.get_generic_group_list_tag_value"
     TAGSTORE_GET_GENERIC_GROUPS_USER_COUNTS = "tagstore.get_generic_groups_user_counts"
     TAGSTORE_GET_RELEASE_TAGS = "tagstore.get_release_tags"
@@ -577,16 +587,7 @@ TSDB_MODEL_TO_SUFFIXES = {
         "alert_event_frequency",
         "alert_event_frequency_percent",
     },
-    TSDBModel.group_performance: {
-        "frequency_snoozes",
-        "alert_event_frequency",
-        "alert_event_frequency_percent",
-    },
     TSDBModel.users_affected_by_group: {"user_count_snoozes", "alert_event_uniq_user_frequency"},
-    TSDBModel.users_affected_by_perf_group: {
-        "user_count_snoozes",
-        "alert_event_uniq_user_frequency",
-    },
 }
 
 

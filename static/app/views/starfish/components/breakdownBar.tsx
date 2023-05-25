@@ -1,167 +1,235 @@
 import {Fragment, useState} from 'react';
+import {Link} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
+import * as qs from 'query-string';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {useQuery} from 'sentry/utils/queryClient';
-import {DatabaseDurationChart} from 'sentry/views/starfish/views/webServiceView/databaseDurationChart';
-import {HttpBreakdownChart} from 'sentry/views/starfish/views/webServiceView/httpBreakdownChart';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  getDatabaseTimeSpent,
-  getDbThroughput,
-  getHttpThroughput,
-  getOtherDomains,
-  getTopHttpDomains,
+  getOtherDomainsActionsAndOpTimeseries,
+  getTopDomainsActionsAndOp,
+  getTopDomainsActionsAndOpTimeseries,
+  totalCumulativeTime,
 } from 'sentry/views/starfish/views/webServiceView/queries';
+import {WebServiceBreakdownChart} from 'sentry/views/starfish/views/webServiceView/webServiceBreakdownChart';
 
-const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
-const TOOLTIP_DELAY = 800;
 const HOST = 'http://localhost:8080';
 
 type ModuleSegment = {
+  action: string;
+  domain: string;
   module: string;
+  num_spans: number;
+  span_operation: string;
   sum: number;
 };
 type Props = {
-  segments: ModuleSegment[];
   title: string;
   transaction?: string;
 };
 
-function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Props) {
+export function getSegmentLabel(span_operation, action, domain) {
+  if (span_operation === 'http.client') {
+    return t('%s requests to %s', action, domain);
+  }
+  if (span_operation === 'db') {
+    return t('%s queries on %s', action, domain);
+  }
+  return span_operation || domain || undefined;
+}
+
+export function getSegmentLabelForTable(span_operation, action, domain) {
+  const label = getSegmentLabel(span_operation, action, domain);
+  if (span_operation === 'http.client') {
+    return t('%s (http.client spans)', label);
+  }
+  if (span_operation === 'db') {
+    return t('%s (db spans)', label);
+  }
+  return t('%s spans', label);
+}
+
+function getNumSpansLabel(segment) {
+  if (segment.span_operation === 'other' && segment.num_spans === 0) {
+    return t('Other');
+  }
+  if (segment.num_spans && segment.module && segment.module !== 'none') {
+    return t('%s %s spans', segment.num_spans, segment.module);
+  }
+  return t('%s spans', segment.num_spans);
+}
+
+function getGroupingLabel(segment) {
+  if (segment.module === 'http') {
+    return t('Action: %s, Host: %s', segment.action, segment.domain);
+  }
+  if (segment.module === 'db') {
+    return t('Action: %s, Table: %s', segment.action, segment.domain);
+  }
+  if (segment.module !== 'other') {
+    return t('Operation: %s', segment.span_operation);
+  }
+  return '';
+}
+
+function FacetBreakdownBar({transaction: maybeTransaction}: Props) {
+  const theme = useTheme();
+  const {selection} = usePageFilters();
   const [hoveredValue, setHoveredValue] = useState<ModuleSegment | null>(null);
-  const [currentSegment, setCurrentSegment] = useState<
-    ModuleSegment['module'] | undefined
-  >(segments[0]?.module);
-  const totalValues = segments.reduce((acc, segment) => acc + segment.sum, 0);
 
   const transaction = maybeTransaction ?? '';
 
-  const {isLoading: isHttpDurationDataLoading, data: httpDurationData} = useQuery({
-    queryKey: [`topDomains${transaction}`],
+  const {data: segments} = useQuery({
+    queryKey: ['webServiceSpanGrouping', transaction, selection.datetime],
     queryFn: () =>
-      fetch(`${HOST}/?query=${getTopHttpDomains({transaction})}`).then(res => res.json()),
+      fetch(
+        `${HOST}/?query=${getTopDomainsActionsAndOp({
+          transaction,
+          datetime: selection.datetime,
+        })}`
+      ).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
-  const {isLoading: isOtherHttpDurationDataLoading, data: otherHttpDurationData} =
-    useQuery({
-      queryKey: [`otherDomains${transaction}`],
-      queryFn: () =>
-        fetch(`${HOST}/?query=${getOtherDomains({transaction})}`).then(res => res.json()),
-      retry: false,
-      initialData: [],
-    });
-
-  const {isLoading: isDbDurationLoading, data: dbDurationData} = useQuery({
-    queryKey: [`databaseDuration${transaction}`],
+  const {data: cumulativeTime} = useQuery({
+    queryKey: ['totalCumulativeTime', transaction, selection.datetime],
     queryFn: () =>
-      fetch(`${HOST}/?query=${getDatabaseTimeSpent({transaction})}`).then(res =>
-        res.json()
-      ),
+      fetch(
+        `${HOST}/?query=${totalCumulativeTime({
+          transaction,
+          datetime: selection.datetime,
+        })}`
+      ).then(res => res.json()),
     retry: false,
     initialData: [],
   });
 
-  const {data: dbThroughputData} = useQuery({
-    queryKey: [`dbThroughputData${transaction}`],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getDbThroughput({transaction})}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
+  const totalValues = cumulativeTime.reduce((acc, segment) => acc + segment.sum, 0);
+  const totalSegments = segments.reduce((acc, segment) => acc + segment.sum, 0);
+  const otherValue = totalValues - totalSegments;
+  const otherSegment = {
+    span_operation: 'other',
+    sum: otherValue,
+    action: '',
+    domain: '',
+    num_spans: 0,
+    module: 'other',
+  } as ModuleSegment;
 
-  const {data: httpThroughputData} = useQuery({
-    queryKey: [`httpThroughputData${transaction}`],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${getHttpThroughput({transaction})}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
+  let topConditions =
+    segments.length > 0
+      ? ` (span_operation = '${segments[0].span_operation}' ${
+          segments[0].action ? `AND action = '${segments[0].action}'` : ''
+        } ${segments[0].domain ? `AND domain = '${segments[0].domain}'` : ''})`
+      : '';
 
-  function renderTitle() {
-    return (
-      <Title>
-        <TitleType>{title}</TitleType>
-      </Title>
+  for (let index = 1; index < segments.length; index++) {
+    const element = segments[index];
+    topConditions = topConditions.concat(
+      ' OR ',
+      `(span_operation = '${element.span_operation}' ${
+        element.action ? `AND action = '${element.action}'` : ''
+      } ${element.domain ? `AND domain = '${element.domain}'` : ''})`
     );
   }
 
-  function renderSegments() {
-    if (totalValues === 0) {
-      return (
-        <SegmentBar>
-          <p>{t('No recent data.')}</p>
-        </SegmentBar>
-      );
-    }
+  const {isLoading: isTopDataLoading, data: topData} = useQuery({
+    queryKey: ['topSpanGroupTimeseries', transaction, topConditions, selection.datetime],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getTopDomainsActionsAndOpTimeseries({
+          transaction,
+          topConditions,
+          datetime: selection.datetime,
+        })}`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
 
-    return (
-      <SegmentBar>
-        {segments.map((value, index) => {
-          const pct = percent(value.sum, totalValues);
-          const pctLabel = Math.floor(pct);
-          const segmentProps = {
-            index,
-            onClick: () => {
-              setCurrentSegment(value.module);
-            },
-          };
-          return (
-            <div
-              key={`segment-${value.module}`}
-              style={{width: pct + '%'}}
-              onMouseOver={() => {
-                setHoveredValue(value);
-              }}
-              onMouseLeave={() => setHoveredValue(null)}
-            >
-              <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={value.module}>
-                <Segment
-                  aria-label={`${value.module} ${t('segment')}`}
-                  color={COLORS[index]}
-                  {...segmentProps}
-                >
-                  {/* if the first segment is 6% or less, the label won't fit cleanly into the segment, so don't show the label */}
-                  {index === 0 && pctLabel > 6 ? `${pctLabel}%` : null}
-                </Segment>
-              </Tooltip>
-            </div>
-          );
-        })}
-      </SegmentBar>
-    );
-  }
+  const {isLoading: isOtherDataLoading, data: otherData} = useQuery({
+    queryKey: [
+      'otherSpanGroupTimeseries',
+      transaction,
+      topConditions,
+      selection.datetime,
+    ],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getOtherDomainsActionsAndOpTimeseries({
+          transaction,
+          topConditions,
+          datetime: selection.datetime,
+        })}`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const legendColors = theme.charts.getColorPalette(5);
 
   function renderLegend() {
     return (
       <LegendAnimateContainer expanded animate={{height: '100%', opacity: 1}}>
         <LegendContainer>
-          {segments.map((segment, index) => {
+          {[...segments, otherSegment].map((segment, index) => {
             const pctLabel = Math.floor(percent(segment.sum, totalValues));
-            const unfocus = !!hoveredValue && hoveredValue.module !== segment.module;
-            const focus = hoveredValue?.module === segment.module;
+            const unfocus = !!hoveredValue && hoveredValue !== segment;
+            const focus = hoveredValue === segment;
+            const label = getSegmentLabel(
+              segment.span_operation,
+              segment.action,
+              segment.domain
+            );
+            const numSpansLabel = getNumSpansLabel(segment);
+            const groupingLabel = getGroupingLabel(segment);
+            const {start, end, utc, period} = selection.datetime;
+            const spansLinkQueryParams =
+              start && end
+                ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+                : {statsPeriod: period};
+            ['span_operation', 'action', 'domain'].forEach(key => {
+              if (segment[key] !== undefined && segment[key] !== null) {
+                spansLinkQueryParams[key] = segment[key];
+              }
+            });
+
+            const spansLink =
+              segment.module === 'other'
+                ? `/starfish/spans/`
+                : `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
 
             return (
-              <li key={`segment-${segment.module}-${index}`}>
-                <LegendRow
-                  onMouseOver={() => setHoveredValue(segment)}
-                  onMouseLeave={() => setHoveredValue(null)}
-                  onClick={() => setCurrentSegment(segment.module)}
-                >
-                  <LegendDot color={COLORS[index]} focus={focus} />
-                  <LegendText unfocus={unfocus}>
-                    {segment.module ?? (
-                      <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>
-                    )}
-                  </LegendText>
-                  {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
-                </LegendRow>
+              <li key={`segment-${label}-${index}`}>
+                <Link to={spansLink}>
+                  <div
+                    onMouseOver={() => setHoveredValue(segment)}
+                    onMouseLeave={() => setHoveredValue(null)}
+                    onClick={() => {}}
+                  >
+                    <LegendRow>
+                      <LegendDot color={legendColors[index]} focus={focus} />
+                      <LegendText unfocus={unfocus}>
+                        {numSpansLabel ?? (
+                          <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>
+                        )}
+                      </LegendText>
+                      <LegendPercent unfocus={unfocus}>{`${pctLabel}%`}</LegendPercent>
+                    </LegendRow>
+                    <SpanGroupingText color={legendColors[index]} unfocus={unfocus}>
+                      <SpanGroupLabelTruncate value={groupingLabel} maxLength={40} />
+                    </SpanGroupingText>
+                  </div>
+                </Link>
               </li>
             );
           })}
@@ -170,44 +238,18 @@ function FacetBreakdownBar({segments, title, transaction: maybeTransaction}: Pro
     );
   }
 
-  function renderChart(mod: string | undefined) {
-    switch (mod) {
-      case 'http':
-        return (
-          <HttpBreakdownChart
-            isHttpDurationDataLoading={isHttpDurationDataLoading}
-            isOtherHttpDurationDataLoading={isOtherHttpDurationDataLoading}
-            httpDurationData={httpDurationData}
-            otherHttpDurationData={otherHttpDurationData}
-            httpThroughputData={httpThroughputData}
-          />
-        );
-      case 'db':
-      default:
-        return (
-          <DatabaseDurationChart
-            isDbDurationLoading={isDbDurationLoading}
-            dbDurationData={dbDurationData}
-            dbThroughputData={dbThroughputData}
-          />
-        );
-    }
-  }
+  const cumulativeSummary = <TagSummary>{renderLegend()}</TagSummary>;
 
   return (
     <Fragment>
-      <TagSummary>
-        <details open aria-expanded onClick={e => e.preventDefault()}>
-          <StyledSummary>
-            <TagHeader>
-              {renderTitle()}
-              {renderSegments()}
-            </TagHeader>
-          </StyledSummary>
-          {renderLegend()}
-        </details>
-      </TagSummary>
-      {renderChart(currentSegment)}
+      <WebServiceBreakdownChart
+        segments={segments}
+        isTopDataLoading={isTopDataLoading}
+        topData={topData}
+        isOtherDataLoading={isOtherDataLoading}
+        otherData={otherData}
+        cumulativeSummary={cumulativeSummary}
+      />
     </Fragment>
   );
 }
@@ -216,47 +258,6 @@ export default FacetBreakdownBar;
 
 const TagSummary = styled('div')`
   margin-bottom: ${space(2)};
-`;
-
-const TagHeader = styled('span')<{clickable?: boolean}>`
-  ${p => (p.clickable ? 'cursor: pointer' : null)};
-`;
-
-const SegmentBar = styled('div')`
-  display: flex;
-  overflow: hidden;
-`;
-
-const Title = styled('div')`
-  display: flex;
-  font-size: ${p => p.theme.fontSizeMedium};
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-  line-height: 1.1;
-`;
-
-const TitleType = styled('div')`
-  flex: none;
-  color: ${p => p.theme.textColor};
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin-right: ${space(1)};
-  align-self: center;
-`;
-
-const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}>`
-  &:hover {
-    color: ${p => p.theme.white};
-  }
-  display: block;
-  width: 100%;
-  height: ${space(2)};
-  color: ${p => p.theme.white};
-  outline: none;
-  background-color: ${p => p.color};
-  text-align: right;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  padding: 1px ${space(0.5)} 0 0;
 `;
 
 const LegendAnimateContainer = styled(motion.div, {
@@ -278,7 +279,18 @@ const LegendRow = styled('div')`
   display: flex;
   align-items: center;
   cursor: pointer;
-  padding: ${space(0.5)} 0;
+`;
+
+const SpanGroupingText = styled('div')<{
+  color: string;
+  unfocus: boolean;
+}>`
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0 0 ${space(1)} 0;
+  color: ${p => p.color};
+  opacity: ${p => (p.unfocus ? '0.6' : '1')};
 `;
 
 const LegendDot = styled('span')<{color: string; focus: boolean}>`
@@ -306,7 +318,6 @@ const LegendDot = styled('span')<{color: string; focus: boolean}>`
 `;
 
 const LegendText = styled('span')<{unfocus: boolean}>`
-  font-size: ${p => p.theme.fontSizeSmall};
   margin-left: ${space(1)};
   overflow: hidden;
   white-space: nowrap;
@@ -315,10 +326,9 @@ const LegendText = styled('span')<{unfocus: boolean}>`
   color: ${p => (p.unfocus ? p.theme.gray300 : p.theme.gray400)};
 `;
 
-const LegendPercent = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
+const LegendPercent = styled('span')<{unfocus: boolean}>`
   margin-left: ${space(1)};
-  color: ${p => p.theme.gray300};
+  color: ${p => (p.unfocus ? p.theme.gray300 : p.theme.gray400)};
   text-align: right;
   flex-grow: 1;
 `;
@@ -327,8 +337,6 @@ const NotApplicableLabel = styled('span')`
   color: ${p => p.theme.gray300};
 `;
 
-const StyledSummary = styled('summary')`
-  &::-webkit-details-marker {
-    display: none;
-  }
+export const SpanGroupLabelTruncate = styled(Truncate)`
+  white-space: nowrap;
 `;

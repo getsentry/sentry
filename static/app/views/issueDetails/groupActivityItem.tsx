@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import CommitLink from 'sentry/components/commitLink';
+import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -81,6 +82,13 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
       });
     }
 
+    if (data.ignoreUntil) {
+      return tct('[author] [action] this issue until [date]', {
+        author,
+        action: ignoredOrArchived,
+        date: <DateTime date={data.ignoreUntil} />,
+      });
+    }
     if (hasEscalatingIssuesUi && data.ignoreUntilEscalating) {
       return tct('[author] archived this issue until it escalates', {
         author,
@@ -183,7 +191,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
           .sort(
             (a, b) => moment(a.dateReleased).valueOf() - moment(b.dateReleased).valueOf()
           );
-        if (deployedReleases.length === 1) {
+        if (deployedReleases.length === 1 && activity.data.commit) {
           return tct(
             '[author] marked this issue as resolved in [version] [break]This commit was released in [release]',
             {
@@ -206,7 +214,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
             }
           );
         }
-        if (deployedReleases.length > 1) {
+        if (deployedReleases.length > 1 && activity.data.commit) {
           return tct(
             '[author] marked this issue as resolved in [version] [break]This commit was released in [release] and [otherCount] others',
             {
@@ -230,32 +238,49 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
             }
           );
         }
-        return tct('[author] marked this issue as resolved in [version]', {
-          author,
-          version: (
-            <CommitLink
-              inline
-              commitId={activity.data.commit.id}
-              repository={activity.data.commit.repository}
-            />
-          ),
-        });
+        if (activity.data.commit) {
+          return tct('[author] marked this issue as resolved in [commit]', {
+            author,
+            commit: (
+              <CommitLink
+                inline
+                commitId={activity.data.commit.id}
+                repository={activity.data.commit.repository}
+              />
+            ),
+          });
+        }
+        return tct('[author] marked this issue as resolved in a commit', {author});
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;
-        return tct('[author] has created a PR for this issue: [version]', {
+        return tct('[author] has created a PR for this issue: [pullRequest]', {
           author,
-          version: (
+          pullRequest: pullRequest ? (
             <PullRequestLink
               inline
               pullRequest={pullRequest}
               repository={pullRequest.repository}
             />
+          ) : (
+            t('PR not available')
           ),
         });
       }
-      case GroupActivityType.SET_UNRESOLVED:
+      case GroupActivityType.SET_UNRESOLVED: {
+        const {data} = activity;
+        if (data.forecast) {
+          return tct(
+            '[author] flagged this issue as escalating because over [forecast] [event] happened in an hour',
+            {
+              author,
+              forecast: data.forecast,
+              event: data.forecast === 1 ? 'event' : 'events',
+            }
+          );
+        }
         return tct('[author] marked this issue as unresolved', {author});
+      }
       case GroupActivityType.SET_IGNORED: {
         const {data} = activity;
         return getIgnoredMessage(data);
@@ -355,6 +380,16 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
         return tct('[author] marked this issue as reviewed', {
           author,
         });
+      }
+      case GroupActivityType.AUTO_SET_ONGOING: {
+        return activity.data?.afterDays
+          ? tct(
+              '[author] automatically marked this issue as ongoing after [afterDays] days',
+              {author, afterDays: activity.data.afterDays}
+            )
+          : tct('[author] automatically marked this issue as ongoing', {
+              author,
+            });
       }
       default:
         return ''; // should never hit (?)

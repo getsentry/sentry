@@ -254,9 +254,10 @@ class UserDetailsEndpoint(UserEndpoint):
         ]
 
         if remaining_org_ids:
-            OrganizationMember.objects.filter(
-                organization__in=remaining_org_ids, user=user
-            ).delete()
+            for member in OrganizationMember.objects.filter(
+                organization__in=remaining_org_ids, user_id=user.id
+            ):
+                member.delete()
 
         logging_data = {
             "actor_id": request.user.id,

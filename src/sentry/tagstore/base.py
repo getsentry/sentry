@@ -40,11 +40,9 @@ class TagStorage(Service):
             "get_group_tag_value",
             "get_group_tag_values",
             "get_group_list_tag_value",
-            "get_perf_group_list_tag_value",
             "get_generic_group_list_tag_value",
             "get_tag_keys_for_projects",
             "get_groups_user_counts",
-            "get_perf_groups_user_counts",
             "get_generic_groups_user_counts",
             "get_group_event_filter",
             "get_group_tag_value_count",
@@ -52,7 +50,6 @@ class TagStorage(Service):
             "get_first_release",
             "get_last_release",
             "get_release_tags",
-            "get_group_ids_for_users",
             "get_group_tag_values_for_users",
             "get_group_tag_keys_and_top_values",
             "get_tag_value_paginator",
@@ -200,11 +197,6 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_perf_group_list_tag_value(
-        self, project_ids, group_id_list, environment_ids, key, value, tenant_ids=None
-    ):
-        raise NotImplementedError
-
     def get_generic_group_list_tag_value(
         self, project_ids, group_id_list, environment_ids, key, value, tenant_ids=None
     ):
@@ -275,11 +267,6 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_perf_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
-    ):
-        raise NotImplementedError
-
     def get_generic_groups_user_counts(
         self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
     ):
@@ -314,12 +301,6 @@ class TagStorage(Service):
     def get_release_tags(self, organization_id, project_ids, environment_id, versions):
         """
         >>> get_release_tags([1, 2], 3, ["1", "2"])
-        """
-        raise NotImplementedError
-
-    def get_group_ids_for_users(self, project_ids, event_users, limit=100, tenant_ids=None):
-        """
-        >>> get_group_ids_for_users([1,2], [EventUser(1), EventUser(2)])
         """
         raise NotImplementedError
 

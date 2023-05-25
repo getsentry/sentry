@@ -1,19 +1,17 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {useQueries, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
-import keyBy from 'lodash/keyBy';
 import _orderBy from 'lodash/orderBy';
-import sumBy from 'lodash/sumBy';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
-import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
+import SearchBar from 'sentry/components/searchBar';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
-import {CLUSTERS} from './clusters';
-import {getSpanListQuery, getSpansTrendsQuery, getTimeSpentQuery} from './queries';
+import {getSpanListQuery, getSpansTrendsQuery} from './queries';
 import type {SpanDataRow, SpanTrendDataRow} from './spansTable';
 import SpansTable from './spansTable';
 
@@ -21,6 +19,7 @@ const LIMIT: number = 25;
 
 type Props = {
   location: Location;
+  onSelect: (row: SpanDataRow) => void;
 };
 
 type State = {
@@ -28,55 +27,31 @@ type State = {
 };
 
 export default function SpansView(props: Props) {
+  const location = props.location;
   const pageFilter = usePageFilters();
   const [state, setState] = useState<State>({orderBy: 'total_exclusive_time'});
+
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [didConfirmSearch, setDidConfirmSearch] = useState<boolean>(false);
   const {orderBy} = state;
 
-  const [clusterPath, setClusterPath] = useState<string[]>(['top']);
-  const currentClusters = clusterPath.map(
-    clusterName =>
-      CLUSTERS[clusterName] || {
-        isDynamic: true,
-        name: clusterName,
-      }
-  );
-  const currentCluster = currentClusters.at(-1);
-  if (currentCluster.isDynamic) {
-    currentCluster.condition = currentClusters
-      .at(-2)
-      .grouping_condition(currentCluster.name);
-  }
-
-  const clusterBreakdowns = useQueries({
-    queries: currentClusters.map(cluster => {
-      return {
-        queryKey: ['clusterBreakdown', cluster.name],
-        queryFn: () =>
-          fetch(
-            `${HOST}/?query=${getTimeSpentQuery(
-              cluster.grouping_column || '',
-              currentClusters.map(c => c.condition(c.name))
-            )}`
-          ).then(res => res.json()),
-        retry: false,
-        enabled: Boolean(cluster.grouping_column),
-        initialData: [],
-      };
-    }),
-  });
+  const descriptionFilter = didConfirmSearch && searchTerm ? `${searchTerm}` : undefined;
+  const queryConditions = buildQueryFilterFromLocation(location);
 
   const {isLoading: areSpansLoading, data: spansData} = useQuery<SpanDataRow[]>({
-    queryKey: ['spans', currentCluster.name, orderBy],
+    queryKey: ['spans', descriptionFilter, orderBy, pageFilter.selection.datetime],
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getSpanListQuery(
+          descriptionFilter,
           pageFilter.selection.datetime,
-          currentClusters.map(c => c.condition(c.name)),
+          queryConditions,
           orderBy,
           LIMIT
-        )}`
+        )}&format=sql`
       ).then(res => res.json()),
     retry: false,
+    refetchOnWindowFocus: false,
     initialData: [],
   });
 
@@ -85,92 +60,88 @@ export default function SpansView(props: Props) {
   const {isLoading: areSpansTrendsLoading, data: spansTrendsData} = useQuery<
     SpanTrendDataRow[]
   >({
-    queryKey: ['spansTrends', currentCluster.name],
+    queryKey: ['spansTrends', descriptionFilter],
     queryFn: () =>
       fetch(
-        `${HOST}/?query=${getSpansTrendsQuery(pageFilter.selection.datetime, groupIDs)}`
+        `${HOST}/?query=${getSpansTrendsQuery(
+          descriptionFilter,
+          pageFilter.selection.datetime,
+          groupIDs
+        )}`
       ).then(res => res.json()),
     retry: false,
+    refetchOnWindowFocus: false,
     initialData: [],
     enabled: groupIDs.length > 0,
   });
 
   return (
     <Fragment>
-      <div>
-        <FilterOptionsContainer>
-          <DatePageFilter alignDropdown="left" />
-        </FilterOptionsContainer>
+      <FilterOptionsContainer>
+        <DatePageFilter alignDropdown="left" />
+      </FilterOptionsContainer>
 
-        {currentClusters.map((cluster, depth) => {
-          const clusterBreakdownResponse = clusterBreakdowns[depth];
-          if (
-            !clusterBreakdownResponse ||
-            clusterBreakdownResponse.isLoading ||
-            clusterBreakdownResponse.error
-          ) {
-            return null;
-          }
+      <PaddedContainer>
+        <SearchBar
+          onChange={value => {
+            setSearchTerm(value);
+            setDidConfirmSearch(false);
+          }}
+          placeholder="Search Spans"
+          query={searchTerm}
+          onSearch={() => {
+            setDidConfirmSearch(true);
+          }}
+        />
+      </PaddedContainer>
 
-          const exclusiveTimeBySubCluster = keyBy(
-            clusterBreakdownResponse.data,
-            'primary_group'
-          );
+      <PaddedContainer>
+        <SpanTimeCharts
+          descriptionFilter={descriptionFilter || ''}
+          queryConditions={queryConditions}
+        />
+      </PaddedContainer>
 
-          const clusters = Object.keys(exclusiveTimeBySubCluster);
-
-          const segments = _orderBy(
-            (clusters || []).map(clusterName => {
-              const subCluster = CLUSTERS[clusterName];
-
-              return {
-                name: subCluster?.label || clusterName,
-                value: clusterName,
-                count: exclusiveTimeBySubCluster[clusterName]?.exclusive_time,
-                url: '',
-              };
-            }),
-            'count',
-            'desc'
-          );
-
-          if (segments.length === 0) {
-            return null;
-          }
-
-          return (
-            <TagDistributionMeter
-              key={cluster.name}
-              title={cluster.label}
-              onTagClick={(_name, value) => {
-                setClusterPath([...clusterPath.slice(0, depth + 1), value.value]);
-              }}
-              segments={segments}
-              totalValues={sumBy(segments, 'count')}
-            />
-          );
-        })}
-      </div>
-
-      <div>
-        <button onClick={() => setClusterPath(['top'])}>Reset</button>
-      </div>
-
-      <SpansTable
-        location={props.location}
-        isLoading={areSpansLoading || areSpansTrendsLoading}
-        spansData={spansData}
-        orderBy={orderBy}
-        onSetOrderBy={newOrderBy => setState({orderBy: newOrderBy})}
-        spansTrendsData={spansTrendsData}
-      />
+      <PaddedContainer>
+        <SpansTable
+          location={props.location}
+          queryConditions={queryConditions}
+          isLoading={areSpansLoading || areSpansTrendsLoading}
+          spansData={spansData}
+          orderBy={orderBy}
+          onSetOrderBy={newOrderBy => setState({orderBy: newOrderBy})}
+          spansTrendsData={spansTrendsData}
+          onSelect={props.onSelect}
+        />
+      </PaddedContainer>
     </Fragment>
   );
 }
 
-const FilterOptionsContainer = styled('div')`
+const PaddedContainer = styled('div')`
+  margin: ${space(2)};
+`;
+
+const FilterOptionsContainer = styled(PaddedContainer)`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 `;
+
+export const SPAN_FILTER_KEYS = ['action', 'span_operation', 'domain'];
+export const SPAN_FILTER_KEY_LABELS = {
+  action: 'Action',
+  span_operation: 'Operation',
+  domain: 'Domain',
+};
+
+const buildQueryFilterFromLocation = (location: Location) => {
+  const {query} = location;
+  const result = Object.keys(query)
+    .filter(key => SPAN_FILTER_KEYS.includes(key))
+    .map(key => {
+      return `${key} = '${query[key]}'`;
+    });
+  return result;
+};

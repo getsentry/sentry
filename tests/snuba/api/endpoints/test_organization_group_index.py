@@ -1,3 +1,4 @@
+import functools
 from datetime import timedelta
 from unittest.mock import Mock, patch
 from uuid import uuid4
@@ -48,12 +49,14 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
+from sentry.search.snuba.executors import PrioritySortWeights
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 
 
@@ -111,7 +114,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
-    def test_sort_by_trend(self):
+    @with_feature("organizations:issue-list-better-priority-sort")
+    def test_sort_by_better_priority(self):
         group = self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=10)),
@@ -150,27 +154,23 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         self.login_as(user=self.user)
 
-        response = self.get_success_response(
-            sort="trend",
-            query="is:unresolved",
-            limit=1,
-            start=iso_format(before_now(days=1)),
-            end=iso_format(before_now(seconds=1)),
-        )
-        assert len(response.data) == 1
-        assert [item["id"] for item in response.data] == [str(group.id)]
+        aggregate_kwargs: PrioritySortWeights = {
+            "log_level": 3,
+            "frequency": 5,
+            "has_stacktrace": 5,
+            "eventHalflifeHours": 4,
+        }
 
-        header_links = parse_link_header(response["Link"])
-        cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
         response = self.get_success_response(
-            sort="trend",
+            sort="betterPriority",
             query="is:unresolved",
-            limit=1,
+            limit=25,
             start=iso_format(before_now(days=1)),
             end=iso_format(before_now(seconds=1)),
-            cursor=cursor,
+            aggregate_kwargs={"better_priority": aggregate_kwargs},
         )
-        assert [item["id"] for item in response.data] == [str(group_2.id)]
+        assert len(response.data) == 2
+        assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
 
     def test_sort_by_inbox(self):
         group_1 = self.store_event(
@@ -1919,6 +1919,114 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
+
+    def test_query_status_and_substatus_overlapping(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event.group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        self.login_as(user=self.user)
+
+        get_query_response = functools.partial(
+            self.get_response, sort_by="date", limit=10, expand="inbox", collapse="stats"
+        )
+
+        response0 = get_query_response(
+            query="is:unresolved",
+        )
+
+        with Feature("organizations:issue-states"):
+            response1 = get_query_response(
+                query="is:ongoing"
+            )  # (status=unresolved, substatus=(ongoing))
+            response2 = get_query_response(
+                query="is:unresolved"
+            )  # (status=unresolved, substatus=*)
+            response3 = get_query_response(
+                query="is:unresolved is:ongoing !is:regressed"
+            )  # (status=unresolved, substatus=(ongoing, !regressed))
+            response4 = get_query_response(
+                query="is:unresolved is:ongoing !is:ignored"
+            )  # (status=unresolved, substatus=(ongoing, !ignored))
+            response5 = get_query_response(
+                query="!is:regressed is:unresolved"
+            )  # (status=unresolved, substatus=(!regressed))
+            response6 = get_query_response(
+                query="!is:until_escalating"
+            )  # (status=(!unresolved), substatus=(!until_escalating))
+
+        assert (
+            response0.status_code
+            == response1.status_code
+            == response2.status_code
+            == response3.status_code
+            == response4.status_code
+            == response5.status_code
+            == response6.status_code
+            == 200
+        )
+        assert (
+            [int(r["id"]) for r in response0.data]
+            == [int(r["id"]) for r in response1.data]
+            == [int(r["id"]) for r in response2.data]
+            == [int(r["id"]) for r in response3.data]
+            == [int(r["id"]) for r in response4.data]
+            == [int(r["id"]) for r in response5.data]
+            == [int(r["id"]) for r in response6.data]
+            == [event.group.id]
+        )
+
+    def test_query_status_and_substatus_nonoverlapping(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event.group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        self.login_as(user=self.user)
+
+        get_query_response = functools.partial(
+            self.get_response, sort_by="date", limit=10, expand="inbox", collapse="stats"
+        )
+
+        with Feature("organizations:issue-states"):
+            response1 = get_query_response(query="is:escalating")
+            response2 = get_query_response(query="is:new")
+            response3 = get_query_response(query="is:regressed")
+            response4 = get_query_response(query="is:forever")
+            response5 = get_query_response(query="is:until_condition_met")
+            response6 = get_query_response(query="is:until_escalating")
+            response7 = get_query_response(query="is:resolved")
+            response8 = get_query_response(query="is:ignored")
+            response9 = get_query_response(query="is:muted")
+            response10 = get_query_response(query="!is:unresolved")
+
+        assert (
+            response1.status_code
+            == response2.status_code
+            == response3.status_code
+            == response4.status_code
+            == response5.status_code
+            == response6.status_code
+            == response7.status_code
+            == response8.status_code
+            == response9.status_code
+            == response10.status_code
+            == 200
+        )
+        assert (
+            [int(r["id"]) for r in response1.data]
+            == [int(r["id"]) for r in response2.data]
+            == [int(r["id"]) for r in response3.data]
+            == [int(r["id"]) for r in response4.data]
+            == [int(r["id"]) for r in response5.data]
+            == [int(r["id"]) for r in response6.data]
+            == [int(r["id"]) for r in response7.data]
+            == [int(r["id"]) for r in response8.data]
+            == [int(r["id"]) for r in response9.data]
+            == [int(r["id"]) for r in response10.data]
+            == []
+        )
 
 
 @region_silo_test

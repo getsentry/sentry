@@ -15,6 +15,7 @@ import {IconCalendar, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
@@ -63,6 +64,14 @@ export function ReplayCell({
     },
   };
 
+  const trackNavigationEvent = () =>
+    trackAnalytics('replay.list-navigate-to-details', {
+      project_id: project?.id,
+      platform: project?.platform,
+      organization,
+      referrer,
+    });
+
   if (replay.is_archived) {
     return (
       <Item isArchived={replay.is_archived}>
@@ -86,7 +95,9 @@ export function ReplayCell({
       <Row gap={1}>
         <Row gap={0.5}>
           {project ? <Avatar size={12} project={project} /> : null}
-          <Link to={replayDetails}>{getShortEventId(replay.id)}</Link>
+          <Link to={replayDetails} onClick={trackNavigationEvent}>
+            {getShortEventId(replay.id)}
+          </Link>
         </Row>
         <Row gap={0.5}>
           <IconCalendar color="gray300" size="xs" />
@@ -104,7 +115,7 @@ export function ReplayCell({
           replay.is_archived ? (
             replay.user.display_name || t('Unknown User')
           ) : (
-            <MainLink to={replayDetails}>
+            <MainLink to={replayDetails} onClick={trackNavigationEvent}>
               {replay.user.display_name || t('Unknown User')}
             </MainLink>
           )

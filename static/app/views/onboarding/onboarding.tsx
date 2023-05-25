@@ -20,7 +20,7 @@ import {space} from 'sentry/styles/space';
 import {OnboardingSelectedSDK} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
@@ -135,6 +135,7 @@ function Onboarding(props: Props) {
     onboardingContext,
     onboardingSteps,
     organization.slug,
+    props.location.pathname,
   ]);
 
   const heartbeatFooter = !!organization?.features.includes(
@@ -248,7 +249,7 @@ function Onboarding(props: Props) {
         project_id: recentCreatedProject.id,
       });
     } catch (error) {
-      handleXhrErrorResponse(t('Unable to delete project in onboarding'))(error);
+      handleXhrErrorResponse(t('Unable to delete project in onboarding'), error);
       // we don't give the user any feedback regarding this error as this shall be silent
     }
   }, [api, organization, recentCreatedProject, onboardingContext]);

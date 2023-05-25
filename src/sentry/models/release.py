@@ -1203,23 +1203,26 @@ class Release(Model):
         counts = get_artifact_counts([self.id])
         return counts.get(self.id, 0)
 
-    def last_weakly_associated_artifact_bundle(self):
-        """Counts the number of artifacts in the most recent "ArtifactBundle" that is weakly associated
-        with this release.
+    def count_artifacts_in_artifact_bundles(self, project_ids: Sequence[int]):
         """
-        bundles = (
+        Counts the number of artifacts in the artifact bundles associated with this release and a set of projects.
+        """
+        qs = (
             ArtifactBundle.objects.filter(
                 organization_id=self.organization.id,
                 releaseartifactbundle__release_name=self.version,
+                projectartifactbundle__project_id__in=project_ids,
             )
-            .order_by("-date_uploaded")
-            .select_related("file")[:1]
+            .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
+            .values_list("releaseartifactbundle__release_name", "count")
         )
 
-        if len(bundles) == 0:
+        qs.query.group_by = ["releaseartifactbundle__release_name"]
+
+        if len(qs) == 0:
             return None
 
-        return bundles[0]
+        return qs[0]
 
     def clear_commits(self):
         """

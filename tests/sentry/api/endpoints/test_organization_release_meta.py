@@ -4,6 +4,7 @@ from sentry.models import (
     Commit,
     CommitFileChange,
     File,
+    ProjectArtifactBundle,
     Release,
     ReleaseArtifactBundle,
     ReleaseCommit,
@@ -116,9 +117,9 @@ class ReleaseMetaTest(APITestCase):
 
         data = json.loads(response.content)
         assert data["releaseFileCount"] == 2
-        assert data["bundleId"] is None
+        assert not data["isArtifactBundle"]
 
-    def test_artifact_count_with_weak_existing_association(self):
+    def test_artifact_count_with_single_weak_association(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -137,6 +138,9 @@ class ReleaseMetaTest(APITestCase):
         self.login_as(user=user)
 
         bundle = self.create_artifact_bundle(org=org, artifact_count=10)
+        ProjectArtifactBundle.objects.create(
+            organization_id=org.id, project_id=project.id, artifact_bundle=bundle
+        )
         ReleaseArtifactBundle.objects.create(
             organization_id=org.id, release_name=release.version, artifact_bundle=bundle
         )
@@ -151,4 +155,55 @@ class ReleaseMetaTest(APITestCase):
 
         data = json.loads(response.content)
         assert data["releaseFileCount"] == 10
-        assert data["bundleId"] == str(bundle.bundle_id)
+        assert data["isArtifactBundle"]
+
+    def test_artifact_count_with_multiple_weak_association(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        project = self.create_project(teams=[team1], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project)
+
+        self.create_release_archive(release=release.version)
+
+        self.create_member(teams=[team1], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        bundle_1 = self.create_artifact_bundle(org=org, artifact_count=10)
+        ProjectArtifactBundle.objects.create(
+            organization_id=org.id, project_id=project.id, artifact_bundle=bundle_1
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=org.id, release_name=release.version, artifact_bundle=bundle_1
+        )
+        bundle_2 = self.create_artifact_bundle(org=org, artifact_count=30)
+        ProjectArtifactBundle.objects.create(
+            organization_id=org.id, project_id=project.id, artifact_bundle=bundle_2
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=org.id, release_name=release.version, artifact_bundle=bundle_2
+        )
+        # We create a bundle associated with the same release but not connected to the project to make sure it is not
+        # counted.
+        bundle_3 = self.create_artifact_bundle(org=org, artifact_count=50)
+        ReleaseArtifactBundle.objects.create(
+            organization_id=org.id, release_name=release.version, artifact_bundle=bundle_3
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-release-meta",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+
+        data = json.loads(response.content)
+        assert data["releaseFileCount"] == 40
+        assert data["isArtifactBundle"]

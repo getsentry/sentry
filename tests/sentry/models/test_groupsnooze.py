@@ -5,17 +5,24 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models import Group, GroupSnooze
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
 @region_silo_test(stable=True)
-class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin, SearchIssueTestMixin):
+class GroupSnoozeTest(
+    TestCase,
+    SnubaTestCase,
+    PerfIssueTransactionTestMixin,
+    SearchIssueTestMixin,
+    PerformanceIssueTestCase,
+):
     sequence = itertools.count()  # generates unique values, class scope doesn't matter
 
     def setUp(self):
@@ -99,45 +106,15 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin, Se
     def test_user_rate_reached_perf_issues(self):
         """Test that ignoring a performance issue until it's hit by 10 users in an hour works."""
         for i in range(0, 10):
-            event = self.store_transaction(
-                environment=None,
-                project_id=self.project.id,
-                user_id=str(i),
-                fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
+            event_data = load_data(
+                "transaction-n-plus-one",
+                timestamp=before_now(minutes=10),
             )
-        perf_group = event.groups[0]
+            event_data["user"]["id"] = str(i)
+            event = self.create_performance_issue(event_data=event_data)
+        perf_group = event.group
         snooze = GroupSnooze.objects.create(group=perf_group, user_count=10, user_window=60)
         assert not snooze.is_valid(test_rates=True)
-
-    @freeze_time()
-    def test_user_rate_reached_perf_issues_platform(self):
-        """
-        Test that ignoring a performance issue until it's hit by 10 users in an hour works.
-
-        Copy/paste of `test_user_rate_reached_perf_issues` with changes to flags. Remove this once
-        we're finished with the flags.
-
-        """
-        with self.options(
-            {
-                "performance.issues.send_to_issues_platform": True,
-            }
-        ):
-            for i in range(0, 10):
-                event = self.store_transaction(
-                    environment=None,
-                    project_id=self.project.id,
-                    user_id=str(i),
-                    fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-                )
-
-        perf_group = event.groups[0]
-        perf_group.project.update_option(
-            "sentry:performance_issue_create_issue_through_platform", True
-        )
-        snooze = GroupSnooze.objects.create(group=perf_group, user_count=10, user_window=60)
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            assert not snooze.is_valid(test_rates=True)
 
     @freeze_time()
     def test_user_rate_not_reached(self):
@@ -172,39 +149,9 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin, Se
     def test_rate_reached_perf_issue(self):
         """Test when a performance issue is ignored until it happens 10 times in a day"""
         for i in range(0, 10):
-            event = self.store_transaction(
-                environment=None,
-                project_id=self.project.id,
-                user_id=str(i),
-                fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-            )
-        perf_group = event.groups[0]
-        snooze = GroupSnooze.objects.create(group=perf_group, count=10, window=24 * 60)
+            event = self.create_performance_issue()
+        snooze = GroupSnooze.objects.create(group=event.group, count=10, window=24 * 60)
         assert not snooze.is_valid(test_rates=True)
-
-    @freeze_time()
-    def test_rate_reached_perf_issue_issue_platform(self):
-        """
-        Test when a performance issue is ignored until it happens 10 times in a day
-
-        Copy/paste of `test_rate_reached_perf_issue` with changes to flags. Remove this once we're
-        finished with the flags.
-        """
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            for i in range(0, 10):
-                event = self.store_transaction(
-                    environment=None,
-                    project_id=self.project.id,
-                    user_id=str(i),
-                    fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-                )
-        perf_group = event.groups[0]
-        perf_group.project.update_option(
-            "sentry:performance_issue_create_issue_through_platform", True
-        )
-        snooze = GroupSnooze.objects.create(group=perf_group, count=10, window=24 * 60)
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            assert not snooze.is_valid(test_rates=True)
 
     @freeze_time()
     def test_rate_without_test(self):

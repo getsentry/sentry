@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import abc
 import dataclasses
 import logging
 from random import random
@@ -9,9 +8,8 @@ from typing import Any, Optional
 
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
-from django.utils.functional import cached_property
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle
+from sentry.options.manager import UpdateChannel
 
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
 CACHE_UPDATE_ERR = "Unable to update option cache for %s"
@@ -44,33 +42,7 @@ def _make_cache_value(key, value):
     return (value, now + key.ttl, now + key.ttl + key.grace)
 
 
-class AbstractOptionsStore(InterfaceWithLifecycle, abc.ABC):
-    @abc.abstractmethod
-    def get(self, key: Key, silent=False) -> Any | None:
-        pass
-
-    @abc.abstractmethod
-    def set(self, key: Key, value: Any) -> None:
-        pass
-
-    @abc.abstractmethod
-    def set_cache(self, key: Key, vlaue: Any) -> None:
-        pass
-
-    @abc.abstractmethod
-    def delete(self, key: Key) -> None:
-        pass
-
-    @abc.abstractmethod
-    def set_cache_impl(self, cache: Any) -> None:
-        pass
-
-    @abc.abstractmethod
-    def maybe_clean_local_cache(self):
-        pass
-
-
-class OptionsStore(AbstractOptionsStore):
+class OptionsStore:
     """
     Abstraction for the Option storage logic that should be driven
     by the OptionsManager.
@@ -87,10 +59,17 @@ class OptionsStore(AbstractOptionsStore):
         self.ttl = ttl
         self.flush_local_cache()
 
-    @cached_property
+    @property
     def model(self):
-        from sentry.models.options import Option
+        return self.model_cls()
 
+    @classmethod
+    def model_cls(cls):
+        from sentry.models.options import ControlOption, Option
+        from sentry.silo import SiloMode
+
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            return ControlOption
         return Option
 
     def get(self, key, silent=False):
@@ -213,7 +192,18 @@ class OptionsStore(AbstractOptionsStore):
                     )
         return value
 
-    def set(self, key, value):
+    def get_last_update_channel(self, key) -> Optional[UpdateChannel]:
+        """
+        Gets how the option was last updated to check for drift.
+        """
+        try:
+            option = self.model.objects.get(key=key.name)
+        except self.model.DoesNotExist:
+            return None
+
+        return UpdateChannel(option.last_updated_by)
+
+    def set(self, key, value, channel: UpdateChannel):
         """
         Store a value in the option store. Value must get persisted to database first,
         then attempt caches. If it fails database, the entire operation blows up.
@@ -222,14 +212,20 @@ class OptionsStore(AbstractOptionsStore):
         """
         assert self.cache is not None, "cache must be configured before mutating options"
 
-        self.set_store(key, value)
+        self.set_store(key, value, channel)
         return self.set_cache(key, value)
 
-    def set_store(self, key, value):
+    def set_store(self, key, value, channel: UpdateChannel):
         from sentry.db.models.query import create_or_update
 
         create_or_update(
-            model=self.model, key=key.name, values={"value": value, "last_updated": timezone.now()}
+            model=self.model,
+            key=key.name,
+            values={
+                "value": value,
+                "last_updated": timezone.now(),
+                "last_updated_by": channel.value,
+            },
         )
 
     def set_cache(self, key, value):

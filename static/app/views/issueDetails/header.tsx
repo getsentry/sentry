@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
@@ -13,6 +13,7 @@ import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
 import FeatureBadge from 'sentry/components/featureBadge';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
+import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -27,8 +28,10 @@ import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, IssueType, Organization, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -73,6 +76,23 @@ function GroupHeaderTabs({
   const hasReplaySupport = organizationFeatures.has('session-replay');
 
   const issueTypeConfig = getConfigForIssueType(group);
+
+  useEffect(() => {
+    if (!hasReplaySupport || typeof replaysCount === 'undefined') {
+      return;
+    }
+
+    trackAnalytics('replay.render-issues-detail-count', {
+      platform: project.platform!,
+      project_id: project.id,
+      count: replaysCount,
+      organization,
+    });
+  }, [hasReplaySupport, replaysCount, project, organization]);
+
+  useRouteAnalyticsParams({
+    group_has_replay: (replaysCount ?? 0) > 0,
+  });
 
   return (
     <StyledTabList hideBorder>
@@ -173,6 +193,7 @@ function GroupHeader({
   project,
 }: Props) {
   const location = useLocation();
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
 
   const disabledTabs = useMemo(() => {
     const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
@@ -313,9 +334,18 @@ function GroupHeader({
           <TitleWrapper>
             <TitleHeading>
               <h3>
-                <StyledEventOrGroupTitle hasGuideAnchor data={group} />
+                <StyledEventOrGroupTitle data={group} />
               </h3>
-              {group.inbox && <InboxReason inbox={group.inbox} fontSize="md" />}
+              {!hasEscalatingIssuesUi && group.inbox && (
+                <InboxReason inbox={group.inbox} fontSize="md" />
+              )}
+              {hasEscalatingIssuesUi && (
+                <GroupStatusBadge
+                  status={group.status}
+                  substatus={group.substatus}
+                  fontSize="md"
+                />
+              )}
             </TitleHeading>
             <StyledTagAndMessageWrapper>
               {group.level && <ErrorLevel level={group.level} size="11px" />}

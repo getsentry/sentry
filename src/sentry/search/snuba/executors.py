@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
-from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, cast
+from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, TypedDict, cast
 
 import sentry_sdk
 from django.db.models import Q
@@ -45,12 +45,26 @@ from sentry.issues.search import (
     group_categories_from,
 )
 from sentry.models import Environment, Group, Organization, Project
-from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.search.utils import validate_cdc_search_filters
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
+
+
+class PrioritySortWeights(TypedDict):
+    log_level: int
+    frequency: int
+    has_stacktrace: int
+    event_halflife_hours: int
+
+
+DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
+    "log_level": 0,
+    "frequency": 0,
+    "has_stacktrace": 0,
+    "event_halflife_hours": 4,
+}
 
 
 def get_search_filter(
@@ -143,6 +157,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
@@ -192,6 +207,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         start: datetime,
         end: datetime,
         having: Sequence[Sequence[Any]],
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
@@ -203,9 +219,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
             if callable(aggregation):
-                # TODO: If we want to expand this pattern we should probably figure out
-                # more generic things to pass here.
-                aggregation = aggregation(start, end)
+                if aggregate_kwargs:
+                    aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
+                else:
+                    aggregation = aggregation(start, end, DEFAULT_PRIORITY_WEIGHTS)
             aggregations.append(aggregation + [alias])
 
         return aggregations
@@ -226,6 +243,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         cursor: Optional[Cursor],
         get_sample: bool,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> SnubaQueryParams:
         """
         :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
@@ -251,7 +269,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 else:
                     conditions.append(converted_filter)
 
-        aggregations = self._prepare_aggregations(sort_field, start, end, having)
+        aggregations = self._prepare_aggregations(sort_field, start, end, having, aggregate_kwargs)
 
         if cursor is not None:
             having.append((sort_field, ">=" if cursor.is_prev else "<=", cursor.value))
@@ -276,7 +294,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        strategy = get_search_strategies(organization, actor)[group_category]
+        strategy = get_search_strategies()[group_category]
         snuba_query_params = strategy(
             pinned_query_partial,
             selected_columns,
@@ -309,6 +327,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         search_filters: Optional[Sequence[SearchFilter]] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> Tuple[List[Tuple[int, Any]], int]:
         """Queries Snuba for events with associated Groups based on the input criteria.
 
@@ -358,7 +377,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not group_categories:
             group_categories = {
                 gc
-                for gc in get_search_strategies(organization, actor).keys()
+                for gc in get_search_strategies().keys()
                 if gc != GroupCategory.PROFILE.value
                 or features.has("organizations:issue-platform", organization, actor=actor)
             }
@@ -385,10 +404,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     cursor,
                     get_sample,
                     actor,
+                    aggregate_kwargs,
                 )
             except UnsupportedSearchQuery:
                 pass
-
         query_params_for_categories = {
             gc: query_params
             for gc, query_params in query_params_for_categories.items()
@@ -441,16 +460,39 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         return sort_by in self.sort_strategies.keys()
 
 
-def trend_aggregation(start: datetime, end: datetime) -> Sequence[str]:
-    middle_date = start + timedelta(seconds=(end - start).total_seconds() * 0.5)
-    middle = datetime.strftime(middle_date, DateArg.date_format)
+def better_priority_aggregation(
+    start: datetime,
+    end: datetime,
+    aggregate_kwargs: PrioritySortWeights,
+) -> Sequence[str]:
+    issue_age_weight = 1  # [0, 5]
+    event_age_weight = 1  # [0, 5]
+    log_level_weight = aggregate_kwargs["log_level"]  # [0, 10]
+    stacktrace_weight = aggregate_kwargs["has_stacktrace"]  # [0, 3]
+    max_pow = 16
+    min_score = 0.01
+    event_age_hours = "divide(now() - timestamp, 3600)"
+    event_halflife_hours = aggregate_kwargs["event_halflife_hours"]  # halves score every 4 hours
+    issue_age_hours = "divide(now() - min(timestamp), 3600)"
+    issue_halflife_hours = 24 * 7  # issues half in value every week
 
-    agg_range_1 = f"countIf(greater(toDateTime('{middle}'), timestamp))"
-    agg_range_2 = f"countIf(lessOrEquals(toDateTime('{middle}'), timestamp))"
-    return [
-        f"if(greater({agg_range_1}, 0), divide({agg_range_2}, {agg_range_1}), 0)",
-        "",
-    ]
+    # TODO: we have no way of aggregating to account for frequency:
+    #  (errors within group) / (total events grouped by project)
+    # frequency_weight = aggregate_kwargs["frequency"]  # [0, 5]
+    # frequency_score = f"countIf(and(greater(toDateTime('{start_str}'), timestamp), lessOrEquals(toDateTime('{end_str}'), timestamp))) / count()"
+
+    log_level_score = "multiIf(equals(level, 'fatal'), 1.0, equals(level, 'error'), 0.66, equals(level, 'warning'), 0.33, 0.0)"
+    stacktrace_score = "if(notEmpty(exception_stacks.type), 1.0, 0.0)"
+    event_agg_numerator = f"plus(plus(multiply({log_level_score}, {log_level_weight}), multiply({stacktrace_score}, {stacktrace_weight})), {event_age_weight})"
+    event_agg_denominator = (
+        f"plus(plus({log_level_weight}, {stacktrace_weight}), {event_age_weight})"
+    )
+    event_agg_rank = f"divide({event_agg_numerator}, {event_agg_denominator})"
+
+    aggregate_event_score = f"greatest({min_score}, sum(divide({event_agg_rank}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
+    aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
+
+    return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
@@ -466,10 +508,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "new": "first_seen",
         "priority": "priority",
         "user": "user_count",
-        "trend": "trend",
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
         "inbox": "",
+        "betterPriority": "better_priority",
     }
 
     aggregation_defs = {
@@ -481,7 +523,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
-        "trend": trend_aggregation,
+        "better_priority": better_priority_aggregation,
     }
 
     @property
@@ -505,6 +547,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
         now = timezone.now()
         end = None
@@ -697,6 +740,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 search_filters=search_filters,
                 referrer=referrer,
                 actor=actor,
+                aggregate_kwargs=aggregate_kwargs,
             )
             metrics.timing("snuba.search.num_snuba_results", len(snuba_groups))
             count = len(snuba_groups)
@@ -987,6 +1031,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
 
         if not validate_cdc_search_filters(search_filters):

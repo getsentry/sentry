@@ -12,9 +12,11 @@ from sentry.services.hybrid_cloud.region import (
 from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 from sentry.types.region import Region, RegionCategory
 
 
+@control_silo_test(stable=True)
 class RegionResolutionTest(TestCase):
     def setUp(self):
         self.regions = [
@@ -54,10 +56,11 @@ class RegionResolutionTest(TestCase):
     def test_by_organization_id_attribute(self):
         with override_regions(self.regions):
             region_resolution = ByOrganizationIdAttribute("organization_member")
-            org_member = OrganizationMember.objects.create(
-                organization_id=self.organization.id,
-                user_id=self.user.id,
-            )
+            with exempt_from_silo_limits():
+                org_member = OrganizationMember.objects.create(
+                    organization_id=self.organization.id,
+                    user_id=self.user.id,
+                )
             arguments = {"organization_member": org_member}
             actual_region = region_resolution.resolve(arguments)
             assert actual_region == self.target_region

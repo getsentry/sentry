@@ -2,6 +2,7 @@ import heapq
 import logging
 from datetime import timedelta
 from functools import partial, reduce
+from typing import MutableMapping, Tuple
 
 import sentry_sdk
 from django.db.models import Count
@@ -16,6 +17,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
+from sentry import features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
 from sentry.db.models.fields import PickledObjectField
@@ -25,6 +27,7 @@ from sentry.models import (
     GroupHistory,
     GroupHistoryStatus,
     GroupStatus,
+    GroupSubStatus,
     Organization,
     OrganizationMember,
     OrganizationStatus,
@@ -54,8 +57,8 @@ class OrganizationReportContext:
         self.start = to_datetime(timestamp - duration)
         self.end = to_datetime(timestamp)
 
-        self.organization = organization
-        self.projects = {}  # { project_id: ProjectContext }
+        self.organization: Organization = organization
+        self.projects: MutableMapping[str, ProjectContext] = {}  # { project_id: ProjectContext }
 
         self.project_ownership = {}  # { user_id: set<project_id> }
         for project in organization.project_set.all():
@@ -71,10 +74,18 @@ class ProjectContext:
     accepted_transaction_count = 0
     dropped_transaction_count = 0
 
+    # Removed after organizations:escalating-issues GA
     all_issue_count = 0
     existing_issue_count = 0
     reopened_issue_count = 0
     new_issue_count = 0
+
+    # For organizations:issue-states
+    new_substatus_count = 0
+    ongoing_substatus_count = 0
+    escalating_substatus_count = 0
+    regression_substatus_count = 0
+    total_substatus_count = 0
 
     def __init__(self, project):
         self.project = project
@@ -155,14 +166,22 @@ def prepare_organization_report(
     set_tag("org.slug", organization.slug)
     set_tag("org.id", organization_id)
     ctx = OrganizationReportContext(timestamp, duration, organization)
+    has_issue_states = features.has("organizations:issue-states", organization)
 
     # Run organization passes
     with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
         user_project_ownership(ctx)
     with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
         project_event_counts_for_organization(ctx)
-    with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_summaries"):
-        organization_project_issue_summaries(ctx)
+
+    if has_issue_states:
+        with sentry_sdk.start_span(
+            op="weekly_reports.organization_project_issue_substatus_summaries"
+        ):
+            organization_project_issue_substatus_summaries(ctx)
+    else:
+        with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_summaries"):
+            organization_project_issue_summaries(ctx)
 
     with sentry_sdk.start_span(op="weekly_reports.project_passes"):
         # Run project passes
@@ -324,6 +343,29 @@ def organization_project_issue_summaries(ctx):
         )
 
 
+def organization_project_issue_substatus_summaries(ctx: OrganizationReportContext):
+    substatus_counts = (
+        Group.objects.filter(
+            project__organization_id=ctx.organization.id,
+            first_seen__gte=ctx.start,
+            first_seen__lt=ctx.end,
+            status=GroupStatus.UNRESOLVED,
+        )
+        .values("project_id", "substatus")
+        .annotate(total=Count("substatus"))
+    )
+    for item in substatus_counts:
+        if item["substatus"] == GroupSubStatus.NEW:
+            ctx.projects[item["project_id"]].new_substatus_count = item["total"]
+        if item["substatus"] == GroupSubStatus.ESCALATING:
+            ctx.projects[item["project_id"]].escalating_substatus_count = item["total"]
+        if item["substatus"] == GroupSubStatus.ONGOING:
+            ctx.projects[item["project_id"]].ongoing_substatus_count = item["total"]
+        if item["substatus"] == GroupSubStatus.REGRESSED:
+            ctx.projects[item["project_id"]].regression_substatus_count = item["total"]
+        ctx.projects[item["project_id"]].total_substatus_count += item["total"]
+
+
 # Project passes
 def project_key_errors(ctx, project):
     if not project.first_event:
@@ -368,15 +410,17 @@ def fetch_key_error_groups(ctx):
     for group in Group.objects.filter(id__in=all_key_error_group_ids).all():
         group_id_to_group[group.id] = group
 
-    group_history = (
-        GroupHistory.objects.filter(
-            group_id__in=all_key_error_group_ids, organization_id=ctx.organization.id
+    group_id_to_group_history = {}
+    if not features.has("organizations:issue-states", ctx.organization):
+        group_history = (
+            GroupHistory.objects.filter(
+                group_id__in=all_key_error_group_ids, organization_id=ctx.organization.id
+            )
+            .order_by("group_id", "-date_added")
+            .distinct("group_id")
+            .all()
         )
-        .order_by("group_id", "-date_added")
-        .distinct("group_id")
-        .all()
-    )
-    group_id_to_group_history = {g.group_id: g for g in group_history}
+        group_id_to_group_history = {g.group_id: g for g in group_history}
 
     for project_ctx in ctx.projects.values():
         # note Snuba might have groups that have since been deleted
@@ -620,8 +664,23 @@ group_status_to_color = {
 }
 
 
-# Serialize ctx for template, and calculate view parameters (like graph bar heights)
+def get_group_status_badge(group: Group) -> Tuple[str, str, str]:
+    """
+    Returns a tuple of (text, background_color, border_color)
+    Should be similar to GroupStatusBadge.tsx in the frontend
+    """
+    if group.status == GroupStatus.UNRESOLVED:
+        if group.substatus == GroupSubStatus.NEW:
+            return ("New", "rgba(245, 176, 0, 0.08)", "rgba(245, 176, 0, 0.55)")
+        if group.substatus == GroupSubStatus.REGRESSED:
+            return ("Regressed", "rgba(108, 95, 199, 0.08)", "rgba(108, 95, 199, 0.5)")
+        if group.substatus == GroupSubStatus.ESCALATING:
+            return ("Escalating", "rgba(245, 84, 89, 0.09)", "rgba(245, 84, 89, 0.5)")
+    return ("Ongoing", "rgba(219, 214, 225, 1)", "rgba(219, 214, 225, 1)")
+
+
 def render_template_context(ctx, user):
+    # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.
     if user and user.id in ctx.project_ownership:
@@ -636,6 +695,8 @@ def render_template_context(ctx, user):
     else:
         # If user is None, or if the user is not a member of the organization, we assume that the email was directed to a user who joined all teams.
         user_projects = ctx.projects.values()
+
+    has_issue_states = features.has("organizations:issue-states", ctx.organization)
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
@@ -794,6 +855,11 @@ def render_template_context(ctx, user):
                                 "project_id": project_ctx.project.id,
                             },
                         )
+
+                    (substatus, substatus_color, substatus_border_color,) = (
+                        get_group_status_badge(group) if has_issue_states else (None, None, None)
+                    )
+
                     yield {
                         "count": count,
                         "group": group,
@@ -803,6 +869,9 @@ def render_template_context(ctx, user):
                         "status_color": group_status_to_color[group_history.status]
                         if group_history
                         else group_status_to_color[GroupHistoryStatus.NEW],
+                        "group_substatus": substatus,
+                        "group_substatus_color": substatus_color,
+                        "group_substatus_border_color": substatus_border_color,
                     }
 
         return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
@@ -849,16 +918,31 @@ def render_template_context(ctx, user):
         existing_issue_count = 0
         reopened_issue_count = 0
         new_issue_count = 0
+        new_substatus_count = 0
+        escalating_substatus_count = 0
+        ongoing_substatus_count = 0
+        regression_substatus_count = 0
+        total_substatus_count = 0
         for project_ctx in user_projects:
             all_issue_count += project_ctx.all_issue_count
             existing_issue_count += project_ctx.existing_issue_count
             reopened_issue_count += project_ctx.reopened_issue_count
             new_issue_count += project_ctx.new_issue_count
+            new_substatus_count += project_ctx.new_substatus_count
+            escalating_substatus_count += project_ctx.escalating_substatus_count
+            ongoing_substatus_count += project_ctx.ongoing_substatus_count
+            regression_substatus_count += project_ctx.regression_substatus_count
+            total_substatus_count += project_ctx.total_substatus_count
         return {
             "all_issue_count": all_issue_count,
             "existing_issue_count": existing_issue_count,
             "reopened_issue_count": reopened_issue_count,
             "new_issue_count": new_issue_count,
+            "new_substatus_count": new_substatus_count,
+            "escalating_substatus_count": escalating_substatus_count,
+            "ongoing_substatus_count": ongoing_substatus_count,
+            "regression_substatus_count": regression_substatus_count,
+            "total_substatus_count": total_substatus_count,
         }
 
     return {

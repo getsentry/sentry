@@ -154,6 +154,9 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         "consecutive_http_spans_span_duration_threshold": options.get(
             "performance.issues.consecutive_http.span_duration_threshold"
         ),
+        "large_http_payload_size_threshold": options.get(
+            "performance.issues.large_http_payload.size_threshold"
+        ),
     }
 
     default_project_settings = (
@@ -253,7 +256,9 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             ],  # ms
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
         },
-        DetectorType.LARGE_HTTP_PAYLOAD: {"payload_size_threshold": 10000000},  # 10mb
+        DetectorType.LARGE_HTTP_PAYLOAD: {
+            "payload_size_threshold": settings["large_http_payload_size_threshold"]
+        },
     }
 
 
@@ -283,7 +288,7 @@ def _detect_performance_problems(
         run_detector_on_data(detector, data)
 
     # Metrics reporting only for detection, not created issues.
-    report_metrics_for_detectors(data, event_id, detectors, sdk_span)
+    report_metrics_for_detectors(data, event_id, detectors, sdk_span, project.organization)
 
     organization = cast(Organization, project.organization)
     if project is None or organization is None:
@@ -334,7 +339,11 @@ def run_detector_on_data(detector, data):
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
-    event: Event, event_id: Optional[str], detectors: Sequence[PerformanceDetector], sdk_span: Any
+    event: Event,
+    event_id: Optional[str],
+    detectors: Sequence[PerformanceDetector],
+    sdk_span: Any,
+    organization: Organization,
 ):
     all_detected_problems = [i for d in detectors for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
@@ -380,7 +389,10 @@ def report_metrics_for_detectors(
         # Reduce cardinality in case there are custom browser name tags.
         allowed_browser_name = browser_name
 
-    detected_tags = {"sdk_name": sdk_name}
+    detected_tags = {
+        "sdk_name": sdk_name,
+        "is_early_adopter": organization.flags.early_adopter.is_set,
+    }
     event_integrations = event.get("sdk", {}).get("integrations", []) or []
 
     for integration_name in INTEGRATIONS_OF_INTEREST:

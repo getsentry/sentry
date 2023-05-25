@@ -9,6 +9,7 @@ import {
   MultipleSelectProps,
   SelectOption,
   SelectOptionOrSection,
+  SelectSection,
 } from 'sentry/components/compactSelect';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';
@@ -19,7 +20,16 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 export interface HybridFilterProps<Value extends React.Key>
   extends Omit<
     MultipleSelectProps<Value>,
-    'value' | 'defaultValue' | 'onChange' | 'multiple'
+    | 'grid'
+    | 'multiple'
+    | 'clearable'
+    | 'value'
+    | 'defaultValue'
+    | 'onChange'
+    | 'onInteractOutside'
+    | 'closeOnSelect'
+    | 'onKeyDown'
+    | 'onKeyUp'
   > {
   onChange: (selected: Value[]) => void;
   value: Value[];
@@ -29,7 +39,7 @@ export interface HybridFilterProps<Value extends React.Key>
   /**
    * Message to show in the menu footer
    */
-  menuFooterMessage?: string;
+  menuFooterMessage?: React.ReactNode;
   multiple?: boolean;
   onReplace?: (selected: Value) => void;
   onToggle?: (selected: Value[]) => void;
@@ -50,6 +60,7 @@ export function HybridFilter<Value extends React.Key>({
   value,
   onClear,
   onChange,
+  onSectionToggle,
   onReplace,
   onToggle,
   menuFooter,
@@ -237,7 +248,13 @@ export function HybridFilter<Value extends React.Key>({
   ]);
 
   const sectionToggleWasPressed = useRef(false);
-  const onSectionToggle = useCallback(() => (sectionToggleWasPressed.current = true), []);
+  const handleSectionToggle = useCallback(
+    (section: SelectSection<React.Key>) => {
+      onSectionToggle?.(section);
+      sectionToggleWasPressed.current = true;
+    },
+    [onSectionToggle]
+  );
 
   const handleChange = useCallback(
     (selectedOptions: SelectOption<Value>[]) => {
@@ -300,7 +317,7 @@ export function HybridFilter<Value extends React.Key>({
       value={stagedValue}
       onChange={handleChange}
       onClear={handleClear}
-      onSectionToggle={onSectionToggle}
+      onSectionToggle={handleSectionToggle}
       onInteractOutside={commitStagedChanges}
       menuFooter={renderFooter}
       onKeyDown={onKeyDown}

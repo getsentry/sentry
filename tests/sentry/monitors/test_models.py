@@ -28,6 +28,7 @@ class MonitorTestCase(TestCase):
         monitor = Monitor(config={"schedule": "* * * * *"})
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
+        # XXX: Seconds are removed as we clamp to the minute
         assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
@@ -44,6 +45,7 @@ class MonitorTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
+        # XXX: Seconds are removed as we clamp to the minute
         assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
@@ -64,6 +66,7 @@ class MonitorTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
+        # XXX: Seconds are removed as we clamp to the minute
         assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
             2019, 1, 1, 12, 00, tzinfo=timezone.utc
         )
@@ -82,8 +85,9 @@ class MonitorTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
+        # XXX: Seconds are removed as we clamp to the minute.
         assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
-            2019, 2, 1, 1, 10, 20, tzinfo=timezone.utc
+            2019, 2, 1, 1, 10, 0, tzinfo=timezone.utc
         )
 
     def test_save_defaults_slug_to_name(self):
@@ -337,3 +341,26 @@ class MonitorEnvironmentTestCase(TestCase):
             "max_runtime": 10,
             "alert_rule_id": 1,
         }
+
+    def test_config_validator(self):
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            name="Unicron",
+            slug="unicron",
+            config={
+                "checkin_margin": None,
+                "max_runtime": None,
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "alert_rule_id": 1,
+            },
+        )
+        validated_config = monitor.get_validated_config()
+        assert validated_config is not None
+
+        # Check to make sure bad config fails validation
+        validated_config["bad_key"] = 100
+        monitor.config = validated_config
+        assert monitor.get_validated_config() is None

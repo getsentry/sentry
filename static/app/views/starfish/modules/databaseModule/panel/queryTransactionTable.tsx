@@ -1,12 +1,16 @@
-import {CSSProperties} from 'react';
+import {CSSProperties, Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import Truncate from 'sentry/components/truncate';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconArrow} from 'sentry/icons';
+import {Series} from 'sentry/types/echarts';
 import {useLocation} from 'sentry/utils/useLocation';
+import {MultiSparkline} from 'sentry/views/starfish/components/sparkline';
 import {Sort} from 'sentry/views/starfish/modules/databaseModule';
 import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {TransactionListDataRow} from 'sentry/views/starfish/modules/databaseModule/panel';
@@ -18,10 +22,15 @@ type Props = {
   onClickSort: (sort: PanelSort) => void;
   row: DataRow;
   sort: PanelSort;
+  spanP50Data: Series[];
+  spmData: Series[];
   tableData: TransactionListDataRow[];
+  tpmData: Series[];
+  txnP50Data: Series[];
+  markLine?: Series;
 };
 
-type Keys = 'transaction' | 'p75' | 'count' | 'frequency' | 'uniqueEvents';
+type Keys = 'transaction' | 'spm' | 'p50' | 'frequency' | 'uniqueEvents' | 'example';
 
 type TableColumnHeader = GridColumnHeader<Keys>;
 
@@ -32,25 +41,30 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 400,
   },
   {
-    key: 'p75',
-    name: 'p75',
+    key: 'spm',
+    name: 'TPM v SPM',
+    width: 200,
   },
   {
-    key: 'count',
-    name: 'Count',
-  },
-  {
-    key: 'frequency',
-    name: 'Frequency',
-  },
-  {
-    key: 'uniqueEvents',
-    name: 'Total Events',
+    key: 'p50',
+    name: 'Span p50 vs Txn p50',
+    width: 200,
   },
 ];
 
 function QueryTransactionTable(props: Props) {
-  const {isDataLoading, tableData, sort, onClickSort, row} = props;
+  const {
+    isDataLoading,
+    tableData,
+    sort,
+    onClickSort,
+    row,
+    spmData,
+    tpmData,
+    spanP50Data,
+    txnP50Data,
+    markLine,
+  } = props;
   const location = useLocation();
   const theme = useTheme();
   const minMax = calculateOutlierMinMax(tableData);
@@ -67,7 +81,7 @@ function QueryTransactionTable(props: Props) {
 
   const renderHeadCell = (col: TableColumnHeader): React.ReactNode => {
     const {key, name} = col;
-    const sortableKeys: Keys[] = ['p75', 'count'];
+    const sortableKeys: Keys[] = ['p50', 'spm'];
     if (sortableKeys.includes(key)) {
       const isBeingSorted = col.key === sort.sortHeader?.key;
       const direction = isBeingSorted ? sort.direction : undefined;
@@ -89,7 +103,7 @@ function QueryTransactionTable(props: Props) {
     const {key} = column;
     const value = dataRow[key];
     const style: CSSProperties = {};
-    let rendereredValue = value;
+    style['min-height'] = '40px';
 
     if (
       minMax[key] &&
@@ -97,25 +111,57 @@ function QueryTransactionTable(props: Props) {
     ) {
       style.color = theme.red400;
     }
-    if (key === 'transaction') {
+    const SpmSeries =
+      spmData.length && spmData.find(item => item.seriesName === dataRow.transaction);
+    const TpmSeries =
+      tpmData.length && tpmData.find(item => item.seriesName === dataRow.transaction);
+    const SP50Series =
+      spanP50Data.length &&
+      spanP50Data.find(item => item.seriesName === dataRow.transaction);
+    const TP50Series =
+      txnP50Data.length &&
+      txnP50Data.find(item => item.seriesName === dataRow.transaction);
+    if (key === 'spm' && SpmSeries && TpmSeries) {
       return (
-        <Link
-          to={`/starfish/span/${encodeURIComponent(row.group_id)}?${qs.stringify({
-            transaction: dataRow.transaction,
-          })}`}
-        >
-          {dataRow[column.key]}
-        </Link>
+        <MultiSparkline
+          color={[CHART_PALETTE[4][0], CHART_PALETTE[4][3]]}
+          series={[SpmSeries, TpmSeries]}
+          markLine={markLine}
+          width={column.width ? column.width - column.width / 5 : undefined}
+          height={40}
+        />
       );
     }
-    if (key === 'p75') {
-      rendereredValue = `${dataRow[key]?.toFixed(2)}ms`;
+    if (key === 'transaction') {
+      return (
+        <Fragment>
+          <Link
+            to={`/starfish/span/${encodeURIComponent(row.group_id)}?${qs.stringify({
+              transaction: dataRow.transaction,
+            })}`}
+          >
+            <Truncate value={dataRow[column.key]} maxLength={50} />
+          </Link>
+          <span>
+            Span appears {dataRow.frequency?.toFixed(2)}x per txn ({dataRow.uniqueEvents}{' '}
+            total txns)
+          </span>
+          <Link to={`/performance/sentry:${dataRow.example}/`}>sample</Link>
+        </Fragment>
+      );
     }
-    if (key === 'frequency') {
-      rendereredValue = dataRow[key]?.toFixed(2);
+    if (key === 'p50' && SP50Series && TP50Series) {
+      return (
+        <MultiSparkline
+          color={[CHART_PALETTE[4][0], CHART_PALETTE[4][2]]}
+          series={[SP50Series, TP50Series]}
+          markLine={markLine}
+          width={column.width ? column.width - column.width / 5 : undefined}
+        />
+      );
     }
 
-    return <span style={style}>{rendereredValue}</span>;
+    return <span style={style}>{dataRow[key]}</span>;
   };
   return (
     <GridEditable

@@ -67,7 +67,7 @@ from sentry.models import (
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
@@ -556,7 +556,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             team__organization=obj
         ).count()
         context["onboardingTasks"] = serialize(tasks_to_serialize, user)
-        sample_rate = quotas.get_blended_sample_rate(None, obj.id)
+        sample_rate = quotas.get_blended_sample_rate(organization_id=obj.id)
         context["isDynamicallySampled"] = sample_rate is not None and sample_rate < 1.0
 
         return context

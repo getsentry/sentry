@@ -1,20 +1,22 @@
 import * as Sentry from '@sentry/react';
+import memoize from 'lodash/memoize';
 import {duration} from 'moment';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {
   breadcrumbFactory,
-  getBreadcrumbsByCategory,
-  isMemorySpan,
-  isNetworkSpan,
-  mapRRWebAttachments,
   replayTimestamps,
   rrwebEventListFactory,
   spansFactory,
 } from 'sentry/utils/replays/replayDataUtils';
+import splitAttachmentsByType from 'sentry/utils/replays/splitAttachmentsByType';
 import type {
-  MemorySpanType,
+  MemorySpan,
+  NetworkSpan,
   RecordingEvent,
+  RecordingOptions,
+  ReplayCrumb,
   ReplayError,
   ReplayRecord,
   ReplaySpan,
@@ -68,14 +70,17 @@ export default class ReplayReader {
     replayRecord,
     errors,
   }: RequiredNotNull<ReplayReaderParams>) {
-    const {breadcrumbs, rrwebEvents, spans} = mapRRWebAttachments(attachments);
+    const {rawBreadcrumbs, rawRRWebEvents, rawNetworkSpans, rawMemorySpans} =
+      splitAttachmentsByType(attachments);
+
+    const spans = [...rawMemorySpans, ...rawNetworkSpans] as ReplaySpan[];
 
     // TODO(replays): We should get correct timestamps from the backend instead
     // of having to fix them up here.
     const {startTimestampMs, endTimestampMs} = replayTimestamps(
       replayRecord,
-      rrwebEvents,
-      breadcrumbs,
+      rawRRWebEvents as RecordingEvent[],
+      rawBreadcrumbs as ReplayCrumb[],
       spans
     );
     replayRecord.started_at = new Date(startTimestampMs);
@@ -84,26 +89,25 @@ export default class ReplayReader {
       replayRecord.finished_at.getTime() - replayRecord.started_at.getTime()
     );
 
-    const sortedSpans = spansFactory(spans);
-    this.networkSpans = sortedSpans.filter(isNetworkSpan);
-    this.memorySpans = sortedSpans.filter(isMemorySpan);
-
-    this.breadcrumbs = breadcrumbFactory(replayRecord, errors, breadcrumbs, sortedSpans);
-    this.consoleCrumbs = getBreadcrumbsByCategory(this.breadcrumbs, ['console', 'issue']);
-
-    this.rrwebEvents = rrwebEventListFactory(replayRecord, rrwebEvents);
+    this.sortedSpans = spansFactory(spans);
+    this.breadcrumbs = breadcrumbFactory(
+      replayRecord,
+      errors,
+      rawBreadcrumbs as ReplayCrumb[],
+      this.sortedSpans
+    );
+    this.rrwebEvents = rrwebEventListFactory(
+      replayRecord,
+      rawRRWebEvents as RecordingEvent[]
+    );
 
     this.replayRecord = replayRecord;
   }
 
+  private sortedSpans: ReplaySpan[];
   private replayRecord: ReplayRecord;
   private rrwebEvents: RecordingEvent[];
   private breadcrumbs: Crumb[];
-  private consoleCrumbs: ReturnType<typeof getBreadcrumbsByCategory>;
-  private networkSpans: ReplaySpan[];
-  private memorySpans: MemorySpanType[];
-
-  private _isDetailsSetup: undefined | boolean;
 
   /**
    * @returns Duration of Replay (milliseonds)
@@ -120,30 +124,69 @@ export default class ReplayReader {
     return this.rrwebEvents;
   };
 
-  getRawCrumbs = () => {
-    return this.breadcrumbs;
-  };
+  getCrumbsWithRRWebNodes = memoize(() =>
+    this.breadcrumbs.filter(
+      crumb => crumb.data && typeof crumb.data === 'object' && 'nodeId' in crumb.data
+    )
+  );
 
-  getConsoleCrumbs = () => {
-    return this.consoleCrumbs;
-  };
+  getUserActionCrumbs = memoize(() => {
+    const USER_ACTIONS = [
+      BreadcrumbType.ERROR,
+      BreadcrumbType.INIT,
+      BreadcrumbType.NAVIGATION,
+      BreadcrumbType.UI,
+      BreadcrumbType.USER,
+    ];
+    return this.breadcrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
+  });
 
-  getNetworkSpans = () => {
-    return this.networkSpans;
-  };
+  getConsoleCrumbs = memoize(() =>
+    this.breadcrumbs.filter(crumb => ['console', 'issue'].includes(crumb.category || ''))
+  );
 
-  getMemorySpans = () => {
-    return this.memorySpans;
-  };
+  getNonConsoleCrumbs = memoize(() =>
+    this.breadcrumbs.filter(crumb => crumb.category !== 'console')
+  );
 
-  isNetworkDetailsSetup = () => {
-    if (this._isDetailsSetup === undefined) {
-      // TODO(replay): there must be a better way
-      const hasHeaders = span =>
-        Object.keys(span.data.request?.headers || {}).length ||
-        Object.keys(span.data.response?.headers || {}).length;
-      this._isDetailsSetup = this.networkSpans.some(hasHeaders);
+  getNavCrumbs = memoize(() =>
+    this.breadcrumbs.filter(crumb =>
+      [BreadcrumbType.INIT, BreadcrumbType.NAVIGATION].includes(crumb.type)
+    )
+  );
+
+  getNetworkSpans = memoize(() => this.sortedSpans.filter(isNetworkSpan));
+
+  getMemorySpans = memoize(() => this.sortedSpans.filter(isMemorySpan));
+
+  sdkConfig = memoize(() => {
+    const found = this.rrwebEvents.find(
+      event => event.type === 5 && event.data.tag === 'options'
+    ) as undefined | RecordingOptions;
+    return found?.data?.payload;
+  });
+
+  isNetworkDetailsSetup = memoize(() => {
+    const config = this.sdkConfig();
+    if (config) {
+      return this.sdkConfig()?.networkDetailHasUrls;
     }
-    return this._isDetailsSetup;
-  };
+
+    // Network data was added in JS SDK 7.50.0 while sdkConfig was added in v7.51.1
+    // So even if we don't have the config object, we should still fallback and
+    // look for spans with network data, as that means things are setup!
+    return this.getNetworkSpans().some(
+      span =>
+        Object.keys(span.data.request?.headers || {}).length ||
+        Object.keys(span.data.response?.headers || {}).length
+    );
+  });
 }
+
+const isMemorySpan = (span: ReplaySpan): span is MemorySpan => {
+  return span.op === 'memory';
+};
+
+const isNetworkSpan = (span: ReplaySpan): span is NetworkSpan => {
+  return span.op?.startsWith('navigation.') || span.op?.startsWith('resource.');
+};

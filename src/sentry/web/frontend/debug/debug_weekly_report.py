@@ -17,6 +17,8 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 
 from .mail import MailPreviewView
 
+DEBUG_ISSUE_STATES = True
+
 
 def get_random(request):
     seed = request.GET.get("seed", str(time.time()))
@@ -79,14 +81,30 @@ class DebugWeeklyReportView(MailPreviewView):
             project_context.key_errors = [
                 (g, None, random.randint(0, 1000)) for g in Group.objects.all()[:3]
             ]
-            project_context.existing_issue_count = random.randint(0, 10000)
-            project_context.reopened_issue_count = random.randint(0, 1000)
-            project_context.new_issue_count = random.randint(0, 1000)
-            project_context.all_issue_count = (
-                project_context.existing_issue_count
-                + project_context.reopened_issue_count
-                + project_context.new_issue_count
-            )
+
+            if DEBUG_ISSUE_STATES:
+                # For organizations:issue-states
+                project_context.new_substatus_count = random.randint(5, 200)
+                project_context.escalating_substatus_count = random.randint(5, 200)
+                project_context.regression_substatus_count = random.randint(5, 200)
+                project_context.ongoing_substatus_count = random.randint(20, 3000)
+                project_context.total_substatus_count = (
+                    project_context.new_substatus_count
+                    + project_context.escalating_substatus_count
+                    + project_context.regression_substatus_count
+                    + project_context.ongoing_substatus_count
+                )
+            else:
+                # Removed after organizations:issue-states GA
+                project_context.existing_issue_count = random.randint(0, 10000)
+                project_context.reopened_issue_count = random.randint(0, 1000)
+                project_context.new_issue_count = random.randint(0, 1000)
+                project_context.all_issue_count = (
+                    project_context.existing_issue_count
+                    + project_context.reopened_issue_count
+                    + project_context.new_issue_count
+                )
+
             # Array of (transaction_name, count_this_week, p95_this_week, count_last_week, p95_last_week)
             project_context.key_transactions = [
                 (

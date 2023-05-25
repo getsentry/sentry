@@ -537,7 +537,7 @@ export class Results extends Component<Props, State> {
             'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/#parameterized-transaction-names" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/performance/instrumentation/automatic-instrumentation/#beforenavigate" />
               ),
             }
           )}
@@ -758,6 +758,7 @@ function ResultsContainer(props: Props) {
 
   return (
     <PageFiltersContainer
+      disablePersistence
       skipLoadLastUsed={
         props.organization.features.includes('global-views') && !!props.savedQuery
       }

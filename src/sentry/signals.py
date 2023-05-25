@@ -125,7 +125,7 @@ first_replay_received = BetterSignal(providing_args=["project"])
 first_cron_monitor_created = BetterSignal(providing_args=["project", "user", "from_upsert"])
 first_cron_checkin_received = BetterSignal(providing_args=["project", "monitor_id"])
 member_invited = BetterSignal(providing_args=["member", "user"])
-member_joined = BetterSignal(providing_args=["member", "organization"])
+member_joined = BetterSignal(providing_args=["member", "organization_id"])
 issue_tracker_used = BetterSignal(providing_args=["plugin", "project", "user"])
 plugin_enabled = BetterSignal(providing_args=["plugin", "project", "user"])
 
@@ -169,6 +169,7 @@ issue_resolved = BetterSignal(
 issue_unresolved = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
 issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
 issue_archived = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
+issue_escalating = BetterSignal(providing_args=["project", "group", "event"])
 issue_unignored = BetterSignal(providing_args=["project", "user_id", "group", "transition_type"])
 issue_mark_reviewed = BetterSignal(providing_args=["project", "user", "group"])
 

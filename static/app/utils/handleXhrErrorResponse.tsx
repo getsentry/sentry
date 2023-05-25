@@ -1,41 +1,33 @@
 import * as Sentry from '@sentry/react';
 
-import {ResponseMeta} from 'sentry/api';
+import RequestError from 'sentry/utils/requestError/requestError';
 
-export default function handleXhrErrorResponse(message: string) {
-  return (resp: ResponseMeta) => {
-    if (!resp) {
-      return;
-    }
-    if (!resp.responseJSON) {
-      return;
-    }
+export function handleXhrErrorResponse(message: string, err: RequestError): void {
+  // Sudo errors are handled separately elsewhere
+  // @ts-ignore Property 'code' does not exist on type 'string'
+  if (!err || !err.responseJSON || err.responseJSON?.detail?.code === 'sudo-required') {
+    return;
+  }
 
-    const {responseJSON} = resp;
+  const {responseJSON, status, message: causeMessage} = err;
 
-    // If this is a string then just capture it as error
-    if (typeof responseJSON.detail === 'string') {
-      Sentry.withScope(scope => {
-        scope.setExtra('status', resp.status);
-        scope.setExtra('detail', responseJSON.detail);
-        Sentry.captureException(new Error(message));
-      });
-      return;
-    }
+  Sentry.withScope(scope => {
+    // Turn `GET /dogs/are/great 500` into just `GET /dogs/are/great`
+    const endpoint = causeMessage?.replace(new RegExp(` ${status}$`), '');
 
-    // Ignore sudo-required errors
-    if (responseJSON.detail && responseJSON.detail.code === 'sudo-required') {
-      return;
-    }
+    scope.setTags({
+      responseStatus: status,
+      endpoint,
+    });
+    scope.setExtras({
+      status,
+      responseJSON,
+    });
 
-    if (responseJSON.detail && typeof responseJSON.detail.message === 'string') {
-      Sentry.withScope(scope => {
-        scope.setExtra('status', resp.status);
-        scope.setExtra('detail', responseJSON.detail);
-        scope.setExtra('code', responseJSON.detail.code);
-        Sentry.captureException(new Error(message));
-      });
-      return;
-    }
-  };
+    Sentry.captureException(
+      // We need to typecheck here even though `err` is typed in the function
+      // signature because TS doesn't type thrown or rejected errors
+      err instanceof Error ? new Error(message, {cause: err}) : new Error(message)
+    );
+  });
 }

@@ -27,7 +27,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
-import useTeams from 'sentry/utils/useTeams';
+import {useTeams} from 'sentry/utils/useTeams';
 
 import GenericFooter from './genericFooter';
 
@@ -176,6 +176,7 @@ export function CreateProjectsFooter({
             createPlatformProject(selectedFramework);
           }}
           onSkip={createPlatformProject}
+          newOrg
         />
       ),
       {

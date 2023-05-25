@@ -1,3 +1,5 @@
+import logging
+import random
 import time
 import uuid
 from hashlib import md5
@@ -7,6 +9,8 @@ from django.conf import settings
 
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
+
+logger = logging.getLogger("sentry.replays")
 
 EVENT_LIMIT = 20
 
@@ -66,7 +70,7 @@ def parse_replay_actions(
     segment_data: List[Dict[str, Any]],
 ) -> Optional[ReplayActionsEvent]:
     """Parse RRWeb payload to ReplayActionsEvent."""
-    actions = get_user_actions(replay_id, segment_data)
+    actions = get_user_actions(project_id, replay_id, segment_data)
     if len(actions) == 0:
         return None
 
@@ -102,6 +106,7 @@ def create_replay_actions_payload(
 
 
 def get_user_actions(
+    project_id: int,
     replay_id: str,
     events: List[Dict[str, Any]],
 ) -> List[ReplayActionsEventPayloadClick]:
@@ -131,7 +136,13 @@ def get_user_actions(
 
         if event.get("type") == 5 and event.get("data", {}).get("tag") == "breadcrumb":
             payload = event["data"].get("payload", {})
-            if payload.get("category") == "ui.click":
+            category = payload.get("category")
+            if category == "ui.slowClickDetected":
+                payload["project_id"] = project_id
+                payload["replay_id"] = replay_id
+                payload["dom_tree"] = payload.pop("message")
+                logger.info("sentry.replays.slow_click", extra=payload)
+            elif category == "ui.click":
                 node = payload.get("data", {}).get("node")
                 if node is None:
                     continue
@@ -184,6 +195,27 @@ def get_user_actions(
                         "replays.usecases.ingest.response_body_size",
                         event_payload_data["response"]["size"],
                     )
+        # log the SDK options sent from the SDK 1/500 times
+        if (
+            event.get("type") == 5
+            and event.get("data", {}).get("tag") == "options"
+            and random.randint(0, 499) < 1
+        ):
+            log = event["data"].get("payload", {}).copy()
+            log["project_id"] = project_id
+            log["replay_id"] = replay_id
+            logger.info("SDK Options:", extra=log)
+        # log large dom mutation breadcrumb events 1/100 times
+        if (
+            event.get("type") == 5
+            and event.get("data", {}).get("tag") == "breadcrumb"
+            and event.get("data", {}).get("payload", {}).get("category") == "replay.mutations"
+            and random.randint(0, 99) < 1
+        ):
+            log = event["data"].get("payload", {}).copy()
+            log["project_id"] = project_id
+            log["replay_id"] = replay_id
+            logger.info("Large DOM Mutations List:", extra=log)
 
     return result
 

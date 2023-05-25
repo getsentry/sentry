@@ -46,7 +46,12 @@ MockDate.set(constantDate);
 /**
  * Mocks
  */
-jest.mock('lodash/debounce', () => jest.fn(fn => fn));
+jest.mock('lodash/debounce', () =>
+  jest.fn(fn => {
+    fn.cancel = jest.fn();
+    return fn;
+  })
+);
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
 jest.mock('sentry/utils/withOrganization');
@@ -107,6 +112,8 @@ jest.mock('@sentry/react', function sentryReact() {
     lastEventId: jest.fn(),
     getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
     withScope: jest.spyOn(SentryReact, 'withScope'),
+    Hub: SentryReact.Hub,
+    Scope: SentryReact.Scope,
     Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
     BrowserClient: jest.fn().mockReturnValue({

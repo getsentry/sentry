@@ -23,6 +23,7 @@ from sentry.utils import json
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
 # @control_silo_test(stable=True)
+@control_silo_test
 class AuthLoginTest(TestCase, HybridCloudTestMixin):
     @cached_property
     def path(self):
@@ -210,7 +211,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
         self.client.get(self.path)
 
-        invite_helper = mock.Mock(valid_request=True)
+        invite_helper = mock.Mock(valid_request=True, organization_id=self.organization.id)
         from_session.return_value = invite_helper
 
         resp = self.client.post(
@@ -264,7 +265,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
         self.client.get(self.path)
 
-        invite_helper = mock.Mock(valid_request=True)
+        invite_helper = mock.Mock(valid_request=True, organization_id=self.organization.id)
         from_session.return_value = invite_helper
 
         resp = self.client.post(
@@ -289,6 +290,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         self.session["can_register"] = True
         self.session["invite_token"] = invite.token
         self.session["invite_member_id"] = invite.id
+        self.session["invite_organization_id"] = invite.organization_id
         self.save_session()
 
         self.client.get(self.path)

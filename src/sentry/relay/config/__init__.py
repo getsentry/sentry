@@ -31,6 +31,7 @@ from sentry.ingest.inbound_filters import (
     get_all_filter_specs,
     get_filter_key,
 )
+from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
 from sentry.ingest.transaction_clusterer.rules import (
     TRANSACTION_NAME_RULE_TTL_SECS,
     get_sorted_rules,
@@ -58,6 +59,10 @@ EXPOSABLE_FEATURES = [
 
 EXTRACT_METRICS_VERSION = 1
 EXTRACT_ABNORMAL_MECHANISM_VERSION = 2
+
+#: How often the transaction clusterer should run before we trust its output as "complete",
+#: and start marking all URL transactions as sanitized.
+MIN_CLUSTERER_RUNS = 10
 
 logger = logging.getLogger(__name__)
 
@@ -311,6 +316,11 @@ def _get_project_config(
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
 
+    # Mark the project as ready if it has seen >= 10 clusterer runs.
+    # This prevents projects from prematurely marking all URL transactions as sanitized.
+    if get_clusterer_meta(project)["runs"] >= MIN_CLUSTERER_RUNS:
+        config["txNameReady"] = True
+
     if not full_config:
         # This is all we need for external Relay processors
         return ProjectConfig(project, **cfg)
@@ -523,42 +533,6 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 TRANSACTION_METRICS_EXTRACTION_VERSION = 1
 
 
-#: Top-level metrics for transactions
-TRANSACTION_METRICS = frozenset(
-    [
-        "s:transactions/user@none",
-        "d:transactions/duration@millisecond",
-    ]
-)
-
-
-ALL_MEASUREMENT_METRICS = frozenset(
-    [
-        "d:transactions/measurements.fcp@millisecond",
-        "d:transactions/measurements.lcp@millisecond",
-        "d:transactions/measurements.app_start_cold@millisecond",
-        "d:transactions/measurements.app_start_warm@millisecond",
-        "d:transactions/measurements.cls@none",
-        "d:transactions/measurements.fid@millisecond",
-        "d:transactions/measurements.inp@millisecond",
-        "d:transactions/measurements.fp@millisecond",
-        "d:transactions/measurements.frames_frozen@none",
-        "d:transactions/measurements.frames_frozen_rate@ratio",
-        "d:transactions/measurements.frames_slow@none",
-        "d:transactions/measurements.frames_slow_rate@ratio",
-        "d:transactions/measurements.frames_total@none",
-        "d:transactions/measurements.time_to_initial_display@millisecond",
-        "d:transactions/measurements.time_to_full_display@millisecond",
-        "d:transactions/measurements.stall_count@none",
-        "d:transactions/measurements.stall_longest_time@millisecond",
-        "d:transactions/measurements.stall_percentage@ratio",
-        "d:transactions/measurements.stall_total_time@millisecond",
-        "d:transactions/measurements.ttfb@millisecond",
-        "d:transactions/measurements.ttfb.requesttime@millisecond",
-    ]
-)
-
-
 class CustomMeasurementSettings(TypedDict):
     limit: int
 
@@ -568,7 +542,6 @@ TransactionNameStrategy = Literal["strict", "clientBased"]
 
 class TransactionMetricsSettings(TypedDict):
     version: int
-    extractMetrics: List[str]
     extractCustomTags: List[str]
     customMeasurements: CustomMeasurementSettings
     acceptTransactionNames: TransactionNameStrategy
@@ -588,14 +561,7 @@ def get_transaction_metrics_settings(
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.
     """
-    metrics: List[str] = []
     custom_tags: List[str] = []
-
-    metrics.extend(sorted(TRANSACTION_METRICS))
-    # TODO: for now let's extract all known measurements. we might want to
-    # be more fine-grained in the future once we know which measurements we
-    # really need (or how that can be dynamically determined)
-    metrics.extend(sorted(ALL_MEASUREMENT_METRICS))
 
     if breakdowns_config is not None:
         # we already have a breakdown configuration that tells relay which
@@ -606,8 +572,6 @@ def get_transaction_metrics_settings(
             for _, breakdown_config in breakdowns_config.items():
                 assert breakdown_config["type"] == "spanOperations"
 
-                for op_name in breakdown_config["matches"]:
-                    metrics.append(f"d:transactions/breakdowns.span_ops.ops.{op_name}@millisecond")
         except Exception:
             capture_exception()
 
@@ -622,7 +586,6 @@ def get_transaction_metrics_settings(
 
     return {
         "version": TRANSACTION_METRICS_EXTRACTION_VERSION,
-        "extractMetrics": metrics,
         "extractCustomTags": custom_tags,
         "customMeasurements": {"limit": CUSTOM_MEASUREMENT_LIMIT},
         "acceptTransactionNames": "clientBased",

@@ -12,6 +12,7 @@ from sentry_relay import meta_with_chunks
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import (
     GroupCategory,
@@ -29,6 +30,7 @@ CRASH_FILE_TYPES = {"event.minidump"}
 RESERVED_KEYS = frozenset(["user", "sdk", "device", "contexts"])
 
 FORMATTED_BREADCRUMB_CATEGORIES = frozenset(["query", "sql.query"])
+FORMATTED_SPAN_OPS = frozenset(["db", "db.query", "db.sql.query"])
 SQL_DOUBLEQUOTES_REGEX = re.compile(r"\"([a-zA-Z0-9_]+?)\"")
 MAX_SQL_FORMAT_OPS = 20
 MAX_SQL_FORMAT_LENGTH = 1500
@@ -180,20 +182,6 @@ class EventSerializer(Serializer):
             msg_meta = None
 
         return (message, meta_with_chunks(message, msg_meta))
-
-    def _get_release_info(self, user, event):
-        version = event.get_tag("sentry:release")
-        if not version:
-            return None
-        try:
-            release = Release.objects.get(
-                projects=event.project,
-                organization_id=event.project.organization_id,
-                version=version,
-            )
-        except Release.DoesNotExist:
-            return {"version": version}
-        return serialize(release, user)
 
     def _get_user_report(self, user, event):
         try:
@@ -355,8 +343,10 @@ class SqlFormatEventSerializer(EventSerializer):
 
     # Various checks to ensure that we don't spend too much time formatting
     def _should_skip_formatting(self, query: str):
-        if (len(self.formatted_sql_cache) >= MAX_SQL_FORMAT_OPS) | (
-            len(query) > MAX_SQL_FORMAT_LENGTH
+        if (
+            (not query)
+            | (len(self.formatted_sql_cache) >= MAX_SQL_FORMAT_OPS)
+            | (len(query) > MAX_SQL_FORMAT_LENGTH)
         ):
             return True
 
@@ -388,16 +378,16 @@ class SqlFormatEventSerializer(EventSerializer):
                 None,
             )
 
-            if not breadcrumbs or not features.has(
-                "organizations:sql-format", event.project.organization, actor=user
-            ):
+            if not breadcrumbs:
                 return event_data
 
-            for breadcrumb_item in breadcrumbs["data"]["values"]:
-                if breadcrumb_item["category"] in FORMATTED_BREADCRUMB_CATEGORIES:
+            for breadcrumb_item in breadcrumbs.get("data", {}).get("values", ()):
+                breadcrumb_message = breadcrumb_item.get("message")
+                breadcrumb_category = breadcrumb_item.get("category")
+                if breadcrumb_category in FORMATTED_BREADCRUMB_CATEGORIES and breadcrumb_message:
                     breadcrumb_item["messageFormat"] = "sql"
-                    breadcrumb_item["messageRaw"] = breadcrumb_item["message"]
-                    breadcrumb_item["message"] = self._format_sql_query(breadcrumb_item["message"])
+                    breadcrumb_item["messageRaw"] = breadcrumb_message
+                    breadcrumb_item["message"] = self._format_sql_query(breadcrumb_message)
 
             return event_data
         except Exception as exc:
@@ -411,14 +401,13 @@ class SqlFormatEventSerializer(EventSerializer):
                 None,
             )
 
-            if not spans or not features.has(
-                "organizations:sql-format", event.project.organization, actor=user
-            ):
+            if not spans:
                 return event_data
 
-            for span in spans["data"]:
-                if span["op"] in ("db", "db.query", "db.sql.query"):
-                    span["description"] = self._format_sql_query(span["description"])
+            for span in spans.get("data", ()):
+                span_description = span.get("description")
+                if span.get("op") in FORMATTED_SPAN_OPS and span_description:
+                    span["description"] = self._format_sql_query(span_description)
 
             return event_data
         except Exception as exc:
@@ -427,9 +416,12 @@ class SqlFormatEventSerializer(EventSerializer):
 
     def serialize(self, obj, attrs, user):
         result = super().serialize(obj, attrs, user)
-        with sentry_sdk.start_span(op="event_serializer.format_sql"):
-            result = self._format_breadcrumb_messages(result, obj, user)
-            result = self._format_db_spans(result, obj, user)
+
+        if features.has("organizations:sql-format", obj.project.organization, actor=user):
+            with sentry_sdk.start_span(op="serialize", description="Format SQL"):
+                result = self._format_breadcrumb_messages(result, obj, user)
+                result = self._format_db_spans(result, obj, user)
+
         return result
 
 
@@ -439,7 +431,7 @@ class IssueEventSerializer(SqlFormatEventSerializer):
     """
 
     def get_attrs(
-        self, item_list: Sequence[Event | GroupEvent], user: User, is_public: bool = False
+        self, item_list: Sequence[Event | GroupEvent], user: User, is_public: bool = False, **kwargs
     ):
         results = super().get_attrs(item_list, user, is_public)
         # XXX: Collapse hashes to one hash per group for now. Performance issues currently only have
@@ -449,6 +441,23 @@ class IssueEventSerializer(SqlFormatEventSerializer):
             if event_problem:
                 results[event_problem.event]["perf_problem"] = event_problem.problem.to_dict()
         return results
+
+    def _get_release_info(self, user, event, include_full_release_data: bool):
+        version = event.get_tag("sentry:release")
+        if not version:
+            return None
+        try:
+            release = Release.objects.get(
+                projects=event.project,
+                organization_id=event.project.organization_id,
+                version=version,
+            )
+        except Release.DoesNotExist:
+            return {"version": version}
+        if include_full_release_data:
+            return serialize(release, user)
+        else:
+            return serialize(release, user, GroupEventReleaseSerializer())
 
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
@@ -464,9 +473,9 @@ class IssueEventSerializer(SqlFormatEventSerializer):
         converted_problem["issueType"] = get_group_type_by_type_id(issue_type).slug
         return converted_problem
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, include_full_release_data=False):
         result = super().serialize(obj, attrs, user)
-        result["release"] = self._get_release_info(user, obj)
+        result["release"] = self._get_release_info(user, obj, include_full_release_data)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
         result["perfProblem"] = self._get_perf_problem(attrs)

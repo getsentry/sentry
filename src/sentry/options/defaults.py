@@ -4,7 +4,7 @@ from sentry.logging import LoggingFormat
 from sentry.options import (
     FLAG_ALLOW_EMPTY,
     FLAG_IMMUTABLE,
-    FLAG_MODIFIABLE_BOOL,
+    FLAG_MODIFIABLE_RATE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
@@ -360,6 +360,8 @@ register("symbolicator.sourcemaps-processing-projects", type=Sequence, default=[
 register("symbolicator.sourcemaps-processing-sample-rate", default=0.0)
 # Use a fraction of Symbolicator Source Maps processing events for A/B testing.
 register("symbolicator.sourcemaps-processing-ab-test", default=0.0)
+# Gradually migrate from file_id to download_id
+register("symbolicator.sourcemap-lookup-id-rate", default=0.0)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0)  # unused
@@ -674,16 +676,8 @@ register("performance.issues.render_blocking_assets.size_threshold", default=100
 register("performance.issues.consecutive_http.max_duration_between_spans", default=1000)
 register("performance.issues.consecutive_http.consecutive_count_threshold", default=3)
 register("performance.issues.consecutive_http.span_duration_threshold", default=1000)
+register("performance.issues.large_http_payload.size_threshold", default=1000000)  # 1MB
 
-# System-wide option for sending occurrences to the issues platform
-register("performance.issues.send_to_issues_platform", default=False, flags=FLAG_MODIFIABLE_BOOL)
-
-# System-wide option for performance issue creation through issues platform
-register(
-    "performance.issues.create_issues_through_platform",
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL,
-)
 
 # Dynamic Sampling system wide options
 # Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases
@@ -701,6 +695,20 @@ register("dynamic-sampling.prioritise_transactions.load_rate", default=0.0)
 register("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions", 30)
 # the number of large transactions to retrieve from Snuba for transaction re-balancing
 register("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions", 0)
+# controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
+# not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
+# there will still be some rebalancing between the explicit and implicit transactions ( so setting rebalancing
+# to 0.0 is not the same as no rebalancing. To effectively disable rebalancing set the number of explicit
+# transactions to be rebalance (both small and large) to 0
+register(
+    "dynamic-sampling.prioritise_transactions.rebalance_intensity",
+    default=0.8,
+    flags=FLAG_MODIFIABLE_RATE,
+)
 register("hybrid_cloud.outbox_rate", default=0.0)
 # controls whether we allow people to upload artifact bundles instead of release bundles
 register("sourcemaps.enable-artifact-bundles", default=0.0)
+# Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
+register("txnames.bump-lifetime-sample-rate", default=0.1)
+# Decides whether artifact bundles asynchronous renewal is enabled.
+register("sourcemaps.artifact-bundles.enable-renewal", default=0.0)

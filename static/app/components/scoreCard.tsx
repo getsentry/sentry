@@ -92,7 +92,7 @@ const HeaderWrapper = styled('div')`
 export const ScoreWrapper = styled('div')`
   display: flex;
   flex-direction: row;
-  align-items: flex-end;
+  align-items: baseline;
   max-width: 100%;
 `;
 

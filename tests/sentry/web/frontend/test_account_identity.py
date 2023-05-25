@@ -9,7 +9,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class AccountIdentityTest(TestCase):
     @pytest.fixture(autouse=True)
     def setup_dummy_identity_provider(self):

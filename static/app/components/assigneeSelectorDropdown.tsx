@@ -80,7 +80,10 @@ export class AssigneeSelectorDropdown extends Component<
 
   getInitialState() {
     const group = GroupStore.get(this.props.id);
-    const memberList = MemberListStore.loaded ? MemberListStore.getAll() : undefined;
+    const memberList = MemberListStore.state.loading
+      ? undefined
+      : MemberListStore.getAll();
+
     const loading = GroupStore.hasStatus(this.props.id, 'assignTo');
     const suggestedOwners = group?.owners;
 
@@ -137,8 +140,8 @@ export class AssigneeSelectorDropdown extends Component<
 
   unlisteners = [
     GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined),
-    MemberListStore.listen((users: User[]) => {
-      this.handleMemberListUpdate(users);
+    MemberListStore.listen(({members}: typeof MemberListStore.state) => {
+      this.handleMemberListUpdate(members);
     }, undefined),
   ];
 

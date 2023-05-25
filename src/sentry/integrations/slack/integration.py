@@ -200,5 +200,8 @@ class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
         """
         Create Identity records for an organization's users if their emails match in Sentry and Slack
         """
-        run_args = {"integration": integration, "organization": organization}
+        run_args = {
+            "integration_id": integration.id,
+            "organization_id": organization.id,
+        }
         link_slack_user_identities.apply_async(kwargs=run_args)

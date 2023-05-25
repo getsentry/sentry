@@ -89,8 +89,10 @@ export enum PROJECT_PERFORMANCE_TYPE {
 
 // The native SDK is equally used on clients and end-devices as on
 // backend, the default view should be "All Transactions".
-const FRONTEND_PLATFORMS: string[] = [...frontend].filter(
-  platform => platform !== 'javascript-nextjs' // Next has both frontend and backend transactions.
+const FRONTEND_PLATFORMS: string[] = frontend.filter(
+  platform =>
+    // Next, Remix and Sveltekit habe both, frontend and backend transactions.
+    !['javascript-nextjs', 'javascript-remix', 'javascript-sveltekit'].includes(platform)
 );
 const BACKEND_PLATFORMS: string[] = backend.filter(platform => platform !== 'native');
 const MOBILE_PLATFORMS: string[] = [...mobile];
@@ -230,16 +232,19 @@ export function trendsTargetRoute({
   } else {
     modifiedConditions.setFilterValues('tpm()', ['>0.01']);
   }
-  if (conditions.hasFilter('transaction.duration')) {
-    modifiedConditions.setFilterValues(
-      'transaction.duration',
-      conditions.getFilterValues('transaction.duration')
-    );
-  } else {
-    modifiedConditions.setFilterValues('transaction.duration', [
-      '>0',
-      `<${DEFAULT_MAX_DURATION}`,
-    ]);
+  // Metrics don't support duration filters
+  if (!organization.features.includes('performance-new-trends')) {
+    if (conditions.hasFilter('transaction.duration')) {
+      modifiedConditions.setFilterValues(
+        'transaction.duration',
+        conditions.getFilterValues('transaction.duration')
+      );
+    } else {
+      modifiedConditions.setFilterValues('transaction.duration', [
+        '>0',
+        `<${DEFAULT_MAX_DURATION}`,
+      ]);
+    }
   }
   newQuery.query = modifiedConditions.formatString();
 
@@ -259,7 +264,7 @@ export function removeTracingKeysFromSearch(
   }
 ) {
   currentFilter.getFilterKeys().forEach(tagKey => {
-    const searchKey = tagKey.startsWith('!') ? tagKey.substr(1) : tagKey;
+    const searchKey = tagKey.startsWith('!') ? tagKey.substring(1) : tagKey;
     // Remove aggregates and transaction event fields
     if (
       // aggregates

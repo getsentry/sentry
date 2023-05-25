@@ -49,7 +49,6 @@ describe('Charts > OptionSelector (Multiple)', function () {
       router: {
         location: {query: {query: 'tag:value'}},
       },
-      project: 1,
       projects: [],
     });
 

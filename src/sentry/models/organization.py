@@ -36,7 +36,8 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import Team
 from sentry.roles.manager import Role
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin, generate_snowflake_id
@@ -396,10 +397,12 @@ class Organization(Model, SnowflakeIdMixin):
         ):
             try:
                 to_member = OrganizationMember.objects.get(
-                    organization=to_org, user=from_member.user
+                    organization=to_org, user_id=from_member.user.id
                 )
             except OrganizationMember.DoesNotExist:
-                from_member.update(organization=to_org)
+                with transaction.atomic():
+                    from_member.organization = to_org
+                    from_member.save()
                 to_member = from_member
             else:
                 qs = OrganizationMemberTeam.objects.filter(

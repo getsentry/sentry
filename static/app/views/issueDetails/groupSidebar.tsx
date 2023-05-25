@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import isObject from 'lodash/isObject';
 
@@ -18,9 +18,7 @@ import TagFacets, {
 } from 'sentry/components/group/tagFacets';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {Tooltip} from 'sentry/components/tooltip';
 import {backend, frontend} from 'sentry/data/platformCategories';
-import {IconQuestion} from 'sentry/icons/iconQuestion';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -38,7 +36,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
-import useApi from 'sentry/utils/useApi';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
 type Props = {
@@ -49,6 +47,31 @@ type Props = {
   event?: Event;
 };
 
+function useFetchAllEnvsGroupData(group: Group) {
+  return useApiQuery<Group>(
+    [
+      `/issues/${group.id}/`,
+      {
+        query: {
+          expand: ['inbox', 'owners'],
+          collapse: ['release', 'tags'],
+        },
+      },
+    ],
+    {
+      staleTime: 30000,
+      cacheTime: 30000,
+    }
+  );
+}
+
+function useFetchCurrentRelease(group: Group) {
+  return useApiQuery<CurrentRelease>([`/issues/${group.id}/current-release/`], {
+    staleTime: 30000,
+    cacheTime: 30000,
+  });
+}
+
 export default function GroupSidebar({
   event,
   group,
@@ -56,11 +79,8 @@ export default function GroupSidebar({
   organization,
   environments,
 }: Props) {
-  const [allEnvironmentsGroupData, setAllEnvironmentsGroupData] = useState<
-    Group | undefined
-  >();
-  const [currentRelease, setCurrentRelease] = useState<CurrentRelease | undefined>();
-  const api = useApi();
+  const {data: allEnvironmentsGroupData} = useFetchAllEnvsGroupData(group);
+  const {data: currentRelease} = useFetchCurrentRelease(group);
   const location = useLocation();
 
   const trackAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
@@ -78,30 +98,6 @@ export default function GroupSidebar({
       ...getAnalyticsDataForGroup(group),
     });
   };
-  const fetchAllEnvironmentsGroupData = useCallback(async () => {
-    // Fetch group data for all environments since the one passed in props is filtered for the selected environment
-    // The charts rely on having all environment data as well as the data for the selected env
-    try {
-      const query = {collapse: 'release'};
-      const _allEnvironmentsGroupData = await api.requestPromise(`/issues/${group.id}/`, {
-        query,
-      });
-      setAllEnvironmentsGroupData(_allEnvironmentsGroupData);
-    } catch {
-      /* empty */
-    }
-  }, [api, group]);
-
-  const fetchCurrentRelease = useCallback(async () => {
-    try {
-      const {currentRelease: _currentRelease} = await api.requestPromise(
-        `/issues/${group.id}/current-release/`
-      );
-      setCurrentRelease(_currentRelease);
-    } catch {
-      /* empty */
-    }
-  }, [api, group]);
 
   const renderPluginIssue = () => {
     const issues: React.ReactNode[] = [];
@@ -192,11 +188,6 @@ export default function GroupSidebar({
     );
   };
 
-  useEffect(() => {
-    fetchAllEnvironmentsGroupData();
-    fetchCurrentRelease();
-  }, [fetchAllEnvironmentsGroupData, fetchCurrentRelease]);
-
   return (
     <Container>
       <AssignedTo group={group} event={event} project={project} onAssign={trackAssign} />
@@ -228,19 +219,6 @@ export default function GroupSidebar({
             ? BACKEND_TAGS
             : DEFAULT_TAGS
         }
-        title={
-          <div>
-            {t('All Tags')}
-            <TooltipWrapper>
-              <Tooltip
-                title={t('The tags associated with all events in this issue')}
-                disableForVisualTest
-              >
-                <IconQuestion size="sm" color="gray200" />
-              </Tooltip>
-            </TooltipWrapper>
-          </div>
-        }
         event={event}
         tagFormatter={TAGS_FORMATTER}
         project={project}
@@ -268,9 +246,4 @@ const StyledAvatarList = styled(AvatarList)`
 
 const StyledSidebarSectionTitle = styled(SidebarSection.Title)`
   gap: ${space(1)};
-`;
-
-const TooltipWrapper = styled('span')`
-  vertical-align: middle;
-  padding-left: ${space(0.5)};
 `;
