@@ -1,4 +1,5 @@
 import logging
+import math
 from datetime import timedelta
 from typing import Dict, Optional, Sequence, Tuple
 
@@ -66,9 +67,6 @@ MAX_TRANSACTIONS_PER_PROJECT = 20
 # MIN and MAX rebalance factor ( make sure we don't go crazy when rebalancing)
 MIN_REBALANCE_FACTOR = 0.1
 MAX_REBALANCE_FACTOR = 10
-
-# Error threshold for floating point comparison.
-EPSILON = 1e-6
 
 logger = logging.getLogger(__name__)
 
@@ -350,10 +348,7 @@ def adjust_sample_rates(
         for ds_project in ds_projects:
             cache_key = _generate_cache_key(org_id=org_id)
             # We want to get the old sample rate, which will be None in case it was not set.
-            try:
-                old_sample_rate = float(redis_client.hget(cache_key, ds_project.id))
-            except (TypeError, ValueError):
-                old_sample_rate = None
+            old_sample_rate = sample_rate_to_float(redis_client.hget(cache_key, ds_project.id))
 
             # We want to store the new sample rate as a string.
             pipeline.hset(
@@ -371,16 +366,6 @@ def adjust_sample_rates(
                 )
 
         pipeline.execute()
-
-
-def are_equal_with_epsilon(a: Optional[float], b: Optional[float]) -> bool:
-    """
-    Checks if two floating point numbers are equal within an error boundary.
-    """
-    if a is None or b is None:
-        return False
-
-    return abs(a - b) < EPSILON
 
 
 def get_adjusted_base_rate_from_cache_or_compute(org_id: int) -> Optional[float]:
@@ -477,21 +462,33 @@ def adjust_base_sample_rate_per_project(
         )
 
     redis_client = get_redis_client_for_ds()
-    with redis_client.pipeline(transaction=False) as pipeline:
-        cache_key = generate_sliding_window_cache_key(org_id=org_id)
+    cache_key = generate_sliding_window_cache_key(org_id=org_id)
 
+    # We want to get all the old sample rates in memory because we will remove the entire hash in the next step.
+    old_sample_rates = redis_client.hgetall(cache_key)
+
+    # For efficiency reasons, we start a pipeline that will apply a set of operations without multiple round trips.
+    with redis_client.pipeline(transaction=False) as pipeline:
         # We want to delete the Redis hash before adding new sample rate since we don't back-fill projects that have no
         # root count metrics in the considered window.
         pipeline.delete(cache_key)
 
         # For each project we want to now save the new sample rate.
         for project_id, sample_rate in projects_with_rebalanced_sample_rate:  # type:ignore
+            # We store the new updated sample rate.
             pipeline.hset(cache_key, project_id, sample_rate)
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
 
-            schedule_invalidate_project_config(
-                project_id=project_id, trigger="dynamic_sampling_sliding_window"
-            )
+            # We want to get the old sample rate, which will be None in case it was not set.
+            old_sample_rate = sample_rate_to_float(old_sample_rates.get(str(project_id), ""))
+            # We also get the new sample rate, which will be None in case we stored a SLIDING_WINDOW_CALCULATION_ERROR.
+            sample_rate = sample_rate_to_float(sample_rate)  # type:ignore
+            # We invalidate the caches only if there was a change in the sample rate. This is to avoid flooding the
+            # system with project config invalidations.
+            if not are_equal_with_epsilon(old_sample_rate, sample_rate):
+                schedule_invalidate_project_config(
+                    project_id=project_id, trigger="dynamic_sampling_sliding_window"
+                )
 
         pipeline.execute()
 
@@ -589,3 +586,29 @@ def log_extrapolated_monthly_volume(
         "compute_sliding_window_sample_rate.extrapolate_monthly_volume",
         extra=extra,
     )
+
+
+def sample_rate_to_float(sample_rate: Optional[str]) -> Optional[float]:
+    """
+    Converts a sample rate to a float or returns None in case the conversion failed.
+    """
+    if sample_rate is None:
+        return None
+
+    try:
+        return float(sample_rate)
+    except (TypeError, ValueError):
+        return None
+
+
+def are_equal_with_epsilon(a: Optional[float], b: Optional[float]) -> bool:
+    """
+    Checks if two floating point numbers are equal within an error boundary.
+    """
+    if a is None and b is None:
+        return True
+
+    if a is None or b is None:
+        return False
+
+    return math.isclose(a, b)
