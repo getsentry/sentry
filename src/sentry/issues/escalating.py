@@ -374,7 +374,7 @@ def manage_issue_states(
         Activity.objects.create(
             project=group.project,
             group=group,
-            type=ActivityType.SET_UNRESOLVED.value,
+            type=ActivityType.SET_ESCALATING.value,
             user_id=None,
             data=data,
         )
