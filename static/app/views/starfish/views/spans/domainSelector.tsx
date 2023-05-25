@@ -66,8 +66,9 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 function getQuery(moduleName?: string) {
   return `SELECT domain, count()
     FROM spans_experimental_starfish
-    ${moduleName ? `WHERE module = '${moduleName}'` : ''}
-    WHERE domain != ''
+    WHERE 1 = 1
+    ${moduleName ? `AND module = '${moduleName}'` : ''}
+    AND domain != ''
     GROUP BY domain
     ORDER BY count() DESC
     LIMIT 25
