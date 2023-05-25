@@ -52,10 +52,13 @@ describe('CreateProject', function () {
     slug: 'test',
     id: '1',
     name: 'test',
-    hasAccess: false,
+    access: ['team:read'],
   });
 
-  const teamWithAccess = {...teamNoAccess, hasAccess: true};
+  const teamWithAccess = {
+    ...teamNoAccess,
+    access: ['team:admin', 'team:write', 'team:read'],
+  };
 
   beforeEach(() => {
     TeamStore.reset();
