@@ -38,7 +38,7 @@ from sentry.models import (
 )
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
-from sentry.search.snuba.executors import get_search_filter
+from sentry.search.snuba.executors import DEFAULT_PRIORITY_WEIGHTS, get_search_filter
 from sentry.snuba import discover
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
@@ -164,9 +164,14 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         """Temporary function to be used while developing the new priority sort"""
         return {
             "better_priority": {
-                "log_level": request.GET.get("logLevel", 5),
-                "frequency": request.GET.get("frequency", 5),
-                "has_stacktrace": request.GET.get("hasStacktrace", 5),
+                "log_level": request.GET.get("logLevel", DEFAULT_PRIORITY_WEIGHTS["log_level"]),
+                "frequency": request.GET.get("frequency", DEFAULT_PRIORITY_WEIGHTS["frequency"]),
+                "has_stacktrace": request.GET.get(
+                    "hasStacktrace", DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"]
+                ),
+                "event_halflife_hours": request.GET.get(
+                    "eventHalflifeHours", DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"]
+                ),
             }
         }
 

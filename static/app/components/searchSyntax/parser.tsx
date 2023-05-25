@@ -1,3 +1,4 @@
+import mergeWith from 'lodash/mergeWith';
 import moment from 'moment';
 import {LocationRange} from 'pegjs';
 
@@ -766,8 +767,8 @@ export class TokenConverter {
     }
 
     if (
-      this.config.disallowWildcard && 
-      items.some(item => item.value.value.includes('*')
+      this.config.disallowWildcard &&
+      items.some(item => item.value.value.includes('*'))
     ) {
       return {reason: t('Lists should not have wildcard values')};
     }
@@ -830,7 +831,7 @@ export type SearchConfig = {
    */
   dateKeys: Set<string>;
   /**
-   * Disallow wildcards in free text search
+   * Disallow wildcards in free text search AND in tag values
    */
   disallowWildcard: boolean;
   /**
@@ -910,7 +911,6 @@ const options = {
   TokenConverter,
   TermOperator,
   FilterType,
-  config: defaultConfig,
 };
 
 /**
@@ -921,28 +921,17 @@ export function parseSearch(
   query: string,
   additionalConfig?: Partial<SearchConfig>
 ): ParseResult | null {
-  // Merge additionalConfig with defaultConfig
-  const config = additionalConfig
-    ? {
-        ...additionalConfig,
-        ...Object.keys(defaultConfig).reduce((configAccumulator, key) => {
-          if (typeof defaultConfig[key] === 'object') {
-            configAccumulator[key] = new Set([
-              ...defaultConfig[key],
-              ...(additionalConfig[key] ?? []),
-            ]);
-            return configAccumulator;
-          }
-          if (typeof defaultConfig[key] === 'boolean') {
-            configAccumulator[key] = additionalConfig[key] || defaultConfig[key];
-            return configAccumulator;
-          }
+  const configCopy = {...defaultConfig};
 
-          configAccumulator[key] = defaultConfig[key];
-          return configAccumulator;
-        }, {}),
-      }
-    : defaultConfig;
+  // Merge additionalConfig with defaultConfig
+  const config = mergeWith(configCopy, additionalConfig, (srcValue, destValue) => {
+    if (destValue instanceof Set) {
+      return new Set([...destValue, ...srcValue]);
+    }
+
+    // Use default merge behavior
+    return undefined;
+  });
 
   try {
     return grammar.parse(query, {...options, config});
