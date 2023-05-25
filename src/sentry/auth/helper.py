@@ -33,16 +33,16 @@ from sentry.auth.idpmigration import (
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.locks import locks
-from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization, User
+from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, User
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
+    RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     organization_service,
 )
-from sentry.services.hybrid_cloud.organization.serial import serialize_organization
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, json, metrics
@@ -703,7 +703,7 @@ class AuthHelper(Pipeline):
     def __init__(
         self,
         request: HttpRequest,
-        organization: Organization,
+        organization: RpcOrganization,
         flow: int,
         auth_provider: AuthProvider | None = None,
         provider_key: str | None = None,
@@ -720,7 +720,7 @@ class AuthHelper(Pipeline):
         super().__init__(request, provider_key, organization, auth_provider)  # type: ignore
 
         # Override superclass's type hints to be narrower
-        self.organization: Organization = self.organization
+        self.organization: RpcOrganization = self.organization
         self.provider: Provider = self.provider
 
     def get_provider(self, provider_key: str | None) -> PipelineProvider:
@@ -778,12 +778,8 @@ class AuthHelper(Pipeline):
         return response
 
     def auth_handler(self, identity: Mapping[str, Any]) -> AuthIdentityHandler:
-        # This is a temporary step to keep test_helper integrated
-        # TODO: Move this conversion further upstream
-        rpc_org = serialize_organization(self.organization)
-
         return AuthIdentityHandler(
-            self.provider_model, self.provider, rpc_org, self.request, identity
+            self.provider_model, self.provider, self.organization, self.request, identity
         )
 
     @transaction.atomic  # type: ignore
@@ -955,10 +951,13 @@ class AuthHelper(Pipeline):
     def disable_2fa_required(self) -> None:
         require_2fa = self.organization.flags.require_2fa
 
-        if not require_2fa or not require_2fa.is_set:
+        if not require_2fa:
             return
 
-        self.organization.update(flags=F("flags").bitand(~Organization.flags.require_2fa))
+        organization_service.update_flags(
+            organization_id=self.organization.id,
+            flags=RpcOrganizationFlagsUpdate(require_2fa=False),
+        )
 
         logger.info(
             "Require 2fa disabled during sso setup", extra={"organization_id": self.organization.id}

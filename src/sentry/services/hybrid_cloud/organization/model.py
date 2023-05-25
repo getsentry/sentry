@@ -3,7 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional, TypedDict
 
 from pydantic import Field
 
@@ -143,6 +143,10 @@ class RpcOrganizationFlags(RpcModel):
     require_2fa: bool = False
     disable_new_visibility_features: bool = False
     require_email_verification: bool = False
+
+
+class RpcOrganizationFlagsUpdate(TypedDict):
+    require_2fa: bool
 
 
 class RpcOrganizationInvite(RpcModel):

@@ -7,6 +7,7 @@ from abc import abstractmethod
 from typing import Iterable, List, Optional, cast
 
 from sentry.services.hybrid_cloud.organization import (
+    RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSummary,
@@ -84,6 +85,11 @@ class OrganizationService(RpcService):
         only a subset of all organization metadata is available.  Spanning out and querying multiple organizations
         for their full metadata is greatly discouraged for performance reasons.
         """
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())

@@ -23,6 +23,7 @@ from sentry.models.organizationmember import InviteStatus
 from sentry.services.hybrid_cloud import logger
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
+    RpcOrganizationFlagsUpdate,
     RpcOrganizationInvite,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
@@ -280,6 +281,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return [r.organization for r in results if scope in r.get_scopes()]
 
         return [r.organization for r in results]
+
+    def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
+        updates = models.F("flags")
+        for (name, value) in flags.items():
+            if value is True:
+                updates = updates.bitor(Organization.flags[name])
+            elif value is False:
+                updates = updates.bitand(~Organization.flags[name])
+            else:
+                raise TypeError
+
+        Organization.objects.filter(id=organization_id).update(flags=updates)
 
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
