@@ -8,6 +8,7 @@ from freezegun import freeze_time
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
@@ -337,7 +338,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
 
     def test_no_perms(self):
         # Downgrade user from "owner" to "member".
-        OrganizationMember.objects.filter(user=self.user).update(role="member")
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(user=self.user).update(role="member")
 
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 403
