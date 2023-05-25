@@ -261,8 +261,7 @@ def prioritise_projects() -> None:
             for org_id, projects_with_tx_count_and_rates in fetch_projects_with_total_volumes(
                 org_ids=orgs
             ).items():
-                if org_id not in [228005]:
-                    process_projects_sample_rates.delay(org_id, projects_with_tx_count_and_rates)
+                process_projects_sample_rates.delay(org_id, projects_with_tx_count_and_rates)
 
 
 @instrumented_task(
