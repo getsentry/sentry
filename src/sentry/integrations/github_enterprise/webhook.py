@@ -14,7 +14,6 @@ from rest_framework.response import Response
 
 from sentry.integrations.github.webhook import (
     InstallationEventWebhook,
-    InstallationRepositoryEventWebhook,
     PullRequestEventWebhook,
     PushEventWebhook,
 )
@@ -44,14 +43,6 @@ def get_installation_metadata(event, host):
 
 class GitHubEnterpriseInstallationEventWebhook(InstallationEventWebhook):
     provider = "github_enterprise"
-
-
-class GitHubEnterpriseInstallationRepositoryEventWebhook(InstallationRepositoryEventWebhook):
-    provider = "github_enterprise"
-
-    # https://developer.github.com/v3/activity/events/types/#installationrepositoriesevent
-    def _handle(self, event, organization, repo):
-        pass
 
 
 class GitHubEnterprisePushEventWebhook(PushEventWebhook):
@@ -182,7 +173,6 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
         "push": GitHubEnterprisePushEventWebhook,
         "pull_request": GitHubEnterprisePullRequestEventWebhook,
         "installation": GitHubEnterpriseInstallationEventWebhook,
-        "installation_repositories": GitHubEnterpriseInstallationRepositoryEventWebhook,
     }
 
     @method_decorator(csrf_exempt)

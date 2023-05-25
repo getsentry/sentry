@@ -6,12 +6,12 @@ from typing import Mapping, Type
 
 from sentry.silo import SiloMode
 
-from .parsers import SlackRequestParser
+from .parsers import GithubRequestParser, SlackRequestParser
 from .parsers.base import BaseRequestParser
 
 logger = logging.getLogger(__name__)
 
-ACTIVE_PARSERS = [SlackRequestParser]
+ACTIVE_PARSERS = [SlackRequestParser, GithubRequestParser]
 
 
 class IntegrationControlMiddleware:
