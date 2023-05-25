@@ -8,6 +8,7 @@ Validation is located at
 
 import math
 import statistics
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List, TypedDict
 
@@ -22,7 +23,24 @@ class GroupCount(TypedDict):
     data: List[int]
 
 
-def generate_issue_forecast(data: GroupCount, start_time: datetime) -> List[IssueForecast]:
+# standard values if no parameters are passed
+@dataclass
+class ThresholdVariables:
+    std_multiplier: int = 5
+    min_spike_multiplier: int = 5
+    max_spike_multiplier: int = 8
+    min_bursty_multiplier: int = 2
+    max_bursty_multiplier: int = 5
+
+
+standard_version = ThresholdVariables()
+looser_version = ThresholdVariables(6, 5, 9, 2, 6)
+tighter_version = ThresholdVariables(4, 4, 7, 2, 4)
+
+
+def generate_issue_forecast(
+    data: GroupCount, start_time: datetime, alg_params: ThresholdVariables = standard_version
+) -> List[IssueForecast]:
     """
     Calculates daily issue spike limits, given an input dataset from snuba.
 
@@ -42,6 +60,7 @@ def generate_issue_forecast(data: GroupCount, start_time: datetime) -> List[Issu
     The final spike limit for each hour is set to the max of the bursty limit bound or the calculated limit.
     :param data: Dict of Snuba query results - hourly data over past 7 days
     :param start_time: datetime indicating the first hour to calc spike protection for
+    :param alg_params: Threshold Variables dataclass with different ceiling versions
     :return output: Dict containing a list of spike protection values
     """
 
@@ -89,13 +108,22 @@ def generate_issue_forecast(data: GroupCount, start_time: datetime) -> List[Issu
     ts_cv = ts_std_dev / ts_avg
 
     # multiplier determined by exponential equation - bounded between [2,5]
-    regression_multiplier = min(max(2, 5 * ((math.e) ** (-0.65 * ts_cv))), 5)
+    regression_multiplier = min(
+        max(alg_params.min_bursty_multiplier, 5 * ((math.e) ** (-0.65 * ts_cv))),
+        alg_params.max_bursty_multiplier,
+    )
 
     # first ceiling calculation
     limit_v1 = ts_max * regression_multiplier
 
     # This second multiplier corresponds to 5 standard deviations above the avg ts value
-    ts_multiplier = min(max((ts_avg + (5 * ts_std_dev)) / ts_avg, 5), 8)
+    ts_multiplier = min(
+        max(
+            (ts_avg + (alg_params.std_multiplier * ts_std_dev)) / ts_avg,
+            alg_params.min_spike_multiplier,
+        ),
+        alg_params.max_spike_multiplier,
+    )
 
     # Default upper limit is the truncated multiplier * avg value
     baseline = ts_multiplier * ts_avg
