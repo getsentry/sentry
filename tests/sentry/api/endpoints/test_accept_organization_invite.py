@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.auth.authenticators import TotpInterface
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     AuthProvider,
@@ -16,10 +17,10 @@ from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
-@region_silo_test
+@control_silo_test(stable=True)
 class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()
@@ -181,7 +182,8 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 204
 
-            om = OrganizationMember.objects.get(id=om.id)
+            with exempt_from_silo_limits():
+                om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
             assert om.user == user
 
@@ -200,15 +202,17 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        OrganizationMember.objects.filter(id=om.id).update(
-            token_expires_at=om.token_expires_at - timedelta(days=31)
-        )
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(id=om.id).update(
+                token_expires_at=om.token_expires_at - timedelta(days=31)
+            )
 
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.post(path)
             assert resp.status_code == 400
 
-            om = OrganizationMember.objects.get(id=om.id)
+            with exempt_from_silo_limits():
+                om = OrganizationMember.objects.get(id=om.id)
             assert om.is_pending, "should not have been accepted"
             assert om.token, "should not have been accepted"
 
@@ -226,7 +230,8 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 400
 
-        om = OrganizationMember.objects.get(id=om.id)
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.get(id=om.id)
         assert not om.invite_approved
         assert om.is_pending
         assert om.token
@@ -248,7 +253,8 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 204
 
-            om = OrganizationMember.objects.get(id=om.id)
+            with exempt_from_silo_limits():
+                om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
             assert om.user == user
 
@@ -263,7 +269,8 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 path = self._get_path(url, [om2.id, om2.token])
                 resp = self.client.post(path)
                 assert resp.status_code == 400
-            assert not OrganizationMember.objects.filter(id=om2.id).exists()
+            with exempt_from_silo_limits():
+                assert not OrganizationMember.objects.filter(id=om2.id).exists()
             self.assert_org_member_mapping_not_exists(org_member=om2)
 
     def test_can_accept_when_user_has_2fa(self):
@@ -289,7 +296,8 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
             self._assert_pending_invite_details_not_in_session(resp)
 
-            om = OrganizationMember.objects.get(id=om.id)
+            with exempt_from_silo_limits():
+                om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
             assert om.user == user
 

@@ -8,6 +8,7 @@ import Duration from 'sentry/components/duration';
 import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -79,9 +80,8 @@ export default function Sidebar({
       : moment(pageFilter.selection.datetime.start);
   const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
 
-  const [, , , _errorCountSeries, errorRateSeries] = queryDataToChartData(seriesData).map(
-    series => zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
-  );
+  const {failure_count: _errorCountSeries, failure_rate: errorRateSeries} =
+    queryDataToChartData(seriesData, startTime, endTime);
 
   // NOTE: This almost always calculates to 0.00% when using the scraped data.
   // This is because the scraped data doesn't have nearly as much volume as real prod data.
@@ -245,28 +245,40 @@ export function SidebarChart(props) {
   );
 }
 
-export function queryDataToChartData(data: any) {
-  const series = [] as any[];
+export function queryDataToChartData<T>(
+  data: ({interval: string} & T)[],
+  startTime: Moment,
+  endTime: Moment,
+  seriesOptions: Partial<Series> = {}
+): Record<keyof T, Series> {
+  const series: Record<string, Series> = {};
   if (data.length > 0) {
     Object.keys(data[0])
       .filter(key => key !== 'interval')
       .forEach(key => {
-        series.push({seriesName: `${key}()`, data: [] as any[]});
+        series[key] = {data: [], seriesName: `${key}()`, ...seriesOptions};
       });
   }
   data.forEach(point => {
     Object.keys(point).forEach(key => {
       if (key !== 'interval') {
-        series
-          .find(serie => serie.seriesName === `${key}()`)
-          ?.data.push({
-            name: point.interval,
-            value: point[key],
-          });
+        series[key].data.push({
+          name: point.interval,
+          value: point[key],
+        });
       }
     });
   });
-  return series;
+
+  Object.entries(series).forEach(([seriesKey, s]) => {
+    series[seriesKey] = zeroFillSeries(
+      s,
+      moment.duration(12, 'hours'),
+      startTime,
+      endTime
+    );
+  });
+  return series as Record<keyof T, Series>;
 }
 
 export const getTransactionBasedSeries = (
@@ -282,15 +294,6 @@ export const getTransactionBasedSeries = (
     12
   )[0];
 
-  const p95TransactionSeries = queryToSeries(
-    data,
-    'group',
-    'p95(transaction.duration)',
-    dateFilter.startTime,
-    dateFilter.endTime,
-    12
-  )[0];
-
   const throughputTransactionSeries = queryToSeries(
     data,
     'group',
@@ -301,9 +304,8 @@ export const getTransactionBasedSeries = (
   )[0];
   if (data.length) {
     p50TransactionSeries.seriesName = 'p50()';
-    p95TransactionSeries.seriesName = 'p95()';
     throughputTransactionSeries.seriesName = 'epm()';
   }
 
-  return {p50TransactionSeries, p95TransactionSeries, throughputTransactionSeries};
+  return {p50TransactionSeries, throughputTransactionSeries};
 };

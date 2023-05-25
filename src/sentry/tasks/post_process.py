@@ -686,8 +686,11 @@ def process_snoozes(job: PostProcessJob) -> None:
         and group.status == GroupStatus.IGNORED
         and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     ):
-        if is_escalating(group):
-            manage_issue_states(group, GroupInboxReason.ESCALATING, event)
+        escalating, forecast = is_escalating(group)
+        if escalating:
+            manage_issue_states(
+                group, GroupInboxReason.ESCALATING, event, activity_data={"forecast": forecast}
+            )
 
             job["has_reappeared"] = True
         return

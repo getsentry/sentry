@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import isObject from 'lodash/isObject';
 
@@ -36,7 +36,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
-import useApi from 'sentry/utils/useApi';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
 type Props = {
@@ -47,6 +47,31 @@ type Props = {
   event?: Event;
 };
 
+function useFetchAllEnvsGroupData(group: Group) {
+  return useApiQuery<Group>(
+    [
+      `/issues/${group.id}/`,
+      {
+        query: {
+          expand: ['inbox', 'owners'],
+          collapse: ['release', 'tags'],
+        },
+      },
+    ],
+    {
+      staleTime: 30000,
+      cacheTime: 30000,
+    }
+  );
+}
+
+function useFetchCurrentRelease(group: Group) {
+  return useApiQuery<CurrentRelease>([`/issues/${group.id}/current-release/`], {
+    staleTime: 30000,
+    cacheTime: 30000,
+  });
+}
+
 export default function GroupSidebar({
   event,
   group,
@@ -54,11 +79,8 @@ export default function GroupSidebar({
   organization,
   environments,
 }: Props) {
-  const [allEnvironmentsGroupData, setAllEnvironmentsGroupData] = useState<
-    Group | undefined
-  >();
-  const [currentRelease, setCurrentRelease] = useState<CurrentRelease | undefined>();
-  const api = useApi();
+  const {data: allEnvironmentsGroupData} = useFetchAllEnvsGroupData(group);
+  const {data: currentRelease} = useFetchCurrentRelease(group);
   const location = useLocation();
 
   const trackAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
@@ -76,30 +98,6 @@ export default function GroupSidebar({
       ...getAnalyticsDataForGroup(group),
     });
   };
-  const fetchAllEnvironmentsGroupData = useCallback(async () => {
-    // Fetch group data for all environments since the one passed in props is filtered for the selected environment
-    // The charts rely on having all environment data as well as the data for the selected env
-    try {
-      const query = {collapse: 'release'};
-      const _allEnvironmentsGroupData = await api.requestPromise(`/issues/${group.id}/`, {
-        query,
-      });
-      setAllEnvironmentsGroupData(_allEnvironmentsGroupData);
-    } catch {
-      /* empty */
-    }
-  }, [api, group.id]);
-
-  const fetchCurrentRelease = useCallback(async () => {
-    try {
-      const {currentRelease: _currentRelease} = await api.requestPromise(
-        `/issues/${group.id}/current-release/`
-      );
-      setCurrentRelease(_currentRelease);
-    } catch {
-      /* empty */
-    }
-  }, [api, group.id]);
 
   const renderPluginIssue = () => {
     const issues: React.ReactNode[] = [];
@@ -189,11 +187,6 @@ export default function GroupSidebar({
       </SidebarSection.Wrap>
     );
   };
-
-  useEffect(() => {
-    fetchAllEnvironmentsGroupData();
-    fetchCurrentRelease();
-  }, [fetchAllEnvironmentsGroupData, fetchCurrentRelease]);
 
   return (
     <Container>

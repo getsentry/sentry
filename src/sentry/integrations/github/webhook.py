@@ -246,7 +246,7 @@ class PushEventWebhook(Webhook):
                             try:
                                 gh_user = client.get_user(gh_username)
                             except ApiError:
-                                logger.exception("Github user is missing.")
+                                logger.warning("Github user is missing.")
                             else:
                                 # even if we can't find a user, set to none so we
                                 # don't re-query
