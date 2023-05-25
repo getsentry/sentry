@@ -390,15 +390,13 @@ export class TokenConverter {
     };
   };
 
-  tokenFreeText = (value: string, quoted: boolean) => {
-    return {
-      ...this.defaultTokenFields,
-      type: Token.FreeText as const,
-      value,
-      quoted,
-      invalid: this.checkInvalidFreeText(value),
-    };
-  };
+  tokenFreeText = (value: string, quoted: boolean) => ({
+    ...this.defaultTokenFields,
+    type: Token.FreeText as const,
+    value,
+    quoted,
+    invalid: this.checkInvalidFreeText(value),
+  });
 
   tokenLogicGroup = (
     inner: Array<
