@@ -158,16 +158,26 @@ class OptionsManager:
         >>> from sentry import options
         >>> options.set('option', 'value')
         """
-        opt = self.lookup_key(key)
-        # If an option isn't able to exist in the store, we can't set it at runtime
-        assert not (opt.flags & FLAG_NOSTORE), "%r cannot be changed at runtime" % key
-        # Enforce immutability on key
-        assert not (opt.flags & FLAG_IMMUTABLE), "%r cannot be changed at runtime" % key
+        not_writable_reason = self.can_update(key, value, channel)
+
+        # If an option isn't able to exist in the store or is immutable, we can't set it at runtime
+        assert not_writable_reason not in [
+            NotWritableReason.READONLY_DEFINITION,
+            NotWritableReason.NOT_WRITABLE,
+        ], (
+            "%r cannot be changed at runtime" % key
+        )
         # Enforce immutability if value is already set on disk
-        assert not (opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key)), (
+        assert not not_writable_reason == NotWritableReason.OPTION_ON_DISK, (
             "%r cannot be changed at runtime because it is configured on disk" % key
         )
+        # Enforce that the option has not been changed by a different UpdateChannel
+        # thus it cannot be overwritten.
+        assert not not_writable_reason == NotWritableReason.DRIFTED, (
+            "Option %r has drifted. Cannot overwrite" % key
+        )
 
+        opt = self.lookup_key(key)
         if coerce:
             value = opt.type(value)
         elif not opt.type.test(value):

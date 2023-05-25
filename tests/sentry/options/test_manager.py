@@ -220,6 +220,19 @@ class OptionsManagerTest(TestCase):
         with self.settings(SENTRY_OPTIONS={"storeonly": "something-else!"}):
             assert self.manager.get("storeonly") == ""
 
+    def test_drifted(self):
+        self.manager.register("option", flags=FLAG_AUTOMATOR_MODIFIABLE)
+        # CLI should be able to update anything
+        self.manager.set("option", "value", channel=UpdateChannel.CLI)
+        assert self.manager.get("option") == "value"
+
+        with pytest.raises(AssertionError):
+            self.manager.set("option", "value2", channel=UpdateChannel.AUTOMATOR)
+
+        # Automator should be able to reset the channel of an option
+        # By leaving the value as it is.
+        self.manager.set("option", "value", channel=UpdateChannel.AUTOMATOR)
+
     def test_flag_prioritize_disk(self):
         self.manager.register("prioritize_disk", flags=FLAG_PRIORITIZE_DISK)
         assert self.manager.get("prioritize_disk") == ""

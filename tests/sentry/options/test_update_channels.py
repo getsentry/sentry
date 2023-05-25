@@ -206,3 +206,17 @@ def test_non_writable_options(
 
     reason_automator = manager.can_update("option", "val", UpdateChannel.AUTOMATOR)
     assert reason_automator == outcome
+
+
+@pytest.mark.django_db
+def test_legacy_option(manager) -> None:
+    manager.set("sentry:something", "val")
+    assert manager.get("sentry:something") == "val"
+
+    with pytest.raises(AssertionError):
+        manager.set("sentry:something_else", "val", channel=UpdateChannel.AUTOMATOR)
+
+    assert (
+        manager.can_update("sentry:something_else", "val", channel=UpdateChannel.AUTOMATOR)
+        == NotWritableReason.READONLY_DEFINITION
+    )
