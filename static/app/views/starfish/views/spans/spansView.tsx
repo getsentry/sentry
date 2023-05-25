@@ -4,13 +4,13 @@ import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import _orderBy from 'lodash/orderBy';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {ActionSelector} from 'sentry/views/starfish/views/spans/actionSelector';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/domainSelector';
 import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/spanOperationSelector';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
@@ -85,24 +85,7 @@ export default function SpansView(props: Props) {
 
         <SpanOperationSelector value={props.appliedFilters.span_operation} />
         <DomainSelector value={props.appliedFilters.domain} />
-
-        {['action'].map(filterKey => {
-          const value = props.appliedFilters[filterKey];
-
-          return value ? (
-            <CompactSelect
-              key={filterKey}
-              triggerProps={{prefix: SPAN_FILTER_KEY_LABELS[filterKey]}}
-              value={props.appliedFilters[filterKey]}
-              options={[
-                {
-                  value,
-                  label: value,
-                },
-              ]}
-            />
-          ) : null;
-        })}
+        <ActionSelector value={props.appliedFilters.action} />
       </FilterOptionsContainer>
 
       <PaddedContainer>
