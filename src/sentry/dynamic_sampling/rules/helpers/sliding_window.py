@@ -13,6 +13,28 @@ FALLBACK_SLIDING_WINDOW_SIZE = 24
 # Sentinel value used to mark that an error happened when computing the sliding window sample rate for a specific
 # project.
 SLIDING_WINDOW_CALCULATION_ERROR = "sliding_window_error"
+# We want to keep the entry for 1 hour, so that in case an org is not considered for 1 hour, the system will fall back
+# to the blended sample rate.
+EXECUTED_CACHE_KEY_TTL = 60 * 60 * 1000
+
+
+def generate_sliding_window_executed_cache_key() -> str:
+    return "ds::sliding_window_executed"
+
+
+def mark_sliding_window_executed() -> None:
+    redis_client = get_redis_client_for_ds()
+    cache_key = generate_sliding_window_executed_cache_key()
+
+    redis_client.set(cache_key, 1)
+    redis_client.pexpire(cache_key, EXECUTED_CACHE_KEY_TTL)
+
+
+def was_sliding_window_executed() -> bool:
+    redis_client = get_redis_client_for_ds()
+    cache_key = generate_sliding_window_executed_cache_key()
+
+    return bool(redis_client.exists(cache_key))
 
 
 def generate_sliding_window_cache_key(org_id: int) -> str:
@@ -27,15 +49,27 @@ def get_sliding_window_sample_rate(
 
     try:
         value = redis_client.hget(cache_key, project_id)
-        # In case we had an explicit error, we want to fetch the blended sample rate to avoid oversampling.
+        # In case we had an explicit error or the sliding window was not run, we want to return the error fallback
+        # sample rate.
         if value == SLIDING_WINDOW_CALCULATION_ERROR:
             return error_sample_rate_fallback
 
         return float(value)
-    except (TypeError, ValueError):
+    # Throw if the input is not a string or a float (e.g., None).
+    except TypeError:
         # In case we couldn't convert the value to float, that is, it is a string or the value is not there, we want
-        # to fall back to 100%. This case is different from the sentinel value because it's generic.
-        return 1.0
+        # to fall back to 100% in case we know that the sliding window was executed. We track whether the task was
+        # executed and completed successfully under the assumption that, if that is the case, all orgs and projects
+        # with at least 1 metric were considered, thus if they are not in cache, we assume they had 0 metrics.
+        if was_sliding_window_executed():
+            return 1.0
+
+        # In the other case were the sliding window was not run, maybe because of an issue, we will just fallback to
+        # blended sample rate, to avoid oversampling.
+        return error_sample_rate_fallback
+    # Thrown if the input is not a valid float.
+    except ValueError:
+        return error_sample_rate_fallback
 
 
 def generate_sliding_window_org_cache_key(org_id: int) -> str:
