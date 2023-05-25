@@ -46,7 +46,6 @@ class Migration(CheckedMigration):
                 ("headers", sentry.db.models.fields.jsonfield.JSONField(default=dict)),
                 ("size", sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True)),
                 ("checksum", models.CharField(db_index=True, max_length=40, null=True)),
-                ("path", models.TextField(null=True)),
             ],
             options={
                 "db_table": "sentry_controlfile",

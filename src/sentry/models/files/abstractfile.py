@@ -187,12 +187,6 @@ class AbstractFile(Model):
     size = BoundedPositiveIntegerField(null=True)
     checksum = models.CharField(max_length=40, null=True, db_index=True)
 
-    # <Legacy fields>
-    # Remove in 8.1
-    path = models.TextField(null=True)
-
-    # </Legacy fields>
-
     class Meta:
         abstract = True
 

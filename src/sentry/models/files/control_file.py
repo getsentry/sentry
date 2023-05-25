@@ -10,7 +10,7 @@ from sentry.tasks.files import delete_unreferenced_blobs_control
 @control_silo_only_model
 class ControlFile(AbstractFile):
     blobs = models.ManyToManyField("sentry.ControlFileBlob", through="sentry.ControlFileBlobIndex")
-    # Looking for the "blob" FK? This is deprecated and unavailable in the control silo
+    # Looking for the "blob" FK or the path attribute? These are deprecated and unavailable in the control silo
 
     class Meta:
         app_label = "sentry"
