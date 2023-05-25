@@ -8,7 +8,7 @@ from sentry import audit_log
 from sentry.api import client
 from sentry.models import Organization, OrganizationStatus
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.web.frontend.base import RegionSiloOrganizationView
+from sentry.web.frontend.base import OrganizationView
 from sentry.web.helpers import render_to_response
 
 ERR_MESSAGES = {
@@ -25,7 +25,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
-class RestoreOrganizationView(RegionSiloOrganizationView):
+class RestoreOrganizationView(OrganizationView):
     required_scope = "org:admin"
     sudo_required = True
 

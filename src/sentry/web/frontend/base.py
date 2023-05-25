@@ -419,12 +419,8 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
         return self.redirect(redirect_uri)
 
 
-class OrganizationView(BaseView, abc.ABC):
+class AbstractOrganizationView(BaseView, abc.ABC):
     """
-    A deprecated view used by endpoints that act on behalf of an organization.
-    In the future, we should move endpoints to either of the subclasses, RegionSilo* or ControlSilo*, and
-    move out any ORM specific logic into the correct silo view.  This will likely become an ABC that shares some
-    common logic.
     The 'organization' keyword argument is automatically injected into the resulting dispatch, but currently the
     typing of 'organization' will vary based on the subclass.  It may either be an RpcOrganization or an orm
     Organization based on the subclass.  Be mindful during this transition of the typing.
@@ -557,7 +553,7 @@ class OrganizationView(BaseView, abc.ABC):
         return super().convert_args(request, *args, **kwargs)
 
 
-class RegionSiloOrganizationView(OrganizationView):
+class OrganizationView(AbstractOrganizationView):
     """
     A view which has direct ORM access to organization objects.  Only endpoints that exist in the
     region silo should use this class.
@@ -572,7 +568,7 @@ class RegionSiloOrganizationView(OrganizationView):
             return None
 
 
-class ControlSiloOrganizationView(OrganizationView):
+class ControlSiloOrganizationView(AbstractOrganizationView):
     """A view which accesses organization objects over RPC.
 
     Only endpoints on the control silo should use this class (but it works anywhere).
@@ -582,7 +578,7 @@ class ControlSiloOrganizationView(OrganizationView):
         return self.active_organization.organization if self.active_organization else None
 
 
-class ProjectView(RegionSiloOrganizationView):
+class ProjectView(OrganizationView):
     """
     Any view acting on behalf of a project should inherit from this base and the
     matching URL pattern must pass 'org_slug' as well as 'project_slug'.
