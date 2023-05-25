@@ -2,17 +2,13 @@ from __future__ import annotations
 
 import logging
 import pickle
-import random
-from typing import Any
 
-import sentry_sdk
-from django.conf import settings
 from django.db.models import TextField
 
 from sentry.db.models.fields import jsonfield
 from sentry.db.models.utils import Creator
 from sentry.utils import json
-from sentry.utils.strings import compress, decompress
+from sentry.utils.strings import decompress
 
 __all__ = ("GzippedDictField",)
 
@@ -44,11 +40,6 @@ class GzippedDictField(TextField):
     Slightly different from a JSONField in the sense that the default
     value is a dictionary.
     """
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.write_json = kwargs.pop("write_json", PICKLE_WRITE_JSON)
-        self.disable_pickle_validation = kwargs.pop("disable_pickle_validation", False)
-        super().__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name):
         """
@@ -83,25 +74,9 @@ class GzippedDictField(TextField):
             return None
         elif isinstance(value, bytes):
             value = value.decode("utf-8")
-        if self.write_json:
-            if value is None and self.null:
-                return None
-            return json.dumps(value, default=jsonfield.default)
-
-        if not self.disable_pickle_validation and (
-            settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE
-            or random.random() < VALIDATE_JSON_SAMPLE_RATE
-        ):
-            try:
-                _validate_roundtrip(value)
-            except Exception as e:
-                if settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE:
-                    raise
-                else:
-                    sentry_sdk.capture_exception(e)
-
-        # pickle path
-        return compress(pickle.dumps(value))
+        if value is None and self.null:
+            return None
+        return json.dumps(value, default=jsonfield.default)
 
     def value_to_string(self, obj):
         return self.get_prep_value(self.value_from_object(obj))
