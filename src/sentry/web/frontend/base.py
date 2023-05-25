@@ -543,55 +543,24 @@ class OrganizationView(BaseView):
             return True
         return False
 
-    def _lookup_orm_org(self) -> Organization | None:
-        """
-        Used by convert_args to convert the hybrid cloud safe active_organization object into an org ORM.
-        This should really only be used by the Region or Monolith silo modes -- calling this in a Control silo
-        endpoint or codepath will result in exceptions.
-        :return:
-        """
-        organization: Organization | None = None
-        if self.active_organization:
-            try:
-                organization = Organization.objects.get(id=self.active_organization.organization.id)
-            except Organization.DoesNotExist:
-                pass
-        return organization
+    def _get_organization(self) -> RpcOrganization | None:
+        return self.active_organization.organization if self.active_organization else None
 
     def convert_args(
         self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         if "organization" not in kwargs:
-            kwargs["organization"] = self._lookup_orm_org()
+            kwargs["organization"] = self._get_organization()
 
-        return args, kwargs
+        return super().convert_args(request, *args, **kwargs)
 
 
 class RegionSiloOrganizationView(OrganizationView):
-    """
-    A view which has direct ORM access to organization objects.  In practice, **only endpoints that exist in the
-    region silo should use this class**.  When All endpoints have been convert / tested against region silo compliance,
-    the base class (OrganizationView) will likely disappear and only either ControlSilo* or RegionSilo* classes will
-    remain.
-    """
-
-    def convert_args(
-        self, request: Any, organization_slug: str | None = None, *args: Any, **kwargs: Any
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        if "organization" not in kwargs:
-            kwargs["organization"] = self._lookup_orm_org()
-
-        return args, kwargs
+    pass
 
 
 class ControlSiloOrganizationView(OrganizationView):
-    def convert_args(
-        self, request: Any, *args: Any, **kwargs: Any
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        kwargs["organization"] = (
-            self.active_organization.organization if self.active_organization else None
-        )
-        return super().convert_args(request, *args, **kwargs)
+    pass
 
 
 class ProjectView(RegionSiloOrganizationView):
@@ -640,7 +609,7 @@ class ProjectView(RegionSiloOrganizationView):
         organization: Organization | None = None
         active_project: Project | None = None
         if self.active_organization:
-            organization = self._lookup_orm_org()
+            organization = self._get_organization()
 
             if organization:
                 active_project = self.get_active_project(
