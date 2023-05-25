@@ -18,8 +18,11 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
 import {transformEventStatsSmoothed} from '../../../trends/utils';
+
+import {getIntervalLine} from './utils';
 
 type Props = {
   errored: boolean;
@@ -33,6 +36,8 @@ type Props = {
     end: number;
     start: number;
   };
+  transaction?: NormalizedTrendsTransaction;
+  withBreakpoint?: boolean;
 } & Omit<React.ComponentProps<typeof ReleaseSeries>, 'children' | 'queryExtra'> &
   Pick<LineChartProps, 'onLegendSelectChanged' | 'legend'>;
 
@@ -52,6 +57,8 @@ function Content({
   utc,
   queryExtra,
   router,
+  withBreakpoint,
+  transaction,
   onLegendSelectChanged,
 }: Props) {
   if (errored) {
@@ -77,6 +84,10 @@ function Content({
         .reverse()
     : [];
 
+  const breakpointSeries = withBreakpoint
+    ? getIntervalLine(theme, data || [], 0.5, transaction)
+    : [];
+
   const durationUnit = getDurationUnit(series, legend);
 
   const chartOptions: Omit<LineChartProps, 'series'> = {
@@ -90,7 +101,6 @@ function Content({
       showSymbol: false,
     },
     tooltip: {
-      trigger: 'axis',
       valueFormatter: (value: number | null) => tooltipFormatter(value, 'duration'),
     },
     xAxis: timeFrame
@@ -146,7 +156,12 @@ function Content({
                     {...chartOptions}
                     legend={legend}
                     onLegendSelectChanged={onLegendSelectChanged}
-                    series={[...series, ...smoothedSeries, ...releaseSeries]}
+                    series={[
+                      ...series,
+                      ...smoothedSeries,
+                      ...releaseSeries,
+                      ...breakpointSeries,
+                    ]}
                   />
                 ),
                 fixed: <Placeholder height="200px" testId="skeleton-ui" />,

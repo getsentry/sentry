@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
   ChartContainer,
@@ -10,7 +11,7 @@ import {
 } from 'sentry/components/charts/styles';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {Organization, SelectValue} from 'sentry/types';
+import {Organization, Project, SelectValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -72,6 +73,7 @@ type Props = {
   organization: Organization;
   totalValue: number | null;
   withoutZerofill: boolean;
+  project?: Project;
 };
 
 function TransactionSummaryCharts({
@@ -81,6 +83,7 @@ function TransactionSummaryCharts({
   location,
   currentFilter,
   withoutZerofill,
+  project,
 }: Props) {
   function handleDisplayChange(value: string) {
     const display = decodeScalar(location.query.display, DisplayModes.DURATION);
@@ -200,19 +203,48 @@ function TransactionSummaryCharts({
           />
         )}
         {display === DisplayModes.TREND && (
-          <TrendChart
-            trendFunction={trendFunction}
-            trendParameter={trendColumn}
-            organization={organization}
-            query={eventView.query}
-            queryExtra={releaseQueryExtra}
-            project={eventView.project}
-            environment={eventView.environment}
-            start={eventView.start}
-            end={eventView.end}
-            statsPeriod={eventView.statsPeriod}
-            withoutZerofill={withoutZerofill}
-          />
+          <Feature features={['organizations:performance-new-trends']}>
+            {({hasFeature}) => {
+              if (hasFeature) {
+                return (
+                  <TrendChart
+                    eventView={eventView}
+                    trendFunction={trendFunction}
+                    trendParameter={trendColumn}
+                    organization={organization}
+                    query={eventView.query}
+                    queryExtra={releaseQueryExtra}
+                    project={eventView.project}
+                    environment={eventView.environment}
+                    start={eventView.start}
+                    end={eventView.end}
+                    statsPeriod={eventView.statsPeriod}
+                    withoutZerofill={withoutZerofill}
+                    projects={[project!]}
+                    withBreakpoint
+                  />
+                );
+              }
+
+              return (
+                <TrendChart
+                  eventView={eventView}
+                  trendFunction={trendFunction}
+                  trendParameter={trendColumn}
+                  organization={organization}
+                  query={eventView.query}
+                  queryExtra={releaseQueryExtra}
+                  project={eventView.project}
+                  environment={eventView.environment}
+                  start={eventView.start}
+                  end={eventView.end}
+                  statsPeriod={eventView.statsPeriod}
+                  withoutZerofill={withoutZerofill}
+                  projects={[project!]}
+                />
+              );
+            }}
+          </Feature>
         )}
         {display === DisplayModes.VITALS && (
           <VitalsChart

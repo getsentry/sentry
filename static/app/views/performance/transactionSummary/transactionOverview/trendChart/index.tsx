@@ -9,24 +9,40 @@ import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {OrganizationSummary} from 'sentry/types';
+import {Organization, OrganizationSummary, Project} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
+import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 
-import {TrendFunctionField} from '../../../trends/types';
-import {generateTrendFunctionAsString} from '../../../trends/utils';
+import {
+  NormalizedTrendsTransaction,
+  TrendChangeType,
+  TrendFunctionField,
+  TrendView,
+} from '../../../trends/types';
+import {
+  generateTrendFunctionAsString,
+  getSelectedQueryKey,
+  modifyTrendView,
+  normalizeTrends,
+} from '../../../trends/utils';
 import {ViewProps} from '../../../types';
 
 import Content from './content';
 
 type Props = ViewProps & {
+  eventView: EventView;
   organization: OrganizationSummary;
+  projects: Project[];
   queryExtra: Query;
   trendFunction: TrendFunctionField;
   trendParameter: string;
   withoutZerofill: boolean;
+  withBreakpoint?: boolean;
 };
 
 function TrendChart({
@@ -39,8 +55,11 @@ function TrendChart({
   trendParameter,
   queryExtra,
   withoutZerofill,
+  withBreakpoint,
+  eventView,
   start: propsStart,
   end: propsEnd,
+  projects,
 }: Props) {
   const router = useRouter();
   const location = useLocation();
@@ -116,31 +135,124 @@ function TrendChart({
 
   const trendDisplay = generateTrendFunctionAsString(trendFunction, trendParameter);
 
+  function getSelectedTransaction(
+    trendChangeType: TrendChangeType,
+    transactions?: NormalizedTrendsTransaction[]
+  ): NormalizedTrendsTransaction | undefined {
+    const queryKey = getSelectedQueryKey(trendChangeType);
+    const selectedTransactionName = decodeScalar(location.query[queryKey]);
+
+    if (!transactions) {
+      return undefined;
+    }
+
+    const selectedTransaction = transactions.find(
+      transaction =>
+        `${transaction.transaction}-${transaction.project}` === selectedTransactionName
+    );
+
+    if (selectedTransaction) {
+      return selectedTransaction;
+    }
+
+    return transactions.length > 0 ? transactions[0] : undefined;
+  }
+
+  const trendView = eventView.clone() as TrendView;
+  modifyTrendView(
+    trendView,
+    location,
+    TrendChangeType.REGRESSION,
+    projects,
+    organization as Organization
+  );
+
   return (
     <Fragment>
       {header}
-      <EventsRequest
-        {...requestCommonProps}
-        organization={organization}
-        showLoading={false}
-        includePrevious={false}
-        yAxis={trendDisplay}
-        currentSeriesNames={[trendDisplay]}
-        partial
-        withoutZerofill={withoutZerofill}
-        referrer="api.performance.transaction-summary.trends-chart"
-      >
-        {({errored, loading, reloading, timeseriesData, timeframe: timeFrame}) => (
-          <Content
-            series={timeseriesData}
-            errored={errored}
-            loading={loading}
-            reloading={reloading}
-            timeFrame={timeFrame}
-            {...contentCommonProps}
-          />
-        )}
-      </EventsRequest>
+      {withBreakpoint ? (
+        // queries events-trends-statsv2 for breakpoint data
+        <TrendsDiscoverQuery
+          eventView={trendView}
+          orgSlug={organization.slug}
+          location={location}
+          limit={1}
+          withBreakpoint={withBreakpoint}
+        >
+          {({trendsData}) => {
+            const events = normalizeTrends(
+              (trendsData && trendsData.events && trendsData.events.data) || []
+            );
+
+            // keep trend change type as regression until the backend can support passing the type
+            const selectedTransaction = getSelectedTransaction(
+              TrendChangeType.REGRESSION,
+              events
+            );
+
+            return (
+              // queries events-stats for trend data
+              <EventsRequest
+                {...requestCommonProps}
+                organization={organization}
+                showLoading={false}
+                includePrevious={false}
+                yAxis={trendDisplay}
+                currentSeriesNames={[trendDisplay]}
+                partial
+                withoutZerofill={withoutZerofill}
+                referrer="api.performance.transaction-summary.trends-chart"
+              >
+                {({
+                  errored,
+                  loading,
+                  reloading,
+                  timeseriesData,
+                  timeframe: timeFrame,
+                }) => {
+                  return (
+                    <Content
+                      series={timeseriesData}
+                      errored={errored}
+                      loading={loading}
+                      reloading={reloading}
+                      timeFrame={timeFrame}
+                      withBreakpoint
+                      transaction={selectedTransaction}
+                      {...contentCommonProps}
+                    />
+                  );
+                }}
+              </EventsRequest>
+            );
+          }}
+        </TrendsDiscoverQuery>
+      ) : (
+        <EventsRequest
+          {...requestCommonProps}
+          organization={organization}
+          showLoading={false}
+          includePrevious={false}
+          yAxis={trendDisplay}
+          currentSeriesNames={[trendDisplay]}
+          partial
+          withoutZerofill={withoutZerofill}
+          referrer="api.performance.transaction-summary.trends-chart"
+        >
+          {({errored, loading, reloading, timeseriesData, timeframe: timeFrame}) => {
+            return (
+              <Content
+                series={timeseriesData}
+                errored={errored}
+                loading={loading}
+                reloading={reloading}
+                timeFrame={timeFrame}
+                {...contentCommonProps}
+              />
+            );
+          }}
+        </EventsRequest>
+      )}
     </Fragment>
   );
 }
