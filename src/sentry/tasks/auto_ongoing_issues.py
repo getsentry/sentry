@@ -25,6 +25,8 @@ TRANSITION_AFTER_DAYS = 3
 @instrumented_task(
     name="sentry.tasks.schedule_auto_transition_new",
     queue="auto_transition_issue_states",
+    max_retries=3,
+    default_retry_delay=60,
 )  # type: ignore
 @monitor(monitor_slug="schedule_auto_transition_new")
 def schedule_auto_transition_new() -> None:
@@ -48,6 +50,8 @@ def schedule_auto_transition_new() -> None:
     queue="auto_transition_issue_states",
     time_limit=25 * 60,
     soft_time_limit=20 * 60,
+    max_retries=3,
+    default_retry_delay=60,
 )  # type: ignore
 def auto_transition_issues_new_to_ongoing(
     project_id: int,
@@ -89,6 +93,8 @@ def auto_transition_issues_new_to_ongoing(
 @instrumented_task(
     name="sentry.tasks.schedule_auto_transition_regressed",
     queue="auto_transition_issue_states",
+    max_retries=3,
+    default_retry_delay=60,
 )  # type: ignore
 @monitor(monitor_slug="schedule_auto_transition_regressed")
 def schedule_auto_transition_regressed() -> None:
@@ -112,6 +118,8 @@ def schedule_auto_transition_regressed() -> None:
     queue="auto_transition_issue_states",
     time_limit=25 * 60,
     soft_time_limit=20 * 60,
+    max_retries=3,
+    default_retry_delay=60,
 )  # type: ignore
 def auto_transition_issues_regressed_to_ongoing(
     project_id: int,
