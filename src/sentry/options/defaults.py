@@ -360,6 +360,8 @@ register("symbolicator.sourcemaps-processing-projects", type=Sequence, default=[
 register("symbolicator.sourcemaps-processing-sample-rate", default=0.0)
 # Use a fraction of Symbolicator Source Maps processing events for A/B testing.
 register("symbolicator.sourcemaps-processing-ab-test", default=0.0)
+# Gradually migrate from file_id to download_id
+register("symbolicator.sourcemap-lookup-id-rate", default=0.0)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0)  # unused
