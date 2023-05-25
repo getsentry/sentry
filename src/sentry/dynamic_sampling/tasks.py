@@ -1,4 +1,5 @@
 import logging
+import math
 from datetime import timedelta
 from typing import Dict, Optional, Sequence, Tuple
 
@@ -66,9 +67,6 @@ MAX_TRANSACTIONS_PER_PROJECT = 20
 # MIN and MAX rebalance factor ( make sure we don't go crazy when rebalancing)
 MIN_REBALANCE_FACTOR = 0.1
 MAX_REBALANCE_FACTOR = 10
-
-# Error threshold for floating point comparison.
-EPSILON = 1e-6
 
 logger = logging.getLogger(__name__)
 
@@ -613,4 +611,4 @@ def are_equal_with_epsilon(a: Optional[float], b: Optional[float]) -> bool:
     if a is None or b is None:
         return False
 
-    return abs(a - b) < EPSILON
+    return math.isclose(a, b)
