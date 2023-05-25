@@ -111,7 +111,7 @@ def manager():
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "manager_fixture, options_flags, set_channel, check_channel, set_reason, reset_reason",
+    "manager_fixture, options_flags, set_channel, check_channel, set_to_same_value_reason, reset_reason",
     TEST_CASES,
 )
 def test_can_update(
