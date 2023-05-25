@@ -33,7 +33,7 @@ from sentry.dynamic_sampling.rules.helpers.sliding_window import (
     get_sliding_window_org_sample_rate,
     get_sliding_window_sample_rate,
     get_sliding_window_size,
-    mark_sliding_window_executed_for_orgs,
+    mark_sliding_window_executed,
 )
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
@@ -403,37 +403,18 @@ def sliding_window() -> None:
             for orgs in get_orgs_with_project_counts_without_modulo(
                 MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY
             ):
-                # We want to mark the sliding window job to be executed for this specific org.
-                mark_sliding_window_executed_for_orgs(org_ids=orgs)
-                # We iterate over each set of orgs and compute the total root counts for each project.
                 for (
                     org_id,
                     projects_with_total_root_count,
                 ) in fetch_projects_with_total_root_transactions_count(
                     org_ids=orgs, window_size=window_size
                 ).items():
-                    adjust_base_sample_rate_per_project(
-                        org_id, projects_with_total_root_count, window_size
-                    )
-
-
-@instrumented_task(
-    name="sentry.dynamic_sampling.process_sliding_window",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=25 * 60,  # 25 mins
-    time_limit=2 * 60 + 5,
-)  # type: ignore
-def process_sliding_window(
-    org_id: OrganizationId,
-    projects_with_total_root_count: Sequence[Tuple[ProjectId, int]],
-    window_size: int,
-) -> None:
-    with metrics.timer(
-        "sentry.dynamic_sampling.tasks.sliding_window.adjust_base_sample_rate_per_project"
-    ):
-        adjust_base_sample_rate_per_project(org_id, projects_with_total_root_count, window_size)
+                    with metrics.timer(
+                        "sentry.dynamic_sampling.tasks.sliding_window.adjust_base_sample_rate_per_project"
+                    ):
+                        adjust_base_sample_rate_per_project(
+                            org_id, projects_with_total_root_count, window_size
+                        )
 
 
 def adjust_base_sample_rate_per_project(
@@ -470,9 +451,10 @@ def adjust_base_sample_rate_per_project(
 
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:
+        cache_key = generate_sliding_window_cache_key(org_id=org_id)
+
         # We want to delete the Redis hash before adding new sample rate since we don't back-fill projects that have no
         # root count metrics in the considered window.
-        cache_key = generate_sliding_window_cache_key(org_id=org_id)
         pipeline.delete(cache_key)
 
         # For each project we want to now save the new sample rate.
@@ -485,6 +467,10 @@ def adjust_base_sample_rate_per_project(
             )
 
         pipeline.execute()
+
+    # Due to the synchronous nature of the sliding window, when we arrived here, we can confidently say that the
+    # execution of the sliding window was successful. We will keep this state for 1 hour.
+    mark_sliding_window_executed()
 
 
 @instrumented_task(
