@@ -1,13 +1,23 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any, Callable, List, Optional
 
+from django.db.models import QuerySet
+
+from sentry.api.serializers.base import Serializer
 from sentry.models import AuthIdentity
-from sentry.services.hybrid_cloud.identity import IdentityService, RpcIdentity, RpcIdentityProvider
+from sentry.models.identity import Identity
+from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
+from sentry.services.hybrid_cloud.identity.model import (
+    IdentityFilterArgs,
+    RpcIdentity,
+    RpcIdentityProvider,
+)
 from sentry.services.hybrid_cloud.identity.serial import (
     serialize_identity,
     serialize_identity_provider,
 )
+from sentry.services.hybrid_cloud.identity.service import IdentityService
 
 
 class DatabaseBackedIdentityService(IdentityService):
@@ -34,21 +44,14 @@ class DatabaseBackedIdentityService(IdentityService):
 
         return serialize_identity_provider(idp) if idp else None
 
-    def get_identity(
-        self,
-        *,
-        provider_id: int,
-        user_id: int | None = None,
-        identity_ext_id: str | None = None,
-    ) -> RpcIdentity | None:
-        from sentry.models.identity import Identity
+    def get_identities(self, *, filter: IdentityFilterArgs) -> List[RpcIdentity]:
+        return self._FQ.get_many(filter=filter)
 
-        # If an user_id is provided, use that -- otherwise, use the external_id
-        identity_kwargs: Any = {"user_id": user_id} if user_id else {"external_id": identity_ext_id}
-
-        identity = Identity.objects.filter(**identity_kwargs, idp_id=provider_id).first()
-
-        return serialize_identity(identity) if identity else None
+    def get_identity(self, *, filter: IdentityFilterArgs) -> RpcIdentity | None:
+        identities = self.get_identities(filter=filter)
+        if len(identities) == 0:
+            return None
+        return identities[0]
 
     def get_user_identities_by_provider_type(
         self,
@@ -81,3 +84,39 @@ class DatabaseBackedIdentityService(IdentityService):
         AuthIdentity.objects.filter(
             user_id=user_id, auth_provider__organization_id=organization_id
         ).delete()
+
+    class _IdentityFilterQuery(
+        FilterQueryDatabaseImpl[Identity, IdentityFilterArgs, RpcIdentity, None]
+    ):
+        def apply_filters(self, query: QuerySet, filters: IdentityFilterArgs) -> QuerySet:
+            if "user_id" in filters:
+                query = query.filter(user_id=filters["user_id"])
+            if "identity_ext_id" in filters:
+                query = query.filter(external_id=filters["identity_ext_id"])
+            if "provider_id" in filters:
+                query = query.filter(idp_id=filters["provider_id"])
+            if "provider_ext_id" in filters:
+                query = query.filter(idp__external_id=filters["provider_ext_id"])
+            if "provider_type" in filters:
+                query = query.filter(idp__type=filters["provider_type"])
+            return query
+
+        def base_query(self) -> QuerySet:
+            return Identity.objects
+
+        def filter_arg_validator(self) -> Callable[[IdentityFilterArgs], Optional[str]]:
+            return self._filter_has_any_key_validator(
+                "user_id",
+                "identity_ext_id",
+                "provider_id",
+                "provider_ext_id",
+                "provider_type",
+            )
+
+        def serialize_api(self, serializer: Optional[None]) -> Serializer:
+            raise NotImplementedError("API Serialization not supported for IdentityService")
+
+        def serialize_rpc(self, identity: Identity) -> RpcIdentity:
+            return serialize_identity(identity=identity)
+
+    _FQ = _IdentityFilterQuery()

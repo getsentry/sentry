@@ -64,8 +64,10 @@ class BaseSiloClient(BaseApiClient):
         method: str,
         path: str,
         headers: Mapping[str, Any] | None = None,
-        data: Mapping[str, Any] | None = None,
+        data: Any | None = None,
         params: Mapping[str, Any] | None = None,
+        json: bool = True,
+        raw_response: bool = False,
     ) -> BaseApiResponseX:
         """
         Use the BaseApiClient interface to send a cross-region request.
@@ -79,8 +81,9 @@ class BaseSiloClient(BaseApiClient):
             headers=clean_proxy_headers(headers),
             data=data,
             params=params,
-            json=True,
+            json=json,
             allow_text=True,
+            raw_response=raw_response,
         )
         # TODO: Establish a scheme to check/log the Sentry Version of the requestor and server
         # optionally raising an error to alert developers of version drift

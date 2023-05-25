@@ -41,8 +41,10 @@ def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
         assignee_text = f"#{assigned_actor.slug}"
     elif actor.type == User:
         assignee_identity = identity_service.get_identity(
-            provider_id=identity.idp_id,
-            user_id=assigned_actor.id,
+            filter={
+                "provider_id": identity.idp_id,
+                "user_id": assigned_actor.id,
+            }
         )
         assignee_text = (
             assigned_actor.get_display_name()

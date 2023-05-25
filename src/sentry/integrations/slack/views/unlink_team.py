@@ -96,7 +96,7 @@ class SlackUnlinkTeamView(BaseView):
             )
 
         if not idp or not identity_service.get_identity(
-            provider_id=idp.id, identity_ext_id=params["slack_id"]
+            filter={"provider_id": idp.id, "identity_ext_id": params["slack_id"]}
         ):
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
 

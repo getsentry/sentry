@@ -131,7 +131,7 @@ class SlackLinkTeamView(BaseView):
             return render_error_page(request, body_text="HTTP 403: Invalid team ID")
 
         ident = identity_service.get_identity(
-            provider_id=idp.id, identity_ext_id=params["slack_id"]
+            filter={"provider_id": idp.id, "identity_ext_id": params["slack_id"]}
         )
         if not ident:
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")

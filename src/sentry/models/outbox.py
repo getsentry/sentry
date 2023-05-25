@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import contextlib
+import dataclasses
 import datetime
 from enum import IntEnum
 from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
@@ -9,6 +10,7 @@ from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
 from django.db import connections, models, router, transaction
 from django.db.models import Max
 from django.dispatch import Signal
+from django.http import HttpRequest
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -66,6 +68,15 @@ class OutboxCategory(IntEnum):
     @classmethod
     def as_choices(cls):
         return [(i.value, i.value) for i in cls]
+
+
+@dataclasses.dataclass
+class OutboxWebhookPayload:
+    method: str
+    path: str
+    uri: str
+    headers: Mapping[str, Any]
+    body: str
 
 
 class WebhookProviderIdentifier(IntEnum):
@@ -314,13 +325,32 @@ class ControlOutbox(OutboxBase):
         "region_name", "shard_scope", "shard_identifier", "category", "object_identifier"
     )
 
+    def get_webhook_payload_from_request(self, request: HttpRequest) -> OutboxWebhookPayload:
+        return OutboxWebhookPayload(
+            method=request.method,
+            path=request.path,
+            uri=request.get_raw_uri(),
+            headers={k: v for k, v in request.headers.items()},
+            body=request.body.decode(encoding="utf-8"),
+        )
+
+    @classmethod
+    def get_webhook_payload_from_outbox(self, payload: Mapping[str, Any]) -> OutboxWebhookPayload:
+        return OutboxWebhookPayload(
+            method=payload.get("method"),
+            path=payload.get("path"),
+            uri=payload.get("uri"),
+            headers=payload.get("headers"),
+            body=payload.get("body"),
+        )
+
     @classmethod
     def for_webhook_update(
         cls,
         *,
         webhook_identifier: WebhookProviderIdentifier,
         region_names: List[str],
-        payload=Mapping[str, Any],
+        request: HttpRequest,
     ) -> Iterable[ControlOutbox]:
         for region_name in region_names:
             result = cls()
@@ -329,7 +359,8 @@ class ControlOutbox(OutboxBase):
             result.object_identifier = cls.next_object_identifier()
             result.category = OutboxCategory.WEBHOOK_PROXY
             result.region_name = region_name
-            result.payload = payload
+            payload: OutboxWebhookPayload = result.get_webhook_payload_from_request(request)
+            result.payload = dataclasses.asdict(payload)
             yield result
 
     @classmethod
