@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {RefObject, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {LineSeriesOption} from 'echarts';
 import * as echarts from 'echarts/core';
@@ -39,8 +39,10 @@ type Props = {
   utc: boolean;
   aggregateOutputFormat?: 'number' | 'percentage' | 'duration';
   chartColors?: string[];
+  chartGroup?: string;
   definedAxisTicks?: number;
   disableXAxis?: boolean;
+  forwardedRef?: RefObject<ReactEchartsRef>;
   grid?: AreaChartProps['grid'];
   height?: number;
   hideYAxisSplitLine?: boolean;
@@ -118,14 +120,18 @@ function Chart({
   throughput,
   aggregateOutputFormat,
   onClick,
+  forwardedRef,
+  chartGroup,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
-  const chart = useRef<ReactEchartsRef>(null);
 
-  const echartsInstance = chart.current?.getEchartsInstance();
+  const defaultRef = useRef<ReactEchartsRef>(null);
+  const chartRef = forwardedRef || defaultRef;
+
+  const echartsInstance = chartRef?.current?.getEchartsInstance();
   if (echartsInstance && !echartsInstance.group) {
-    echartsInstance.group = STARFISH_CHART_GROUP;
+    echartsInstance.group = chartGroup ?? STARFISH_CHART_GROUP;
   }
 
   if (!data || data.length <= 0) {
@@ -215,7 +221,7 @@ function Chart({
         return element.classList.contains('echarts-for-react');
       }
     );
-    if (hoveredEchartElement === chart.current?.ele) {
+    if (hoveredEchartElement === chartRef?.current?.ele) {
       // Return undefined to use default formatter
       return getFormatter({
         isGroupedByDate: true,
@@ -292,7 +298,7 @@ function Chart({
           return (
             <BaseChart
               {...zoomRenderProps}
-              ref={chart}
+              ref={chartRef}
               height={height}
               previousPeriod={previousData}
               additionalSeries={transformedThroughput}
@@ -345,7 +351,7 @@ function Chart({
 
         return (
           <AreaChart
-            forwardedRef={chart}
+            forwardedRef={chartRef}
             height={height}
             {...zoomRenderProps}
             series={series}
@@ -363,10 +369,10 @@ function Chart({
 
 export default Chart;
 
-export function useSynchronizeCharts(deps: boolean[]) {
+export function useSynchronizeCharts(deps: boolean[] = []) {
   const [synchronized, setSynchronized] = useState<boolean>(false);
   useEffect(() => {
-    if (deps.every(dep => dep) && !synchronized) {
+    if (deps.every(Boolean)) {
       echarts.connect(STARFISH_CHART_GROUP);
       setSynchronized(true);
     }

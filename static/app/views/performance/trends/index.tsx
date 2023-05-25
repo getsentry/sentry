@@ -7,6 +7,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -78,11 +79,19 @@ class TrendsSummary extends Component<Props, State> {
   }
 
   render() {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
-        <Layout.Page>{this.renderContent()}</Layout.Page>
+        <Layout.Page>
+          <MetricsCardinalityProvider
+            sendOutcomeAnalytics
+            organization={organization}
+            location={location}
+          >
+            {this.renderContent()}
+          </MetricsCardinalityProvider>
+        </Layout.Page>
       </SentryDocumentTitle>
     );
   }

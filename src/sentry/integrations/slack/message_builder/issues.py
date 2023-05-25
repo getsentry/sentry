@@ -248,6 +248,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
         recipient: RpcActor | None = None,
+        is_unfurl: bool = False,
     ) -> None:
         super().__init__()
         self.group = group
@@ -260,6 +261,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.issue_details = issue_details
         self.notification = notification
         self.recipient = recipient
+        self.is_unfurl = is_unfurl
 
     @property
     def escape_text(self) -> bool:
@@ -309,6 +311,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
                 ExternalProviders.SLACK,
             ),
             ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
+            is_unfurl=self.is_unfurl,
         )
 
 
@@ -321,8 +324,17 @@ def build_group_attachment(
     rules: list[Rule] | None = None,
     link_to_event: bool = False,
     issue_details: bool = False,
+    is_unfurl: bool = False,
 ) -> SlackBody:
     """@deprecated"""
     return SlackIssuesMessageBuilder(
-        group, event, tags, identity, actions, rules, link_to_event, issue_details
+        group,
+        event,
+        tags,
+        identity,
+        actions,
+        rules,
+        link_to_event,
+        issue_details,
+        is_unfurl=is_unfurl,
     ).build()

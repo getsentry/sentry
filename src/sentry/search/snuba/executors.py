@@ -56,6 +56,15 @@ class PrioritySortWeights(TypedDict):
     log_level: int
     frequency: int
     has_stacktrace: int
+    event_halflife_hours: int
+
+
+DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
+    "log_level": 0,
+    "frequency": 0,
+    "has_stacktrace": 0,
+    "event_halflife_hours": 4,
+}
 
 
 def get_search_filter(
@@ -213,7 +222,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
                 else:
-                    aggregation = aggregation(start, end)
+                    aggregation = aggregation(start, end, DEFAULT_PRIORITY_WEIGHTS)
             aggregations.append(aggregation + [alias])
 
         return aggregations
@@ -399,7 +408,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 )
             except UnsupportedSearchQuery:
                 pass
-
         query_params_for_categories = {
             gc: query_params
             for gc, query_params in query_params_for_categories.items()
@@ -455,18 +463,34 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 def better_priority_aggregation(
     start: datetime,
     end: datetime,
-    aggregate_kwargs: Optional[PrioritySortWeights] = None,
+    aggregate_kwargs: PrioritySortWeights,
 ) -> Sequence[str]:
-    event_age_hours = "divide(now() - timestamp, 3600)"
-    event_score = 1
-    min_score = 0.01
+    issue_age_weight = 1  # [0, 5]
+    event_age_weight = 1  # [0, 5]
+    log_level_weight = aggregate_kwargs["log_level"]  # [0, 10]
+    stacktrace_weight = aggregate_kwargs["has_stacktrace"]  # [0, 3]
     max_pow = 16
-    event_halflife_hours = 4  # halves score every 4 hours
-    aggregate_event_score = f"greatest({min_score}, sum(divide({event_score}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
+    min_score = 0.01
+    event_age_hours = "divide(now() - timestamp, 3600)"
+    event_halflife_hours = aggregate_kwargs["event_halflife_hours"]  # halves score every 4 hours
     issue_age_hours = "divide(now() - min(timestamp), 3600)"
-    issue_score = 1
     issue_halflife_hours = 24 * 7  # issues half in value every week
-    aggregate_issue_score = f"greatest({min_score}, divide({issue_score}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
+
+    # TODO: we have no way of aggregating to account for frequency:
+    #  (errors within group) / (total events grouped by project)
+    # frequency_weight = aggregate_kwargs["frequency"]  # [0, 5]
+    # frequency_score = f"countIf(and(greater(toDateTime('{start_str}'), timestamp), lessOrEquals(toDateTime('{end_str}'), timestamp))) / count()"
+
+    log_level_score = "multiIf(equals(level, 'fatal'), 1.0, equals(level, 'error'), 0.66, equals(level, 'warning'), 0.33, 0.0)"
+    stacktrace_score = "if(notEmpty(exception_stacks.type), 1.0, 0.0)"
+    event_agg_numerator = f"plus(plus(multiply({log_level_score}, {log_level_weight}), multiply({stacktrace_score}, {stacktrace_weight})), {event_age_weight})"
+    event_agg_denominator = (
+        f"plus(plus({log_level_weight}, {stacktrace_weight}), {event_age_weight})"
+    )
+    event_agg_rank = f"divide({event_agg_numerator}, {event_agg_denominator})"
+
+    aggregate_event_score = f"greatest({min_score}, sum(divide({event_agg_rank}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
+    aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
 
     return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
 
