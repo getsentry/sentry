@@ -45,7 +45,7 @@ class ExternalActorSerializer(Serializer):  # type: ignore
                 resolved_actors[actor.id] = {type_str: actor.team_id}
 
         # create a mapping of external actor to a set of attributes.
-        # Those attributes are either {"user": User} or {"team": Team}.
+        # Those attributes are either {"user": user.id} or {"team": team.id}.
         return {
             external_actor: resolved_actors[external_actor.actor_id] for external_actor in item_list
         }
