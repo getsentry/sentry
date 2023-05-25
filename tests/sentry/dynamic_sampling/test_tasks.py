@@ -1015,6 +1015,7 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
                 "type": "sampleRate",
                 "value": 0.4,
             }
+            # Since this project has no more entries in Redis but the task has run, we fall back to 100% sample rate.
             assert generate_rules(project_c)[0]["samplingValue"] == {
                 "type": "sampleRate",
                 "value": 1.0,
