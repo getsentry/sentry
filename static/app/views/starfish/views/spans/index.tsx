@@ -9,6 +9,7 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {ModuleName} from 'sentry/views/starfish/types';
 import SpanDetail from 'sentry/views/starfish/views/spans/spanDetails';
 import {SpanDataRow} from 'sentry/views/starfish/views/spans/spansTable';
 
@@ -44,6 +45,7 @@ export default function Spans(props: Props) {
               <SpansView
                 location={props.location}
                 onSelect={setSelectedRow}
+                moduleName={props.location.query.moduleName ?? ModuleName.ALL}
                 appliedFilters={props.location.query}
               />
               <SpanDetail row={selectedRow} onClose={unsetSelectedSpanGroup} />

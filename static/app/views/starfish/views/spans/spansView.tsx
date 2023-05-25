@@ -9,6 +9,7 @@ import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {ModuleName} from 'sentry/views/starfish/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/actionSelector';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/domainSelector';
@@ -25,6 +26,7 @@ type Props = {
   appliedFilters: {[key: string]: string};
   location: Location;
   onSelect: (row: SpanDataRow) => void;
+  moduleName?: ModuleName;
 };
 
 type State = {
@@ -84,8 +86,16 @@ export default function SpansView(props: Props) {
         <DatePageFilter alignDropdown="left" />
 
         <SpanOperationSelector value={props.appliedFilters.span_operation} />
-        <DomainSelector value={props.appliedFilters.domain} />
-        <ActionSelector value={props.appliedFilters.action} />
+
+        <DomainSelector
+          moduleName={props.moduleName}
+          value={props.appliedFilters.domain}
+        />
+
+        <ActionSelector
+          moduleName={props.moduleName}
+          value={props.appliedFilters.action}
+        />
       </FilterOptionsContainer>
 
       <PaddedContainer>
