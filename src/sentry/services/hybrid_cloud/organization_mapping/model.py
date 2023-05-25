@@ -10,6 +10,7 @@ from django.utils import timezone
 from pydantic.fields import Field
 from typing_extensions import TypedDict
 
+from sentry.models import OrganizationStatus
 from sentry.services.hybrid_cloud import RpcModel
 
 
@@ -20,7 +21,8 @@ class RpcOrganizationMapping(RpcModel):
     region_name: str = ""
     date_created: datetime = Field(default_factory=timezone.now)
     verified: bool = False
-    customer_id: Optional[str] = None
+    customer_id: str = None
+    status: Optional[OrganizationStatus] = None
 
 
 class RpcOrganizationMappingUpdate(TypedDict):
@@ -33,3 +35,5 @@ class RpcOrganizationMappingUpdate(TypedDict):
 
     name: str
     customer_id: Optional[str]
+    status: OrganizationStatus
+    slug: str

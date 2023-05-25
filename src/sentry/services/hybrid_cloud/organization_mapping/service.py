@@ -65,6 +65,11 @@ class OrganizationMappingService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def upsert(self, *, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
+        pass
+
+    @rpc_method
+    @abstractmethod
     def verify_mappings(self, *, organization_id: int, slug: str) -> None:
         pass
 

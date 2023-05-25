@@ -77,7 +77,7 @@ class RegionMappingTest(TestCase):
     def test_find_regions_for_user(self):
         from sentry.types.region import find_regions_for_user
 
-        organization = self.create_organization(name="test name", no_mapping=True)
+        organization = self.create_organization(name="test name")
         self.create_organization_mapping(
             organization,
             **{
