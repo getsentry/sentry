@@ -40,10 +40,7 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
-from sentry.services.hybrid_cloud.organization_mapping import (
-    RpcOrganizationMappingUpdate,
-    organization_mapping_service,
-)
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
@@ -531,17 +528,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                             region_name=settings.SENTRY_REGION or "us",
                             status=organization.status,
                         )
-                    elif "name" in changed_data or "status" in changed_data:
-                        updated_count = organization_mapping_service.update(
-                            organization_id=organization.id,
-                            update=RpcOrganizationMappingUpdate(
-                                name=organization.name, status=organization.status
-                            ),
-                        )
-
-                        # Validate that at least one organization mapping was updated
-                        if updated_count == 0:
-                            raise Exception("Expected to update one or more organization mappings")
 
             # TODO(hybrid-cloud): This will need to be a more generic error
             # when the internal RPC is implemented.

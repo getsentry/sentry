@@ -30,6 +30,7 @@ from sentry.models import (
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
@@ -798,6 +799,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=organization_id)
         assert org.name == "SaNtRy"
 
+        # Process outbox to generate organization mapping
+        with outbox_runner():
+            pass
+
         with exempt_from_silo_limits():
             assert OrganizationMapping.objects.filter(
                 organization_id=organization_id, name="SaNtRy"
@@ -813,6 +818,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         org.refresh_from_db()
         assert org.name == "SaNtRy"
+
+        # Process outbox to generate organization mapping
+        with outbox_runner():
+            pass
 
         with exempt_from_silo_limits():
             org_mapping_query = OrganizationMapping.objects.filter(
