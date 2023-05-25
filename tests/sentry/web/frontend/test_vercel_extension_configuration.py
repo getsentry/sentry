@@ -2,6 +2,7 @@ from urllib.parse import parse_qs, urlparse
 
 import responses
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.identity.vercel import VercelIdentityProvider
 from sentry.integrations.vercel import VercelClient
 from sentry.models import OrganizationMember
@@ -68,9 +69,10 @@ class VercelExtensionConfigurationTest(TestCase):
         assert resp.url.endswith("?next=https%3A%2F%2Fexample.com")
 
     def test_logged_in_as_member(self):
-        OrganizationMember.objects.filter(user=self.user, organization=self.org).update(
-            role="member"
-        )
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(user=self.user, organization=self.org).update(
+                role="member"
+            )
         self.login_as(self.user)
 
         resp = self.client.get(self.path, self.params)

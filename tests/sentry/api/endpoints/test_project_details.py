@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.models import (
     ApiToken,
@@ -1107,9 +1108,11 @@ class CopyProjectSettingsTest(APITestCase):
         self.login_as(user=user)
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
-        OrganizationMember.objects.filter(user=user, organization=self.organization).update(
-            role="admin"
-        )
+
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(user=user, organization=self.organization).update(
+                role="admin"
+            )
 
         self.organization.flags.allow_joinleave = False
         self.organization.save()
@@ -1132,9 +1135,11 @@ class CopyProjectSettingsTest(APITestCase):
         self.login_as(user=user)
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
-        OrganizationMember.objects.filter(user=user, organization=self.organization).update(
-            role="admin"
-        )
+
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(user=user, organization=self.organization).update(
+                role="admin"
+            )
 
         self.other_project.add_team(team)
 

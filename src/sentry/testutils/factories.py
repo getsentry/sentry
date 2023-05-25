@@ -21,6 +21,7 @@ from django.utils.encoding import force_text
 from django.utils.text import slugify
 
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.event_manager import EventManager
 from sentry.incidents.logic import (
     create_alert_rule,
@@ -287,6 +288,7 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
+    @in_test_psql_role_override("postgres")
     def create_member(teams=None, team_roles=None, **kwargs):
         kwargs.setdefault("role", "member")
         teamRole = kwargs.pop("teamRole", None)
@@ -326,11 +328,6 @@ class Factories:
                 organization=team.organization,
                 defaults={"role": "member"},
             )
-            if created:
-                member.outbox_for_create().drain_shard(max_updates_to_drain=10)
-                organizationmember_mapping_service.create_with_organization_member(
-                    org_member=member
-                )
 
         return OrganizationMemberTeam.objects.create(
             team=team, organizationmember=member, is_active=True, role=role
