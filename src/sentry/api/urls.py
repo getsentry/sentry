@@ -1756,13 +1756,6 @@ ORGANIZATION_URLS = [
                     OrganizationProfilingFiltersEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-filters",
                 ),
-            ],
-        ),
-    ),
-    url(
-        r"^(?P<organization_slug>[^/]+)/profiling/",
-        include(
-            [
                 url(
                     r"^flamegraph/$",
                     OrganizationProfilingFlamegraphEndpoint.as_view(),
