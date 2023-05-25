@@ -81,9 +81,7 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
     referrer: 'starfish-transaction-summary-sample-events',
     location,
     orgSlug: organization.slug,
-    getRequestPayload: () => ({
-      ...slowestSamplesEventView.getEventsAPIPayload(location),
-    }),
+
     limit: LIMIT_PER_POPULATION,
   });
 
@@ -112,9 +110,6 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
     referrer: 'starfish-transaction-summary-sample-events',
     location,
     orgSlug: organization.slug,
-    getRequestPayload: () => ({
-      ...medianSamplesEventView.getEventsAPIPayload(location),
-    }),
     limit: LIMIT_PER_POPULATION,
   });
 
@@ -143,9 +138,6 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
     referrer: 'starfish-transaction-summary-sample-events',
     location,
     orgSlug: organization.slug,
-    getRequestPayload: () => ({
-      ...fastestSamplesEventView.getEventsAPIPayload(location),
-    }),
     limit: LIMIT_PER_POPULATION,
   });
 
