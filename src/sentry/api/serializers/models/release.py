@@ -46,6 +46,164 @@ def expose_version_info(info):
     }
 
 
+def _expose_health_data(data):
+    if not data:
+        return None
+    return {
+        "durationP50": data["duration_p50"],
+        "durationP90": data["duration_p90"],
+        "crashFreeUsers": data["crash_free_users"],
+        "crashFreeSessions": data["crash_free_sessions"],
+        "sessionsCrashed": data["sessions_crashed"],
+        "sessionsErrored": data["sessions_errored"],
+        "totalUsers": data["total_users"],
+        "totalUsers24h": data["total_users_24h"],
+        "totalProjectUsers24h": data["total_project_users_24h"],
+        "totalSessions": data["total_sessions"],
+        "totalSessions24h": data["total_sessions_24h"],
+        "totalProjectSessions24h": data["total_project_sessions_24h"],
+        "adoption": data["adoption"],
+        "sessionsAdoption": data["sessions_adoption"],
+        "stats": data.get("stats"),
+        # XXX: legacy key, should be removed later.
+        "hasHealthData": data["has_health_data"],
+    }
+
+
+def _expose_project(project):
+    rv = {
+        "id": project["id"],
+        "slug": project["slug"],
+        "name": project["name"],
+        "newGroups": project["new_groups"],
+        "platform": project["platform"],
+        "platforms": project["platforms"],
+        # XXX: Legacy should be removed
+        "hasHealthData": project["has_health_data"],
+    }
+    if "health_data" in project:
+        rv["healthData"] = _expose_health_data(project["health_data"])
+    return rv
+
+
+def _expose_current_project_meta(current_project_meta):
+    rv = {}
+    if "sessions_lower_bound" in current_project_meta:
+        rv["sessionsLowerBound"] = current_project_meta["sessions_lower_bound"]
+    if "sessions_upper_bound" in current_project_meta:
+        rv["sessionsUpperBound"] = current_project_meta["sessions_upper_bound"]
+    if "next_release_version" in current_project_meta:
+        rv["nextReleaseVersion"] = current_project_meta["next_release_version"]
+    if "prev_release_version" in current_project_meta:
+        rv["prevReleaseVersion"] = current_project_meta["prev_release_version"]
+    if "first_release_version" in current_project_meta:
+        rv["firstReleaseVersion"] = current_project_meta["first_release_version"]
+    if "last_release_version" in current_project_meta:
+        rv["lastReleaseVersion"] = current_project_meta["last_release_version"]
+    return rv
+
+
+def _get_authors_metadata(item_list, user):
+    """
+    Returns a dictionary of release_id => authors metadata,
+    where each commit metadata dict contains an array of
+    authors.
+    e.g.
+    {
+        1: {
+            'authors': [<User id=1>, <User id=2>]
+        },
+        ...
+    }
+    """
+    author_ids = set()
+    for obj in item_list:
+        author_ids.update(obj.authors)
+
+    if author_ids:
+        authors = list(CommitAuthor.objects.filter(id__in=author_ids))
+    else:
+        authors = []
+
+    if authors:
+        org_ids = {item.organization_id for item in item_list}
+        if len(org_ids) != 1:
+            users_by_author = {}
+        else:
+            users_by_author = get_users_for_authors(
+                organization_id=org_ids.pop(), authors=authors, user=user
+            )
+    else:
+        users_by_author = {}
+
+    result = {}
+    for item in item_list:
+        item_authors = []
+        seen_authors = set()
+        for user in (users_by_author.get(a) for a in item.authors):
+            if user and user["email"] not in seen_authors:
+                seen_authors.add(user["email"])
+                item_authors.append(user)
+
+        result[item] = {
+            "authors": item_authors,
+        }
+    return result
+
+
+def _get_last_commit_metadata(item_list, user):
+    """
+    Returns a dictionary of release_id => commit metadata,
+    where each commit metadata dict contains last_commit.
+    e.g.
+    {
+        1: {
+            'last_commit': <Commit id=1>,
+        },
+        ...
+    }
+    """
+    commit_ids = {o.last_commit_id for o in item_list if o.last_commit_id}
+    if commit_ids:
+        commit_list = list(Commit.objects.filter(id__in=commit_ids).select_related("author"))
+        commits = {c.id: d for c, d in zip(commit_list, serialize(commit_list, user))}
+    else:
+        commits = {}
+
+    result = {}
+    for item in item_list:
+        result[item] = {
+            "last_commit": commits.get(item.last_commit_id),
+        }
+    return result
+
+
+def _get_last_deploy_metadata(item_list, user):
+    """
+    Returns a dictionary of release_id => deploy metadata,
+    where each commit metadata dict contains last_deploy
+    e.g.
+    {
+        1: {
+            'latest_commit': <Commit id=1>,
+            'authors': [<User id=1>, <User id=2>]
+        },
+        ...
+    }
+    """
+    deploy_ids = {o.last_deploy_id for o in item_list if o.last_deploy_id}
+    if deploy_ids:
+        deploy_list = list(Deploy.objects.filter(id__in=deploy_ids))
+        deploys = {d.id: c for d, c in zip(deploy_list, serialize(deploy_list, user))}
+    else:
+        deploys = {}
+
+    result = {}
+    for item in item_list:
+        result[item] = {"last_deploy": deploys.get(item.last_deploy_id)}
+    return result
+
+
 def _user_to_author_cache_key(organization_id, author):
     author_hash = md5_text(author.email.lower()).hexdigest()
     return f"get_users_for_authors:{organization_id}:{author_hash}"
@@ -129,88 +287,6 @@ def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, U
 
 @register(Release)
 class ReleaseSerializer(Serializer):
-    def _get_commit_metadata(self, item_list, user):
-        """
-        Returns a dictionary of release_id => commit metadata,
-        where each commit metadata dict contains commit_count
-        and an array of authors.
-        e.g.
-        {
-            1: {
-                'latest_commit': <Commit id=1>,
-                'authors': [<User id=1>, <User id=2>]
-            },
-            ...
-        }
-        """
-        author_ids = set()
-        for obj in item_list:
-            author_ids.update(obj.authors)
-
-        if author_ids:
-            authors = list(CommitAuthor.objects.filter(id__in=author_ids))
-        else:
-            authors = []
-
-        if authors:
-            org_ids = {item.organization_id for item in item_list}
-            if len(org_ids) != 1:
-                users_by_author = {}
-            else:
-                users_by_author = get_users_for_authors(
-                    organization_id=org_ids.pop(), authors=authors, user=user
-                )
-        else:
-            users_by_author = {}
-
-        commit_ids = {o.last_commit_id for o in item_list if o.last_commit_id}
-        if commit_ids:
-            commit_list = list(Commit.objects.filter(id__in=commit_ids).select_related("author"))
-            commits = {c.id: d for c, d in zip(commit_list, serialize(commit_list, user))}
-        else:
-            commits = {}
-
-        result = {}
-        for item in item_list:
-            item_authors = []
-            seen_authors = set()
-            for user in (users_by_author.get(a) for a in item.authors):
-                if user and user["email"] not in seen_authors:
-                    seen_authors.add(user["email"])
-                    item_authors.append(user)
-
-            result[item] = {
-                "authors": item_authors,
-                "last_commit": commits.get(item.last_commit_id),
-            }
-        return result
-
-    def _get_deploy_metadata(self, item_list, user):
-        """
-        Returns a dictionary of release_id => commit metadata,
-        where each commit metadata dict contains commit_count
-        and an array of authors.
-        e.g.
-        {
-            1: {
-                'latest_commit': <Commit id=1>,
-                'authors': [<User id=1>, <User id=2>]
-            },
-            ...
-        }
-        """
-        deploy_ids = {o.last_deploy_id for o in item_list if o.last_deploy_id}
-        if deploy_ids:
-            deploy_list = list(Deploy.objects.filter(id__in=deploy_ids))
-            deploys = {d.id: c for d, c in zip(deploy_list, serialize(deploy_list, user))}
-        else:
-            deploys = {}
-
-        result = {}
-        for item in item_list:
-            result[item] = {"last_deploy": deploys.get(item.last_deploy_id)}
-        return result
-
     def __get_project_id_list(self, item_list):
         project_ids = set()
         need_fallback = False
@@ -367,8 +443,9 @@ class ReleaseSerializer(Serializer):
             )
         }
 
-        release_metadata_attrs = self._get_commit_metadata(item_list, user)
-        deploy_metadata_attrs = self._get_deploy_metadata(item_list, user)
+        authors_metadata_attrs = _get_authors_metadata(item_list, user)
+        release_metadata_attrs = _get_last_commit_metadata(item_list, user)
+        deploy_metadata_attrs = _get_last_deploy_metadata(item_list, user)
 
         release_projects = defaultdict(list)
         project_releases = ReleaseProject.objects.filter(release__in=item_list).values(
@@ -452,6 +529,7 @@ class ReleaseSerializer(Serializer):
                     }
                 )
 
+            p.update(authors_metadata_attrs[item])
             p.update(release_metadata_attrs[item])
             p.update(deploy_metadata_attrs[item])
 
@@ -459,60 +537,6 @@ class ReleaseSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
-        def expose_health_data(data):
-            if not data:
-                return None
-            return {
-                "durationP50": data["duration_p50"],
-                "durationP90": data["duration_p90"],
-                "crashFreeUsers": data["crash_free_users"],
-                "crashFreeSessions": data["crash_free_sessions"],
-                "sessionsCrashed": data["sessions_crashed"],
-                "sessionsErrored": data["sessions_errored"],
-                "totalUsers": data["total_users"],
-                "totalUsers24h": data["total_users_24h"],
-                "totalProjectUsers24h": data["total_project_users_24h"],
-                "totalSessions": data["total_sessions"],
-                "totalSessions24h": data["total_sessions_24h"],
-                "totalProjectSessions24h": data["total_project_sessions_24h"],
-                "adoption": data["adoption"],
-                "sessionsAdoption": data["sessions_adoption"],
-                "stats": data.get("stats"),
-                # XXX: legacy key, should be removed later.
-                "hasHealthData": data["has_health_data"],
-            }
-
-        def expose_project(project):
-            rv = {
-                "id": project["id"],
-                "slug": project["slug"],
-                "name": project["name"],
-                "newGroups": project["new_groups"],
-                "platform": project["platform"],
-                "platforms": project["platforms"],
-                # XXX: Legacy should be removed
-                "hasHealthData": project["has_health_data"],
-            }
-            if "health_data" in project:
-                rv["healthData"] = expose_health_data(project["health_data"])
-            return rv
-
-        def expose_current_project_meta(current_project_meta):
-            rv = {}
-            if "sessions_lower_bound" in current_project_meta:
-                rv["sessionsLowerBound"] = current_project_meta["sessions_lower_bound"]
-            if "sessions_upper_bound" in current_project_meta:
-                rv["sessionsUpperBound"] = current_project_meta["sessions_upper_bound"]
-            if "next_release_version" in current_project_meta:
-                rv["nextReleaseVersion"] = current_project_meta["next_release_version"]
-            if "prev_release_version" in current_project_meta:
-                rv["prevReleaseVersion"] = current_project_meta["prev_release_version"]
-            if "first_release_version" in current_project_meta:
-                rv["firstReleaseVersion"] = current_project_meta["first_release_version"]
-            if "last_release_version" in current_project_meta:
-                rv["lastReleaseVersion"] = current_project_meta["last_release_version"]
-            return rv
-
         d = {
             "id": obj.id,
             "version": obj.version,
@@ -531,10 +555,10 @@ class ReleaseSerializer(Serializer):
             "deployCount": obj.total_deploys,
             "lastDeploy": attrs.get("last_deploy"),
             "authors": attrs.get("authors", []),
-            "projects": [expose_project(p) for p in attrs.get("projects", [])],
+            "projects": [_expose_project(p) for p in attrs.get("projects", [])],
             "firstEvent": attrs.get("first_seen"),
             "lastEvent": attrs.get("last_seen"),
-            "currentProjectMeta": expose_current_project_meta(
+            "currentProjectMeta": _expose_current_project_meta(
                 kwargs.get("current_project_meta", {})
             ),
             "userAgent": obj.user_agent,
@@ -546,3 +570,40 @@ class ReleaseSerializer(Serializer):
                 }
             )
         return d
+
+
+class GroupEventReleaseSerializer(Serializer):
+    """
+    The minimal representation of a release necessary for group events
+    """
+
+    def get_attrs(self, item_list, user, **kwargs):
+        last_commit_metadata_attrs = _get_last_commit_metadata(item_list, user)
+        deploy_metadata_attrs = _get_last_deploy_metadata(item_list, user)
+
+        result = {}
+        for item in item_list:
+            p = {}
+            p.update(last_commit_metadata_attrs[item])
+            p.update(deploy_metadata_attrs[item])
+
+            result[item] = p
+        return result
+
+    def serialize(self, obj, attrs, user, **kwargs):
+        return {
+            "id": obj.id,
+            "commitCount": obj.commit_count,
+            "data": obj.data,
+            "dateCreated": obj.date_added,
+            "dateReleased": obj.date_released,
+            "deployCount": obj.total_deploys,
+            "ref": obj.ref,
+            "lastCommit": attrs.get("last_commit"),
+            "lastDeploy": attrs.get("last_deploy"),
+            "status": ReleaseStatus.to_string(obj.status),
+            "url": obj.url,
+            "userAgent": obj.user_agent,
+            "version": obj.version,
+            "versionInfo": expose_version_info(obj.version_info),
+        }

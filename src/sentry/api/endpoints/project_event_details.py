@@ -9,11 +9,20 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IssueEventSerializer, serialize
 from sentry.eventstore.models import Event
-from sentry.models.project import Project
 
 
-def wrap_event_response(request_user: Any, event: Event, project: Project, environments: List[str]):
-    event_data = serialize(event, request_user, IssueEventSerializer())
+def wrap_event_response(
+    request_user: Any,
+    event: Event,
+    environments: List[str],
+    include_full_release_data: bool = False,
+):
+    event_data = serialize(
+        event,
+        request_user,
+        IssueEventSerializer(),
+        include_full_release_data=include_full_release_data,
+    )
     # Used for paginating through events of a single issue in group details
     # Skip next/prev for issueless events
     next_event_id = None
@@ -72,7 +81,9 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         if hasattr(event, "for_group") and event.group:
             event = event.for_group(event.group)
 
-        data = wrap_event_response(request.user, event, project, environments)
+        data = wrap_event_response(
+            request.user, event, environments, include_full_release_data=True
+        )
         return Response(data)
 
 
