@@ -1,3 +1,4 @@
+import mergeWith from 'lodash/mergeWith';
 import moment from 'moment';
 import {LocationRange} from 'pegjs';
 
@@ -880,7 +881,6 @@ const options = {
   TokenConverter,
   TermOperator,
   FilterType,
-  config: defaultConfig,
 };
 
 /**
@@ -891,19 +891,17 @@ export function parseSearch(
   query: string,
   additionalConfig?: Partial<SearchConfig>
 ): ParseResult | null {
+  const configCopy = {...defaultConfig};
+
   // Merge additionalConfig with defaultConfig
-  const config = additionalConfig
-    ? {
-        ...additionalConfig,
-        ...Object.keys(defaultConfig).reduce((configAccumulator, key) => {
-          configAccumulator[key] =
-            typeof defaultConfig[key] === 'object'
-              ? new Set([...defaultConfig[key], ...(additionalConfig[key] ?? [])])
-              : defaultConfig[key];
-          return configAccumulator;
-        }, {}),
-      }
-    : defaultConfig;
+  const config = mergeWith(configCopy, additionalConfig, (srcValue, destValue) => {
+    if (destValue instanceof Set) {
+      return new Set([...destValue, ...srcValue]);
+    }
+
+    // Use default merge behavior
+    return undefined;
+  });
 
   try {
     return grammar.parse(query, {...options, config});

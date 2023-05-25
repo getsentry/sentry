@@ -8,9 +8,10 @@ from django.db.models.signals import post_delete
 
 from sentry import nodestore
 from sentry.db.models.utils import Creator
+from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
-from sentry.utils.strings import compress, decompress
+from sentry.utils.strings import decompress
 
 from .gzippeddict import GzippedDictField
 
@@ -187,15 +188,18 @@ class NodeField(GzippedDictField):
         # with a dict.
         if value and isinstance(value, str):
             try:
-                value = pickle.loads(decompress(value))
-            except Exception as e:
-                # TODO this is a bit dangerous as a failure to read/decode the
-                # node_id will end up with this record being replaced with an
-                # empty value under a new key, potentially orphaning an
-                # original value in nodestore. OTOH if we can't decode the info
-                # here, the node was already effectively orphaned.
-                logger.exception(e)
-                value = None
+                value = json.loads(value)
+            except (ValueError, TypeError):
+                try:
+                    value = pickle.loads(decompress(value))
+                except Exception as e:
+                    # TODO this is a bit dangerous as a failure to read/decode the
+                    # node_id will end up with this record being replaced with an
+                    # empty value under a new key, potentially orphaning an
+                    # original value in nodestore. OTOH if we can't decode the info
+                    # here, the node was already effectively orphaned.
+                    logger.exception(e)
+                    value = None
 
         if value:
             if "node_id" in value:
@@ -236,4 +240,5 @@ class NodeField(GzippedDictField):
             value.id = self.id_func()
 
         value.save()
-        return compress(pickle.dumps({"node_id": value.id}))
+
+        return json.dumps({"node_id": value.id})

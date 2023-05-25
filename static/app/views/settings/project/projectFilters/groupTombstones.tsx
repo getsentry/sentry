@@ -35,11 +35,9 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
     <PanelItem center>
       <StyledBox>
         <EventOrGroupHeader
-          includeLink={false}
           hideIcons
-          className="truncate"
           size="normal"
-          data={data}
+          data={{...data, isTombstone: true}}
           source="group-tombstome"
         />
       </StyledBox>

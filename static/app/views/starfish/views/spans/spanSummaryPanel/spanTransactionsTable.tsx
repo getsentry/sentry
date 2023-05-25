@@ -156,12 +156,12 @@ const COLUMN_ORDER = [
   },
   {
     key: 'epm()',
-    name: 'EPM',
+    name: 'Txn Throughput (TPM)',
     width: -1,
   },
   {
     key: 'p50(transaction.duration)',
-    name: 'p50',
+    name: 'Txn Duration (p50)',
     width: -1,
   },
 ];

@@ -24,7 +24,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
 
-@apply_feature_flag_on_cls("organizations:issue-states-auto-transition-new-ongoing")
+@apply_feature_flag_on_cls("organizations:issue-states")
 class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @patch("sentry.signals.inbox_in.send_robust")
     def test_simple(self, inbox_in):
@@ -190,7 +190,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         ) == {g.id for g in groups}
 
 
-@apply_feature_flag_on_cls("organizations:issue-states-auto-transition-regressed-ongoing")
+@apply_feature_flag_on_cls("organizations:issue-states")
 class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
     @patch("sentry.signals.inbox_in.send_robust")
     def test_simple(self, inbox_in):
