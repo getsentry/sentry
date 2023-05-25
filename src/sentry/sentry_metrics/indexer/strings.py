@@ -147,6 +147,7 @@ SHARED_TAG_STRINGS = {
 SPAN_METRICS_NAMES = {
     "s:transactions/span.user@none": PREFIX + 400,
     "d:transactions/span.duration@millisecond": PREFIX + 401,
+    "d:transactions/span.exclusive_time@millisecond": PREFIX + 402,
 }
 
 SHARED_STRINGS = {
