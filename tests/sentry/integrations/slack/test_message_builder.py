@@ -66,7 +66,7 @@ def build_test_message(
         "color": "#E03E2F",  # red for error level
         "actions": [
             {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
-            {"name": "status", "text": "Ignore", "type": "button", "value": "ignored"},
+            {"name": "status", "text": "Ignore", "type": "button", "value": "ignored:forever"},
             {
                 "option_groups": [
                     {
@@ -136,6 +136,26 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             event=event,
             link_to_event=True,
         )
+
+        with self.feature("organizations:escalating-issues"):
+            test_message = build_test_message(
+                teams={self.team},
+                users={self.user},
+                timestamp=group.last_seen,
+                group=group,
+            )
+            test_message["actions"] = [
+                action
+                if action["text"] != "Ignore"
+                else {
+                    "name": "status",
+                    "text": "Archive",
+                    "type": "button",
+                    "value": "ignored:until_escalating",
+                }
+                for action in test_message["actions"]
+            ]
+            assert SlackIssuesMessageBuilder(group).build() == test_message
 
     @patch(
         "sentry.integrations.slack.message_builder.issues.get_option_groups",
@@ -218,12 +238,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         with self.feature("organizations:performance-issues"):
             attachments = SlackIssuesMessageBuilder(event.group, event).build()
         assert attachments["title"] == "N+1 Query"
-        # TODO: Uncomment this once we fix the `evidence_display` for occurrences
-        # assert (
-        #     attachments["text"]
-        #     == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-        # )
-        assert attachments["text"] == ""
+        assert (
+            attachments["text"]
+            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        )
         assert attachments["fallback"] == f"[{self.project.slug}] N+1 Query"
         assert attachments["color"] == "#2788CE"  # blue for info level
 
@@ -241,12 +259,11 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
     def test_escape_slack_message(self):
         group = self.create_group(
             project=self.project,
-            message="<https://example.com/|*Click Here*>",
             data={"type": "error", "metadata": {"value": "<https://example.com/|*Click Here*>"}},
         )
         assert (
             SlackIssuesMessageBuilder(group, None).build()["text"]
-            == "&amp;lt;https://example.com/|*Click Here*&amp;gt;"
+            == "&lt;https://example.com/|*Click Here*&gt;"
         )
 
 
@@ -536,7 +553,7 @@ class DummySlackNotificationTest(TestCase):
     def test_with_escape(self):
         raw_text = "<https://example.com/|*Click Here*>"
         assert DummySlackNotification(raw_text, True).build() == {
-            "text": "&amp;lt;https://example.com/|*Click Here*&amp;gt;",
+            "text": "&lt;https://example.com/|*Click Here*&gt;",
             "mrkdwn_in": [],
             "color": "#2788CE",
         }

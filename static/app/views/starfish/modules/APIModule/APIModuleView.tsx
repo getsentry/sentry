@@ -4,18 +4,21 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
 
+import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Series} from 'sentry/types/echarts';
+import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {INTERNAL_API_REGEX} from 'sentry/views/starfish/modules/APIModule/constants';
 import {HostDetails} from 'sentry/views/starfish/modules/APIModule/hostDetails';
+import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
@@ -28,6 +31,7 @@ import {
   getEndpointDomainsQuery,
   getEndpointGraphEventView,
   getEndpointGraphQuery,
+  useGetTransactionsForHosts,
 } from './queries';
 
 const HTTP_ACTION_OPTIONS = [
@@ -189,6 +193,27 @@ export default function APIModuleView({location, onSelect}: Props) {
       })),
   ];
 
+  const interval = getInterval(pageFilter.selection.datetime, 'low');
+  const {isLoading: isTopTransactionDataLoading, data: topTransactionsData} =
+    useGetTransactionsForHosts(
+      domains
+        .map(({domain}) => domain)
+        .filter(domain => !domain.match(INTERNAL_API_REGEX)),
+      interval
+    );
+
+  const tpmTransactionSeries = queryToSeries(topTransactionsData, 'group', 'epm()');
+
+  const p75TransactionSeries = queryToSeries(
+    topTransactionsData,
+    'group',
+    'p75(transaction.duration)'
+  );
+
+  const loading = isGraphLoading || isTopTransactionDataLoading;
+
+  useSynchronizeCharts([!loading]);
+
   return (
     <Fragment>
       <FilterOptionsContainer>
@@ -202,20 +227,32 @@ export default function APIModuleView({location, onSelect}: Props) {
       </FilterOptionsContainer>
       <ChartsContainer>
         <ChartsContainerItem>
+          <ChartPanel title={t('Top Transactions Throughput')}>
+            <APIModuleChart data={tpmTransactionSeries} loading={loading} />
+          </ChartPanel>
+        </ChartsContainerItem>
+        <ChartsContainerItem>
+          <ChartPanel title={t('Top Transactions p75')}>
+            <APIModuleChart data={p75TransactionSeries} loading={loading} />
+          </ChartPanel>
+        </ChartsContainerItem>
+      </ChartsContainer>
+      <ChartsContainer>
+        <ChartsContainerItem>
           <ChartPanel title={t('Throughput')}>
-            <APIModuleChart data={zeroFilledCounts} loading={isGraphLoading} />
+            <APIModuleChart data={zeroFilledCounts} loading={loading} />
           </ChartPanel>
         </ChartsContainerItem>
         <ChartsContainerItem>
           <ChartPanel title={t('Response Time')}>
-            <APIModuleChart data={zeroFilledQuantiles} loading={isGraphLoading} />
+            <APIModuleChart data={zeroFilledQuantiles} loading={loading} />
           </ChartPanel>
         </ChartsContainerItem>
         <ChartsContainerItem>
           <ChartPanel title={t('Error Rate')}>
             <APIModuleChart
               data={zeroFilledFailureRate}
-              loading={isGraphLoading}
+              loading={loading}
               chartColors={[themes.charts.getColorPalette(2)[2]]}
             />
           </ChartPanel>
@@ -265,12 +302,15 @@ function APIModuleChart({
   data,
   loading,
   chartColors,
+  forwardedRef,
+  chartGroup,
 }: {
   data: Series[];
   loading: boolean;
   chartColors?: string[];
+  chartGroup?: string;
+  forwardedRef?: React.RefObject<ReactEchartsRef>;
 }) {
-  const themes = useTheme();
   return (
     <Chart
       statsPeriod="24h"
@@ -289,8 +329,10 @@ function APIModuleChart({
       definedAxisTicks={4}
       stacked
       isLineChart
-      chartColors={chartColors ?? themes.charts.getColorPalette(2)}
+      chartColors={chartColors}
       disableXAxis
+      forwardedRef={forwardedRef}
+      chartGroup={chartGroup}
     />
   );
 }

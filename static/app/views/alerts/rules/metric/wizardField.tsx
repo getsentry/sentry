@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import FormField from 'sentry/components/forms/formField';
+import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -22,7 +22,7 @@ import {getFieldOptionConfig} from './metricField';
 type MenuOption = {label: string; value: AlertType};
 type GroupedMenuOption = {label: string; options: Array<MenuOption>};
 
-type Props = Omit<FormField['props'], 'children'> & {
+type Props = Omit<FormFieldProps, 'children'> & {
   organization: Organization;
   alertType?: AlertType;
   /**

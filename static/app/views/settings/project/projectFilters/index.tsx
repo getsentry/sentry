@@ -12,7 +12,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import GroupTombstones from 'sentry/views/settings/project/projectFilters/groupTombstones';
 import ProjectFiltersChart from 'sentry/views/settings/project/projectFilters/projectFiltersChart';
-import ProjectFiltersSettings from 'sentry/views/settings/project/projectFilters/projectFiltersSettings';
+import {ProjectFiltersSettings} from 'sentry/views/settings/project/projectFilters/projectFiltersSettings';
 
 type Props = {
   organization: Organization;
@@ -20,7 +20,7 @@ type Props = {
 } & RouteComponentProps<{filterType: string; projectId: string}, {}>;
 
 function ProjectFilters(props: Props) {
-  const {organization, project, params, location} = props;
+  const {organization, project, params} = props;
   const {projectId, filterType} = params;
   if (!project) {
     return null;
@@ -59,18 +59,9 @@ function ProjectFilters(props: Props) {
         )}
 
         {filterType === 'discarded-groups' ? (
-          <GroupTombstones
-            organization={organization}
-            project={project}
-            location={location}
-          />
+          <GroupTombstones project={project} />
         ) : (
-          <ProjectFiltersSettings
-            organization={organization}
-            project={project}
-            params={params}
-            features={features}
-          />
+          <ProjectFiltersSettings project={project} params={params} features={features} />
         )}
       </div>
     </Fragment>

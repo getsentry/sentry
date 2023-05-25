@@ -1,13 +1,11 @@
 import React, {useState} from 'react';
 import {RouteComponentProps} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
 import keyBy from 'lodash/keyBy';
-import orderBy from 'lodash/orderBy';
-import * as qs from 'query-string';
+import moment from 'moment';
 
-import {Button} from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import DateTime from 'sentry/components/dateTime';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
@@ -15,7 +13,6 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import SwitchButton from 'sentry/components/switchButton';
-import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -25,32 +22,28 @@ import {
 import {useApiQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
+import Chart from 'sentry/views/starfish/components/chart';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import {TextAlignRight} from 'sentry/views/starfish/modules/APIModule/endpointTable';
-import {
-  getSpanFacetBreakdownQuery,
-  getSpanInTransactionQuery,
-} from 'sentry/views/starfish/modules/APIModule/queries';
-import {HOST} from 'sentry/views/starfish/utils/constants';
-import {EventComparisonView} from 'sentry/views/starfish/views/spanSummary/eventComparisonView';
-import MegaChart from 'sentry/views/starfish/views/spanSummary/megaChart';
-import Sidebar from 'sentry/views/starfish/views/spanSummary/sidebar';
+import {highlightSql} from 'sentry/views/starfish/modules/databaseModule/panel';
+import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
+import {getDateFilters, PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import Sidebar, {
+  getTransactionBasedSeries,
+  queryDataToChartData,
+} from 'sentry/views/starfish/views/spanSummary/sidebar';
 
-import {getSpanSamplesQuery} from './queries';
+import {
+  useQueryGetSpanSamples,
+  useQueryGetSpanSeriesData,
+  useQuerySpansInTransaction,
+} from './queries';
 
 const COLUMN_ORDER = [
   {
     key: 'transaction_id',
     name: 'Event ID',
-    width: 200,
-  },
-  {
-    key: 'transaction',
-    name: 'Transaction',
-    width: 200,
-  },
-  {
-    key: 'user',
-    name: 'User',
     width: 200,
   },
   {
@@ -67,11 +60,6 @@ const COLUMN_ORDER = [
     key: 'p50_comparison',
     name: 'Compared to P50',
     width: 200,
-  },
-  {
-    key: 'compare',
-    name: '',
-    width: 50,
   },
 ];
 
@@ -100,68 +88,85 @@ type Props = {
 } & RouteComponentProps<{groupId: string}, {}>;
 
 type State = {
-  leftComparisonEventId?: string;
   megaChart?: boolean;
   plotSamples?: boolean;
-  rightComparisonEventId?: string;
 };
 
 export default function SpanSummary({location, params}: Props) {
   const [state, setState] = useState<State>({
     plotSamples: false,
     megaChart: false,
-    leftComparisonEventId: undefined,
-    rightComparisonEventId: undefined,
   });
   const pageFilter = usePageFilters();
+  const theme = useTheme();
 
-  const groupId = params.groupId;
-  const transactionName = location.query.transaction;
-  const user = location.query.user;
+  const dateFilter = getDateFilters(pageFilter);
 
-  const spanInfoQuery = getSpanInTransactionQuery({
+  const groupId: string = params.groupId;
+  const transactionName: string = location.query.transaction;
+  const user: string = location.query.user;
+
+  const {isLoading, data} = useQuerySpansInTransaction({groupId});
+
+  const p50 = data[0]?.p50 ?? 0;
+
+  const results = useQueryGetSpanSamples({groupId, transactionName, user, p50});
+
+  const {isLoading: areSpanSamplesLoading, data: spanSampleData} = results.reduce(
+    (acc: {data: any[]; isLoading: boolean; spanIds: Set<string>}, result) => {
+      if (result.isLoading) {
+        acc.isLoading = true;
+        return acc;
+      }
+
+      // Ensures that the same span is not added twice, since there could be overlap in the case of sparse data
+      result.data.forEach(datum => {
+        if (!acc.spanIds.has(datum.span_id)) {
+          acc.spanIds.add(datum.span_id);
+          acc.data.push(datum);
+        }
+      });
+
+      return acc;
+    },
+    {isLoading: false, data: [], spanIds: new Set<string>()}
+  );
+
+  const spanDescription = spanSampleData?.[0]?.description;
+  const spanDomain = spanSampleData?.[0]?.domain;
+  const spanGroupOperation = data?.[0]?.span_operation;
+  const spanAction = data?.[0]?.action;
+  const module = data?.[0]?.module;
+  const formattedDescription = data?.[0]?.formatted_desc;
+  const action = data?.[0]?.action;
+
+  const {isLoading: isLoadingSeriesData, data: seriesData} = useQueryGetSpanSeriesData({
     groupId,
-    datetime: pageFilter.selection.datetime,
-  });
-
-  const {isLoading, data} = useQuery({
-    queryKey: ['spanSummary', groupId],
-    queryFn: () => fetch(`${HOST}/?query=${spanInfoQuery}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
-  const facetBreakdownQuery = getSpanFacetBreakdownQuery({
-    groupId,
-    datetime: pageFilter.selection.datetime,
-  });
-
-  const {isLoading: isFacetBreakdownLoading, data: facetBreakdownData} = useQuery({
-    queryKey: ['facetBreakdown', groupId],
-    queryFn: () => fetch(`${HOST}/?query=${facetBreakdownQuery}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
-  const spanSamplesQuery = getSpanSamplesQuery({
-    groupId,
+    spanGroupOperation,
     transactionName,
-    user,
-    datetime: pageFilter.selection.datetime,
+    description: spanDescription,
+    module,
   });
 
-  const {isLoading: areSpanSamplesLoading, data: spanSampleData} = useQuery({
-    queryKey: [
-      'spanSamples',
-      groupId,
-      transactionName,
-      user,
-      pageFilter.selection.datetime,
-    ],
-    queryFn: () => fetch(`${HOST}/?query=${spanSamplesQuery}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
+  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
+  const startTime =
+    num && unit
+      ? moment().subtract(num, unit as 'h' | 'd')
+      : moment(pageFilter.selection.datetime.start);
+  const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
+
+  const {isLoading: isTransactionAggregateDataLoading, data: transactionAggregateData} =
+    useQueryTransactionByTPMAndDuration([transactionName], 12);
+
+  const {p50TransactionSeries, throughputTransactionSeries} = getTransactionBasedSeries(
+    transactionAggregateData,
+    dateFilter
+  );
+  const {
+    p50: p50Series,
+    spm: spmSeries,
+    failure_count: _errorCountSeries,
+  } = queryDataToChartData(seriesData, startTime, endTime, {lineStyle: {type: 'dotted'}});
 
   const {data: transactionData, isLoading: isTransactionDataLoading} = useApiQuery<{
     data: {data: Transaction[]};
@@ -183,12 +188,7 @@ export default function SpanSummary({location, params}: Props) {
     [key: Transaction['id']]: Transaction;
   };
 
-  const spanDescription = spanSampleData?.[0]?.description;
-  const spanDomain = spanSampleData?.[0]?.domain;
-
-  const spanGroupOperation = data?.[0]?.span_operation;
-
-  const sampledSpanData = spanSampleData.map(datum => {
+  const sampledSpanData: SpanTableRow[] = spanSampleData.map(datum => {
     const transaction = transactionDataById[datum.transaction_id.replaceAll('-', '')];
 
     return {
@@ -200,8 +200,16 @@ export default function SpanSummary({location, params}: Props) {
       spanOp: datum.span_operation,
       spanDuration: datum.exclusive_time,
       transactionDuration: transaction?.['transaction.duration'],
+      exclusive_time: datum.exclusive_time,
+      p50Comparison: datum.p50_comparison,
+      user: datum.user,
     };
   });
+
+  const sampledSpanDataSeries = sampledSpanData.map(({timestamp, spanDuration}) => ({
+    name: timestamp,
+    value: spanDuration,
+  }));
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
     if (column.key === 'p50_comparison') {
@@ -215,11 +223,7 @@ export default function SpanSummary({location, params}: Props) {
     return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
   }
 
-  function renderBodyCell(
-    column: GridColumnHeader,
-    row: SpanTableRow,
-    setComparison: (eventId: string) => void
-  ): React.ReactNode {
+  function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
     if (column.key === 'transaction_id') {
       return (
         <Link
@@ -243,11 +247,10 @@ export default function SpanSummary({location, params}: Props) {
     }
 
     if (column.key === 'p50_comparison') {
-      const {p50} = data[0];
       const diff = row.spanDuration - p50;
 
-      if (diff === p50) {
-        return 'At baseline';
+      if (Math.floor(row.spanDuration) === Math.floor(p50)) {
+        return <PlaintextLabel>{t('At baseline')}</PlaintextLabel>;
       }
 
       const labelString =
@@ -260,18 +263,6 @@ export default function SpanSummary({location, params}: Props) {
       return <DateTime date={row.timestamp} year timeZone seconds />;
     }
 
-    if (column.key === 'compare') {
-      return (
-        <Button
-          onClick={() => {
-            setComparison(row.transaction_id);
-          }}
-        >
-          {t('View')}
-        </Button>
-      );
-    }
-
     return <span>{row[column.key]}</span>;
   }
 
@@ -280,7 +271,7 @@ export default function SpanSummary({location, params}: Props) {
       <PageErrorProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{groupId}</Layout.Title>
+            <Layout.Title>{transactionName}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
@@ -289,13 +280,6 @@ export default function SpanSummary({location, params}: Props) {
             <FilterOptionsContainer>
               <DatePageFilter alignDropdown="left" />
               <FilterOptionsSubContainer>
-                <ToggleLabel active={state.megaChart}>{t('Show mega chart')}</ToggleLabel>
-                <SwitchButton
-                  isActive={state.megaChart}
-                  toggle={() => {
-                    setState({...state, megaChart: !state.megaChart});
-                  }}
-                />
                 <ToggleLabel active={state.plotSamples}>
                   {t('Plot samples on charts')}
                 </ToggleLabel>
@@ -316,83 +300,99 @@ export default function SpanSummary({location, params}: Props) {
                     <h3>{t('Info')}</h3>
                     <SpanGroupKeyValueList
                       data={data}
+                      spanAction={spanAction}
                       spanGroupOperation={spanGroupOperation}
                       spanDescription={spanDescription}
+                      formattedDescription={formattedDescription}
                       spanDomain={spanDomain}
+                      action={action}
                       transactionName={transactionName}
                     />
                   </div>
                 )}
-                {state.megaChart && (
-                  <MegaChart
-                    groupId={groupId}
-                    spanGroupOperation={spanGroupOperation}
-                    description={null}
-                    transactionName={transactionName}
-                    sampledSpanData={state.plotSamples ? sampledSpanData : []}
-                  />
-                )}
-                {isFacetBreakdownLoading ? (
-                  <span>LOADING</span>
-                ) : (
-                  <div>
-                    <h3>{t('Facets')}</h3>
-                    {['transaction', 'user'].map(facet => {
-                      const values = facetBreakdownData.map(datum => datum[facet]);
 
-                      const uniqueValues: string[] = Array.from(new Set(values));
+                <ChartGrid>
+                  <ChartPanel title={t('Throughput (TPM)')}>
+                    <Chart
+                      statsPeriod="24h"
+                      height={140}
+                      data={[throughputTransactionSeries ?? []]}
+                      start=""
+                      end=""
+                      loading={isTransactionAggregateDataLoading}
+                      utc={false}
+                      stacked
+                      isLineChart
+                      disableXAxis
+                      definedAxisTicks={4}
+                    />
+                  </ChartPanel>
 
-                      let totalValues = 0;
+                  <ChartPanel title={t('Transaction Duration (P50)')}>
+                    <Chart
+                      statsPeriod="24h"
+                      height={140}
+                      chartColors={theme.charts.getColorPalette(4).slice(5, 6)}
+                      data={[p50TransactionSeries ?? []]}
+                      start=""
+                      end=""
+                      loading={isTransactionAggregateDataLoading}
+                      utc={false}
+                      stacked
+                      isLineChart
+                      disableXAxis
+                      definedAxisTicks={4}
+                    />
+                  </ChartPanel>
 
-                      const segments = orderBy(
-                        uniqueValues.map(uniqueValue => {
-                          const count = values.filter(v => v === uniqueValue).length;
-                          totalValues += count;
+                  <ChartPanel title={t('Throughput (SPM)')}>
+                    <Chart
+                      statsPeriod="24h"
+                      height={140}
+                      data={[spmSeries ?? []]}
+                      start=""
+                      end=""
+                      loading={isLoadingSeriesData}
+                      utc={false}
+                      stacked
+                      isLineChart
+                      disableXAxis
+                      definedAxisTicks={4}
+                    />
+                  </ChartPanel>
 
-                          return {
-                            key: facet,
-                            name: uniqueValue,
-                            value: uniqueValue,
-                            url: `/starfish/span/${groupId}?${qs.stringify({
-                              [facet]: uniqueValue,
-                            })}`,
-                            count,
-                          };
-                        }),
-                        'count',
-                        'desc'
-                      );
-
-                      return (
-                        <TagDistributionMeter
-                          key={facet}
-                          title={facet}
-                          segments={segments}
-                          totalValues={totalValues}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-
-                {(state.leftComparisonEventId || state.rightComparisonEventId) && (
-                  <EventComparisonView
-                    left={state.leftComparisonEventId}
-                    right={state.rightComparisonEventId}
-                    clearLeft={() => {
-                      setState({...state, leftComparisonEventId: undefined});
-                    }}
-                    clearRight={() => {
-                      setState({...state, rightComparisonEventId: undefined});
-                    }}
-                  />
-                )}
+                  <ChartPanel title={t('Span Duration (P50)')}>
+                    <Chart
+                      statsPeriod="24h"
+                      height={140}
+                      data={[p50Series ?? []]}
+                      start=""
+                      end=""
+                      loading={isLoadingSeriesData}
+                      utc={false}
+                      chartColors={theme.charts.getColorPalette(4).slice(5, 6)}
+                      scatterPlot={
+                        state.plotSamples
+                          ? [
+                              {
+                                data: sampledSpanDataSeries,
+                                seriesName: 'Sampled Span Duration',
+                              },
+                            ]
+                          : undefined
+                      }
+                      stacked
+                      isLineChart
+                      disableXAxis
+                      definedAxisTicks={4}
+                    />
+                  </ChartPanel>
+                </ChartGrid>
 
                 {areSpanSamplesLoading ? (
                   <span>LOADING SAMPLE LIST</span>
                 ) : (
                   <div>
-                    <h3>{t('Samples')}</h3>
                     <GridEditable
                       isLoading={isLoading || isTransactionDataLoading}
                       data={sampledSpanData}
@@ -400,20 +400,7 @@ export default function SpanSummary({location, params}: Props) {
                       columnSortBy={[]}
                       grid={{
                         renderHeadCell,
-                        renderBodyCell: (column: GridColumnHeader, row: SpanTableRow) =>
-                          renderBodyCell(column, row, eventId => {
-                            if (state.leftComparisonEventId) {
-                              setState({
-                                ...state,
-                                rightComparisonEventId: eventId,
-                              });
-                            } else {
-                              setState({
-                                ...state,
-                                leftComparisonEventId: eventId,
-                              });
-                            }
-                          }),
+                        renderBodyCell,
                       }}
                       location={location}
                     />
@@ -424,9 +411,9 @@ export default function SpanSummary({location, params}: Props) {
                 <Sidebar
                   groupId={groupId}
                   spanGroupOperation={spanGroupOperation}
-                  description={null}
                   transactionName={transactionName}
                   sampledSpanData={state.plotSamples ? sampledSpanData : []}
+                  module={module}
                 />
               </SidebarContainer>
             </FlexContainer>
@@ -454,7 +441,7 @@ const MainSpanSummaryContainer = styled('div')`
 `;
 
 const SidebarContainer = styled('div')`
-  flex: 1 1 300px;
+  flex: 1 1 500px;
 `;
 
 const FilterOptionsContainer = styled('div')`
@@ -479,30 +466,65 @@ const ToggleLabel = styled('span')<{active?: boolean}>`
   color: ${p => (p.active ? p.theme.purple300 : p.theme.gray300)};
 `;
 
+const PlaintextLabel = styled('div')`
+  text-align: right;
+`;
+
 const ComparisonLabel = styled('div')<{value: number}>`
   text-align: right;
   color: ${p => (p.value < 0 ? p.theme.green400 : p.theme.red400)};
 `;
 
+const ChartGrid = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  column-gap: ${space(1.5)};
+`;
+
 function SpanGroupKeyValueList({
+  spanAction,
   spanDescription,
   spanGroupOperation,
   spanDomain,
+  formattedDescription,
+  action,
 }: {
-  data: any; // TODO: type this
+  data: any;
+  formattedDescription: string;
+  spanAction: string;
+  // TODO: type this
   spanDescription: string;
+  action?: string;
   spanDomain?: string;
   spanGroupOperation?: string;
   transactionName?: string;
 }) {
+  if (formattedDescription && action && spanDomain) {
+    highlightSql(formattedDescription, {action, domain: spanDomain});
+  }
   switch (spanGroupOperation) {
     case 'db':
     case 'cache':
       return (
         <KeyValueList
           data={[
-            {key: 'desc', value: spanDescription, subject: 'Full Query'},
-            {key: 'domain', value: spanDomain, subject: 'Table Columns'},
+            {
+              key: 'op',
+              value: spanGroupOperation,
+              subject: 'Operation',
+            },
+            {
+              key: 'desc',
+              value:
+                action && spanDomain ? (
+                  <FormattedCode>
+                    {highlightSql(formattedDescription, {action, domain: spanDomain})}
+                  </FormattedCode>
+                ) : (
+                  formattedDescription
+                ),
+              subject: 'Query',
+            },
           ]}
           shouldSort={false}
         />
@@ -511,8 +533,17 @@ function SpanGroupKeyValueList({
       return (
         <KeyValueList
           data={[
+            {
+              key: 'op',
+              value: spanGroupOperation,
+              subject: 'Operation',
+            },
+            {
+              key: 'action',
+              value: spanAction,
+              subject: 'HTTP Method',
+            },
             {key: 'desc', value: spanDescription, subject: 'URL'},
-            {key: 'domain', value: spanDomain, subject: 'Domain'},
           ]}
           shouldSort={false}
         />

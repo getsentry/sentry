@@ -10,7 +10,6 @@ import {Organization, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
-import FailureRateChart from 'sentry/views/starfish/views/webServiceView/failureRateChart';
 
 const EventsRequest = withApi(_EventsRequest);
 
@@ -21,12 +20,12 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
-import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
-import Chart from 'sentry/views/starfish/components/chart';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
+import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/failureDetailPanel';
+import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 import EndpointList from './endpointList';
@@ -88,7 +87,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           const transformedData: Series[] | undefined = eventData.timeseriesData?.map(
             series => ({
               data: series.data,
-              seriesName: t('Failure Rate'),
+              seriesName: t('Error Rate'),
               color: CHART_PALETTE[5][3],
               silent: true,
             })
@@ -107,9 +106,9 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 chartData={transformedData}
                 spike={selectedSpike}
               />
-              <FailureRateChart
+              <Chart
                 statsPeriod={eventView.statsPeriod}
-                height={145}
+                height={80}
                 data={transformedData}
                 start={eventView.start as string}
                 end={eventView.end as string}
@@ -118,11 +117,15 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 grid={{
                   left: '0',
                   right: '0',
-                  top: '16px',
-                  bottom: '8px',
+                  top: '8px',
+                  bottom: '0',
                 }}
                 definedAxisTicks={2}
-                handleSpikeAreaClick={e => {
+                isLineChart
+                chartColors={theme.charts.getColorPalette(2)}
+                disableXAxis
+                aggregateOutputFormat="percentage"
+                onClick={e => {
                   if (e.componentType === 'markArea') {
                     setSelectedSpike({
                       startTimestamp: e.data.coord[0][0],
@@ -176,8 +179,8 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
           return (
             <Chart
-              statsPeriod="24h"
-              height={145}
+              statsPeriod={eventView.statsPeriod}
+              height={80}
               data={transformedData}
               start=""
               end=""
@@ -189,9 +192,8 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 top: '8px',
                 bottom: '0',
               }}
-              definedAxisTicks={4}
+              definedAxisTicks={2}
               stacked
-              isLineChart
               chartColors={theme.charts.getColorPalette(2)}
               disableXAxis
             />
@@ -201,16 +203,86 @@ export function StarfishView(props: BasePerformanceViewProps) {
     );
   }
 
+  function renderEndpointPercentileChart() {
+    const query = new MutableSearch([
+      'event.type:transaction',
+      'has:http.method',
+      'transaction.op:http.server',
+    ]);
+
+    return (
+      <EventsRequest
+        query={query.formatString()}
+        includePrevious={false}
+        partial
+        interval="1h"
+        includeTransformedData
+        limit={1}
+        environment={eventView.environment}
+        project={eventView.project}
+        period={eventView.statsPeriod}
+        referrer="starfish-homepage-count"
+        start={eventView.start}
+        end={eventView.end}
+        organization={organization}
+        yAxis={['p95(transaction.duration)', 'p50(transaction.duration)']}
+        queryExtras={{dataset: 'metrics'}}
+      >
+        {({loading, results}) => {
+          const transformedData: Series[] | undefined = results?.map(series => ({
+            data: series.data,
+            seriesName: series.seriesName,
+          }));
+          if (!transformedData) {
+            return null;
+          }
+
+          return (
+            <Chart
+              statsPeriod={eventView.statsPeriod}
+              height={107}
+              data={transformedData}
+              start=""
+              end=""
+              loading={loading}
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '16px',
+                bottom: '0',
+              }}
+              definedAxisTicks={2}
+              isLineChart
+              chartColors={theme.charts.getColorPalette(2)}
+              disableXAxis
+              aggregateOutputFormat="duration"
+            />
+          );
+        }}
+      </EventsRequest>
+    );
+  }
+
+  useSynchronizeCharts();
+
   return (
     <div data-test-id="starfish-view">
       <StyledRow minSize={200}>
         <ChartsContainer>
           <ChartsContainerItem>
-            <FacetBreakdownBar title={t('Where is time spent in my web service?')} />
+            <SpanGroupBreakdownContainer />
           </ChartsContainerItem>
           <ChartsContainerItem2>
-            <ChartPanel title={t('Error Rate')}>{renderFailureRateChart()}</ChartPanel>
-            <ChartPanel title={t('Throughput')}>{renderThroughputChart()}</ChartPanel>
+            <MiniChartPanel title={t('Error Rate')}>
+              {renderFailureRateChart()}
+            </MiniChartPanel>
+            <MiniChartPanel title={t('Duration')}>
+              {renderEndpointPercentileChart()}
+            </MiniChartPanel>
+            <MiniChartPanel title={t('Throughput')}>
+              {renderThroughputChart()}
+            </MiniChartPanel>
           </ChartsContainerItem2>
         </ChartsContainer>
       </StyledRow>
@@ -245,7 +317,7 @@ const ChartsContainer = styled('div')`
 `;
 
 const ChartsContainerItem = styled('div')`
-  flex: 1.5;
+  flex: 2;
 `;
 
 const ChartsContainerItem2 = styled('div')`

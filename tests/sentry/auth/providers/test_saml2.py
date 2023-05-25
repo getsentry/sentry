@@ -6,6 +6,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
 from sentry.models import AuthProvider
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 dummy_provider_config = {
     "attribute_mapping": {
@@ -24,6 +25,7 @@ class DummySAML2Provider(SAML2Provider):
         pass
 
 
+@control_silo_test(stable=True)
 class SAML2ProviderTest(TestCase):
     def setUp(self):
         self.auth_provider = AuthProvider.objects.create(

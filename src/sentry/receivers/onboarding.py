@@ -275,24 +275,24 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
 
 @member_invited.connect(weak=False)
 def record_member_invited(member, user, **kwargs):
-    OrganizationOnboardingTask.objects.record(
+    if OrganizationOnboardingTask.objects.record(
         organization_id=member.organization_id,
         task=OnboardingTask.INVITE_MEMBER,
         user_id=user.id if user else None,
         status=OnboardingTaskStatus.PENDING,
         data={"invited_member_id": member.id},
-    )
-    analytics.record(
-        "member.invited",
-        invited_member_id=member.id,
-        inviter_user_id=user.id if user else None,
-        organization_id=member.organization_id,
-        referrer=kwargs.get("referrer"),
-    )
+    ):
+        analytics.record(
+            "member.invited",
+            invited_member_id=member.id,
+            inviter_user_id=user.id if user else None,
+            organization_id=member.organization_id,
+            referrer=kwargs.get("referrer"),
+        )
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(member, organization, **kwargs):
+def record_member_joined(member, organization_id: int, **kwargs):
     rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
         organization_id=member.organization_id,
         task=OnboardingTask.INVITE_MEMBER,

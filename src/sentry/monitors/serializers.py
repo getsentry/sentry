@@ -33,8 +33,9 @@ class MonitorEnvironmentSerializerResponse(TypedDict):
 
 @register(Monitor)
 class MonitorSerializer(Serializer):
-    def __init__(self, environments=None):
+    def __init__(self, environments=None, expand=None):
         self.environments = environments
+        self.expand = expand
 
     def get_attrs(self, item_list, user, **kwargs):
         # TODO(dcramer): assert on relations
@@ -70,7 +71,7 @@ class MonitorSerializer(Serializer):
             str(item.id): serialized_monitor_environments.get(item.id, []) for item in item_list
         }
 
-        return {
+        attrs = {
             item: {
                 "project": projects[str(item.project_id)] if item.project_id else None,
                 "environments": environment_data[str(item.id)],
@@ -78,11 +79,18 @@ class MonitorSerializer(Serializer):
             for item in item_list
         }
 
+        if self._expand("rule"):
+            for item in item_list:
+                attrs[item]["rule"] = item.get_alert_rule_data()
+
+        return attrs
+
     def serialize(self, obj, attrs, user):
         config = obj.config.copy()
         if "schedule_type" in config:
             config["schedule_type"] = obj.get_schedule_type_display()
-        return {
+
+        result = {
             "id": str(obj.guid),
             "status": obj.get_status_display(),
             "type": obj.get_type_display(),
@@ -93,6 +101,17 @@ class MonitorSerializer(Serializer):
             "project": attrs["project"],
             "environments": attrs["environments"],
         }
+
+        if self._expand("rule"):
+            result["rule"] = attrs["rule"]
+
+        return result
+
+    def _expand(self, key) -> bool:
+        if self.expand is None:
+            return False
+
+        return key in self.expand
 
 
 class MonitorSerializerResponse(TypedDict):
@@ -124,6 +143,8 @@ class MonitorCheckInSerializer(Serializer):
             "duration": obj.duration,
             "dateCreated": obj.date_added,
             "attachmentId": obj.attachment_id,
+            "expectedTime": obj.expected_time,
+            "monitorConfig": obj.monitor_config or {},
         }
 
 
@@ -134,3 +155,5 @@ class MonitorCheckInSerializerResponse(TypedDict):
     duration: int
     dateCreated: datetime
     attachmentId: str
+    expectedTime: datetime
+    monitorConfig: Any

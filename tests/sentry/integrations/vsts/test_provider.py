@@ -13,7 +13,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class TestVSTSOAuthCallbackView(TestCase):
     @responses.activate
     def test_exchange_token(self):
@@ -167,7 +167,7 @@ class TestAccountConfigView(TestCase):
         assert mock_render_to_response.call_args[1]["context"] == {"no_accounts": True}
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class VstsIdentityProviderTest(TestCase):
     def setUp(self):
         self.identity_provider_model = IdentityProvider.objects.create(type="vsts")

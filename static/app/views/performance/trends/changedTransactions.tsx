@@ -26,6 +26,7 @@ import {space} from 'sentry/styles/space';
 import {AvatarProject, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -237,6 +238,8 @@ function ChangedTransactions(props: Props) {
   } = props;
   const api = useApi();
 
+  const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
+
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
   modifyTrendView(trendView, location, trendChangeType, projects, organization);
@@ -260,7 +263,7 @@ function ChangedTransactions(props: Props) {
       cursor={cursor}
       limit={5}
       setError={error => setError(error?.message)}
-      withBreakpoint={withBreakpoint}
+      withBreakpoint={withBreakpoint && !outcome?.forceTransactionsOnly}
     >
       {({isLoading, trendsData, pageLinks}) => {
         const trendFunction = getCurrentTrendFunction(location);
@@ -298,10 +301,10 @@ function ChangedTransactions(props: Props) {
           <TransactionsListContainer data-test-id="changed-transactions">
             <TrendsTransactionPanel>
               <StyledHeaderTitleLegend>
-                {chartTitle} {withBreakpoint && '- With Breakpoints'}
+                {chartTitle}
                 <QuestionTooltip size="sm" position="top" title={titleTooltipContent} />
               </StyledHeaderTitleLegend>
-              {isLoading ? (
+              {isLoading || isCardinalityCheckLoading ? (
                 <LoadingIndicator
                   style={{
                     margin: '237px auto',
@@ -448,26 +451,35 @@ function TrendsListItem(props: TrendsListItemProps) {
   return (
     <ListItemContainer data-test-id={'trends-list-item-' + trendChangeType}>
       <ItemRadioContainer color={color}>
-        <Tooltip
-          title={
-            <TooltipContent>
-              <span>{t('Total Events')}</span>
-              <span>
-                <Count value={transaction.count_range_1} />
-                <StyledIconArrow direction="right" size="xs" />
-                <Count value={transaction.count_range_2} />
-              </span>
-            </TooltipContent>
-          }
-          disableForVisualTest // Disabled tooltip in snapshots because of overlap order issues.
-        >
+        {transaction.count_range_1 && transaction.count_range_2 ? (
+          <Tooltip
+            title={
+              <TooltipContent>
+                <span>{t('Total Events')}</span>
+                <span>
+                  <Count value={transaction.count_range_1} />
+                  <StyledIconArrow direction="right" size="xs" />
+                  <Count value={transaction.count_range_2} />
+                </span>
+              </TooltipContent>
+            }
+            disableForVisualTest // Disabled tooltip in snapshots because of overlap order issues.
+          >
+            <RadioLineItem index={index} role="radio">
+              <Radio
+                checked={isSelected}
+                onChange={() => handleSelectTransaction(transaction)}
+              />
+            </RadioLineItem>
+          </Tooltip>
+        ) : (
           <RadioLineItem index={index} role="radio">
             <Radio
               checked={isSelected}
               onChange={() => handleSelectTransaction(transaction)}
             />
           </RadioLineItem>
-        </Tooltip>
+        )}
       </ItemRadioContainer>
       <TransactionSummaryLink {...props} />
       <ItemTransactionPercentage>
@@ -489,36 +501,40 @@ function TrendsListItem(props: TrendsListItemProps) {
           />
         }
       >
-        <MenuItem
-          onClick={() =>
-            handleFilterDuration(
-              location,
-              organization,
-              longestPeriodValue,
-              FilterSymbols.LESS_THAN_EQUALS,
-              trendChangeType,
-              projects,
-              trendView.project
-            )
-          }
-        >
-          <MenuAction>{t('Show \u2264 %s', longestDuration)}</MenuAction>
-        </MenuItem>
-        <MenuItem
-          onClick={() =>
-            handleFilterDuration(
-              location,
-              organization,
-              longestPeriodValue,
-              FilterSymbols.GREATER_THAN_EQUALS,
-              trendChangeType,
-              projects,
-              trendView.project
-            )
-          }
-        >
-          <MenuAction>{t('Show \u2265 %s', longestDuration)}</MenuAction>
-        </MenuItem>
+        {!organization.features.includes('performance-new-trends') && (
+          <Fragment>
+            <MenuItem
+              onClick={() =>
+                handleFilterDuration(
+                  location,
+                  organization,
+                  longestPeriodValue,
+                  FilterSymbols.LESS_THAN_EQUALS,
+                  trendChangeType,
+                  projects,
+                  trendView.project
+                )
+              }
+            >
+              <MenuAction>{t('Show \u2264 %s', longestDuration)}</MenuAction>
+            </MenuItem>
+            <MenuItem
+              onClick={() =>
+                handleFilterDuration(
+                  location,
+                  organization,
+                  longestPeriodValue,
+                  FilterSymbols.GREATER_THAN_EQUALS,
+                  trendChangeType,
+                  projects,
+                  trendView.project
+                )
+              }
+            >
+              <MenuAction>{t('Show \u2265 %s', longestDuration)}</MenuAction>
+            </MenuItem>
+          </Fragment>
+        )}
         <MenuItem
           onClick={() => handleFilterTransaction(location, transaction.transaction)}
         >

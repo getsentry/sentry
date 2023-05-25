@@ -47,12 +47,18 @@ def serialize_member(member: OrganizationMember) -> RpcOrganizationMember:
     rpc_member = RpcOrganizationMember(
         id=member.id,
         organization_id=member.organization_id,
-        user_id=member.user.id if member.user is not None else None,
+        user_id=member.user_id if member.user_id is not None else None,
         role=member.role,
         has_global_access=member.has_global_access,
         scopes=list(member.get_scopes()),
         flags=_serialize_member_flags(member),
         invite_status=member.invite_status,
+        token=member.token or "",
+        is_pending=member.is_pending,
+        invite_approved=member.invite_approved,
+        token_expired=member.token_expired,
+        legacy_token=member.legacy_token,
+        email=member.get_email(),
     )
 
     omts = OrganizationMemberTeam.objects.filter(
@@ -108,6 +114,7 @@ def _serialize_team_member(
 ) -> RpcTeamMember:
     result = RpcTeamMember(
         id=team_member.id,
+        slug=team_member.team.slug,
         is_active=team_member.is_active,
         role_id=team_member.get_team_role().id,
         team_id=team_member.team_id,

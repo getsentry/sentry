@@ -15,7 +15,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
-from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
@@ -623,6 +622,9 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
 
 
 def process_inbox_adds(job: PostProcessJob) -> None:
+    from sentry.models import Group, GroupStatus
+    from sentry.types.group import GroupSubStatus
+
     with metrics.timer("post_process.process_inbox_adds.duration"):
         with sentry_sdk.start_span(op="tasks.post_process_group.add_group_to_inbox"):
             event = job["event"]
@@ -635,14 +637,31 @@ def process_inbox_adds(job: PostProcessJob) -> None:
             from sentry.models.groupinbox import add_group_to_inbox
 
             if is_reprocessed and is_new:
+                # keep Group.status=UNRESOLVED and Group.substatus=ONGOING if its reprocessed
                 add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
             elif (
                 not is_reprocessed and not has_reappeared
             ):  # If true, we added the .ONGOING reason already
                 if is_new:
-                    add_group_to_inbox(event.group, GroupInboxReason.NEW)
+                    updated = (
+                        Group.objects.filter(id=event.group.id)
+                        .exclude(substatus=GroupSubStatus.NEW)
+                        .update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+                    )
+                    if updated:
+                        event.group.status = GroupStatus.UNRESOLVED
+                        event.group.substatus = GroupSubStatus.NEW
+                        add_group_to_inbox(event.group, GroupInboxReason.NEW)
                 elif is_regression:
-                    add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+                    updated = (
+                        Group.objects.filter(id=event.group.id)
+                        .exclude(substatus=GroupSubStatus.REGRESSED)
+                        .update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED)
+                    )
+                    if updated:
+                        event.group.status = GroupStatus.UNRESOLVED
+                        event.group.substatus = GroupSubStatus.REGRESSED
+                        add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
 
 
 def process_snoozes(job: PostProcessJob) -> None:
@@ -655,8 +674,8 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
-    from sentry.issues.escalating import is_escalating, manage_snooze_states
-    from sentry.models import Activity, GroupInboxReason, GroupSnooze, GroupStatus, GroupSubStatus
+    from sentry.issues.escalating import is_escalating, manage_issue_states
+    from sentry.models import GroupInboxReason, GroupSnooze, GroupStatus, GroupSubStatus
 
     event = job["event"]
     group = event.group
@@ -667,8 +686,11 @@ def process_snoozes(job: PostProcessJob) -> None:
         and group.status == GroupStatus.IGNORED
         and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     ):
-        if is_escalating(group):
-            manage_snooze_states(group, GroupInboxReason.ESCALATING, event)
+        escalating, forecast = is_escalating(group)
+        if escalating:
+            manage_issue_states(
+                group, GroupInboxReason.ESCALATING, event, activity_data={"forecast": forecast}
+            )
 
             job["has_reappeared"] = True
         return
@@ -687,7 +709,23 @@ def process_snoozes(job: PostProcessJob) -> None:
             job["has_reappeared"] = False
             return
 
-        if not snooze.is_valid(group, test_rates=True, use_pending_data=True):
+        # GroupSnooze row exists but the Group.status isn't ignored
+        # this shouldn't be possible, if this fires, there may be a race or bug
+        if snooze is not None and group.status is not GroupStatus.IGNORED:
+            # log a metric for now, we can potentially set the status and substatus but that might mask some other bug
+            metrics.incr(
+                "post_process.process_snoozes.mismatch_status",
+                tags={
+                    "group_status": group.status,
+                    "group_substatus": group.substatus,
+                },
+            )
+
+        snooze_condition_still_applies = snooze.is_valid(
+            group, test_rates=True, use_pending_data=True
+        )
+
+        if not snooze_condition_still_applies:
             snooze_details = {
                 "until": snooze.until,
                 "count": snooze.count,
@@ -697,21 +735,13 @@ def process_snoozes(job: PostProcessJob) -> None:
             }
 
             if features.has("organizations:escalating-issues", group.organization):
-                manage_snooze_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
+                manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
 
             elif features.has("organizations:issue-states", group.organization):
-                manage_snooze_states(group, GroupInboxReason.ONGOING, event, snooze_details)
+                manage_issue_states(group, GroupInboxReason.ONGOING, event, snooze_details)
 
             else:
-                manage_snooze_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
-
-            Activity.objects.create(
-                project=group.project,
-                group=group,
-                type=ActivityType.SET_UNRESOLVED.value,
-                user_id=None,
-                data={"event_id": job["event"].event_id},
-            )
+                manage_issue_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
 
             snooze.delete()
 
