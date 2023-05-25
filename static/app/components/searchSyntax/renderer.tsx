@@ -141,7 +141,7 @@ function FilterToken({
       forceVisible
       skipWrapper
     >
-      <Filter
+      <TokenGroup
         ref={filterElementRef}
         active={isActive}
         invalid={showInvalid}
@@ -151,7 +151,7 @@ function FilterToken({
         <KeyToken token={filter.key} negated={filter.negated} />
         {filter.operator && <Operator>{filter.operator}</Operator>}
         <Value>{renderToken(filter.value, cursor)}</Value>
-      </Filter>
+      </TokenGroup>
     </Tooltip>
   );
 }
@@ -216,14 +216,9 @@ function FreeTextToken({
       forceVisible
       skipWrapper
     >
-      <Filter
-        ref={filterElementRef}
-        active={isActive}
-        invalid={showInvalid}
-        data-test-id={showInvalid ? 'filter-token-invalid' : 'filter-token'}
-      >
+      <TokenGroup ref={filterElementRef} active={isActive} invalid={showInvalid}>
         <FreeText>{renderToken(filter.value, cursor)}</FreeText>
-      </Filter>
+      </TokenGroup>
     </Tooltip>
   );
 }
@@ -274,15 +269,15 @@ function NumberToken({token}: {token: TokenResult<Token.ValueNumber>}) {
   );
 }
 
-type FilterProps = {
+type TokenGroupProps = {
   active: boolean;
   invalid: boolean;
 };
 
-const colorType = (p: FilterProps) =>
+const colorType = (p: TokenGroupProps) =>
   `${p.invalid ? 'invalid' : 'valid'}${p.active ? 'Active' : ''}` as const;
 
-const Filter = styled('span')<FilterProps>`
+const TokenGroup = styled('span')<TokenGroupProps>`
   --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
   --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
   --token-value-color: ${p => (p.invalid ? p.theme.red400 : p.theme.blue400)};
