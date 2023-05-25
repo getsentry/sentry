@@ -142,6 +142,117 @@ class ArtifactBundlesEndpointTest(APITestCase):
             },
         ]
 
+    def test_get_artifact_bundles_with_single_bundle_without_release_dist_pair(self):
+        project = self.create_project(name="foo")
+
+        artifact_bundle = self.create_artifact_bundle(
+            self.organization, artifact_count=2, date_uploaded=datetime.now()
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project.id,
+            artifact_bundle=artifact_bundle,
+        )
+
+        url = reverse(
+            "sentry-api-0-artifact-bundles",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        # We test without search.
+        self.login_as(user=self.user)
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        # By default we return the most recent bundle.
+        assert response.data == [
+            {
+                "bundleId": str(artifact_bundle.bundle_id),
+                "date": "2023-03-15T00:00:00Z",
+                "fileCount": 2,
+                "release": None,
+                "dist": None,
+            }
+        ]
+
+    def test_get_artifact_bundles_with_multiple_release_dist_pairs_to_same_bundle(self):
+        project = self.create_project(name="foo")
+
+        artifact_bundle = self.create_artifact_bundle(
+            self.organization, artifact_count=2, date_uploaded=datetime.now()
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project.id,
+            artifact_bundle=artifact_bundle,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="1.0",
+            dist_name="android",
+            artifact_bundle=artifact_bundle,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="1.0",
+            dist_name="ios",
+            artifact_bundle=artifact_bundle,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="2.0",
+            dist_name="android",
+            artifact_bundle=artifact_bundle,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="2.0",
+            dist_name="ios",
+            artifact_bundle=artifact_bundle,
+        )
+
+        url = reverse(
+            "sentry-api-0-artifact-bundles",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        # We test without search.
+        self.login_as(user=self.user)
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        # By default we return the most recent bundle.
+        assert response.data == [
+            {
+                "bundleId": str(artifact_bundle.bundle_id),
+                "date": "2023-03-15T00:00:00Z",
+                "fileCount": 2,
+                "release": "1.0",
+                "dist": "android",
+            },
+            {
+                "bundleId": str(artifact_bundle.bundle_id),
+                "date": "2023-03-15T00:00:00Z",
+                "fileCount": 2,
+                "release": "1.0",
+                "dist": "ios",
+            },
+            {
+                "bundleId": str(artifact_bundle.bundle_id),
+                "date": "2023-03-15T00:00:00Z",
+                "fileCount": 2,
+                "release": "2.0",
+                "dist": "android",
+            },
+            {
+                "bundleId": str(artifact_bundle.bundle_id),
+                "date": "2023-03-15T00:00:00Z",
+                "fileCount": 2,
+                "release": "2.0",
+                "dist": "ios",
+            },
+        ]
+
     def test_get_artifact_bundles_with_no_bundles(self):
         project = self.create_project(name="foo")
 

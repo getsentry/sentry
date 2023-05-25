@@ -1,28 +1,20 @@
 import base64
 
 from sentry.api.serializers import Serializer
-from sentry.models import ReleaseArtifactBundle, SourceFileType
+from sentry.models import SourceFileType
 
 INVALID_SOURCE_FILE_TYPE = 0
 
 
 class ArtifactBundlesSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
-            artifact_bundle_id__in=[r.id for r in item_list]
-        )
-        release_artifact_bundles = {
-            release.artifact_bundle_id: (release.release_name, release.dist_name)
-            for release in release_artifact_bundles
-        }
-
         return {
             item: {
-                "bundle_id": item.bundle_id,
-                "release": release_artifact_bundles.get(item.id, (None, None))[0],
-                "dist": release_artifact_bundles.get(item.id, (None, None))[1],
-                "file_count": item.artifact_count,
-                "date": item.date_uploaded,
+                "bundle_id": item[0],
+                "release": item[1],
+                "dist": item[2],
+                "file_count": item[3],
+                "date": item[4],
             }
             for item in item_list
         }
