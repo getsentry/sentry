@@ -5,6 +5,7 @@ from os import path
 from typing import List, Optional, Set, Tuple
 
 from django.db import IntegrityError, router
+from django.db.models import Q
 from django.utils import timezone
 from symbolic import SymbolicError, normalize_debug_id
 
@@ -284,6 +285,17 @@ def _extract_debug_ids_from_manifest(
     return bundle_id, debug_ids_with_types
 
 
+def _remove_duplicate_artifact_bundles(org_id: int, ids: List[int]):
+    # In case there are no ids to delete, we don't want to run the query, otherwise it will result in a deletion of
+    # all ArtifactBundle(s) with the specific bundle_id.
+    if not ids:
+        return
+
+    # Even though we delete via a QuerySet the associated file is also deleted, because django will still
+    # fire the on_delete signal.
+    ArtifactBundle.objects.filter(Q(id__in=ids), organization_id=org_id).delete()
+
+
 def _bind_or_create_artifact_bundle(
     bundle_id: uuid,
     date_added: datetime,
@@ -291,12 +303,18 @@ def _bind_or_create_artifact_bundle(
     archive_file: File,
     artifact_count: int,
 ) -> Tuple[ArtifactBundle, bool]:
-    try:
-        existing_artifact_bundle = ArtifactBundle.objects.get(
-            organization_id=org_id, bundle_id=bundle_id
-        )
-    except ArtifactBundle.DoesNotExist:
+    existing_artifact_bundles = list(
+        ArtifactBundle.objects.filter(organization_id=org_id, bundle_id=bundle_id)
+    )
+
+    if len(existing_artifact_bundles) == 0:
         existing_artifact_bundle = None
+    else:
+        existing_artifact_bundle = existing_artifact_bundles.pop()
+        # We want to remove all the duplicate artifact bundles that have the same bundle_id.
+        _remove_duplicate_artifact_bundles(
+            org_id=org_id, ids=list(map(lambda value: value.id, existing_artifact_bundles))
+        )
 
     # In case there is not ArtifactBundle with a specific bundle_id, we just create it and return.
     if existing_artifact_bundle is None:

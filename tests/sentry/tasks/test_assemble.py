@@ -292,7 +292,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             # We expect to have only two entries, since we have duplicated debug_id, file_type pairs.
             assert len(debug_id_artifact_bundles) == 2
 
-    def test_upload_multiple_artifact_with_same_bundle_id(self):
+    def test_upload_multiple_artifacts_with_same_bundle_id(self):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -327,10 +327,10 @@ class AssembleArtifactsTest(BaseAssembleTest):
         )
         assert len(release_artifact_bundle) == 1
 
-        release_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
-        assert len(release_artifact_bundle) == 1
+        project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
+        assert len(project_artifact_bundle) == 1
 
-    def test_upload_multiple_artifact_with_same_bundle_id_and_no_release_dist_pair(self):
+    def test_upload_multiple_artifacts_with_same_bundle_id_and_no_release_dist_pair(self):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -359,10 +359,10 @@ class AssembleArtifactsTest(BaseAssembleTest):
         # We have two entries, since we have multiple files in the artifact bundle.
         assert len(debug_id_artifact_bundles) == 2
 
-        release_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
-        assert len(release_artifact_bundle) == 1
+        project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
+        assert len(project_artifact_bundle) == 1
 
-    def test_upload_multiple_artifact_with_same_bundle_id_and_different_release_dist_pair(self):
+    def test_upload_multiple_artifacts_with_same_bundle_id_and_different_release_dist_pair(self):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -400,10 +400,10 @@ class AssembleArtifactsTest(BaseAssembleTest):
             )
             assert len(release_artifact_bundle) == 1
 
-        release_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
-        assert len(release_artifact_bundle) == 1
+        project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
+        assert len(project_artifact_bundle) == 1
 
-    def test_upload_multiple_artifact_with_first_release_and_second_no_release_and_same_bundle_id(
+    def test_upload_multiple_artifacts_with_first_release_and_second_no_release_and_same_bundle_id(
         self,
     ):
         bundle_file = self.create_artifact_bundle_zip(
@@ -437,8 +437,56 @@ class AssembleArtifactsTest(BaseAssembleTest):
         release_artifact_bundle = ReleaseArtifactBundle.objects.filter(release_name="1.0")
         assert len(release_artifact_bundle) == 1
 
-        release_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
-        assert len(release_artifact_bundle) == 1
+        project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
+        assert len(project_artifact_bundle) == 1
+
+    def test_upload_multiple_artifacts_with_existing_bundle_id_duplicate(
+        self,
+    ):
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        total_checksum = sha1(bundle_file).hexdigest()
+        bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
+        debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+
+        # We simulate the existence of a two ArtifactBundles already with the same bundle_id.
+        ArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            bundle_id=bundle_id,
+            file=File.objects.create(name="artifact_bundle.zip", type="artifact_bundle"),
+            artifact_count=1,
+        )
+        ArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            bundle_id=bundle_id,
+            file=File.objects.create(name="artifact_bundle.zip", type="artifact_bundle"),
+            artifact_count=4,
+        )
+
+        # We now try to upload a new artifact with the same bundle_id as the two already in the database.
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version=None,
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+            upload_as_artifact_bundle=True,
+        )
+
+        artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
+        assert len(artifact_bundles) == 1
+
+        files = File.objects.filter()
+        assert len(files) == 1
+
+        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
+        # We have two entries, since we have multiple files in the artifact bundle.
+        assert len(debug_id_artifact_bundles) == 2
+
+        project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
+        assert len(project_artifact_bundle) == 1
 
     def test_artifacts_without_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
