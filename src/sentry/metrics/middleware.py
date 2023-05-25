@@ -7,6 +7,7 @@ from django.conf import settings
 from sentry.metrics.base import MetricsBackend, MutableTags, Tags, TagValue
 
 _BAD_TAGS = frozenset(["event", "project", "group"])
+_NOT_BAD_TAGS = frozenset(["use_case_id"])
 _METRICS_THAT_CAN_HAVE_BAD_TAGS = frozenset(
     [
         # snuba related tags
@@ -30,7 +31,11 @@ def _filter_tags(key: str, tags: MutableTags) -> MutableTags:
     if key in _METRICS_THAT_CAN_HAVE_BAD_TAGS:
         return tags
 
-    discarded = frozenset(key for key in tags if key.endswith("_id") or key in _BAD_TAGS)
+    discarded = frozenset(
+        key
+        for key in tags
+        if key not in _NOT_BAD_TAGS and (key.endswith("_id") or key in _BAD_TAGS)
+    )
     if not discarded:
         return tags
 
