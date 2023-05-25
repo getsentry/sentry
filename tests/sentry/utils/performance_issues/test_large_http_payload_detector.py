@@ -63,7 +63,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             )
         ]
 
-    def test_does_not_issue_if_url_is_an_asset(self):
+    def test_does_not_issue_if_url_is_not_an_http_span(self):
         spans = [
             create_span(
                 "resource.script",
@@ -197,3 +197,20 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 evidence_display=[],
             )
         ]
+
+    def test_does_not_trigger_detection_for_http_span_lower_than_100_ms_duration(self):
+        spans = [
+            create_span(
+                "http.client",
+                hash="hash1",
+                desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json/?foo=bar",
+                duration=1.0,
+                data={
+                    "http.transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                },
+            )
+        ]
+        event = create_event(spans)
+        assert self.find_problems(event) == []
