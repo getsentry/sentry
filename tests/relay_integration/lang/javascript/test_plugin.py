@@ -440,7 +440,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert frame_list[2].in_app  # should not be touched and retain `in_app: true`
 
             raw_frame_list = exception.values[0].raw_stacktrace.frames
-            # none of raw frames should not be altered
+            # none of the raw frames should be altered
             assert raw_frame_list[0].in_app
             assert raw_frame_list[1].in_app
             assert raw_frame_list[2].in_app
