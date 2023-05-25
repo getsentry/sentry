@@ -437,7 +437,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
     def test_substatus(self):
-        with Feature("organizations:issue-states"):
+        with Feature("organizations:escalating-issues"):
             results = self.make_query(search_filter_query="is:ongoing")
             assert set(results) == {self.group1}
 
