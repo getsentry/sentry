@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sentry.search.events.builder import MetricsQueryBuilder
+from sentry.search.events.builder import MetricsQueryBuilder, TimeseriesMetricQueryBuilder
 
 
 class SpansMetricsQueryBuilder(MetricsQueryBuilder):
@@ -14,3 +14,7 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
             return "duration"
 
         return None
+
+
+class TimeseriesSpansMetricsQueryBuilder(SpansMetricsQueryBuilder, TimeseriesMetricQueryBuilder):
+    pass
