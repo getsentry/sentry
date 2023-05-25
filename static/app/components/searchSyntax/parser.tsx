@@ -634,7 +634,7 @@ export class TokenConverter {
    */
   checkInvalidFreeText = (value: string) => {
     if (this.config.disallowWildcard && value.includes('*')) {
-      return {reason: t('Invalid query. Wildcards not supported in search.')};
+      return {reason: t('Invalid query. Wildcards are not supported.')};
     }
 
     return null;
