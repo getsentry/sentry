@@ -7,6 +7,7 @@ from snuba_sdk import Column, Function, OrderBy
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import builder, constants, fields
+from sentry.search.events.datasets import function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
 
@@ -73,6 +74,60 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "p50",
+                    optional_args=[
+                        fields.with_default(
+                            "span.duration",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=["span.duration"],
+                                allow_custom_measurements=False,
+                            ),
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                        args=args, alias=alias, fixed_percentile=0.50
+                    ),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "p75",
+                    optional_args=[
+                        fields.with_default(
+                            "span.duration",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=["span.duration"],
+                                allow_custom_measurements=False,
+                            ),
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                        args=args, alias=alias, fixed_percentile=0.75
+                    ),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "p95",
+                    optional_args=[
+                        fields.with_default(
+                            "span.duration",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=["span.duration"],
+                                allow_custom_measurements=False,
+                            ),
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                        args=args, alias=alias, fixed_percentile=0.95
+                    ),
+                    default_result_type="duration",
                 ),
             ]
         }

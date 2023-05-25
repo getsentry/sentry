@@ -8,9 +8,8 @@ from snuba_sdk import Column, Condition, Function, Op, OrderBy
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import builder, constants, fields
-from sentry.search.events.datasets import field_aliases, filter_aliases
+from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
-from sentry.search.events.datasets.function_aliases import resolve_project_threshold_config
 from sentry.search.events.types import SelectType, WhereType
 
 
@@ -694,7 +693,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
     @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
-        return resolve_project_threshold_config(
+        return function_aliases.resolve_project_threshold_config(
             tag_value_resolver=lambda _use_case_id, _org_id, value: self.builder.resolve_tag_value(
                 value
             ),
@@ -984,34 +983,8 @@ class MetricsDatasetConfig(DatasetConfig):
         alias: str,
         fixed_percentile: Optional[float] = None,
     ) -> SelectType:
-        if fixed_percentile is None:
-            fixed_percentile = args["percentile"]
-        if fixed_percentile not in constants.METRIC_PERCENTILES:
-            raise IncompatibleMetricsQuery("Custom quantile incompatible with metrics")
-        return (
-            Function(
-                "maxIf",
-                [
-                    Column("value"),
-                    Function("equals", [Column("metric_id"), args["metric_id"]]),
-                ],
-                alias,
-            )
-            if fixed_percentile == 1
-            else Function(
-                "arrayElement",
-                [
-                    Function(
-                        f"quantilesIf({fixed_percentile})",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                    ),
-                    1,
-                ],
-                alias,
-            )
+        return function_aliases.resolve_metrics_percentile(
+            args=args, alias=alias, fixed_percentile=fixed_percentile
         )
 
     def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
