@@ -19,6 +19,8 @@ from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
 from sentry.utils.query import RangeQuerySetWrapper
 
+TRANSITION_AFTER_DAYS = 3
+
 
 @instrumented_task(
     name="sentry.tasks.schedule_auto_transition_new",
@@ -27,10 +29,10 @@ from sentry.utils.query import RangeQuerySetWrapper
 @monitor(monitor_slug="schedule_auto_transition_new")
 def schedule_auto_transition_new() -> None:
     now = datetime.now(tz=pytz.UTC)
-    three_days_past = now - timedelta(days=3)
+    three_days_past = now - timedelta(days=TRANSITION_AFTER_DAYS)
 
     for org in RangeQuerySetWrapper(Organization.objects.filter(status=OrganizationStatus.ACTIVE)):
-        if features.has("organizations:issue-states-auto-transition-new-ongoing", org):
+        if features.has("organizations:issue-states", org):
             for project_id in Project.objects.filter(organization_id=org.id).values_list(
                 "id", flat=True
             ):
@@ -71,6 +73,7 @@ def auto_transition_issues_new_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.NEW,
             group,
+            activity_data={"after_days": TRANSITION_AFTER_DAYS},
         )
 
     if len(new_groups) == chunk_size:
@@ -90,10 +93,10 @@ def auto_transition_issues_new_to_ongoing(
 @monitor(monitor_slug="schedule_auto_transition_regressed")
 def schedule_auto_transition_regressed() -> None:
     now = datetime.now(tz=pytz.UTC)
-    three_days_past = now - timedelta(days=3)
+    three_days_past = now - timedelta(days=TRANSITION_AFTER_DAYS)
 
     for org in RangeQuerySetWrapper(Organization.objects.filter(status=OrganizationStatus.ACTIVE)):
-        if features.has("organizations:issue-states-auto-transition-regressed-ongoing", org):
+        if features.has("organizations:issue-states", org):
             for project_id in Project.objects.filter(organization_id=org.id).values_list(
                 "id", flat=True
             ):
@@ -140,6 +143,7 @@ def auto_transition_issues_regressed_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.REGRESSED,
             group,
+            activity_data={"after_days": TRANSITION_AFTER_DAYS},
         )
 
     if len(groups_with_regressed_history) == chunk_size:

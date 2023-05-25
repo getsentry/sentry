@@ -12,13 +12,18 @@ import {
   TextAlignRight,
 } from 'sentry/views/starfish/modules/APIModule/endpointTable';
 
-type Keys = 'id' | 'timestamp' | 'transaction.duration' | 'p50_comparison';
+type Keys = 'id' | 'profile_id' | 'timestamp' | 'transaction.duration' | 'p50_comparison';
 type TableColumnHeader = GridColumnHeader<Keys>;
 
 const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'id',
     name: 'Event ID',
+    width: 200,
+  },
+  {
+    key: 'profile_id',
+    name: 'Profile ID',
     width: 200,
   },
   {
@@ -44,6 +49,8 @@ type Props = {
 
 type DataRow = {
   id: string;
+  profile_id: string;
+  timestamp: string;
   'transaction.duration': number;
 };
 
@@ -69,6 +76,18 @@ export function TransactionSamplesTable({eventView}: Props) {
         <Link to={`/performance/${row['project.name']}:${row.id}`}>
           {row.id.slice(0, 8)}
         </Link>
+      );
+    }
+
+    if (column.key === 'profile_id') {
+      return row.profile_id ? (
+        <Link
+          to={`/profiling/profile/${row['project.name']}/${row.profile_id}/flamechart/`}
+        >
+          {row.profile_id.slice(0, 8)}
+        </Link>
+      ) : (
+        '(no value)'
       );
     }
 

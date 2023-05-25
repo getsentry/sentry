@@ -31,6 +31,10 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
       kind: 'field',
     },
     {
+      field: 'profile_id',
+      kind: 'field',
+    },
+    {
       field: 'timestamp',
       kind: 'field',
     },

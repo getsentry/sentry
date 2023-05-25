@@ -261,6 +261,7 @@ export enum GroupActivityType {
   MERGE = 'merge',
   REPROCESS = 'reprocess',
   MARK_REVIEWED = 'mark_reviewed',
+  AUTO_SET_ONGOING = 'auto_set_ongoing',
 }
 
 interface GroupActivityBase {
@@ -400,6 +401,13 @@ interface GroupActivityMerge extends GroupActivityBase {
   type: GroupActivityType.MERGE;
 }
 
+interface GroupActivityAutoSetOngoing extends GroupActivityBase {
+  data: {
+    afterDays?: number;
+  };
+  type: GroupActivityType.AUTO_SET_ONGOING;
+}
+
 export interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
@@ -445,7 +453,8 @@ export type GroupActivity =
   | GroupActivityRegression
   | GroupActivityUnmergeSource
   | GroupActivityAssigned
-  | GroupActivityCreateIssue;
+  | GroupActivityCreateIssue
+  | GroupActivityAutoSetOngoing;
 
 export type Activity = GroupActivity;
 
@@ -510,7 +519,7 @@ export type ResolutionStatusDetails = {
 export type GroupStatusResolution = {
   status: ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
-  substatus?: 'until_escalating';
+  substatus?: GroupSubstatus;
 };
 
 export type GroupRelease = {
@@ -571,21 +580,25 @@ export interface GroupResolution
   // A proper fix for this would be to make the status field an enum or string and correctly extend it.
   extends Omit<BaseGroup, 'status'>,
     GroupStats,
-    Omit<GroupStatusResolution, 'substatus'> {}
+    GroupStatusResolution {}
 
 export type Group = GroupResolution | GroupReprocessing;
 export interface GroupCollapseRelease
   extends Omit<Group, keyof GroupRelease>,
     Partial<GroupRelease> {}
 
-export type GroupTombstone = {
+export interface GroupTombstone {
   actor: AvatarUser;
   culprit: string;
   id: string;
   level: Level;
   metadata: EventMetadata;
-  title: string;
-};
+  type: EventOrGroupType;
+  title?: string;
+}
+export interface GroupTombstoneHelper extends GroupTombstone {
+  isTombstone: true;
+}
 
 export type ProcessingIssueItem = {
   checksum: string;
