@@ -181,7 +181,7 @@ class OrganizationMixin:
         if no match.
         """
         try:
-            team = Team.objects.get_from_cache(slug=team_slug, organization=organization)
+            team = Team.objects.get_from_cache(slug=team_slug, organization_id=organization.id)
         except Team.DoesNotExist:
             return None
 
@@ -194,7 +194,7 @@ class OrganizationMixin:
         self, request: Request, organization: RpcOrganization, project_slug: str
     ) -> Project | None:
         try:
-            project = Project.objects.get(slug=project_slug, organization=organization)
+            project = Project.objects.get(slug=project_slug, organization_id=organization.id)
         except Project.DoesNotExist:
             return None
 
