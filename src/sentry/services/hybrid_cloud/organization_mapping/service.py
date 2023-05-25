@@ -88,7 +88,7 @@ class OrganizationMappingService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def update(self, *, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
+    def update(self, *, organization_id: int, update: RpcOrganizationMappingUpdate) -> int:
         pass
 
     @rpc_method
