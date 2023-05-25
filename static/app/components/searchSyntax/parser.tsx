@@ -561,14 +561,12 @@ export class TokenConverter {
     items: [{separator: '', value: item1}, ...items.map(listJoiner)],
   });
 
-  tokenValueText = (value: string, quoted: boolean) => {
-    return {
-      ...this.defaultTokenFields,
-      type: Token.ValueText as const,
-      value,
-      quoted,
-    };
-  };
+  tokenValueText = (value: string, quoted: boolean) => ({
+    ...this.defaultTokenFields,
+    type: Token.ValueText as const,
+    value,
+    quoted,
+  });
 
   /**
    * This method is used while tokenizing to predicate whether a filter should
