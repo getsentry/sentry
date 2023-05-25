@@ -14,7 +14,10 @@ import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import BaseChart from 'sentry/components/charts/baseChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import {getFormatter} from 'sentry/components/charts/components/tooltip';
+import {
+  FormatterOptions,
+  getFormatter,
+} from 'sentry/components/charts/components/tooltip';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
@@ -55,6 +58,7 @@ type Props = {
   showLegend?: boolean;
   stacked?: boolean;
   throughput?: {count: number; interval: string}[];
+  tooltipFormatterOptions?: FormatterOptions;
 };
 
 function computeMax(data: Series[]) {
@@ -122,6 +126,7 @@ function Chart({
   onClick,
   forwardedRef,
   chartGroup,
+  tooltipFormatterOptions = {},
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -227,6 +232,7 @@ function Chart({
         isGroupedByDate: true,
         showTimeInTooltip: true,
         utc,
+        ...tooltipFormatterOptions,
       })(params, asyncTicket);
     }
     // Return empty string, ie no tooltip
