@@ -25,7 +25,7 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
     def execute_test(
         self, event_data, should_be_reported, mock_sdk_crash_reporter, feature_enabled=True
     ):
-        def _execute_test(self):
+        with Feature({"organizations:sdk-crash-reporting": feature_enabled}):
             event = self.create_event(
                 data=event_data,
                 project_id=self.project.id,
@@ -40,12 +40,6 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
                 assert reported_event.data["contexts"]["sdk_crash_detection"]["detected"] is True
             else:
                 mock_sdk_crash_reporter.report.assert_not_called()
-
-        if feature_enabled:
-            with Feature("organizations:sdk-crash-reporting"):
-                _execute_test(self)
-        else:
-            _execute_test(self)
 
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
