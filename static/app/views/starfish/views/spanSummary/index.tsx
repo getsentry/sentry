@@ -29,7 +29,6 @@ import {TextAlignRight} from 'sentry/views/starfish/modules/APIModule/endpointTa
 import {highlightSql} from 'sentry/views/starfish/modules/databaseModule/panel';
 import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {getDateFilters, PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import Sidebar, {
   getTransactionBasedSeries,
   queryDataToChartData,
@@ -136,6 +135,7 @@ export default function SpanSummary({location, params}: Props) {
   const spanDescription = spanSampleData?.[0]?.description;
   const spanDomain = spanSampleData?.[0]?.domain;
   const spanGroupOperation = data?.[0]?.span_operation;
+  const spanAction = data?.[0]?.action;
   const module = data?.[0]?.module;
   const formattedDescription = data?.[0]?.formatted_desc;
   const action = data?.[0]?.action;
@@ -162,20 +162,11 @@ export default function SpanSummary({location, params}: Props) {
     transactionAggregateData,
     dateFilter
   );
-
-  const [p50Series, spmSeries, _errorCountSeries] = queryDataToChartData(seriesData).map(
-    series => {
-      series.lineStyle = {type: 'dotted'};
-      const zerofilled = zeroFillSeries(
-        series,
-        moment.duration(12, 'hours'),
-        startTime,
-        endTime
-      );
-
-      return zerofilled;
-    }
-  );
+  const {
+    p50: p50Series,
+    spm: spmSeries,
+    failure_count: _errorCountSeries,
+  } = queryDataToChartData(seriesData, startTime, endTime, {lineStyle: {type: 'dotted'}});
 
   const {data: transactionData, isLoading: isTransactionDataLoading} = useApiQuery<{
     data: {data: Transaction[]};
@@ -309,6 +300,7 @@ export default function SpanSummary({location, params}: Props) {
                     <h3>{t('Info')}</h3>
                     <SpanGroupKeyValueList
                       data={data}
+                      spanAction={spanAction}
                       spanGroupOperation={spanGroupOperation}
                       spanDescription={spanDescription}
                       formattedDescription={formattedDescription}
@@ -490,6 +482,7 @@ const ChartGrid = styled('div')`
 `;
 
 function SpanGroupKeyValueList({
+  spanAction,
   spanDescription,
   spanGroupOperation,
   spanDomain,
@@ -498,6 +491,7 @@ function SpanGroupKeyValueList({
 }: {
   data: any;
   formattedDescription: string;
+  spanAction: string;
   // TODO: type this
   spanDescription: string;
   action?: string;
@@ -514,6 +508,11 @@ function SpanGroupKeyValueList({
       return (
         <KeyValueList
           data={[
+            {
+              key: 'op',
+              value: spanGroupOperation,
+              subject: 'Operation',
+            },
             {
               key: 'desc',
               value:
@@ -534,8 +533,17 @@ function SpanGroupKeyValueList({
       return (
         <KeyValueList
           data={[
+            {
+              key: 'op',
+              value: spanGroupOperation,
+              subject: 'Operation',
+            },
+            {
+              key: 'action',
+              value: spanAction,
+              subject: 'HTTP Method',
+            },
             {key: 'desc', value: spanDescription, subject: 'URL'},
-            {key: 'domain', value: spanDomain, subject: 'Domain'},
           ]}
           shouldSort={false}
         />

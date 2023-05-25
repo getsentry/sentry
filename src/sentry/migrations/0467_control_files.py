@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0465_pickle_to_json_sentry_activity"),
+        ("sentry", "0466_gh_comment_index"),
     ]
 
     operations = [

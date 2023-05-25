@@ -142,19 +142,39 @@ def map_symbolicator_process_js_errors(errors):
 
 
 def _handles_frame(frame, data):
-    if not frame:
+    abs_path = frame.get("abs_path")
+
+    # Skip frames without an `abs_path` or line number
+    if not abs_path or not frame.get("lineno"):
         return False
 
-    # skip frames without an `abs_path` or line number
-    if not (abs_path := frame.get("abs_path")) or not frame.get("lineno"):
+    # Skip "native" frames
+    if _is_native_frame(abs_path):
         return False
-    # skip "native" frames
-    if abs_path in ("native", "[native code]"):
+
+    # Skip builtin node modules
+    if _is_built_in(abs_path, data.get("platform")):
         return False
-    # skip builtin node modules
-    if data.get("platform") == "node" and not abs_path.startswith(("/", "app:", "webpack:")):
-        return False
+
     return True
+
+
+def _is_native_frame(abs_path):
+    return abs_path in ("native", "[native code]")
+
+
+def _is_built_in(abs_path, platform):
+    return platform == "node" and not abs_path.startswith(("/", "app:", "webpack:"))
+
+
+# We want to make sure that some specific frames are always marked as non-inapp prior to going into grouping.
+def _normalize_nonhandled_frame(frame, data):
+    abs_path = frame.get("abs_path")
+
+    if abs_path and (_is_native_frame(abs_path) or _is_built_in(abs_path, data.get("platform"))):
+        frame["in_app"] = False
+
+    return frame
 
 
 def generate_scraping_config(project: Project) -> Dict[str, Any]:
@@ -232,7 +252,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         for sinfo_frame in sinfo.stacktrace["frames"]:
             if not _handles_frame(sinfo_frame, data):
                 new_raw_frames.append(sinfo_frame)
-                new_frames.append(sinfo_frame)
+                new_frames.append(_normalize_nonhandled_frame(dict(sinfo_frame), data))
                 continue
 
             raw_frame = raw_stacktrace["frames"][processed_frame_idx]
