@@ -23,7 +23,6 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         idempotency_key: Optional[str] = "",
         # There's only a customer_id when updating an org slug
         customer_id: Optional[str] = None,
-        status: Optional[OrganizationStatus] = None,
     ) -> RpcOrganizationMapping:
 
         if idempotency_key:
@@ -36,7 +35,6 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
                     "organization_id": organization_id,
                     "customer_id": customer_id,
                     "name": name,
-                    "status": status,
                 },
             )
         else:
@@ -47,7 +45,6 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
                 idempotency_key=idempotency_key,
                 region_name=region_name,
                 customer_id=customer_id,
-                status=status,
             )
 
         return serialize_organization_mapping(org_mapping)
@@ -70,7 +67,6 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             region_name=region_name,
             idempotency_key=idempotency_key,
             customer_id=customer_id,
-            status=status,
         )
 
     def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> int:

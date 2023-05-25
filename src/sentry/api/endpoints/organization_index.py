@@ -215,7 +215,6 @@ class OrganizationIndexEndpoint(Endpoint):
                         name=org.name,
                         idempotency_key=result.get("idempotencyKey", ""),
                         region_name=settings.SENTRY_REGION or "us",
-                        status=org.status,
                     )
                     rpc_org_member = organization_service.add_organization_member(
                         organization_id=org.id,

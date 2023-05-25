@@ -526,7 +526,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                             idempotency_key=result.get("idempotencyKey", ""),
                             customer_id=organization.customer_id,
                             region_name=settings.SENTRY_REGION or "us",
-                            status=organization.status,
                         )
 
             # TODO(hybrid-cloud): This will need to be a more generic error
