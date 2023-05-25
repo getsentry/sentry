@@ -322,13 +322,17 @@ describe('GroupActions', function () {
     expect(issuesApi).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: {status: 'ignored', statusDetails: {}, substatus: 'until_escalating'},
+        data: {
+          status: 'ignored',
+          statusDetails: {},
+          substatus: 'archived_until_escalating',
+        },
       })
     );
     expect(analyticsSpy).toHaveBeenCalledWith(
       'issue_details.action_clicked',
       expect.objectContaining({
-        action_substatus: 'until_escalating',
+        action_substatus: 'archived_until_escalating',
         action_type: 'ignored',
       })
     );
