@@ -484,7 +484,7 @@ def adjust_base_sample_rate_per_project(
             # We want to get the old sample rate, which will be None in case it was not set.
             old_sample_rate = sample_rate_to_float(old_sample_rates.get(str(project_id), ""))
             # We also get the new sample rate, which will be None in case we stored a SLIDING_WINDOW_CALCULATION_ERROR.
-            sample_rate = sample_rate_to_float(sample_rate)
+            sample_rate = sample_rate_to_float(sample_rate)  # type:ignore
             # We invalidate the caches only if there was a change in the sample rate. This is to avoid flooding the
             # system with project config invalidations.
             if not are_equal_with_epsilon(old_sample_rate, sample_rate):
@@ -594,6 +594,9 @@ def sample_rate_to_float(sample_rate: Optional[str]) -> Optional[float]:
     """
     Converts a sample rate to a float or returns None in case the conversion failed.
     """
+    if sample_rate is None:
+        return None
+
     try:
         return float(sample_rate)
     except (TypeError, ValueError):

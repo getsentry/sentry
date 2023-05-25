@@ -684,6 +684,13 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         redis_client = get_redis_client_for_ds()
         redis_client.hset(generate_sliding_window_cache_key(org_id), project_id, sample_rate)
 
+    def exists_sliding_window_sample_rate_for_project(self, org_id: int, project_id: int):
+        redis_client = get_redis_client_for_ds()
+        return (
+            redis_client.hget(generate_sliding_window_cache_key(org_id), str(project_id))
+            is not None
+        )
+
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
@@ -961,3 +968,40 @@ class TestSlidingWindowTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
             sliding_window()
 
         schedule_invalidate_project_config.assert_not_called()
+
+    @patch("sentry.dynamic_sampling.tasks.schedule_invalidate_project_config")
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    def test_cache_deletion_when_project_has_no_more_metrics(
+        self,
+        extrapolate_monthly_volume,
+        get_transaction_sampling_tier_for_volume,
+        get_blended_sample_rate,
+        schedule_invalidate_project_config,
+    ):
+        extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
+        get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
+        get_blended_sample_rate.return_value = 0.8
+        # Create a org
+        test_org = self.create_organization(name="sample-org")
+
+        # Create 2 projects
+        proj_a = self.create_project_and_add_metrics("a", 1, test_org)
+        proj_b = self.create_project_and_add_metrics("b", 10, test_org)
+        proj_c = self.create_project_without_metrics("c", test_org)
+
+        # We simulate that proj_c had an old sample rate but since it has no metrics, it should be deleted and no sample
+        # rate for that project should be found.
+        self.add_sliding_window_sample_rate_per_project(
+            org_id=test_org.id, project_id=proj_c.id, sample_rate=1.0
+        )
+
+        with self.tasks():
+            sliding_window()
+
+        assert self.exists_sliding_window_sample_rate_for_project(test_org.id, proj_a.id)
+        assert self.exists_sliding_window_sample_rate_for_project(test_org.id, proj_b.id)
+        assert not self.exists_sliding_window_sample_rate_for_project(test_org.id, proj_c.id)
+
+        assert schedule_invalidate_project_config.call_count == 2
