@@ -89,10 +89,12 @@ export function useWrappedDiscoverTimeseriesQuery({
   eventView,
   enabled,
   initialData,
+  referrer,
 }: {
   eventView: EventView;
   enabled?: boolean;
   initialData?: any;
+  referrer?: string;
 }) {
   const location = useLocation();
   const organization = useOrganization();
@@ -119,6 +121,7 @@ export function useWrappedDiscoverTimeseriesQuery({
       enabled,
       refetchOnWindowFocus: false,
     },
+    referrer,
   });
   return {
     isLoading,
@@ -132,9 +135,11 @@ export function useWrappedDiscoverTimeseriesQuery({
 export function useWrappedDiscoverQuery({
   eventView,
   initialData,
+  referrer,
 }: {
   eventView: EventView;
   initialData?: any;
+  referrer?: string;
 }) {
   const location = useLocation();
   const organization = useOrganization();
@@ -142,6 +147,7 @@ export function useWrappedDiscoverQuery({
     eventView,
     orgSlug: organization.slug,
     location,
+    referrer,
   });
   return {isLoading, data: isLoading && initialData ? initialData : data?.data};
 }
