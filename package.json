@@ -37,7 +37,7 @@
     "@react-aria/utils": "^3.11.0",
     "@react-stately/collections": "^3.3.4",
     "@react-stately/menu": "^3.4.2",
-    "@react-stately/numberfield": "^3.0.2",
+    "@react-stately/numberfield": "^3.4.2",
     "@react-stately/radio": "^3.6.1",
     "@react-stately/tabs": "^3.2.2",
     "@react-stately/tree": "^3.3.4",
