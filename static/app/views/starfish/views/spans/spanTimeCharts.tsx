@@ -55,7 +55,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
       {
         seriesName: label ?? 'Throughput',
         data: groupData.map(datum => ({
-          value: datum.throughput,
+          value: datum.spm,
           name: datum.interval,
         })),
       },
@@ -128,7 +128,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
       </ChartsContainerItem>
 
       <ChartsContainerItem>
-        <ChartPanel title={t('Throughput')}>
+        <ChartPanel title={t('Throughput (SPM)')}>
           <Chart
             statsPeriod="24h"
             height={100}
@@ -189,7 +189,7 @@ export const getSpanTotalTimeChartQuery = (
   const validConditions = conditions.filter(Boolean);
 
   return `SELECT
-    count() AS throughput,
+    divide(count(), multiply(12, 60)) as spm,
     sum(exclusive_time) AS total_time,
     quantile(0.50)(exclusive_time) AS p50,
     toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
