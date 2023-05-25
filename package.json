@@ -39,7 +39,7 @@
     "@react-stately/menu": "^3.4.2",
     "@react-stately/numberfield": "^3.0.2",
     "@react-stately/radio": "^3.6.1",
-    "@react-stately/tabs": "^3.2.2",
+    "@react-stately/tabs": "^3.4.1",
     "@react-stately/tree": "^3.3.4",
     "@react-types/menu": "^3.3.0",
     "@react-types/numberfield": "^3.1.0",
