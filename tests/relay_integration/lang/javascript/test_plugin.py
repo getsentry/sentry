@@ -393,6 +393,60 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
+    def test_nonhandled_frames_inapp_normalization(self, process_with_symbolicator):
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "node",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "native",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                    "in_app": True,
+                                },
+                                {
+                                    "abs_path": "[native code]",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                    "in_app": True,
+                                },
+                                {
+                                    "abs_path": "app://dist/bundle/file.min.js",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                    "in_app": True,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        exception = event.interfaces["exception"]
+
+        if process_with_symbolicator:
+            frame_list = exception.values[0].stacktrace.frames
+            assert not frame_list[0].in_app  # should be overwritten due to `native` abs_path
+            assert not frame_list[1].in_app  # should be overwritten due to `[native code]` abs_path
+            assert frame_list[2].in_app  # should not be touched and retain `in_app: true`
+
+            raw_frame_list = exception.values[0].raw_stacktrace.frames
+            # none of raw frames should not be altered
+            assert raw_frame_list[0].in_app
+            assert raw_frame_list[1].in_app
+            assert raw_frame_list[2].in_app
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_sourcemap_source_expansion(self, process_with_symbolicator):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
