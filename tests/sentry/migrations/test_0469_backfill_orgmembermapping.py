@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestMigrations
 
 
 class BackfillNotificationSettingTest(TestMigrations):
-    migrate_from = "0468_backfill_orgmembermapping"
+    migrate_from = "0468_pickle_to_json_sentry_rawevent"
     migrate_to = "0469_backfill_orgmembermapping"
 
     def setup_initial_state(self):

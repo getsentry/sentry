@@ -43,7 +43,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0468_backfill_orgmembermapping"),
+        ("sentry", "0468_pickle_to_json_sentry_rawevent"),
     ]
 
     operations = [
