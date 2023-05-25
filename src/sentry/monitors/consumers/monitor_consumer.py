@@ -8,6 +8,7 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy, Processing
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
+from django.conf import settings
 from django.db import transaction
 
 from sentry import ratelimits
@@ -27,6 +28,11 @@ from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_cre
 from sentry.monitors.validators import ConfigValidator
 from sentry.utils import json, metrics
 from sentry.utils.dates import to_datetime
+from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.locking.manager import LockManager
+from sentry.utils.services import build_instance_from_options
+
+locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
 logger = logging.getLogger(__name__)
 
@@ -233,18 +239,31 @@ def _process_message(wrapper: Dict) -> None:
                         monitor_environment.last_checkin
                     )
 
-                check_in = MonitorCheckIn.objects.create(
-                    project_id=project_id,
-                    monitor=monitor,
-                    monitor_environment=monitor_environment,
-                    guid=params["check_in_id"],
-                    duration=duration,
-                    status=status,
-                    date_added=date_added,
-                    date_updated=start_time,
-                    expected_time=expected_time,
-                    monitor_config=monitor.get_validated_config(),
+                check_in_guid = params["check_in_id"]
+                lock = locks.get(
+                    f"checkin-creation:{check_in_guid}", duration=2, name="checkin_creation"
                 )
+                try:
+                    with lock.acquire():
+                        check_in = MonitorCheckIn.objects.create(
+                            project_id=project_id,
+                            monitor=monitor,
+                            monitor_environment=monitor_environment,
+                            guid=check_in_guid,
+                            duration=duration,
+                            status=status,
+                            date_added=date_added,
+                            date_updated=start_time,
+                            expected_time=expected_time,
+                            monitor_config=monitor.get_validated_config(),
+                        )
+                except UnableToAcquireLock:
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={**metric_kwargs, "status": "failed_checkin_creation_lock"},
+                    )
+                    logger.debug("failed to acquire lock to create check-in: %s", check_in_guid)
+                    return
 
                 signal_first_checkin(project, monitor)
 
