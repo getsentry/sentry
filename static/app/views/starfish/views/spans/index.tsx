@@ -9,6 +9,8 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 import {ModuleName} from 'sentry/views/starfish/types';
 import SpanDetail from 'sentry/views/starfish/views/spans/spanDetails';
 import {SpanDataRow} from 'sentry/views/starfish/views/spans/spansTable';
@@ -24,10 +26,24 @@ type Props = {
 } & RouteComponentProps<{groupId: string}, {}>;
 
 export default function Spans(props: Props) {
+  const router = useRouter();
+  const location = useLocation();
   const [state, setState] = useState<State>({selectedRow: undefined});
-  const unsetSelectedSpanGroup = () => setState({selectedRow: undefined});
+  const unsetSelectedSpanGroup = () => {
+    router.replace({
+      pathname: location.pathname,
+      query: {...location.query, group_id: undefined},
+    });
+    setState({selectedRow: undefined});
+  };
   const {selectedRow} = state;
-  const setSelectedRow = (row: SpanDataRow) => setState({selectedRow: row});
+  const setSelectedRow = (row: SpanDataRow) => {
+    router.replace({
+      pathname: location.pathname,
+      query: {...location.query, group_id: row.group_id},
+    });
+    setState({selectedRow: row});
+  };
 
   return (
     <Layout.Page>
