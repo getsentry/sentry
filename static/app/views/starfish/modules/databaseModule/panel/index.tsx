@@ -34,8 +34,8 @@ import {
   useQueryPanelTable,
   useQueryTransactionByTPMAndDuration,
 } from 'sentry/views/starfish/modules/databaseModule/queries';
-import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {queryToSeries} from 'sentry/views/starfish/utils/queryToSeries';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 import {DataRow, MainTableSort} from '../databaseTableView';
