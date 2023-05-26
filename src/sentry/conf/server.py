@@ -3202,7 +3202,7 @@ ANOMALY_DETECTION_URL = "127.0.0.1:9091"
 ANOMALY_DETECTION_TIMEOUT = 30
 
 # This is the URL to the profiling service
-SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
+SENTRY_VROOM_THIS_SHOULD_FAIL_CI = os.getenv("VROOM", "http://127.0.0.1:8085")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 
