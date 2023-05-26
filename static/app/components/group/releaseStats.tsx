@@ -10,7 +10,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {CurrentRelease, Group, GroupRelease, Organization, Project} from 'sentry/types';
+import {CurrentRelease, Group, Organization, Project, Release} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -22,6 +22,11 @@ type Props = {
   group: Group | undefined;
   organization: Organization;
   project: Project;
+};
+
+type GroupRelease = {
+  firstRelease: Release;
+  lastRelease: Release;
 };
 
 function GroupReleaseStats({
