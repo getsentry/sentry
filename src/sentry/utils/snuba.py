@@ -1227,7 +1227,7 @@ def resolve_conditions(
 
     replacement_conditions = []
     for condition in conditions:
-        replacement = resolve_condition(condition, column_resolver)
+        replacement = resolve_condition(deepcopy(condition), column_resolver)
         if replacement:
             replacement_conditions.append(replacement)
 
