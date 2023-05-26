@@ -289,32 +289,21 @@ class ManageIssueStatesTest(TestCase):  # type: ignore[misc]
                 "substatus": GroupSubStatus.ESCALATING,
                 "reason": GroupInboxReason.ESCALATING,
                 "history_status": GroupHistoryStatus.ESCALATING,
-                "first_seen": datetime.now(),
             },
             {
                 "substatus": GroupSubStatus.ONGOING,
                 "reason": GroupInboxReason.ONGOING,
                 "history_status": GroupHistoryStatus.ONGOING,
-                "first_seen": datetime.now(),
-            },
-            {
-                "substatus": GroupSubStatus.NEW,
-                "reason": GroupInboxReason.UNIGNORED,
-                "history_status": GroupHistoryStatus.UNIGNORED,
-                "first_seen": datetime.now(),
             },
             {
                 "substatus": GroupSubStatus.ONGOING,
                 "reason": GroupInboxReason.UNIGNORED,
                 "history_status": GroupHistoryStatus.UNIGNORED,
-                "first_seen": datetime.now() - timedelta(days=4),
             },
         ]
 
         for state_change in state_change_details:
-            self.group = self.create_group(
-                status=GroupStatus.IGNORED, first_seen=state_change["first_seen"]
-            )
+            self.group = self.create_group(status=GroupStatus.IGNORED)
             manage_issue_states(self.group, state_change["reason"])
 
             self.group.refresh_from_db()

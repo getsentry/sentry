@@ -3,7 +3,7 @@ This is later used for generating group forecasts for determining when a group m
 """
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, TypedDict
 
 from django.db.models.signals import post_save
@@ -343,20 +343,12 @@ def manage_issue_states(
             add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
             record_group_history(group, GroupHistoryStatus.ONGOING)
     elif group_inbox_reason == GroupInboxReason.UNIGNORED:
-        group = Group.objects.filter(
+        updated = Group.objects.filter(
             id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
-        )
-        if not group.exists():
-            return
-
-        group = group.first()
-        updated = False
-        is_new_group = group.first_seen > datetime.now(timezone.utc) - timedelta(days=3)
-        substatus = GroupSubStatus.NEW if is_new_group else GroupSubStatus.ONGOING
-        updated = group.update(status=GroupStatus.UNRESOLVED, substatus=substatus)
+        ).update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         if updated:
             group.status = GroupStatus.UNRESOLVED
-            group.substatus = substatus
+            group.substatus = GroupSubStatus.ONGOING
             post_save.send(
                 sender=Group,
                 instance=group,

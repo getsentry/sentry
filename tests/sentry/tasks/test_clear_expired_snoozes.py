@@ -32,7 +32,7 @@ class ClearExpiredSnoozesTest(TestCase):
         group2.refresh_from_db()
 
         assert group1.status == GroupStatus.UNRESOLVED
-        assert group1.substatus == GroupSubStatus.NEW
+        assert group1.substatus == GroupSubStatus.ONGOING
 
         # Check if unexpired snooze got cleared
         assert group2.status == GroupStatus.IGNORED
@@ -44,24 +44,6 @@ class ClearExpiredSnoozesTest(TestCase):
         ).exists()
         assert not GroupHistory.objects.filter(
             group=group2, status=GroupHistoryStatus.UNIGNORED
-        ).exists()
-
-        assert send_robust.called
-
-    @patch("sentry.signals.issue_unignored.send_robust")
-    def test_simple_with_old_issue(self, send_robust):
-        group1 = self.create_group(status=GroupStatus.IGNORED)
-        snooze1 = GroupSnooze.objects.create(group=group1, until=timezone.now() - timedelta(days=4))
-
-        clear_expired_snoozes()
-
-        group1.refresh_from_db()
-        assert group1.status == GroupStatus.UNRESOLVED
-        assert group1.substatus == GroupSubStatus.NEW
-
-        assert not GroupSnooze.objects.filter(id=snooze1.id).exists()
-        assert GroupHistory.objects.filter(
-            group=group1, status=GroupHistoryStatus.UNIGNORED
         ).exists()
 
         assert send_robust.called
