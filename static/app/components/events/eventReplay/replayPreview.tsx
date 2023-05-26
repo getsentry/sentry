@@ -9,7 +9,6 @@ import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {IconPlay} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -125,7 +124,6 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
         </CTAOverlay>
         <BadgeContainer>
           <FeatureText>{t('Replays')}</FeatureText>
-          <ReplaysFeatureBadge />
         </BadgeContainer>
       </PlayerContainer>
     </ReplayContextProvider>
