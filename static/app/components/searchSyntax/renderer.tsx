@@ -36,11 +36,7 @@ function renderResult(result: ParseResult, cursor: number) {
     .map((renderedToken, i) => <Fragment key={i}>{renderedToken}</Fragment>);
 }
 
-function renderToken(token: TokenResult<Token> | string, cursor: number) {
-  if (typeof token === 'string') {
-    return token;
-  }
-
+function renderToken(token: TokenResult<Token>, cursor: number) {
   switch (token.type) {
     case Token.Spaces:
       return token.value;
@@ -68,7 +64,7 @@ function renderToken(token: TokenResult<Token> | string, cursor: number) {
       return <LogicBoolean>{token.value}</LogicBoolean>;
 
     case Token.FreeText:
-      return <FreeTextToken filter={token} cursor={cursor} />;
+      return <FreeTextToken freeText={token} cursor={cursor} />;
 
     default:
       return token.text;
@@ -157,13 +153,13 @@ function FilterToken({
 }
 
 function FreeTextToken({
-  filter,
+  freeText,
   cursor,
 }: {
   cursor: number;
-  filter: TokenResult<Token.FreeText>;
+  freeText: TokenResult<Token.FreeText>;
 }) {
-  const isActive = isWithinToken(filter, cursor);
+  const isActive = isWithinToken(freeText, cursor);
 
   // This state tracks if the cursor has left the filter token. We initialize it
   // to !isActive in the case where the filter token is rendered without the
@@ -181,7 +177,7 @@ function FreeTextToken({
     }
   }, [hasLeft, isActive]);
 
-  const showInvalid = hasLeft && !!filter.invalid;
+  const showInvalid = hasLeft && !!freeText.invalid;
   const showTooltip = showInvalid && isActive;
 
   const reduceMotion = useReducedMotion();
@@ -204,20 +200,20 @@ function FreeTextToken({
     );
   }, [reduceMotion, showInvalid]);
 
-  if (!filter.invalid?.reason) {
-    return <Fragment>{renderToken(filter.value, cursor)}</Fragment>;
+  if (!freeText.invalid?.reason) {
+    return <Fragment>{freeText.text}</Fragment>;
   }
 
   return (
     <Tooltip
       disabled={!showTooltip}
-      title={filter.invalid?.reason}
+      title={freeText.invalid?.reason}
       overlayStyle={{maxWidth: '350px'}}
       forceVisible
       skipWrapper
     >
       <TokenGroup ref={filterElementRef} active={isActive} invalid={showInvalid}>
-        <FreeText>{renderToken(filter.value, cursor)}</FreeText>
+        <FreeText>{renderToken(freeText.value, cursor)}</FreeText>
       </TokenGroup>
     </Tooltip>
   );
