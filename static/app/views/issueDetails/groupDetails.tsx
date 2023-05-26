@@ -753,13 +753,13 @@ function GroupDetails(props: GroupDetailsProps) {
     const {title} = getTitle(group, organization?.features);
     const message = getMessage(group);
 
-    const eventDetails = `${organization.slug} - ${group.project.slug}`;
+    const eventDetails = `${organization.slug} — ${group.project.slug}`;
 
     if (title && message) {
-      return `${title}: ${message} - ${eventDetails}`;
+      return `${title}: ${message} — ${eventDetails}`;
     }
 
-    return `${title || message || defaultTitle} - ${eventDetails}`;
+    return `${title || message || defaultTitle} — ${eventDetails}`;
   };
 
   return (
