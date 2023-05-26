@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useContext, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -24,10 +24,15 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
+import IssueAlertOptions, {
+  MetricValues,
+  RuleAction,
+} from 'sentry/views/projectInstall/issueAlertOptions';
+import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
 
 type IssueAlertFragment = Parameters<
   React.ComponentProps<typeof IssueAlertOptions>['onChange']
@@ -36,6 +41,12 @@ type IssueAlertFragment = Parameters<
 function CreateProject() {
   const api = useApi();
   const organization = useOrganization();
+  const location = useLocation();
+  const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
+
+  const autoFill =
+    location.query.referrer === 'getting-started' &&
+    location.query.project === gettingStartedWithProjectContext.project?.id;
 
   const accessTeams = useTeams().teams.filter((team: Team) => team.hasAccess);
 
@@ -44,9 +55,17 @@ function CreateProject() {
     'Project Create: Creation page viewed'
   );
 
-  const [projectName, setProjectName] = useState('');
-  const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(undefined);
-  const [team, setTeam] = useState(accessTeams?.[0]?.slug);
+  const [projectName, setProjectName] = useState(
+    autoFill ? gettingStartedWithProjectContext.project?.name : ''
+  );
+  const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(
+    autoFill ? gettingStartedWithProjectContext.project?.platform : undefined
+  );
+  const [team, setTeam] = useState(
+    autoFill
+      ? gettingStartedWithProjectContext.project?.teamSlug ?? accessTeams?.[0]?.slug
+      : accessTeams?.[0]?.slug
+  );
 
   const [error, setError] = useState(false);
   const [inFlight, setInFlight] = useState(false);
@@ -72,7 +91,7 @@ function CreateProject() {
         defaultRules,
       } = alertRuleConfig || {};
 
-      const selectedPlatform = selectedFramework?.key ?? platform?.key;
+      const selectedPlatform = selectedFramework ?? platform;
 
       if (!selectedPlatform) {
         return;
@@ -85,7 +104,7 @@ function CreateProject() {
           method: 'POST',
           data: {
             name: projectName,
-            platform: selectedPlatform,
+            platform: selectedPlatform.key,
             default_rules: defaultRules ?? true,
           },
         });
@@ -122,7 +141,7 @@ function CreateProject() {
 
         browserHistory.push(
           normalizeUrl(
-            `/${organization.slug}/${projectData.slug}/getting-started/${selectedPlatform}/`
+            `/organizations/${organization.slug}/projects/${projectData.slug}/getting-started/`
           )
         );
       } catch (err) {
@@ -215,73 +234,37 @@ function CreateProject() {
     projectName !== '' &&
     (!shouldCreateCustomRule || conditions?.every?.(condition => condition.value));
 
-  const createProjectForm = (
-    <Fragment>
-      <Layout.Title withMargins>
-        {t('3. Name your project and assign it a team')}
-      </Layout.Title>
-      <CreateProjectForm
-        onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
-          // Prevent the page from reloading
-          event.preventDefault();
-          frameworkSelectionEnabled ? handleProjectCreation() : createProject();
-        }}
-      >
-        <div>
-          <FormLabel>{t('Project name')}</FormLabel>
-          <ProjectNameInputWrap>
-            <StyledPlatformIcon platform={platform?.key ?? 'other'} size={20} />
-            <ProjectNameInput
-              type="text"
-              name="name"
-              placeholder={t('project-name')}
-              autoComplete="off"
-              value={projectName}
-              onChange={e => setProjectName(slugify(e.target.value))}
-            />
-          </ProjectNameInputWrap>
-        </div>
-        <div>
-          <FormLabel>{t('Team')}</FormLabel>
-          <TeamSelectInput>
-            <TeamSelector
-              name="select-team"
-              aria-label={t('Select a Team')}
-              menuPlacement="auto"
-              clearable={false}
-              value={team}
-              placeholder={t('Select a Team')}
-              onChange={choice => setTeam(choice.value)}
-              teamFilter={(filterTeam: Team) => filterTeam.hasAccess}
-            />
-            <Button
-              borderless
-              data-test-id="create-team"
-              icon={<IconAdd isCircled />}
-              onClick={() =>
-                openCreateTeamModal({
-                  organization,
-                  onClose: ({slug}) => setTeam(slug),
-                })
-              }
-              title={t('Create a team')}
-              aria-label={t('Create a team')}
-            />
-          </TeamSelectInput>
-        </div>
-        <div>
-          <Button
-            type="submit"
-            data-test-id="create-project"
-            priority="primary"
-            disabled={!canSubmitForm}
-          >
-            {t('Create Project')}
-          </Button>
-        </div>
-      </CreateProjectForm>
-    </Fragment>
-  );
+  const alertFrequencyDefaultValues = useMemo(() => {
+    if (!autoFill) {
+      return {};
+    }
+
+    const alertRules = gettingStartedWithProjectContext.project?.alertRules;
+
+    if (alertRules?.length === 0) {
+      return {
+        alertSetting: String(RuleAction.CREATE_ALERT_LATER),
+      };
+    }
+
+    if (
+      alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition') ||
+      alertRules?.[0].conditions?.[0].id?.endsWith('EventUniqueUserFrequencyCondition')
+    ) {
+      return {
+        alertSetting: String(RuleAction.CUSTOMIZED_ALERTS),
+        interval: String(alertRules?.[0].conditions?.[0].interval),
+        threshold: String(alertRules?.[0].conditions?.[0].value),
+        metric: alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition')
+          ? MetricValues.ERRORS
+          : MetricValues.USERS,
+      };
+    }
+
+    return {
+      alertSetting: String(RuleAction.ALERT_ON_EVERY_ISSUE),
+    };
+  }, [gettingStartedWithProjectContext, autoFill]);
 
   return (
     <Fragment>
@@ -305,9 +288,75 @@ function CreateProject() {
           setPlatform={handlePlatformChange}
           organization={organization}
           showOther
+          noAutoFilter
         />
-        <IssueAlertOptions onChange={updatedData => setAlertRuleConfig(updatedData)} />
-        {createProjectForm}
+        <IssueAlertOptions
+          {...alertFrequencyDefaultValues}
+          onChange={updatedData => setAlertRuleConfig(updatedData)}
+        />
+        <Layout.Title withMargins>
+          {t('3. Name your project and assign it a team')}
+        </Layout.Title>
+        <CreateProjectForm
+          onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
+            // Prevent the page from reloading
+            event.preventDefault();
+            frameworkSelectionEnabled ? handleProjectCreation() : createProject();
+          }}
+        >
+          <div>
+            <FormLabel>{t('Project name')}</FormLabel>
+            <ProjectNameInputWrap>
+              <StyledPlatformIcon platform={platform?.key ?? 'other'} size={20} />
+              <ProjectNameInput
+                type="text"
+                name="name"
+                placeholder={t('project-name')}
+                autoComplete="off"
+                value={projectName}
+                onChange={e => setProjectName(slugify(e.target.value))}
+              />
+            </ProjectNameInputWrap>
+          </div>
+          <div>
+            <FormLabel>{t('Team')}</FormLabel>
+            <TeamSelectInput>
+              <TeamSelector
+                name="select-team"
+                aria-label={t('Select a Team')}
+                menuPlacement="auto"
+                clearable={false}
+                value={team}
+                placeholder={t('Select a Team')}
+                onChange={choice => setTeam(choice.value)}
+                teamFilter={(filterTeam: Team) => filterTeam.hasAccess}
+              />
+              <Button
+                borderless
+                data-test-id="create-team"
+                icon={<IconAdd isCircled />}
+                onClick={() =>
+                  openCreateTeamModal({
+                    organization,
+                    onClose: ({slug}) => setTeam(slug),
+                  })
+                }
+                title={t('Create a team')}
+                aria-label={t('Create a team')}
+              />
+            </TeamSelectInput>
+          </div>
+          <div>
+            <Button
+              type="submit"
+              data-test-id="create-project"
+              priority="primary"
+              disabled={!canSubmitForm}
+            >
+              {t('Create Project')}
+            </Button>
+          </div>
+        </CreateProjectForm>
       </div>
     </Fragment>
   );

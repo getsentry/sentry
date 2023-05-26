@@ -1020,33 +1020,18 @@ function buildRoutes() {
         component={make(() => import('sentry/views/projectInstall/newProject'))}
       />
       <Route
-        path=":projectId/getting-started/"
-        component={make(() => import('sentry/views/projectInstall/gettingStarted'))}
-      >
-        <IndexRoute
-          component={make(async () => {
-            const {ProjectInstallOverview} = await import(
-              'sentry/views/projectInstall/overview'
-            );
-            return {
-              default: ProjectInstallOverview,
-            };
-          })}
-        />
-        <Route
-          path=":platform/"
-          component={make(
-            () => import('sentry/views/projectInstall/platformOrIntegration')
-          )}
-        />
-      </Route>
-      <Route
         path=":projectId/"
         component={make(() => import('sentry/views/projectDetail'))}
       />
       <Route
         path=":projectId/events/:eventId/"
         component={errorHandler(ProjectEventRedirect)}
+      />
+      <Route
+        path=":projectId/getting-started/"
+        component={make(
+          () => import('sentry/views/projectInstall/platformOrIntegration')
+        )}
       />
     </Fragment>
   );
@@ -1055,7 +1040,12 @@ function buildRoutes() {
       {usingCustomerDomain && (
         <Route
           path="/projects/"
-          component={withDomainRequired(NoOp)}
+          component={make(async () => {
+            const {Projects} = await import('sentry/views/projects/');
+            return {
+              default: Projects,
+            };
+          })}
           key="orgless-projects-route"
         >
           {projectsChildRoutes}
@@ -1063,7 +1053,12 @@ function buildRoutes() {
       )}
       <Route
         path="/organizations/:orgId/projects/"
-        component={withDomainRedirect(NoOp)}
+        component={make(async () => {
+          const {Projects} = await import('sentry/views/projects/');
+          return {
+            default: Projects,
+          };
+        })}
         key="org-projects"
       >
         {projectsChildRoutes}
@@ -1995,51 +1990,6 @@ function buildRoutes() {
     </Route>
   );
 
-  const gettingStartedChildRoutes = (
-    <Fragment>
-      <IndexRoute
-        component={make(async () => {
-          const {ProjectInstallOverview} = await import(
-            'sentry/views/projectInstall/overview'
-          );
-          return {
-            default: ProjectInstallOverview,
-          };
-        })}
-      />
-      <Route
-        path=":platform/"
-        component={make(
-          () => import('sentry/views/projectInstall/platformOrIntegration')
-        )}
-      />
-    </Fragment>
-  );
-  const gettingStartedRoutes = (
-    <Fragment>
-      {usingCustomerDomain && (
-        <Route
-          path="/getting-started/:projectId/"
-          component={withDomainRequired(
-            make(() => import('sentry/views/projectInstall/gettingStarted'))
-          )}
-          key="orgless-getting-started-route"
-        >
-          {gettingStartedChildRoutes}
-        </Route>
-      )}
-      <Route
-        path="/:orgId/:projectId/getting-started/"
-        component={withDomainRedirect(
-          make(() => import('sentry/views/projectInstall/gettingStarted'))
-        )}
-        key="org-getting-started"
-      >
-        {gettingStartedChildRoutes}
-      </Route>
-    </Fragment>
-  );
-
   const profilingChildRoutes = (
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
@@ -2186,7 +2136,6 @@ function buildRoutes() {
       {starfishRoutes}
       {profilingRoutes}
       {adminManageRoutes}
-      {gettingStartedRoutes}
       {legacyOrganizationRootRoutes}
       {legacyOrgRedirects}
     </Route>
@@ -2279,14 +2228,6 @@ function buildRoutes() {
           from="integrations/:providerKey/"
           to="/settings/:orgId/projects/:projectId/integrations/:providerKey/"
         />
-        <Redirect
-          from="/settings/projects/:projectId/install/"
-          to="/getting-started/:projectId/"
-        />
-        <Redirect
-          from="/settings/projects/:projectId/install/:platform/"
-          to="/getting-started/:projectId/:platform/"
-        />
       </Route>
       <Redirect from=":projectId/group/:groupId/" to="issues/:groupId/" />
       <Redirect
@@ -2324,6 +2265,14 @@ function buildRoutes() {
       <Route
         path=":projectId/events/:eventId/"
         component={errorHandler(ProjectEventRedirect)}
+      />
+      <Redirect
+        from="/:orgId/:projectId/getting-started/:platform/"
+        to="/organizations/:orgId/projects/:projectId/getting-started/"
+      />
+      <Redirect
+        from="/getting-started/:projectId/:platform/"
+        to="/projects/:projectId/getting-started/"
       />
     </Route>
   );
