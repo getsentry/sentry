@@ -21,6 +21,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models import Environment, Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
+from sentry.snuba.dataset import Dataset
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
@@ -354,19 +355,51 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             else:
                 generic_issue_ids.append(group.id)
 
+        # need to resolve the columns for dataset
+        from copy import deepcopy
+
+        from sentry.utils.snuba import resolve_column, resolve_condition
+
+        events_resolve_column_func = resolve_column(Dataset.Events)
+        issue_platform_resolve_column_func = resolve_column(Dataset.IssuePlatform)
+
+        def resolve_conditions(conditions: Sequence[Any], column_resolver: Any):
+            if conditions is None:
+                return conditions
+
+            replacement_conditions = []
+            for condition in conditions:
+                replacement = resolve_condition(deepcopy(condition), column_resolver)
+                if replacement:
+                    replacement_conditions.append(replacement)
+
+            return replacement_conditions
+
+        error_conditions = resolve_conditions(conditions, events_resolve_column_func)
+        issue_conditions = resolve_conditions(conditions, issue_platform_resolve_column_func)
+
         results = {}
 
         get_range = functools.partial(
             snuba_tsdb.get_range,
             environment_ids=environment_ids,
-            conditions=conditions,
             tenant_ids={"organization_id": self.organization_id},
             **query_params,
         )
         if error_issue_ids:
-            results.update(get_range(model=snuba_tsdb.models.group, keys=error_issue_ids))
+            results.update(
+                get_range(
+                    model=snuba_tsdb.models.group, keys=error_issue_ids, conditions=error_conditions
+                )
+            )
         if generic_issue_ids:
-            results.update(get_range(model=snuba_tsdb.models.group_generic, keys=generic_issue_ids))
+            results.update(
+                get_range(
+                    model=snuba_tsdb.models.group_generic,
+                    keys=generic_issue_ids,
+                    conditions=issue_conditions,
+                )
+            )
         return results
 
     def _seen_stats_error(

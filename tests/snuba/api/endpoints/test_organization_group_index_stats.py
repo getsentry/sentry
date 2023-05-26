@@ -1,4 +1,4 @@
-from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.issues.grouptype import ErrorGroupType, ProfileFileIOGroupType
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -66,24 +66,41 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "filtered" in response_data[0]
 
     def test_issue_platform_issue(self):
-        event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-a"]},
-            project_id=self.project.id,
-        )
-        event_group = event.for_group(event.group)
-        event_group.occurrence = self.build_occurrence()
-        event.group.type = ProfileFileIOGroupType.type_id
+        profile_group = self.create_group(project=self.project, type=ProfileFileIOGroupType.type_id)
 
         self.login_as(user=self.user)
         response = self.get_response(
-            query=f"issue:{event.group.qualified_short_id}", groups=[event.group.id]
+            query=f"issue:{profile_group.qualified_short_id}", groups=[profile_group.id]
         )
 
         response_data = sorted(response.data, key=lambda x: x["firstSeen"], reverse=True)
 
         assert response.status_code == 200
         assert len(response_data) == 1
-        assert int(response_data[0]["id"]) == event.group.id
+        assert int(response_data[0]["id"]) == profile_group.id
+        assert "title" not in response_data[0]
+        assert "hasSeen" not in response_data[0]
+        assert "stats" in response_data[0]
+        assert "firstSeen" in response_data[0]
+        assert "lastSeen" in response_data[0]
+        assert "count" in response_data[0]
+        assert "userCount" in response_data[0]
+        assert "lifetime" in response_data[0]
+        assert "filtered" in response_data[0]
+
+    def test_issue_platform_mixed_issue_not_title(self):
+        profile_group = self.create_group(project=self.project, type=ProfileFileIOGroupType.type_id)
+        error_group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            query=f"!title:{profile_group.title}", groups=[profile_group.id, error_group.id]
+        )
+
+        response_data = sorted(response.data, key=lambda x: x["userCount"], reverse=True)
+        assert response.status_code == 200
+        assert len(response_data) == 2
+        assert {int(grp["id"]) for grp in response_data} == {profile_group.id, error_group.id}
         assert "title" not in response_data[0]
         assert "hasSeen" not in response_data[0]
         assert "stats" in response_data[0]

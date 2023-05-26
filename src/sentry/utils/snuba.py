@@ -1257,10 +1257,13 @@ def aliased_query_params(
             if condition_resolver
             else resolve_func
         )
-        for (i, condition) in enumerate(conditions):
-            replacement = resolve_condition(condition, column_resolver)
-            conditions[i] = replacement
-        conditions = [c for c in conditions if c]
+        replacement_conditions = []
+        for condition in conditions:
+            replacement = resolve_condition(deepcopy(condition), column_resolver)
+            if replacement:
+                replacement_conditions.append(replacement)
+    else:
+        replacement_conditions = conditions
 
     if orderby:
         # Don't mutate in case we have a default order passed.
@@ -1276,7 +1279,7 @@ def aliased_query_params(
         start=start,
         end=end,
         groupby=groupby,
-        conditions=conditions,
+        conditions=replacement_conditions,
         aggregations=aggregations,
         selected_columns=selected_columns,
         filter_keys=filter_keys,
