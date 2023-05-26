@@ -1,7 +1,17 @@
+from threading import Thread
+from time import sleep
 from urllib.parse import urlparse
 
 from django.conf import settings
 from django.utils.functional import cached_property
+
+from sentry.utils import redis
+
+QUEUES = ["profiles.process"]
+
+KEY_NAME = "unhealthy-queues"
+
+CLUSTER_NAME = "default"
 
 
 class RedisBackend:
@@ -86,6 +96,50 @@ def get_queue_by_name(name):
     for queue in settings.CELERY_QUEUES:
         if queue.name == name:
             return queue
+
+
+queue_monitoring_cluster = redis.redis_clusters.get(CLUSTER_NAME)
+
+
+def is_queue_healthy(queue_name: str) -> bool:
+    # check if queue is healthy by pinging Redis
+    return not queue_monitoring_cluster.sismember(KEY_NAME, queue_name)
+
+
+def is_healthy(queue_size):
+    return queue_size < 1000
+
+
+def update_queue_stats(redis_cluster, backend) -> None:
+    new_sizes = backend.bulk_get_sizes(QUEUES)
+    # compute unhealthiness based on sizes
+    unhealthy = {queue for (queue, size) in new_sizes if not is_healthy(size)}
+    if unhealthy:
+        with redis_cluster.pipeline(transaction=True) as pipeline:
+            pipeline.delete(KEY_NAME)
+            pipeline.sadd(KEY_NAME, *unhealthy)
+            # expire in 1min if we haven't checked in
+            pipeline.expire(KEY_NAME, 60)
+            pipeline.execute()
+
+
+def run_queue_stats_updater(redis_cluster: str) -> None:
+    # bonus point if we manage to use asyncio and launch all tasks at once
+    # in case we have many queues to check
+    cluster = redis.redis_clusters.get(redis_cluster)
+    from sentry.monitoring.queues import backend
+
+    if backend is None:
+        raise Exception("unknown broker type")
+    while True:
+        update_queue_stats(cluster, backend)
+        sleep(5)
+
+
+class QueueMonitor:
+    def __init__(self):
+        queue_stats_updater_process = Thread(target=run_queue_stats_updater, args=(CLUSTER_NAME,))
+        queue_stats_updater_process.start()
 
 
 backends = {"redis": RedisBackend, "amqp": AmqpBackend}
