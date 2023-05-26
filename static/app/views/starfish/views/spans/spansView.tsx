@@ -42,7 +42,10 @@ export default function SpansView(props: Props) {
   const {orderBy} = state;
 
   const descriptionFilter = didConfirmSearch && searchTerm ? `${searchTerm}` : undefined;
-  const queryConditions = buildQueryFilterFromLocation(location);
+  const queryConditions = buildQueryConditions(
+    props.moduleName || ModuleName.ALL,
+    location
+  );
   const query = getSpanListQuery(
     descriptionFilter,
     pageFilter.selection.datetime,
@@ -168,7 +171,7 @@ const FilterOptionsContainer = styled(PaddedContainer)`
 
 const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
 
-const buildQueryFilterFromLocation = (location: Location) => {
+const buildQueryConditions = (moduleName: ModuleName, location: Location) => {
   const {query} = location;
   const result = Object.keys(query)
     .filter(key => SPAN_FILTER_KEYS.includes(key))
@@ -176,5 +179,10 @@ const buildQueryFilterFromLocation = (location: Location) => {
     .map(key => {
       return `${key} = '${query[key]}'`;
     });
+
+  if (moduleName !== ModuleName.ALL) {
+    result.push(`module = '${moduleName}'`);
+  }
+
   return result;
 };
