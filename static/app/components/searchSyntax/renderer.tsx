@@ -64,7 +64,7 @@ function renderToken(token: TokenResult<Token>, cursor: number) {
       return <LogicBoolean>{token.value}</LogicBoolean>;
 
     case Token.FreeText:
-      return <FreeTextToken freeText={token} cursor={cursor} />;
+      return <FreeTextToken token={token} cursor={cursor} />;
 
     default:
       return token.text;
@@ -153,13 +153,13 @@ function FilterToken({
 }
 
 function FreeTextToken({
-  freeText,
+  token,
   cursor,
 }: {
   cursor: number;
-  freeText: TokenResult<Token.FreeText>;
+  token: TokenResult<Token.FreeText>;
 }) {
-  const isActive = isWithinToken(freeText, cursor);
+  const isActive = isWithinToken(token, cursor);
 
   // This state tracks if the cursor has left the filter token. We initialize it
   // to !isActive in the case where the filter token is rendered without the
@@ -177,7 +177,7 @@ function FreeTextToken({
     }
   }, [hasLeft, isActive]);
 
-  const showInvalid = hasLeft && !!freeText.invalid;
+  const showInvalid = hasLeft && !!token.invalid;
   const showTooltip = showInvalid && isActive;
 
   const reduceMotion = useReducedMotion();
@@ -200,21 +200,17 @@ function FreeTextToken({
     );
   }, [reduceMotion, showInvalid]);
 
-  if (!freeText.invalid?.reason) {
-    return <Fragment>{freeText.text}</Fragment>;
-  }
-
   return (
     <Tooltip
       disabled={!showTooltip}
-      title={freeText.invalid?.reason}
+      title={token.invalid?.reason}
       overlayStyle={{maxWidth: '350px'}}
       forceVisible
       skipWrapper
     >
-      <TokenGroup ref={filterElementRef} active={isActive} invalid={showInvalid}>
-        <FreeText>{renderToken(freeText.value, cursor)}</FreeText>
-      </TokenGroup>
+      <FreeTextTokenGroup ref={filterElementRef} active={isActive} invalid={showInvalid}>
+        <FreeText>{token.text}</FreeText>
+      </FreeTextTokenGroup>
     </Tooltip>
   );
 }
@@ -282,6 +278,16 @@ const TokenGroup = styled('span')<TokenGroupProps>`
   animation-name: ${shakeAnimation};
 `;
 
+const FreeTextTokenGroup = styled(TokenGroup)`
+  ${p =>
+    !p.invalid &&
+    css`
+      --token-bg: inherit;
+      --token-border: inherit;
+      --token-value-color: inherit;
+    `}
+`;
+
 const filterCss = css`
   background: var(--token-bg);
   border: 0.5px solid var(--token-border);
@@ -347,10 +353,11 @@ const Value = styled('span')`
 
 const FreeText = styled('span')`
   ${filterCss};
-  border-radius: 0 2px 2px 0;
+  border-radius: 2px;
   color: var(--token-value-color);
   margin: -1px -2px -1px 0;
   padding-right: 1px;
+  padding-left: 1px;
 `;
 
 const Unit = styled('span')`
