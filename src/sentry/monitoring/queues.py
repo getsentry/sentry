@@ -136,10 +136,9 @@ def run_queue_stats_updater(redis_cluster: str) -> None:
         sleep(5)
 
 
-class QueueMonitor:
-    def __init__(self):
-        queue_stats_updater_process = Thread(target=run_queue_stats_updater, args=(CLUSTER_NAME,))
-        queue_stats_updater_process.start()
+def monitor_queues():
+    queue_stats_updater_process = Thread(target=run_queue_stats_updater, args=(CLUSTER_NAME,))
+    queue_stats_updater_process.start()
 
 
 backends = {"redis": RedisBackend, "amqp": AmqpBackend}
