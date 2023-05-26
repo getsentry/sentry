@@ -68,6 +68,10 @@ describe('GroupSidebar', function () {
       url: `/organizations/${organization.slug}/users/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/first-last-release/`,
+      body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
+    });
   });
 
   afterEach(function () {
