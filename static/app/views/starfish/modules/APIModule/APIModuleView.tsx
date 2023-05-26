@@ -18,8 +18,8 @@ import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/char
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {INTERNAL_API_REGEX} from 'sentry/views/starfish/modules/APIModule/constants';
 import {HostDetails} from 'sentry/views/starfish/modules/APIModule/hostDetails';
-import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {queryToSeries} from 'sentry/views/starfish/utils/queryToSeries';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
