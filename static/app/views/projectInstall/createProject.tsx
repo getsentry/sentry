@@ -7,6 +7,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openCreateTeamModal, openModal} from 'sentry/actionCreators/modal';
+import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
@@ -289,7 +290,7 @@ function CreateProject() {
   );
 
   return (
-    <Fragment>
+    <Access access={canCreateProject ? ['project:read'] : ['project:write']}>
       {error && <Alert type="error">{error}</Alert>}
       <div data-test-id="onboarding-info">
         <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
@@ -314,7 +315,7 @@ function CreateProject() {
         <IssueAlertOptions onChange={updatedData => setAlertRuleConfig(updatedData)} />
         {createProjectForm}
       </div>
-    </Fragment>
+    </Access>
   );
 }
 
