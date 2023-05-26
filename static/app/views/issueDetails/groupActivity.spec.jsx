@@ -392,10 +392,22 @@ describe('GroupActivity', function () {
           user: null,
           dateCreated,
         },
+        {
+          id: '123',
+          type: GroupActivityType.SET_ESCALATING,
+          data: {
+            forecast: 400,
+          },
+          user: null,
+          dateCreated: '2021-10-05T15:31:38.950115Z',
+        },
       ],
       organization: {features: ['escalating-issues-ui']},
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Sentry flagged this issue as escalating because over 400 events happened in an hour'
+    );
+    expect(screen.getAllByTestId('activity-item').at(-2)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 200 events happened in an hour'
     );
   });
