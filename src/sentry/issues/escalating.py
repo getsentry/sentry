@@ -333,7 +333,6 @@ def manage_issue_states(
             )
             if data and activity_data:
                 data.update(activity_data)
-            group.save(update_fields=["status", "substatus"])
             Activity.objects.create(
                 project=group.project,
                 group=group,
@@ -356,7 +355,6 @@ def manage_issue_states(
             )
             add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
             record_group_history(group, GroupHistoryStatus.ONGOING)
-            group.save(update_fields=["status", "substatus"])
             Activity.objects.create(
                 project=group.project,
                 group=group,
@@ -379,7 +377,6 @@ def manage_issue_states(
             )
             add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
             record_group_history(group, GroupHistoryStatus.UNIGNORED)
-            group.save(update_fields=["status", "substatus"])
             Activity.objects.create(
                 project=group.project,
                 group=group,
