@@ -1,15 +1,14 @@
 import {CSSProperties, Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import Truncate from 'sentry/components/truncate';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconArrow} from 'sentry/icons';
 import {Series} from 'sentry/types/echarts';
 import {useLocation} from 'sentry/utils/useLocation';
+import {SortableHeader} from 'sentry/views/starfish/components/sortableHeader';
 import {MultiSparkline} from 'sentry/views/starfish/components/sparkline';
 import {Sort} from 'sentry/views/starfish/modules/databaseModule';
 import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
@@ -179,17 +178,6 @@ function QueryTransactionTable(props: Props) {
   );
 }
 
-export function SortableHeader({title, direction, onClick}) {
-  const arrow = !direction ? null : (
-    <StyledIconArrow size="xs" direction={direction === 'desc' ? 'down' : 'up'} />
-  );
-  return (
-    <HeaderWrapper onClick={onClick}>
-      {title} {arrow}
-    </HeaderWrapper>
-  );
-}
-
 // Calculates the outlier min max for all number based rows based on the IQR Method
 const calculateOutlierMinMax = (
   data: TransactionListDataRow[]
@@ -218,13 +206,5 @@ function findOutlierMinMax(data: any[], property: string): {max: number; min: nu
 
   return {min: q1 - iqr * 1.5, max: q3 + iqr * 1.5};
 }
-
-const HeaderWrapper = styled('div')`
-  cursor: pointer;
-`;
-
-const StyledIconArrow = styled(IconArrow)`
-  vertical-align: top;
-`;
 
 export default QueryTransactionTable;
