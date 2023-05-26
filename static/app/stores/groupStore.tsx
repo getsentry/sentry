@@ -477,18 +477,6 @@ const storeConfig: GroupStoreDefinition = {
     });
     this.updateItems(itemIds);
   },
-
-  onPopulateReleases(itemId, releaseData) {
-    this.items.forEach((item, idx) => {
-      if (item.id === itemId) {
-        this.items[idx] = {
-          ...item,
-          ...releaseData,
-        };
-      }
-    });
-    this.updateItems([itemId]);
-  },
 };
 
 const GroupStore = createStore(storeConfig);
