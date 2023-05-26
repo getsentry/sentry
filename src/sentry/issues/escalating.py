@@ -340,7 +340,7 @@ def manage_issue_states(
                     jsonschema.validate(snooze_details, INBOX_REASON_DETAILS)
 
                 except jsonschema.ValidationError:
-                    logging.error(f"Expired snooze_details invalid jsonschema: {snooze_details}")
+                    logging.error("Expired snooze_details invalid jsonschema", extra=snooze_details)
 
                 data.update({"expired_snooze": snooze_details})
 
