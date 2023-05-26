@@ -10,8 +10,17 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {CurrentRelease, Environment, Group, Organization, Project} from 'sentry/types';
+import {
+  CurrentRelease,
+  Environment,
+  Group,
+  GroupRelease,
+  Organization,
+  Project,
+} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Props = {
   allEnvironments: Group | undefined;
@@ -42,6 +51,17 @@ function GroupReleaseStats({
       : environments.length === 1
       ? environments[0].displayName
       : undefined;
+
+  const {data: groupReleaseData} = useApiQuery<GroupRelease>(
+    [defined(group) ? `/issues/${group.id}/first-last-release/` : ''],
+    {
+      staleTime: 30000,
+      cacheTime: 30000,
+    }
+  );
+
+  const firstRelease = groupReleaseData?.firstRelease;
+  const lastRelease = groupReleaseData?.lastRelease;
 
   const projectId = project.id;
   const projectSlug = project.slug;
@@ -110,7 +130,7 @@ function GroupReleaseStats({
                 dateGlobal={allEnvironments.lastSeen}
                 hasRelease={hasRelease}
                 environment={shortEnvironmentLabel}
-                release={group.lastRelease || null}
+                release={lastRelease}
                 title={t('Last Seen')}
               />
             </StyledSidebarSectionContent>
@@ -141,7 +161,7 @@ function GroupReleaseStats({
                 dateGlobal={allEnvironments.firstSeen}
                 hasRelease={hasRelease}
                 environment={shortEnvironmentLabel}
-                release={group.firstRelease || null}
+                release={firstRelease}
                 title={t('First seen')}
               />
             </StyledSidebarSectionContent>
