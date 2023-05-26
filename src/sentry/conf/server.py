@@ -1138,7 +1138,7 @@ REST_FRAMEWORK = {
 
 if os.environ.get("OPENAPIGENERATE", False):
     OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
-    from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_paths
+    from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
@@ -1157,6 +1157,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "SERVERS": [{"url": "https://sentry.io/"}],
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
+        "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
         "SORT_OPERATION_PARAMETERS": False,
     }
 
@@ -1422,7 +1423,7 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
-    # Enables subquery optimizations for the replay_index page
+    # Enable subquery optimizations for the replay_index page
     "organizations:session-replay-index-subquery": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
@@ -1430,6 +1431,8 @@ SENTRY_FEATURES = {
     "organizations:starfish-view": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
+    # Replace the footer Sentry logo with a Sentry pride logo
+    "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -1621,6 +1624,9 @@ SENTRY_REPROCESSING_APM_SAMPLING = 0
 # end APM config
 # ----
 
+# DSN to use for Sentry monitors
+SENTRY_MONITOR_DSN = None
+SENTRY_MONITOR_API_ROOT = None
 
 # Web Service
 SENTRY_WEB_HOST = "127.0.0.1"

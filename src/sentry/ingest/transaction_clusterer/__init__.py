@@ -1,1 +1,29 @@
 """ Strategies for clustering high-cardinality transaction names """
+
+
+from dataclasses import dataclass
+from enum import Enum
+
+
+@dataclass(frozen=True)
+class NamespaceOption:
+    name: str
+    """Human-friendly name of the namespace. For example, logging purposes."""
+    data: str
+    """Prefix to store input data to the clusterer."""
+    rules: str
+    """Prefix to store produced rules in the clusterer, in non-persistent storage."""
+    persistent_storage: str
+    """Option name to store produced rules in the clusterer, in persistent storage."""
+    tracker: str
+    """Option name to store tracking data of this namespace."""
+
+
+class ClustererNamespace(Enum):
+    TRANSACTIONS = NamespaceOption(
+        name="transactions",
+        data="txnames",
+        rules="txrules",
+        persistent_storage="sentry:transaction_name_cluster_rules",
+        tracker="txcluster.rules_per_project",
+    )

@@ -1,7 +1,15 @@
 import logging
+from datetime import timedelta
+from typing import Dict, List, Optional, Sequence
 
-from sentry.search.events.builder import SpansMetricsQueryBuilder
-from sentry.utils.snuba import Dataset
+from snuba_sdk import Column
+
+from sentry.search.events.builder import (
+    SpansMetricsQueryBuilder,
+    TimeseriesSpansMetricsQueryBuilder,
+)
+from sentry.snuba import discover
+from sentry.utils.snuba import Dataset, SnubaTSResult
 
 logger = logging.getLogger(__name__)
 
@@ -53,3 +61,61 @@ def query(
 
     result = builder.process_results(builder.run_query(referrer))
     return result
+
+
+def timeseries_query(
+    selected_columns: Sequence[str],
+    query: str,
+    params: Dict[str, str],
+    rollup: int,
+    referrer: str,
+    zerofill_results: bool = True,
+    allow_metric_aggregates=True,
+    comparison_delta: Optional[timedelta] = None,
+    functions_acl: Optional[List[str]] = None,
+    has_metrics: bool = True,
+    use_metrics_layer: bool = False,
+    groupby: Optional[Column] = None,
+) -> SnubaTSResult:
+    """
+    High-level API for doing arbitrary user timeseries queries against events.
+    this API should match that of sentry.snuba.discover.timeseries_query
+    """
+    metrics_query = TimeseriesSpansMetricsQueryBuilder(
+        params,
+        rollup,
+        dataset=Dataset.PerformanceMetrics,
+        query=query,
+        selected_columns=selected_columns,
+        functions_acl=functions_acl,
+        allow_metric_aggregates=allow_metric_aggregates,
+        use_metrics_layer=use_metrics_layer,
+        groupby=groupby,
+    )
+    result = metrics_query.run_query(referrer)
+
+    result = metrics_query.process_results(result)
+    result["data"] = (
+        discover.zerofill(
+            result["data"],
+            params["start"],
+            params["end"],
+            rollup,
+            "time",
+        )
+        if zerofill_results
+        else result["data"]
+    )
+
+    result["meta"]["isMetricsData"] = True
+
+    return SnubaTSResult(
+        {
+            "data": result["data"],
+            "isMetricsData": True,
+            "meta": result["meta"],
+        },
+        params["start"],
+        params["end"],
+        rollup,
+    )
