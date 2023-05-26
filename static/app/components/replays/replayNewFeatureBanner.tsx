@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import newFeatureImage from 'sentry-images/spot/alerts-new-feature-banner.svg';
 
+import {Button} from 'sentry/components/button';
+import {Panel} from 'sentry/components/panels';
 import {IconBroadcast, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,9 +19,12 @@ interface Props {
 export function ReplayNewFeatureBanner({heading, description, button, onDismiss}: Props) {
   return (
     <Wrapper>
-      <CloseBtn onClick={onDismiss}>
-        <IconClose size="xs" />
-      </CloseBtn>
+      <CloseButton
+        onClick={onDismiss}
+        icon={<IconClose size="xs" />}
+        aria-label={t('Feature banner close')}
+        size="xs"
+      />
       <Background />
       <Stack>
         <SubText uppercase fontWeight={500}>
@@ -36,28 +41,20 @@ export function ReplayNewFeatureBanner({heading, description, button, onDismiss}
   );
 }
 
-const Wrapper = styled('div')`
-  position: relative;
+const Wrapper = styled(Panel)`
   display: flex;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)};
-  margin-bottom: ${space(2)};
   min-height: 100px;
   justify-content: space-between;
   align-items: center;
 `;
 
-const CloseBtn = styled('button')`
-  display: flex;
+const CloseButton = styled(Button)`
   justify-content: center;
-  align-items: center;
   position: absolute;
   top: -${space(1)};
   right: -${space(1)};
-  border: 1px solid ${p => p.theme.border};
   border-radius: 50%;
-  background-color: ${p => p.theme.background};
   height: ${p => p.theme.iconSizes.lg};
   width: ${p => p.theme.iconSizes.lg};
   z-index: 1;
