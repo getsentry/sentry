@@ -53,6 +53,35 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             "organizations:performance-new-trends", organization, actor=request.user
         )
 
+    def get_trends_data(self, stats_data, request):
+        trend_function = request.GET.get("trendFunction", "p50()")
+
+        trends_request = {
+            "data": None,
+            "sort": None,
+            "trendFunction": None,
+        }
+
+        trends_request["sort"] = request.GET.get("sort", "trend_percentage()")
+        trends_request["trendFunction"] = trend_function
+        trends_request["data"] = stats_data.data
+
+        # send the data to microservice
+        trends = get_trends(trends_request)
+        sentry_sdk.set_tag("performance.trendsv2.trends", len(trends.get("data", [])) > 0)
+
+        trending_transaction_names_stats = {}
+        # TODO add proper pagination
+        trending_events = trends["data"]
+
+        for t in trending_events:
+            transaction_name = t["transaction"]
+            project = t["project"]
+            t_p_key = project + "," + transaction_name
+            trending_transaction_names_stats[t_p_key] = stats_data.data[t_p_key]
+
+        return trending_events, trending_transaction_names_stats, trends_request
+
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -203,30 +232,11 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
             response = Response(stats_data)
 
-            trends_request = {
-                "data": None,
-                "sort": None,
-                "trendFunction": None,
-                "start": None,
-                "end": None,
-            }
-
-            trends_request["sort"] = request.GET.get("sort", "trend_percentage()")
-            trends_request["trendFunction"] = trend_function
-            trends_request["data"] = response.data
-
-            # send the data to microservice
-            trends = get_trends(trends_request)
-            sentry_sdk.set_tag("performance.trendsv2.trends", len(trends.get("data", [])) > 0)
-
-            trending_transaction_names_stats = {}
-            # TODO add proper pagination
-            trending_events = trends["data"][:5]
-            for t in trending_events:
-                transaction_name = t["transaction"]
-                project = t["project"]
-                t_p_key = project + "," + transaction_name
-                trending_transaction_names_stats[t_p_key] = response.data[t_p_key]
+            (
+                trending_events,
+                trending_transaction_names_stats,
+                trends_request,
+            ) = self.get_trends_data(response, request)
 
             # send the results back to the client
             return Response(
