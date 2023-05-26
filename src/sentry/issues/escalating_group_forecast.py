@@ -6,6 +6,7 @@ Sentry's NodeStore. The forecasts are stored for 2 weeks.
 from __future__ import annotations
 
 import hashlib
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List, TypedDict, cast
@@ -22,6 +23,9 @@ class EscalatingGroupForecastData(TypedDict):
     group_id: int
     forecast: List[int]
     date_added: float
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -60,6 +64,10 @@ class EscalatingGroupForecast:
         date_now = datetime.now().date()
         escalating_forecast = EscalatingGroupForecast.fetch(project_id, group_id)
         forecast_today_index = (date_now - escalating_forecast.date_added.date()).days
+        if forecast_today_index >= len(escalating_forecast.forecast):
+            logger.error("Forecast list index is out of range")
+            # Use last available forecast as a fallback
+            forecast_today_index = -1
         return escalating_forecast.forecast[forecast_today_index]
 
     @classmethod
