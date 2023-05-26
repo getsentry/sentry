@@ -108,7 +108,10 @@ export default function SpansView(props: Props) {
       <FilterOptionsContainer>
         <DatePageFilter alignDropdown="left" />
 
-        <SpanOperationSelector value={props.appliedFilters.span_operation} />
+        <SpanOperationSelector
+          moduleName={props.moduleName}
+          value={props.appliedFilters.span_operation}
+        />
 
         <DomainSelector
           moduleName={props.moduleName}
