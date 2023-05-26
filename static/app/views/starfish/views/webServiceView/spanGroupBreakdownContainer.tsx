@@ -1,10 +1,8 @@
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import moment from 'moment';
 
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -245,21 +243,13 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
   }
 
   return (
-    <StyledPanel>
-      <SpanGroupBreakdown
-        tableData={transformedData}
-        totalCumulativeTime={totalValues}
-        isTableLoading={isSegmentsLoading}
-        topSeriesData={data}
-        colorPalette={colorPalette}
-        initialShowSeries={initialShowSeries}
-      />
-    </StyledPanel>
+    <SpanGroupBreakdown
+      tableData={transformedData}
+      totalCumulativeTime={totalValues}
+      isTableLoading={isSegmentsLoading}
+      topSeriesData={data}
+      colorPalette={colorPalette}
+      initialShowSeries={initialShowSeries}
+    />
   );
 }
-
-const StyledPanel = styled(Panel)`
-  border-radius: ${p => `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`};
-  padding-top: ${space(2)};
-  margin-bottom: 0;
-`;

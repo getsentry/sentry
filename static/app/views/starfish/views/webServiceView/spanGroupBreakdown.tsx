@@ -19,6 +19,7 @@ import {RightAlignedCell} from 'sentry/views/performance/landing/widgets/compone
 import {getSegmentLabelForTable} from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import {Panel} from 'sentry/components/panels';
 
 type Props = {
   colorPalette: string[];
@@ -52,7 +53,7 @@ export function SpanGroupBreakdown({
   }
 
   return (
-    <Fragment>
+    <BreakdownContainer>
       <ChartContainer>
         <Header>
           <ChartLabel>{'App Time Breakdown'}</ChartLabel>
@@ -77,6 +78,7 @@ export function SpanGroupBreakdown({
           disableXAxis
         />
       </ChartContainer>
+      <SpanOpsContainer>asdasd</SpanOpsContainer>
       {/* <ListContainer>
         {transformedData.map((row, index) => {
           const checkedValue = showSeriesArray[index];
@@ -156,7 +158,7 @@ export function SpanGroupBreakdown({
           );
         })}
       </ListContainer> */}
-    </Fragment>
+    </BreakdownContainer>
   );
 }
 
@@ -183,10 +185,6 @@ const TextAlignLeft = styled('span')`
   padding: 0 ${space(1.5)};
 `;
 
-const ChartContainer = styled('div')`
-  padding: 0 ${space(2)} ${space(4)} ${space(2)}};
-`;
-
 const ChartLabel = styled('p')`
   ${p => p.theme.text.cardTitle}
 `;
@@ -202,4 +200,24 @@ const Header = styled('div')`
 
 const StyledTopResultsIndicator = styled(TopResultsIndicator)`
   margin-top: 0px;
+`;
+
+const BreakdownContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+`;
+
+const ChartContainer = styled('div')`
+  padding: ${space(2)} ${space(2)} ${space(4)} ${space(2)};
+  border-radius: ${p => `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`};
+  margin-bottom: 0;
+  border: 1px ${p => p.theme.border} solid;
+`;
+
+const SpanOpsContainer = styled('div')`
+  padding: ${space(2)} ${space(2)} ${space(4)} ${space(2)};
+  border-radius: ${p => `0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0`};
+  margin-bottom: 0;
+  border: 1px ${p => p.theme.border} solid;
+  border-left: 0;
 `;
