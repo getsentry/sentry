@@ -1624,6 +1624,9 @@ SENTRY_REPROCESSING_APM_SAMPLING = 0
 # end APM config
 # ----
 
+# DSN to use for Sentry monitors
+SENTRY_MONITOR_DSN = None
+SENTRY_MONITOR_API_ROOT = None
 
 # Web Service
 SENTRY_WEB_HOST = "127.0.0.1"
