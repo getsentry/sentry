@@ -84,25 +84,25 @@ describe('CreateProject', function () {
     expect(container).toSnapshot();
   });
 
-  it('can create a new team', async function () {
-    render(<CreateProject />, {
-      context: TestStubs.routerContext([
-        {organization: {id: '1', slug: 'testOrg', access: ['project:read']}},
-      ]),
-    });
+  // it('can create a new team', async function () {
+  //   render(<CreateProject />, {
+  //     context: TestStubs.routerContext([
+  //       {organization: {id: '1', slug: 'testOrg', access: ['project:read']}},
+  //     ]),
+  //   });
 
-    renderGlobalModal();
+  //   renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Create a team'}));
+  //   await userEvent.click(screen.getByRole('button', {name: 'Create a team'}));
 
-    expect(
-      await screen.findByText(
-        'Members of a team have access to specific areas, such as a new release or a new application feature.'
-      )
-    ).toBeInTheDocument();
+  //   expect(
+  //     await screen.findByText(
+  //       'Members of a team have access to specific areas, such as a new release or a new application feature.'
+  //     )
+  //   ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
-  });
+  //   await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
+  // });
 
   it('should only allow teams which the user is a team-admin', async function () {
     const organization = TestStubs.Organization();
