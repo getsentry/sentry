@@ -1,12 +1,13 @@
 """ Write transactions into redis sets """
 import logging
 import random
-from typing import Any, Iterator, Mapping
+from typing import Any, Iterator, Mapping, Optional
+from urllib.parse import urlparse
 
 import sentry_sdk
 from django.conf import settings
 
-from sentry import options
+from sentry import features, options
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
     HTTP_404_TAG,
@@ -137,3 +138,50 @@ def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None
             # Only one clustering rule is applied per project
             clusterer_rules.bump_last_used(ClustererNamespace.TRANSACTIONS, project, pattern)
             return
+
+
+def record_span_descriptions(
+    project: Project, event_data: Mapping[str, Any], **kwargs: Any
+) -> None:
+    if not features.has("projects:span-metrics-extraction", project):
+        return
+
+    spans = event_data.get("spans", [])
+    for span in spans:
+        if _should_store_span_description(span):
+            description = _get_description_from_span(span)
+            url_path = _get_url_path_from_description(description)
+            safe_execute(_store_span_description, project, url_path)
+
+
+def _should_store_span_description(span: Mapping[str, Any]) -> bool:
+    if not span.get("op", "").startswith("http"):
+        return False
+    if not span.get("description.scrubbed") and not span.get("description"):
+        return False
+    return True
+
+
+def _get_description_from_span(span: Mapping[str, Any]) -> Optional[str]:
+    data = span.get("data", {})
+    return data.get("description.scrubbed") or span.get("description")
+
+
+def _get_url_path_from_description(description: str) -> Optional[str]:
+    """Return the URL from the span description.
+
+    It's assumed the description is an HTTP span's description, with the
+    following format: `<http verb> <url>`.
+    """
+    tokens = description.split(" ")
+    if len(tokens) != 2:
+        return None
+    url = tokens[1]
+    return urlparse(url).path
+
+
+def _store_span_description(project: Project, span_description: str) -> None:
+    with sentry_sdk.start_span(op="clusterer.store_span_description"):
+        client = get_redis_client()
+        redis_key = _get_redis_key(ClustererNamespace.SPANS, project)
+        add_to_set(client, [redis_key], [span_description, MAX_SET_SIZE, SET_TTL])
