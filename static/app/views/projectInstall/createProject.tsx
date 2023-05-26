@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openCreateTeamModal, openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -36,8 +37,9 @@ type IssueAlertFragment = Parameters<
 function CreateProject() {
   const api = useApi();
   const organization = useOrganization();
+  const {teams} = useTeams();
 
-  const accessTeams = useTeams().teams.filter((team: Team) => team.hasAccess);
+  const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
 
   useRouteAnalyticsEventNames(
     'project_creation_page.viewed',
@@ -75,6 +77,7 @@ function CreateProject() {
       const selectedPlatform = selectedFramework?.key ?? platform?.key;
 
       if (!selectedPlatform) {
+        addErrorMessage(t('Please select a platform in Step 1'));
         return;
       }
 
@@ -147,6 +150,7 @@ function CreateProject() {
     const selectedPlatform = platform;
 
     if (!selectedPlatform) {
+      addErrorMessage(t('Please select a platform in Step 1'));
       return;
     }
 
@@ -207,7 +211,8 @@ function CreateProject() {
   }
 
   const {shouldCreateCustomRule, conditions} = alertRuleConfig || {};
-  const {canCreateProject} = useProjectCreationAccess(organization);
+  const {canCreateProject} = useProjectCreationAccess({organization, teams: accessTeams});
+
   const canSubmitForm =
     !inFlight &&
     team &&
@@ -252,7 +257,7 @@ function CreateProject() {
               value={team}
               placeholder={t('Select a Team')}
               onChange={choice => setTeam(choice.value)}
-              teamFilter={(filterTeam: Team) => filterTeam.hasAccess}
+              teamFilter={(tm: Team) => tm.access.includes('team:admin')}
             />
             <Button
               borderless

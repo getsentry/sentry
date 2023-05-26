@@ -80,7 +80,7 @@ class OrganizationProjects extends AsyncView<Props, State> {
     const {projectList, projectListPageLinks, projectStats} = this.state;
     const {organization} = this.props;
 
-    const action = <CreateProjectButton organization={organization} />;
+    const action = <CreateProjectButton />;
 
     return (
       <Fragment>
