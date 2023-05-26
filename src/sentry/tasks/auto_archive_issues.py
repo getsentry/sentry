@@ -40,7 +40,7 @@ def run_auto_archive() -> None:
     """
     Automatically transition issues that are ongoing for 14 days to archived until escalating.
     """
-    logger.info("Starting task for sentry.tasks.weekly_escalating_forecast.run_escalating_forecast")
+    logger.info("Starting task for sentry.tasks.auto_archive_issues.run_auto_archive")
 
     for organization in RangeQuerySetWrapper(
         Organization.objects.filter(status=OrganizationStatus.ACTIVE)
@@ -81,10 +81,9 @@ def run_auto_achive_for_projects(project_ids: List[int]) -> None:
             current_group_history = (
                 GroupHistory.objects.filter(group=group).order_by("-date_added").first()
             )
-            if not current_group_history:
-                continue
-
-            if not current_group_history.status == GroupHistoryStatus.ONGOING:
+            if not (
+                current_group_history and current_group_history.status == GroupHistoryStatus.ONGOING
+            ):
                 continue
 
             if current_group_history.date_added <= fourteen_days_ago:
