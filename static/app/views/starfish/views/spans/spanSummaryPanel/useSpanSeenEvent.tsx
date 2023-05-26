@@ -7,7 +7,7 @@ type HasTransaction = {
   transaction_id: string;
 };
 
-function useFirstSeenSpan(span?: Span, referrer = 'first-seen-span') {
+function useFirstSeenSpan(span?: Pick<Span, 'group_id'>, referrer = 'first-seen-span') {
   const query = span
     ? `
     SELECT transaction_id
@@ -31,14 +31,14 @@ function useFirstSeenSpan(span?: Span, referrer = 'first-seen-span') {
 }
 
 export const useSpanFirstSeenEvent = (
-  span?: Span,
+  span?: Pick<Span, 'group_id'>,
   referrer = 'span-first-seen-event'
 ) => {
   const {data} = useFirstSeenSpan(span, referrer);
   return useQueryGetEvent(data?.transaction_id);
 };
 
-function useLastSeenSpan(span?: Span, referrer = 'last-seen-span') {
+function useLastSeenSpan(span?: Pick<Span, 'group_id'>, referrer = 'last-seen-span') {
   const query = span
     ? `
     SELECT transaction_id
@@ -61,7 +61,10 @@ function useLastSeenSpan(span?: Span, referrer = 'last-seen-span') {
   return {...result, data: result.data[0]};
 }
 
-export const useSpanLastSeenEvent = (span?: Span, referrer = 'span-last-seen-event') => {
+export const useSpanLastSeenEvent = (
+  span?: Pick<Span, 'group_id'>,
+  referrer = 'span-last-seen-event'
+) => {
   const {data} = useLastSeenSpan(span, referrer);
   return useQueryGetEvent(data?.transaction_id);
 };

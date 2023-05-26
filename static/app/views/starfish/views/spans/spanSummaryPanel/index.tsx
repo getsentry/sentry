@@ -193,7 +193,7 @@ type BlockProps = {
   description?: React.ReactNode;
 };
 
-function Block({title, description, children}: BlockProps) {
+export function Block({title, description, children}: BlockProps) {
   return (
     <BlockWrapper>
       <BlockTitle>
@@ -227,7 +227,7 @@ const BlockTooltipContainer = styled('span')`
   margin-left: ${space(1)};
 `;
 
-const BlockContainer = styled('div')`
+export const BlockContainer = styled('div')`
   display: flex;
   & > div:last-child {
     padding-right: ${space(1)};
