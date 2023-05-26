@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
 import {fetchUserTeams} from 'sentry/actionCreators/teams';
@@ -195,24 +195,6 @@ export function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
     nextCursor: store.cursor,
     fetchError: null,
   });
-
-  const slugOrIdRef = useRef<Set<string> | null>(null);
-
-  // Only initialize slugOrIdRef.current once and modify it when we receive new
-  // slugs or ids determined through set equality
-  if (slugs !== undefined || ids !== undefined) {
-    const slugsOrIds = (slugs || ids) ?? [];
-    if (slugOrIdRef.current === null) {
-      slugOrIdRef.current = new Set(slugsOrIds);
-    }
-
-    if (
-      slugsOrIds.length !== slugOrIdRef.current.size ||
-      slugsOrIds.some(slugOrId => !slugOrIdRef.current?.has(slugOrId))
-    ) {
-      slugOrIdRef.current = new Set(slugsOrIds);
-    }
-  }
 
   const loadUserTeams = useCallback(
     async function () {
