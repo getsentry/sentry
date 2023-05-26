@@ -12,8 +12,8 @@ import {space} from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-const SentryPrideLogoHook = HookOrDefault({
-  hookName: 'component:sentry-pride-logo',
+const SentryLogoHook = HookOrDefault({
+  hookName: 'component:sentry-logo',
   defaultComponent: () => <IconSentry size="lg" />,
 });
 
@@ -49,7 +49,7 @@ function BaseFooter({className}: Props) {
       </LeftLinks>
       <SentryLogoLink href="https://sentry.io/welcome/" tabIndex={-1}>
         {(organization?.features ?? []).includes('sentry-pride-logo-footer') ? (
-          <SentryPrideLogoHook size="lg" />
+          <SentryLogoHook size="lg" />
         ) : (
           <IconSentry size="lg" />
         )}
