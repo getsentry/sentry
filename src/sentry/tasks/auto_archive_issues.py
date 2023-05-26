@@ -3,13 +3,13 @@ from datetime import datetime, timedelta
 from typing import List
 
 import pytz
+from django.db.models import Max
 from sentry_sdk.crons.decorator import monitor
 
 from sentry import features
 from sentry.models import (
     Activity,
     Group,
-    GroupHistory,
     GroupHistoryStatus,
     GroupStatus,
     ObjectStatus,
@@ -51,7 +51,7 @@ def run_auto_archive() -> None:
                     organization_id=organization.id, status=ObjectStatus.ACTIVE
                 ).values_list("id", flat=True)
             )
-            run_auto_achive_for_projects.delay(project_ids=project_ids)
+            run_auto_archive_for_project.delay(project_ids=project_ids)
 
 
 @instrumented_task(
@@ -60,7 +60,7 @@ def run_auto_archive() -> None:
     max_retries=3,
     default_retry_delay=60,
 )  # type: ignore
-def run_auto_achive_for_projects(project_ids: List[int]) -> None:
+def run_auto_archive_for_project(project_ids: List[int]) -> None:
     now = datetime.now(tz=pytz.UTC)
     fourteen_days_ago = now - timedelta(days=14)
 
@@ -70,25 +70,19 @@ def run_auto_achive_for_projects(project_ids: List[int]) -> None:
                 status=GroupStatus.UNRESOLVED,
                 substatus=GroupSubStatus.ONGOING,
                 project_id__in=project_ids,
-                last_seen__gte=datetime.now() - timedelta(days=14),
-            ),
+                grouphistory__status=GroupHistoryStatus.ONGOING,
+            )
+            .annotate(recent_regressed_history=Max("grouphistory__date_added"))
+            .filter(recent_regressed_history__lte=fourteen_days_ago),
             step=ITERATOR_CHUNK,
         ),
         ITERATOR_CHUNK,
     ):
-
         for group in ongoing_groups:
-            current_group_history = (
-                GroupHistory.objects.filter(group=group).order_by("-date_added").first()
+            updated = group.update(
+                status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING
             )
-            if not (
-                current_group_history and current_group_history.status == GroupHistoryStatus.ONGOING
-            ):
-                continue
-
-            if current_group_history.date_added <= fourteen_days_ago:
-                group.update(status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING)
-
+            if updated:
                 remove_group_from_inbox(group)
 
                 Activity.objects.create_group_activity(
