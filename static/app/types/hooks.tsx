@@ -142,6 +142,9 @@ type QualitativeIssueFeedbackProps = {
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
+type SentryLogoProps = SVGIconProps & {
+  pride?: boolean;
+};
 /**
  * Component wrapping hooks
  */
@@ -169,7 +172,7 @@ export type ComponentHooks = {
   'component:replay-feedback-button': () => React.ComponentType<ReplayFeedbackButton>;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
-  'component:sentry-logo': () => React.ComponentType<SVGIconProps>;
+  'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:set-up-sdk-doc': () => React.ComponentType<SetUpSdkDocProps>;
   'component:superuser-access-category': React.ComponentType<any>;
 };

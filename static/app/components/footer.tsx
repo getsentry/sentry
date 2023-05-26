@@ -48,11 +48,10 @@ function BaseFooter({className}: Props) {
         {termsUrl && <FooterLink href={termsUrl}>{t('Terms of Use')}</FooterLink>}
       </LeftLinks>
       <SentryLogoLink href="https://sentry.io/welcome/" tabIndex={-1}>
-        {(organization?.features ?? []).includes('sentry-pride-logo-footer') ? (
-          <SentryLogoHook size="lg" />
-        ) : (
-          <IconSentry size="lg" />
-        )}
+        <SentryLogoHook
+          size="lg"
+          pride={(organization?.features ?? []).includes('sentry-pride-logo-footer')}
+        />
       </SentryLogoLink>
       <RightLinks>
         {!isSelfHosted && (
