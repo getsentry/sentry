@@ -61,7 +61,6 @@ export default function Spans(props: Props) {
               <SpansView
                 onSelect={setSelectedRow}
                 moduleName={props.location.query.moduleName ?? ModuleName.ALL}
-                appliedFilters={props.location.query}
               />
               <SpanDetail row={selectedRow} onClose={unsetSelectedSpanGroup} />
             </PageFiltersContainer>

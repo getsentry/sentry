@@ -23,7 +23,6 @@ import SpansTable, {mapRowKeys} from './spansTable';
 const LIMIT: number = 25;
 
 type Props = {
-  appliedFilters: {[key: string]: string};
   onSelect: (row: SpanDataRow) => void;
   moduleName?: ModuleName;
 };
@@ -32,8 +31,16 @@ type State = {
   orderBy: string;
 };
 
+type Query = {
+  action: string;
+  domain: string;
+  group_id: string;
+  span_operation: string;
+};
+
 export default function SpansView(props: Props) {
-  const location = useLocation();
+  const location = useLocation<Query>();
+  const appliedFilters = location.query;
   const pageFilter = usePageFilters();
   const [state, setState] = useState<State>({orderBy: 'total_exclusive_time'});
 
@@ -105,16 +112,16 @@ export default function SpansView(props: Props) {
       <FilterOptionsContainer>
         <DatePageFilter alignDropdown="left" />
 
-        <SpanOperationSelector value={props.appliedFilters.span_operation} />
+        <SpanOperationSelector value={appliedFilters.span_operation || ''} />
 
         <DomainSelector
           moduleName={props.moduleName}
-          value={props.appliedFilters.domain}
+          value={appliedFilters.domain || ''}
         />
 
         <ActionSelector
           moduleName={props.moduleName}
-          value={props.appliedFilters.action}
+          value={appliedFilters.action || ''}
         />
       </FilterOptionsContainer>
 
@@ -141,7 +148,7 @@ export default function SpansView(props: Props) {
 
       <PaddedContainer>
         <SpansTable
-          location={props.location}
+          location={location}
           queryConditions={queryConditions}
           isLoading={areSpansLoading || areSpansTrendsLoading}
           spansData={spansData}
