@@ -59,7 +59,6 @@ export default function Spans(props: Props) {
             <PageErrorAlert />
             <PageFiltersContainer>
               <SpansView
-                location={props.location}
                 onSelect={setSelectedRow}
                 moduleName={props.location.query.moduleName ?? ModuleName.ALL}
                 appliedFilters={props.location.query}

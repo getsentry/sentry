@@ -7,6 +7,7 @@ import _orderBy from 'lodash/orderBy';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
@@ -23,7 +24,6 @@ const LIMIT: number = 25;
 
 type Props = {
   appliedFilters: {[key: string]: string};
-  location: Location;
   onSelect: (row: SpanDataRow) => void;
   moduleName?: ModuleName;
 };
@@ -33,7 +33,7 @@ type State = {
 };
 
 export default function SpansView(props: Props) {
-  const location = props.location;
+  const location = useLocation();
   const pageFilter = usePageFilters();
   const [state, setState] = useState<State>({orderBy: 'total_exclusive_time'});
 
