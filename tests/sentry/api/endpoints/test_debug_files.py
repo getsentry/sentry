@@ -426,3 +426,47 @@ class DebugFilesUploadTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["name"] == str(release.version)
         assert response.data[0]["fileCount"] == 2
+
+    def test_access_control(self):
+        # create a debug files such as proguard:
+        url = reverse(
+            "sentry-api-0-dsym-files",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        self.login_as(user=self.user)
+
+        response = self._upload_proguard(url, PROGUARD_UUID)
+
+        assert response.status_code == 201, response.content
+        assert len(response.data) == 1
+
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+
+        (dsym,) = response.data
+        download_id = dsym["id"]
+
+        # `self.user` has access to these files
+        response = self.client.get(f"{url}?id={download_id}")
+        assert response.status_code == 200, response.content
+        assert PROGUARD_SOURCE == b"".join(response.streaming_content)
+
+        # with another user on a different org
+        other_user = self.create_user()
+        other_org = self.create_organization(name="other-org", owner=other_user)
+        other_project = self.create_project(organization=other_org)
+        url = reverse(
+            "sentry-api-0-dsym-files",
+            kwargs={
+                "organization_slug": other_org.slug,
+                "project_slug": other_project.slug,
+            },
+        )
+        self.login_as(user=other_user)
+
+        # accessing foreign files should not work
+        response = self.client.get(f"{url}?id={download_id}")
+        assert response.status_code == 404
