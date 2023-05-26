@@ -198,40 +198,22 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         data = {"slug": "santry", "name": "SaNtRy", "idempotencyKey": "1234"}
         response = self.get_success_response(**data)
 
+        with outbox_runner():
+            pass
         organization_id = response.data["id"]
         org = Organization.objects.get(id=organization_id)
         assert org.slug == data["slug"]
         assert org.name == data["name"]
 
         with exempt_from_silo_limits():
-            assert OrganizationMapping.objects.filter(
+            organization_mapping = OrganizationMapping.objects.get(
                 organization_id=organization_id,
                 slug=data["slug"],
                 name=data["name"],
-                idempotency_key=data["idempotencyKey"],
-            ).exists()
+                idempotency_key="",
+            )
 
-    def test_organization_verification_after_org_post(self):
-        # Clear outbox of fixture generated data
-        with outbox_runner():
-            pass
-
-        data = {"slug": "santry", "name": "SaNtRy", "idempotencyKey": "1234"}
-        response = self.get_success_response(**data)
-
-        organization_id = response.data["id"]
-        org = Organization.objects.get(id=organization_id)
-        assert org.slug == data["slug"]
-        assert org.name == data["name"]
-
-        # Process outbox to ensure org verification receiver runs
-        with outbox_runner():
-            pass
-
-        org_mapping = OrganizationMapping.objects.filter(organization_id=organization_id)
-        assert len(org_mapping) == 1
-        assert org_mapping.first().verified
-        assert org_mapping.first().idempotency_key == ""
+            assert organization_mapping.verified
 
     def test_slug_already_taken(self):
         OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")

@@ -2,6 +2,7 @@ from typing import Optional
 
 from django.db import transaction
 
+from sentry.models import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
     OrganizationMappingService,
@@ -35,6 +36,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
                     "customer_id": customer_id,
                     "name": name,
                 },
+                status=OrganizationStatus.ACTIVE,
             )
         else:
             org_mapping = OrganizationMapping.objects.create(
@@ -44,6 +46,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
                 idempotency_key=idempotency_key,
                 region_name=region_name,
                 customer_id=customer_id,
+                status=OrganizationStatus.ACTIVE,
             )
 
         return serialize_organization_mapping(org_mapping)
@@ -78,16 +81,19 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             return updated_mapping_count
 
     def verify_mappings(self, organization_id: int, slug: str) -> None:
-        try:
-            mapping = OrganizationMapping.objects.get(organization_id=organization_id, slug=slug)
-        except OrganizationMapping.DoesNotExist:
-            return
+        with transaction.atomic():
+            try:
+                mapping = OrganizationMapping.objects.get(
+                    organization_id=organization_id, slug=slug
+                )
+            except OrganizationMapping.DoesNotExist:
+                return
 
-        mapping.update(verified=True, idempotency_key="")
+            mapping.update(verified=True, idempotency_key="")
 
-        OrganizationMapping.objects.filter(
-            organization_id=organization_id, date_created__lte=mapping.date_created
-        ).exclude(slug=slug).delete()
+            OrganizationMapping.objects.filter(
+                organization_id=organization_id, date_created__lte=mapping.date_created
+            ).exclude(slug=slug).delete()
 
     def delete(self, organization_id: int) -> None:
         OrganizationMapping.objects.filter(organization_id=organization_id).delete()
