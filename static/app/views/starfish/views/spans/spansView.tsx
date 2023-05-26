@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
@@ -18,12 +18,11 @@ import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
 import {getSpanListQuery, getSpansTrendsQuery} from './queries';
 import type {SpanDataRow, SpanTrendDataRow} from './spansTable';
-import SpansTable, {mapRowKeys} from './spansTable';
+import SpansTable from './spansTable';
 
 const LIMIT: number = 25;
 
 type Props = {
-  onSelect: (row: SpanDataRow) => void;
   moduleName?: ModuleName;
 };
 
@@ -86,27 +85,6 @@ export default function SpansView(props: Props) {
     enabled: groupIDs.length > 0,
   });
 
-  // Initialize the selected span group if it exists in the URL
-  const {onSelect} = props;
-  const selectedSpanGroup = location.query.group_id;
-  const [initializedSelectedSpan, setInitializedSelectedSpan] = useState(false);
-  useEffect(() => {
-    if (
-      !initializedSelectedSpan &&
-      !areSpansLoading &&
-      selectedSpanGroup &&
-      spansData.length > 0
-    ) {
-      const selectedSpanData = spansData.find(
-        ({group_id}) => group_id === selectedSpanGroup
-      );
-      if (selectedSpanData) {
-        onSelect(mapRowKeys(selectedSpanData, selectedSpanData.span_operation));
-      }
-      setInitializedSelectedSpan(true);
-    }
-  }, [areSpansLoading, initializedSelectedSpan, onSelect, selectedSpanGroup, spansData]);
-
   return (
     <Fragment>
       <FilterOptionsContainer>
@@ -155,7 +133,6 @@ export default function SpansView(props: Props) {
           orderBy={orderBy}
           onSetOrderBy={newOrderBy => setState({orderBy: newOrderBy})}
           spansTrendsData={spansTrendsData}
-          onSelect={props.onSelect}
         />
       </PaddedContainer>
     </Fragment>
