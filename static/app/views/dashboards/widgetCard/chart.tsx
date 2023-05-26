@@ -390,7 +390,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     const isDurationChart = outputType === 'duration';
     const durationUnit = isDurationChart
       ? timeseriesResults && getDurationUnit(timeseriesResults, legendOptions)
-      : 0;
+      : undefined;
 
     const chartOptions = {
       autoHeightResize,
@@ -427,15 +427,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
                 durationUnit
               );
             }
-            return axisLabelFormatter(
-              value,
-              aggregateOutputType(axisLabel),
-              undefined,
-              durationUnit
-            );
+            return axisLabelFormatter(value, aggregateOutputType(axisLabel));
           },
         },
-        minInterval: durationUnit,
+        minInterval: durationUnit ?? 0,
       },
     };
 
