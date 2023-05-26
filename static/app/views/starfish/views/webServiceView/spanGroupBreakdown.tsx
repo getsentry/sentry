@@ -53,7 +53,7 @@ export function SpanGroupBreakdown({
 
   return (
     <Fragment>
-      <ChartPadding>
+      <ChartContainer>
         <Header>
           <ChartLabel>{'App Time Breakdown'}</ChartLabel>
         </Header>
@@ -74,9 +74,10 @@ export function SpanGroupBreakdown({
           definedAxisTicks={6}
           stacked
           aggregateOutputFormat="duration"
+          disableXAxis
         />
-      </ChartPadding>
-      <ListContainer>
+      </ChartContainer>
+      {/* <ListContainer>
         {transformedData.map((row, index) => {
           const checkedValue = showSeriesArray[index];
           const group = row.group;
@@ -154,7 +155,7 @@ export function SpanGroupBreakdown({
             </StyledLineItem>
           );
         })}
-      </ListContainer>
+      </ListContainer> */}
     </Fragment>
   );
 }
@@ -182,8 +183,8 @@ const TextAlignLeft = styled('span')`
   padding: 0 ${space(1.5)};
 `;
 
-const ChartPadding = styled('div')`
-  padding: 0 ${space(2)};
+const ChartContainer = styled('div')`
+  padding: 0 ${space(2)} ${space(4)} ${space(2)}};
 `;
 
 const ChartLabel = styled('p')`

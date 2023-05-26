@@ -79,8 +79,6 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
     initialData: [],
   });
 
-  console.dir(transaction);
-
   const {data: moduleBreakdownData} = useQuery({
     queryKey: ['moduleBreakdownData', transaction, selection.datetime],
     queryFn: () =>
@@ -93,8 +91,6 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
     retry: false,
     initialData: [],
   });
-
-  console.dir(moduleBreakdownData);
 
   const durationsGroupedByOp = moduleBreakdownData.reduce(
     (acc: Record<string, number>, {total_time, span_operation}) => {
@@ -263,6 +259,7 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
 }
 
 const StyledPanel = styled(Panel)`
+  border-radius: ${p => `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`};
   padding-top: ${space(2)};
   margin-bottom: 0;
 `;
