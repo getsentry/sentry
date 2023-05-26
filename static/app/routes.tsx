@@ -1990,6 +1990,31 @@ function buildRoutes() {
     </Route>
   );
 
+  const gettingStartedRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Fragment>
+          <Redirect
+            from="/getting-started/:projectId/"
+            to="/projects/:projectId/getting-started/"
+          />
+          <Redirect
+            from="/getting-started/:projectId/:platform/"
+            to="/projects/:projectId/getting-started/"
+          />
+        </Fragment>
+      )}
+      <Redirect
+        from="/:orgId/:projectId/getting-started/"
+        to="/organizations/:orgId/projects/:projectId/getting-started/"
+      />
+      <Redirect
+        from="/:orgId/:projectId/getting-started/:platform/"
+        to="/organizations/:orgId/projects/:projectId/getting-started/"
+      />
+    </Fragment>
+  );
+
   const profilingChildRoutes = (
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
@@ -2135,6 +2160,7 @@ function buildRoutes() {
       {performanceRoutes}
       {starfishRoutes}
       {profilingRoutes}
+      {gettingStartedRoutes}
       {adminManageRoutes}
       {legacyOrganizationRootRoutes}
       {legacyOrgRedirects}
@@ -2265,14 +2291,6 @@ function buildRoutes() {
       <Route
         path=":projectId/events/:eventId/"
         component={errorHandler(ProjectEventRedirect)}
-      />
-      <Redirect
-        from="/:orgId/:projectId/getting-started/:platform/"
-        to="/organizations/:orgId/projects/:projectId/getting-started/"
-      />
-      <Redirect
-        from="/getting-started/:projectId/:platform/"
-        to="/projects/:projectId/getting-started/"
       />
     </Route>
   );
