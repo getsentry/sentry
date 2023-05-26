@@ -117,6 +117,34 @@ def test_record_span(
         assert len(mocked_record.mock_calls) == expected
 
 
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._store_span_description")
+@pytest.mark.django_db
+def test_record_span_desc_url(mocked_record, default_organization):
+    with Feature(
+        {
+            "projects:span-metrics-extraction": True,
+        }
+    ):
+        project = Project(id=111, name="project", organization_id=default_organization.id)
+        record_span_descriptions(
+            project,
+            {
+                "spans": [
+                    {
+                        "description": "POST http://example.com/remains/to-scrub/remains-too/1234567890",
+                        "op": "http.client",
+                        "data": {
+                            "description.scrubbed": "POST http://example.com/remains/*/remains-too/*"
+                        },
+                    }
+                ]
+            },
+        )
+        assert mocked_record.mock_calls == [
+            mock.call(Project(id=111, name="project", slug=None), "/remains/*/remains-too/*")
+        ]
+
+
 def test_sort_rules():
     rules = {"/a/*/**": 1, "/a/**": 2, "/a/*/c/**": 3}
     assert ProjectOptionRuleStore(ClustererNamespace.SPANS)._sort(rules) == [
