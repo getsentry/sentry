@@ -6,7 +6,7 @@ from sentry.utils.cache import memoize
 
 class Migrator(Mediator):
     integration = Param("sentry.models.integrations.integration.Integration")
-    organization = Param("sentry.models.organization.Organization")
+    organization = Param("sentry.services.hybrid_cloud.organization.model.RpcOrganization")
 
     def call(self):
         for project in self.projects:
@@ -40,7 +40,7 @@ class Migrator(Mediator):
 
     @memoize
     def projects(self):
-        return list(self.organization.project_set.all())
+        return list(self.organization.projects)
 
     @property
     def plugins(self):
