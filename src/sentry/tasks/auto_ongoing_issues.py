@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import pytz
+from django.db import OperationalError
 from django.db.models import Max
 from sentry_sdk.crons.decorator import monitor
 
@@ -15,7 +16,7 @@ from sentry.models import (
     OrganizationStatus,
     Project,
 )
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -27,7 +28,9 @@ TRANSITION_AFTER_DAYS = 3
     queue="auto_transition_issue_states",
     max_retries=3,
     default_retry_delay=60,
+    acks_late=True,
 )  # type: ignore
+@retry(on=(OperationalError,))
 @monitor(monitor_slug="schedule_auto_transition_new")
 def schedule_auto_transition_new() -> None:
     now = datetime.now(tz=pytz.UTC)
@@ -52,7 +55,9 @@ def schedule_auto_transition_new() -> None:
     soft_time_limit=20 * 60,
     max_retries=3,
     default_retry_delay=60,
+    acks_late=True,
 )  # type: ignore
+@retry(on=(OperationalError,))
 def auto_transition_issues_new_to_ongoing(
     project_id: int,
     first_seen_lte: int,
@@ -95,7 +100,9 @@ def auto_transition_issues_new_to_ongoing(
     queue="auto_transition_issue_states",
     max_retries=3,
     default_retry_delay=60,
+    acks_late=True,
 )  # type: ignore
+@retry(on=(OperationalError,))
 @monitor(monitor_slug="schedule_auto_transition_regressed")
 def schedule_auto_transition_regressed() -> None:
     now = datetime.now(tz=pytz.UTC)
@@ -120,7 +127,9 @@ def schedule_auto_transition_regressed() -> None:
     soft_time_limit=20 * 60,
     max_retries=3,
     default_retry_delay=60,
+    acks_late=True,
 )  # type: ignore
+@retry(on=(OperationalError,))
 def auto_transition_issues_regressed_to_ongoing(
     project_id: int,
     date_added_lte: int,
