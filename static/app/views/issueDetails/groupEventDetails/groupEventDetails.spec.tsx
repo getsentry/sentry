@@ -263,6 +263,11 @@ const mockGroupApis = (
     url: `/customers/org-slug/policies/`,
     body: {},
   });
+
+  MockApiClient.addMockResponse({
+    url: `/issues/${group.id}/first-last-release/`,
+    method: 'GET',
+  });
 };
 
 describe('groupEventDetails', () => {
