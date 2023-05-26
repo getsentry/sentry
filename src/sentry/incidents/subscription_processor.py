@@ -637,15 +637,15 @@ class SubscriptionProcessor:
         # Grab the first trigger to get incident id (they are all the same)
         # All triggers should either be firing or resolving, so doesn't matter which we grab.
         incident_trigger = incident_triggers[0]
-        method = "fire" if incident_triggers[0].status == TriggerStatus.ACTIVE.value else "resolve"
+        method = "fire" if incident_trigger.status == TriggerStatus.ACTIVE.value else "resolve"
         for action in actions:
             transaction.on_commit(
                 handle_trigger_action.s(
                     action_id=action.id,
                     incident_id=incident_trigger.incident_id,
                     project_id=self.subscription.project_id,
-                    metric_value=metric_value,
                     method=method,
+                    metric_value=metric_value,
                 ).delay
             )
 

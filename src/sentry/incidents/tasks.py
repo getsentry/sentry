@@ -10,7 +10,6 @@ from sentry.auth.access import from_user
 from sentry.incidents.models import (
     INCIDENT_STATUS,
     AlertRuleStatus,
-    AlertRuleTrigger,
     AlertRuleTriggerAction,
     Incident,
     IncidentActivity,
@@ -206,24 +205,107 @@ def handle_trigger_action(
             AlertRuleTriggerAction.Type(action.type).name.lower(), method
         )
     )
+
+    trigger = action.alert_rule_trigger
+    alert_rule = trigger.alert_rule
+
+    actions = AlertRuleTriggerAction.objects.select_related(
+        "alert_rule_trigger", "alert_rule_trigger__alert_rule"
+    ).filter(alert_rule_trigger__alert_rule=alert_rule)
+
+    critical_actions = []
+    warning_actions = []
+    for a in actions:
+        if a.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL:
+            critical_actions.append(a)
+        else:
+            warning_actions.append(a)
+
     if method == "resolve":
         if (
             action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL
-            and AlertRuleTrigger.objects.filter(
-                alert_rule=action.alert_rule_trigger.alert_rule,
-                label=WARNING_TRIGGER_LABEL,
-            ).exists()
+            and incident.status != IncidentStatus.CRITICAL
         ):
-            # If we're resolving a critical trigger and a warning exists then we want to treat this
-            # as if firing a warning, rather than resolving this trigger
-            new_status = IncidentStatus.WARNING
+            # Send warning to WARNING channel and nothing to critical channel
+            for warning_action in warning_actions:
+                getattr(warning_action, method)(
+                    warning_action,
+                    incident,
+                    project,
+                    metric_value=metric_value,
+                    new_status=IncidentStatus.WARNING,
+                )
+            return
+        # NOT NEEDED????? ELSE CASE IS GOOD????
+        # elif (
+        #    action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL
+        #    and incident.status == IncidentStatus.CLOSED
+        # ):
+        # resolved to CRITICAL channel
+        elif (
+            action.alert_rule_trigger.label == WARNING_TRIGGER_LABEL
+            and incident.status == IncidentStatus.CRITICAL
+        ):
+            # resolve to both channels
+            new_status = IncidentStatus.CLOSED
+            for warning_action in warning_actions:
+                getattr(warning_action, method)(
+                    warning_action,
+                    incident,
+                    project,
+                    metric_value=metric_value,
+                    new_status=IncidentStatus.WARNING,
+                )
         else:
             new_status = IncidentStatus.CLOSED
+        # OLD CODE
+        # if (
+        #     action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL
+        #     and AlertRuleTrigger.objects.filter(
+        #         alert_rule=action.alert_rule_trigger.alert_rule,
+        #         label=WARNING_TRIGGER_LABEL,
+        #     ).exists()
+        # ):
+        #     # If we're resolving a critical trigger and a warning exists then we want to treat this
+        #     # as if firing a warning, rather than resolving this trigger
+        #     new_status = IncidentStatus.WARNING
+        # else:
+        #     new_status = IncidentStatus.CLOSED
     else:
-        if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL:
+        if (
+            action.alert_rule_trigger.label == WARNING_TRIGGER_LABEL
+            and incident.status == IncidentStatus.CRITICAL
+        ):
+            # crit to warning
+            new_status = IncidentStatus.CRITICAL
+        elif (
+            action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL and len(warning_actions) != 0
+        ):
+            # crit to crit
+            # crit to all in warnings
+            new_status = IncidentStatus.CRITICAL
+            for warning_action in warning_actions:
+                getattr(warning_action, method)(
+                    warning_action,
+                    incident,
+                    project,
+                    metric_value=metric_value,
+                    new_status=IncidentStatus.WARNING,
+                )
+        elif action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL:
             new_status = IncidentStatus.CRITICAL
         else:
             new_status = IncidentStatus.WARNING
+
+        # OLD CODE
+        # if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL:
+        #     new_status = IncidentStatus.CRITICAL
+        # # elif CRITICAL_TRIGGER_LABEL in sibling_trigger_labels:
+        # #     # If a warning and critical trigger are fired simultaneously, we should send a critical message instead of
+        # #     # a warning message.
+        # #     new_status = IncidentStatus.CRITICAL
+        # else:
+        #     new_status = IncidentStatus.WARNING
 
     getattr(action, method)(
         action, incident, project, metric_value=metric_value, new_status=new_status
