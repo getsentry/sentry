@@ -714,7 +714,9 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tasks.auto_ongoing_issues",
+    "sentry.tasks.auto_archive_issues",
 )
+
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
     Queue("alerts", routing_key="alerts"),
@@ -1023,6 +1025,12 @@ CELERYBEAT_SCHEDULE = {
     },
     "schedule_auto_transition_regressed": {
         "task": "sentry.tasks.schedule_auto_transition_regressed",
+        # Run job every 6 hours
+        "schedule": crontab(minute=0, hour="*/6"),
+        "options": {"expires": 3600},
+    },
+    "schedule_auto_archive_issues": {
+        "task": "sentry.tasks.auto_archive_issues.run_auto_archive",
         # Run job every 6 hours
         "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
