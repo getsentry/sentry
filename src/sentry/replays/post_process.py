@@ -155,20 +155,9 @@ def extract_click_fields(item: MutableMapping[str, Any]) -> list[dict[str, Any]]
     """
     pops all of the click fields from the item and returns a list of the individual clicks as objects
     """
-    click_fields = [
-        "click_alt",
-        "click_aria_label",
-        "click_classes",
-        "click_id",
-        "click_role",
-        "click_tag",
-        "click_testid",
-        "click_text",
-        "click_title",
-    ]
     click_dict = {}
-    for click_field in click_fields:
-        click_val = item.pop(click_field, [None])
+    for click_field in CLICK_FIELD_MAP.keys():
+        click_val = item.pop(click_field, [])
         # if there is at least one one element, the list will be filled empty strings for the non-click segments
         # so if there is at least one value, return a list of the truthy values.
         # if not, return a list with a single None value
@@ -178,5 +167,5 @@ def extract_click_fields(item: MutableMapping[str, Any]) -> list[dict[str, Any]]
         else:
             click_dict[CLICK_FIELD_MAP[click_field]] = click_val
 
-    list_of_dicts = [dict(zip(click_dict, col)) for col in zip_longest(*click_dict.values())]
+    list_of_dicts = [dict(zip(click_dict.keys(), row)) for row in zip_longest(*click_dict.values())]
     return list_of_dicts
