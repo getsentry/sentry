@@ -92,9 +92,8 @@ function Tag({
             size="zero"
             priority="link"
             aria-label={t('Dismiss')}
-          >
-            <IconClose isCircled {...iconsProps} />
-          </DismissButton>
+            icon={<IconClose isCircled {...iconsProps} />}
+          />
         )}
       </Background>
     </Tooltip>
@@ -187,6 +186,7 @@ const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
 
 const DismissButton = styled(Button)`
   margin-left: ${space(0.5)};
+  margin-right: -${space(0.5)};
   border: none;
 `;
 
