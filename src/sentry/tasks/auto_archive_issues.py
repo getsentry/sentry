@@ -59,6 +59,8 @@ def run_auto_archive() -> None:
     queue="auto_transition_issue_states",
     max_retries=3,
     default_retry_delay=60,
+    time_limit=25 * 60,
+    soft_time_limit=20 * 60,
 )  # type: ignore
 def run_auto_archive_for_project(project_ids: List[int]) -> None:
     now = datetime.now(tz=pytz.UTC)
