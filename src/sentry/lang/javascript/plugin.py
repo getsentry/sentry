@@ -44,7 +44,9 @@ class JavascriptPlugin(Plugin2):
         return []
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
-        if data.get("processed_by_symbolicator", False):
+        if data.get("processed_by_symbolicator", False) and not data.get(
+            "symbolicator_stacktraces"
+        ):
             return []
 
         if "javascript" in platforms or "node" in platforms:
