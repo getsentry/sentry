@@ -282,26 +282,26 @@ class CococaSDKFramesTestMixin(BaseSDKCrashDetectionMixin):
         self.execute_test(
             get_crash_event_with_frames(
                 [
-                    IN_APP_FRAME,
-                    {
-                        "function": "__handleUncaughtException",
-                        "symbol": "__handleUncaughtException",
-                        "package": "CoreFoundation",
-                        "in_app": False,
-                    },
-                    {
-                        "function": "_objc_terminate",
-                        "symbol": "_ZL15_objc_terminatev",
-                        "package": "libobjc.A.dylib",
-                        "in_app": False,
-                    },
-                    get_sentry_frame("sentrycrashdl_getBinaryImage"),
                     {
                         "function": "std::__terminate",
                         "symbol": "_ZSt11__terminatePFvvE",
                         "package": "libc++abi.dylib",
                         "in_app": False,
                     },
+                    get_sentry_frame("sentrycrashdl_getBinaryImage"),
+                    {
+                        "function": "_objc_terminate",
+                        "symbol": "_ZL15_objc_terminatev",
+                        "package": "libobjc.A.dylib",
+                        "in_app": False,
+                    },
+                    {
+                        "function": "__handleUncaughtException",
+                        "symbol": "__handleUncaughtException",
+                        "package": "CoreFoundation",
+                        "in_app": False,
+                    },
+                    IN_APP_FRAME,
                 ]
             ),
             False,

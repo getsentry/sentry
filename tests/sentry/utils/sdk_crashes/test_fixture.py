@@ -97,7 +97,7 @@ def get_crash_event_with_frames(
             "values": [
                 {
                     "stacktrace": {
-                        "frames": frames[::-1],
+                        "frames": frames,
                     },
                     "type": "SIGABRT",
                     "mechanism": {"handled": handled},
