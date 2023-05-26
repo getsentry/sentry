@@ -1,4 +1,7 @@
-from sentry.issues.grouptype import ErrorGroupType, ProfileFileIOGroupType
+import uuid
+
+from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -66,7 +69,20 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "filtered" in response_data[0]
 
     def test_issue_platform_issue(self):
-        profile_group = self.create_group(project=self.project, type=ProfileFileIOGroupType.type_id)
+        event_id = uuid.uuid4().hex
+        occurrence_data = self.build_occurrence_data(
+            event_id=event_id, project_id=self.project.id, type=ProfileFileIOGroupType.type_id
+        )
+        occurrence, group_info = process_event_and_issue_occurrence(
+            occurrence_data,
+            {
+                "event_id": event_id,
+                "fingerprint": ["group-1"],
+                "project_id": self.project.id,
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+        )
+        profile_group = group_info.group
 
         self.login_as(user=self.user)
         response = self.get_response(
@@ -89,27 +105,45 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "filtered" in response_data[0]
 
     def test_issue_platform_mixed_issue_not_title(self):
-        profile_group = self.create_group(project=self.project, type=ProfileFileIOGroupType.type_id)
-        error_group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
+        event_id = uuid.uuid4().hex
+        occurrence_data = self.build_occurrence_data(
+            event_id=event_id, project_id=self.project.id, type=ProfileFileIOGroupType.type_id
+        )
+        occurrence, group_info = process_event_and_issue_occurrence(
+            occurrence_data,
+            {
+                "event_id": event_id,
+                "fingerprint": ["group-a"],
+                "project_id": self.project.id,
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+        )
+        profile_group = group_info.group
+
+        error_event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        error_group = error_event.group
 
         self.login_as(user=self.user)
         response = self.get_response(
             query=f"!title:{profile_group.title}", groups=[profile_group.id, error_group.id]
         )
 
-        response_data = sorted(response.data, key=lambda x: x["userCount"], reverse=True)
+        response_data = sorted(response.data, key=lambda x: x["firstSeen"], reverse=True)
         assert response.status_code == 200
-        assert len(response_data) == 2
-        assert {int(grp["id"]) for grp in response_data} == {profile_group.id, error_group.id}
-        assert "title" not in response_data[0]
-        assert "hasSeen" not in response_data[0]
-        assert "stats" in response_data[0]
-        assert "firstSeen" in response_data[0]
-        assert "lastSeen" in response_data[0]
-        assert "count" in response_data[0]
-        assert "userCount" in response_data[0]
-        assert "lifetime" in response_data[0]
-        assert "filtered" in response_data[0]
+        assert [int(grp["id"]) for grp in response_data] == [profile_group.id, error_group.id]
+        for data in response_data:
+            assert "title" not in data
+            assert "hasSeen" not in data
+            assert "stats" in data
+            assert "firstSeen" in data
+            assert "lastSeen" in data
+            assert "count" in data
+            assert "userCount" in data
+            assert "lifetime" in data
+            assert "filtered" in data
 
     def test_no_matching_groups(self):
         self.login_as(user=self.user)

@@ -25,6 +25,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
+from sentry.utils.snuba import resolve_column, resolve_conditions
 
 
 @dataclass
@@ -355,30 +356,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             else:
                 generic_issue_ids.append(group.id)
 
-        # need to resolve the columns for dataset
-        from copy import deepcopy
-
-        from sentry.utils.snuba import resolve_column, resolve_condition
-
-        events_resolve_column_func = resolve_column(Dataset.Events)
-        issue_platform_resolve_column_func = resolve_column(Dataset.IssuePlatform)
-
-        def resolve_conditions(conditions: Sequence[Any], column_resolver: Any):
-            if conditions is None:
-                return conditions
-
-            replacement_conditions = []
-            for condition in conditions:
-                replacement = resolve_condition(deepcopy(condition), column_resolver)
-                if replacement:
-                    replacement_conditions.append(replacement)
-
-            return replacement_conditions
-
-        error_conditions = resolve_conditions(conditions, events_resolve_column_func)
-        issue_conditions = resolve_conditions(conditions, issue_platform_resolve_column_func)
-
-        results = {}
+        error_conditions = resolve_conditions(conditions, resolve_column(Dataset.Discover))
+        issue_conditions = resolve_conditions(conditions, resolve_column(Dataset.IssuePlatform))
 
         get_range = functools.partial(
             snuba_tsdb.get_range,
@@ -386,6 +365,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             tenant_ids={"organization_id": self.organization_id},
             **query_params,
         )
+
+        results = {}
+
         if error_issue_ids:
             results.update(
                 get_range(
