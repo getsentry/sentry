@@ -1,6 +1,6 @@
 from django.db import DatabaseError, IntegrityError, router
 
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.deletion.scheduled import MAX_RETRIES
 from sentry.utils.db import atomic_transaction
 
@@ -50,6 +50,7 @@ def delete_file(file_blob_model, path, checksum, **kwargs):
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
 )
+@retry
 def delete_unreferenced_blobs_region(blob_ids):
     from sentry.models import FileBlob, FileBlobIndex
 
@@ -62,6 +63,7 @@ def delete_unreferenced_blobs_region(blob_ids):
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
 )
+@retry
 def delete_unreferenced_blobs_control(blob_ids):
     from sentry.models import ControlFileBlob, ControlFileBlobIndex
 
