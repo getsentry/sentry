@@ -7,7 +7,7 @@ from sentry.models import Project
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
-from . import rules
+from . import ClustererNamespace, rules
 from .datasource import redis
 from .meta import track_clusterer_run
 from .tree import TreeClusterer
@@ -40,7 +40,7 @@ def spawn_clusterers(**kwargs: Any) -> None:
     """Look for existing transaction name sets in redis and spawn clusterers for each"""
     with sentry_sdk.start_span(op="txcluster_spawn"):
         project_count = 0
-        project_iter = redis.get_active_projects()
+        project_iter = redis.get_active_projects(ClustererNamespace.TRANSACTIONS)
         while batch := list(islice(project_iter, PROJECTS_PER_TASK)):
             project_count += len(batch)
             cluster_projects.delay(batch)
@@ -74,7 +74,9 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 # The Redis store may have more up-to-date last_seen values,
                 # so we must update the stores to bring these values to
                 # project options, even if there aren't any new rules.
-                num_rules_added = rules.update_rules(project, new_rules)
+                num_rules_added = rules.update_rules(
+                    ClustererNamespace.TRANSACTIONS, project, new_rules
+                )
 
                 # Track a global counter of new rules:
                 metrics.incr("txcluster.new_rules_discovered", num_rules_added)

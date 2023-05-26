@@ -14,7 +14,7 @@ class Clusterer:
     """
 
     @abstractmethod
-    def add_input(self, transaction_name: Iterable[str]) -> None:
+    def add_input(self, strings: Iterable[str]) -> None:
         """Add a batch of transaction names to the clusterer's state"""
         ...
 
