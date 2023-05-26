@@ -50,12 +50,12 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
     def test_expand_alert_rule(self):
         monitor = self._create_monitor()
 
-        resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["rule"])
-        assert resp.data["rule"] is None
+        resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
+        assert resp.data["alertRule"] is None
 
         self._create_alert_rule(monitor)
-        resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["rule"])
-        assert resp.data["rule"] is not None
+        resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
+        assert resp.data["alertRule"] is not None
 
 
 @region_silo_test(stable=True)
