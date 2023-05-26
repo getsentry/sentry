@@ -198,6 +198,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     ]
 
     metrics.incr("sourcemaps.symbolicator.events")
+    data["processed_by_symbolicator"] = True
 
     if not any(stacktrace["frames"] for stacktrace in stacktraces):
         metrics.incr("sourcemaps.symbolicator.events.skipped")
@@ -259,8 +260,6 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
     if should_do_ab_test:
         data["symbolicator_stacktraces"] = symbolicator_stacktraces
-    else:
-        data["processed_by_symbolicator"] = True
 
     return data
 
