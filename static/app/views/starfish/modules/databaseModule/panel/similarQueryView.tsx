@@ -8,7 +8,7 @@ import {
   Keys,
   similarity,
   TableColumnHeader,
-} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
+} from 'sentry/views/starfish/components/databaseTableView';
 import {useQueryMainTable} from 'sentry/views/starfish/modules/databaseModule/queries';
 
 type Props = {

@@ -13,7 +13,7 @@ import {DefinedUseQueryResult, useQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
+import {DataRow} from 'sentry/views/starfish/components/databaseTableView';
 import {TransactionListDataRow} from 'sentry/views/starfish/modules/databaseModule/panel';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {

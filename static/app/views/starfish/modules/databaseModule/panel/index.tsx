@@ -38,7 +38,7 @@ import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {queryToSeries} from 'sentry/views/starfish/utils/queryToSeries';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
-import {DataRow, MainTableSort} from '../databaseTableView';
+import {DataRow, MainTableSort} from '../../../components/databaseTableView';
 
 const INTERVAL = 12;
 const SPARKLINE_INTERVAL = 24;

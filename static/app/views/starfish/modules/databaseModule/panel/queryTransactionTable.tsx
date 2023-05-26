@@ -8,10 +8,10 @@ import Truncate from 'sentry/components/truncate';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
 import {useLocation} from 'sentry/utils/useLocation';
+import {DataRow} from 'sentry/views/starfish/components/databaseTableView';
 import {SortableHeader} from 'sentry/views/starfish/components/sortableHeader';
 import {MultiSparkline} from 'sentry/views/starfish/components/sparkline';
 import {Sort} from 'sentry/views/starfish/modules/databaseModule';
-import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {TransactionListDataRow} from 'sentry/views/starfish/modules/databaseModule/panel';
 
 export type PanelSort = Sort<TableColumnHeader>;

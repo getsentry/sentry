@@ -14,7 +14,6 @@ import {SortableHeader} from 'sentry/views/starfish/components/sortableHeader';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
-import {Sort} from 'sentry/views/starfish/modules/databaseModule';
 
 type Props = {
   isDataLoading: boolean;
@@ -26,6 +25,11 @@ type Props = {
   onSortChange?: ({direction, sortHeader}: MainTableSort) => void;
   p95asNumber?: boolean;
   selectedRow?: DataRow;
+};
+
+type Sort<T> = {
+  direction: 'desc' | 'asc' | undefined;
+  sortHeader: T | undefined;
 };
 
 export type DataRow = {
