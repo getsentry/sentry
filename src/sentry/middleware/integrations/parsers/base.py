@@ -7,9 +7,11 @@ from typing import Callable, Mapping, Sequence
 
 from django.http import HttpRequest, HttpResponse
 from django.urls import ResolverMatch, resolve
+from rest_framework import status
 
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.outbox import ControlOutbox
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
 from sentry.silo import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient
@@ -31,12 +33,20 @@ class BaseRequestParser(abc.ABC):
     def provider(self) -> str:
         raise NotImplementedError("'provider' property is required by IntegrationControlMiddleware")
 
+    @property
+    def webhook_identifier(self) -> str:
+        raise NotImplementedError(
+            "'webhook_identifier' property is required for outboxing. Refer to WebhookProviderIdentifier enum."
+        )
+
     def __init__(self, request: HttpRequest, response_handler: Callable):
         self.request = request
         self.match: ResolverMatch = resolve(self.request.path)
         self.response_handler = response_handler
 
-    def _ensure_control_silo(self):
+    # Common Helpers
+
+    def ensure_control_silo(self):
         if SiloMode.get_current_mode() != SiloMode.CONTROL:
             logger.error(
                 "silo_error",
@@ -46,14 +56,19 @@ class BaseRequestParser(abc.ABC):
                 "Integration Request Parsers should only be run on the control silo."
             )
 
+    def is_json_request(self) -> bool:
+        return "application/json" in (self.request.headers or {}).get("Content-Type", "")
+
+    #  Silo Response Helpers
+
     def get_response_from_control_silo(self) -> HttpResponse:
         """
         Used to handle the request directly on the control silo.
         """
-        self._ensure_control_silo()
+        self.ensure_control_silo()
         return self.response_handler(self.request)
 
-    def _get_response_from_region_silo(self, region: Region) -> HttpResponse:
+    def get_response_from_region_silo(self, region: Region) -> HttpResponse:
         region_client = RegionSiloClient(region)
         return region_client.proxy_request(self.request).to_http_response()
 
@@ -63,15 +78,14 @@ class BaseRequestParser(abc.ABC):
         """
         Used to handle the requests on a given list of regions (synchronously).
         Returns a mapping of region name to response/exception.
-        If multiple regions are provided, only the latest response is returned to the requestor.
         """
-        self._ensure_control_silo()
+        self.ensure_control_silo()
 
         region_to_response_map = {}
 
         with ThreadPoolExecutor(max_workers=len(regions)) as executor:
             future_to_region = {
-                executor.submit(self._get_response_from_region_silo, region): region
+                executor.submit(self.get_response_from_region_silo, region): region
                 for region in regions
             }
             for future in as_completed(future_to_region):
@@ -94,6 +108,21 @@ class BaseRequestParser(abc.ABC):
 
         return region_to_response_map
 
+    def get_response_from_outbox_creation(self, regions: Sequence[Region]):
+        """
+        Used to create outboxes for provided regions to handle the webhooks asynchronously.
+        Responds to the webhook provider with a 202 Accepted status.
+        """
+        for outbox in ControlOutbox.for_webhook_update(
+            webhook_identifier=self.webhook_identifier,
+            region_names=[region.name for region in regions],
+            request=self.request,
+        ):
+            outbox.save()
+        return HttpResponse(status=status.HTTP_202_ACCEPTED)
+
+    # Required Overrides
+
     def get_response(self):
         """
         Used to surface a response as part of the middleware.
@@ -108,6 +137,8 @@ class BaseRequestParser(abc.ABC):
         Should be overwritten by implementation.
         """
         return None
+
+    # Optional Overrides
 
     def get_organizations_from_integration(
         self, integration: Integration = None
