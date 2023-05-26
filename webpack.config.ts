@@ -56,6 +56,7 @@ const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
 const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
+const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
 // Environment variables that are used by other tooling and should
 // not be user configurable.
@@ -555,6 +556,22 @@ if (
     const backendAddress = `http://127.0.0.1:${SENTRY_BACKEND_PORT}/`;
     const relayAddress = 'http://127.0.0.1:7899';
 
+    // If we're running siloed servers we also need to proxy
+    // those requests to the right server.
+    let controlSiloProxy = {};
+    if (CONTROL_SILO_PORT) {
+      const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;
+      controlSiloProxy = {
+        '/api/0/users/**': controlSiloAddress,
+        '/api/0/sentry-apps/**': controlSiloAddress,
+        '/api/0/sentry-app-installations/**': controlSiloAddress,
+        '/api/0/organizations/*/broadcasts/**': controlSiloAddress,
+        '/api/0/organizations/*/audit-logs/**': controlSiloAddress,
+        '/api/0/api-authorizations/**': controlSiloAddress,
+        '/api/0/api-applications/**': controlSiloAddress,
+      };
+    }
+
     appConfig.devServer = {
       ...appConfig.devServer,
       static: {
@@ -567,6 +584,7 @@ if (
         '/api/{1..9}*({0..9})/**': relayAddress,
         '/api/0/relays/outcomes/': relayAddress,
         '!/_static/dist/sentry/**': backendAddress,
+        ...controlSiloProxy,
       },
     };
     appConfig.output!.publicPath = '/_static/dist/sentry/';

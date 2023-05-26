@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 import sentry
 from sentry.types.region import Region
+from sentry.utils import json
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -200,6 +201,7 @@ if "DATABASE_URL" in os.environ:
     )
     if url.scheme == "postgres":
         DATABASES["default"]["ENGINE"] = "sentry.db.postgres"
+
 
 # This should always be UTC.
 TIME_ZONE = "UTC"
@@ -3291,6 +3293,38 @@ SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Union[Iterable[Region], str] = ()
+
+# Enable siloed development environment.
+USE_SILOS = env("SENTRY_USE_SILOS", default=False)
+
+if USE_SILOS:
+    # Add connections for the region & control silo databases.
+    DATABASES["control"] = DATABASES["default"].copy()
+    DATABASES["control"]["NAME"] = "control"
+
+    DATABASES["region"] = DATABASES["default"].copy()
+    DATABASES["region"]["NAME"] = "region"
+
+    # Addresses are hardcoded based on the defaults
+    # we use in commands/devserver.
+    SENTRY_REGION_CONFIG = json.dumps(
+        [
+            {
+                "name": "us",
+                "snowflake_id": 1,
+                "category": "MULTI_TENANT",
+                "address": "http://localhost:8000",
+            }
+        ]
+    )
+    DEV_HYBRID_CLOUD_RPC_SENDER = json.dumps(
+        {
+            "is_allowed": True,
+            "control_silo_api_token": "super-secret-key",
+            "control_silo_address": "http://localhost:8010",
+        }
+    )
+    DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None

@@ -1,3 +1,4 @@
+import logging
 import sys
 from typing import List
 
@@ -8,6 +9,8 @@ from django.db.utils import ConnectionDoesNotExist
 
 from sentry.db.models.base import Model
 from sentry.silo.base import SiloMode
+
+logger = logging.getLogger(__name__)
 
 
 class SiloRouter:
@@ -43,10 +46,12 @@ class SiloRouter:
         try:
             # By accessing the connections Django will raise
             # Use `assert` to appease linters
-            assert connections["control"]
             assert connections["region"]
+            assert connections["control"]
             self.__is_simulated = True
-        except (AssertionError, ConnectionDoesNotExist):
+            logging.debug("Using simulated silos")
+        except (AssertionError, ConnectionDoesNotExist) as err:
+            logging.debug("Cannot use simulated silos", extra={"error": str(err)})
             self.__is_simulated = False
 
     def use_simulated(self, value: bool):
@@ -66,6 +71,7 @@ class SiloRouter:
                 return self.__simulated_map[silo_mode]
             if active_mode == silo_mode.value:
                 return "default"
+
             raise ValueError(
                 f"Cannot resolve table {table} in {silo_mode}. "
                 f"Application silo mode is {active_mode} and simulated silos are not enabled."
