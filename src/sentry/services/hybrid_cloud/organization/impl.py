@@ -290,7 +290,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             elif value is False:
                 updates = updates.bitand(~Organization.flags[name])
             else:
-                raise TypeError
+                raise TypeError(f"Invalid value received for update_flags: {name}={value!r}")
 
         Organization.objects.filter(id=organization_id).update(flags=updates)
 
