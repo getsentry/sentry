@@ -6,7 +6,7 @@ from sentry_sdk.crons.decorator import monitor
 
 from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models import Group, GroupStatus, ObjectStatus, Project
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
@@ -53,6 +53,7 @@ def run_escalating_forecast() -> None:
     max_retries=3,
     default_retry_delay=60,
 )  # type: ignore
+@retry  # type: ignore
 def generate_forecasts_for_projects(project_ids: List[int]) -> None:
     for until_escalating_groups in chunked(
         RangeQuerySetWrapper(
