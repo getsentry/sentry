@@ -21,12 +21,14 @@ def process_message(message: Message[KafkaPayload]) -> None:
 
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    def __init__(self):
+        monitor_queues()
+
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        monitor_queues()
         return RunTask(
             function=process_message,
             next_step=CommitOffsets(commit),
