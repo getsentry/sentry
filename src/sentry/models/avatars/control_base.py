@@ -17,9 +17,3 @@ class ControlAvatarBase(AvatarBase):
     @classmethod
     def file_fk(cls) -> str:
         return "control_file_id"
-
-    @classmethod
-    def save_avatar(cls, relation, type, avatar=None, filename=None, color=None):
-        instance = super().save_avatar(cls, relation, type, avatar, filename, color)
-        ...
-        return instance

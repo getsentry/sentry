@@ -50,7 +50,7 @@ class AvatarBase(Model):
             copy_file_to_control_and_update_model.apply_async(
                 kwargs={
                     "app_name": "sentry",
-                    "model_name": "UserAvatar",
+                    "model_name": type(self).__name__,
                     "model_id": self.id,
                     "file_id": file_id,
                 }
