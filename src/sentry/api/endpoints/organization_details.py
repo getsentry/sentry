@@ -528,6 +528,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                             region_name=settings.SENTRY_REGION or "us",
                         )
 
+                        # Send outbox message to verify mapping after organization creation
+                        outbox = Organization.outbox_to_verify_mapping(organization.id)
+                        outbox.save()
+
             # TODO(hybrid-cloud): This will need to be a more generic error
             # when the internal RPC is implemented.
             except IntegrityError:
@@ -535,11 +539,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     {"slug": ["An organization with this slug already exists."]},
                     status=status.HTTP_409_CONFLICT,
                 )
-
-            # Send outbox message to clean up mappings after organization
-            # creation transaction
-            outbox = Organization.outbox_to_verify_mapping(organization.id)
-            outbox.save()
 
             if was_pending_deletion:
                 self.create_audit_entry(

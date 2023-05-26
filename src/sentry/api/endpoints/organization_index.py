@@ -216,6 +216,10 @@ class OrganizationIndexEndpoint(Endpoint):
                         idempotency_key=result.get("idempotencyKey", ""),
                         region_name=settings.SENTRY_REGION or "us",
                     )
+
+                    # Queue outbox event to verify the new organization's mapping
+                    Organization.outbox_to_verify_mapping(org.id).save()
+
                     rpc_org_member = organization_service.add_organization_member(
                         organization_id=org.id,
                         default_org_role=org.default_role,
@@ -248,9 +252,6 @@ class OrganizationIndexEndpoint(Endpoint):
                         org,
                         actor_id=request.user.id if request.user.is_authenticated else None,
                     )
-
-                    # Queue outbox event to verify the new organization's mapping
-                    Organization.outbox_to_verify_mapping(org.id).save()
 
             # TODO(hybrid-cloud): We'll need to catch a more generic error
             # when the internal RPC is implemented.

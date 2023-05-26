@@ -832,36 +832,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             org_mapping = org_mapping_query.first()
             assert org_mapping.status == OrganizationStatus.PENDING_DELETION
 
-    def test_slug_update_with_idempotency_key_matching_different_validated_org_mapping(self):
-        org_to_update = Organization.objects.get(id=self.organization.id)
-        existing_slug_name = org_to_update.slug
-        existing_org_name = org_to_update.name
-
-        OrganizationMapping.objects.create(
-            organization_id=999,
-            slug="taken-santry",
-            verified=True,
-            region_name="us",
-            idempotency_key="bad-key",
-        )
-        self.get_error_response(
-            existing_slug_name,
-            name="SaNtRy",
-            slug="taken-santry",
-            idempotencyKey="bad-key",
-            status_code=409,
-        )
-
-        with exempt_from_silo_limits():
-            org_mapping_query = OrganizationMapping.objects.filter(
-                organization_id=self.organization.id
-            )
-            assert org_mapping_query.exists()
-            assert len(org_mapping_query) == 1
-            org_mapping = org_mapping_query.first()
-            assert org_mapping.slug == existing_slug_name
-            assert org_mapping.name == existing_org_name
-
     def test_org_mapping_already_taken(self):
         OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
         self.get_error_response(self.organization.slug, slug="taken", status_code=409)

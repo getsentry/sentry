@@ -2,14 +2,7 @@ import re
 from unittest.mock import patch
 
 from sentry.auth.authenticators import TotpInterface
-from sentry.models import (
-    Authenticator,
-    Organization,
-    OrganizationMember,
-    OrganizationStatus,
-    OutboxCategory,
-    RegionOutbox,
-)
+from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -231,11 +224,14 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert org.slug == data["slug"]
         assert org.name == data["name"]
 
-        outbox_items = list(RegionOutbox.objects.filter())
+        # Process outbox to ensure org verification receiver runs
+        with outbox_runner():
+            pass
 
-        assert len(outbox_items) == 1
-        assert outbox_items[0].category == OutboxCategory.VERIFY_ORGANIZATION_MAPPING
-        assert outbox_items[0].object_identifier == org.id
+        org_mapping = OrganizationMapping.objects.filter(organization_id=organization_id)
+        assert len(org_mapping) == 1
+        assert org_mapping.first().verified
+        assert org_mapping.first().idempotency_key == ""
 
     def test_slug_already_taken(self):
         OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")

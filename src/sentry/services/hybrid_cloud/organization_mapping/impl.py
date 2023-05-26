@@ -2,7 +2,6 @@ from typing import Optional
 
 from django.db import transaction
 
-from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
     OrganizationMappingService,
@@ -58,7 +57,6 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         region_name: str,
         idempotency_key: Optional[str] = "",
         customer_id: Optional[str] = None,
-        status: Optional[OrganizationStatus] = None,
     ) -> RpcOrganizationMapping:
         return self.create(
             name=name,
