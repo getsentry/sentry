@@ -5,8 +5,12 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {MenuItemProps} from 'sentry/components/dropdownMenu/item';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import Tag from 'sentry/components/tag';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {GroupStatusResolution, GroupSubstatus, ResolutionStatus} from 'sentry/types';
 
 interface ArchiveActionProps {
@@ -66,6 +70,15 @@ export function getArchiveActions({
       {
         key: 'untilEscalating',
         label: t('Until it escalates'),
+        trailingItems: (
+          <EscalatingInfo>
+            <Tag>{t('default')}</Tag>
+            <QuestionTooltip
+              size="sm"
+              title={t('Explanation of what this thing even does??')}
+            />
+          </EscalatingInfo>
+        ),
         onAction: () => onArchive(ARCHIVE_UNTIL_ESCALATING),
       },
       {
@@ -74,7 +87,7 @@ export function getArchiveActions({
         onAction: () => onArchive(ARCHIVE_FOREVER),
       },
       ...dropdownItems,
-    ],
+    ] satisfies MenuItemProps[],
   };
 }
 
@@ -138,6 +151,12 @@ function ArchiveActions({
 }
 
 export default ArchiveActions;
+
+const EscalatingInfo = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
 
 const ArchiveButton = styled(Button)`
   box-shadow: none;
