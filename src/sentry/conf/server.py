@@ -1229,6 +1229,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-ui": False,
     # Enable escalating forecast threshold a/b experiment
     "organizations:escalating-issues-experiment-group": False,
+    # Enable archive/escalating issue workflow features in v2
+    "organizations:escalating-issues-v2": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
     # Enable the new issue states and substates
