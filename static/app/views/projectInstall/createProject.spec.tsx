@@ -167,8 +167,8 @@ describe('CreateProject', function () {
     // Select the React platform
     await userEvent.click(screen.getByTestId('platform-javascript-react'));
 
-    await userEvent.type(screen.getByLabelText('Select a Team'), 'test');
-    await userEvent.click(screen.getByText('#test'));
+    await userEvent.type(screen.getByLabelText('Select a Team'), teamWithAccess.slug);
+    await userEvent.click(screen.getByText(`#${teamWithAccess.slug}`));
 
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();
@@ -207,8 +207,8 @@ describe('CreateProject', function () {
     // Select the JavaScript platform
     await userEvent.click(screen.getByTestId('platform-javascript'));
 
-    await userEvent.type(screen.getByLabelText('Select a Team'), 'test');
-    await userEvent.click(screen.getByText('#test'));
+    await userEvent.type(screen.getByLabelText('Select a Team'), teamWithAccess.slug);
+    await userEvent.click(screen.getByText(`#${teamWithAccess.slug}`));
 
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();
