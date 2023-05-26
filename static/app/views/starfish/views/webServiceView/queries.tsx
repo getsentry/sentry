@@ -1,13 +1,15 @@
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 
-export const getModuleBreakdown = ({transaction}) => {
+export const getModuleBreakdown = ({transaction, datetime}) => {
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT
-  sum(exclusive_time) as sum, module
+  sum(exclusive_time) as total_time, span_operation
   FROM spans_experimental_starfish
-  WHERE module != 'none'
+  WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
+  ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
   ${transaction ? `AND transaction = '${transaction}'` : ''}
-  GROUP BY module
-  ORDER BY -sum
+  GROUP BY span_operation
+  ORDER BY total_time DESC
  `;
 };
 

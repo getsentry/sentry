@@ -9,9 +9,11 @@ import {Series} from 'sentry/types/echarts';
 import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
+import {ACCEPTED_SPAN_OPS} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {
+  getModuleBreakdown,
   getOtherDomainsActionsAndOpTimeseries,
   getTopDomainsActionsAndOp,
   getTopDomainsActionsAndOpTimeseries,
@@ -76,6 +78,37 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
     retry: false,
     initialData: [],
   });
+
+  console.dir(transaction);
+
+  const {data: moduleBreakdownData} = useQuery({
+    queryKey: ['moduleBreakdownData', transaction, selection.datetime],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getModuleBreakdown({
+          transaction,
+          datetime: selection.datetime,
+        })}`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  console.dir(moduleBreakdownData);
+
+  const durationsGroupedByOp = moduleBreakdownData.reduce(
+    (acc: Record<string, number>, {total_time, span_operation}) => {
+      const spanOp = ACCEPTED_SPAN_OPS.find(op => span_operation.startsWith(op));
+      if (spanOp) {
+        spanOp in acc ? (acc[spanOp] += total_time) : (acc[spanOp] = total_time);
+      } else {
+        acc.other += total_time;
+      }
+
+      return acc;
+    },
+    {other: 0}
+  );
 
   const totalValues = cumulativeTime.reduce((acc, segment) => acc + segment.sum, 0);
   const totalSegments = segments.reduce((acc, segment) => acc + segment.sum, 0);
