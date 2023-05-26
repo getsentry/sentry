@@ -106,7 +106,7 @@ describe('groupDetails', () => {
     });
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/first-last-release/`,
-      body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
+      method: 'GET',
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/events/`,

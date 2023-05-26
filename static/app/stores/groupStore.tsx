@@ -3,14 +3,7 @@ import {createStore} from 'reflux';
 import {Indicator} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
-import {
-  Activity,
-  BaseGroup,
-  Group,
-  GroupCollapseRelease,
-  GroupRelease,
-  GroupStats,
-} from 'sentry/types';
+import {Activity, BaseGroup, Group, GroupStats} from 'sentry/types';
 import RequestError from 'sentry/utils/requestError/requestError';
 import toArray from 'sentry/utils/toArray';
 
@@ -28,7 +21,7 @@ type Change = {
   itemIds: string[];
 };
 
-type Item = BaseGroup | Group | GroupCollapseRelease;
+type Item = BaseGroup | Group;
 
 type ItemIds = string[] | undefined;
 
@@ -77,7 +70,6 @@ interface GroupStoreDefinition extends CommonStoreDefinition<Item[]>, InternalDe
   onMergeError: (changeId: string, itemIds: ItemIds, response: any) => void;
   onMergeSuccess: (changeId: string, itemIds: ItemIds, response: any) => void;
 
-  onPopulateReleases: (itemId: string, releaseData: GroupRelease) => void;
   onPopulateStats: (itemIds: ItemIds, response: GroupStats[]) => void;
 
   onUpdate: (changeId: string, itemIds: ItemIds, data: any) => void;
@@ -484,18 +476,6 @@ const storeConfig: GroupStoreDefinition = {
       }
     });
     this.updateItems(itemIds);
-  },
-
-  onPopulateReleases(itemId, releaseData) {
-    this.items.forEach((item, idx) => {
-      if (item.id === itemId) {
-        this.items[idx] = {
-          ...item,
-          ...releaseData,
-        };
-      }
-    });
-    this.updateItems([itemId]);
   },
 };
 
