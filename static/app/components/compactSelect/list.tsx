@@ -232,7 +232,7 @@ function List<Value extends React.Key>({
 
     while (
       firstKey &&
-      (listState.collection.getItem(firstKey).type === 'section' ||
+      (listState.collection.getItem(firstKey)?.type === 'section' ||
         listState.selectionManager.isDisabled(firstKey))
     ) {
       firstKey = listState.collection.getKeyAfter(firstKey);
@@ -245,7 +245,7 @@ function List<Value extends React.Key>({
 
     while (
       lastKey &&
-      (listState.collection.getItem(lastKey).type === 'section' ||
+      (listState.collection.getItem(lastKey)?.type === 'section' ||
         listState.selectionManager.isDisabled(lastKey))
     ) {
       lastKey = listState.collection.getKeyBefore(lastKey);

@@ -37,11 +37,9 @@ export function SpanTransactionsTable({span}: Props) {
 
   const {data: spanTransactions, isLoading} = useSpanTransactions(span);
   const {data: spanTransactionMetrics} = useSpanTransactionMetrics(
-    span,
     spanTransactions.map(row => row.transaction)
   );
   const {data: spanTransactionMetricsSeries} = useSpanTransactionMetricSeries(
-    span,
     spanTransactions.map(row => row.transaction)
   );
 
@@ -83,12 +81,12 @@ function BodyCell({span, column, row}: CellProps) {
     return <TransactionCell span={span} row={row} column={column} />;
   }
 
-  if (column.key === 'p50') {
+  if (column.key === 'p50(transaction.duration)') {
     return <P50Cell span={span} row={row} column={column} />;
   }
 
-  if (column.key === 'spm') {
-    return <SPMCell span={span} row={row} column={column} />;
+  if (column.key === 'epm()') {
+    return <EPMCell span={span} row={row} column={column} />;
   }
 
   return <span>{row[column.key]}</span>;
@@ -112,21 +110,17 @@ function TransactionCell({span, column, row}: CellProps) {
 
 function P50Cell({row}: CellProps) {
   const theme = useTheme();
+  const p50 = row.metrics?.['p50(transaction.duration)'];
+  const p50Series = row.metricSeries?.['p50(transaction.duration)'];
 
   return (
     <Fragment>
-      {row.metricSeries?.p50 ? (
+      {p50Series ? (
         <Sparkline
           color={CHART_PALETTE[3][0]}
-          series={row.metricSeries.p50}
+          series={p50Series}
           markLine={
-            row.metrics?.p50
-              ? generateHorizontalLine(
-                  `${row.metrics.p50.toFixed(2)}`,
-                  row.metrics.p50,
-                  theme
-                )
-              : undefined
+            p50 ? generateHorizontalLine(`${p50.toFixed(2)}`, p50, theme) : undefined
           }
         />
       ) : null}
@@ -134,23 +128,19 @@ function P50Cell({row}: CellProps) {
   );
 }
 
-function SPMCell({row}: CellProps) {
+function EPMCell({row}: CellProps) {
   const theme = useTheme();
+  const epm = row.metrics?.['epm()'];
+  const epmSeries = row.metricSeries?.['epm()'];
 
   return (
     <Fragment>
-      {row.metricSeries?.spm ? (
+      {epmSeries ? (
         <Sparkline
           color={CHART_PALETTE[3][1]}
-          series={row.metricSeries.spm}
+          series={epmSeries}
           markLine={
-            row.metrics?.spm
-              ? generateHorizontalLine(
-                  `${row.metrics.spm.toFixed(2)}`,
-                  row.metrics.spm,
-                  theme
-                )
-              : undefined
+            epm ? generateHorizontalLine(`${epm.toFixed(2)}`, epm, theme) : undefined
           }
         />
       ) : null}
@@ -165,13 +155,13 @@ const COLUMN_ORDER = [
     width: -1,
   },
   {
-    key: 'spm',
-    name: 'SPM',
+    key: 'epm()',
+    name: 'Txn Throughput (TPM)',
     width: -1,
   },
   {
-    key: 'p50',
-    name: 'p50',
+    key: 'p50(transaction.duration)',
+    name: 'Txn Duration (p50)',
     width: -1,
   },
 ];

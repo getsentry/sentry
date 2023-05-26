@@ -296,7 +296,6 @@ const StyledTabList = styled(TabList)`
 
 const NoteInputForm = styled('form')<{error?: string}>`
   font-size: 15px;
-  line-height: 22px;
   transition: padding 0.2s ease-in-out;
 
   ${p => getNoteInputErrorStyles(p)};
