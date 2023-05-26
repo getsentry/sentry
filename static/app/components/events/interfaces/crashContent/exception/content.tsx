@@ -1,4 +1,4 @@
-import {useContext, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -11,7 +11,7 @@ import {ExceptionType, Project} from 'sentry/types';
 import {Event, ExceptionValue} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {Mechanism} from './mechanism';
 import {RelatedExceptions} from './relatedExceptions';
@@ -135,7 +135,7 @@ export function Content({
   // Organization context may be unavailable for the shared event view, so we
   // avoid using the `useOrganization` hook here and directly useContext
   // instead.
-  const organization = useContext(OrganizationContext);
+  const organization = useOrganization({allowNull: true});
   if (!values) {
     return null;
   }
