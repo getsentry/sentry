@@ -1,5 +1,8 @@
 import {useQuery} from 'sentry/utils/queryClient';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {getDateQueryFilter} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 
 type Metrics = {
   count: number;
@@ -7,11 +10,17 @@ type Metrics = {
 };
 
 export const useApplicationMetrics = (referrer = 'application-metrics') => {
+  const pageFilters = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilters);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+
   const query = `
   SELECT
   count() as count,
   sum(exclusive_time) as total_time
   FROM spans_experimental_starfish
+  WHERE 1 = 1
+  ${dateFilters}
 `;
 
   const {isLoading, error, data} = useQuery<Metrics[]>({
