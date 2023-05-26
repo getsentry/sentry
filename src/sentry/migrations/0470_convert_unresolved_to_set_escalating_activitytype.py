@@ -17,7 +17,8 @@ def convert_to_set_escalating(apps, schema_editor):
         if not activity.data.get("forecast"):
             continue
 
-        activity.update(type=ActivityType.SET_ESCALATING)
+        activity.type = ActivityType.SET_ESCALATING
+        activity.save(update_fields=["type"])
 
 
 class Migration(CheckedMigration):
