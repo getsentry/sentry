@@ -333,6 +333,13 @@ def manage_issue_states(
             )
             if data and activity_data:
                 data.update(activity_data)
+            Activity.objects.create(
+                project=group.project,
+                group=group,
+                type=ActivityType.SET_ESCALATING.value,
+                user_id=None,
+                data=data,
+            )
     elif group_inbox_reason == GroupInboxReason.ONGOING:
         updated = Group.objects.filter(
             id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
@@ -348,6 +355,13 @@ def manage_issue_states(
             )
             add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
             record_group_history(group, GroupHistoryStatus.ONGOING)
+            Activity.objects.create(
+                project=group.project,
+                group=group,
+                type=ActivityType.SET_UNRESOLVED.value,
+                user_id=None,
+                data=data,
+            )
     elif group_inbox_reason == GroupInboxReason.UNIGNORED:
         updated = Group.objects.filter(
             id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
@@ -363,18 +377,14 @@ def manage_issue_states(
             )
             add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
             record_group_history(group, GroupHistoryStatus.UNIGNORED)
-
+            Activity.objects.create(
+                project=group.project,
+                group=group,
+                type=ActivityType.SET_UNRESOLVED.value,
+                user_id=None,
+                data=data,
+            )
     else:
         raise NotImplementedError(
             f"We don't support a change of state for {group_inbox_reason.name}"
-        )
-
-    if updated:
-        group.save(update_fields=["status", "substatus"])
-        Activity.objects.create(
-            project=group.project,
-            group=group,
-            type=ActivityType.SET_UNRESOLVED.value,
-            user_id=None,
-            data=data,
         )
