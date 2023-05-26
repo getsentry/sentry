@@ -16,7 +16,7 @@ class NamespaceOption:
     persistent_storage: str
     """Option name to store produced rules in the clusterer, in persistent storage."""
     tracker: str
-    """Option name to store tracking data of this namespace."""
+    """Option name to emit tracking data of this namespace, such as metrics."""
 
 
 class ClustererNamespace(Enum):
