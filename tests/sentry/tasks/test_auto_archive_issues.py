@@ -11,7 +11,7 @@ from sentry.types.group import GroupSubStatus
 
 
 class ScheduleAutoOngoingToArchivedIssuesTest(TestCase):
-    @with_feature("organizations:escalating-issues")
+    @with_feature("organizations:escalating-issues-v2")
     def test_simple(self):
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()

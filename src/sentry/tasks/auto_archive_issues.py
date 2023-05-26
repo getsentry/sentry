@@ -45,7 +45,7 @@ def run_auto_archive() -> None:
     for organization in RangeQuerySetWrapper(
         Organization.objects.filter(status=OrganizationStatus.ACTIVE)
     ):
-        if features.has("organizations:escalating-issues", organization):
+        if features.has("organizations:escalating-issues-v2", organization):
             project_ids = list(
                 Project.objects.filter(
                     organization_id=organization.id, status=ObjectStatus.ACTIVE
