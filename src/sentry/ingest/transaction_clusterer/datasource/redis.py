@@ -150,7 +150,7 @@ def get_span_descriptions(project: Project) -> Iterator[str]:
 def clear_span_descriptions(project: Project) -> None:
     client = get_redis_client()
     redis_key = _get_redis_key(ClustererNamespace.SPANS, project)
-    return client.delete(redis_key)
+    client.delete(redis_key)
 
 
 def record_span_descriptions(
@@ -163,6 +163,8 @@ def record_span_descriptions(
     for span in spans:
         if _should_store_span_description(span):
             description = _get_description_from_span(span)
+            if not description:
+                continue
             url_path = _get_url_path_from_description(description)
             safe_execute(_store_span_description, project, url_path)
 
