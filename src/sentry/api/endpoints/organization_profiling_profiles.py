@@ -12,6 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization
+from sentry.profiles.flamegraph import get_profiles_id
 from sentry.profiles.utils import parse_profile_filters, proxy_profiling_service
 
 
@@ -41,3 +42,22 @@ class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
         kwargs = {"params": params}
 
         return proxy_profiling_service("GET", f"/organizations/{organization.id}/filters", **kwargs)
+
+
+@region_silo_endpoint
+class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint):
+    def get(self, request: Request, organization: Organization) -> HttpResponse:
+        if not features.has("organizations:profiling", organization, actor=request.user):
+            return Response(status=404)
+
+        params = self.get_snuba_params(request, organization, check_global_views=False)
+        project_ids = params["project_id"]
+        if len(project_ids) > 1:
+            raise ParseError(detail="You cannot get a flamegraph from multiple projects.")
+        profile_ids = get_profiles_id(params, request.query_params.get("query", None))
+        kwargs: Dict[str, Any] = {
+            "method": "POST",
+            "path": f"/organizations/{organization.id}/projects/{project_ids[0]}/flamegraph",
+            "json_data": profile_ids,
+        }
+        return proxy_profiling_service(**kwargs)

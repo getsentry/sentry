@@ -116,8 +116,11 @@ def proxy_profiling_service(
     path: str,
     params: Optional[Dict[str, Any]] = None,
     headers: Optional[Dict[str, str]] = None,
+    json_data: Any = None,
 ) -> SentryResponse:
-    profiling_response = get_from_profiling_service(method, path, params=params, headers=headers)
+    profiling_response = get_from_profiling_service(
+        method, path, params=params, headers=headers, json_data=json_data
+    )
     return SentryResponse(
         content=profiling_response.data,
         status=profiling_response.status,
