@@ -22,13 +22,11 @@ class EscalatingActivityNotification(GroupActivityNotification):
 
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         forecast = int(self.activity.data["forecast"])
-        message, params, html_params = (
+        return (
             "Sentry flagged this issue as escalating because over {forecast} {event} happened in an hour",
             {"forecast": forecast, "event": "event" if forecast == 1 else "events"},
             {},
         )
-
-        return message, params, html_params
 
     def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> Any:
         return self.get_context()["text_description"]
