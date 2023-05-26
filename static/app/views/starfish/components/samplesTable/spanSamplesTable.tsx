@@ -5,7 +5,7 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
-import {TextAlignRight} from 'sentry/views/starfish/modules/APIModule/endpointTable';
+import {TextAlignRight} from 'sentry/views/starfish/components/textAlign';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/views/spanSummary';
 
 type Keys = 'transaction_id' | 'timestamp' | 'duration' | 'p50_comparison';
