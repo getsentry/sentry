@@ -19,10 +19,9 @@ import {
 } from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
+import {getIntervalLine} from 'sentry/views/performance/utils';
 
 import {transformEventStatsSmoothed} from '../../../trends/utils';
-
-import {getIntervalLine} from './utils';
 
 type Props = {
   errored: boolean;
@@ -84,8 +83,9 @@ function Content({
         .reverse()
     : [];
 
+  const needsLabel = false;
   const breakpointSeries = withBreakpoint
-    ? getIntervalLine(theme, data || [], 0.5, transaction)
+    ? getIntervalLine(theme, data || [], 0.5, needsLabel, transaction)
     : [];
 
   const durationUnit = getDurationUnit(series, legend);

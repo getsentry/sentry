@@ -205,27 +205,6 @@ function TransactionSummaryCharts({
         {display === DisplayModes.TREND && (
           <Feature features={['organizations:performance-new-trends']}>
             {({hasFeature}) => {
-              if (hasFeature) {
-                return (
-                  <TrendChart
-                    eventView={eventView}
-                    trendFunction={trendFunction}
-                    trendParameter={trendColumn}
-                    organization={organization}
-                    query={eventView.query}
-                    queryExtra={releaseQueryExtra}
-                    project={eventView.project}
-                    environment={eventView.environment}
-                    start={eventView.start}
-                    end={eventView.end}
-                    statsPeriod={eventView.statsPeriod}
-                    withoutZerofill={withoutZerofill}
-                    projects={[project!]}
-                    withBreakpoint
-                  />
-                );
-              }
-
               return (
                 <TrendChart
                   eventView={eventView}
@@ -240,7 +219,8 @@ function TransactionSummaryCharts({
                   end={eventView.end}
                   statsPeriod={eventView.statsPeriod}
                   withoutZerofill={withoutZerofill}
-                  projects={[project!]}
+                  projects={project ? [project] : []}
+                  withBreakpoint={hasFeature}
                 />
               );
             }}
