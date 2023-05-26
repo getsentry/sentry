@@ -6,6 +6,7 @@ import pytz
 import sentry_sdk
 
 from sentry import features, quotas
+from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
@@ -23,7 +24,7 @@ NEW_MODEL_THRESHOLD_IN_MINUTES = 10
 logger = logging.getLogger("sentry.dynamic_sampling")
 
 
-def is_recently_added(model) -> bool:
+def is_recently_added(model: Model) -> bool:
     """
     Checks whether a specific model has been recently added, with the goal of using this information
     to infer whether we should boost a specific project.
@@ -32,7 +33,7 @@ def is_recently_added(model) -> bool:
         ten_minutes_ago = datetime.now(tz=pytz.UTC) - timedelta(
             minutes=NEW_MODEL_THRESHOLD_IN_MINUTES
         )
-        return model.date_added >= ten_minutes_ago
+        return bool(model.date_added >= ten_minutes_ago)
 
     return False
 
