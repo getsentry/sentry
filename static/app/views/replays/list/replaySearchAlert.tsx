@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {NewFeatureBanner} from 'sentry/components/replays/replayNewFeatureBanner';
+import {ReplayNewFeatureBanner} from 'sentry/components/replays/replayNewFeatureBanner';
 import {IconBroadcast} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,11 +13,11 @@ import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 
 const REPLAY_CLICK_SEARCH_FEATURE_BANNER_KEY = 'new-feature-banner-replays-click-search';
-interface ReplayClickSearchBannerProps {
+interface Props {
   needSdkUpdates: boolean;
 }
 
-export function ReplaySearchAlert({needSdkUpdates}: ReplayClickSearchBannerProps) {
+export function ReplaySearchAlert({needSdkUpdates}: Props) {
   const location = useLocation();
   const {dismiss, isDismissed} = useDismissAlert({
     key: REPLAY_CLICK_SEARCH_FEATURE_BANNER_KEY,
@@ -70,23 +70,21 @@ export function ReplaySearchAlert({needSdkUpdates}: ReplayClickSearchBannerProps
 
   if (needSdkUpdates) {
     return (
-      <Fragment>
-        <NewFeatureBanner
-          onDismiss={dismiss}
-          heading={heading}
-          description={description}
-          button={
-            <Button priority="primary" onClick={handleLearnMore}>
-              {t('Learn More')}
-            </Button>
-          }
-        />
-      </Fragment>
+      <ReplayNewFeatureBanner
+        onDismiss={dismiss}
+        heading={heading}
+        description={description}
+        button={
+          <Button priority="primary" onClick={handleLearnMore}>
+            {t('Learn More')}
+          </Button>
+        }
+      />
     );
   }
 
   return (
-    <NewFeatureBanner
+    <ReplayNewFeatureBanner
       onDismiss={dismiss}
       heading={heading}
       description={description}
@@ -99,9 +97,7 @@ export function ReplaySearchAlert({needSdkUpdates}: ReplayClickSearchBannerProps
   );
 }
 
-interface LearnMoreModalProps extends ModalRenderProps {}
-
-function LearnMoreModal({Header, Body, Footer, closeModal}: LearnMoreModalProps) {
+function LearnMoreModal({Header, Body, Footer, closeModal}: ModalRenderProps) {
   return (
     <Fragment>
       <Header>

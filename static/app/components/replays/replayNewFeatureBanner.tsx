@@ -7,19 +7,14 @@ import {IconBroadcast, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-interface NewFeatureBannerProps {
+interface Props {
   description: React.ReactNode;
   heading: React.ReactNode;
   onDismiss: () => void;
   button?: React.ReactNode;
 }
 
-export function NewFeatureBanner({
-  heading,
-  description,
-  button,
-  onDismiss,
-}: NewFeatureBannerProps) {
+export function ReplayNewFeatureBanner({heading, description, button, onDismiss}: Props) {
   return (
     <Wrapper>
       <CloseBtn onClick={onDismiss}>
