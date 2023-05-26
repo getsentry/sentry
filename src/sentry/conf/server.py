@@ -617,7 +617,7 @@ SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 # Queue configuration
 from kombu import Queue
 
-BROKER_URL = "amqp://guest:guest@127.0.01:5672/"
+BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS = {}
 
 # Ensure workers run async by default
