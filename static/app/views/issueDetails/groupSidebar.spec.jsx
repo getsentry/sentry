@@ -70,7 +70,7 @@ describe('GroupSidebar', function () {
     });
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/first-last-release/`,
-      body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
+      method: 'GET',
     });
   });
 
