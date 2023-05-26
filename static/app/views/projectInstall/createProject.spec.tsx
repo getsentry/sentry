@@ -52,10 +52,12 @@ describe('CreateProject', function () {
     slug: 'test',
     id: '1',
     name: 'test',
-    hasAccess: false,
+    access: ['team:read'],
   });
 
-  const teamWithAccess = {...teamNoAccess, hasAccess: true};
+  const teamWithAccess = TestStubs.Team({
+    access: ['team:admin', 'team:write', 'team:read'],
+  });
 
   beforeEach(() => {
     TeamStore.reset();
@@ -96,6 +98,27 @@ describe('CreateProject', function () {
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
+  });
+
+  it('should only allow teams which the user is a team-admin', async function () {
+    const organization = TestStubs.Organization();
+    renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
+
+    OrganizationStore.onUpdate(organization);
+    TeamStore.loadUserTeams([
+      TestStubs.Team({id: 1, slug: 'team-one', access: []}),
+      TestStubs.Team({id: 2, slug: 'team-two', access: ['team:admin']}),
+      TestStubs.Team({id: 3, slug: 'team-three', access: ['team:admin']}),
+    ]);
+    render(<CreateProject />, {
+      context: TestStubs.routerContext([{organization}]),
+      organization,
+    });
+
+    await userEvent.type(screen.getByLabelText('Select a Team'), 'team');
+    expect(screen.queryByText('#team-one')).not.toBeInTheDocument();
+    expect(screen.getByText('#team-two')).toBeInTheDocument();
+    expect(screen.getByText('#team-three')).toBeInTheDocument();
   });
 
   it('should fill in project name if its empty when platform is chosen', async function () {
@@ -144,8 +167,8 @@ describe('CreateProject', function () {
     // Select the React platform
     await userEvent.click(screen.getByTestId('platform-javascript-react'));
 
-    await userEvent.type(screen.getByLabelText('Select a Team'), 'test');
-    await userEvent.click(screen.getByText('#test'));
+    await userEvent.type(screen.getByLabelText('Select a Team'), teamWithAccess.slug);
+    await userEvent.click(screen.getByText(`#${teamWithAccess.slug}`));
 
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();
@@ -184,8 +207,8 @@ describe('CreateProject', function () {
     // Select the JavaScript platform
     await userEvent.click(screen.getByTestId('platform-javascript'));
 
-    await userEvent.type(screen.getByLabelText('Select a Team'), 'test');
-    await userEvent.click(screen.getByText('#test'));
+    await userEvent.type(screen.getByLabelText('Select a Team'), teamWithAccess.slug);
+    await userEvent.click(screen.getByText(`#${teamWithAccess.slug}`));
 
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();
