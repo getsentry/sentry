@@ -670,6 +670,24 @@ export type EventOccurrence = {
   type: number;
 };
 
+type EventRelease = Pick<
+  Release,
+  | 'commitCount'
+  | 'data'
+  | 'dateCreated'
+  | 'dateReleased'
+  | 'deployCount'
+  | 'id'
+  | 'lastCommit'
+  | 'lastDeploy'
+  | 'ref'
+  | 'status'
+  | 'url'
+  | 'userAgent'
+  | 'version'
+  | 'versionInfo'
+>;
+
 interface EventBase {
   contexts: EventContexts;
   crashFile: IssueAttachment | null;
@@ -715,7 +733,7 @@ interface EventBase {
   platform?: PlatformType;
   previousEventID?: string | null;
   projectSlug?: string;
-  release?: Release | null;
+  release?: EventRelease | null;
   sdk?: {
     name: string;
     version: string;

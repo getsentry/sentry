@@ -343,7 +343,7 @@ function useFetchGroupDetails({
 
   const eventUrl = `/issues/${groupId}/events/${eventId}/`;
 
-  const eventQuery: {environment?: string[]} = {};
+  const eventQuery: Record<string, string | string[]> = {collapse: ['fullRelease']};
   if (environments.length !== 0) {
     eventQuery.environment = environments;
   }
