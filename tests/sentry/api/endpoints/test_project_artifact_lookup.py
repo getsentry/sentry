@@ -676,3 +676,77 @@ class ArtifactLookupTest(APITestCase):
                     ).date_added
                     == expected_date_added
                 )
+
+    def test_access_control(self):
+        # release file
+        file_a = make_file("application.js", b"wat", "release.file", {})
+        release_file = ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=self.release.id,
+            file=file_a,
+            name="http://example.com/application.js",
+        )
+
+        # artifact bundle
+        file_b = make_compressed_zip_file(
+            "bundle_b.zip",
+            {
+                "path/in/zip/c": {
+                    "url": "~/path/to/app.js",
+                    "type": "minified_source",
+                    "content": b"accezzzz",
+                    "headers": {},
+                },
+            },
+        )
+        bundle_id = uuid4()
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            bundle_id=bundle_id,
+            file=file_b,
+            artifact_count=1,
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle,
+        )
+
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-project-artifact-lookup",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        # `self.user` has access to these files
+        self.assert_download_matches_file(f"{url}?download=release_file/{release_file.id}", file_a)
+        self.assert_download_matches_file(
+            f"{url}?download=artifact_bundle/{artifact_bundle.id}", file_b
+        )
+
+        # legacy `File`-based download does not work
+        response = self.client.get(f"{url}?download={file_a.id}")
+        assert response.status_code == 404
+
+        # with another user on a different org
+        other_user = self.create_user()
+        other_org = self.create_organization(name="other-org", owner=other_user)
+        other_project = self.create_project(organization=other_org)
+        url = reverse(
+            "sentry-api-0-project-artifact-lookup",
+            kwargs={
+                "organization_slug": other_org.slug,
+                "project_slug": other_project.slug,
+            },
+        )
+        self.login_as(user=other_user)
+
+        # accessing foreign files should not work
+        response = self.client.get(f"{url}?download=release_file/{release_file.id}")
+        assert response.status_code == 404
+        response = self.client.get(f"{url}?download=artifact_bundle/{artifact_bundle.id}")
+        assert response.status_code == 404
