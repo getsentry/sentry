@@ -10,14 +10,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  CurrentRelease,
-  Environment,
-  Group,
-  GroupRelease,
-  Organization,
-  Project,
-} from 'sentry/types';
+import {CurrentRelease, Group, GroupRelease, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -25,7 +18,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 type Props = {
   allEnvironments: Group | undefined;
   currentRelease: CurrentRelease | undefined;
-  environments: Environment[];
+  environments: string[];
   group: Group | undefined;
   organization: Organization;
   project: Project;
@@ -39,17 +32,14 @@ function GroupReleaseStats({
   group,
   currentRelease,
 }: Props) {
-  const environment =
-    environments.length > 0
-      ? environments.map(env => env.displayName).join(', ')
-      : undefined;
+  const environment = environments.length > 0 ? environments.join(', ') : undefined;
   const environmentLabel = environment ? environment : t('All Environments');
 
   const shortEnvironmentLabel =
     environments.length > 1
       ? t('selected environments')
       : environments.length === 1
-      ? environments[0].displayName
+      ? environments[0]
       : undefined;
 
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
