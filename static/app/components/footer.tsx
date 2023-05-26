@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 
 import Hook from 'sentry/components/hook';
@@ -10,7 +10,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import useOrganization from 'sentry/utils/useOrganization';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const SentryPrideLogoHook = HookOrDefault({
   hookName: 'component:sentry-pride-logo',
@@ -24,7 +24,7 @@ type Props = {
 function BaseFooter({className}: Props) {
   const {isSelfHosted, version, privacyUrl, termsUrl, demoMode} =
     useLegacyStore(ConfigStore);
-  const organization = useOrganization();
+  const organization = useContext(OrganizationContext);
 
   return (
     <footer className={className}>
@@ -48,7 +48,7 @@ function BaseFooter({className}: Props) {
         {termsUrl && <FooterLink href={termsUrl}>{t('Terms of Use')}</FooterLink>}
       </LeftLinks>
       <SentryLogoLink href="https://sentry.io/welcome/" tabIndex={-1}>
-        {(organization.features ?? []).includes('sentry-pride-logo-footer') ? (
+        {(organization?.features ?? []).includes('sentry-pride-logo-footer') ? (
           <SentryPrideLogoHook size="lg" />
         ) : (
           <IconSentry size="lg" />
