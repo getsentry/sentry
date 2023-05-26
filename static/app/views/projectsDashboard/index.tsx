@@ -87,7 +87,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
     []
   );
 
-  const {canCreateProject} = useProjectCreationAccess(organization, teams);
+  const {canCreateProject} = useProjectCreationAccess({organization, teams});
   if (loadingTeams) {
     return <LoadingIndicator />;
   }

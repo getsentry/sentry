@@ -211,7 +211,7 @@ function CreateProject() {
   }
 
   const {shouldCreateCustomRule, conditions} = alertRuleConfig || {};
-  const {canCreateProject} = useProjectCreationAccess(organization, accessTeams);
+  const {canCreateProject} = useProjectCreationAccess({organization, teams: accessTeams});
 
   const canSubmitForm =
     !inFlight &&

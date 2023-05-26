@@ -28,7 +28,7 @@ function NoProjectMessage({
   const {teams, initiallyLoaded: teamsLoaded} = useTeams();
 
   const orgSlug = organization.slug;
-  const {canCreateProject} = useProjectCreationAccess(organization, teams);
+  const {canCreateProject} = useProjectCreationAccess({organization, teams});
   const canJoinTeam = organization.access.includes('team:read');
 
   const {isSuperuser} = ConfigStore.get('user');

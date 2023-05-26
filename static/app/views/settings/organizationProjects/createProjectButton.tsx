@@ -8,7 +8,7 @@ import {useTeams} from 'sentry/utils/useTeams';
 export default function CreateProjectButton() {
   const organization = useOrganization();
   const {teams, initiallyLoaded} = useTeams();
-  const {canCreateProject} = useProjectCreationAccess(organization, teams);
+  const {canCreateProject} = useProjectCreationAccess({organization, teams});
 
   return (
     <Button

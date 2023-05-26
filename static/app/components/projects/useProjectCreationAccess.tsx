@@ -7,7 +7,13 @@ import {useExperiment} from 'sentry/utils/useExperiment';
 /**
  * Used to determine if viewer can see project creation button
  */
-export function useProjectCreationAccess(organization: Organization, teams: Team[]) {
+export function useProjectCreationAccess({
+  organization,
+  teams,
+}: {
+  organization: Organization;
+  teams: Team[];
+}) {
   const {experimentAssignment, logExperiment} = useExperiment(
     'ProjectCreationForAllExperiment',
     {

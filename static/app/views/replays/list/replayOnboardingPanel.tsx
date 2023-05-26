@@ -46,7 +46,7 @@ export default function ReplayOnboardingPanel() {
   const projects = useProjects();
   const organization = useOrganization();
   const {teams} = useTeams();
-  const {canCreateProject} = useProjectCreationAccess(organization, teams);
+  const {canCreateProject} = useProjectCreationAccess({organization, teams});
 
   const selectedProjects = projects.projects.filter(p =>
     pageFilters.selection.projects.includes(Number(p.id))
