@@ -13,6 +13,16 @@ KEY_NAME = "unhealthy-queues"
 
 CLUSTER_NAME = "default"
 
+# A queue is unhealthy if it has more than this number of messages.
+UNHEALTHY_QUEUE_SIZE_THRESHOLD = 1000
+
+# How many times in a row a queue must be unhealthy before it is
+# recorded in Redis. 12 * 5sec = unhealthy for 1 minute.
+UNHEALTHY_QUEUE_STRIKE_THRESHOLD = 12
+
+# How often we check queue health.
+UNHEALTHY_QUEUE_CHECK_INTERVAL = 5
+
 
 class RedisBackend:
     def __init__(self, broker_url):
@@ -107,20 +117,19 @@ def is_queue_healthy(queue_name: str) -> bool:
 
 
 def is_healthy(queue_size):
-    return queue_size < 1000
+    return queue_size < UNHEALTHY_QUEUE_SIZE_THRESHOLD
 
 
-def update_queue_stats(redis_cluster, backend) -> None:
-    new_sizes = backend.bulk_get_sizes(QUEUES)
-    # compute unhealthiness based on sizes
-    unhealthy = {queue for (queue, size) in new_sizes if not is_healthy(size)}
-    if unhealthy:
-        with redis_cluster.pipeline(transaction=True) as pipeline:
-            pipeline.delete(KEY_NAME)
-            pipeline.sadd(KEY_NAME, *unhealthy)
-            # expire in 1min if we haven't checked in
-            pipeline.expire(KEY_NAME, 60)
-            pipeline.execute()
+def update_queue_stats(redis_cluster, unhealthy) -> None:
+    if not unhealthy:
+        return
+
+    with redis_cluster.pipeline(transaction=True) as pipeline:
+        pipeline.delete(KEY_NAME)
+        pipeline.sadd(KEY_NAME, *unhealthy)
+        # expire in 1min if we haven't checked in
+        pipeline.expire(KEY_NAME, 60)
+        pipeline.execute()
 
 
 def run_queue_stats_updater(redis_cluster: str) -> None:
@@ -131,9 +140,21 @@ def run_queue_stats_updater(redis_cluster: str) -> None:
 
     if backend is None:
         raise Exception("unknown broker type")
+
+    queue_history = {queue: 0 for queue in QUEUES}
     while True:
-        update_queue_stats(cluster, backend)
-        sleep(5)
+        new_sizes = backend.bulk_get_sizes(QUEUES)
+        for (queue, size) in new_sizes:
+            if is_healthy(size):
+                queue_history[queue] = 0
+            else:
+                queue_history[queue] += 1
+
+        unhealthy = [
+            queue for (queue, count) in queue_history if count >= UNHEALTHY_QUEUE_STRIKE_THRESHOLD
+        ]
+        update_queue_stats(cluster, unhealthy)
+        sleep(UNHEALTHY_QUEUE_CHECK_INTERVAL)
 
 
 def monitor_queues():
