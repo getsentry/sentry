@@ -128,7 +128,7 @@ describe('CreateProject', function () {
   it('should fill in project name if its empty when platform is chosen', async function () {
     const {organization} = initializeOrg({
       organization: {
-        access: ['project:read', 'project:write'],
+        access: ['project:admin'],
       },
     });
 
