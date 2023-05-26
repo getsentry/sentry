@@ -1,3 +1,4 @@
+from django.apps import apps
 from django.db import DatabaseError, IntegrityError, router
 
 from sentry.tasks.base import instrumented_task
@@ -86,3 +87,34 @@ def delete_unreferenced_blobs(blob_model, blob_index_model, blob_ids):
                 # Do nothing if the blob was deleted in another task, or
                 # if had another reference added concurrently.
                 pass
+
+
+@instrumented_task(
+    name="sentry.tasks.files.copy_to_control",
+    queue="files.copy",
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES,
+    autoretry_for=(DatabaseError, IntegrityError),
+    acks_late=True,
+)
+def copy_file_to_control_and_update_model(
+    app_name: str, model_name: str, model_id: int, file_id: int
+):
+    from sentry.models.files import ControlFile, File
+
+    file_model = File.objects.get(id=file_id)
+    file_handle = file_model.getfile()
+
+    control_file = ControlFile.objects.create(
+        name=file_model.name,
+        type=file_model.type,
+        headers=file_model.headers,
+        timestamp=file_model.timestamp,
+        size=file_model.size,
+        checksum=file_model.checksum,
+    )
+    control_file.putfile(file_handle)
+
+    model = apps.get_app_config(app_name).get_model(model_name).objects.get(id=model_id)
+    model.control_file_id = control_file.id
+    model.save()

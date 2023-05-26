@@ -1,3 +1,5 @@
+from django.core.exceptions import ObjectDoesNotExist
+
 from sentry.db.models import control_silo_only_model
 from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.control_fileblobowner import ControlFileBlobOwner
@@ -12,3 +14,19 @@ class ControlFileBlob(AbstractFileBlob):
 
     FILE_BLOB_OWNER_MODEL = ControlFileBlobOwner
     DELETE_FILE_TASK = delete_file_control
+
+    # TODO(hybrid-cloud): This is a temporary measure to allow concurrent production deployments of filestore
+    # We override the behavior of only the control silo file storage implementation to use
+    # the new control instance while production runs in monolith mode
+    @classmethod
+    def _storage_config(cls):
+        from sentry import options as options_store
+
+        config = None
+        try:
+            # If these options exist, use them. Otherwise fallback to default behavior
+            config["backend"] = options_store.get("filestore.backend.control")
+            config["options"] = options_store.get("filestore.options.control")
+        except ObjectDoesNotExist:
+            pass
+        return config
