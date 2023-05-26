@@ -140,6 +140,19 @@ def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None
             return
 
 
+def get_span_descriptions(project: Project) -> Iterator[str]:
+    """Return all span descriptions stored for the given project."""
+    client = get_redis_client()
+    redis_key = _get_redis_key(ClustererNamespace.SPANS, project)
+    return client.sscan_iter(redis_key)  # type: ignore
+
+
+def clear_span_descriptions(project: Project) -> None:
+    client = get_redis_client()
+    redis_key = _get_redis_key(ClustererNamespace.SPANS, project)
+    return client.delete(redis_key)
+
+
 def record_span_descriptions(
     project: Project, event_data: Mapping[str, Any], **kwargs: Any
 ) -> None:
@@ -157,7 +170,8 @@ def record_span_descriptions(
 def _should_store_span_description(span: Mapping[str, Any]) -> bool:
     if not span.get("op", "").startswith("http"):
         return False
-    if not span.get("description.scrubbed") and not span.get("description"):
+    data = span.get("data", {})
+    if not data.get("description.scrubbed") and not span.get("description"):
         return False
     return True
 
