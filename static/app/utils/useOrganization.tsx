@@ -6,7 +6,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 interface Options<AllowNull extends boolean = boolean> {
   /**
    * Allows null to be returned when there is no organization in context. This
-   * can happen when the user is not part of an orgaiozation
+   * can happen when the user is not part of an organization
    *
    * @default false
    */
