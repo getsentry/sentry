@@ -174,13 +174,31 @@ class RangeQuerySetWrapper:
 
 
 class RangeQuerySetWrapperWithProgressBar(RangeQuerySetWrapper):
+    def get_total_count(self):
+        return self.queryset.count()
+
     def __iter__(self):
-        total_count = self.queryset.count()
-        if not total_count:
-            return iter([])
+        total_count = self.get_total_count()
         iterator = super().__iter__()
         label = self.queryset.model._meta.verbose_name_plural.title()
         return iter(WithProgressBar(iterator, total_count, label))
+
+
+class RangeQuerySetWrapperWithProgressBarApprox(RangeQuerySetWrapperWithProgressBar):
+    """
+    Works the same as `RangeQuerySetWrapperWithProgressBar`, but approximates the number of rows
+    in the table. This is intended for use on very large tables where we end up timing out
+    attempting to get an accurate count.
+
+    Note: This is only intended for queries that are iterating over an entire table. Will not
+    produce a useful total count on filtered queries.
+    """
+
+    def get_total_count(self):
+        query = f"SELECT reltuples AS estimate FROM pg_class WHERE relname = '{self.queryset.model._meta.db_table}';"
+        cursor = connections[self.queryset.using_replica().db].cursor()
+        cursor.execute(query)
+        return cursor.fetchone()[0]
 
 
 class WithProgressBar:
@@ -192,26 +210,25 @@ class WithProgressBar:
         self.caption = str(caption or "Progress")
 
     def __iter__(self):
-        if self.count != 0:
-            widgets = [
-                f"{self.caption}: ",
-                progressbar.Percentage(),
-                " ",
-                progressbar.Bar(),
-                " ",
-                progressbar.ETA(),
-            ]
-            pbar = progressbar.ProgressBar(widgets=widgets, max_value=self.count)
-            pbar.start()
-            for idx, item in enumerate(self.iterator):
-                yield item
-                # It's possible that we've exceeded the maxval, but instead
-                # of exploding on a ValueError, let's just cap it so we don't.
-                # this could happen if new rows were added between calculating `count()`
-                # and actually beginning iteration where we're iterating slightly more
-                # than we thought.
-                pbar.update(min(idx, self.count))
-            pbar.finish()
+        widgets = [
+            f"{self.caption}: ",
+            progressbar.Percentage(),
+            " ",
+            progressbar.Bar(),
+            " ",
+            progressbar.ETA(),
+        ]
+        pbar = progressbar.ProgressBar(widgets=widgets, max_value=self.count)
+        pbar.start()
+        for idx, item in enumerate(self.iterator):
+            yield item
+            # It's possible that we've exceeded the maxval, but instead
+            # of exploding on a ValueError, let's just cap it so we don't.
+            # this could happen if new rows were added between calculating `count()`
+            # and actually beginning iteration where we're iterating slightly more
+            # than we thought.
+            pbar.update(min(idx, self.count))
+        pbar.finish()
 
 
 def bulk_delete_objects(
