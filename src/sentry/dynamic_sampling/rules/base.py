@@ -1,6 +1,8 @@
 import logging
+from datetime import datetime, timedelta
 from typing import List, OrderedDict, Set
 
+import pytz
 import sentry_sdk
 
 from sentry import features, quotas
@@ -15,9 +17,24 @@ from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_e
 from sentry.models import Organization, Project
 
 ALWAYS_ALLOWED_RULE_TYPES = {RuleType.RECALIBRATION_RULE, RuleType.UNIFORM_RULE}
+NEW_MODEL_THRESHOLD_IN_MINUTES = 10
 
 
 logger = logging.getLogger("sentry.dynamic_sampling")
+
+
+def is_recently_added(model) -> bool:
+    """
+    Checks whether a specific model has been recently added, with the goal of using this information
+    to infer whether we should boost a specific project.
+    """
+    if hasattr(model, "date_added"):
+        ten_minutes_ago = datetime.now(tz=pytz.UTC) - timedelta(
+            minutes=NEW_MODEL_THRESHOLD_IN_MINUTES
+        )
+        return model.date_added >= ten_minutes_ago
+
+    return False
 
 
 def is_sliding_window_enabled(organization: Organization) -> bool:
@@ -36,6 +53,11 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
     # If the sample rate is 100%, we don't want to use any special dynamic sample rate, we will just sample at 100%.
     if sample_rate == 1.0:
         return float(sample_rate)
+
+    # In case the organization or the project have been recently added, we want to boost to 100% in order to give users
+    # a better experience. Once this condition will become False, the dynamic sampling systems will kick in.
+    if is_recently_added(model=organization) or is_recently_added(model=project):
+        return 1.0
 
     # We want to use the normal sliding window only if the sliding window at the org level is disabled.
     if is_sliding_window_enabled(organization):
