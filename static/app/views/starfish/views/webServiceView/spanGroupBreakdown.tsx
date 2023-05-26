@@ -55,7 +55,7 @@ export function SpanGroupBreakdown({
     <Fragment>
       <ChartPadding>
         <Header>
-          <ChartLabel>{'p50 of Span Groups With Highest Cumulative Times'}</ChartLabel>
+          <ChartLabel>{'App Time Breakdown'}</ChartLabel>
         </Header>
         <Chart
           statsPeriod="24h"
