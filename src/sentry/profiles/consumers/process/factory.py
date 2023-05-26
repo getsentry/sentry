@@ -45,9 +45,10 @@ def update_queue_stats(redis_cluster, backend) -> None:
     unhealthy = {queue for (queue, size) in new_sizes if not is_healthy(size)}
     if unhealthy:
         with redis_cluster.pipeline(transaction=True) as pipeline:
+            pipeline.delete(KEY_NAME)
             pipeline.sadd(KEY_NAME, *unhealthy)
             # expire in 1min if we haven't checked in
-            pipeline.expire(KEY_NAME, ttl=60)
+            pipeline.expire(KEY_NAME, 60)
             pipeline.execute()
 
 
