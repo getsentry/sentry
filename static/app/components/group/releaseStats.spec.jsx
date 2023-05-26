@@ -5,11 +5,12 @@ import GroupReleaseStats from 'sentry/components/group/releaseStats';
 describe('GroupReleaseStats', function () {
   const organization = TestStubs.Organization();
   const project = TestStubs.Project();
+  const group = TestStubs.Group();
 
   const createWrapper = props =>
     render(
       <GroupReleaseStats
-        group={TestStubs.Group()}
+        group={group}
         project={project}
         organization={organization}
         allEnvironments={TestStubs.Group()}
@@ -19,6 +20,10 @@ describe('GroupReleaseStats', function () {
     );
 
   it('renders all environments', function () {
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/first-last-release/`,
+      body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
+    });
     createWrapper();
     expect(screen.getByText('Last 24 Hours')).toBeInTheDocument();
     expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
@@ -30,6 +35,10 @@ describe('GroupReleaseStats', function () {
   });
 
   it('renders specific environments', function () {
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/first-last-release/`,
+      body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
+    });
     createWrapper({environments: TestStubs.Environments()});
     expect(screen.getByText('Last 24 Hours')).toBeInTheDocument();
     expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
