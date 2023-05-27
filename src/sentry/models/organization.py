@@ -317,7 +317,7 @@ class Organization(Model, SnowflakeIdMixin):
             "user_id", flat=True
         )
 
-        return user_service.get_many(filter={"user_ids": owners})
+        return user_service.get_many(filter={"user_ids": list(owners)})
 
     def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):

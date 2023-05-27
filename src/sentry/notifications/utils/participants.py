@@ -27,6 +27,7 @@ from sentry.models import (
     OrganizationMemberTeam,
     Project,
     ProjectOwnership,
+    ProjectTeam,
     Release,
     Rule,
     RuleSnooze,
@@ -49,6 +50,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -179,38 +181,58 @@ def get_reason(
 
 
 def get_participants_for_release(
-    projects: Iterable[Project], organization: Organization, user_ids: set[int]
+    projects: Iterable[Project], organization: Organization, commited_user_ids: set[int]
 ) -> ParticipantMap:
     # Collect all users with verified emails on a team in the related projects.
-    orm_users = User.objects.get_team_members_with_verified_email_for_projects(projects)
-    users = set(RpcActor.many_from_object(orm_users))
+    user_ids = (
+        OrganizationMember.objects.filter(
+            teams__in=Team.objects.filter(
+                id__in=ProjectTeam.objects.filter(project__in=projects).values_list(
+                    "team_id", flat=True
+                )
+            )
+        )
+        .distinct()
+        .values_list("user_id", flat=True)
+    )
+
+    # filter those user ids
+    user_ids = user_service.get_many_ids(
+        filter=dict(
+            user_ids=user_ids,
+            email_verified=True,
+            is_active=True,
+        )
+    )
+
+    actors = RpcActor.many_from_object(RpcUser(id=user_id) for user_id in user_ids)
 
     # Get all the involved users' settings for deploy-emails (including
     # users' organization-independent settings.)
-    notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
-        NotificationSettingTypes.DEPLOY,
-        recipients=users,
-        parent=organization,
+    notification_settings = notifications_service.get_settings_for_recipient_by_parent(
+        type=NotificationSettingTypes.DEPLOY,
+        recipients=actors,
+        parent_id=organization.id,
     )
     notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
-        notification_settings, users
+        notification_settings, actors
     )
 
     # Map users to their setting value. Prioritize user/org specific, then
     # user default, then product default.
     users_to_reasons_by_provider = ParticipantMap()
-    for user in users:
-        notification_settings_by_scope = notification_settings_by_recipient.get(user, {})
+    for actor in actors:
+        notification_settings_by_scope = notification_settings_by_recipient.get(actor, {})
         values_by_provider = get_values_by_provider_by_type(
             notification_settings_by_scope,
             notification_providers(),
             NotificationSettingTypes.DEPLOY,
-            user,
+            actor,
         )
         for provider, value in values_by_provider.items():
-            reason_option = get_reason(user, value, user_ids)
+            reason_option = get_reason(actor, value, commited_user_ids)
             if reason_option:
-                users_to_reasons_by_provider.add(provider, user, reason_option)
+                users_to_reasons_by_provider.add(provider, actor, reason_option)
     return users_to_reasons_by_provider
 
 

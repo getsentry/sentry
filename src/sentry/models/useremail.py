@@ -41,7 +41,7 @@ class UserEmailManager(BaseManager):
         user_email, _ = self.get_or_create(user=user, email=user.email)
         return user_email
 
-    def get_users_by_emails(
+    def get_user_ids_by_emails(
         self, emails: Iterable[str], organization: Organization
     ) -> Mapping[str, User]:
         if not emails:

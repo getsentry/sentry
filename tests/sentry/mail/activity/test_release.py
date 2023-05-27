@@ -8,16 +8,19 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import ActivityTestCase
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 
 
+@region_silo_test(stable=True)
 class ReleaseTestCase(ActivityTestCase):
     def setUp(self):
         super().setUp()
 
-        user5_alt_email = "privateEmail@gmail.com"
+        self.user5_alt_email = "privateEmail@gmail.com"
 
         self.org = self.create_organization(owner=None)
         self.org.flags.allow_joinleave = False
@@ -30,7 +33,7 @@ class ReleaseTestCase(ActivityTestCase):
         self.user2 = self.another_user("user2@example.com")
         self.user3 = self.another_user("user3@example.com", self.team)
         self.user4 = self.another_user("user4@example.com", self.team)
-        self.user5 = self.another_user("companyemail@example.com", self.team, user5_alt_email)
+        self.user5 = self.another_user("companyemail@example.com", self.team, self.user5_alt_email)
 
         self.project = self.create_project(organization=self.org, teams=[self.team])
         self.project2 = self.create_project(organization=self.org, teams=[self.team2])
@@ -44,7 +47,7 @@ class ReleaseTestCase(ActivityTestCase):
         repository = Repository.objects.create(organization_id=self.org.id, name=self.project.name)
 
         # The commits are intentionally out of order to test commit `order`.
-        self.commit4 = self.another_commit(3, "e", self.user5, repository, user5_alt_email)
+        self.commit4 = self.another_commit(3, "e", self.user5, repository, self.user5_alt_email)
         self.commit1 = self.another_commit(0, "a", self.user1, repository)
         self.commit2 = self.another_commit(1, "b", self.user2, repository)
         self.commit3 = self.another_commit(2, "c", self.user4, repository)
@@ -103,10 +106,13 @@ class ReleaseTestCase(ActivityTestCase):
         context = email.get_context()
         assert context["environment"] == "production"
         assert context["repos"][0]["commits"] == [
-            (self.commit4, self.user5),
-            (self.commit3, self.user4),
-            (self.commit2, self.user2),
-            (self.commit1, self.user1),
+            (
+                self.commit4,
+                user_service.get_user(user_id=self.user5.id).by_email(self.user5_alt_email),
+            ),
+            (self.commit3, user_service.get_user(user_id=self.user4.id)),
+            (self.commit2, user_service.get_user(user_id=self.user2.id)),
+            (self.commit1, user_service.get_user(user_id=self.user1.id)),
         ]
 
         user_context = email.get_recipient_context(RpcActor.from_orm_user(self.user1), {})
@@ -179,13 +185,14 @@ class ReleaseTestCase(ActivityTestCase):
         user6 = self.create_user()
         self.create_member(user=user6, organization=self.org, teams=[self.team])
 
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.DEPLOY,
-            NotificationSettingOptionValues.ALWAYS,
-            user=user6,
-        )
-        release, deploy = self.another_release("b")
+        with exempt_from_silo_limits():
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.DEPLOY,
+                NotificationSettingOptionValues.ALWAYS,
+                user=user6,
+            )
+            release, deploy = self.another_release("b")
 
         email = ReleaseActivityNotification(
             Activity(
