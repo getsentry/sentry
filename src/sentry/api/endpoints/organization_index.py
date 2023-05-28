@@ -26,6 +26,7 @@ from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import org_setup_complete, terms_accepted
 
 
@@ -105,15 +106,17 @@ class OrganizationIndexEndpoint(Endpoint):
             for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
+                    user_ids = {u.id for u in user_service.get_many_by_email(emails=[value])}
                     queryset = queryset.filter(
                         Q(name__icontains=value)
                         | Q(slug__icontains=value)
-                        | Q(members__email__iexact=value)
+                        | Q(member_set__user_id__in=user_ids)
                     )
                 elif key == "slug":
                     queryset = queryset.filter(in_iexact("slug", value))
                 elif key == "email":
-                    queryset = queryset.filter(in_iexact("members__email", value))
+                    user_ids = {u.id for u in user_service.get_many_by_email(emails=value)}
+                    queryset = queryset.filter(Q(member_set__user_id__in=user_ids))
                 elif key == "platform":
                     queryset = queryset.filter(
                         project__in=ProjectPlatform.objects.filter(platform__in=value).values(
