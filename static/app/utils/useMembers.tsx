@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'sentry/api';
@@ -181,24 +181,6 @@ export function useMembers({emails, limit}: Options = {}) {
     nextCursor: store.cursor,
     fetchError: null,
   });
-
-  const emailsRef = useRef<Set<string> | null>(null);
-
-  // Only initialize emailsRef.current once and modify it when we receive new
-  // emails determined through set equality
-  if (emails !== undefined) {
-    const emailList = emails ?? [];
-    if (emailsRef.current === null) {
-      emailsRef.current = new Set(emailList);
-    }
-
-    if (
-      emailList.length !== emailsRef.current.size ||
-      emailList.some(email => !emailsRef.current?.has(email))
-    ) {
-      emailsRef.current = new Set(emailList);
-    }
-  }
 
   const loadMembersByEmail = useCallback(
     async function () {

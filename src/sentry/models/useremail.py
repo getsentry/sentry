@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Iterable, Mapping
 
 from django.conf import settings
 from django.db import models
-from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -25,11 +24,6 @@ if TYPE_CHECKING:
 
 
 class UserEmailManager(BaseManager):
-    def get_for_organization(self, organization: Organization) -> QuerySet:
-        # TODO(hybridcloud) This join between user and member can't exist anymore.
-        # Ideally this would use the organizationmembermapping table but that table is incomplete.
-        return self.filter(user__sentry_orgmember_set__organization=organization)
-
     def get_emails_by_user(self, organization: Organization) -> Mapping[User, Iterable[str]]:
         emails_by_user = defaultdict(set)
         user_emails = self.get_for_organization(organization).select_related("user")
