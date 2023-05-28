@@ -2,18 +2,23 @@ from uuid import uuid4
 
 from sentry.models import OrganizationOption, PullRequest, Repository
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry_plugins.github.testutils import (
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
     PULL_REQUEST_EDITED_EVENT_EXAMPLE,
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
 )
+from social_auth.models import UserSocialAuth
 
 
 @region_silo_test(stable=True)
 class PullRequestEventWebhook(APITestCase):
     def test_opened(self):
         project = self.project  # force creation
+        user = self.create_user(email="alberto@sentry.io")
+        with exempt_from_silo_limits():
+            UserSocialAuth.objects.create(provider="github", user=user, uid=6752317)
+        self.create_member(organization=project.organization, user=user, role="member")
 
         url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
@@ -53,6 +58,7 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.message == "This is a pretty simple change that we need to pull into master."
         assert pr.title == "Update the README with new information"
         assert pr.author.name == "baxterthehacker"
+        assert pr.author.email == "alberto@sentry.io"
 
     def test_edited(self):
         project = self.project  # force creation
@@ -93,6 +99,7 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.message == "new edited body"
         assert pr.title == "new edited title"
         assert pr.author.name == "baxterthehacker"
+        assert pr.author.email == "baxterthehacker@localhost"
 
     def test_closed(self):
         project = self.project  # force creation
@@ -135,4 +142,5 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.message == "new closed body"
         assert pr.title == "new closed title"
         assert pr.author.name == "baxterthehacker"
+        assert pr.author.email == "baxterthehacker@localhost"
         assert pr.merge_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
