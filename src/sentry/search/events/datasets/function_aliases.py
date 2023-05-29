@@ -1,8 +1,8 @@
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, Mapping, Optional, Sequence, Union
 
 from snuba_sdk import Column, Function
 
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
     ProjectTransactionThreshold,
@@ -171,3 +171,39 @@ def resolve_project_threshold_config(
         )
 
     return _project_threshold_config(constants.PROJECT_THRESHOLD_CONFIG_ALIAS)
+
+
+def resolve_metrics_percentile(
+    args: Mapping[str, Union[str, Column, SelectType, int, float]],
+    alias: str,
+    fixed_percentile: Optional[float] = None,
+) -> SelectType:
+    if fixed_percentile is None:
+        fixed_percentile = args["percentile"]
+    if fixed_percentile not in constants.METRIC_PERCENTILES:
+        raise IncompatibleMetricsQuery("Custom quantile incompatible with metrics")
+    return (
+        Function(
+            "maxIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), args["metric_id"]]),
+            ],
+            alias,
+        )
+        if fixed_percentile == 1
+        else Function(
+            "arrayElement",
+            [
+                Function(
+                    f"quantilesIf({fixed_percentile})",
+                    [
+                        Column("value"),
+                        Function("equals", [Column("metric_id"), args["metric_id"]]),
+                    ],
+                ),
+                1,
+            ],
+            alias,
+        )
+    )

@@ -155,6 +155,17 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert len(response.data) == 1
         assert response.data[0]["email"] == self.user2.email
 
+    def test_id_query(self):
+        member = OrganizationMember.objects.create(
+            email="billy@localhost", organization=self.organization
+        )
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"id:{member.id}"}
+        )
+
+        assert len(response.data) == 1
+        assert response.data[0]["email"] == "billy@localhost"
+
     def test_query_null_user(self):
         OrganizationMember.objects.create(email="billy@localhost", organization=self.organization)
         response = self.get_success_response(self.organization.slug, qs_params={"query": "bill"})
