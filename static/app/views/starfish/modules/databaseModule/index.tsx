@@ -27,8 +27,12 @@ import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combi
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 
+import DatabaseTableView, {
+  DataRow,
+  MainTableSort,
+} from '../../components/databaseTableView';
+
 import DatabaseChartView from './databaseChartView';
-import DatabaseTableView, {DataRow, MainTableSort} from './databaseTableView';
 import QueryDetail from './panel';
 
 export type Sort<T> = {
