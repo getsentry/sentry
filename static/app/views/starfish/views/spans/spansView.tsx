@@ -14,7 +14,6 @@ import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/action
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/selectors/spanOperationSelector';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
-import {Top5DomainsCharts} from 'sentry/views/starfish/views/spans/top5DomainCharts';
 
 import {getSpanListQuery, getSpansTrendsQuery} from './queries';
 import type {SpanDataRow, SpanTrendDataRow} from './spansTable';
@@ -102,11 +101,7 @@ export default function SpansView(props: Props) {
       </FilterOptionsContainer>
 
       <PaddedContainer>
-        {props.moduleName && [ModuleName.DB].includes(props.moduleName) ? (
-          <Top5DomainsCharts moduleName={props.moduleName} />
-        ) : (
-          <SpanTimeCharts queryConditions={queryConditions} />
-        )}
+        <SpanTimeCharts queryConditions={queryConditions} />
       </PaddedContainer>
 
       <PaddedContainer>
