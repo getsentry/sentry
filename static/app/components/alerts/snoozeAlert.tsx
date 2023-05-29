@@ -8,6 +8,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconMute, IconSound} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {RuleActionsCategories} from 'sentry/types/alerts';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,10 +22,18 @@ type Props = {
     snoozeForEveryone?: boolean;
   }) => void;
   projectSlug: string;
+  ruleActionCategory: RuleActionsCategories;
   ruleId: string;
 };
 
-function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId, hasAccess}: Props) {
+function SnoozeAlert({
+  isSnoozed,
+  onSnooze,
+  projectSlug,
+  ruleId,
+  ruleActionCategory,
+  hasAccess,
+}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const location = useLocation();
@@ -104,24 +113,33 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId, hasAccess}: Prop
     }
   }
 
+  const primaryMuteAction =
+    ruleActionCategory === RuleActionsCategories.AllDefault ? 'me' : 'everyone';
+
   useEffect(() => {
     if (location.query.mute === '1' && !isSnoozed) {
-      handleMute('me', true);
+      handleMute(primaryMuteAction, true);
     }
-  }, [location.query, isSnoozed, handleMute]);
+  }, [location.query, isSnoozed, handleMute, primaryMuteAction]);
 
   const dropdownItems: MenuItemProps[] = [
     {
       key: 'me',
       label: t('Mute for me'),
       onAction: () => handleMute('me'),
+      // Hidden if all default actions because it will be the primary button and no default actions since it shouldn't be an option
+      hidden: ruleActionCategory !== RuleActionsCategories.SomeDefault,
     },
     {
       key: 'everyone',
       label: t('Mute for everyone'),
       onAction: () => handleMute('everyone'),
+      // Hidden if some default or no default actions since it will be the primary button, not in dropdown
+      hidden: ruleActionCategory !== RuleActionsCategories.AllDefault,
     },
   ];
+
+  const hasDropdown = dropdownItems.filter(item => !item.hidden).length > 0;
 
   if (isSnoozed) {
     return (
@@ -141,22 +159,27 @@ function SnoozeAlert({isSnoozed, onSnooze, projectSlug, ruleId, hasAccess}: Prop
         size="sm"
         icon={<IconSound />}
         disabled={disabled || !hasAccess}
-        onClick={() => handleMute('me')}
+        hasDropdown={hasDropdown}
+        onClick={() => {
+          handleMute(primaryMuteAction);
+        }}
       >
-        {t('Mute')}
+        {primaryMuteAction === 'me' ? t('Mute for me') : t('Mute for everyone')}
       </MuteButton>
-      <DropdownMenu
-        size="sm"
-        trigger={triggerProps => (
-          <DropdownTrigger
-            {...triggerProps}
-            aria-label={t('Mute alert options')}
-            icon={<IconChevron direction="down" size="xs" />}
-          />
-        )}
-        items={dropdownItems}
-        isDisabled={disabled || !hasAccess}
-      />
+      {ruleActionCategory !== RuleActionsCategories.NoDefault && (
+        <DropdownMenu
+          size="sm"
+          trigger={triggerProps => (
+            <DropdownTrigger
+              {...triggerProps}
+              aria-label={t('Mute alert options')}
+              icon={<IconChevron direction="down" size="xs" />}
+            />
+          )}
+          items={dropdownItems}
+          isDisabled={disabled || !hasAccess}
+        />
+      )}
     </ButtonBar>
   );
 }
@@ -169,7 +192,8 @@ const DropdownTrigger = styled(Button)`
   border-left: none;
 `;
 
-const MuteButton = styled(Button)`
+const MuteButton = styled(Button)<{hasDropdown: boolean}>`
   box-shadow: none;
-  border-radius: ${p => p.theme.borderRadiusLeft};
+  border-radius: ${p =>
+    p.hasDropdown ? p.theme.borderRadiusLeft : p.theme.borderRadius};
 `;

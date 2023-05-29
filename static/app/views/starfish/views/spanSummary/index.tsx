@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -7,11 +7,8 @@ import keyBy from 'lodash/keyBy';
 import moment from 'moment';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
-import DateTime from 'sentry/components/dateTime';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,15 +18,13 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
-import {TextAlignRight} from 'sentry/views/starfish/modules/APIModule/endpointTable';
+import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
 import {highlightSql} from 'sentry/views/starfish/modules/databaseModule/panel';
 import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {getDateFilters, PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import Sidebar, {
   getTransactionBasedSeries,
   queryDataToChartData,
@@ -40,29 +35,6 @@ import {
   useQueryGetSpanSeriesData,
   useQuerySpansInTransaction,
 } from './queries';
-
-const COLUMN_ORDER = [
-  {
-    key: 'transaction_id',
-    name: 'Event ID',
-    width: 200,
-  },
-  {
-    key: 'timestamp',
-    name: 'Timestamp',
-    width: 300,
-  },
-  {
-    key: 'duration',
-    name: 'Span Duration',
-    width: 200,
-  },
-  {
-    key: 'p50_comparison',
-    name: 'Compared to P50',
-    width: 200,
-  },
-];
 
 type SpanTableRow = {
   exclusive_time: number;
@@ -163,20 +135,11 @@ export default function SpanSummary({location, params}: Props) {
     transactionAggregateData,
     dateFilter
   );
-
-  const [p50Series, spmSeries, _errorCountSeries] = queryDataToChartData(seriesData).map(
-    series => {
-      series.lineStyle = {type: 'dotted'};
-      const zerofilled = zeroFillSeries(
-        series,
-        moment.duration(12, 'hours'),
-        startTime,
-        endTime
-      );
-
-      return zerofilled;
-    }
-  );
+  const {
+    p50: p50Series,
+    spm: spmSeries,
+    failure_count: _errorCountSeries,
+  } = queryDataToChartData(seriesData, startTime, endTime, {lineStyle: {type: 'dotted'}});
 
   const {data: transactionData, isLoading: isTransactionDataLoading} = useApiQuery<{
     data: {data: Transaction[]};
@@ -220,61 +183,6 @@ export default function SpanSummary({location, params}: Props) {
     name: timestamp,
     value: spanDuration,
   }));
-
-  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    if (column.key === 'p50_comparison') {
-      return (
-        <TextAlignRight>
-          <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
-        </TextAlignRight>
-      );
-    }
-
-    return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
-  }
-
-  function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
-    if (column.key === 'transaction_id') {
-      return (
-        <Link
-          to={`/performance/${row['project.name']}:${
-            row.transaction_id
-          }#span-${row.span_id.slice(19).replace('-', '')}`}
-        >
-          {row.transaction_id.slice(0, 8)}
-        </Link>
-      );
-    }
-
-    if (column.key === 'duration') {
-      return (
-        <SpanDurationBar
-          spanOp={row.spanOp}
-          spanDuration={row.spanDuration}
-          transactionDuration={row.transactionDuration}
-        />
-      );
-    }
-
-    if (column.key === 'p50_comparison') {
-      const diff = row.spanDuration - p50;
-
-      if (Math.floor(row.spanDuration) === Math.floor(p50)) {
-        return <PlaintextLabel>{t('At baseline')}</PlaintextLabel>;
-      }
-
-      const labelString =
-        diff > 0 ? `+${diff.toFixed(2)}ms above` : `${diff.toFixed(2)}ms below`;
-
-      return <ComparisonLabel value={diff}>{labelString}</ComparisonLabel>;
-    }
-
-    if (column.key === 'timestamp') {
-      return <DateTime date={row.timestamp} year timeZone seconds />;
-    }
-
-    return <span>{row[column.key]}</span>;
-  }
 
   return (
     <Layout.Page>
@@ -399,23 +307,11 @@ export default function SpanSummary({location, params}: Props) {
                   </ChartPanel>
                 </ChartGrid>
 
-                {areSpanSamplesLoading ? (
-                  <span>LOADING SAMPLE LIST</span>
-                ) : (
-                  <div>
-                    <GridEditable
-                      isLoading={isLoading || isTransactionDataLoading}
-                      data={sampledSpanData}
-                      columnOrder={COLUMN_ORDER}
-                      columnSortBy={[]}
-                      grid={{
-                        renderHeadCell,
-                        renderBodyCell,
-                      }}
-                      location={location}
-                    />
-                  </div>
-                )}
+                <SpanSamplesTable
+                  isLoading={areSpanSamplesLoading || isTransactionDataLoading}
+                  data={sampledSpanData}
+                  p50={p50}
+                />
               </MainSpanSummaryContainer>
               <SidebarContainer>
                 <Sidebar
@@ -474,15 +370,6 @@ const FilterOptionsSubContainer = styled('div')`
 const ToggleLabel = styled('span')<{active?: boolean}>`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => (p.active ? p.theme.purple300 : p.theme.gray300)};
-`;
-
-const PlaintextLabel = styled('div')`
-  text-align: right;
-`;
-
-const ComparisonLabel = styled('div')<{value: number}>`
-  text-align: right;
-  color: ${p => (p.value < 0 ? p.theme.green400 : p.theme.red400)};
 `;
 
 const ChartGrid = styled('div')`
@@ -559,6 +446,23 @@ function SpanGroupKeyValueList({
         />
       );
     default:
-      return null;
+      return (
+        <KeyValueList
+          data={[
+            {
+              key: 'op',
+              value: spanGroupOperation,
+              subject: 'Operation',
+            },
+            {
+              key: 'action',
+              value: spanAction,
+              subject: 'Action',
+            },
+            {key: 'desc', value: spanDescription, subject: 'Description'},
+          ]}
+          shouldSort={false}
+        />
+      );
   }
 }

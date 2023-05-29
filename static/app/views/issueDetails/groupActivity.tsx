@@ -12,7 +12,7 @@ import {Client} from 'sentry/api';
 import ActivityAuthor from 'sentry/components/activity/author';
 import ActivityItem from 'sentry/components/activity/item';
 import Note from 'sentry/components/activity/note';
-import NoteInputWithStorage from 'sentry/components/activity/note/inputWithStorage';
+import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import {CreateError} from 'sentry/components/activity/note/types';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';

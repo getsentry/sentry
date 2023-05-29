@@ -13,7 +13,7 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
-import {getDuration} from 'sentry/utils/formatters';
+import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import Sparkline, {
@@ -21,11 +21,11 @@ import Sparkline, {
 } from 'sentry/views/starfish/components/sparkline';
 import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
 
 type Props = {
   isLoading: boolean;
   location: Location;
-  onSelect: (row: SpanDataRow) => void;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
   queryConditions: string[];
@@ -60,9 +60,10 @@ export default function SpansTable({
   queryConditions,
   spansTrendsData,
   isLoading,
-  onSelect,
 }: Props) {
   const theme = useTheme();
+  const {data: applicationMetrics} = useApplicationMetrics();
+
   const spansTrendsGrouped = {p50_trend: {}, p95_trend: {}, throughput: {}};
 
   spansTrendsData?.forEach(({group_id, span_operation, interval, ...rest}) => {
@@ -110,6 +111,9 @@ export default function SpansTable({
     );
     return {
       ...spanData,
+      app_impact: formatPercentage(
+        spanData.total_exclusive_time / applicationMetrics.total_time
+      ),
       p50_trend: zeroFilledP50,
       p95_trend: zeroFilledP95,
       throughput_trend: zeroFilledThroughput,
@@ -126,7 +130,7 @@ export default function SpansTable({
       }
       grid={{
         renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) => renderBodyCell(column, row, theme, onSelect),
+        renderBodyCell: (column, row) => renderBodyCell(column, row, theme),
       }}
       location={location}
     />
@@ -159,8 +163,7 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
 function renderBodyCell(
   column: GridColumnHeader,
   row: SpanDataRow,
-  theme: Theme,
-  onSelect?: (row: SpanDataRow) => void
+  theme: Theme
 ): React.ReactNode {
   if (column.key === 'throughput_trend' && row[column.key]) {
     const horizontalLine = generateHorizontalLine(
@@ -211,10 +214,9 @@ function renderBodyCell(
   }
 
   if (column.key === 'description') {
-    const formattedRow = mapRowKeys(row, row.span_operation);
     return (
       <OverflowEllipsisTextContainer>
-        <Link onClick={() => onSelect?.(formattedRow)} to="">
+        <Link to={`/starfish/span/${row.group_id}`}>
           {row.span_operation === 'db' ? (
             <StyledFormattedCode>
               {(row as unknown as DataRow).formatted_desc}
@@ -238,7 +240,7 @@ function renderBodyCell(
 // So we need to map them to the appropriate keys for the module details drawer
 // Not ideal, but this is a temporary fix until we match the column keys.
 // Also the type for this is not very consistent. We should fix that too.
-const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
+export const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
   switch (spanOperation) {
     case 'http.client':
       return {
@@ -306,8 +308,8 @@ function getColumns(queryConditions: string[]): GridColumnOrder[] {
       width: COL_WIDTH_UNDEFINED,
     },
     {
-      key: 'total_exclusive_time',
-      name: 'Total Time',
+      key: 'app_impact',
+      name: 'App Impact',
       width: COL_WIDTH_UNDEFINED,
     },
     {
@@ -317,17 +319,17 @@ function getColumns(queryConditions: string[]): GridColumnOrder[] {
     },
     {
       key: 'throughput_trend',
-      name: 'throughput (spm)',
+      name: 'Throughput (SPM)',
       width: 175,
     },
     {
       key: 'p50_trend',
-      name: 'p50 trend',
+      name: 'Duration (p50)',
       width: 175,
     },
     {
       key: 'p95_trend',
-      name: 'p95 trend',
+      name: 'Duration (p95)',
       width: 175,
     },
   ];

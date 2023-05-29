@@ -24,10 +24,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import Chart from 'sentry/views/starfish/components/chart';
+import EndpointTable from 'sentry/views/starfish/components/endpointTable';
 import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
-import {SampleEvents} from 'sentry/views/starfish/components/sampleEvents';
-import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
+import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import DatabaseTableView, {
   DataRow,
 } from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
@@ -124,12 +124,14 @@ export default function EndpointOverview() {
     moment(end_timestamp)
   );
 
-  const query = new MutableSearch([
+  const queryConditions = [
     'has:http.method',
     'transaction.op:http.server',
     `transaction:${transaction}`,
     `http.method:${method}`,
-  ]);
+  ];
+
+  const query = new MutableSearch(queryConditions);
 
   const savedQuery: NewQuery = {
     id: undefined,
@@ -305,7 +307,7 @@ export default function EndpointOverview() {
             </ChartsContainer>
           </StyledRow>
           <SubHeader>{t('Sample Events')}</SubHeader>
-          <SampleEvents eventView={eventView} />
+          <TransactionSamplesTable eventView={eventView} />
           <FacetInsights eventView={eventView} />
           <SubHeader>{t('HTTP Spans')}</SubHeader>
           <EndpointTable
