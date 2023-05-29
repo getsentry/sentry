@@ -125,8 +125,7 @@ export default function SpansView(props: Props) {
       </PaddedContainer>
 
       <PaddedContainer>
-        {props.moduleName &&
-        [ModuleName.DB, ModuleName.HTTP].includes(props.moduleName) ? (
+        {props.moduleName && [ModuleName.DB].includes(props.moduleName) ? (
           <Top5DomainsCharts moduleName={props.moduleName} />
         ) : (
           <SpanTimeCharts
