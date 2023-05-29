@@ -52,6 +52,8 @@ class TaskSiloLimit(SiloLimit):
                 setattr(decorated_task, attr_name, limited_attr)
 
         limited_func = self.create_override(decorated_task)
+        if hasattr(decorated_task, "name"):
+            limited_func.name = decorated_task.name
         return limited_func
 
 

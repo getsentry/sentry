@@ -31,6 +31,7 @@ from sentry.ingest.inbound_filters import (
     get_all_filter_specs,
     get_filter_key,
 )
+from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
 from sentry.ingest.transaction_clusterer.rules import (
     TRANSACTION_NAME_RULE_TTL_SECS,
@@ -221,7 +222,7 @@ def get_transaction_names_config(project: Project) -> Optional[Sequence[Transact
     if not features.has("organizations:transaction-name-normalize", project.organization):
         return None
 
-    cluster_rules = get_sorted_rules(project)
+    cluster_rules = get_sorted_rules(ClustererNamespace.TRANSACTIONS, project)
     if not cluster_rules:
         return None
 

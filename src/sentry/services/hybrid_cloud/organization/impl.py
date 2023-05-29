@@ -2,11 +2,17 @@ from __future__ import annotations
 
 from typing import Iterable, List, Optional, Set, cast
 
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 
 from sentry import roles
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
+    Activity,
+    GroupAssignee,
+    GroupBookmark,
+    GroupSeen,
+    GroupShare,
+    GroupSubscription,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -378,12 +384,67 @@ class DatabaseBackedOrganizationService(OrganizationService):
             region_outbox.drain_shard(max_updates_to_drain=10)
         return serialize_member(org_member)
 
-    def reset_idp_flags(self, *, organization_id: int) -> None:
-        OrganizationMember.objects.filter(
-            organization_id=organization_id,
-            flags=models.F("flags").bitor(OrganizationMember.flags["idp:provisioned"]),
-        ).update(
-            flags=models.F("flags")
-            .bitand(~OrganizationMember.flags["idp:provisioned"])
-            .bitand(~OrganizationMember.flags["idp:role-restricted"])
+    def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
+        to_member: Optional[OrganizationMember] = OrganizationMember.objects.filter(
+            organization_id=organization_id, user_id=to_user_id
+        ).first()
+
+        from_member: Optional[OrganizationMember] = OrganizationMember.objects.filter(
+            organization_id=organization_id, user_id=from_user_id
+        ).first()
+
+        if from_member is None:
+            return
+
+        if to_member is None:
+            to_member = OrganizationMember.objects.create(
+                organization_id=organization_id,
+                user_id=to_user_id,
+                role=from_member.role,
+                flags=from_member.flags,
+                has_global_access=from_member.has_global_access,
+            )
+        else:
+            if roles.get(from_member.role).priority > roles.get(to_member.role).priority:
+                to_member.role = from_member.role
+            to_member.save()
+
+        assert to_member
+
+        for team in from_member.teams.all():
+            try:
+                with transaction.atomic():
+                    OrganizationMemberTeam.objects.create(organizationmember=to_member, team=team)
+            except IntegrityError:
+                pass
+
+        model_list = (
+            GroupAssignee,
+            GroupBookmark,
+            GroupSeen,
+            GroupShare,
+            GroupSubscription,
+            Activity,
         )
+
+        for model in model_list:
+            for obj in model.objects.filter(
+                user_id=from_user_id, project__organization_id=organization_id
+            ):
+                try:
+                    with transaction.atomic():
+                        obj.update(user_id=to_user_id)
+                except IntegrityError:
+                    pass
+
+    def reset_idp_flags(self, *, organization_id: int) -> None:
+        with in_test_psql_role_override("postgres"):
+            # Flags are not replicated -- these updates are safe without outbox application.
+            OrganizationMember.objects.filter(
+                organization_id=organization_id,
+                flags=models.F("flags").bitor(OrganizationMember.flags["idp:provisioned"]),
+            ).update(
+                flags=models.F("flags")
+                .bitand(~OrganizationMember.flags["idp:provisioned"])
+                .bitand(~OrganizationMember.flags["idp:role-restricted"])
+            )

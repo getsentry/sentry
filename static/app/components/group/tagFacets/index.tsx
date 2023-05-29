@@ -11,7 +11,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Environment, Event, Organization, Project} from 'sentry/types';
+import {Event, Organization, Project} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import {appendTagCondition} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -73,7 +73,7 @@ export function TAGS_FORMATTER(tagsData: Record<string, GroupTagResponseItem>) {
 }
 
 type Props = {
-  environments: Environment[];
+  environments: string[];
   groupId: string;
   project: Project;
   tagKeys: string[];
@@ -94,7 +94,7 @@ export default function TagFacets({
 
   const {isLoading, isError, data, refetch} = useFetchIssueTagsForDetailsPage({
     groupId,
-    environment: environments.map(({name}) => name),
+    environment: environments,
   });
 
   const tagsData = useMemo(() => {

@@ -94,7 +94,6 @@ export function GenericSpansTable({transaction}: {transaction?: string}) {
       orderBy={orderBy}
       onSetOrderBy={() => null}
       spansTrendsData={spansTrendsData}
-      onSelect={() => null}
     />
   );
 }

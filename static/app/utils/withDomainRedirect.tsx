@@ -1,4 +1,3 @@
-import {useContext} from 'react';
 import {formatPattern, RouteComponent, RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import trimEnd from 'lodash/trimEnd';
@@ -9,7 +8,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import Redirect from 'sentry/utils/redirect';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+
+import useOrganization from './useOrganization';
 
 /**
  * withDomainRedirect is a higher-order component (HOC) meant to be used with <Route /> components within
@@ -35,7 +35,7 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
   return function WithDomainRedirectWrapper(props: P) {
     const {customerDomain, links} = window.__initialData;
     const {sentryUrl} = links;
-    const currentOrganization = useContext(OrganizationContext);
+    const currentOrganization = useOrganization({allowNull: true});
 
     if (customerDomain) {
       // Customer domain is being used on a route that has an :orgId parameter.
