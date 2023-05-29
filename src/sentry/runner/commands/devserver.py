@@ -285,7 +285,6 @@ and run `sentry devservices up kafka zookeeper`.
     if settings.USE_SILOS:
         os.environ["SENTRY_SILO_MODE"] = "REGION"
         os.environ["SENTRY_REGION"] = "us"
-        os.environ["SENTRY_USE_SILOS"] = "true"
 
     if workers:
         if settings.CELERY_ALWAYS_EAGER:
@@ -421,7 +420,6 @@ and run `sentry devservices up kafka zookeeper`.
 
     if settings.USE_SILOS:
         control_environ = {
-            "SENTRY_USE_SILOS": "true",
             "SENTRY_SILO_MODE": "CONTROL",
             "SENTRY_REGION": "",
             "SENTRY_DEVSERVER_BIND": f"localhost:{control_silo_port}",

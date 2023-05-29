@@ -3295,7 +3295,7 @@ SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Union[Iterable[Region], str] = ()
 
 # Enable siloed development environment.
-USE_SILOS = env("SENTRY_USE_SILOS", default=False)
+USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
 
 if USE_SILOS:
     # Add connections for the region & control silo databases.
@@ -3314,14 +3314,16 @@ if USE_SILOS:
                 "snowflake_id": 1,
                 "category": "MULTI_TENANT",
                 "address": "http://localhost:8000",
+                "api_token": "dev-region-silo-token",
             }
         ]
     )
+    control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8010")
     DEV_HYBRID_CLOUD_RPC_SENDER = json.dumps(
         {
             "is_allowed": True,
-            "control_silo_api_token": "super-secret-key",
-            "control_silo_address": "http://localhost:8010",
+            "control_silo_api_token": "dev-control-silo-token",
+            "control_silo_address": f"http://127.0.0.1:{control_port}",
         }
     )
     DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
