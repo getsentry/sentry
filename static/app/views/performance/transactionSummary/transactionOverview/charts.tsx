@@ -2,7 +2,6 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Feature from 'sentry/components/acl/feature';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
   ChartContainer,
@@ -203,28 +202,22 @@ function TransactionSummaryCharts({
           />
         )}
         {display === DisplayModes.TREND && (
-          <Feature features={['organizations:performance-new-trends']}>
-            {({hasFeature}) => {
-              return (
-                <TrendChart
-                  eventView={eventView}
-                  trendFunction={trendFunction}
-                  trendParameter={trendColumn}
-                  organization={organization}
-                  query={eventView.query}
-                  queryExtra={releaseQueryExtra}
-                  project={eventView.project}
-                  environment={eventView.environment}
-                  start={eventView.start}
-                  end={eventView.end}
-                  statsPeriod={eventView.statsPeriod}
-                  withoutZerofill={withoutZerofill}
-                  projects={project ? [project] : []}
-                  withBreakpoint={hasFeature}
-                />
-              );
-            }}
-          </Feature>
+          <TrendChart
+            eventView={eventView}
+            trendFunction={trendFunction}
+            trendParameter={trendColumn}
+            organization={organization}
+            query={eventView.query}
+            queryExtra={releaseQueryExtra}
+            project={eventView.project}
+            environment={eventView.environment}
+            start={eventView.start}
+            end={eventView.end}
+            statsPeriod={eventView.statsPeriod}
+            withoutZerofill={withoutZerofill}
+            projects={project ? [project] : []}
+            withBreakpoint={organization.features.includes('performance-new-trends')}
+          />
         )}
         {display === DisplayModes.VITALS && (
           <VitalsChart
