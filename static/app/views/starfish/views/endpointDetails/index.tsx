@@ -16,11 +16,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import {renderHeadCell} from 'sentry/views/starfish/components/endpointTable';
 import {
   OverflowEllipsisTextContainer,
-  renderHeadCell,
   TextAlignLeft,
-} from 'sentry/views/starfish/modules/APIModule/endpointTable';
+} from 'sentry/views/starfish/components/textAlign';
 import {
   getEndpointDetailSeriesQuery,
   getEndpointDetailTableEventView,

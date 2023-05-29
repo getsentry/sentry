@@ -27,10 +27,10 @@ import Chart from 'sentry/views/starfish/components/chart';
 import DatabaseTableView, {
   DataRow,
 } from 'sentry/views/starfish/components/databaseTableView';
+import EndpointTable from 'sentry/views/starfish/components/endpointTable';
 import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
-import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {
   getDbAggregatesQuery,
   useQueryMainTable,

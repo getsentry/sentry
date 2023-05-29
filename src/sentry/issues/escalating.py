@@ -6,6 +6,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, TypedDict
 
+import jsonschema
 from django.db.models.signals import post_save
 from snuba_sdk import (
     Column,
@@ -26,6 +27,7 @@ from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
+    INBOX_REASON_DETAILS,
     Activity,
     ActivityType,
     Group,
@@ -333,6 +335,15 @@ def manage_issue_states(
             )
             if data and activity_data:
                 data.update(activity_data)
+            if data and snooze_details:
+                try:
+                    jsonschema.validate(snooze_details, INBOX_REASON_DETAILS)
+
+                except jsonschema.ValidationError:
+                    logging.error("Expired snooze_details invalid jsonschema", extra=snooze_details)
+
+                data.update({"expired_snooze": snooze_details})
+
             Activity.objects.create(
                 project=group.project,
                 group=group,

@@ -25,7 +25,6 @@ import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSumma
 type Props = {
   isLoading: boolean;
   location: Location;
-  onSelect: (row: SpanDataRow) => void;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
   queryConditions: string[];
@@ -61,7 +60,6 @@ export default function SpansTable({
   queryConditions,
   spansTrendsData,
   isLoading,
-  onSelect,
 }: Props) {
   const theme = useTheme();
   const {data: applicationMetrics} = useApplicationMetrics();
@@ -132,7 +130,7 @@ export default function SpansTable({
       }
       grid={{
         renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) => renderBodyCell(column, row, theme, onSelect),
+        renderBodyCell: (column, row) => renderBodyCell(column, row, theme),
       }}
       location={location}
     />
@@ -165,8 +163,7 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
 function renderBodyCell(
   column: GridColumnHeader,
   row: SpanDataRow,
-  theme: Theme,
-  onSelect?: (row: SpanDataRow) => void
+  theme: Theme
 ): React.ReactNode {
   if (column.key === 'throughput_trend' && row[column.key]) {
     const horizontalLine = generateHorizontalLine(
@@ -217,10 +214,9 @@ function renderBodyCell(
   }
 
   if (column.key === 'description') {
-    const formattedRow = mapRowKeys(row, row.span_operation);
     return (
       <OverflowEllipsisTextContainer>
-        <Link onClick={() => onSelect?.(formattedRow)} to="">
+        <Link to={`/starfish/span/${row.group_id}`}>
           {row.span_operation === 'db' ? (
             <StyledFormattedCode>
               {(row as unknown as SpanDataRow).formatted_desc}
