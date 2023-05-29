@@ -33,7 +33,7 @@ export function SlowestFunctionsWidget() {
 
   const functionsQuery = useProfileFunctions<FunctionsField>({
     fields: functionsFields,
-    referrer: '',
+    referrer: 'api.profiling.suspect-functions.list',
     sort: {
       key: 'sum()',
       order: 'desc',
@@ -44,7 +44,7 @@ export function SlowestFunctionsWidget() {
 
   const totalsQuery = useProfileFunctions<TotalsField>({
     fields: totalsFields,
-    referrer: '',
+    referrer: 'api.profiling.suspect-functions.totals',
     sort: {
       key: 'sum()',
       order: 'desc',
@@ -131,7 +131,7 @@ function SlowestFunctionEntry({
 
   const functionTransactionsQuery = useProfileFunctions<FunctionTransactionField>({
     fields: functionTransactionsFields,
-    referrer: '',
+    referrer: 'api.profiling.suspect-functions.transactions',
     sort: {
       key: 'sum()',
       order: 'desc',
