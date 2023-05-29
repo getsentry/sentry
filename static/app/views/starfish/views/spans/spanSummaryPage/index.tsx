@@ -11,6 +11,7 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import SampleList from 'sentry/views/starfish/views/spans/spanSummaryPage/sampleList';
 import {SpanBaselineTable} from 'sentry/views/starfish/views/spans/spanSummaryPage/spanBaselineTable';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spans/spanSummaryPanel';
 import {ReleasePreview} from 'sentry/views/starfish/views/spans/spanSummaryPanel/releasePreview';
@@ -24,10 +25,11 @@ import {
 
 type Props = {
   location: Location;
-} & RouteComponentProps<{groupId: string}, {}>;
+} & RouteComponentProps<{groupId: string}, {transaction: string}>;
 
-function SpanSummaryPage({params}: Props) {
+function SpanSummaryPage({params, location}: Props) {
   const {groupId} = params;
+  const {transaction} = location.query;
 
   const {data: span} = useSpanById(groupId, 'span-summary-page');
   const {data: spanMetrics} = useSpanMetrics({group_id: groupId});
@@ -76,6 +78,10 @@ function SpanSummaryPage({params}: Props) {
 
               {span && <SpanBaselineTable span={span} />}
               {span && <SpanTransactionsTable span={span} />}
+
+              {transaction && span?.group_id && (
+                <SampleList groupId={span.group_id} transactionName={transaction} />
+              )}
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>
