@@ -112,6 +112,7 @@ export default function SpansView(props: Props) {
       <PaddedContainer>
         <SpansTable
           location={location}
+          moduleName={props.moduleName || ModuleName.ALL}
           queryConditions={queryConditions}
           isLoading={areSpansLoading || areSpansTrendsLoading}
           spansData={spansData}

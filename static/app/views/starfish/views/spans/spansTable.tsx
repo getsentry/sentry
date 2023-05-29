@@ -19,12 +19,14 @@ import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
+import {ModuleName} from 'sentry/views/starfish/types';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
 
 type Props = {
   isLoading: boolean;
   location: Location;
+  moduleName: ModuleName;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
   queryConditions: string[];
@@ -55,6 +57,7 @@ export type SpanTrendDataRow = {
 
 export default function SpansTable({
   location,
+  moduleName,
   spansData,
   orderBy,
   onSetOrderBy,
@@ -126,7 +129,7 @@ export default function SpansTable({
     <GridEditable
       isLoading={isLoading}
       data={combinedSpansData}
-      columnOrder={columnOrder ?? getColumns(queryConditions)}
+      columnOrder={columnOrder ?? getColumns(moduleName, queryConditions)}
       columnSortBy={
         orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<string>]
       }
@@ -280,7 +283,10 @@ function getDescriptionHeader(queryConditions: string[]) {
   return 'Description';
 }
 
-function getColumns(queryConditions: string[]): GridColumnOrder[] {
+function getColumns(
+  moduleName: ModuleName,
+  queryConditions: string[]
+): GridColumnOrder[] {
   const description = getDescriptionHeader(queryConditions);
 
   const domain = getDomainHeader(queryConditions);
@@ -304,11 +310,12 @@ function getColumns(queryConditions: string[]): GridColumnOrder[] {
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    !doQueryConditionsIncludeDomain && {
-      key: 'domain',
-      name: domain,
-      width: COL_WIDTH_UNDEFINED,
-    },
+    !doQueryConditionsIncludeDomain &&
+      moduleName !== ModuleName.ALL && {
+        key: 'domain',
+        name: domain,
+        width: COL_WIDTH_UNDEFINED,
+      },
     {
       key: 'throughput_trend',
       name: 'Throughput',
