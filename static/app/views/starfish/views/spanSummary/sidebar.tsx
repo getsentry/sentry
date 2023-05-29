@@ -13,8 +13,8 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
-import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {queryToSeries} from 'sentry/views/starfish/utils/queryToSeries';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {
   useQueryGetFacetsBreakdown,

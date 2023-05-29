@@ -10,11 +10,10 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {getDuration} from 'sentry/utils/formatters';
+import {SortableHeader} from 'sentry/views/starfish/components/sortableHeader';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
-import {Sort} from 'sentry/views/starfish/modules/databaseModule';
-import {SortableHeader} from 'sentry/views/starfish/modules/databaseModule/panel/queryTransactionTable';
 
 type Props = {
   isDataLoading: boolean;
@@ -26,6 +25,11 @@ type Props = {
   onSortChange?: ({direction, sortHeader}: MainTableSort) => void;
   p95asNumber?: boolean;
   selectedRow?: DataRow;
+};
+
+type Sort<T> = {
+  direction: 'desc' | 'asc' | undefined;
+  sortHeader: T | undefined;
 };
 
 export type DataRow = {

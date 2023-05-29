@@ -22,9 +22,9 @@ import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
-import {highlightSql} from 'sentry/views/starfish/modules/databaseModule/panel';
 import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {getDateFilters, PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {highlightSql} from 'sentry/views/starfish/utils/highlightSql';
 import Sidebar, {
   getTransactionBasedSeries,
   queryDataToChartData,

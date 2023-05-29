@@ -19,7 +19,6 @@ import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
-import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
 
@@ -38,6 +37,7 @@ export type SpanDataRow = {
   description: string;
   domain: string;
   epm: number;
+  formatted_desc: string;
   group_id: string;
   p50: number;
   p95: number;
@@ -219,7 +219,7 @@ function renderBodyCell(
         <Link to={`/starfish/span/${row.group_id}`}>
           {row.span_operation === 'db' ? (
             <StyledFormattedCode>
-              {(row as unknown as DataRow).formatted_desc}
+              {(row as unknown as SpanDataRow).formatted_desc}
             </StyledFormattedCode>
           ) : (
             row.description || '<null>'
