@@ -71,7 +71,6 @@ export function ReplaySearchAlert({needSdkUpdates}: Props) {
   if (needSdkUpdates) {
     return (
       <ReplayNewFeatureBanner
-        onDismiss={dismiss}
         heading={heading}
         description={description}
         button={
@@ -85,7 +84,6 @@ export function ReplaySearchAlert({needSdkUpdates}: Props) {
 
   return (
     <ReplayNewFeatureBanner
-      onDismiss={dismiss}
       heading={heading}
       description={description}
       button={

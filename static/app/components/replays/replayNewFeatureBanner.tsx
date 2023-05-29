@@ -12,19 +12,21 @@ import {space} from 'sentry/styles/space';
 interface Props {
   description: React.ReactNode;
   heading: React.ReactNode;
-  onDismiss: () => void;
   button?: React.ReactNode;
+  onDismiss?: () => void;
 }
 
 export function ReplayNewFeatureBanner({heading, description, button, onDismiss}: Props) {
   return (
     <Wrapper>
-      <CloseButton
-        onClick={onDismiss}
-        icon={<IconClose size="xs" />}
-        aria-label={t('Feature banner close')}
-        size="xs"
-      />
+      {onDismiss && (
+        <CloseButton
+          onClick={onDismiss}
+          icon={<IconClose size="xs" />}
+          aria-label={t('Feature banner close')}
+          size="xs"
+        />
+      )}
       <Background />
       <Stack>
         <SubText uppercase fontWeight={500}>
