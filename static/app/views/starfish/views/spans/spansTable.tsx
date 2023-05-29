@@ -248,21 +248,21 @@ export const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
   }
 };
 
-function getDomainHeader(queryConditions: string[]) {
-  if (queryConditions.includes("span_operation = 'db'")) {
-    return 'Table';
-  }
-  if (queryConditions.includes("span_operation = 'http.client'")) {
+function getDomainHeader(moduleName: ModuleName) {
+  if (moduleName === ModuleName.HTTP) {
     return 'Host';
+  }
+  if (moduleName === ModuleName.DB) {
+    return 'Table';
   }
   return 'Domain';
 }
-function getDescriptionHeader(queryConditions: string[]) {
-  if (queryConditions.includes("span_operation = 'db'")) {
-    return 'Query';
-  }
-  if (queryConditions.includes("span_operation = 'http.client'")) {
+function getDescriptionHeader(moduleName: ModuleName) {
+  if (moduleName === ModuleName.HTTP) {
     return 'URL';
+  }
+  if (moduleName === ModuleName.DB) {
+    return 'Query';
   }
   return 'Description';
 }
@@ -271,9 +271,9 @@ function getColumns(
   moduleName: ModuleName,
   queryConditions: string[]
 ): GridColumnOrder[] {
-  const description = getDescriptionHeader(queryConditions);
+  const description = getDescriptionHeader(moduleName);
 
-  const domain = getDomainHeader(queryConditions);
+  const domain = getDomainHeader(moduleName);
 
   const doQueryConditionsIncludeDomain = queryConditions.some(condition =>
     condition.includes('domain =')
