@@ -1713,7 +1713,7 @@ function buildRoutes() {
       />
       <Route
         path="database/"
-        component={make(() => import('sentry/views/starfish/modules/databaseModule'))}
+        component={make(() => import('sentry/views/starfish/modules/DBModule'))}
       />
       <Route
         path="api/"
