@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -106,7 +107,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
             definedAxisTicks={4}
             stacked
             isLineChart
-            chartColors={themes.charts.getColorPalette(2)}
+            chartColors={[themes.charts.getColorPalette(0)[0]]}
             disableXAxis
             tooltipFormatterOptions={{
               valueFormatter: value => `${value.toFixed(3)} / ${t('min')}`,
@@ -134,7 +135,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
             definedAxisTicks={4}
             stacked
             isLineChart
-            chartColors={themes.charts.getColorPalette(2)}
+            chartColors={[CHART_PALETTE[3][1]]}
             disableXAxis
           />
         </ChartPanel>
