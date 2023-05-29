@@ -9,12 +9,14 @@ import GridEditable, {
 import Link from 'sentry/components/links/link';
 import Truncate from 'sentry/components/truncate';
 import {Series} from 'sentry/types/echarts';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
 import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
+import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
 import {useSpanTransactionMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactionMetrics';
 import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactionMetricSeries';
 import {useSpanTransactions} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactions';
@@ -37,9 +39,11 @@ type Row = {
 
 export function SpanTransactionsTable({span}: Props) {
   const location = useLocation();
+  const {data: applicationMetrics} = useApplicationMetrics();
 
   const {data: spanTransactions, isLoading} = useSpanTransactions(span);
   const {data: spanTransactionMetrics} = useSpanTransactionMetrics(
+    span,
     spanTransactions.map(row => row.transaction)
   );
   const {data: spanTransactionMetricsSeries} = useSpanTransactionMetricSeries(
@@ -49,6 +53,10 @@ export function SpanTransactionsTable({span}: Props) {
   const spanTransactionsWithMetrics = spanTransactions.map(row => {
     return {
       ...row,
+      app_impact: formatPercentage(
+        spanTransactionMetrics[row.transaction]?.['sum(span.self_time)'] /
+          applicationMetrics.total_time
+      ),
       metrics: spanTransactionMetrics[row.transaction],
       metricSeries: spanTransactionMetricsSeries[row.transaction],
     };
@@ -163,6 +171,11 @@ const COLUMN_ORDER = [
   {
     key: 'p50(transaction.duration)',
     name: 'Duration (P50)',
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'app_impact',
+    name: 'App Impact',
     width: COL_WIDTH_UNDEFINED,
   },
 ];
