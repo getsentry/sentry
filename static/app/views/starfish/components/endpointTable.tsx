@@ -23,7 +23,7 @@ import {
   getEndpointAggregatesQuery,
   getEndpointListEventView,
   getEndpointListQuery,
-} from './queries';
+} from '../modules/APIModule/queries';
 
 type Props = {
   filterOptions: {

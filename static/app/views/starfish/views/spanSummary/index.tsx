@@ -446,6 +446,23 @@ function SpanGroupKeyValueList({
         />
       );
     default:
-      return null;
+      return (
+        <KeyValueList
+          data={[
+            {
+              key: 'op',
+              value: spanGroupOperation,
+              subject: 'Operation',
+            },
+            {
+              key: 'action',
+              value: spanAction,
+              subject: 'Action',
+            },
+            {key: 'desc', value: spanDescription, subject: 'Description'},
+          ]}
+          shouldSort={false}
+        />
+      );
   }
 }

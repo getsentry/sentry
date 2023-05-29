@@ -1717,7 +1717,7 @@ function buildRoutes() {
       />
       <Route
         path="api/"
-        component={make(() => import('sentry/views/starfish/modules/APIModule'))}
+        component={make(() => import('sentry/views/starfish/modules/HTTPModule'))}
       />
       <Route
         path="spans/"

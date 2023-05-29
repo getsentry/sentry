@@ -10,7 +10,7 @@ import {
   OverflowEllipsisTextContainer,
   TextAlignLeft,
   TextAlignRight,
-} from 'sentry/views/starfish/modules/APIModule/endpointTable';
+} from 'sentry/views/starfish/components/textAlign';
 
 type Keys = 'id' | 'profile_id' | 'timestamp' | 'transaction.duration' | 'p50_comparison';
 type TableColumnHeader = GridColumnHeader<Keys>;

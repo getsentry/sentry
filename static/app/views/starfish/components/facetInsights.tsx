@@ -21,7 +21,7 @@ import Sparkline from 'sentry/views/starfish/components/sparkline';
 import {
   OverflowEllipsisTextContainer,
   TextAlignLeft,
-} from 'sentry/views/starfish/modules/APIModule/endpointTable';
+} from 'sentry/views/starfish/components/textAlign';
 
 type Props = {
   eventView: EventView;

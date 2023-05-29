@@ -24,10 +24,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import Chart from 'sentry/views/starfish/components/chart';
+import EndpointTable from 'sentry/views/starfish/components/endpointTable';
 import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
-import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import DatabaseTableView, {
   DataRow,
 } from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
