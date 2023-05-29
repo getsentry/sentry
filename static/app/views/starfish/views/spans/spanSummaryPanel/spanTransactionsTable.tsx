@@ -47,6 +47,7 @@ export function SpanTransactionsTable({span}: Props) {
     spanTransactions.map(row => row.transaction)
   );
   const {data: spanTransactionMetricsSeries} = useSpanTransactionMetricSeries(
+    span,
     spanTransactions.map(row => row.transaction)
   );
 
@@ -119,8 +120,8 @@ function TransactionCell({span, column, row}: CellProps) {
 
 function P50Cell({row}: CellProps) {
   const theme = useTheme();
-  const p50 = row.metrics?.['p50(transaction.duration)'];
-  const p50Series = row.metricSeries?.['p50(transaction.duration)'];
+  const p50 = row.metrics?.p50;
+  const p50Series = row.metricSeries?.p50;
 
   return (
     <Fragment>
@@ -139,8 +140,8 @@ function P50Cell({row}: CellProps) {
 
 function EPMCell({row}: CellProps) {
   const theme = useTheme();
-  const epm = row.metrics?.['epm()'];
-  const epmSeries = row.metricSeries?.['epm()'];
+  const epm = row.metrics?.spm;
+  const epmSeries = row.metricSeries?.spm;
 
   return (
     <Fragment>
