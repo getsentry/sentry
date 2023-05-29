@@ -5,9 +5,9 @@ import * as qs from 'query-string';
 import GridEditable, {GridColumnHeader as Column} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import Truncate from 'sentry/components/truncate';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
 import {useLocation} from 'sentry/utils/useLocation';
+import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
@@ -117,7 +117,7 @@ function P50Cell({row}: CellProps) {
     <Fragment>
       {p50Series ? (
         <Sparkline
-          color={CHART_PALETTE[3][0]}
+          color={DURATION_COLOR}
           series={p50Series}
           markLine={
             p50 ? generateHorizontalLine(`${p50.toFixed(2)}`, p50, theme) : undefined
@@ -137,7 +137,7 @@ function EPMCell({row}: CellProps) {
     <Fragment>
       {epmSeries ? (
         <Sparkline
-          color={CHART_PALETTE[3][1]}
+          color={THROUGHPUT_COLOR}
           series={epmSeries}
           markLine={
             epm ? generateHorizontalLine(`${epm.toFixed(2)}`, epm, theme) : undefined

@@ -14,6 +14,11 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {
+  DURATION_COLOR,
+  ERRORS_COLOR,
+  THROUGHPUT_COLOR,
+} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spans/spanSummaryPanel';
 import {ReleasePreview} from 'sentry/views/starfish/views/spans/spanSummaryPanel/releasePreview';
@@ -141,6 +146,7 @@ function SpanSummaryPage({params}: Props) {
                     start=""
                     end=""
                     loading={false}
+                    chartColors={[THROUGHPUT_COLOR]}
                     utc={false}
                     stacked
                     isLineChart
@@ -177,7 +183,7 @@ function SpanSummaryPage({params}: Props) {
                     start=""
                     end=""
                     loading={false}
-                    chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
+                    chartColors={[DURATION_COLOR]}
                     utc={false}
                     stacked
                     isLineChart
@@ -195,7 +201,7 @@ function SpanSummaryPage({params}: Props) {
                       start=""
                       end=""
                       loading={false}
-                      chartColors={[theme.charts.getColorPalette(2)[2]]}
+                      chartColors={[ERRORS_COLOR]}
                       utc={false}
                       stacked
                       isLineChart
