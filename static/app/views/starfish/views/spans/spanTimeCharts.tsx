@@ -1,13 +1,12 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -23,7 +22,6 @@ type Props = {
 };
 
 export function SpanTimeCharts({queryConditions}: Props) {
-  const themes = useTheme();
   const location = useLocation();
 
   const pageFilter = usePageFilters();
@@ -104,7 +102,7 @@ export function SpanTimeCharts({queryConditions}: Props) {
             definedAxisTicks={4}
             stacked
             isLineChart
-            chartColors={[themes.charts.getColorPalette(0)[0]]}
+            chartColors={[THROUGHPUT_COLOR]}
             disableXAxis
             tooltipFormatterOptions={{
               valueFormatter: value => `${value.toFixed(3)} / ${t('min')}`,
@@ -132,7 +130,7 @@ export function SpanTimeCharts({queryConditions}: Props) {
             definedAxisTicks={4}
             stacked
             isLineChart
-            chartColors={[CHART_PALETTE[3][1]]}
+            chartColors={[DURATION_COLOR]}
             disableXAxis
           />
         </ChartPanel>

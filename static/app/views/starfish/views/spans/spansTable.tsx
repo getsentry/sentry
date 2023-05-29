@@ -15,6 +15,7 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
+import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import Sparkline, {
   generateHorizontalLine,
@@ -178,7 +179,7 @@ function renderBodyCell(
     );
     return (
       <Sparkline
-        color={CHART_PALETTE[3][0]}
+        color={THROUGHPUT_COLOR}
         series={row[column.key]}
         width={column.width ? column.width - column.width / 5 : undefined}
         markLine={horizontalLine}
@@ -194,7 +195,7 @@ function renderBodyCell(
     );
     return (
       <Sparkline
-        color={CHART_PALETTE[3][1]}
+        color={DURATION_COLOR}
         series={row[column.key]}
         width={column.width ? column.width - column.width / 5 : undefined}
         markLine={horizontalLine}
