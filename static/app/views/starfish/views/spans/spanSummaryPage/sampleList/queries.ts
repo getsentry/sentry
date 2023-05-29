@@ -26,23 +26,6 @@ type SampleListDatRow = {
   user: string;
 };
 
-export const useQueryTransactionData = (data: {transaction_id: string}[]) =>
-  useApiQuery<{
-    data: {data: Transaction[]};
-  }>(
-    [
-      `/organizations/sentry/events/?field=id&field=timestamp&field=transaction.duration&field=project.name&query=id:[${data
-        .map(datum => datum.transaction_id.replaceAll('-', ''))
-        .join(
-          ','
-        )}]&referrer=api.starfish.span-summary-table&sort=-transaction.duration&statsPeriod=14d`,
-    ],
-    {
-      staleTime: 0,
-      enabled: data.length > 0,
-    }
-  );
-
 export const useQueryGetSpanTransactionSamples = ({
   groupId,
   transactionName,
@@ -113,3 +96,20 @@ export const useQueryGetSpanTransactionSamples = ({
 
   return {data: newData, isLoading, isRefetching};
 };
+
+const useQueryTransactionData = (data: {transaction_id: string}[]) =>
+  useApiQuery<{
+    data: {data: Transaction[]};
+  }>(
+    [
+      `/organizations/sentry/events/?field=id&field=timestamp&field=transaction.duration&field=project.name&query=id:[${data
+        .map(datum => datum.transaction_id.replaceAll('-', ''))
+        .join(
+          ','
+        )}]&referrer=api.starfish.span-summary-table&sort=-transaction.duration&statsPeriod=14d`,
+    ],
+    {
+      staleTime: 0,
+      enabled: data.length > 0,
+    }
+  );
