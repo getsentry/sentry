@@ -7,6 +7,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry import options
+from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
     HTTP_404_TAG,
     TRANSACTION_SOURCE_SANITIZED,
@@ -25,29 +26,30 @@ MAX_SET_SIZE = 2000
 SET_TTL = 24 * 60 * 60
 
 
-REDIS_KEY_PREFIX = "txnames:"
-
 add_to_set = redis.load_script("utils/sadd_capped.lua")
 logger = logging.getLogger(__name__)
 
 
-def _get_redis_key(project: Project) -> str:
-    return f"{REDIS_KEY_PREFIX}o:{project.organization_id}:p:{project.id}"
+def _get_redis_key(namespace: ClustererNamespace, project: Project) -> str:
+    prefix = namespace.value.data
+    return f"{prefix}:o:{project.organization_id}:p:{project.id}"
 
 
 def get_redis_client() -> Any:
+    # XXX(iker): we may want to revisit the decision of having a single Redis cluster.
     cluster_key = settings.SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER
     return redis.redis_clusters.get(cluster_key)
 
 
-def _get_all_keys() -> Iterator[str]:
+def _get_all_keys(namespace: ClustererNamespace) -> Iterator[str]:
     client = get_redis_client()
-    return client.scan_iter(match=f"{REDIS_KEY_PREFIX}*")  # type: ignore
+    prefix = namespace.value.data
+    return client.scan_iter(match=f"{prefix}:*")  # type: ignore
 
 
-def get_active_projects() -> Iterator[Project]:
+def get_active_projects(namespace: ClustererNamespace) -> Iterator[Project]:
     """Scan redis for projects and fetch their db models"""
-    for key in _get_all_keys():
+    for key in _get_all_keys(namespace):
         project_id = int(key.split(":")[-1])
         # NOTE: Would be nice to do a `select_related` on project.organization
         # because we need it for the feature flag, but I don't know how to do
@@ -64,21 +66,21 @@ def get_active_projects() -> Iterator[Project]:
 def _store_transaction_name(project: Project, transaction_name: str) -> None:
     with sentry_sdk.start_span(op="txcluster.store_transaction_name"):
         client = get_redis_client()
-        redis_key = _get_redis_key(project)
+        redis_key = _get_redis_key(ClustererNamespace.TRANSACTIONS, project)
         add_to_set(client, [redis_key], [transaction_name, MAX_SET_SIZE, SET_TTL])
 
 
 def get_transaction_names(project: Project) -> Iterator[str]:
     """Return all transaction names stored for the given project"""
     client = get_redis_client()
-    redis_key = _get_redis_key(project)
+    redis_key = _get_redis_key(ClustererNamespace.TRANSACTIONS, project)
 
     return client.sscan_iter(redis_key)  # type: ignore
 
 
 def clear_transaction_names(project: Project) -> None:
     client = get_redis_client()
-    redis_key = _get_redis_key(project)
+    redis_key = _get_redis_key(ClustererNamespace.TRANSACTIONS, project)
 
     client.delete(redis_key)
 
@@ -133,5 +135,5 @@ def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None
         if len(applied_rule) == 2:
             pattern = applied_rule[0]
             # Only one clustering rule is applied per project
-            clusterer_rules.bump_last_used(project, pattern)
+            clusterer_rules.bump_last_used(ClustererNamespace.TRANSACTIONS, project, pattern)
             return

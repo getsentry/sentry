@@ -7,7 +7,7 @@ import {ListCollection} from '@react-stately/list';
 import {useTabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -151,17 +151,20 @@ function BaseTabList({
       (a, b) => sortedKeys.indexOf(a) - sortedKeys.indexOf(b)
     );
 
-    return sortedOverflowTabs
-      .filter(key => state.collection.getItem(key))
-      .map(key => {
-        const item = state.collection.getItem(key);
-        return {
-          value: key,
-          label: item.props.children,
-          disabled: item.props.disabled,
-          textValue: item.textValue,
-        };
-      });
+    return sortedOverflowTabs.flatMap<SelectOption<React.Key>>(key => {
+      const item = state.collection.getItem(key);
+
+      if (!item) {
+        return [];
+      }
+
+      return {
+        value: key,
+        label: item.props.children,
+        disabled: item.props.disabled,
+        textValue: item.textValue,
+      };
+    });
   }, [state.collection, overflowTabs]);
 
   return (
