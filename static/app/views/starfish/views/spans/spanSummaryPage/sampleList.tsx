@@ -5,8 +5,8 @@ import DurationChart from 'sentry/views/starfish/views/spans/spanSummaryPage/dur
 type Props = {
   groupId: string;
   onClose: () => void;
-  spanDescription: string;
   transactionName: string;
+  spanDescription?: string;
 };
 
 function SampleList({onClose, groupId, transactionName, spanDescription}: Props) {

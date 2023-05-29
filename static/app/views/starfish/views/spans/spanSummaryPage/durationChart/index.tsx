@@ -12,8 +12,8 @@ import {queryDataToChartData} from 'sentry/views/starfish/views/spanSummary/side
 
 type Props = {
   groupId: string;
-  spanDescription: string;
   transactionName: string;
+  spanDescription?: string;
 };
 
 function DurationChart({groupId, transactionName, spanDescription}: Props) {
