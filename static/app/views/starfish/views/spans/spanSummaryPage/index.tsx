@@ -50,6 +50,7 @@ function SpanSummaryPage({params}: Props) {
                 <DatePageFilter alignDropdown="left" />
               </FilterOptionsContainer>
               <BlockContainer>
+                <Block title={t('Operation')}>{span?.span_operation}</Block>
                 <Block
                   title={t('First Seen')}
                   description={t(
