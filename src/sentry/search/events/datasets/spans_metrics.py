@@ -94,6 +94,29 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "sum",
+                    optional_args=[
+                        fields.with_default(
+                            "span.duration",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=["span.duration"],
+                                allow_custom_measurements=False,
+                            ),
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
                     "p50",
                     optional_args=[
                         fields.with_default(
