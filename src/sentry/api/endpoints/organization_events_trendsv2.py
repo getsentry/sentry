@@ -207,8 +207,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 "data": None,
                 "sort": None,
                 "trendFunction": None,
-                "start": None,
-                "end": None,
             }
 
             trends_request["sort"] = request.GET.get("sort", "trend_percentage()")
@@ -226,7 +224,13 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 transaction_name = t["transaction"]
                 project = t["project"]
                 t_p_key = project + "," + transaction_name
-                trending_transaction_names_stats[t_p_key] = response.data[t_p_key]
+                if t_p_key in response.data:
+                    trending_transaction_names_stats[t_p_key] = response.data[t_p_key]
+                else:
+                    logger.warning(
+                        "trends.trends-request.timeseries.key-mismatch",
+                        extra={"result_key": t_p_key, "timeseries_keys": response.data.keys()},
+                    )
 
             # send the results back to the client
             return Response(
