@@ -370,6 +370,7 @@ function SummaryContent({
             totalValue={totalCount}
             currentFilter={spanOperationBreakdownFilter}
             withoutZerofill={hasPerformanceChartInterpolation}
+            project={project}
           />
           <TransactionsList
             location={location}

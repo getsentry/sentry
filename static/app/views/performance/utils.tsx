@@ -1,6 +1,8 @@
 import {browserHistory} from 'react-router';
+import {Theme} from '@emotion/react';
 import {Location} from 'history';
 
+import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
@@ -12,8 +14,10 @@ import {
   Project,
   ReleaseProject,
 } from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {statsPeriodToDays} from 'sentry/utils/dates';
+import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
 import {getDuration} from 'sentry/utils/formatters';
@@ -22,8 +26,12 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import toArray from 'sentry/utils/toArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {
+  NormalizedTrendsTransaction,
+  TrendChangeType,
+} from 'sentry/views/performance/trends/types';
 
-import {DEFAULT_MAX_DURATION} from './trends/utils';
+import {DEFAULT_MAX_DURATION, getSelectedQueryKey} from './trends/utils';
 
 export const QUERY_KEYS = [
   'environment',
@@ -359,4 +367,182 @@ export function getProjectID(
   }
 
   return projects.find(currentProject => currentProject.slug === projectSlug)?.id;
+}
+
+export function transformTransaction(
+  transaction: NormalizedTrendsTransaction
+): NormalizedTrendsTransaction {
+  if (transaction && transaction.breakpoint) {
+    return {
+      ...transaction,
+      breakpoint: transaction.breakpoint * 1000,
+    };
+  }
+  return transaction;
+}
+
+export function getIntervalLine(
+  theme: Theme,
+  series: Series[],
+  intervalRatio: number,
+  label: boolean,
+  transaction?: NormalizedTrendsTransaction
+): LineChartSeries[] {
+  if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
+    return [];
+  }
+
+  const transformedTransaction = transformTransaction(transaction);
+
+  const seriesStart = parseInt(series[0].data[0].name as string, 10);
+  const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 10);
+
+  if (seriesEnd < seriesStart) {
+    return [];
+  }
+
+  const periodLine: LineChartSeries = {
+    data: [],
+    color: theme.textColor,
+    markLine: {
+      data: [],
+      label: {},
+      lineStyle: {
+        color: theme.textColor,
+        type: 'dashed',
+        width: label ? 1 : 2,
+      },
+      symbol: ['none', 'none'],
+      tooltip: {
+        show: false,
+      },
+    },
+    seriesName: 'Baseline',
+  };
+
+  const periodLineLabel = {
+    fontSize: 11,
+    show: label,
+    color: theme.textColor,
+    silent: label,
+  };
+
+  const previousPeriod = {
+    ...periodLine,
+    markLine: {...periodLine.markLine},
+    seriesName: 'Baseline',
+  };
+  const currentPeriod = {
+    ...periodLine,
+    markLine: {...periodLine.markLine},
+    seriesName: 'Baseline',
+  };
+  const periodDividingLine = {
+    ...periodLine,
+    markLine: {...periodLine.markLine},
+    seriesName: 'Baseline',
+  };
+
+  const seriesDiff = seriesEnd - seriesStart;
+  const seriesLine = seriesDiff * intervalRatio + seriesStart;
+  const {breakpoint} = transformedTransaction;
+
+  const divider = breakpoint || seriesLine;
+
+  previousPeriod.markLine.data = [
+    [
+      {value: 'Past', coord: [seriesStart, transformedTransaction.aggregate_range_1]},
+      {coord: [divider, transformedTransaction.aggregate_range_1]},
+    ],
+  ];
+  previousPeriod.markLine.tooltip = {
+    formatter: () => {
+      return [
+        '<div class="tooltip-series tooltip-series-solo">',
+        '<div>',
+        `<span class="tooltip-label"><strong>${t('Past Baseline')}</strong></span>`,
+        // p50() coerces the axis to be time based
+        tooltipFormatter(transformedTransaction.aggregate_range_1, 'duration'),
+        '</div>',
+        '</div>',
+        '<div class="tooltip-arrow"></div>',
+      ].join('');
+    },
+  };
+  currentPeriod.markLine.data = [
+    [
+      {value: 'Present', coord: [divider, transformedTransaction.aggregate_range_2]},
+      {coord: [seriesEnd, transformedTransaction.aggregate_range_2]},
+    ],
+  ];
+  currentPeriod.markLine.tooltip = {
+    formatter: () => {
+      return [
+        '<div class="tooltip-series tooltip-series-solo">',
+        '<div>',
+        `<span class="tooltip-label"><strong>${t('Present Baseline')}</strong></span>`,
+        // p50() coerces the axis to be time based
+        tooltipFormatter(transformedTransaction.aggregate_range_2, 'duration'),
+        '</div>',
+        '</div>',
+        '<div class="tooltip-arrow"></div>',
+      ].join('');
+    },
+  };
+  periodDividingLine.markLine = {
+    data: [
+      {
+        xAxis: divider,
+      },
+    ],
+    label: {show: false},
+    lineStyle: {
+      color: theme.textColor,
+      type: 'solid',
+      width: 2,
+    },
+    symbol: ['none', 'none'],
+    tooltip: {
+      show: false,
+    },
+    silent: true,
+  };
+
+  previousPeriod.markLine.label = {
+    ...periodLineLabel,
+    formatter: 'Past',
+    position: 'insideStartBottom',
+  };
+  currentPeriod.markLine.label = {
+    ...periodLineLabel,
+    formatter: 'Present',
+    position: 'insideEndBottom',
+  };
+
+  const additionalLineSeries = [previousPeriod, currentPeriod, periodDividingLine];
+  return additionalLineSeries;
+}
+
+export function getSelectedTransaction(
+  location: Location,
+  trendChangeType: TrendChangeType,
+  transactions?: NormalizedTrendsTransaction[]
+): NormalizedTrendsTransaction | undefined {
+  const queryKey = getSelectedQueryKey(trendChangeType);
+  const selectedTransactionName = decodeScalar(location.query[queryKey]);
+
+  if (!transactions) {
+    return undefined;
+  }
+
+  const selectedTransaction = transactions.find(
+    transaction =>
+      `${transaction.transaction}-${transaction.project}` === selectedTransactionName
+  );
+
+  if (selectedTransaction) {
+    return selectedTransaction;
+  }
+
+  return transactions.length > 0 ? transactions[0] : undefined;
 }

@@ -4,7 +4,7 @@ import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {OrganizationSummary, Project} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -235,7 +235,7 @@ export function modifyTrendView(
   location: Location,
   trendsType: TrendChangeType,
   projects: Project[],
-  organization: Organization,
+  organization: OrganizationSummary,
   isProjectOnly?: boolean
 ) {
   const trendFunction = getCurrentTrendFunction(location);
