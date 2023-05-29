@@ -198,10 +198,12 @@ export const getEndpointDetailSeriesQuery = ({
   groupId,
 }) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
+  const interval = 12;
   return `SELECT
-     toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
+     toStartOfInterval(start_timestamp, INTERVAL ${interval} HOUR) as interval,
      quantile(0.5)(exclusive_time) as p50,
      quantile(0.95)(exclusive_time) as p95,
+     divide(count(), multiply(${interval}, 60)) as spm,
      count() as count,
      countIf(greaterOrEquals(status, 400) AND lessOrEquals(status, 599)) as failure_count,
      failure_count / count as failure_rate
