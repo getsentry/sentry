@@ -11,15 +11,12 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import {ERRORS_COLOR} from 'sentry/views/starfish/colours';
-import Chart from 'sentry/views/starfish/components/chart';
 import {SpanBaselineTable} from 'sentry/views/starfish/views/spans/spanSummaryPage/spanBaselineTable';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spans/spanSummaryPanel';
 import {ReleasePreview} from 'sentry/views/starfish/views/spans/spanSummaryPanel/releasePreview';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanTransactionsTable';
 import {useSpanById} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanById';
 import {useSpanMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetrics';
-import {useSpanMetricSeries} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetricSeries';
 import {
   useSpanFirstSeenEvent,
   useSpanLastSeenEvent,
@@ -34,7 +31,6 @@ function SpanSummaryPage({params}: Props) {
 
   const {data: span} = useSpanById(groupId, 'span-summary-page');
   const {data: spanMetrics} = useSpanMetrics({group_id: groupId});
-  const {data: spanMetricSeries} = useSpanMetricSeries(span);
   const {data: firstSeenSpanEvent} = useSpanFirstSeenEvent({group_id: groupId});
   const {data: lastSeenSpanEvent} = useSpanLastSeenEvent({group_id: groupId});
 
@@ -75,27 +71,6 @@ function SpanSummaryPage({params}: Props) {
                     <ReleasePreview release={lastSeenSpanEvent?.release} />
                   )}
                 </Block>
-              </BlockContainer>
-
-              <BlockContainer>
-                {span?.span_operation === 'http.client' ? (
-                  <Block title={t('Failure Rate')} description={t('Non-200 HTTP status')}>
-                    <Chart
-                      statsPeriod="24h"
-                      height={140}
-                      data={[spanMetricSeries.failure_rate]}
-                      start=""
-                      end=""
-                      loading={false}
-                      chartColors={[ERRORS_COLOR]}
-                      utc={false}
-                      stacked
-                      isLineChart
-                      disableXAxis
-                      hideYAxisSplitLine
-                    />
-                  </Block>
-                ) : null}
               </BlockContainer>
 
               {span && <SpanBaselineTable span={span} />}
