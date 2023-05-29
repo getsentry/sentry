@@ -211,9 +211,7 @@ function SpanSummaryPage({params}: Props) {
                   </Block>
                 ) : null}
               </BlockContainer>
-              <BlockContainer>
-                {span && <SpanTransactionsTable span={span} />}
-              </BlockContainer>
+              {span && <SpanTransactionsTable span={span} />}
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>

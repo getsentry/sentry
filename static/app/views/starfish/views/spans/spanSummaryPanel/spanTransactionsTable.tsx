@@ -2,7 +2,10 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import * as qs from 'query-string';
 
-import GridEditable, {GridColumnHeader as Column} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnHeader as Column,
+} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import Truncate from 'sentry/components/truncate';
 import {Series} from 'sentry/types/echarts';
@@ -100,7 +103,7 @@ function TransactionCell({span, column, row}: CellProps) {
           transaction: row.transaction,
         })}`}
       >
-        <Truncate value={row[column.key]} maxLength={50} />
+        <Truncate value={row[column.key]} maxLength={75} />
       </Link>
     </Fragment>
   );
@@ -149,17 +152,17 @@ function EPMCell({row}: CellProps) {
 const COLUMN_ORDER = [
   {
     key: 'transaction',
-    name: 'Transaction',
-    width: -1,
+    name: 'In Endpoint',
+    width: 500,
   },
   {
     key: 'epm()',
-    name: 'Txn Throughput (TPM)',
-    width: -1,
+    name: 'Throughput (TPM)',
+    width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'p50(transaction.duration)',
-    name: 'Txn Duration (p50)',
-    width: -1,
+    name: 'Duration (P50)',
+    width: COL_WIDTH_UNDEFINED,
   },
 ];
