@@ -310,16 +310,6 @@ function getColumns(queryConditions: string[]): GridColumnOrder[] {
       width: COL_WIDTH_UNDEFINED,
     },
     {
-      key: 'app_impact',
-      name: 'App Impact',
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: 'transactions',
-      name: 'Transactions',
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
       key: 'throughput_trend',
       name: 'Throughput (SPM)',
       width: 175,
