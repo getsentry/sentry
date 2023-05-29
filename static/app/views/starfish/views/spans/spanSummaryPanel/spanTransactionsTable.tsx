@@ -102,8 +102,6 @@ function TransactionCell({span, column, row}: CellProps) {
       >
         <Truncate value={row[column.key]} maxLength={50} />
       </Link>
-
-      <span>{row.count} spans</span>
     </Fragment>
   );
 }
