@@ -311,7 +311,7 @@ function getColumns(queryConditions: string[]): GridColumnOrder[] {
     },
     {
       key: 'throughput_trend',
-      name: 'Throughput (SPM)',
+      name: 'Throughput',
       width: 175,
     },
     {
@@ -320,9 +320,9 @@ function getColumns(queryConditions: string[]): GridColumnOrder[] {
       width: 175,
     },
     {
-      key: 'p95_trend',
-      name: 'Duration (p95)',
-      width: 175,
+      key: 'app_impact',
+      name: 'App Impact',
+      width: COL_WIDTH_UNDEFINED,
     },
   ];
 

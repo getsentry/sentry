@@ -88,8 +88,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
   return (
     <ChartsContainer>
       <ChartsContainerItem>
-      <ChartsContainerItem>
-        <ChartPanel title={t('Throughput (SPM)')}>
+        <ChartPanel title={t('Throughput')}>
           <Chart
             statsPeriod="24h"
             height={100}
@@ -117,7 +116,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
       </ChartsContainerItem>
 
       <ChartsContainerItem>
-        <ChartPanel title={t('p50')}>
+        <ChartPanel title={t('Duration (P50)')}>
           <Chart
             statsPeriod="24h"
             height={100}
