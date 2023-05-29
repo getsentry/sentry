@@ -1,8 +1,4 @@
 import Detail from 'sentry/views/starfish/components/detailPanel';
-import {
-  FlexRowContainer,
-  FlexRowItem,
-} from 'sentry/views/starfish/modules/databaseModule/panel';
 
 type Props = {
   groupId: string;
@@ -13,11 +9,7 @@ type Props = {
 function SampleList({onClose, groupId, transactionName}: Props) {
   return (
     <Detail detailKey={groupId} onClose={onClose}>
-      <FlexRowContainer>
-        <FlexRowItem>
-          <h3>{transactionName}</h3>
-        </FlexRowItem>
-      </FlexRowContainer>
+      <h3>{transactionName}</h3>
     </Detail>
   );
 }
