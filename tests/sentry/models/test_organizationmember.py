@@ -33,6 +33,14 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         with self.settings(SECRET_KEY="a"):
             assert member.legacy_token == "f3f2aa3e57f4b936dfd4f42c38db003e"
 
+    def test_legacy_token_generation_no_email(self):
+        """
+        We include membership tokens in RPC memberships so it needs to not error
+        for accepted invites.
+        """
+        member = OrganizationMember(organization_id=1, user_id=self.user.id)
+        assert member.legacy_token
+
     def test_legacy_token_generation_unicode_key(self):
         member = OrganizationMember(id=1, organization_id=1, email="foo@example.com")
         with self.settings(
