@@ -90,7 +90,9 @@ class TopSpansMetricsQueryBuilder(TimeseriesSpansMetricsQueryBuilder):
                     continue
 
                 value = event.get(field)
-                value = self.resolve_tag_value(value)
+                # TODO: Handle potential None case
+                if value is not None:
+                    value = self.resolve_tag_value(str(value))
                 values.add(value)
 
             values_list = list(values)
