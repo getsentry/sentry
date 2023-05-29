@@ -1,4 +1,5 @@
 import logging
+import re
 
 import sentry_sdk
 from django.conf import settings
@@ -78,7 +79,13 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             transaction_name = t["transaction"]
             project = t["project"]
             t_p_key = project + "," + transaction_name
-            trending_transaction_names_stats[t_p_key] = stats_data.data[t_p_key]
+            if t_p_key in stats_data.data:
+                trending_transaction_names_stats[t_p_key] = stats_data.data[t_p_key]
+            else:
+                logger.warning(
+                    "trends.trends-request.timeseries.key-mismatch",
+                    extra={"result_key": t_p_key, "timeseries_keys": stats_data.data.keys()},
+                )
 
         return trending_events, trending_transaction_names_stats, trends_request
 
@@ -119,7 +126,9 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             )
 
         def generate_top_transaction_query(events):
-            top_transaction_names = [event.get("transaction") for event in events]
+            top_transaction_names = [
+                re.sub(r'"', '\\"', event.get("transaction")) for event in events
+            ]
             top_transaction_as_str = ", ".join(
                 f'"{transaction}"' for transaction in top_transaction_names
             )

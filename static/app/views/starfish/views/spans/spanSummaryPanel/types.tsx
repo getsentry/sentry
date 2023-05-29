@@ -5,4 +5,5 @@ export type Span = {
   description?: string;
   domain?: string;
   formatted_desc?: string;
+  span_id?: string;
 };
