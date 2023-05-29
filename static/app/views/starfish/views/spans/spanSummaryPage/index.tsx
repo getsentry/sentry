@@ -219,6 +219,7 @@ function SpanSummaryPage({params}: Props) {
               </BlockContainer>
               {transactionName && (
                 <SampleList
+                  spanDescription={span.description}
                   groupId={span.group_id}
                   onClose={() => setTransactionName(undefined)}
                   transactionName={transactionName}
