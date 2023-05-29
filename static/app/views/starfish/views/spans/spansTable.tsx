@@ -11,7 +11,6 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
@@ -196,22 +195,6 @@ function renderBodyCell(
     return (
       <Sparkline
         color={DURATION_COLOR}
-        series={row[column.key]}
-        width={column.width ? column.width - column.width / 5 : undefined}
-        markLine={horizontalLine}
-      />
-    );
-  }
-
-  if (column.key === 'p95_trend' && row[column.key]) {
-    const horizontalLine = generateHorizontalLine(
-      `${getDuration(row.p95 / 1000, 2, true)}`,
-      row.p95,
-      theme
-    );
-    return (
-      <Sparkline
-        color={CHART_PALETTE[3][2]}
         series={row[column.key]}
         width={column.width ? column.width - column.width / 5 : undefined}
         markLine={horizontalLine}
