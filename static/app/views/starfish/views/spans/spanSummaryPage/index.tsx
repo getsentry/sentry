@@ -7,7 +7,6 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -18,7 +17,6 @@ import {SpanBaselineTable} from 'sentry/views/starfish/views/spans/spanSummaryPa
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spans/spanSummaryPanel';
 import {ReleasePreview} from 'sentry/views/starfish/views/spans/spanSummaryPanel/releasePreview';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanTransactionsTable';
-import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
 import {useSpanById} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanById';
 import {useSpanMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetrics';
 import {useSpanMetricSeries} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetricSeries';
@@ -35,7 +33,6 @@ function SpanSummaryPage({params}: Props) {
   const {groupId} = params;
 
   const {data: span} = useSpanById(groupId, 'span-summary-page');
-  const {data: applicationMetrics} = useApplicationMetrics();
   const {data: spanMetrics} = useSpanMetrics({group_id: groupId});
   const {data: spanMetricSeries} = useSpanMetricSeries(span);
   const {data: firstSeenSpanEvent} = useSpanFirstSeenEvent({group_id: groupId});
@@ -76,26 +73,6 @@ function SpanSummaryPage({params}: Props) {
                   <TimeSince date={spanMetrics?.last_seen} />
                   {lastSeenSpanEvent?.release && (
                     <ReleasePreview release={lastSeenSpanEvent?.release} />
-                  )}
-                </Block>
-
-                <Block
-                  title={t('Total Spans')}
-                  description={t(
-                    'The total number of times this span was seen in all time'
-                  )}
-                >
-                  {spanMetrics?.count}
-                </Block>
-
-                <Block
-                  title={t('App Impact')}
-                  description={t(
-                    'The total exclusive time taken up by this span vs. entire application'
-                  )}
-                >
-                  {formatPercentage(
-                    spanMetrics?.total_time / applicationMetrics?.total_time
                   )}
                 </Block>
               </BlockContainer>
