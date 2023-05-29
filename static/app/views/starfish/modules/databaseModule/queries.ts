@@ -14,7 +14,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DataRow} from 'sentry/views/starfish/components/databaseTableView';
-import {TransactionListDataRow} from 'sentry/views/starfish/modules/databaseModule/panel';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {
   datetimeToClickhouseFilterTimestamps,
@@ -25,6 +24,16 @@ import {
   UseSpansQueryReturnType,
   useWrappedDiscoverTimeseriesQuery,
 } from 'sentry/views/starfish/utils/useSpansQuery';
+
+export type TransactionListDataRow = {
+  count: number;
+  example: string;
+  frequency: number;
+  group_id: string;
+  p75: number;
+  transaction: string;
+  uniqueEvents: number;
+};
 
 export const DEFAULT_WHERE = `
   startsWith(span_operation, 'db') and
