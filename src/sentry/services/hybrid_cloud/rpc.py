@@ -421,7 +421,18 @@ def dispatch_to_local_service(
     service, method = _look_up_service_method(service_name, method_name)
     raw_arguments = service.deserialize_rpc_arguments(method_name, serial_arguments)
     result = method(**raw_arguments.__dict__)
-    return result.dict() if isinstance(result, RpcModel) else result
+
+    if isinstance(result, RpcModel):
+        return result.dict()
+    if isinstance(result, list):
+        output = []
+        for item in result:
+            if isinstance(item, RpcModel):
+                output.append(item.dict())
+            else:
+                output.append(item)
+        return output
+    return result
 
 
 _RPC_CONTENT_CHARSET = "utf-8"
@@ -467,7 +478,6 @@ def dispatch_remote_call(
 
 def _fire_request(url: str, body: Any, api_token: str) -> urllib.response.addinfourl:
     # TODO: Performance considerations (persistent connections, pooling, etc.)?
-
     data = json.dumps(body).encode(_RPC_CONTENT_CHARSET)
 
     request = Request(url)
