@@ -1,13 +1,10 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader as Column,
 } from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
-import Truncate from 'sentry/components/truncate';
 import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -15,11 +12,11 @@ import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
+import {SpanDescription} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanDescription';
 import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
 import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
-import {useSpanTransactionMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactionMetrics';
-import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactionMetricSeries';
-import {useSpanTransactions} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactions';
+import {useSpanMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetrics';
+import {useSpanMetricSeries} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetricSeries';
 
 type Props = {
   span: Span;
@@ -31,36 +28,18 @@ type Metric = {
 };
 
 type Row = {
-  count: number;
+  app_impact: string;
+  description: string;
   metricSeries: Record<string, Series>;
   metrics: Metric;
-  transaction: string;
 };
 
-export function SpanTransactionsTable({span}: Props) {
+export function SpanBaselineTable({span}: Props) {
   const location = useLocation();
+
   const {data: applicationMetrics} = useApplicationMetrics();
-
-  const {data: spanTransactions, isLoading} = useSpanTransactions(span);
-  const {data: spanTransactionMetrics} = useSpanTransactionMetrics(
-    span,
-    spanTransactions.map(row => row.transaction)
-  );
-  const {data: spanTransactionMetricsSeries} = useSpanTransactionMetricSeries(
-    spanTransactions.map(row => row.transaction)
-  );
-
-  const spanTransactionsWithMetrics = spanTransactions.map(row => {
-    return {
-      ...row,
-      app_impact: formatPercentage(
-        spanTransactionMetrics[row.transaction]?.['sum(span.self_time)'] /
-          applicationMetrics.total_time
-      ),
-      metrics: spanTransactionMetrics[row.transaction],
-      metricSeries: spanTransactionMetricsSeries[row.transaction],
-    };
-  });
+  const {data: spanMetrics} = useSpanMetrics(span);
+  const {data: spanMetricSeries} = useSpanMetricSeries(span);
 
   const renderHeadCell = column => {
     return <span>{column.name}</span>;
@@ -72,8 +51,17 @@ export function SpanTransactionsTable({span}: Props) {
 
   return (
     <GridEditable
-      isLoading={isLoading}
-      data={spanTransactionsWithMetrics}
+      isLoading={false}
+      data={[
+        {
+          description: span.description ?? '',
+          metrics: spanMetrics,
+          metricSeries: spanMetricSeries,
+          app_impact: formatPercentage(
+            spanMetrics.total_time / applicationMetrics.total_time
+          ),
+        },
+      ]}
       columnOrder={COLUMN_ORDER}
       columnSortBy={[]}
       grid={{
@@ -88,11 +76,11 @@ export function SpanTransactionsTable({span}: Props) {
 type CellProps = {column: Column; row: Row; span: Span};
 
 function BodyCell({span, column, row}: CellProps) {
-  if (column.key === 'transaction') {
-    return <TransactionCell span={span} row={row} column={column} />;
+  if (column.key === 'description') {
+    return <DescriptionCell span={span} row={row} column={column} />;
   }
 
-  if (column.key === 'p50(transaction.duration)') {
+  if (column.key === 'p50(span.self_time)') {
     return <P50Cell span={span} row={row} column={column} />;
   }
 
@@ -103,24 +91,14 @@ function BodyCell({span, column, row}: CellProps) {
   return <span>{row[column.key]}</span>;
 }
 
-function TransactionCell({span, column, row}: CellProps) {
-  return (
-    <Fragment>
-      <Link
-        to={`/starfish/span-summary/${encodeURIComponent(span.group_id)}?${qs.stringify({
-          transaction: row.transaction,
-        })}`}
-      >
-        <Truncate value={row[column.key]} maxLength={75} />
-      </Link>
-    </Fragment>
-  );
+function DescriptionCell({span}: CellProps) {
+  return <SpanDescription span={span} />;
 }
 
 function P50Cell({row}: CellProps) {
   const theme = useTheme();
-  const p50 = row.metrics?.['p50(transaction.duration)'];
-  const p50Series = row.metricSeries?.['p50(transaction.duration)'];
+  const p50 = row.metrics?.p50;
+  const p50Series = row.metricSeries?.p50;
 
   return (
     <Fragment>
@@ -139,8 +117,8 @@ function P50Cell({row}: CellProps) {
 
 function EPMCell({row}: CellProps) {
   const theme = useTheme();
-  const epm = row.metrics?.['epm()'];
-  const epmSeries = row.metricSeries?.['epm()'];
+  const epm = row.metrics?.spm;
+  const epmSeries = row.metricSeries?.spm;
 
   return (
     <Fragment>
@@ -159,8 +137,8 @@ function EPMCell({row}: CellProps) {
 
 const COLUMN_ORDER = [
   {
-    key: 'transaction',
-    name: 'In Endpoint',
+    key: 'description',
+    name: 'Description',
     width: 500,
   },
   {
@@ -169,7 +147,7 @@ const COLUMN_ORDER = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p50(transaction.duration)',
+    key: 'p50(span.self_time)',
     name: 'Duration (P50)',
     width: COL_WIDTH_UNDEFINED,
   },

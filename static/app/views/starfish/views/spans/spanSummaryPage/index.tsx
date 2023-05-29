@@ -1,8 +1,6 @@
 import {RouteComponentProps} from 'react-router';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -14,15 +12,11 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import {
-  DURATION_COLOR,
-  ERRORS_COLOR,
-  THROUGHPUT_COLOR,
-} from 'sentry/views/starfish/colours';
+import {ERRORS_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
+import {SpanBaselineTable} from 'sentry/views/starfish/views/spans/spanSummaryPage/spanBaselineTable';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spans/spanSummaryPanel';
 import {ReleasePreview} from 'sentry/views/starfish/views/spans/spanSummaryPanel/releasePreview';
-import {SpanDescription} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanDescription';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanTransactionsTable';
 import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
 import {useSpanById} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanById';
@@ -39,8 +33,6 @@ type Props = {
 
 function SpanSummaryPage({params}: Props) {
   const {groupId} = params;
-
-  const theme = useTheme();
 
   const {data: span} = useSpanById(groupId, 'span-summary-page');
   const {data: applicationMetrics} = useApplicationMetrics();
@@ -107,91 +99,8 @@ function SpanSummaryPage({params}: Props) {
                   )}
                 </Block>
               </BlockContainer>
-              <BlockContainer>
-                {span && (
-                  <Block title={t('Description')}>
-                    <SpanDescription span={span} />
-                  </Block>
-                )}
-              </BlockContainer>
-              <BlockContainer>
-                <Block
-                  title={t('Span Throughput (SPM)')}
-                  description={t('Spans per minute')}
-                >
-                  <Chart
-                    statsPeriod="24h"
-                    height={140}
-                    data={[
-                      {
-                        ...spanMetricSeries.spm,
-                        markLine: spanMetrics?.p50
-                          ? MarkLine({
-                              silent: true,
-                              animation: false,
-                              lineStyle: {color: theme.blue300, type: 'dotted'},
-                              data: [
-                                {
-                                  yAxis: spanMetrics.spm,
-                                },
-                              ],
-                              label: {
-                                show: true,
-                                position: 'insideStart',
-                              },
-                            })
-                          : undefined,
-                      },
-                    ]}
-                    start=""
-                    end=""
-                    loading={false}
-                    chartColors={[THROUGHPUT_COLOR]}
-                    utc={false}
-                    stacked
-                    isLineChart
-                    disableXAxis
-                    hideYAxisSplitLine
-                  />
-                </Block>
 
-                <Block title={t('Span Duration (p50)')} description={t('Exclusive time')}>
-                  <Chart
-                    statsPeriod="24h"
-                    height={140}
-                    data={[
-                      {
-                        ...spanMetricSeries.p50,
-                        markLine: spanMetrics?.p50
-                          ? MarkLine({
-                              silent: true,
-                              animation: false,
-                              lineStyle: {color: theme.blue300, type: 'dotted'},
-                              data: [
-                                {
-                                  yAxis: spanMetrics.p50,
-                                },
-                              ],
-                              label: {
-                                show: true,
-                                position: 'insideStart',
-                              },
-                            })
-                          : undefined,
-                      },
-                    ]}
-                    start=""
-                    end=""
-                    loading={false}
-                    chartColors={[DURATION_COLOR]}
-                    utc={false}
-                    stacked
-                    isLineChart
-                    disableXAxis
-                    hideYAxisSplitLine
-                  />
-                </Block>
-
+              <BlockContainer>
                 {span?.span_operation === 'http.client' ? (
                   <Block title={t('Failure Rate')} description={t('Non-200 HTTP status')}>
                     <Chart
@@ -211,6 +120,8 @@ function SpanSummaryPage({params}: Props) {
                   </Block>
                 ) : null}
               </BlockContainer>
+
+              {span && <SpanBaselineTable span={span} />}
               {span && <SpanTransactionsTable span={span} />}
             </Layout.Main>
           </Layout.Body>

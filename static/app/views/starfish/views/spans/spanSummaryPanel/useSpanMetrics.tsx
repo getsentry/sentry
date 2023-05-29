@@ -28,7 +28,7 @@ export const useSpanMetrics = (
     enabled: Boolean(span),
   });
 
-  return {isLoading, error, data: data[0]};
+  return {isLoading, error, data: data[0] ?? {}};
 };
 
 const getQuery = (span: Pick<Span, 'group_id'>) => {
