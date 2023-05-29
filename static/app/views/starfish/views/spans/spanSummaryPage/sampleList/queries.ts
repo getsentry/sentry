@@ -1,16 +1,13 @@
 import keyBy from 'lodash/keyBy';
 
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   useQueryGetSpanSamples,
   useQuerySpansInTransaction,
 } from 'sentry/views/starfish/views/spanSummary/queries';
-
-type Transaction = {
-  duration: number;
-  id: string;
-  timestamp: string;
-};
 
 type SampleListDatRow = {
   exclusive_time: number;
@@ -97,19 +94,19 @@ export const useQueryGetSpanTransactionSamples = ({
   return {data: newData, isLoading, isRefetching};
 };
 
-const useQueryTransactionData = (data: {transaction_id: string}[]) =>
-  useApiQuery<{
-    data: {data: Transaction[]};
-  }>(
-    [
-      `/organizations/sentry/events/?field=id&field=timestamp&field=transaction.duration&field=project.name&query=id:[${data
-        .map(datum => datum.transaction_id.replaceAll('-', ''))
-        .join(
-          ','
-        )}]&referrer=api.starfish.span-summary-table&sort=-transaction.duration&statsPeriod=14d`,
-    ],
+const useQueryTransactionData = (data: {transaction_id: string}[]) => {
+  const location = useLocation();
+  const {slug} = useOrganization();
+  const eventView = EventView.fromNewQueryWithLocation(
     {
-      staleTime: 0,
-      enabled: data.length > 0,
-    }
+      fields: ['id', 'timestamp', 'project.name'],
+      name: 'Starfish - Sample List - transaction data',
+      projects: [1],
+      version: 2,
+      query: `id:[${data.map(d => d.transaction_id.replaceAll('-', '')).join(',')}]`,
+    },
+    location
   );
+
+  return useDiscoverQuery({eventView, location, orgSlug: slug});
+};
