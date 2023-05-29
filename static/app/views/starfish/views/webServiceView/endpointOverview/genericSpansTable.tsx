@@ -3,6 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 import {COL_WIDTH_UNDEFINED, GridColumnOrder} from 'sentry/components/gridEditable';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {ModuleName} from 'sentry/views/starfish/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {
   getSpanListQuery,
@@ -52,7 +53,6 @@ export function GenericSpansTable({transaction}: {transaction?: string}) {
     queryFn: () =>
       fetch(
         `${HOST}/?query=${getSpanListQuery(
-          undefined,
           pageFilter.selection.datetime,
           queryConditions,
           orderBy,
@@ -72,11 +72,7 @@ export function GenericSpansTable({transaction}: {transaction?: string}) {
     queryKey: ['spansTrends'],
     queryFn: () =>
       fetch(
-        `${HOST}/?query=${getSpansTrendsQuery(
-          undefined,
-          pageFilter.selection.datetime,
-          groupIDs
-        )}`
+        `${HOST}/?query=${getSpansTrendsQuery(pageFilter.selection.datetime, groupIDs)}`
       ).then(res => res.json()),
     retry: false,
     refetchOnWindowFocus: false,
@@ -86,6 +82,7 @@ export function GenericSpansTable({transaction}: {transaction?: string}) {
 
   return (
     <SpansTable
+      moduleName={ModuleName.ALL}
       columnOrder={COLUMN_ORDER}
       location={location}
       queryConditions={queryConditions}
