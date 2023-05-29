@@ -19,11 +19,10 @@ import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 type Props = {
-  descriptionFilter: string;
   queryConditions: string[];
 };
 
-export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
+export function SpanTimeCharts({queryConditions}: Props) {
   const themes = useTheme();
   const location = useLocation();
 
@@ -38,7 +37,6 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
   const {isLoading, data} = useSpansQuery({
     queryString: `${getSpanTotalTimeChartQuery(
       pageFilter.selection.datetime,
-      descriptionFilter,
       queryConditions
     )}&referrer=span-time-charts`,
     initialData: [],
@@ -145,7 +143,6 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
 
 export const getSpanTotalTimeChartQuery = (
   datetime: DateTimeObject,
-  descriptionFilter: string | undefined,
   conditions: string[] = []
 ) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
@@ -161,7 +158,6 @@ export const getSpanTotalTimeChartQuery = (
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     ${validConditions.length > 0 ? 'AND' : ''}
     ${validConditions.join(' AND ')}
-    ${descriptionFilter ? `AND match(lower(description), '${descriptionFilter}')` : ''}
     GROUP BY interval
     ORDER BY interval ASC
   `;
