@@ -33,20 +33,22 @@ function DurationChart({groupId, transactionName, spanDescription}: Props) {
     module,
   });
 
-  const {p50: p50Series} = queryDataToChartData(seriesData, startTime, endTime, {
-    lineStyle: {type: 'dotted'},
-  });
+  const {p50: p50Series, p95: p95Series} = queryDataToChartData(
+    seriesData,
+    startTime,
+    endTime
+  );
 
   return (
     <Chart
       statsPeriod="24h"
       height={140}
-      data={[p50Series ?? []]}
+      data={p50Series && p95Series ? [p50Series, p95Series] : []}
       start=""
       end=""
       loading={isLoading || isLoadingSeriesData}
       utc={false}
-      chartColors={theme.charts.getColorPalette(4).slice(5, 6)}
+      chartColors={theme.charts.getColorPalette(4).slice(3, 6)}
       stacked
       isLineChart
       disableXAxis
