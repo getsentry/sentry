@@ -65,23 +65,6 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
     );
   });
 
-  const totalTimeSeries = Object.keys(dataByGroup).map(groupName => {
-    const groupData = dataByGroup[groupName];
-
-    return zeroFillSeries(
-      {
-        seriesName: label ?? 'Total Time',
-        data: groupData.map(datum => ({
-          value: datum.total_time,
-          name: datum.interval,
-        })),
-      },
-      moment.duration(1, 'day'),
-      startTime,
-      endTime
-    );
-  });
-
   const p50Series = Object.keys(dataByGroup).map(groupName => {
     const groupData = dataByGroup[groupName];
 
@@ -104,29 +87,6 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
   return (
     <ChartsContainer>
       <ChartsContainerItem>
-        <ChartPanel title={t('Total Time')}>
-          <Chart
-            statsPeriod="24h"
-            height={100}
-            data={totalTimeSeries}
-            start=""
-            end=""
-            loading={isLoading}
-            utc={false}
-            grid={{
-              left: '0',
-              right: '0',
-              top: '8px',
-              bottom: '0',
-            }}
-            definedAxisTicks={4}
-            stacked
-            chartColors={themes.charts.getColorPalette(2)}
-            disableXAxis
-          />
-        </ChartPanel>
-      </ChartsContainerItem>
-
       <ChartsContainerItem>
         <ChartPanel title={t('Throughput (SPM)')}>
           <Chart
