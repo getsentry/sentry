@@ -40,7 +40,7 @@ def save_forecast_per_group(
             forecast_threshold_version = (
                 looser_version
                 if features.has(
-                    "organization:escalating-issues-experiment-group", group.project.organization
+                    "organizations:escalating-issues-experiment-group", group.project.organization
                 )
                 else standard_version
             )
