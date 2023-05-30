@@ -1033,29 +1033,19 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             self.rule, WARNING_TRIGGER_LABEL, critical_trigger.alert_threshold - 20
         )
         critical_action = self.action
-        other_critical_action = create_alert_rule_trigger_action(
-            critical_trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            "not" + str(self.user.id),
-        )
         warning_action = create_alert_rule_trigger_action(
             warning_trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
+            # "warning" prefix differentiates this action from the critical action, so it
+            # doesn't get deduplicated
             "warning" + str(self.user.id),
-        )
-        other_warning_action = create_alert_rule_trigger_action(
-            warning_trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            "warning" + "not" + str(self.user.id),
         )
         return (
             critical_trigger,
             warning_trigger,
-            [other_critical_action, critical_action],
-            [other_warning_action, warning_action],
+            critical_action,
+            warning_action,
         )
 
     def test_multiple_triggers_multiple_actions_warning_to_resolved(self):
@@ -1063,8 +1053,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         (
             critical_trigger,
             warning_trigger,
-            critical_actions,
-            warning_actions,
+            critical_action,
+            warning_action,
         ) = self.setup_for_multiple_triggers_multiple_actions_test()
         self.send_update(
             rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
@@ -1074,9 +1064,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
             incident,
-            warning_actions,
+            [warning_action],
             [
-                (warning_trigger.alert_threshold + 1, IncidentStatus.WARNING),
                 (warning_trigger.alert_threshold + 1, IncidentStatus.WARNING),
             ],
         )
@@ -1089,9 +1078,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
             incident,
-            warning_actions,
+            [warning_action],
             [
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
                 (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
             ],
         )
@@ -1101,8 +1089,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         (
             critical_trigger,
             warning_trigger,
-            critical_actions,
-            warning_actions,
+            critical_action,
+            warning_action,
         ) = self.setup_for_multiple_triggers_multiple_actions_test()
         self.send_update(
             rule,
@@ -1115,10 +1103,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
             incident,
-            warning_actions + critical_actions,
+            [warning_action, critical_action],
             [
-                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
-                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
                 (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
                 (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
             ],
@@ -1132,10 +1118,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
             incident,
-            warning_actions + critical_actions,
+            [warning_action, critical_action],
             [
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
                 (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
                 (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
             ],
@@ -1146,8 +1130,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         (
             critical_trigger,
             warning_trigger,
-            critical_actions,
-            warning_actions,
+            critical_action,
+            warning_action,
         ) = self.setup_for_multiple_triggers_multiple_actions_test()
         self.send_update(
             rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-15), subscription=self.sub
@@ -1157,9 +1141,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
             incident,
-            warning_actions,
+            [warning_action],
             [
-                (warning_trigger.alert_threshold + 1, IncidentStatus.WARNING),
                 (warning_trigger.alert_threshold + 1, IncidentStatus.WARNING),
             ],
         )
@@ -1175,10 +1158,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
             incident,
-            warning_actions + critical_actions,
+            [warning_action, critical_action],
             [
-                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
-                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
                 (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
                 (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
             ],
@@ -1192,10 +1173,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
             incident,
-            warning_actions + critical_actions,
+            [warning_action, critical_action],
             [
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
                 (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
                 (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
             ],
@@ -1206,8 +1185,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         (
             critical_trigger,
             warning_trigger,
-            critical_actions,
-            warning_actions,
+            critical_action,
+            warning_action,
         ) = self.setup_for_multiple_triggers_multiple_actions_test()
         self.send_update(
             rule,
@@ -1220,10 +1199,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
             incident,
-            warning_actions + critical_actions,
+            [warning_action, critical_action],
             [
-                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
-                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
                 (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
                 (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
             ],
@@ -1240,9 +1217,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
         self.assert_actions_resolved_for_incident(
             incident,
-            warning_actions,
+            [warning_action],
             [
-                (critical_trigger.alert_threshold - 1, IncidentStatus.WARNING),
                 (critical_trigger.alert_threshold - 1, IncidentStatus.WARNING),
             ],
         )
@@ -1255,10 +1231,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
             incident,
-            warning_actions + critical_actions,
+            [warning_action, critical_action],
             [
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
                 (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
                 (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
             ],
