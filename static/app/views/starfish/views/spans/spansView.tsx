@@ -107,7 +107,6 @@ export default function SpansView(props: Props) {
       <PaddedContainer>
         <SpansTable
           moduleName={props.moduleName || ModuleName.ALL}
-          queryConditions={queryConditions}
           isLoading={areSpansLoading || areSpansTrendsLoading}
           spansData={spansData}
           orderBy={orderBy}
