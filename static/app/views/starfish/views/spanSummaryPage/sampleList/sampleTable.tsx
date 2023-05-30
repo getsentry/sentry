@@ -1,6 +1,6 @@
 import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
-import {useQueryGetSpanTransactionSamples} from 'sentry/views/starfish/views/spans/spanSummaryPage/sampleList/queries';
-import {useQuerySpansInTransaction} from 'sentry/views/starfish/views/spanSummary/queries';
+import {useQuerySpansInTransaction} from 'sentry/views/starfish/views/spanSummaryPage/queries';
+import {useQueryGetSpanTransactionSamples} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/queries';
 
 type Props = {
   groupId: string;

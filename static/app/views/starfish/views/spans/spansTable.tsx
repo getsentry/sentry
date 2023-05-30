@@ -19,9 +19,9 @@ import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
+import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
 
 type Props = {
   isLoading: boolean;
@@ -205,7 +205,7 @@ function renderBodyCell(
   if (column.key === 'description') {
     return (
       <OverflowEllipsisTextContainer>
-        <Link to={`/starfish/span-summary/${row.group_id}`}>
+        <Link to={`/starfish/span/${row.group_id}`}>
           {row.span_operation === 'db' ? (
             <StyledFormattedCode>
               {(row as unknown as SpanDataRow).formatted_desc}
