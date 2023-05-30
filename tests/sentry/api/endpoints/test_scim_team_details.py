@@ -2,10 +2,10 @@ from django.urls import reverse
 
 from sentry.models import OrganizationMemberTeam, Team, TeamStatus
 from sentry.testutils import SCIMTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test
 
 
-@region_silo_test
+@control_silo_test
 class SCIMTeamDetailsTests(SCIMTestCase):
     def test_team_details_404(self):
         url = reverse(

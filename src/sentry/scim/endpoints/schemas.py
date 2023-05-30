@@ -1,7 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 
 from .constants import SCIM_SCHEMA_GROUP, SCIM_SCHEMA_USER
 from .utils import OrganizationSCIMMemberPermission, SCIMEndpoint
@@ -184,7 +184,7 @@ SCIM_GROUP_ATTRIBUTES_SCHEMA = {
 SCIM_SCHEMA_LIST = [SCIM_USER_ATTRIBUTES_SCHEMA, SCIM_GROUP_ATTRIBUTES_SCHEMA]
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class OrganizationSCIMSchemaIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
