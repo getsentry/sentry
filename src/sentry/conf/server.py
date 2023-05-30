@@ -2385,7 +2385,7 @@ SENTRY_DEVSERVICES = {
     ),
     "snuba": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/snuba:latest",
+            "image": "us.gcr.io/sentryio/snuba:9ce0eb1359c72f25f9257e3b45f897358310dd04",
             "pull": True,
             "ports": {"1218/tcp": 1218, "1219/tcp": 1219},
             "command": ["devserver"]
