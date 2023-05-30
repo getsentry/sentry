@@ -402,11 +402,11 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         dictionary. Finally, we traverse the set of users and return the ones
         that should get a notification.
         """
-        from sentry.models.user import User
 
         user_ids = project.member_set.values_list("user", flat=True)
-        users = User.objects.filter(id__in=user_ids)
-        return self.filter_to_accepting_recipients(project, users)
+        return self.filter_to_accepting_recipients(
+            project, {RpcUser(id=user_id) for user_id in user_ids}
+        )
 
     def update_settings_bulk(
         self,

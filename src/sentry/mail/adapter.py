@@ -6,7 +6,7 @@ from sentry import digests
 from sentry.digests import Digest
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
-from sentry.models import NotificationSetting, Project, ProjectOption, User
+from sentry.models import NotificationSetting, Project, ProjectOption
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
@@ -14,6 +14,7 @@ from sentry.notifications.notifications.user_report import UserReportNotificatio
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.plugins.base.structs import Notification
 from sentry.services.hybrid_cloud.actor import ActorType
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.tasks.digests import deliver_digest
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
@@ -97,7 +98,7 @@ class MailAdapter:
         notifications for the provided project.
         """
         user_ids = project.member_set.values_list("user", flat=True)
-        users = User.objects.filter(id__in=user_ids)
+        users = user_service.get_many(filter=dict(user_ids=list(user_ids)))
 
         accepting_recipients = NotificationSetting.objects.filter_to_accepting_recipients(
             project, users

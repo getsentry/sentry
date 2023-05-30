@@ -23,6 +23,7 @@ from sentry.incidents.models import (
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.user_option import UserOption
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, get_email_addresses
@@ -74,7 +75,7 @@ class EmailActionHandler(ActionHandler):
         elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
             users = NotificationSetting.objects.filter_to_accepting_recipients(
                 self.project,
-                {member.user for member in target.member_set},
+                {RpcUser(id=member.user_id) for member in target.member_set},
             )[ExternalProviders.EMAIL]
             return {user.id for user in users}
 

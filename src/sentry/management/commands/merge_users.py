@@ -38,7 +38,7 @@ class Command(BaseCommand):
 
         members_by_email = defaultdict(list)
         for member in queryset:
-            if not member.user:
+            if not member.user_id:
                 continue
             members_by_email[member.user.email].append(member.user)
 

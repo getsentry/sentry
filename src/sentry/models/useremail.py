@@ -32,7 +32,7 @@ class UserEmailManager(BaseManager):
         return emails_by_user
 
     def get_primary_email(self, user: User) -> UserEmail:
-        user_email, _ = self.get_or_create(user=user, email=user.email)
+        user_email, _ = self.get_or_create(user_id=user.id, email=user.email)
         return user_email
 
     def get_user_ids_by_emails(

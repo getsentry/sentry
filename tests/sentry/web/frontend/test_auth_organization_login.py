@@ -811,7 +811,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         )
         user = self.create_user("bar@example.com")
         member = self.create_member(email="bar@example.com", organization=self.organization)
-        member.user = None
+        member.user_id = None
         member.save()
         self.login_as(user)
         resp = self.client.post(self.path, {"init": True})
@@ -848,7 +848,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.create_member(organization=self.organization, user=user)
         member = OrganizationMember.objects.get(organization=self.organization, user=user)
         member.email = "foor@example.com"
-        member.user = None
+        member.user_id = None
         member.save()
 
         self.session["_next"] = reverse(
@@ -868,7 +868,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.create_member(organization=self.organization, user=user)
         member = OrganizationMember.objects.get(organization=self.organization, user=user)
         member.email = "u2@example.com"
-        member.user = None
+        member.user_id = None
         member.save()
         resp = self.client.post(
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
@@ -956,7 +956,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.create_member(organization=self.organization, user=user)
         member = OrganizationMember.objects.get(organization=self.organization, user=user)
         member.email = "foor@example.com"
-        member.user = None
+        member.user_id = None
         member.save()
 
         resp = self.client.post(
@@ -974,7 +974,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.create_member(organization=self.organization, user=user)
         member = OrganizationMember.objects.get(organization=self.organization, user=user)
         member.email = "foor@example.com"
-        member.user = None
+        member.user_id = None
         member.save()
 
         resp = self.client.post(

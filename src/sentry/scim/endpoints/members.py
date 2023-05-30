@@ -168,14 +168,14 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             raise PermissionDenied(detail=ERR_ONLY_OWNER)
         with transaction.atomic():
             AuthIdentity.objects.filter(
-                user=member.user, auth_provider__organization_id=organization.id
+                user_id=member.user_id, auth_provider__organization_id=organization.id
             ).delete()
             member.delete()
             self.create_audit_entry(
                 request=request,
                 organization=organization,
                 target_object=member.id,
-                target_user=member.user,
+                target_user_id=member.user_id,
                 event=audit_log.get_event_id("MEMBER_REMOVE"),
                 data=audit_data,
             )

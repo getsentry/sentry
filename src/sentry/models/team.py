@@ -271,7 +271,7 @@ class Team(Model, SnowflakeIdMixin):
         for member in old_memberships:
             try:
                 new_member = OrganizationMember.objects.get(
-                    user=member.user, organization=organization
+                    user_id=member.user_id, organization=organization
                 )
             except OrganizationMember.DoesNotExist:
                 continue

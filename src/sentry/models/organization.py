@@ -352,7 +352,13 @@ class Organization(Model, SnowflakeIdMixin):
             role__in=roles,
         )
         if not include_null_users:
-            members_with_role = members_with_role.filter(user__isnull=False, user__is_active=True)
+            user_ids_with_role = members_with_role.filter(user_id__isnull=False).values_list(
+                "user_id", flat=True
+            )
+            user_ids = user_service.get_many_ids(
+                filter=dict(is_active=True, user_ids=list(user_ids_with_role))
+            )
+            members_with_role = members_with_role.filter(user_id__in=user_ids)
 
         members_with_role = set(members_with_role.values_list("id", flat=True))
 

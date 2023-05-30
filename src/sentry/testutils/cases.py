@@ -110,12 +110,14 @@ from sentry.models import (
     IdentityStatus,
     NotificationSetting,
     Organization,
+    OrganizationMember,
     Project,
     ProjectOption,
     Release,
     ReleaseCommit,
     Repository,
     RuleSource,
+    User,
     UserEmail,
     UserOption,
 )
@@ -268,6 +270,10 @@ class BaseTestCase(Fixtures):
     def login_as(
         self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
     ):
+        if isinstance(user, OrganizationMember):
+            with exempt_from_silo_limits():
+                user = User.objects.get(id=user.user_id)
+
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()

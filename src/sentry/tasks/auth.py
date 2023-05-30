@@ -86,7 +86,7 @@ class OrganizationComplianceTask(abc.ABC):
         actor_key = ApiKey.objects.get(id=actor_key_id) if actor_key_id else None
 
         def remove_member(member):
-            user = member.user
+            user = user_service.get_user(id=member.user_id)
             logging_data = {"organization_id": org_id, "user_id": user.id, "member_id": member.id}
 
             try:
@@ -108,7 +108,7 @@ class OrganizationComplianceTask(abc.ABC):
                     data=member.get_audit_log_data(),
                     organization_id=org_id,
                     target_object=org_id,
-                    target_user=user,
+                    target_user_id=user.id,
                 )
                 org = Organization.objects.get_from_cache(id=org_id)
                 self.call_to_action(org, user, member)
@@ -124,7 +124,10 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     log_label = "2FA"
 
     def is_compliant(self, member: OrganizationMember) -> bool:
-        return member.user.has_2fa()
+        user = user_service.get_user(id=member.user_id)
+        if user:
+            return user.has_2fa()
+        return False
 
     def call_to_action(self, org: Organization, user: User, member: OrganizationMember):
         # send invite to setup 2fa
@@ -159,8 +162,10 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
     log_label = "verified email"
 
     def is_compliant(self, member: OrganizationMember) -> bool:
-        # TODO(hybridcloud) this is doing a join from member to user
-        return UserEmail.objects.get_primary_email(member.user).is_verified
+        user = user_service.get_user(id=member.user_id)
+        if user:
+            return UserEmail.objects.get_primary_email(user).is_verified
+        return False
 
     def call_to_action(self, org: Organization, user: User, member: OrganizationMember):
         import django.contrib.auth.models

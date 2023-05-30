@@ -1,6 +1,7 @@
 from sentry import roles
 from sentry.models import OrganizationMember, User
 from sentry.runner.commands.createuser import createuser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils import CliTestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -53,7 +54,7 @@ class CreateUserTest(CliTestCase):
             assert "you@somewhereawesome.com" in rv.output
             assert OrganizationMember.objects.count() == 1
             member = OrganizationMember.objects.all()[0]
-            assert member.user.email == "you@somewhereawesome.com"
+            assert user_service.get_user(id=member.user_id).email == "you@somewhereawesome.com"
             assert member.organization.slug in rv.output
             assert member.role == member.organization.default_role
 
@@ -64,7 +65,7 @@ class CreateUserTest(CliTestCase):
             assert "you@somewhereawesome.com" in rv.output
             assert OrganizationMember.objects.count() == 1
             member = OrganizationMember.objects.all()[0]
-            assert member.user.email == "you@somewhereawesome.com"
+            assert user_service.get_user(id=member.user_id).email == "you@somewhereawesome.com"
             assert member.organization.slug in rv.output
             assert member.role == roles.get_top_dog().id
 
