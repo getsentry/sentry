@@ -18,11 +18,16 @@ type Metrics = {
 
 export const useSpanMetrics = (
   span?: Pick<Span, 'group_id'>,
+  queryFilters: {transactionName?: string} = {},
   referrer = 'span-metrics'
 ) => {
   const pageFilters = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilters);
   const dateFilters = getDateQueryFilter(startTime, endTime);
+  const filters: string[] = [];
+  if (queryFilters.transactionName) {
+    filters.push(`transaction = ${queryFilters.transactionName}`);
+  }
 
   const query = span
     ? `
@@ -36,7 +41,7 @@ export const useSpanMetrics = (
   FROM spans_experimental_starfish
   WHERE group_id = '${span.group_id}'
   ${dateFilters}
-`
+  ${filters.join(' AND ')}`
     : '';
 
   const {isLoading, error, data} = useQuery<Metrics[]>({
