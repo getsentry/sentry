@@ -76,6 +76,7 @@ class MetricsBucket(TypedDict):
     metric_id: int
     timestamp: int
     value: Any
+    tags: Mapping[str, str]  # TODO: need to account for possibility that tags are integers?
 
 
 class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
@@ -117,25 +118,24 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def _count_processed_items(self, bucket_payload: MetricsBucket) -> Mapping[DataCategory, int]:
         if bucket_payload["metric_id"] != self.metric_id:
-            return 0
+            return {}
         value = bucket_payload["value"]
         try:
             quantity = len(value)
         except TypeError:
             # Unexpected value type for this metric ID, skip.
-            quantity = 0
+            return {}
 
         items = {DataCategory.TRANSACTION: quantity}
 
-        if bucket_payload.get("tags", {}).get("has_profile") == "1":
-            # TODO: need to account for possibility that tags are integers?
+        if bucket_payload["tags"].get("has_profile") == "1":
             # TODO: decode number of profiles?
             items[DataCategory.PROFILE] = quantity
 
         return items
 
     def _produce_billing_outcomes(self, payload: MetricsBucket) -> None:
-        for category, quantity in self._count_processed_transactions(payload):
+        for category, quantity in self._count_processed_items(payload).items():
             self._produce_billing_outcome(
                 org_id=payload["org_id"],
                 project_id=payload["project_id"],

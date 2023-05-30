@@ -22,10 +22,6 @@ def test_outcomes_consumed(track_outcome):
 
     topic = Topic("snuba-generic-metrics")
 
-    # admin = kafka_admin(settings)
-    # admin.delete_topic(metrics_topic)
-    # producer = kafka_producer(settings)
-
     buckets = [
         {  # Counter metric with wrong ID will not generate an outcome
             "metric_id": 123,
@@ -34,6 +30,7 @@ def test_outcomes_consumed(track_outcome):
             "project_id": 2,
             "timestamp": 123,
             "value": 123.4,
+            "tags": {},
         },
         {  # Distribution metric with wrong ID will not generate an outcome
             "metric_id": 123,
@@ -42,6 +39,7 @@ def test_outcomes_consumed(track_outcome):
             "project_id": 2,
             "timestamp": 123,
             "value": [1.0, 2.0],
+            "tags": {},
         },
         {  # Empty distribution will not generate an outcome
             # NOTE: Should not be emitted by Relay anyway
@@ -51,6 +49,7 @@ def test_outcomes_consumed(track_outcome):
             "project_id": 2,
             "timestamp": 123,
             "value": [],
+            "tags": {},
         },
         {  # Valid distribution bucket emits an outcome
             "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
@@ -59,6 +58,7 @@ def test_outcomes_consumed(track_outcome):
             "project_id": 2,
             "timestamp": 123456,
             "value": [1.0, 2.0, 3.0],
+            "tags": {},
         },
         {  # Another bucket to introduce some noise
             "metric_id": 123,
@@ -67,6 +67,7 @@ def test_outcomes_consumed(track_outcome):
             "project_id": 2,
             "timestamp": 123,
             "value": 123.4,
+            "tags": {},
         },
     ]
 
