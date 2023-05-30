@@ -16,6 +16,7 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -34,10 +35,10 @@ from sentry.issues.grouptype import (
     MonitorCheckInMissed,
     MonitorCheckInTimeout,
 )
-from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import produce_occurrence_to_kafka
 from sentry.locks import locks
-from sentry.models import Environment, Rule, RuleSource
+from sentry.models import Environment, Organization, Rule, RuleSource
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
@@ -487,9 +488,57 @@ class MonitorEnvironment(Model):
             return False
 
         group_type, level = get_group_type_and_level(reason)
-        current_timestamp = timezone.now()
+        current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
 
-        if False:
+        use_issue_platform = False
+        try:
+            organization = Organization.objects.get(id=self.monitor.organization_id)
+            use_issue_platform = features.has(
+                "organizations:issue-platform", organization_id=self.monitor.organization_id
+            ) and features.has("organizations:crons-issue-platform", organization=organization)
+        except Organization.DoesNotExist:
+            pass
+
+        if use_issue_platform:
+            occurrence = IssueOccurrence(
+                id=uuid.uuid4().hex,
+                resource_id=None,
+                project_id=self.monitor.project_id,
+                event_id=uuid.uuid4().hex,
+                fingerprint=[f"monitor-{str(self.monitor.guid)}-{reason}"],
+                type=group_type,
+                issue_title=f"Monitor failure: {self.monitor.name} ({reason})",
+                subtitle="",
+                evidence_display=[
+                    IssueEvidence(name="Failure reason", value=reason, important=True),
+                    IssueEvidence(name="Environment", value=self.environment.name, important=False),
+                    IssueEvidence(
+                        name="Last check-in", value=last_checkin.isoformat(), important=False
+                    ),
+                ],
+                evidence_data=None,
+                culprit=None,
+                detection_time=current_timestamp,
+                level=level,
+            )
+
+            produce_occurrence_to_kafka(
+                occurrence,
+                {
+                    "environment": self.environment.name,
+                    "event_id": occurrence.event_id,
+                    "platform": "crons",
+                    "project_id": self.monitor.project_id,
+                    "received": current_timestamp.isoformat(),
+                    "sdk": None,
+                    "tags": {
+                        "monitor.id": str(self.monitor.guid),
+                        "monitor.slug": self.monitor.slug,
+                    },
+                    "timestamp": current_timestamp.isoformat(),
+                },
+            )
+        else:
             from sentry.coreapi import insert_data_to_database_legacy
             from sentry.event_manager import EventManager
             from sentry.models import Project
@@ -512,44 +561,9 @@ class MonitorEnvironment(Model):
             event_manager.normalize()
             data = event_manager.get_data()
             insert_data_to_database_legacy(data)
-        else:
-            occurrence = IssueOccurrence(
-                id=uuid.uuid4().hex,
-                resource_id=None,
-                project_id=self.monitor.project_id,
-                event_id=uuid.uuid4().hex,
-                fingerprint=[f"monitor-{str(self.monitor.guid)}-{reason}"],
-                type=group_type,
-                issue_title=f"Monitor failure: {self.monitor.name} ({reason})",
-                subtitle="",
-                evidence_display=[
-                    {"name": "Failure reason", "value": reason, "important": True},
-                    {"name": "Environment", "value": self.environment.name, "important": False},
-                    {"name": "Last check-in", "value": last_checkin, "important": False},
-                ],
-                detection_time=current_timestamp,
-                level=level,
-            )
 
-            produce_occurrence_to_kafka(
-                occurrence,
-                {
-                    "environment": self.environment.name,
-                    "event_id": occurrence.event_id,
-                    "platform": "crons",
-                    "project_id": self.monitor.project_id,
-                    "received": current_timestamp,
-                    "sdk": None,
-                    "tags": {
-                        "monitor.id": str(self.monitor.guid),
-                        "monitor.slug": self.monitor.slug,
-                    },
-                    "timestamp": current_timestamp,
-                },
-            )
-
-        monitor_environment_failed.send(monitor_environment=self, sender=type(self))
-        return True
+            monitor_environment_failed.send(monitor_environment=self, sender=type(self))
+            return True
 
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
         params = {
@@ -564,11 +578,11 @@ class MonitorEnvironment(Model):
 
 def get_group_type_and_level(reason: str):
     if reason == MonitorFailure.MISSED_CHECKIN:
-        return MonitorCheckInMissed.type_id, "warning"
+        return MonitorCheckInMissed, "warning"
     elif reason == MonitorFailure.DURATION:
-        return MonitorCheckInTimeout.type_id, "error"
+        return MonitorCheckInTimeout, "error"
 
-    return MonitorCheckInFailure.type_id, "error"
+    return MonitorCheckInFailure, "error"
 
 
 @receiver(pre_save, sender=MonitorEnvironment)
