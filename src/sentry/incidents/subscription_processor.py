@@ -122,7 +122,7 @@ class SubscriptionProcessor:
             self._incident_triggers = incident_triggers
         return self._incident_triggers
 
-    def check_trigger_status(self, trigger: AlertRuleTrigger, status: IncidentStatus) -> bool:
+    def check_trigger_status(self, trigger: AlertRuleTrigger, status: TriggerStatus) -> bool:
         """
         Determines whether a trigger is currently at the specified status
         :param trigger: An `AlertRuleTrigger`
@@ -702,7 +702,7 @@ class SubscriptionProcessor:
             return
 
         # method == "fire"
-        if incident.status == IncidentStatus.CRITICAL:
+        if incident.status == IncidentStatus.CRITICAL.value:
             # Anything -> critical
             for action in actions:
                 transaction.on_commit(
