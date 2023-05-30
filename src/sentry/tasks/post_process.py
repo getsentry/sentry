@@ -1009,6 +1009,19 @@ def fire_error_processed(job: PostProcessJob):
         )
 
 
+def sdk_crash_monitoring(job: PostProcessJob):
+    from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
+
+    if job["is_reprocessed"]:
+        return
+
+    event = job["event"]
+
+    with metrics.timer("post_process.sdk_crash_monitoring.duration"):
+        with sentry_sdk.start_span(op="tasks.post_process_group.sdk_crash_monitoring"):
+            sdk_crash_detection.detect_sdk_crash(event=event)
+
+
 def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
@@ -1044,6 +1057,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_similarity,
         update_existing_attachments,
         fire_error_processed,
+        sdk_crash_monitoring,
     ],
     GroupCategory.PERFORMANCE: [
         process_snoozes,

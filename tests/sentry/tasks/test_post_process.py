@@ -61,6 +61,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+from tests.sentry.utils.sdk_crashes.test_fixture import get_crash_event
 
 
 class EventMatcher:
@@ -1481,6 +1482,24 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         ).exists()
 
 
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
+    def test_sdk_crash_monitoring_is_called_with_event(self, mock_sdk_crash_reporter):
+        event = self.create_event(
+            data=get_crash_event(),
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_sdk_crash_reporter.report.assert_called_once()
+
+
 @region_silo_test
 class PostProcessGroupErrorTest(
     TestCase,
@@ -1493,6 +1512,7 @@ class PostProcessGroupErrorTest(
     RuleProcessorTestMixin,
     ServiceHooksTestMixin,
     SnoozeTestMixin,
+    SDKCrashMonitoringTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
