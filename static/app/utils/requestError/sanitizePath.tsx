@@ -26,7 +26,9 @@ function getSlugPlaceholder(rawSlugType: string, slugValue: string): string {
 
   // Pull off the trailing slash, if there is one
   const slugType = rawSlugType.replace(/\/$/, '');
-  return TYPE_TO_PLACEHOLDER[slugType] + '/' || slugValue;
+  return slugType in TYPE_TO_PLACEHOLDER
+    ? TYPE_TO_PLACEHOLDER[slugType] + '/'
+    : slugValue;
 }
 
 export function sanitizePath(path: string) {
