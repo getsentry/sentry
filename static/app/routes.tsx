@@ -163,6 +163,7 @@ function buildRoutes() {
   const rootRoutes = (
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/app/root'))} />
+      {hook('routes:gs-root-routes')}
       <Route
         path="/accept/:orgId/:memberId/:token/"
         component={make(() => import('sentry/views/acceptOrganizationInvite'))}
