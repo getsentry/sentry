@@ -4,6 +4,7 @@ import inspect
 import logging
 import urllib.response
 from abc import abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, Mapping, Tuple, Type, TypeVar, cast
 from urllib.request import Request, urlopen
@@ -422,17 +423,19 @@ def dispatch_to_local_service(
     raw_arguments = service.deserialize_rpc_arguments(method_name, serial_arguments)
     result = method(**raw_arguments.__dict__)
 
-    if isinstance(result, RpcModel):
-        return result.dict()
-    if isinstance(result, list):
-        output = []
-        for item in result:
-            if isinstance(item, RpcModel):
-                output.append(item.dict())
-            else:
-                output.append(item)
-        return output
-    return result
+    def result_to_dict(value: Any):
+        if isinstance(value, RpcModel):
+            return value.dict()
+
+        if isinstance(value, Iterable) and not isinstance(value, str):
+            output = []
+            for item in value:
+                output.append(result_to_dict(item))
+            return output
+
+        return value
+
+    return result_to_dict(result)
 
 
 _RPC_CONTENT_CHARSET = "utf-8"
