@@ -4,6 +4,7 @@ from typing import Any, Sequence
 import sentry_sdk
 
 from sentry import features
+from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.models import Project
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -101,7 +102,7 @@ def cluster_projects(projects: Sequence[Project]) -> None:
     max_retries=5,
     soft_time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT,
     time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2,
-)
+)  # type: ignore
 def spawn_span_cluster_projects(**kwargs: Any) -> None:
     """Look for existing span description sets in redis and spawn clusterers for each"""
     with sentry_sdk.start_span(op="span_descs-cluster_spawn"):
@@ -142,7 +143,7 @@ def cluster_projects_span_descs(projects: Sequence[Project]) -> None:
                     # the clusterer to avoid scrubbing other tokens. The prefix
                     # `**` in the glob ensures we match the prefix but we don't
                     # scrub it.
-                    new_rules = [f"**{r}" for r in new_rules]
+                    new_rules = [ReplacementRule(f"**{r}") for r in new_rules]
 
                 track_clusterer_run(ClustererNamespace.SPANS, project)
 
