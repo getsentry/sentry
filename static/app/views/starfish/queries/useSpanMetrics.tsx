@@ -45,7 +45,7 @@ export const useSpanMetrics = (
     : '';
 
   const {isLoading, error, data} = useQuery<Metrics[]>({
-    queryKey: ['span-metrics', span?.group_id],
+    queryKey: ['span-metrics', span?.group_id, dateFilters],
     queryFn: () =>
       fetch(`${HOST}/?query=${query}&referrer=${referrer}`).then(res => res.json()),
     retry: false,
