@@ -27,6 +27,7 @@ from typing import (
 from urllib.parse import urlparse
 
 import sentry
+from sentry.silo.base import SiloMode
 from sentry.types.region import Region
 from sentry.utils import json
 from sentry.utils.celery import crontab_with_minute_jitter
@@ -829,13 +830,58 @@ for queue in CELERY_QUEUES:
 from celery.schedules import crontab
 
 CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
-CELERYBEAT_SCHEDULE = {
+
+# Only tasks that work with users/integrations and shared subsystems
+# are run in control silo.
+CONTROL_CELERYBEAT_SCHEDULE = {
     "check-auth": {
         "task": "sentry.tasks.check_auth",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60, "queue": "auth"},
     },
+    "sync-options": {
+        "task": "sentry.tasks.options.sync_options",
+        "schedule": timedelta(seconds=10),
+        "options": {"expires": 10, "queue": "options"},
+    },
+    "deliver-from-outbox": {
+        "task": "sentry.tasks.enqueue_outbox_jobs",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 30},
+    },
+    "schedule-deletions": {
+        "task": "sentry.tasks.deletion.run_scheduled_deletions",
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
+        "options": {"expires": 60 * 25},
+    },
+    "reattempt-deletions": {
+        "task": "sentry.tasks.deletion.reattempt_deletions",
+        "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
+        "options": {"expires": 60 * 25},
+    },
+    "schedule-hybrid-cloud-foreign-key-jobs": {
+        "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
+    },
+    "schedule-vsts-integration-subscription-check": {
+        "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
+        "schedule": crontab_with_minute_jitter(hour="*/6"),
+        "options": {"expires": 60 * 25},
+    },
+    "hybrid-cloud-repair-mappings": {
+        "task": "sentry.tasks.organization_mapping.repair_mappings",
+        # Run every hour
+        "schedule": crontab(minute=0, hour="*/1"),
+        "options": {"expires": 3600},
+    },
+}
+
+# Most tasks run in the regions
+REGION_CELERYBEAT_SCHEDULE = {
     "send-beacon": {
         "task": "sentry.tasks.send_beacon",
         # Run every hour
@@ -934,11 +980,6 @@ CELERYBEAT_SCHEDULE = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule-vsts-integration-subscription-check": {
-        "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
-        "schedule": crontab_with_minute_jitter(hour="*/6"),
-        "options": {"expires": 60 * 25},
-    },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -977,13 +1018,6 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute=42),
         "options": {"expires": 3600},
     },
-    # TODO(HC) Remove or re-enable this once a decision is made on org mapping creation
-    # "hybrid-cloud-repair-mappings": {
-    #     "task": "sentry.tasks.organization_mapping.repair_mappings",
-    #     # Run every hour
-    #     "schedule": crontab(minute=0, hour="*/1"),
-    #     "options": {"expires": 3600},
-    # },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.enable_for_org",
         # Run job once a day at 00:30
@@ -1042,6 +1076,9 @@ CELERYBEAT_SCHEDULE = {
     },
 }
 
+# Assume we're in monolith mode and need to run all the tasks.
+# We reassign this after figuring out the silo mode later in this module.
+CELERYBEAT_SCHEDULE = {**CONTROL_CELERYBEAT_SCHEDULE, **REGION_CELERYBEAT_SCHEDULE}
 
 # Queues that belong to the processing pipeline and need to be monitored
 # for backpressure management
@@ -1065,7 +1102,6 @@ PROCESSING_QUEUES = [
     "post_process_transactions",
     "profiles.process",
 ]
-
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
 TIMEDELTA_ALLOW_LIST = {
@@ -3364,6 +3400,16 @@ if USE_SILOS:
         }
     )
     DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+
+
+# Now that we know the silo assignment choose the task set to run
+# if we aren't in monolith mode.
+if SILO_MODE == SiloMode.CONTROL:
+    CELERYBEAT_SCHEDULE = CONTROL_CELERYBEAT_SCHEDULE
+
+if SILO_MODE == SiloMode.REGION:
+    CELERYBEAT_SCHEDULE = REGION_CELERYBEAT_SCHEDULE
+
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None
