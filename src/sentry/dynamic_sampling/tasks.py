@@ -5,7 +5,7 @@ from typing import Dict, Optional, Sequence, Tuple
 
 import sentry_sdk
 
-from sentry import features, options, quotas
+from sentry import options, quotas
 from sentry.dynamic_sampling.models import utils
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
 from sentry.dynamic_sampling.models.utils import DSElement
@@ -21,8 +21,14 @@ from sentry.dynamic_sampling.recalibrate_transactions import (
     OrganizationDataVolume,
     fetch_org_volumes,
 )
-from sentry.dynamic_sampling.rules.base import is_sliding_window_enabled
-from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_cache_key
+from sentry.dynamic_sampling.rules.base import (
+    is_sliding_window_enabled,
+    is_sliding_window_org_enabled,
+)
+from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
+    _generate_cache_key,
+    get_prioritise_by_project_sample_rate,
+)
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     set_transactions_resampling_rates,
 )
@@ -208,14 +214,19 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     except Organization.DoesNotExist:
         organization = None
 
+    # By default, this bias uses the blended sample rate.
+    sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
+
+    # In case we have specific feature flags enabled, we will change the sample rate either basing ourselves
+    # on sliding window per project or per org.
     if organization is not None and is_sliding_window_enabled(organization):
         sample_rate = get_sliding_window_sample_rate(
-            org_id=org_id,
-            project_id=project_id,
-            error_sample_rate_fallback=quotas.get_blended_sample_rate(organization_id=org_id),
+            org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
         )
-    else:
-        sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
+    elif organization is not None and is_sliding_window_org_enabled(organization):
+        sample_rate = get_prioritise_by_project_sample_rate(
+            org_id=org_id, project_id=project_id, default_sample_rate=sample_rate
+        )
 
     if sample_rate is None or sample_rate == 1.0:
         # no sampling => no rebalancing
@@ -302,9 +313,7 @@ def adjust_sample_rates(
         organization = None
 
     # We get the sample rate either directly from quotas or from the new sliding window org mechanism.
-    if organization is not None and features.has(
-        "organizations:ds-sliding-window-org", organization, actor=None
-    ):
+    if organization is not None and is_sliding_window_org_enabled(organization):
         sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_id)
     else:
         sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
@@ -520,8 +529,18 @@ def adjust_base_sample_rate_per_org(org_id: int, total_root_count: int, window_s
     """
     Adjusts the base sample rate per org by considering its volume and how it fits w.r.t. to the sampling tiers.
     """
-    sample_rate = compute_sliding_window_sample_rate(org_id, None, total_root_count, window_size)
-    # If the sample rate is None, we don't want to store a value into Redis.
+    try:
+        # We want to compute the sliding window sample rate by considering a window of time.
+        # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
+        sample_rate = compute_sliding_window_sample_rate(
+            org_id, None, total_root_count, window_size
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        sample_rate = None
+
+    # If the sample rate is None, we don't want to store a value into Redis but we prefer to keep the system
+    # with the old value.
     if sample_rate is None:
         return
 

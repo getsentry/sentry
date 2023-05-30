@@ -26,6 +26,12 @@ def is_sliding_window_enabled(organization: Organization) -> bool:
     ) and features.has("organizations:ds-sliding-window", organization, actor=None)
 
 
+def is_sliding_window_org_enabled(organization: Organization) -> bool:
+    return features.has(
+        "organizations:ds-sliding-window-org", organization, actor=None
+    ) and not features.has("organizations:ds-sliding-window", organization, actor=None)
+
+
 def get_guarded_blended_sample_rate(organization: Organization, project: Project) -> float:
     sample_rate = quotas.get_blended_sample_rate(organization_id=organization.id)
 
@@ -49,7 +55,7 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
         # In case we use the prioritise by project, we want to fall back to the original sample rate in case there are
         # any issues.
         sample_rate = get_prioritise_by_project_sample_rate(
-            project=project, default_sample_rate=sample_rate
+            org_id=organization.id, project_id=project.id, default_sample_rate=sample_rate
         )
 
     return float(sample_rate)
