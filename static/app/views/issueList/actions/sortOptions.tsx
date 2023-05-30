@@ -37,11 +37,11 @@ function IssueListSortOptions({onSelect, sort, query}: Props) {
   );
   const sortKey = sort || IssueSortOptions.DATE;
   const sortKeys = [
-    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []),
     ...(query === Query.FOR_REVIEW ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     IssueSortOptions.PRIORITY,
+    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []),
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];
