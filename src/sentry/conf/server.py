@@ -708,6 +708,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
+    "sentry.tasks.recap_servers",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
     "sentry.tasks.weekly_reports",
@@ -851,6 +852,7 @@ CELERY_QUEUES_REGION = [
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("auto_transition_issue_states", routing_key="auto_transition_issue_states"),
+    Queue("recap_servers", routing_key="recap_servers"),
 ]
 
 from celery.schedules import crontab
@@ -1096,6 +1098,11 @@ CELERYBEAT_SCHEDULE_REGION = {
     "github_comment_reactions": {
         "task": "sentry.tasks.integrations.github_comment_reactions",
         "schedule": crontab(hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
+    },
+    "poll_recap_servers": {
+        "task": "sentry.tasks.poll_recap_servers",
+        # TODO(recap): Change to run every 5 minutes
+        "schedule": timedelta(seconds=10),
     },
 }
 

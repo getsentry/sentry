@@ -127,6 +127,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
+    recapServer = serializers.URLField(required=False, allow_blank=True, allow_null=True)
 
     def validate(self, data):
         max_delay = (
@@ -487,6 +488,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         elif result.get("isBookmarked") is False:
             ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
 
+        # TODO(recap): Should we allow empty string as a way of "removing" or delete the option entirely?
+        # Important for querying Projects that have recap server value set in `ProjectOptions`.
+        if result.get("recapServer") is not None:
+            if result["recapServer"] == "":
+                project.delete_option("sentry:recap_server")
+            else:
+                project.update_option("sentry:recap_server", result["recapServer"])
         if result.get("digestsMinDelay"):
             project.update_option("digests:mail:minimum_delay", result["digestsMinDelay"])
         if result.get("digestsMaxDelay"):

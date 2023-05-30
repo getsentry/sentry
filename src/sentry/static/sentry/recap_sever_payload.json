@@ -1,0 +1,30 @@
+{
+    "_links": {
+        "self": {
+            "href": "ApiBaseUrl/burp/137?field=stopReason"},
+        "files": {
+            "href": "ApiBaseUrl/burp/137/files",
+            "custom": true
+        }
+    },
+    "stopReason": "SEGFAULT",
+    "detailedStackTrace": [{
+        "sourceFile": "/usr/build/src/foo.c",
+        "sourceLine": 42,
+        "moduleName": "boot.bin",
+        "moduleFingerprint": "iddqd",
+        "moduleOffset": "0x1",
+        "resolvedSymbol": "Foo::Run()+0x4",
+        "absoluteAddress": "0xaa00bb4",
+        "displayValue": "boot.bin!Foo::Update()+0x4"
+    }, {
+        "sourceFile": "/usr/build/src/bar.c",
+        "sourceLine": 1337,
+        "moduleName": "boot.bin",
+        "moduleFingerprint": "idkfa",
+        "moduleOffset": "0x10",
+        "resolvedSymbol": "Executor::Run()+0x30",
+        "absoluteAddress": "0xbb11aa4",
+        "displayValue": "boot.bin!Bar::Trigger()+0x30"
+    }]
+}

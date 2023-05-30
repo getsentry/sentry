@@ -34,6 +34,7 @@ OPTION_KEYS = frozenset(
         "sentry:releases",
         "sentry:error_messages",
         "sentry:scrape_javascript",
+        "sentry:recap_server",
         "sentry:token",
         "sentry:token_header",
         "sentry:verify_ssl",

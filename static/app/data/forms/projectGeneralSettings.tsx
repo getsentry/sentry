@@ -90,6 +90,15 @@ export const fields: Record<string, Field> = {
     }),
   },
 
+  // TODO(recap): Move this to a separate page or debug files one, not general settings
+  recapServer: {
+    name: 'recapServer',
+    type: 'string',
+    placeholder: t('URL'),
+    label: t('Recap Server URL'),
+    help: t('URL to the Recap Server events should be polled from'),
+  },
+
   subjectPrefix: {
     name: 'subjectPrefix',
     type: 'string',
