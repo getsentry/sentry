@@ -716,6 +716,12 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     return <StyledLoadingError message={t('Error loading the specified project')} />;
   }
 
+  if (projectSlug && !errorFetchingProjects && projectsLoaded && !projectWithFallback) {
+    return (
+      <StyledLoadingError message={t('The project %s does not exist', projectSlug)} />
+    );
+  }
+
   if (!projectsLoaded || !projectWithFallback || !props.group) {
     return <LoadingIndicator />;
   }
