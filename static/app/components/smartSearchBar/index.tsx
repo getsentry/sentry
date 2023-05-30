@@ -70,7 +70,6 @@ import {
   generateOperatorEntryMap,
   getAutoCompleteGroupForInvalidWildcard,
   getDateTagAutocompleteGroups,
-  getGroupWithInvalidWildcard,
   getSearchConfigFromCustomPerformanceMetrics,
   getSearchGroupWithItemMarkedActive,
   getTagItemsFromKeys,
