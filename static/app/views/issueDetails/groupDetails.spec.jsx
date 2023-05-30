@@ -79,6 +79,7 @@ describe('groupDetails', () => {
   };
 
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(defaultInit.organization);
     act(() => ProjectsStore.loadInitialData(defaultInit.organization.projects));
 
@@ -284,5 +285,22 @@ describe('groupDetails', () => {
     createWrapper();
 
     expect(await screen.findByText(SAMPLE_EVENT_ALERT_TEXT)).toBeInTheDocument();
+  });
+
+  it('renders error when project does not exist', async function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/other-project-slug/issues/`,
+      method: 'PUT',
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/`,
+      body: {...group, project: {slug: 'other-project-slug'}},
+    });
+
+    createWrapper();
+
+    expect(
+      await screen.findByText('The project other-project-slug does not exist')
+    ).toBeInTheDocument();
   });
 });
