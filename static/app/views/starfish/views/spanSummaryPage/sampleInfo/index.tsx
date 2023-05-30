@@ -24,7 +24,7 @@ function SampleInfo(props: Props) {
       <Block title={t('Throughput')}>{spm?.toFixed(2)} / min</Block>
       <Block title={t('Duration (P50)')}>{p50?.toFixed(2)} ms</Block>
       <Block title={t('App Impact')}>
-        {formatPercentage(total_time / applicationMetrics?.total_time)}
+        {formatPercentage(total_time / applicationMetrics['sum(span.duration)'])} %
       </Block>
     </BlockContainer>
   );
