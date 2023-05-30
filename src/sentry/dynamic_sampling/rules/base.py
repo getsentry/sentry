@@ -55,9 +55,15 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
     if sample_rate == 1.0:
         return float(sample_rate)
 
+    # For now, we will keep this new boost for orgs with the sliding window enabled.
+    #
     # In case the organization or the project have been recently added, we want to boost to 100% in order to give users
     # a better experience. Once this condition will become False, the dynamic sampling systems will kick in.
-    if is_recently_added(model=organization) or is_recently_added(model=project):
+    if (
+        is_sliding_window_enabled(organization)
+        and is_recently_added(model=organization)
+        or is_recently_added(model=project)
+    ):
         return 1.0
 
     # We want to use the normal sliding window only if the sliding window at the org level is disabled.
