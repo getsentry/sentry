@@ -1017,6 +1017,9 @@ def sdk_crash_monitoring(job: PostProcessJob):
 
     event = job["event"]
 
+    if not features.has("organizations:sdk-crash-detection", event.project.organization):
+        return
+
     with metrics.timer("post_process.sdk_crash_monitoring.duration"):
         with sentry_sdk.start_span(op="tasks.post_process_group.sdk_crash_monitoring"):
             sdk_crash_detection.detect_sdk_crash(event=event)

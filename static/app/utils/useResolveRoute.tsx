@@ -1,11 +1,9 @@
-import {useContext} from 'react';
-
 import ConfigStore from 'sentry/stores/configStore';
 import {OrganizationSummary} from 'sentry/types';
 import {extractSlug} from 'sentry/utils/extractSlug';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import shouldUseLegacyRoute from './shouldUseLegacyRoute';
+import useOrganization from './useOrganization';
 import {normalizeUrl} from './withDomainRequired';
 
 /**
@@ -32,7 +30,7 @@ function localizeDomain(domain?: string) {
  * use the sentry URL as the prefix.
  */
 function useResolveRoute(route: string, organization?: OrganizationSummary) {
-  const currentOrganization = useContext(OrganizationContext);
+  const currentOrganization = useOrganization({allowNull: true});
   const hasCustomerDomain = currentOrganization?.features.includes('customer-domains');
   const sentryUrl = localizeDomain(ConfigStore.get('links').sentryUrl);
 

@@ -10,7 +10,6 @@ from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils import TestCase
 from sentry.testutils.cases import BaseTestCase, SnubaTestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.features import Feature
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
@@ -32,27 +31,23 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
         event_data,
         should_be_reported,
         mock_sdk_crash_reporter,
-        feature_enabled=True,
         project_id=1234,
     ):
         with override_settings(SDK_CRASH_DETECTION_PROJECT_ID=project_id):
-            with Feature({"organizations:sdk-crash-reporting": feature_enabled}):
-                event = self.create_event(
-                    data=event_data,
-                    project_id=self.project.id,
-                )
+            event = self.create_event(
+                data=event_data,
+                project_id=self.project.id,
+            )
 
-                sdk_crash_detection.detect_sdk_crash(event=event)
+            sdk_crash_detection.detect_sdk_crash(event=event)
 
-                if should_be_reported:
-                    mock_sdk_crash_reporter.report.assert_called_once()
+            if should_be_reported:
+                mock_sdk_crash_reporter.report.assert_called_once()
 
-                    reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
-                    assert (
-                        reported_event_data["contexts"]["sdk_crash_detection"]["detected"] is True
-                    )
-                else:
-                    mock_sdk_crash_reporter.report.assert_not_called()
+                reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
+                assert reported_event_data["contexts"]["sdk_crash_detection"]["detected"] is True
+            else:
+                mock_sdk_crash_reporter.report.assert_not_called()
 
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
@@ -75,9 +70,6 @@ class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, PerfIssueTransaction
 class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
     def test_unhandled_is_detected(self, mock_sdk_crash_reporter):
         self.execute_test(get_crash_event(), True, mock_sdk_crash_reporter)
-
-    def test_feature_disabled_unhandled_is_not_detected(self, mock_sdk_crash_reporter):
-        self.execute_test(get_crash_event(), False, mock_sdk_crash_reporter, feature_enabled=False)
 
     def test_no_project_id_is_not_detected(self, mock_sdk_crash_reporter):
         self.execute_test(get_crash_event(), False, mock_sdk_crash_reporter, project_id=None)

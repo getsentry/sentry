@@ -4,12 +4,11 @@ from typing import Any, Dict
 
 from django.conf import settings
 
-from sentry import features
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
-from sentry.utils.sdk_crashes.event_stripper import EventStripper
+from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
@@ -29,23 +28,18 @@ class SDKCrashDetection:
         self,
         sdk_crash_reporter: SDKCrashReporter,
         sdk_crash_detector: SDKCrashDetector,
-        event_stripper: EventStripper,
     ):
         self
         self.sdk_crash_reporter = sdk_crash_reporter
         self.cocoa_sdk_crash_detector = sdk_crash_detector
-        self.event_stripper = event_stripper
 
     def detect_sdk_crash(self, event: Event) -> Event:
-        if not features.has("organizations:sdk-crash-reporting", event.project.organization):
-            return None
-
         should_detect_sdk_crash = (
             event.group
             and event.group.issue_category == GroupCategory.ERROR
             and event.group.platform == "cocoa"
         )
-        if should_detect_sdk_crash is False:
+        if not should_detect_sdk_crash:
             return
 
         context = get_path(event.data, "contexts", "sdk_crash_detection")
@@ -63,7 +57,7 @@ class SDKCrashDetection:
             return None
 
         if self.cocoa_sdk_crash_detector.is_sdk_crash(frames):
-            sdk_crash_event_data = self.event_stripper.strip_event_data(event)
+            sdk_crash_event_data = strip_event_data(event, self.cocoa_sdk_crash_detector)
 
             set_path(
                 sdk_crash_event_data, "contexts", "sdk_crash_detection", value={"detected": True}
@@ -79,10 +73,5 @@ class SDKCrashDetection:
 
 _crash_reporter = SDKCrashReporter()
 _cocoa_sdk_crash_detector = CocoaSDKCrashDetector()
-_event_stripper = EventStripper(sdk_crash_detector=_cocoa_sdk_crash_detector)
 
-sdk_crash_detection = SDKCrashDetection(
-    _crash_reporter,
-    _cocoa_sdk_crash_detector,
-    _event_stripper,
-)
+sdk_crash_detection = SDKCrashDetection(_crash_reporter, _cocoa_sdk_crash_detector)
