@@ -43,13 +43,13 @@ class BaseSiloClient(BaseApiClient):
         """
         prepared_request = Request(
             method=incoming_request.method,
-            url=self.build_url(incoming_request.path),
+            url=self.build_url(incoming_request.get_full_path()),
             headers=clean_proxy_headers(incoming_request.headers),
             data=incoming_request.body,
         ).prepare()
         client_response: BaseApiResponseX = super()._request(
             incoming_request.method,
-            incoming_request.path,
+            incoming_request.get_full_path(),
             allow_text=True,
             prepared_request=prepared_request,
         )

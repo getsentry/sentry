@@ -33,7 +33,7 @@ from sentry.types.region import MONOLITH_REGION_NAME, Region, RegionCategory
 @control_silo_test(stable=True)
 class ControlOutboxTest(TestCase):
     webhook_request = RequestFactory().post(
-        "/extensions/github/webhook/",
+        "/extensions/github/webhook/?query=test",
         data={"installation": {"id": "github:1"}},
         content_type="application/json",
         HTTP_X_GITHUB_EMOTICON=">:^]",
@@ -149,8 +149,8 @@ class ControlOutboxTest(TestCase):
         assert payload_from_request == payload_from_outbox
 
         assert outbox.payload["method"] == "POST"
-        assert outbox.payload["path"] == "/extensions/github/webhook/"
-        assert outbox.payload["uri"] == "http://testserver/extensions/github/webhook/"
+        assert outbox.payload["path"] == "/extensions/github/webhook/?query=test"
+        assert outbox.payload["uri"] == "http://testserver/extensions/github/webhook/?query=test"
         # Request factory expects transformed headers, but the outbox stores raw headers
         assert outbox.payload["headers"]["X-Github-Emoticon"] == ">:^]"
         assert outbox.payload["body"] == '{"installation": {"id": "github:1"}}'
@@ -159,8 +159,8 @@ class ControlOutboxTest(TestCase):
         outbox.save()
         outbox = ControlOutbox.objects.all().first()
         assert outbox.payload["method"] == "POST"
-        assert outbox.payload["path"] == "/extensions/github/webhook/"
-        assert outbox.payload["uri"] == "http://testserver/extensions/github/webhook/"
+        assert outbox.payload["path"] == "/extensions/github/webhook/?query=test"
+        assert outbox.payload["uri"] == "http://testserver/extensions/github/webhook/?query=test"
         # Request factory expects transformed headers, but the outbox stores raw headers
         assert outbox.payload["headers"]["X-Github-Emoticon"] == ">:^]"
         assert outbox.payload["body"] == '{"installation": {"id": "github:1"}}'

@@ -137,7 +137,11 @@ def get_integration_from_request(request: Request, provider: str) -> RpcIntegrat
 
 @control_silo_function
 def parse_integration_from_request(request: HttpRequest, provider: str) -> Integration | None:
-    token = get_token(request=request)
+    token = (
+        get_token(request=request)
+        if request.META.get("HTTP_AUTHORIZATION") is not None
+        else request.GET.get("jwt")
+    )
     rpc_integration = get_integration_from_jwt(
         token=token,
         path=request.path,

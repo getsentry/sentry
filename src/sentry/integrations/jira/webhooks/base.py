@@ -111,6 +111,6 @@ class JiraWebhookBase(Endpoint, abc.ABC):
 
     def get_token(self, request: Request) -> str:
         try:
-            get_token(request)
+            return get_token(request)
         except AtlassianConnectValidationError:
             raise JiraTokenError
