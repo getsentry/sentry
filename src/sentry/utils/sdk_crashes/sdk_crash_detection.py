@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from sentry import features
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
 from sentry.utils.safe import get_path, set_path
@@ -30,9 +29,6 @@ class SDKCrashDetection:
         self.event_stripper = event_stripper
 
     def detect_sdk_crash(self, event: Event) -> None:
-
-        if not features.has("organizations:sdk-crash-reporting", event.project.organization):
-            return
 
         should_detect_sdk_crash = (
             event.group
