@@ -144,6 +144,14 @@ type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
   expand?: string | string[];
 };
 
+type BetterPriorityEndpointParams = Partial<EndpointParams> & {
+  eventHalflifeHours: number;
+  hasStacktrace: number;
+  logLevel: number;
+  norm: boolean;
+  v2: boolean;
+};
+
 class IssueListOverview extends Component<Props, State> {
   state: State = this.getInitialState();
 
@@ -904,7 +912,7 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   transitionTo = (
-    newParams: Partial<EndpointParams> = {},
+    newParams: Partial<EndpointParams> | Partial<BetterPriorityEndpointParams> = {},
     savedSearch: (SavedSearch & {projectId?: number}) | null = this.props.savedSearch
   ) => {
     const query = {
