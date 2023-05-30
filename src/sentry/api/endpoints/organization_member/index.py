@@ -148,6 +148,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 elif key == "id":
                     queryset = queryset.filter(id__in=value)
 
+                elif key == "user.id":
+                    queryset = queryset.filter(user__id__in=value)
+
                 elif key == "scope":
                     queryset = queryset.filter(role__in=[r.id for r in roles.with_any_scope(value)])
 

@@ -221,6 +221,11 @@ class OrganizationMember(Model):
     # Deprecated -- no longer used
     type = BoundedPositiveIntegerField(default=50, blank=True)
 
+    user_is_active = models.BooleanField(
+        null=False,
+        default=True,
+    )
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmember"
@@ -342,9 +347,12 @@ class OrganizationMember(Model):
 
     @property
     def legacy_token(self):
+        email = self.get_email()
+        if not email:
+            return ""
         checksum = md5()
         checksum.update(str(self.organization_id).encode("utf-8"))
-        checksum.update(self.get_email().encode("utf-8"))
+        checksum.update(email.encode("utf-8"))
         checksum.update(force_bytes(settings.SECRET_KEY))
         return checksum.hexdigest()
 

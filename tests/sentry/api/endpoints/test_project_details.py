@@ -1,13 +1,16 @@
 from abc import ABC
+from datetime import datetime, timedelta
 from time import time
 from unittest import mock
 
+import pytz
 from django.urls import reverse
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
+from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.models import (
     ApiToken,
     AuditLogEntry,
@@ -1228,6 +1231,16 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.proj_slug = self.project.slug
         self.login_as(user=self.user)
         self.new_ds_flag = "organizations:dynamic-sampling"
+        self._apply_old_date_to_project_and_org()
+
+    def _apply_old_date_to_project_and_org(self):
+        # We have to create the project and organization in the past, since we boost new orgs and projects to 100%
+        # automatically.
+        old_date = datetime.now(tz=pytz.UTC) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+        # We have to actually update the underneath db models because they are re-fetched, otherwise just the in-memory
+        # copy is mutated.
+        self.project.organization.update(date_added=old_date)
+        self.project.update(date_added=old_date)
 
 
 @region_silo_test
@@ -1261,13 +1274,14 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ]
         self.project.update_option("sentry:dynamic_sampling_biases", new_biases)
+
         with Feature(
             {
                 self.new_ds_flag: True,
             }
         ):
             response = self.get_success_response(
-                self.organization.slug,
+                self.project.organization.slug,
                 self.project.slug,
                 method="get",
                 includeDynamicSamplingRules=1,

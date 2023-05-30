@@ -208,7 +208,7 @@
         "value": {"type": "valueText", "value": "[h", "quoted": false}
       },
       {"type": "spaces", "value": " "},
-      {"type": "freeText", "value": "e]", "quoted": false},
+      {"type": "freeText", "value": "e]", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   },
