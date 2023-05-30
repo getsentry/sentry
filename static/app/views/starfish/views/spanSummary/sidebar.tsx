@@ -8,14 +8,13 @@ import Duration from 'sentry/components/duration';
 import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {queryDataToChartData} from 'sentry/views/starfish/utils/queryDataToChartData';
 import {queryToSeries} from 'sentry/views/starfish/utils/queryToSeries';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {
   useQueryGetFacetsBreakdown,
   useQueryGetSpanAggregatesQuery,
@@ -243,42 +242,6 @@ export function SidebarChart(props) {
       ]}
     />
   );
-}
-
-export function queryDataToChartData<T>(
-  data: ({interval: string} & T)[],
-  startTime: Moment,
-  endTime: Moment,
-  seriesOptions: Partial<Series> = {}
-): Record<keyof T, Series> {
-  const series: Record<string, Series> = {};
-  if (data.length > 0) {
-    Object.keys(data[0])
-      .filter(key => key !== 'interval')
-      .forEach(key => {
-        series[key] = {data: [], seriesName: `${key}()`, ...seriesOptions};
-      });
-  }
-  data.forEach(point => {
-    Object.keys(point).forEach(key => {
-      if (key !== 'interval') {
-        series[key].data.push({
-          name: point.interval,
-          value: point[key],
-        });
-      }
-    });
-  });
-
-  Object.entries(series).forEach(([seriesKey, s]) => {
-    series[seriesKey] = zeroFillSeries(
-      s,
-      moment.duration(12, 'hours'),
-      startTime,
-      endTime
-    );
-  });
-  return series as Record<keyof T, Series>;
 }
 
 export const getTransactionBasedSeries = (

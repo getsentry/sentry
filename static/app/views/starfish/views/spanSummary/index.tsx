@@ -26,9 +26,9 @@ import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/sp
 import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {getDateFilters, PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {highlightSql} from 'sentry/views/starfish/utils/highlightSql';
+import {queryDataToChartData} from 'sentry/views/starfish/utils/queryDataToChartData';
 import Sidebar, {
   getTransactionBasedSeries,
-  queryDataToChartData,
 } from 'sentry/views/starfish/views/spanSummary/sidebar';
 
 import {
