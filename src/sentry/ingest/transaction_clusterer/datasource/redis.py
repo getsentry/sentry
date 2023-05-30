@@ -170,10 +170,11 @@ def record_span_descriptions(
         if not description:
             continue
         url_path = _get_url_path_from_description(description)
-        safe_execute(_store_span_description, client, redis_key, project, url_path)
+        if url_path:
+            safe_execute(_store_span_description, client, redis_key, project, url_path)
 
 
-def _get_span_description_to_store(span: Mapping[str, Any]) -> bool:
+def _get_span_description_to_store(span: Mapping[str, Any]) -> Optional[str]:
     if not span.get("op", "").startswith("http"):
         return None
     data = span.get("data", {})
