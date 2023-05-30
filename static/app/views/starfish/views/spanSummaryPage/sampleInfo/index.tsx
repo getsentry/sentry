@@ -1,8 +1,8 @@
 import {t} from 'sentry/locale';
 import {formatPercentage} from 'sentry/utils/formatters';
-import {Block, BlockContainer} from 'sentry/views/starfish/views/spans/spanSummaryPanel';
-import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
-import {useSpanTransactionMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactionMetrics';
+import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
+import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
+import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage';
 
 type Props = {
   groupId: string;

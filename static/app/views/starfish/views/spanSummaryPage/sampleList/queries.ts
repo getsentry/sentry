@@ -7,7 +7,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   useQueryGetSpanSamples,
   useQuerySpansInTransaction,
-} from 'sentry/views/starfish/views/spanSummary/queries';
+} from 'sentry/views/starfish/views/spanSummaryPage/queries';
 
 type SampleListDatRow = {
   exclusive_time: number;
@@ -61,7 +61,7 @@ export const useQueryGetSpanTransactionSamples = ({
   );
 
   const transactionDataResult = useQueryTransactionData(combinedSpanSampleData);
-  const transactionDataById = keyBy(transactionDataResult?.data, 'id');
+  const transactionDataById = keyBy(transactionDataResult?.data?.data, 'id');
 
   const newData: SampleListDatRow[] = combinedSpanSampleData.map(datum => {
     const transaction = transactionDataById[

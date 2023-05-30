@@ -15,11 +15,11 @@ import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
-import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
-import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
-import {useSpanTransactionMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactionMetrics';
-import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactionMetricSeries';
-import {useSpanTransactions} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactions';
+import type {Span} from 'sentry/views/starfish/queries/types';
+import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
+import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
+import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/queries/useSpanTransactionMetricSeries';
+import {useSpanTransactions} from 'sentry/views/starfish/queries/useSpanTransactions';
 
 type Metric = {
   p50: number;
@@ -132,7 +132,7 @@ function TransactionCell({span, column, row}: CellProps) {
   return (
     <Fragment>
       <Link
-        to={`/starfish/span-summary/${encodeURIComponent(span.group_id)}?${qs.stringify({
+        to={`/starfish/span/${encodeURIComponent(span.group_id)}?${qs.stringify({
           transaction: row.transaction,
         })}`}
       >
