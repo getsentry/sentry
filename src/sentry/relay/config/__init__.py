@@ -319,7 +319,7 @@ def _get_project_config(
 
     # Mark the project as ready if it has seen >= 10 clusterer runs.
     # This prevents projects from prematurely marking all URL transactions as sanitized.
-    if get_clusterer_meta(project)["runs"] >= MIN_CLUSTERER_RUNS:
+    if get_clusterer_meta(ClustererNamespace.TRANSACTIONS, project)["runs"] >= MIN_CLUSTERER_RUNS:
         config["txNameReady"] = True
 
     if not full_config:
