@@ -1569,7 +1569,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_actions_fired_for_incident(
             incident,
             [
-                self.action,
+                other_action,
             ],
             [
                 (trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
