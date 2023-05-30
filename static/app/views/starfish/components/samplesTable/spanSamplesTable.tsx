@@ -18,11 +18,6 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 200,
   },
   {
-    key: 'timestamp',
-    name: 'Timestamp',
-    width: 300,
-  },
-  {
     key: 'duration',
     name: 'Span Duration',
     width: 200,
