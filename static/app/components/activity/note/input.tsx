@@ -7,16 +7,15 @@ import {Button} from 'sentry/components/button';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
 import {NoteType} from 'sentry/types/alerts';
 import domId from 'sentry/utils/domId';
 import marked from 'sentry/utils/marked';
+import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 
-import mentionStyle from './mentionStyle';
+import {mentionStyle} from './mentionStyle';
 import {CreateError, MentionChangeEvent, Mentioned} from './types';
 
 type Props = {
@@ -63,16 +62,17 @@ function NoteInput({
 }: Props) {
   const theme = useTheme();
 
-  const members = useLegacyStore(MemberListStore).members.map(member => ({
+  const {members} = useMembers();
+  const {teams} = useTeams();
+
+  const suggestMembers = members.map(member => ({
     id: `user:${member.id}`,
     display: member.name,
-    email: member.email,
   }));
 
-  const teams = useTeams().teams.map(team => ({
+  const suggestTeams = teams.map(team => ({
     id: `team:${team.id}`,
     display: `#${team.slug}`,
-    email: team.id,
   }));
 
   const [value, setValue] = useState(text ?? '');
@@ -177,7 +177,7 @@ function NoteInput({
             >
               <Mention
                 trigger="@"
-                data={members}
+                data={suggestMembers}
                 onAdd={handleAddMember}
                 displayTransform={(_id, display) => `@${display}`}
                 markup="**[sentry.strip:member]__display__**"
@@ -185,7 +185,7 @@ function NoteInput({
               />
               <Mention
                 trigger="#"
-                data={teams}
+                data={suggestTeams}
                 onAdd={handleAddTeam}
                 markup="**[sentry.strip:team]__display__**"
                 appendSpaceOnAdd
@@ -229,7 +229,7 @@ function NoteInput({
   );
 }
 
-export default NoteInput;
+export {NoteInput};
 
 type NotePreviewProps = {
   minHeight: Props['minHeight'];
@@ -295,7 +295,6 @@ const StyledTabList = styled(TabList)`
 `;
 
 const NoteInputForm = styled('form')<{error?: string}>`
-  font-size: 15px;
   transition: padding 0.2s ease-in-out;
 
   ${p => getNoteInputErrorStyles(p)};
@@ -313,7 +312,6 @@ const Footer = styled('div')`
 `;
 
 const FooterButton = styled(Button)<{error?: boolean}>`
-  font-size: 13px;
   margin: -1px -1px -1px;
   border-radius: 0 0 ${p => p.theme.borderRadius};
 
@@ -344,5 +342,4 @@ const MarkdownIndicator = styled('div')`
 
 const NotePreview = styled('div')<{minHeight: Props['minHeight']}>`
   ${p => getNotePreviewCss(p)};
-  padding-bottom: ${space(1)};
 `;
