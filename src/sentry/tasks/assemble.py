@@ -347,23 +347,6 @@ def _bind_or_create_artifact_bundle(
         return existing_artifact_bundle, False
 
 
-def _align_date_added_field(org_id: int, artifact_bundle: ArtifactBundle, date_added: datetime):
-    ReleaseArtifactBundle.objects.filter(
-        organization_id=org_id,
-        artifact_bundle=artifact_bundle,
-    ).update(date_added=date_added)
-
-    ProjectArtifactBundle.objects.filter(
-        organization_id=org_id,
-        artifact_bundle=artifact_bundle,
-    ).update(date_added=date_added)
-
-    DebugIdArtifactBundle.objects.filter(
-        organization_id=org_id,
-        artifact_bundle=artifact_bundle,
-    ).update(date_added=date_added)
-
-
 def _create_artifact_bundle(
     version: Optional[str],
     dist: Optional[str],
@@ -399,6 +382,7 @@ def _create_artifact_bundle(
                     artifact_count=artifact_count,
                 )
 
+                # TODO: fix create_or_update by fetching irrespectively of the date_added.
                 # If a release version is passed, we want to create the weak association between a bundle and a release.
                 if version:
                     ReleaseArtifactBundle.objects.create_or_update(
@@ -408,7 +392,9 @@ def _create_artifact_bundle(
                         # tables.
                         dist_name=dist or "",
                         artifact_bundle=artifact_bundle,
-                        date_added=now,
+                        defaults={
+                            "date_added": now,
+                        },
                     )
 
                 for project_id in project_ids or ():
@@ -416,7 +402,9 @@ def _create_artifact_bundle(
                         organization_id=org_id,
                         project_id=project_id,
                         artifact_bundle=artifact_bundle,
-                        date_added=now,
+                        defaults={
+                            "date_added": now,
+                        },
                     )
 
                 for source_file_type, debug_id in debug_ids_with_types:
@@ -425,13 +413,10 @@ def _create_artifact_bundle(
                         debug_id=debug_id,
                         artifact_bundle=artifact_bundle,
                         source_file_type=source_file_type.value,
-                        date_added=now,
+                        defaults={
+                            "date_added": now,
+                        },
                     )
-
-                # Once all the entities have been created, we want to update them.
-                _align_date_added_field(
-                    org_id=org_id, artifact_bundle=artifact_bundle, date_added=now
-                )
         else:
             raise AssembleArtifactsError(
                 "uploading a bundle without debug ids or release is prohibited"
