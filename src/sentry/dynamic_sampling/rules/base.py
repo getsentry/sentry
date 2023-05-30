@@ -18,6 +18,7 @@ from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_e
 from sentry.models import Organization, Project
 
 ALWAYS_ALLOWED_RULE_TYPES = {RuleType.RECALIBRATION_RULE, RuleType.UNIFORM_RULE}
+# This threshold should be in sync with the execution time of the cron job responsible for running the sliding window.
 NEW_MODEL_THRESHOLD_IN_MINUTES = 10
 
 
@@ -28,6 +29,11 @@ def is_recently_added(model: Model) -> bool:
     """
     Checks whether a specific model has been recently added, with the goal of using this information
     to infer whether we should boost a specific project.
+
+    The boosting has been implemented because we want to guarantee that the user will have a good onboarding
+    experience. In theory with the sliding window mechanism we will automatically give 100% also to new projects, but
+    it can also happen that there are problems with cron jobs and in that case, if we don't have a specific condition
+    like this one, the boosting will not happen.
     """
     if hasattr(model, "date_added"):
         ten_minutes_ago = datetime.now(tz=pytz.UTC) - timedelta(
