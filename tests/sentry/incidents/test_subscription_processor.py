@@ -363,7 +363,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         # alert threshold triggers correctly
         rule = self.rule
         c_trigger = self.trigger
-        c_action_2 = create_alert_rule_trigger_action(
+        create_alert_rule_trigger_action(
             self.trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
@@ -372,7 +372,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         w_trigger = create_alert_rule_trigger(
             self.rule, WARNING_TRIGGER_LABEL, c_trigger.alert_threshold - 10
         )
-        create_alert_rule_trigger_action(
+        w_action = create_alert_rule_trigger_action(
             w_trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
@@ -387,7 +387,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [c_action_2], [(c_trigger.alert_threshold + 1, IncidentStatus.CRITICAL)]
+            incident, [w_action], [(c_trigger.alert_threshold + 1, IncidentStatus.CRITICAL)]
         )
 
     def test_alert_nullable(self):
