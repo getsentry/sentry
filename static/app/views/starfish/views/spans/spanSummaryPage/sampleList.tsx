@@ -5,6 +5,7 @@ import useRouter from 'sentry/utils/useRouter';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import DurationChart from 'sentry/views/starfish/views/spans/spanSummaryPage/durationChart';
 import SampleInfo from 'sentry/views/starfish/views/spans/spanSummaryPage/sampleInfo';
+import SampleTable from 'sentry/views/starfish/views/spans/spanSummaryPage/sampleList/sampleTable';
 
 type Props = {
   groupId: string;
@@ -33,6 +34,7 @@ function SampleList({groupId, transactionName, spanDescription}: Props) {
         transactionName={transactionName}
         spanDescription={spanDescription}
       />
+      <SampleTable groupId={groupId} transactionName={transactionName} />
     </DetailPanel>
   );
 }
