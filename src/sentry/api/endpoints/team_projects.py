@@ -11,6 +11,7 @@ from sentry.api.serializers import ProjectSummarySerializer, serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Project
 from sentry.signals import project_created
+from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
@@ -123,7 +124,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                             organization=team.organization,
                             platform=result.get("platform"),
                         )
-                except IntegrityError:
+                except (IntegrityError, MaxSnowflakeRetryError):
                     return Response(
                         {"detail": "A project with this slug already exists."}, status=409
                     )
