@@ -20,6 +20,7 @@ class SDKCrashReporter:
         from sentry.event_manager import EventManager
 
         manager = EventManager(event_data)
+        manager.normalize()
         return manager.save(project_id=event_project_id)
 
 
