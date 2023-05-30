@@ -560,15 +560,24 @@ if (
     // those requests to the right server.
     let controlSiloProxy = {};
     if (CONTROL_SILO_PORT) {
+      // TODO(hybridcloud) We also need to use this URL pattern
+      // list to select contro/region when making API requests in non-proxied
+      // environments (like production). We'll likely need a way to consolidate this
+      // with the configuration api.Client uses.
       const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;
       controlSiloProxy = {
         '/api/0/users/**': controlSiloAddress,
         '/api/0/sentry-apps/**': controlSiloAddress,
-        '/api/0/sentry-app-installations/**': controlSiloAddress,
-        '/api/0/organizations/*/broadcasts/**': controlSiloAddress,
         '/api/0/organizations/*/audit-logs/**': controlSiloAddress,
+        '/api/0/organizations/*/broadcasts/**': controlSiloAddress,
+        '/api/0/organizations/*/integrations/**': controlSiloAddress,
+        '/api/0/organizations/*/config/integrations/**': controlSiloAddress,
+        '/api/0/organizations/*/sentry-apps/**': controlSiloAddress,
+        '/api/0/organizations/*/sentry-app-installations/**': controlSiloAddress,
         '/api/0/api-authorizations/**': controlSiloAddress,
         '/api/0/api-applications/**': controlSiloAddress,
+        '/api/0/doc-integrations/**': controlSiloAddress,
+        '/api/0/assistant/**': controlSiloAddress,
       };
     }
 
@@ -580,11 +589,11 @@ if (
       },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
       proxy: {
+        ...controlSiloProxy,
         '/api/store/**': relayAddress,
         '/api/{1..9}*({0..9})/**': relayAddress,
         '/api/0/relays/outcomes/': relayAddress,
         '!/_static/dist/sentry/**': backendAddress,
-        ...controlSiloProxy,
       },
     };
     appConfig.output!.publicPath = '/_static/dist/sentry/';

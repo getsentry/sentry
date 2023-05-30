@@ -430,6 +430,9 @@ and run `sentry devservices up kafka zookeeper`.
         merged_env.update(control_environ)
         control_services = ["server"]
         if workers:
+            # TODO(hybridcloud) The cron processes don't work in siloed mode yet.
+            # Both silos will spawn crons for the other silo. We need to filter
+            # the cron job list during application configuration
             control_services.extend(["cron", "worker"])
 
         for service in control_services:
