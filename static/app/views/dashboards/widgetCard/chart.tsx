@@ -27,6 +27,7 @@ import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
+  getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
@@ -380,6 +381,17 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
     const axisField = widget.queries[0]?.aggregates?.[0] ?? 'count()';
     const axisLabel = isEquation(axisField) ? getEquation(axisField) : axisField;
+
+    // Check to see if all series output types are the same. If not, then default to number.
+    const outputType =
+      timeseriesResultsTypes && new Set(Object.values(timeseriesResultsTypes)).size === 1
+        ? timeseriesResultsTypes[axisLabel]
+        : 'number';
+    const isDurationChart = outputType === 'duration';
+    const durationUnit = isDurationChart
+      ? timeseriesResults && getDurationUnit(timeseriesResults, legendOptions)
+      : undefined;
+
     const chartOptions = {
       autoHeightResize,
       grid: {
@@ -408,16 +420,17 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           color: theme.chartLabel,
           formatter: (value: number) => {
             if (timeseriesResultsTypes) {
-              // Check to see if all series output types are the same. If not, then default to number.
-              const outputType =
-                new Set(Object.values(timeseriesResultsTypes)).size === 1
-                  ? timeseriesResultsTypes[axisLabel]
-                  : 'number';
-              return axisLabelFormatterUsingAggregateOutputType(value, outputType);
+              return axisLabelFormatterUsingAggregateOutputType(
+                value,
+                outputType,
+                undefined,
+                durationUnit
+              );
             }
             return axisLabelFormatter(value, aggregateOutputType(axisLabel));
           },
         },
+        minInterval: durationUnit ?? 0,
       },
     };
 

@@ -1,7 +1,6 @@
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import EditableText from 'sentry/components/editableText';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {LinkProps} from 'sentry/components/links/link';
@@ -12,18 +11,10 @@ import {DashboardDetails} from '../types';
 interface Props {
   dashboardTitle: DashboardDetails['title'];
   goBackLocation: LinkProps['to'];
-  onChangeTitle: (title: string) => void;
   orgSlug: string;
-  title: string;
 }
 
-export function Header({
-  title,
-  orgSlug,
-  goBackLocation,
-  dashboardTitle,
-  onChangeTitle,
-}: Props) {
+export function Header({orgSlug, goBackLocation, dashboardTitle}: Props) {
   return (
     <Layout.Header>
       <Layout.HeaderContent>
@@ -40,15 +31,6 @@ export function Header({
             {label: t('Widget Builder')},
           ]}
         />
-        <Layout.Title>
-          <EditableText
-            aria-label={t('Widget title')}
-            value={title}
-            onChange={onChangeTitle}
-            errorMessage={t('Widget title is required')}
-            maxLength={255}
-          />
-        </Layout.Title>
       </Layout.HeaderContent>
 
       <Layout.HeaderActions>

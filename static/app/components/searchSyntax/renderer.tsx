@@ -68,7 +68,7 @@ function renderToken(token: TokenResult<Token> | string, cursor: number) {
       return <LogicBoolean>{token.value}</LogicBoolean>;
 
     case Token.FreeText:
-      return <FreeTextToken filter={token} cursor={cursor} />;
+      return <FreeTextToken token={token} cursor={cursor} />;
 
     default:
       return token.text;
@@ -141,7 +141,7 @@ function FilterToken({
       forceVisible
       skipWrapper
     >
-      <Filter
+      <TokenGroup
         ref={filterElementRef}
         active={isActive}
         invalid={showInvalid}
@@ -151,19 +151,19 @@ function FilterToken({
         <KeyToken token={filter.key} negated={filter.negated} />
         {filter.operator && <Operator>{filter.operator}</Operator>}
         <Value>{renderToken(filter.value, cursor)}</Value>
-      </Filter>
+      </TokenGroup>
     </Tooltip>
   );
 }
 
 function FreeTextToken({
-  filter,
+  token,
   cursor,
 }: {
   cursor: number;
-  filter: TokenResult<Token.FreeText>;
+  token: TokenResult<Token.FreeText>;
 }) {
-  const isActive = isWithinToken(filter, cursor);
+  const isActive = isWithinToken(token, cursor);
 
   // This state tracks if the cursor has left the filter token. We initialize it
   // to !isActive in the case where the filter token is rendered without the
@@ -181,7 +181,7 @@ function FreeTextToken({
     }
   }, [hasLeft, isActive]);
 
-  const showInvalid = hasLeft && !!filter.invalid;
+  const showInvalid = hasLeft && !!token.invalid;
   const showTooltip = showInvalid && isActive;
 
   const reduceMotion = useReducedMotion();
@@ -204,26 +204,17 @@ function FreeTextToken({
     );
   }, [reduceMotion, showInvalid]);
 
-  if (!filter.invalid?.reason) {
-    return <Fragment>{renderToken(filter.value, cursor)}</Fragment>;
-  }
-
   return (
     <Tooltip
       disabled={!showTooltip}
-      title={filter.invalid?.reason}
+      title={token.invalid?.reason}
       overlayStyle={{maxWidth: '350px'}}
       forceVisible
       skipWrapper
     >
-      <Filter
-        ref={filterElementRef}
-        active={isActive}
-        invalid={showInvalid}
-        data-test-id={showInvalid ? 'filter-token-invalid' : 'filter-token'}
-      >
-        <FreeText>{renderToken(filter.value, cursor)}</FreeText>
-      </Filter>
+      <FreeTextTokenGroup ref={filterElementRef} active={isActive} invalid={showInvalid}>
+        <FreeText>{token.text}</FreeText>
+      </FreeTextTokenGroup>
     </Tooltip>
   );
 }
@@ -274,21 +265,31 @@ function NumberToken({token}: {token: TokenResult<Token.ValueNumber>}) {
   );
 }
 
-type FilterProps = {
+type TokenGroupProps = {
   active: boolean;
   invalid: boolean;
 };
 
-const colorType = (p: FilterProps) =>
+const colorType = (p: TokenGroupProps) =>
   `${p.invalid ? 'invalid' : 'valid'}${p.active ? 'Active' : ''}` as const;
 
-const Filter = styled('span')<FilterProps>`
+const TokenGroup = styled('span')<TokenGroupProps>`
   --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
   --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
   --token-value-color: ${p => (p.invalid ? p.theme.red400 : p.theme.blue400)};
 
   position: relative;
   animation-name: ${shakeAnimation};
+`;
+
+const FreeTextTokenGroup = styled(TokenGroup)`
+  ${p =>
+    !p.invalid &&
+    css`
+      --token-bg: inherit;
+      --token-border: inherit;
+      --token-value-color: inherit;
+    `}
 `;
 
 const filterCss = css`
@@ -301,7 +302,7 @@ const Negation = styled('span')`
   ${filterCss};
   border-right: none;
   padding-left: 1px;
-  margin-left: -2px;
+  margin-left: -1px;
   font-weight: bold;
   border-radius: 2px 0 0 2px;
   color: ${p => p.theme.red400};
@@ -356,10 +357,11 @@ const Value = styled('span')`
 
 const FreeText = styled('span')`
   ${filterCss};
-  border-radius: 0 2px 2px 0;
+  border-radius: 2px;
   color: var(--token-value-color);
   margin: -1px -2px -1px 0;
   padding-right: 1px;
+  padding-left: 1px;
 `;
 
 const Unit = styled('span')`

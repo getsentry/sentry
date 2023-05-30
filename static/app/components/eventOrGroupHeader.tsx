@@ -10,9 +10,9 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconMute, IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, GroupTombstone, Level, Organization} from 'sentry/types';
+import {Group, GroupTombstoneHelper, Level, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {getLocation, getMessage} from 'sentry/utils/events';
+import {getLocation, getMessage, isTombstone} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
 import {TagAndMessageWrapper} from 'sentry/views/issueDetails/unhandledTag';
@@ -21,22 +21,20 @@ import EventTitleError from './eventTitleError';
 
 type Size = 'small' | 'normal';
 
-type Props = {
-  data: Event | Group | GroupTombstone;
+interface EventOrGroupHeaderProps {
+  data: Event | Group | GroupTombstoneHelper;
   organization: Organization;
-  className?: string;
   /* is issue breakdown? */
   grouping?: boolean;
   hideIcons?: boolean;
   hideLevel?: boolean;
-  includeLink?: boolean;
   index?: number;
   /** Group link clicked */
   onClick?: () => void;
   query?: string;
   size?: Size;
   source?: string;
-};
+}
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
@@ -47,17 +45,13 @@ function EventOrGroupHeader({
   organization,
   query,
   onClick,
-  className,
   hideIcons,
   hideLevel,
-  includeLink = true,
   size = 'normal',
   grouping = false,
   source,
-}: Props) {
+}: EventOrGroupHeaderProps) {
   const location = useLocation();
-
-  const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
 
   function getTitleChildren() {
     const {level, status, isBookmarked, hasSeen} = data as Group;
@@ -88,9 +82,9 @@ function EventOrGroupHeader({
           <StyledEventOrGroupTitle
             data={data}
             organization={organization}
-            hasSeen={hasGroupingTreeUI && hasSeen === undefined ? true : hasSeen}
+            // hasSeen is undefined for GroupTombstone
+            hasSeen={hasSeen === undefined ? true : hasSeen}
             withStackTracePreview
-            hasGuideAnchor={index === 0}
             grouping={grouping}
           />
         </ErrorBoundary>
@@ -99,8 +93,6 @@ function EventOrGroupHeader({
   }
 
   function getTitle() {
-    const orgId = organization.slug;
-
     const {id, status} = data as Group;
     const {eventID, groupID} = data as Event;
 
@@ -109,45 +101,47 @@ function EventOrGroupHeader({
       style: status === 'resolved' ? {textDecoration: 'line-through'} : undefined,
     };
 
-    if (includeLink) {
+    if (isTombstone(data)) {
       return (
-        <TitleWithLink
-          {...commonEleProps}
-          to={{
-            pathname: `/organizations/${orgId}/issues/${eventID ? groupID : id}/${
-              eventID ? `events/${eventID}/` : ''
-            }`,
-            query: {
-              referrer: source || 'event-or-group-header',
-              stream_index: index,
-              query,
-              // This adds sort to the query if one was selected from the
-              // issues list page
-              ...(location.query.sort !== undefined ? {sort: location.query.sort} : {}),
-              // This appends _allp to the URL parameters if they have no
-              // project selected ("all" projects included in results). This is
-              // so that when we enter the issue details page and lock them to
-              // a project, we can properly take them back to the issue list
-              // page with no project selected (and not the locked project
-              // selected)
-              ...(location.query.project !== undefined ? {} : {_allp: 1}),
-            },
-          }}
-          onClick={onClick}
-        >
-          {getTitleChildren()}
-        </TitleWithLink>
+        <TitleWithoutLink {...commonEleProps}>{getTitleChildren()}</TitleWithoutLink>
       );
     }
 
-    return <TitleWithoutLink {...commonEleProps}>{getTitleChildren()}</TitleWithoutLink>;
+    return (
+      <TitleWithLink
+        {...commonEleProps}
+        to={{
+          pathname: `/organizations/${organization.slug}/issues/${
+            eventID ? groupID : id
+          }/${eventID ? `events/${eventID}/` : ''}`,
+          query: {
+            referrer: source || 'event-or-group-header',
+            stream_index: index,
+            query,
+            // This adds sort to the query if one was selected from the
+            // issues list page
+            ...(location.query.sort !== undefined ? {sort: location.query.sort} : {}),
+            // This appends _allp to the URL parameters if they have no
+            // project selected ("all" projects included in results). This is
+            // so that when we enter the issue details page and lock them to
+            // a project, we can properly take them back to the issue list
+            // page with no project selected (and not the locked project
+            // selected)
+            ...(location.query.project !== undefined ? {} : {_allp: 1}),
+          },
+        }}
+        onClick={onClick}
+      >
+        {getTitleChildren()}
+      </TitleWithLink>
+    );
   }
 
   const eventLocation = getLocation(data);
   const message = getMessage(data);
 
   return (
-    <div className={className} data-test-id="event-issue-header">
+    <div data-test-id="event-issue-header">
       <Title>{getTitle()}</Title>
       {eventLocation && <Location size={size}>{eventLocation}</Location>}
       {message && (
