@@ -67,7 +67,7 @@ class TeamSettings extends AsyncView<Props, State> {
     const hasOrgRoleFlag = organization.features.includes('org-roles-for-teams');
 
     const hasTeamWrite = hasEveryAccess(['team:write'], {organization, team});
-    const hasOrgAdmin = hasEveryAccess(['org:admin'], {organization, team});
+    const hasTeamAdmin = hasEveryAccess(['team:admin'], {organization, team});
 
     return (
       <Fragment>
@@ -91,7 +91,6 @@ class TeamSettings extends AsyncView<Props, State> {
               idpProvisioned,
               hasOrgRoleFlag,
               hasTeamWrite,
-              hasOrgAdmin,
               orgRoleList,
             }}
             forms={teamSettingsFields}
@@ -99,15 +98,16 @@ class TeamSettings extends AsyncView<Props, State> {
         </Form>
 
         <Panel>
-          <PanelHeader>{t('Remove Team')}</PanelHeader>
+          <PanelHeader>{t('Team Administration')}</PanelHeader>
           <FieldGroup
+            label={t('Remove Team')}
             help={t(
               "This may affect team members' access to projects and associated alert delivery."
             )}
           >
             <div>
               <Confirm
-                disabled={!hasOrgAdmin}
+                disabled={!hasTeamAdmin}
                 onConfirm={this.handleRemoveTeam}
                 priority="danger"
                 message={tct('Are you sure you want to remove the team [team]?', {
