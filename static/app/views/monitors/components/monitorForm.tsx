@@ -48,7 +48,7 @@ const DEFAULT_CRONTAB = '0 0 * * *';
 // Maps the value from the SentryMemberTeamSelectorField -> the expected alert
 // rule key and vice-versa.
 //
-// XXX(epurkhiser): For whateve reason the rules API wants the team and mebmer
+// XXX(epurkhiser): For whatever reason the rules API wants the team and member
 // to be capitalized.
 const RULE_TARGET_MAP = {team: 'Team', member: 'Member'} as const;
 const RULES_SELECTOR_MAP = {Team: 'team', Member: 'member'} as const;
