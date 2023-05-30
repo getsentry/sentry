@@ -215,8 +215,8 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
         _add_mock_data(project, 4)
 
     assert (
-        get_clusterer_meta(project1)
-        == get_clusterer_meta(project2)
+        get_clusterer_meta(ClustererNamespace.TRANSACTIONS, project1)
+        == get_clusterer_meta(ClustererNamespace.TRANSACTIONS, project2)
         == {"first_run": 0, "last_run": 0, "runs": 0}
     )
 
@@ -230,8 +230,8 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     assert get_rules(ClustererNamespace.TRANSACTIONS, project2) == {}
 
     assert (
-        get_clusterer_meta(project1)
-        == get_clusterer_meta(project2)
+        get_clusterer_meta(ClustererNamespace.TRANSACTIONS, project1)
+        == get_clusterer_meta(ClustererNamespace.TRANSACTIONS, project2)
         == {"first_run": 946688400, "last_run": 946688400, "runs": 1}
     )
 
@@ -267,8 +267,8 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     }
 
     assert (
-        get_clusterer_meta(project1)
-        == get_clusterer_meta(project2)
+        get_clusterer_meta(ClustererNamespace.TRANSACTIONS, project1)
+        == get_clusterer_meta(ClustererNamespace.TRANSACTIONS, project2)
         == {"first_run": 946688400, "last_run": 946688401, "runs": 2}
     )
 
