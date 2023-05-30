@@ -34,6 +34,13 @@ class BackfillNotificationSettingTest(TestMigrations):
             role=self.member_with_mapping.role,
         )
 
+        self.to_remove = OrganizationMemberMapping.objects.create(
+            organization_id=self.organization.id,
+            organizationmember_id=None,
+            email="sally@example.com",
+            role="member",
+        )
+
     def test(self):
         # Generated mapping for invite record.
         mapping = OrganizationMemberMapping.objects.get(email=self.invite.email)
@@ -57,3 +64,5 @@ class BackfillNotificationSettingTest(TestMigrations):
             ).count()
             == 1
         )
+        # Invalid data removed.
+        assert not OrganizationMemberMapping.objects.filter(id=self.to_remove.id).exists()
