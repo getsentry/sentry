@@ -12,7 +12,7 @@
         "value": "freeTextWith*",
         "quoted": false,
         "invalid": {
-          "reason": "Invalid query. Wildcards are not supported."
+          "reason": "Wildcards not supported in search"
         }
       },
       {"type": "spaces", "value": ""}
@@ -29,7 +29,7 @@
       {
         "type": "filter",
         "filter": "textIn",
-        "invalid": {"reason": "Lists should not have wildcard values"},
+        "invalid": {"reason": "Wildcards not supported in search"},
         "key": {"type": "keySimple", "value": "release", "quoted": false},
         "operator": "",
         "negated": false,
@@ -91,7 +91,7 @@
         "value": "release*:1",
         "quoted": false,
         "invalid": {
-          "reason": "Invalid query. Wildcards are not supported."
+          "reason": "Wildcards not supported in search"
         }
       },
       {"type": "spaces", "value": ""}
@@ -111,7 +111,7 @@
         "value": "rele*ase",
         "quoted": false,
         "invalid": {
-          "reason": "Release queries don't support wildcards"
+          "reason": "Wildcards not supported in search"
         }
       },
       {"type": "spaces", "value": ""}

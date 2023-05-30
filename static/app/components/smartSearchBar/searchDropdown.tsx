@@ -34,7 +34,7 @@ type Props = {
   customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
   customPerformanceMetrics?: CustomMeasurementCollection;
   disallowWildcard?: boolean;
-  disallowWildcardReason?: string;
+  invalidMessages?: SearchConfig['invalidMessages'];
   maxMenuHeight?: number;
   mergeItemsWith?: Record<string, SearchItem>;
   onIconClick?: (value: string) => void;
@@ -58,7 +58,7 @@ function SearchDropdown({
   customInvalidTagMessage,
   mergeItemsWith,
   disallowWildcard,
-  disallowWildcardReason,
+  invalidMessages,
 }: Props) {
   return (
     <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
@@ -92,7 +92,7 @@ function SearchDropdown({
                         ),
                         supportedTags,
                         disallowWildcard,
-                        disallowWildcardReason,
+                        invalidMessages,
                       }}
                       customInvalidTagMessage={customInvalidTagMessage}
                     />
