@@ -1,20 +1,16 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import NoteInput from 'sentry/components/activity/note/input';
+import {NoteInput} from 'sentry/components/activity/note/input';
 
 describe('NoteInput', function () {
   describe('New item', function () {
-    const props = {
-      group: {project: {}, id: 'groupId'},
-    };
-
     it('renders', function () {
-      render(<NoteInput {...props} />);
+      render(<NoteInput />);
     });
 
     it('submits when meta + enter is pressed', async function () {
       const onCreate = jest.fn();
-      render(<NoteInput {...props} onCreate={onCreate} />);
+      render(<NoteInput onCreate={onCreate} />);
 
       await userEvent.type(screen.getByRole('textbox'), 'something{Meta>}{Enter}');
       expect(onCreate).toHaveBeenCalled();
@@ -22,7 +18,7 @@ describe('NoteInput', function () {
 
     it('submits when ctrl + enter is pressed', async function () {
       const onCreate = jest.fn();
-      render(<NoteInput {...props} onCreate={onCreate} />);
+      render(<NoteInput onCreate={onCreate} />);
 
       await userEvent.type(screen.getByRole('textbox'), 'something{Control>}{Enter}');
       expect(onCreate).toHaveBeenCalled();
@@ -30,7 +26,7 @@ describe('NoteInput', function () {
 
     it('does not submit when nothing is entered', async function () {
       const onCreate = jest.fn();
-      render(<NoteInput {...props} onCreate={onCreate} />);
+      render(<NoteInput onCreate={onCreate} />);
 
       const textbox = screen.getByRole('textbox');
       await userEvent.type(textbox, '{Control}{enter}');
@@ -39,20 +35,20 @@ describe('NoteInput', function () {
 
     it('handles errors', async function () {
       const errorJSON = {detail: {message: 'Note is bad', code: 401, extra: ''}};
-      render(<NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />);
+      render(<NoteInput error={!!errorJSON} errorJSON={errorJSON} />);
 
       await userEvent.type(screen.getByRole('textbox'), 'something{Control>}{enter}');
       expect(screen.getByText('Note is bad')).toBeInTheDocument();
     });
 
     it('has a disabled submit button when no text is entered', function () {
-      render(<NoteInput {...props} />);
+      render(<NoteInput />);
 
       expect(screen.getByRole('button', {name: 'Post Comment'})).toBeDisabled();
     });
 
     it('enables the submit button when text is entered', async function () {
-      render(<NoteInput {...props} />);
+      render(<NoteInput />);
       await userEvent.type(screen.getByRole('textbox'), 'something');
 
       expect(screen.getByRole('button', {name: 'Post Comment'})).toBeEnabled();
@@ -61,7 +57,6 @@ describe('NoteInput', function () {
 
   describe('Existing Item', function () {
     const props = {
-      group: {project: {}, id: 'groupId'},
       noteId: 'item-id',
       text: 'an existing item',
     };

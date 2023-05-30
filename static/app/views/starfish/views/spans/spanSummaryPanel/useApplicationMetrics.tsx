@@ -31,5 +31,5 @@ export const useApplicationMetrics = (referrer = 'application-metrics') => {
     initialData: [],
   });
 
-  return {isLoading, error, data: data[0]};
+  return {isLoading, error, data: data[0] ?? {}};
 };
