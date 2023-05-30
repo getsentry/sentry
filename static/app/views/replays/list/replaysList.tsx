@@ -117,7 +117,7 @@ function ReplaysListTable({
         emptyMessage={
           allSelectedProjectsNeedUpdates && hasReplayClick ? (
             <Fragment>
-              {t('The search query could not be made.')}
+              {t('Unindexed search field')}
               <EmptyStateSubheading>
                 {tct('Field [field] requires an [sdkPrompt]', {
                   field: <strong>'click'</strong>,
