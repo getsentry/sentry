@@ -21,7 +21,7 @@ import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import {Group, GroupRelease, IssueCategory, Organization, Project} from 'sentry/types';
+import {Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -333,25 +333,13 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     cacheTime: 30000,
   });
 
-  const {data: groupReleaseData} = useApiQuery<GroupRelease>(
-    [`/issues/${groupId}/first-last-release/`],
-    {
-      staleTime: 30000,
-      cacheTime: 30000,
-      enabled: defined(groupData),
-    }
-  );
-
   const group = groupData ?? null;
 
   useEffect(() => {
     if (defined(group)) {
       GroupStore.loadInitialData([group]);
-      if (defined(groupReleaseData)) {
-        GroupStore.onPopulateReleases(groupId, groupReleaseData);
-      }
     }
-  }, [groupReleaseData, groupId, group]);
+  }, [groupId, group]);
 
   useSyncGroupStore(environments);
 
@@ -711,6 +699,12 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     return <StyledLoadingError message={t('Error loading the specified project')} />;
   }
 
+  if (projectSlug && !errorFetchingProjects && projectsLoaded && !projectWithFallback) {
+    return (
+      <StyledLoadingError message={t('The project %s does not exist', projectSlug)} />
+    );
+  }
+
   if (!projectsLoaded || !projectWithFallback || !props.group) {
     return <LoadingIndicator />;
   }
@@ -748,13 +742,13 @@ function GroupDetails(props: GroupDetailsProps) {
     const {title} = getTitle(group, organization?.features);
     const message = getMessage(group);
 
-    const eventDetails = `${organization.slug} - ${group.project.slug}`;
+    const eventDetails = `${organization.slug} — ${group.project.slug}`;
 
     if (title && message) {
-      return `${title}: ${message} - ${eventDetails}`;
+      return `${title}: ${message} — ${eventDetails}`;
     }
 
-    return `${title || message || defaultTitle} - ${eventDetails}`;
+    return `${title || message || defaultTitle} — ${eventDetails}`;
   };
 
   return (

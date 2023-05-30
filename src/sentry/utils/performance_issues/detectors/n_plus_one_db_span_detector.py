@@ -18,6 +18,7 @@ from ..base import (
     get_notification_attachment_body,
     get_span_duration,
     get_span_evidence_value,
+    total_span_time,
 )
 from ..performance_problem import PerformanceProblem
 from ..types import Span
@@ -164,18 +165,13 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if not self.source_span or not self.n_spans:
             return
 
-        count = self.settings.get("count")
-        duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
-
         # Do we have enough spans?
+        count = self.settings.get("count")
         if len(self.n_spans) < count:
             return
 
         # Do the spans take enough total time?
-        total_duration = timedelta()
-        for span in self.n_spans:
-            total_duration += get_span_duration(span)
-        if total_duration < duration_threshold:
+        if not self._is_slower_than_threshold():
             return
 
         # We require a parent span in order to improve our fingerprint accuracy.
@@ -243,6 +239,13 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 },
             )
 
+    def _is_slower_than_threshold(self) -> bool:
+        duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
+        total_duration = timedelta()
+        for span in self.n_spans:
+            total_duration += get_span_duration(span)
+        return total_duration >= duration_threshold
+
     def _contains_valid_repeating_query(self, span: Span) -> bool:
         query = span.get("description", None)
         return query and PARAMETERIZED_SQL_QUERY_REGEX.search(query)
@@ -289,6 +292,22 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         "n_hash",
         "n_spans",
     )
+
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+        # Only collecting metrics.
+        return False
+
+    def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
+        # Only collecting metrics.
+        return False
+
+    def _overlaps_last_span(self, span: Span) -> bool:
+        # Ignore overlapping spans for determining if an N+1 happened.
+        return False
+
+    def _is_slower_than_threshold(self) -> bool:
+        duration_threshold = self.settings.get("duration_threshold")
+        return total_span_time(self.n_spans) >= duration_threshold
 
 
 def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bool:
