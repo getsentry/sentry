@@ -58,7 +58,7 @@ export function SpanBaselineTable({span}: Props) {
           metrics: spanMetrics,
           metricSeries: spanMetricSeries,
           app_impact: formatPercentage(
-            spanMetrics.total_time / applicationMetrics.total_time
+            spanMetrics.total_time / applicationMetrics['sum(span.duration)']
           ),
         },
       ]}

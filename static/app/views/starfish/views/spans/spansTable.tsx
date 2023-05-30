@@ -117,7 +117,7 @@ export default function SpansTable({
     return {
       ...spanData,
       app_impact: formatPercentage(
-        spanData.total_exclusive_time / applicationMetrics.total_time
+        spanData.total_exclusive_time / applicationMetrics['sum(span.duration)']
       ),
       p50_trend: zeroFilledP50,
       p95_trend: zeroFilledP95,

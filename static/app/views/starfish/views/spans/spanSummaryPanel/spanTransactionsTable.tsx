@@ -58,7 +58,7 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
       ...row,
       app_impact: formatPercentage(
         spanTransactionMetrics[row.transaction]?.['sum(span.self_time)'] /
-          applicationMetrics.total_time
+          applicationMetrics['sum(span.duration)']
       ),
       metrics: spanTransactionMetrics[row.transaction],
       metricSeries: spanTransactionMetricsSeries[row.transaction],
