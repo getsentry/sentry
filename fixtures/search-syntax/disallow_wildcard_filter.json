@@ -173,7 +173,9 @@
     "query": "rele*ase",
     "additionalConfig": {
       "disallowWildcard": true,
-      "disallowWildcardReason": "Release queries don't support wildcards"
+      "invalidMessages": {
+        "wildcard-not-allowed": "Release queries don't support wildcards"
+      }
     },
     "result": [
       {"type": "spaces", "value": ""},
