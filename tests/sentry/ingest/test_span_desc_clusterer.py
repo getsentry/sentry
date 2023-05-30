@@ -25,6 +25,7 @@ from sentry.ingest.transaction_clusterer.tasks import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.relay.config import get_project_config
 from sentry.testutils.helpers.features import Feature
 
 
@@ -323,3 +324,42 @@ def test_get_deleted_project():
     deleted_project = Project(pk=666, organization=Organization(pk=666))
     _store_span_description(deleted_project, "foo")
     assert list(get_active_projects(ClustererNamespace.SPANS)) == []
+
+
+@pytest.mark.django_db
+def test_transaction_clusterer_generates_rules(default_project):
+    def _get_projconfig_span_desc_rules(project: Project):
+        return (
+            get_project_config(project, full_config=True)
+            .to_dict()
+            .get("config")
+            .get("spanDescriptionRules")
+        )
+
+    feature = "projects:span-metrics-extraction"
+    with Feature({feature: False}):
+        assert _get_projconfig_span_desc_rules(default_project) is None
+    with Feature({feature: True}):
+        assert _get_projconfig_span_desc_rules(default_project) is None
+
+    rules = {"/rule/*/0/**": 0, "/rule/*/1/**": 1}
+    ProjectOptionRuleStore(ClustererNamespace.SPANS).write(default_project, rules)
+
+    with Feature({feature: False}):
+        assert _get_projconfig_span_desc_rules(default_project) is None
+    with Feature({feature: True}):
+        assert _get_projconfig_span_desc_rules(default_project) == [
+            # TTL is 90d, so three months to expire
+            {
+                "pattern": "/rule/*/0/**",
+                "expiry": "1970-04-01T00:00:00+00:00",
+                "scope": {"op": "http"},
+                "redaction": {"method": "replace", "substitution": "*"},
+            },
+            {
+                "pattern": "/rule/*/1/**",
+                "expiry": "1970-04-01T00:00:01+00:00",
+                "scope": {"op": "http"},
+                "redaction": {"method": "replace", "substitution": "*"},
+            },
+        ]
