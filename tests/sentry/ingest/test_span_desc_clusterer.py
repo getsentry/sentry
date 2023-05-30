@@ -78,13 +78,13 @@ def test_distribution():
     "description, description_scrubbed, op, feat_flag_enabled, expected",
     [
         ("", "", "http.client", True, 0),
-        ("", "/a/b/c", "something.else", True, 0),
-        ("", "/a/b/c", "http.client", True, 1),
-        ("/a/b/c", "", "something.else", True, 0),
-        ("/a/b/c", "", "http.client", True, 1),
-        ("/a/b/c", "/a/*/c", "something.else", True, 0),
-        ("/a/b/c", "/a/*/c", "http.client", True, 1),
-        ("/a/b/c", "/a/*/c", "http.client", False, 0),
+        ("", "GET /a/b/c", "something.else", True, 0),
+        ("", "GET /a/b/c", "http.client", True, 1),
+        ("GET /a/b/c", "", "something.else", True, 0),
+        ("GET /a/b/c", "", "http.client", True, 1),
+        ("GET /a/b/c", "GET /a/*/c", "something.else", True, 0),
+        ("GET /a/b/c", "GET /a/*/c", "http.client", True, 1),
+        ("GET /a/b/c", "GET /a/*/c", "http.client", False, 0),
     ],
 )
 def test_record_span(
