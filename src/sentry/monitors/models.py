@@ -489,40 +489,64 @@ class MonitorEnvironment(Model):
         group_type, level = get_group_type_and_level(reason)
         current_timestamp = timezone.now()
 
-        occurrence = IssueOccurrence(
-            id=uuid.uuid4().hex,
-            resource_id=None,
-            project_id=self.monitor.project.id,
-            event_id=uuid.uuid4().hex,
-            fingerprint=[f"monitor-{str(self.monitor.guid)}-{reason}"],
-            type=group_type,
-            issue_title=f"Monitor failure: {self.monitor.name} ({reason})",
-            subtitle="",
-            evidence_display=[
-                {"name": "Failure reason", "value": reason, "important": True},
-                {"name": "Environment", "value": self.environment.name, "important": False},
-                {"name": "Last check-in", "value": last_checkin, "important": False},
-            ],
-            detection_time=current_timestamp,
-            level=level,
-        )
+        if False:
+            from sentry.coreapi import insert_data_to_database_legacy
+            from sentry.event_manager import EventManager
+            from sentry.models import Project
 
-        produce_occurrence_to_kafka(
-            occurrence,
-            {
-                "environment": self.environment.name,
-                "event_id": occurrence.event_id,
-                "platform": "crons",
-                "project_id": self.monitor.project_id,
-                "received": current_timestamp,
-                "sdk": None,
-                "tags": {
-                    "monitor.id": str(self.monitor.guid),
-                    "monitor.slug": self.monitor.slug,
+            event_manager = EventManager(
+                {
+                    "logentry": {"message": f"Monitor failure: {self.monitor.name} ({reason})"},
+                    "contexts": {"monitor": get_monitor_environment_context(self)},
+                    "fingerprint": ["monitor", str(self.monitor.guid), reason],
+                    "environment": self.environment.name,
+                    # TODO: Both of these values should be get transformed from context to tags
+                    # We should understand why that is not happening and remove these when it correctly is
+                    "tags": {
+                        "monitor.id": str(self.monitor.guid),
+                        "monitor.slug": self.monitor.slug,
+                    },
                 },
-                "timestamp": current_timestamp,
-            },
-        )
+                project=Project(id=self.monitor.project_id),
+            )
+            event_manager.normalize()
+            data = event_manager.get_data()
+            insert_data_to_database_legacy(data)
+        else:
+            occurrence = IssueOccurrence(
+                id=uuid.uuid4().hex,
+                resource_id=None,
+                project_id=self.monitor.project_id,
+                event_id=uuid.uuid4().hex,
+                fingerprint=[f"monitor-{str(self.monitor.guid)}-{reason}"],
+                type=group_type,
+                issue_title=f"Monitor failure: {self.monitor.name} ({reason})",
+                subtitle="",
+                evidence_display=[
+                    {"name": "Failure reason", "value": reason, "important": True},
+                    {"name": "Environment", "value": self.environment.name, "important": False},
+                    {"name": "Last check-in", "value": last_checkin, "important": False},
+                ],
+                detection_time=current_timestamp,
+                level=level,
+            )
+
+            produce_occurrence_to_kafka(
+                occurrence,
+                {
+                    "environment": self.environment.name,
+                    "event_id": occurrence.event_id,
+                    "platform": "crons",
+                    "project_id": self.monitor.project_id,
+                    "received": current_timestamp,
+                    "sdk": None,
+                    "tags": {
+                        "monitor.id": str(self.monitor.guid),
+                        "monitor.slug": self.monitor.slug,
+                    },
+                    "timestamp": current_timestamp,
+                },
+            )
 
         monitor_environment_failed.send(monitor_environment=self, sender=type(self))
         return True
