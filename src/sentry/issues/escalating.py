@@ -331,7 +331,11 @@ def manage_issue_states(
             add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
             record_group_history(group, GroupHistoryStatus.ESCALATING)
             issue_escalating.send_robust(
-                project=group.project, group=group, event=event, sender=manage_issue_states
+                project=group.project,
+                group=group,
+                event=event,
+                sender=manage_issue_states,
+                was_until_escalating=True if data and activity_data else False,
             )
             if data and activity_data:
                 data.update(activity_data)
