@@ -1,5 +1,8 @@
 import {useQuery} from 'sentry/utils/queryClient';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
 
 type Transaction = {
@@ -8,7 +11,24 @@ type Transaction = {
 };
 
 export const useSpanTransactions = (span?: Span, referrer = 'span-transactions') => {
-  const query = span ? getQuery(span) : '';
+  const pageFilters = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilters);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+
+  const query = span
+    ? `
+  SELECT
+    transaction,
+    count() AS count
+  FROM spans_experimental_starfish
+  WHERE
+    group_id = '${span.group_id}'
+    ${dateFilters}
+  GROUP BY transaction
+  ORDER BY -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
+  LIMIT 5
+`
+    : '';
 
   const {isLoading, error, data} = useQuery<Transaction[]>({
     queryKey: ['span-transactions', span?.group_id],
@@ -20,18 +40,4 @@ export const useSpanTransactions = (span?: Span, referrer = 'span-transactions')
   });
 
   return {isLoading, error, data};
-};
-
-const getQuery = (span: Span) => {
-  return `
-    SELECT
-      transaction,
-      count() AS count
-    FROM spans_experimental_starfish
-    WHERE
-      group_id = '${span.group_id}'
-    GROUP BY transaction
-    ORDER BY -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
-    LIMIT 5
-`;
 };
