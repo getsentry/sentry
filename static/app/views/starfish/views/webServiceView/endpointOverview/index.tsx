@@ -277,6 +277,7 @@ function SpanMetricsTable({
   const location = useLocation();
   const pageFilter = usePageFilters();
 
+  // TODO: Add transaction http method to query conditions as well, since transaction name alone is not unique
   const queryConditions = buildQueryConditions(filter || ModuleName.ALL, location);
   if (transaction) {
     queryConditions.push(`transaction = '${transaction}'`);
