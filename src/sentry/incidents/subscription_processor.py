@@ -24,6 +24,7 @@ from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
     Incident,
+    IncidentActivity,
     IncidentStatus,
     IncidentStatusMethod,
     IncidentTrigger,
@@ -631,23 +632,104 @@ class SubscriptionProcessor:
             return incident_trigger
 
     def handle_trigger_actions(
-        self, incident_triggers: List[IncidentTrigger], metric_value: float
+        self, incident_triggers: list[IncidentTrigger], metric_value: float
     ) -> None:
-        actions = deduplicate_trigger_actions(triggers=deepcopy(incident_triggers))
+        actions = deduplicate_trigger_actions(triggers=deepcopy(self.triggers))
         # Grab the first trigger to get incident id (they are all the same)
         # All triggers should either be firing or resolving, so doesn't matter which we grab.
         incident_trigger = incident_triggers[0]
         method = "fire" if incident_trigger.status == TriggerStatus.ACTIVE.value else "resolve"
+        try:
+            incident = Incident.objects.get(id=incident_trigger.incident_id)
+        except Incident.DoesNotExist:
+            # TODO: increment metric??
+            return
+
+        incident_activities = IncidentActivity.objects.filter(incident=incident)
+        past_statuses = {int(i.value) for i in incident_activities if i.value is not None}
+
+        critical_actions = []
+        warning_actions = []
         for action in actions:
+            if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL:
+                critical_actions.append(action)
+            else:
+                warning_actions.append(action)
+
+        if method == "resolve":
+            if incident.status != IncidentStatus.CLOSED.value:
+                # Critical -> warning
+                for action in warning_actions:
+                    transaction.on_commit(
+                        handle_trigger_action.s(
+                            action_id=action.id,
+                            incident_id=incident.id,
+                            project_id=self.subscription.project_id,
+                            method=method,
+                            new_status=IncidentStatus.WARNING.value,
+                            metric_value=metric_value,
+                        ).delay
+                    )
+                return
+
+            elif IncidentStatus.CRITICAL.value in past_statuses:
+                # Critical -> resolved or warning -> resolved, but was critical previously
+                for action in actions:
+                    transaction.on_commit(
+                        handle_trigger_action.s(
+                            action_id=action.id,
+                            incident_id=incident.id,
+                            project_id=self.subscription.project_id,
+                            method=method,
+                            new_status=IncidentStatus.CLOSED.value,
+                            metric_value=metric_value,
+                        ).delay
+                    )
+                return
+
+            # Warning -> resolved
+            for action in warning_actions:
+                transaction.on_commit(
+                    handle_trigger_action.s(
+                        action_id=action.id,
+                        incident_id=incident.id,
+                        project_id=self.subscription.project_id,
+                        method=method,
+                        new_status=IncidentStatus.CLOSED.value,
+                        metric_value=metric_value,
+                    ).delay
+                )
+            return
+
+        # method == "fire"
+        if incident.status == IncidentStatus.CRITICAL:
+            # Anything -> critical
+            for action in actions:
+                transaction.on_commit(
+                    handle_trigger_action.s(
+                        action_id=action.id,
+                        incident_id=incident.id,
+                        project_id=self.subscription.project_id,
+                        method=method,
+                        new_status=IncidentStatus.CRITICAL.value,
+                        metric_value=metric_value,
+                    ).delay
+                )
+            return
+
+        # Resolved -> warning:
+        for action in warning_actions:
             transaction.on_commit(
                 handle_trigger_action.s(
                     action_id=action.id,
-                    incident_id=incident_trigger.incident_id,
+                    incident_id=incident.id,
                     project_id=self.subscription.project_id,
                     method=method,
+                    new_status=IncidentStatus.WARNING.value,
                     metric_value=metric_value,
                 ).delay
             )
+        return
 
     def handle_incident_severity_update(self) -> None:
         if self.active_incident:
