@@ -10,6 +10,11 @@ def backfill_org_membermapping(apps, schema_editor):
     OrganizationMember = apps.get_model("sentry", "OrganizationMember")
     OrganizationMemberMapping = apps.get_model("sentry", "OrganizationMemberMapping")
 
+    # Remove member mappings that lack organizationmember_id as they are old records that
+    # predate the addition of organizationmember_id. We need organizationmember_id to be
+    # set in order to start reading from the membermapping table.
+    OrganizationMemberMapping.objects.filter(organizationmember_id__isnull=True).delete()
+
     for member in RangeQuerySetWrapperWithProgressBar(OrganizationMember.objects.all()):
         mapping = OrganizationMemberMapping.objects.filter(
             organization_id=member.organization_id, organizationmember_id=member.id
