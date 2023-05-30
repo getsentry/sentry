@@ -28,7 +28,7 @@ function SampleList({groupId, transactionName, spanDescription}: Props) {
     >
       <h3>{transactionName}</h3>
       <SampleInfo groupId={groupId} transactionName={transactionName} />
-      <h5>{t('Duration (p50)')}</h5>
+      <h5>{t('Duration (p50, p95)')}</h5>
       <DurationChart
         groupId={groupId}
         transactionName={transactionName}
