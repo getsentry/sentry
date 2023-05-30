@@ -21,7 +21,7 @@ export function DomainSelector({value = '', moduleName = ModuleName.ALL}: Props)
   const query = getQuery(moduleName);
   const eventView = getEventView(moduleName);
 
-  const {data: operations} = useSpansQuery<[{'span.domain': string}]>({
+  const {data: domains} = useSpansQuery<[{'span.domain': string}]>({
     eventView,
     queryString: query,
     initialData: [],
@@ -30,7 +30,7 @@ export function DomainSelector({value = '', moduleName = ModuleName.ALL}: Props)
 
   const options = [
     {value: '', label: 'All'},
-    ...operations.map(datum => ({
+    ...domains.map(datum => ({
       value: datum['span.domain'],
       label: datum['span.domain'],
     })),
