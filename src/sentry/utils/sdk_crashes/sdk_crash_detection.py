@@ -35,7 +35,7 @@ class SDKCrashDetection:
             and event.group.issue_category == GroupCategory.ERROR
             and event.group.platform == "cocoa"
         )
-        if should_detect_sdk_crash is False:
+        if not should_detect_sdk_crash:
             return
 
         context = get_path(event.data, "contexts", "sdk_crash_detection")
