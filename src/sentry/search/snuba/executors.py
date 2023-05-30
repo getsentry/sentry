@@ -487,11 +487,23 @@ def better_priority_aggregation(
 
     log_level_score = "multiIf(equals(level, 'fatal'), 1.0, equals(level, 'error'), 0.66, equals(level, 'warning'), 0.33, 0.0)"
     stacktrace_score = "if(notEmpty(exception_stacks.type), 1.0, 0.0)"
+    # event_agg_rank:
+    #   ls = log_level_score    {1.0, 0.66, 0.33, 0}
+    #   lw = log_level_weight   [0, 10]
+    #   ss = stacktrace_score   {1.0, 0.0}
+    #   sw = stacktrace_weight  [0, 3]
+    #   as = event_age_score    [1, 0]
+    #   aw = event_age_weight   [1, 5]
+    #
+    #        (ls * lw) + (ss * sw) + (as * aw)     min(f(x)  = 0, when individual scores are all 0
+    # f(x) = ---------------------------------  ,  max(f(x)) = 1, when individual scores are all 1
+    #                  lw + sw + aw
+    #
     event_agg_numerator = f"plus(plus(multiply({log_level_score}, {log_level_weight}), multiply({stacktrace_score}, {stacktrace_weight})), {event_age_weight})"
     event_agg_denominator = (
         f"plus(plus({log_level_weight}, {stacktrace_weight}), {event_age_weight})"
     )
-    event_agg_rank = f"divide({event_agg_numerator}, {event_agg_denominator})"
+    event_agg_rank = f"divide({event_agg_numerator}, {event_agg_denominator})"  # values from [0, 1]
 
     v2 = aggregate_kwargs["v2"]
 
