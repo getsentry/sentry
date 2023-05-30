@@ -108,8 +108,8 @@ def spawn_span_cluster_projects(**kwargs: Any) -> None:
     with sentry_sdk.start_span(op="span_descs-cluster_spawn"):
         project_count = 0
         project_iter = redis.get_active_projects(ClustererNamespace.SPANS)
-        project_iter = filter(
-            lambda p: features.has("projects:span-metrics-extraction", p), project_iter
+        project_iter = (
+            p for p in project_iter if features.has("projects:span-metrics-extraction", p)
         )
         while batch := list(islice(project_iter, PROJECTS_PER_TASK)):
             project_count += len(batch)
