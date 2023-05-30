@@ -19,7 +19,7 @@ from sentry.models import (
     record_group_history_from_activity_type,
     remove_group_from_inbox,
 )
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils.iterators import chunked
@@ -35,6 +35,7 @@ ITERATOR_CHUNK = 10_000
     queue="auto_transition_issue_states",
     max_retries=3,
 )  # type: ignore
+@retry
 @monitor(monitor_slug="auto-archive-job-monitor")
 def run_auto_archive() -> None:
     """
@@ -45,7 +46,7 @@ def run_auto_archive() -> None:
     for organization in RangeQuerySetWrapper(
         Organization.objects.filter(status=OrganizationStatus.ACTIVE)
     ):
-        if features.has("organizations:escalating-issues", organization):
+        if features.has("organizations:escalating-issues-v2", organization):
             project_ids = list(
                 Project.objects.filter(
                     organization_id=organization.id, status=ObjectStatus.ACTIVE
@@ -62,6 +63,7 @@ def run_auto_archive() -> None:
     time_limit=25 * 60,
     soft_time_limit=20 * 60,
 )  # type: ignore
+@retry
 def run_auto_archive_for_project(project_ids: List[int]) -> None:
     now = datetime.now(tz=pytz.UTC)
     fourteen_days_ago = now - timedelta(days=14)

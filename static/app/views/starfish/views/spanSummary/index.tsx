@@ -9,6 +9,7 @@ import moment from 'moment';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,9 +23,9 @@ import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
-import {highlightSql} from 'sentry/views/starfish/modules/databaseModule/panel';
 import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {getDateFilters, PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {highlightSql} from 'sentry/views/starfish/utils/highlightSql';
 import Sidebar, {
   getTransactionBasedSeries,
   queryDataToChartData,
@@ -194,135 +195,137 @@ export default function SpanSummary({location, params}: Props) {
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <PageErrorAlert />
-            <FilterOptionsContainer>
-              <DatePageFilter alignDropdown="left" />
-              <FilterOptionsSubContainer>
-                <ToggleLabel active={state.plotSamples}>
-                  {t('Plot samples on charts')}
-                </ToggleLabel>
-                <SwitchButton
-                  isActive={state.plotSamples}
-                  toggle={() => {
-                    setState({...state, plotSamples: !state.plotSamples});
-                  }}
-                />
-              </FilterOptionsSubContainer>
-            </FilterOptionsContainer>
-            <FlexContainer>
-              <MainSpanSummaryContainer>
-                {isLoading ? (
-                  <span>LOADING</span>
-                ) : (
-                  <div>
-                    <h3>{t('Info')}</h3>
-                    <SpanGroupKeyValueList
-                      data={data}
-                      spanAction={spanAction}
-                      spanGroupOperation={spanGroupOperation}
-                      spanDescription={spanDescription}
-                      formattedDescription={formattedDescription}
-                      spanDomain={spanDomain}
-                      action={action}
-                      transactionName={transactionName}
-                    />
-                  </div>
-                )}
+            <PageFiltersContainer>
+              <PageErrorAlert />
+              <FilterOptionsContainer>
+                <DatePageFilter alignDropdown="left" />
+                <FilterOptionsSubContainer>
+                  <ToggleLabel active={state.plotSamples}>
+                    {t('Plot samples on charts')}
+                  </ToggleLabel>
+                  <SwitchButton
+                    isActive={state.plotSamples}
+                    toggle={() => {
+                      setState({...state, plotSamples: !state.plotSamples});
+                    }}
+                  />
+                </FilterOptionsSubContainer>
+              </FilterOptionsContainer>
+              <FlexContainer>
+                <MainSpanSummaryContainer>
+                  {isLoading ? (
+                    <span>LOADING</span>
+                  ) : (
+                    <div>
+                      <h3>{t('Info')}</h3>
+                      <SpanGroupKeyValueList
+                        data={data}
+                        spanAction={spanAction}
+                        spanGroupOperation={spanGroupOperation}
+                        spanDescription={spanDescription}
+                        formattedDescription={formattedDescription}
+                        spanDomain={spanDomain}
+                        action={action}
+                        transactionName={transactionName}
+                      />
+                    </div>
+                  )}
 
-                <ChartGrid>
-                  <ChartPanel title={t('Throughput (TPM)')}>
-                    <Chart
-                      statsPeriod="24h"
-                      height={140}
-                      data={[throughputTransactionSeries ?? []]}
-                      start=""
-                      end=""
-                      loading={isTransactionAggregateDataLoading}
-                      utc={false}
-                      stacked
-                      isLineChart
-                      disableXAxis
-                      definedAxisTicks={4}
-                    />
-                  </ChartPanel>
+                  <ChartGrid>
+                    <ChartPanel title={t('Throughput (TPM)')}>
+                      <Chart
+                        statsPeriod="24h"
+                        height={140}
+                        data={[throughputTransactionSeries ?? []]}
+                        start=""
+                        end=""
+                        loading={isTransactionAggregateDataLoading}
+                        utc={false}
+                        stacked
+                        isLineChart
+                        disableXAxis
+                        definedAxisTicks={4}
+                      />
+                    </ChartPanel>
 
-                  <ChartPanel title={t('Transaction Duration (P50)')}>
-                    <Chart
-                      statsPeriod="24h"
-                      height={140}
-                      chartColors={theme.charts.getColorPalette(4).slice(5, 6)}
-                      data={[p50TransactionSeries ?? []]}
-                      start=""
-                      end=""
-                      loading={isTransactionAggregateDataLoading}
-                      utc={false}
-                      stacked
-                      isLineChart
-                      disableXAxis
-                      definedAxisTicks={4}
-                    />
-                  </ChartPanel>
+                    <ChartPanel title={t('Transaction Duration (P50)')}>
+                      <Chart
+                        statsPeriod="24h"
+                        height={140}
+                        chartColors={theme.charts.getColorPalette(4).slice(5, 6)}
+                        data={[p50TransactionSeries ?? []]}
+                        start=""
+                        end=""
+                        loading={isTransactionAggregateDataLoading}
+                        utc={false}
+                        stacked
+                        isLineChart
+                        disableXAxis
+                        definedAxisTicks={4}
+                      />
+                    </ChartPanel>
 
-                  <ChartPanel title={t('Throughput (SPM)')}>
-                    <Chart
-                      statsPeriod="24h"
-                      height={140}
-                      data={[spmSeries ?? []]}
-                      start=""
-                      end=""
-                      loading={isLoadingSeriesData}
-                      utc={false}
-                      stacked
-                      isLineChart
-                      disableXAxis
-                      definedAxisTicks={4}
-                    />
-                  </ChartPanel>
+                    <ChartPanel title={t('Throughput (SPM)')}>
+                      <Chart
+                        statsPeriod="24h"
+                        height={140}
+                        data={[spmSeries ?? []]}
+                        start=""
+                        end=""
+                        loading={isLoadingSeriesData}
+                        utc={false}
+                        stacked
+                        isLineChart
+                        disableXAxis
+                        definedAxisTicks={4}
+                      />
+                    </ChartPanel>
 
-                  <ChartPanel title={t('Span Duration (P50)')}>
-                    <Chart
-                      statsPeriod="24h"
-                      height={140}
-                      data={[p50Series ?? []]}
-                      start=""
-                      end=""
-                      loading={isLoadingSeriesData}
-                      utc={false}
-                      chartColors={theme.charts.getColorPalette(4).slice(5, 6)}
-                      scatterPlot={
-                        state.plotSamples
-                          ? [
-                              {
-                                data: sampledSpanDataSeries,
-                                seriesName: 'Sampled Span Duration',
-                              },
-                            ]
-                          : undefined
-                      }
-                      stacked
-                      isLineChart
-                      disableXAxis
-                      definedAxisTicks={4}
-                    />
-                  </ChartPanel>
-                </ChartGrid>
+                    <ChartPanel title={t('Span Duration (P50)')}>
+                      <Chart
+                        statsPeriod="24h"
+                        height={140}
+                        data={[p50Series ?? []]}
+                        start=""
+                        end=""
+                        loading={isLoadingSeriesData}
+                        utc={false}
+                        chartColors={theme.charts.getColorPalette(4).slice(5, 6)}
+                        scatterPlot={
+                          state.plotSamples
+                            ? [
+                                {
+                                  data: sampledSpanDataSeries,
+                                  seriesName: 'Sampled Span Duration',
+                                },
+                              ]
+                            : undefined
+                        }
+                        stacked
+                        isLineChart
+                        disableXAxis
+                        definedAxisTicks={4}
+                      />
+                    </ChartPanel>
+                  </ChartGrid>
 
-                <SpanSamplesTable
-                  isLoading={areSpanSamplesLoading || isTransactionDataLoading}
-                  data={sampledSpanData}
-                  p50={p50}
-                />
-              </MainSpanSummaryContainer>
-              <SidebarContainer>
-                <Sidebar
-                  groupId={groupId}
-                  spanGroupOperation={spanGroupOperation}
-                  transactionName={transactionName}
-                  sampledSpanData={state.plotSamples ? sampledSpanData : []}
-                  module={module}
-                />
-              </SidebarContainer>
-            </FlexContainer>
+                  <SpanSamplesTable
+                    isLoading={areSpanSamplesLoading || isTransactionDataLoading}
+                    data={sampledSpanData}
+                    p50={p50}
+                  />
+                </MainSpanSummaryContainer>
+                <SidebarContainer>
+                  <Sidebar
+                    groupId={groupId}
+                    spanGroupOperation={spanGroupOperation}
+                    transactionName={transactionName}
+                    sampledSpanData={state.plotSamples ? sampledSpanData : []}
+                    module={module}
+                  />
+                </SidebarContainer>
+              </FlexContainer>
+            </PageFiltersContainer>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
@@ -446,6 +449,23 @@ function SpanGroupKeyValueList({
         />
       );
     default:
-      return null;
+      return (
+        <KeyValueList
+          data={[
+            {
+              key: 'op',
+              value: spanGroupOperation,
+              subject: 'Operation',
+            },
+            {
+              key: 'action',
+              value: spanAction,
+              subject: 'Action',
+            },
+            {key: 'desc', value: spanDescription, subject: 'Description'},
+          ]}
+          shouldSort={false}
+        />
+      );
   }
 }

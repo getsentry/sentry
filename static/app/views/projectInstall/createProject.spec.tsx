@@ -77,14 +77,18 @@ describe('CreateProject', function () {
 
   it('should block if you have access to no teams', function () {
     const {container} = render(<CreateProject />, {
-      context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
+      context: TestStubs.routerContext([
+        {organization: {id: '1', slug: 'testOrg', access: ['project:read']}},
+      ]),
     });
     expect(container).toSnapshot();
   });
 
   it('can create a new team', async function () {
     render(<CreateProject />, {
-      context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
+      context: TestStubs.routerContext([
+        {organization: {id: '1', slug: 'testOrg', access: ['project:read']}},
+      ]),
     });
 
     renderGlobalModal();
@@ -122,10 +126,22 @@ describe('CreateProject', function () {
   });
 
   it('should fill in project name if its empty when platform is chosen', async function () {
-    const organization = TestStubs.Organization();
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:admin'],
+      },
+    });
 
     const {container} = render(<CreateProject />, {
-      context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
+      context: TestStubs.routerContext([
+        {
+          organization: {
+            id: '1',
+            slug: 'testOrg',
+            access: ['project:read'],
+          },
+        },
+      ]),
       organization,
     });
 
@@ -149,6 +165,7 @@ describe('CreateProject', function () {
     const {organization} = initializeOrg({
       organization: {
         features: ['onboarding-sdk-selection'],
+        access: ['project:read', 'project:write'],
       },
     });
 

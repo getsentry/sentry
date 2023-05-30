@@ -94,6 +94,7 @@ export function ReleaseSearchBar({
           savedSearchType={SavedSearchType.SESSION}
           hasRecentSearches
           highlightUnsupportedTags
+          disallowWildcard
         />
       )}
     </ClassNames>
