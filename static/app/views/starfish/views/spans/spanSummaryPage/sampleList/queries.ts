@@ -61,7 +61,7 @@ export const useQueryGetSpanTransactionSamples = ({
   );
 
   const transactionDataResult = useQueryTransactionData(combinedSpanSampleData);
-  const transactionDataById = keyBy(transactionDataResult?.data, 'id');
+  const transactionDataById = keyBy(transactionDataResult?.data?.data, 'id');
 
   const newData: SampleListDatRow[] = combinedSpanSampleData.map(datum => {
     const transaction = transactionDataById[

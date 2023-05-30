@@ -4,6 +4,7 @@ import moment from 'moment';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {useQueryGetSpanTransactionSamples} from 'sentry/views/starfish/views/spans/spanSummaryPage/sampleList/queries';
 import {
   useQueryGetSpanSeriesData,
   useQuerySpansInTransaction,
@@ -39,6 +40,17 @@ function DurationChart({groupId, transactionName, spanDescription}: Props) {
     endTime
   );
 
+  const {data: sampleListData, isLoading: isSamplesLoading} =
+    useQueryGetSpanTransactionSamples({
+      groupId,
+      transactionName,
+    });
+
+  const sampledSpanDataSeries = sampleListData.map(({timestamp, spanDuration}) => ({
+    name: timestamp,
+    value: spanDuration,
+  }));
+
   return (
     <Chart
       statsPeriod="24h"
@@ -47,6 +59,16 @@ function DurationChart({groupId, transactionName, spanDescription}: Props) {
       start=""
       end=""
       loading={isLoading || isLoadingSeriesData}
+      scatterPlot={
+        isSamplesLoading
+          ? undefined
+          : [
+              {
+                data: sampledSpanDataSeries,
+                seriesName: 'Sampled Span Duration',
+              },
+            ]
+      }
       utc={false}
       chartColors={theme.charts.getColorPalette(4).slice(3, 6)}
       stacked
