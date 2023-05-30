@@ -93,9 +93,14 @@ function ReplaysListTable({
 
   const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
 
+  const hasReplayClickSearchBannerRollout = organization.features.includes(
+    'session-replay-click-search-banner-rollout'
+  );
   return (
     <Fragment>
-      <ReplaySearchAlert needSdkUpdates={Boolean(allSelectedProjectsNeedUpdates)} />
+      {hasReplayClickSearchBannerRollout && (
+        <ReplaySearchAlert needSdkUpdates={Boolean(allSelectedProjectsNeedUpdates)} />
+      )}
       <ReplayTable
         fetchError={fetchError}
         isFetching={isFetching}
