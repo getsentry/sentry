@@ -6,7 +6,7 @@ from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.safe import get_path
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
-from sentry.utils.sdk_crashes.event_stripper import EventStripper
+from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from tests.sentry.utils.sdk_crashes.test_fixture import (
     IN_APP_FRAME,
     get_crash_event,
@@ -26,14 +26,12 @@ class BaseEventStripperMixin(BaseTestCase, metaclass=abc.ABCMeta):
 
 class EventStripperTestMixin(BaseEventStripperMixin):
     def test_strip_event_data_keeps_allowed_keys(self):
-        event_stripper = EventStripper(CocoaSDKCrashDetector())
-
         event = self.create_event(
             data=get_crash_event(),
             project_id=self.project.id,
         )
 
-        stripped_event = event_stripper.strip_event_data(event)
+        stripped_event = strip_event_data(event, CocoaSDKCrashDetector())
 
         keys_removed = {"tags", "user", "threads", "breadcrumbs", "environment"}
         for key in keys_removed:
@@ -55,8 +53,6 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             assert stripped_event.data.get(key) is not None, f"key {key} should be kept"
 
     def test_strip_event_data_removes_ip_address(self):
-        event_stripper = EventStripper(CocoaSDKCrashDetector())
-
         event = self.create_event(
             data=get_crash_event(),
             project_id=self.project.id,
@@ -64,13 +60,11 @@ class EventStripperTestMixin(BaseEventStripperMixin):
 
         assert event.ip_address is not None
 
-        stripped_event = event_stripper.strip_event_data(event)
+        stripped_event = strip_event_data(event, CocoaSDKCrashDetector())
 
         assert stripped_event.ip_address is None
 
     def test_strip_event_data_without_debug_meta(self):
-        event_stripper = EventStripper(CocoaSDKCrashDetector())
-
         event_data = get_crash_event()
         event_data["debug_meta"]["images"] = None
 
@@ -79,20 +73,18 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             project_id=self.project.id,
         )
 
-        stripped_event = event_stripper.strip_event_data(event)
+        stripped_event = strip_event_data(event, CocoaSDKCrashDetector())
 
         debug_meta_images = get_path(stripped_event.data, "debug_meta", "images")
         assert debug_meta_images is None
 
     def test_strip_event_data_strips_context(self):
-        event_stripper = EventStripper(CocoaSDKCrashDetector())
-
         event = self.create_event(
             data=get_crash_event(),
             project_id=self.project.id,
         )
 
-        stripped_event = event_stripper.strip_event_data(event)
+        stripped_event = strip_event_data(event, CocoaSDKCrashDetector())
 
         contexts = stripped_event.data.get("contexts")
         assert contexts is not None
@@ -101,14 +93,12 @@ class EventStripperTestMixin(BaseEventStripperMixin):
         assert contexts.get("device") is not None
 
     def test_strip_event_data_strips_non_referenced_dsyms(self):
-        event_stripper = EventStripper(Mock())
-
         event = self.create_event(
             data=get_crash_event(),
             project_id=self.project.id,
         )
 
-        stripped_event = event_stripper.strip_event_data(event)
+        stripped_event = strip_event_data(event, Mock())
 
         debug_meta_images = get_path(stripped_event.data, "debug_meta", "images")
 
@@ -125,8 +115,6 @@ class EventStripperTestMixin(BaseEventStripperMixin):
         self._execute_strip_frames_test(frames)
 
     def _execute_strip_frames_test(self, frames):
-        event_stripper = EventStripper(CocoaSDKCrashDetector())
-
         event_data = get_crash_event_with_frames(frames)
 
         event = self.create_event(
@@ -134,7 +122,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             project_id=self.project.id,
         )
 
-        stripped_event = event_stripper.strip_event_data(event)
+        stripped_event = strip_event_data(event, CocoaSDKCrashDetector())
 
         stripped_frames = get_path(
             stripped_event.data, "exception", "values", -1, "stacktrace", "frames"

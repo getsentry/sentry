@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.auth.authenticators import TotpInterface
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     AuthProvider,
@@ -201,7 +202,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
             OrganizationMember.objects.filter(id=om.id).update(
                 token_expires_at=om.token_expires_at - timedelta(days=31)
             )

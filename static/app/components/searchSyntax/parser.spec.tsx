@@ -64,7 +64,6 @@ describe('searchSyntax/parser', function () {
   const registerTestCase = (testCase: TestCase) =>
     it(`handles ${testCase.query}`, () => {
       const result = parseSearch(testCase.query, testCase.additionalConfig);
-
       // Handle errors
       if (testCase.raisesError) {
         expect(result).toBeNull();
