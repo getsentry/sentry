@@ -164,7 +164,7 @@ const FilterOptionsContainer = styled(PaddedContainer)`
 
 const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
 
-const buildQueryConditions = (moduleName: ModuleName, location: Location) => {
+export const buildQueryConditions = (moduleName: ModuleName, location: Location) => {
   const {query} = location;
   const result = Object.keys(query)
     .filter(key => SPAN_FILTER_KEYS.includes(key))
