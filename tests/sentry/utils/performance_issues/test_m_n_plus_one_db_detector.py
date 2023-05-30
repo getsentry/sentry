@@ -141,6 +141,10 @@ class MNPlusOneDBDetectorTest(TestCase):
         event = get_event("m-n-plus-one-db/m-n-plus-one-redis")
         assert self.find_problems(event) == []
 
+    def test_m_n_plus_one_ignores_mostly_not_db(self):
+        event = get_event("m-n-plus-one-db/m-n-plus-one-mostly-http")
+        assert self.find_problems(event) == []
+
     def test_respects_project_option(self):
         project = self.create_project()
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
