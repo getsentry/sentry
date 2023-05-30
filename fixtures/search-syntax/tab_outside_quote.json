@@ -13,7 +13,7 @@
         "value": {"type": "valueText", "value": "a", "quoted": false}
       },
       {"type": "spaces", "value": ""},
-      {"quoted": false, "type": "freeText", "value": "\trelease"},
+      {"quoted": false, "type": "freeText", "value": "\trelease", "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   }

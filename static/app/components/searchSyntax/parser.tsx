@@ -395,6 +395,7 @@ export class TokenConverter {
     type: Token.FreeText as const,
     value,
     quoted,
+    invalid: this.checkInvalidFreeText(value),
   });
 
   tokenLogicGroup = (
@@ -628,6 +629,17 @@ export class TokenConverter {
     this.config.textOperatorKeys.has(getKeyName(key));
 
   /**
+   * Checks the validity of a free text based on the provided search configuration
+   */
+  checkInvalidFreeText = (value: string) => {
+    if (this.config.disallowWildcard && value.includes('*')) {
+      return {reason: t('Invalid query. Wildcards are not supported.')};
+    }
+
+    return null;
+  };
+
+  /**
    * Checks a filter against some non-grammar validation rules
    */
   checkInvalidFilter = <T extends FilterType>(
@@ -727,6 +739,10 @@ export class TokenConverter {
    * Validates the value of a text filter
    */
   checkInvalidTextValue = (value: TextFilter['value']) => {
+    if (this.config.disallowWildcard && value.value.includes('*')) {
+      return {reason: t('Wildcards not supported in search')};
+    }
+
     if (!value.quoted && /(^|[^\\])"/.test(value.value)) {
       return {reason: t('Quotes must enclose text or be escaped')};
     }
@@ -746,6 +762,13 @@ export class TokenConverter {
 
     if (hasEmptyValue) {
       return {reason: t('Lists should not have empty values')};
+    }
+
+    if (
+      this.config.disallowWildcard &&
+      items.some(item => item.value.value.includes('*'))
+    ) {
+      return {reason: t('Lists should not have wildcard values')};
     }
 
     return null;
@@ -805,6 +828,10 @@ export type SearchConfig = {
    * Keys considered valid for date filter types
    */
   dateKeys: Set<string>;
+  /**
+   * Disallow wildcards in free text search AND in tag values
+   */
+  disallowWildcard: boolean;
   /**
    * Keys which are considered valid for duration filters
    */
@@ -875,6 +902,7 @@ const defaultConfig: SearchConfig = {
   ]),
   sizeKeys: new Set([]),
   allowBoolean: true,
+  disallowWildcard: false,
 };
 
 const options = {

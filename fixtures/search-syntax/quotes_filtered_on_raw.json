@@ -13,7 +13,7 @@
         "value": {"type": "valueText", "value": "unknown", "quoted": false}
       },
       {"type": "spaces", "value": " "},
-      {"type": "freeText", "value": "what is this?", "quoted": true},
+      {"type": "freeText", "value": "what is this?", "quoted": true, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   },
@@ -22,7 +22,12 @@
     "query": "\"thinger:unknown what is this?\"",
     "result": [
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "thinger:unknown what is this?", "quoted": true},
+      {
+        "type": "freeText",
+        "value": "thinger:unknown what is this?",
+        "quoted": true,
+        "invalid": null
+      },
       {"type": "spaces", "value": ""}
     ]
   },
@@ -31,7 +36,7 @@
     "query": "end\"",
     "result": [
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "end\"", "quoted": false},
+      {"type": "freeText", "value": "end\"", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   },
@@ -40,7 +45,7 @@
     "query": "\"beginning",
     "result": [
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "\"beginning", "quoted": false},
+      {"type": "freeText", "value": "\"beginning", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   },
@@ -49,7 +54,7 @@
     "query": "\"",
     "result": [
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "\"", "quoted": false},
+      {"type": "freeText", "value": "\"", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   },
@@ -58,7 +63,7 @@
     "query": "\"\"",
     "result": [
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "", "quoted": true},
+      {"type": "freeText", "value": "", "quoted": true, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   },
@@ -67,7 +72,7 @@
     "query": "\" \"",
     "result": [
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": " ", "quoted": true},
+      {"type": "freeText", "value": " ", "quoted": true, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   },
@@ -76,9 +81,9 @@
     "query": "\"\"woof\"",
     "result": [
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "", "quoted": true},
+      {"type": "freeText", "value": "", "quoted": true, "invalid": null},
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "woof\"", "quoted": false},
+      {"type": "freeText", "value": "woof\"", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   },
@@ -87,15 +92,15 @@
     "query": "\"\"\"\"\"\"\"\"\"",
     "result": [
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "", "quoted": true},
+      {"type": "freeText", "value": "", "quoted": true, "invalid": null},
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "", "quoted": true},
+      {"type": "freeText", "value": "", "quoted": true, "invalid": null},
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "", "quoted": true},
+      {"type": "freeText", "value": "", "quoted": true, "invalid": null},
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "", "quoted": true},
+      {"type": "freeText", "value": "", "quoted": true, "invalid": null},
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "\"", "quoted": false},
+      {"type": "freeText", "value": "\"", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   }
