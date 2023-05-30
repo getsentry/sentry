@@ -27,6 +27,8 @@ MAX_SET_SIZE = 2000
 SET_TTL = 24 * 60 * 60
 
 
+# TODO(iker): accept multiple values to add to the set. Right now, multiple
+# calls for each individual value are required, producing too many Redis calls.
 add_to_set = redis.load_script("utils/sadd_capped.lua")
 logger = logging.getLogger(__name__)
 
