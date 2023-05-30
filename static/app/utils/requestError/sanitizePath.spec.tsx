@@ -58,6 +58,18 @@ describe('sanitizePath', function () {
         '/organizations/{orgSlug}/releases/{releaseId}/deploys/',
       ],
 
+      [
+        // OrganizationTagsEndpoint
+        '/organizations/sentry/tags/',
+        '/organizations/{orgSlug}/tags/',
+      ],
+
+      [
+        // OrganizationTagKeyValuesEndpoint
+        '/organizations/sentry/tags/browser/values/',
+        '/organizations/{orgSlug}/tags/{tagName}/values/',
+      ],
+
       // /projects/ endpoints
       [
         // ProjectAlertRuleDetailsEndpoint

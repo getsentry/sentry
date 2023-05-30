@@ -15,6 +15,7 @@ const TYPE_TO_PLACEHOLDER = {
   releases: '{releaseId}',
   replays: '{replayId}',
   subscriptions: '{orgSlug}',
+  tags: '{tagName}',
   teams: '{teamSlug}',
 };
 
