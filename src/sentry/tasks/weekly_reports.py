@@ -34,7 +34,7 @@ from sentry.models import (
     User,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
@@ -135,6 +135,7 @@ def check_if_ctx_is_empty(ctx):
     max_retries=5,
     acks_late=True,
 )
+@retry
 def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     if timestamp is None:
         # The time that the report was generated
@@ -159,6 +160,7 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     max_retries=5,
     acks_late=True,
 )
+@retry
 def prepare_organization_report(
     timestamp, duration, organization_id, dry_run=False, target_user=None, email_override=None
 ):
@@ -661,6 +663,9 @@ group_status_to_color = {
     GroupHistoryStatus.DELETED_AND_DISCARDED: "#DBD6E1",
     GroupHistoryStatus.REVIEWED: "#FAD473",
     GroupHistoryStatus.NEW: "#FAD473",
+    GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING: "",
+    GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
+    GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
 }
 
 

@@ -408,9 +408,16 @@ def sliding_window() -> None:
     if window_size is not None:
         metrics.incr("sentry.dynamic_sampling.tasks.sliding_window.start", sample_rate=1.0)
         with metrics.timer("sentry.dynamic_sampling.tasks.sliding_window", sample_rate=1.0):
+            # It is important to note that this query will return orgs that in the last hour have had at least 1
+            # transaction.
             for orgs in get_orgs_with_project_counts_without_modulo(
                 MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY
             ):
+                # This query on the other hand, fetches with a dynamic window size because we care about being able
+                # to extrapolate monthly volume with a bigger window than the hour used in the orgs query. Thus, it can
+                # be that an org is not detected because it didn't have traffic for this hour but its projects have
+                # traffic in the last window_size, however this isn't a big deal since we cache the sample rate and if
+                # not found we fall back to 100% (only if the sliding window has run).
                 for (
                     org_id,
                     projects_with_total_root_count,
