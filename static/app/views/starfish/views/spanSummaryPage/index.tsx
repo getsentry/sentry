@@ -19,8 +19,8 @@ import {
   useSpanFirstSeenEvent,
   useSpanLastSeenEvent,
 } from 'sentry/views/starfish/queries/useSpanSeenEvent';
-import SampleList from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanBaselineTable} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
+import SampleList from 'sentry/views/starfish/views/spanSummaryPage/spanSamples/sampleList';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
 
 type Props = {
