@@ -17,6 +17,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
 from sentry.models import Environment, Organization
 from sentry.monitors.models import (
@@ -27,7 +28,7 @@ from sentry.monitors.models import (
     MonitorType,
 )
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
-from sentry.monitors.utils import signal_first_monitor_created
+from sentry.monitors.utils import create_alert_rule, signal_first_monitor_created
 from sentry.monitors.validators import MonitorValidator
 from sentry.search.utils import tokenize_query
 
@@ -48,6 +49,7 @@ from rest_framework.response import Response
 
 DEFAULT_ORDERING = [
     MonitorStatus.ERROR,
+    MonitorStatus.TIMEOUT,
     MonitorStatus.MISSED_CHECKIN,
     MonitorStatus.OK,
     MonitorStatus.ACTIVE,
@@ -91,7 +93,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
 
         queryset = Monitor.objects.filter(
             organization_id=organization.id, project_id__in=filter_params["project_id"]
-        ).exclude(status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS])
+        ).exclude(status__in=[ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS])
         query = request.GET.get("query")
 
         environments = None
@@ -218,5 +220,14 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
 
         project = result["project"]
         signal_first_monitor_created(project, request.user, False)
+
+        validated_alert_rule = result.get("alert_rule")
+        if validated_alert_rule:
+            alert_rule_id = create_alert_rule(request, project, monitor, validated_alert_rule)
+
+            if alert_rule_id:
+                config = monitor.config
+                config["alert_rule_id"] = alert_rule_id
+                monitor.update(config=config)
 
         return self.respond(serialize(monitor, request.user), status=201)

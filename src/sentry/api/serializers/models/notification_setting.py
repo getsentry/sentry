@@ -2,10 +2,14 @@ from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
 from sentry.api.serializers import Serializer
-from sentry.models import NotificationSetting, Team, User
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.helpers import get_fallback_settings
 from sentry.notifications.types import VALID_VALUES_FOR_KEY, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.organization import RpcTeam
+from sentry.services.hybrid_cloud.user import RpcUser
 
 
 class NotificationSettingsSerializer(Serializer):  # type: ignore
@@ -35,14 +39,13 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         """
         type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
 
-        # TODO(actorid) This needs to be reworked. `item_list` can either be
-        # a list of Team or User instances. Each item type requires different
-        # query logic for getting notification settings.
-        actor_mapping = {recipient.actor_id: recipient for recipient in item_list}
+        team_map = {t.id: t for t in item_list if isinstance(t, (Team, RpcTeam))}
+        user_map = {u.id: u for u in item_list if isinstance(u, (User, RpcUser))}
 
         notifications_settings = NotificationSetting.objects._filter(
             type=type_option,
-            target_ids=actor_mapping.keys(),
+            team_ids=list(team_map.keys()),
+            user_ids=list(user_map.keys()),
         )
 
         results: MutableMapping[Union["Team", "User"], MutableMapping[str, Set[Any]]] = defaultdict(
@@ -50,17 +53,26 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         )
 
         for notifications_setting in notifications_settings:
-            target = actor_mapping.get(notifications_setting.target_id)
-            results[target]["settings"].add(notifications_setting)
+            target = None
+            if notifications_setting.user_id:
+                target = user_map[notifications_setting.user_id]
+            if notifications_setting.team_id:
+                target = team_map[notifications_setting.team_id]
+            if target:
+                results[target]["settings"].add(notifications_setting)
+            else:
+                raise ValueError(
+                    f"NotificationSetting {notifications_setting.id} has neither team_id nor user_id"
+                )
 
         for recipient in item_list:
             # This works because both User and Team models implement `get_projects`.
             results[recipient]["projects"] = recipient.get_projects()
 
-            if type(recipient) == Team:
+            if isinstance(recipient, Team):
                 results[recipient]["organizations"] = {recipient.organization}
 
-            if type(recipient) == User:
+            if isinstance(recipient, User):
                 results[recipient]["organizations"] = user.get_orgs()
 
         return results

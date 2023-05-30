@@ -12,8 +12,8 @@ from sentry.auth import manager
 from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models import ApiKey, AuditLogEntry, Organization, OrganizationMember, User, UserEmail
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user import user_service
-from sentry.tasks.base import instrumented_task
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
@@ -148,6 +148,7 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     default_retry_delay=60 * 5,
     max_retries=5,
 )
+@retry
 def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, ip_address=None):
     TwoFactorComplianceTask().remove_non_compliant_members(
         org_id, actor_id, actor_key_id, ip_address
@@ -158,6 +159,7 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
     log_label = "verified email"
 
     def is_compliant(self, member: OrganizationMember) -> bool:
+        # TODO(hybridcloud) this is doing a join from member to user
         return UserEmail.objects.get_primary_email(member.user).is_verified
 
     def call_to_action(self, org: Organization, user: User, member: OrganizationMember):
@@ -172,6 +174,7 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
         elif not isinstance(user, User):
             raise TypeError(user)
 
+        # TODO(hybridcloud) This compliance task is using data from both silos.
         email = UserEmail.objects.get_primary_email(user)
         email_context = {
             "confirm_url": absolute_uri(
@@ -200,6 +203,7 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
     default_retry_delay=60 * 5,
     max_retries=5,
 )
+@retry
 def remove_email_verification_non_compliant_members(
     org_id, actor_id=None, actor_key_id=None, ip_address=None
 ):

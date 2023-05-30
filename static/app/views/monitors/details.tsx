@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {space} from 'sentry/styles/space';
@@ -20,7 +21,13 @@ import MonitorStats from './components/monitorStats';
 import MonitorOnboarding from './components/onboarding';
 import {Monitor} from './types';
 
+const DEFAULT_POLL_INTERVAL_MS = 5000;
+
 type Props = RouteComponentProps<{monitorSlug: string}, {}>;
+
+function hasLastCheckIn(monitor: Monitor) {
+  return monitor.environments.some(e => e.lastCheckIn);
+}
 
 function MonitorDetails({params, location}: Props) {
   const {selection} = usePageFilters();
@@ -37,7 +44,17 @@ function MonitorDetails({params, location}: Props) {
     {query: {...location.query, environment}},
   ] as const;
 
-  const {data: monitor} = useApiQuery<Monitor>(queryKey, {staleTime: 0});
+  const {data: monitor} = useApiQuery<Monitor>(queryKey, {
+    staleTime: 0,
+    // Refetches while we are waiting for the user to send their first check-in
+    refetchInterval: data => {
+      if (!data) {
+        return false;
+      }
+      const [monitorData] = data;
+      return hasLastCheckIn(monitorData) ? false : DEFAULT_POLL_INTERVAL_MS;
+    },
+  });
 
   function onUpdate(data: Monitor) {
     const updatedMonitor = {
@@ -58,7 +75,9 @@ function MonitorDetails({params, location}: Props) {
     );
   }
 
-  const monitorEnv = monitor.environments.find(env => env.name === environment);
+  const envsSortedByLastCheck = monitor.environments.sort((a, b) =>
+    a.lastCheckIn.localeCompare(b.lastCheckIn)
+  );
 
   return (
     <SentryDocumentTitle title={`Crons - ${monitor.name}`}>
@@ -66,36 +85,39 @@ function MonitorDetails({params, location}: Props) {
         <MonitorHeader monitor={monitor} orgId={organization.slug} onUpdate={onUpdate} />
         <Layout.Body>
           <Layout.Main>
-            {!monitorEnv?.lastCheckIn ? (
+            <StyledPageFilterBar condensed>
+              <DatePageFilter alignDropdown="left" />
+              <EnvironmentPageFilter />
+            </StyledPageFilterBar>
+            {!hasLastCheckIn(monitor) ? (
               <MonitorOnboarding orgId={organization.slug} monitor={monitor} />
             ) : (
               <Fragment>
-                <StyledPageFilterBar condensed>
-                  <DatePageFilter alignDropdown="left" />
-                </StyledPageFilterBar>
-
                 <MonitorStats
                   orgId={organization.slug}
                   monitor={monitor}
-                  monitorEnv={monitorEnv}
+                  monitorEnvs={monitor.environments}
                 />
 
                 <MonitorIssues
                   orgId={organization.slug}
                   monitor={monitor}
-                  monitorEnv={monitorEnv}
+                  monitorEnvs={monitor.environments}
                 />
 
                 <MonitorCheckIns
                   orgId={organization.slug}
                   monitor={monitor}
-                  monitorEnv={monitorEnv}
+                  monitorEnvs={monitor.environments}
                 />
               </Fragment>
             )}
           </Layout.Main>
           <Layout.Side>
-            <DetailsSidebar monitorEnv={monitorEnv} monitor={monitor} />
+            <DetailsSidebar
+              monitorEnv={envsSortedByLastCheck[envsSortedByLastCheck.length - 1]}
+              monitor={monitor}
+            />
           </Layout.Side>
         </Layout.Body>
       </Layout.Page>

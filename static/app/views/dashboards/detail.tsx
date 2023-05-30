@@ -458,6 +458,7 @@ class DashboardDetail extends Component<Props, State> {
           return;
         }
       },
+      // `updateDashboard` does its own error handling
       () => undefined
     );
   };
@@ -578,6 +579,7 @@ class DashboardDetail extends Component<Props, State> {
                 return;
               }
             },
+            // `updateDashboard` does its own error handling
             () => undefined
           );
 
@@ -638,6 +640,7 @@ class DashboardDetail extends Component<Props, State> {
       <PageFiltersContainer
         desyncedAlertMessage='Using filter values saved to this dashboard. To edit saved filters, click "Edit Dashboard".'
         hideDesyncRevertButton
+        disablePersistence
         defaultSelection={{
           datetime: {
             start: null,
@@ -759,6 +762,7 @@ class DashboardDetail extends Component<Props, State> {
         <PageFiltersContainer
           desyncedAlertMessage='Using filter values saved to this dashboard. To edit saved filters, click "Edit Dashboard".'
           hideDesyncRevertButton
+          disablePersistence
           defaultSelection={{
             datetime: {
               start: null,
@@ -883,6 +887,7 @@ class DashboardDetail extends Component<Props, State> {
                                     })
                                   );
                                 },
+                                // `updateDashboard` does its own error handling
                                 () => undefined
                               );
                             }}

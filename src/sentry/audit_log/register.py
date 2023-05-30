@@ -253,6 +253,14 @@ default_manager.add(
         event_id=122, name="MONITOR_REMOVE", api_name="monitor.remove", template="Monitor removed"
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=123,
+        name="MONITOR_ENVIRONMENT_REMOVE",
+        api_name="monitor.environment.remove",
+        template="Monitor environment removed",
+    )
+)
 default_manager.add(events.InternalIntegrationAddAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
@@ -356,5 +364,13 @@ default_manager.add(
         name="NOTIFICATION_ACTION_REMOVE",
         api_name="notification_action.remove",
         template="removed an action with the '{trigger}' trigger",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=175,
+        name="TEAM_AND_PROJECT_CREATED",
+        api_name="team-and-project.created",
+        template="created team {team_slug} and added user as Team Admin while creating project {project_slug}",
     )
 )

@@ -1,5 +1,5 @@
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union
+from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -10,7 +10,8 @@ from rest_framework import serializers
 from sentry.db.models import Model, region_silo_only_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.models import Team, User
@@ -111,22 +112,22 @@ class Actor(Model):
         return self.get_actor_tuple().get_actor_identifier()
 
 
-def get_actor_id_for_user(user: Union["User", RpcUser]):
-    return get_actor_for_user(user).id
+def get_actor_id_for_user(user: Union["User", RpcUser]) -> int:
+    return cast(int, get_actor_for_user(user).id)
 
 
-def get_actor_for_user(user: Union["User", RpcUser]) -> "Actor":
+def get_actor_for_user(user: Union[int, "User", RpcUser]) -> "Actor":
+    if isinstance(user, int):
+        user_id = user
+    else:
+        user_id = user.id
     try:
         with transaction.atomic():
-            actor, created = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user.id)
-            if created:
-                # TODO(actorid) This RPC call should be removed once all reads to
-                # User.actor_id have been removed.
-                user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
+            actor, _ = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user_id)
     except IntegrityError as err:
         # Likely a race condition. Long term these need to be eliminated.
         sentry_sdk.capture_exception(err)
-        actor = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user.id).first()
+        actor = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id=user_id).first()
     return actor
 
 
@@ -185,10 +186,12 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return fetch_actor_by_id(self.type, self.id)
 
     def resolve_to_actor(self) -> Actor:
+        from sentry.models.user import User
+
         obj = self.resolve()
-        if obj.actor_id is None or isinstance(obj, RpcUser):
+        if isinstance(obj, (User, RpcUser)):
             return get_actor_for_user(obj)
-        # Team case
+        # Team case. Teams have actors generated as a post_save signal
         return Actor.objects.get(id=obj.actor_id)
 
     @classmethod
@@ -209,13 +212,13 @@ class ActorTuple(namedtuple("Actor", "id type")):
             actors_by_type[actor.type].append(actor)
 
         results = {}
-        for type, _actors in actors_by_type.items():
-            if type == User:
+        for model_class, _actors in actors_by_type.items():
+            if model_class == User:
                 for instance in user_service.get_many(filter={"user_ids": [a.id for a in _actors]}):
-                    results[(type, instance.id)] = instance
+                    results[(model_class, instance.id)] = instance
             else:
-                for instance in type.objects.filter(id__in=[a.id for a in _actors]):
-                    results[(type, instance.id)] = instance
+                for instance in model_class.objects.filter(id__in=[a.id for a in _actors]):
+                    results[(model_class, instance.id)] = instance
 
         return list(filter(None, [results.get((actor.type, actor.id)) for actor in actors]))
 
@@ -224,7 +227,7 @@ def handle_team_post_save(instance, **kwargs):
     # we want to create an actor if we don't have one
     if not instance.actor_id:
         instance.actor_id = Actor.objects.create(
-            type=ACTOR_TYPES[type(instance).__name__.lower()],
+            type=ACTOR_TYPES["team"],
             team_id=instance.id,
         ).id
         instance.save()

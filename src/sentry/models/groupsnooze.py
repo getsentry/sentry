@@ -30,7 +30,7 @@ class GroupSnooze(Model):
     - If ``user_count`` is set, the snooze is lfited when unique users match.
     - If ``user_window`` is set (in addition to count), the snooze is lifted
       when the rate unique users matches.
-    - If ``until_escalating`` is set, the snooze is lifted when the Group's occurances
+    - If ``until_escalating`` is set, the snooze is lifted when the Group's occurrences
       exceeds the forecasted counts.
 
     NOTE: `window` and `user_window` are specified in minutes
@@ -96,7 +96,7 @@ class GroupSnooze(Model):
         start = end - timedelta(minutes=self.window)
 
         rate = tsdb.get_sums(
-            model=get_issue_tsdb_group_model(self.group.issue_category, self.group.project),
+            model=get_issue_tsdb_group_model(self.group.issue_category),
             keys=[self.group_id],
             start=start,
             end=end,
@@ -118,7 +118,7 @@ class GroupSnooze(Model):
         start = end - timedelta(minutes=self.user_window)
 
         rate = tsdb.get_distinct_counts_totals(
-            model=get_issue_tsdb_user_group_model(self.group.issue_category, self.group.project),
+            model=get_issue_tsdb_user_group_model(self.group.issue_category),
             keys=[self.group_id],
             start=start,
             end=end,

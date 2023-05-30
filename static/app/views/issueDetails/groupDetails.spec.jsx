@@ -19,7 +19,6 @@ describe('groupDetails', () => {
   const group = TestStubs.Group({issueCategory: IssueCategory.ERROR});
   const event = TestStubs.Event();
   const project = TestStubs.Project({teams: [TestStubs.Team()]});
-  const selection = {environments: []};
 
   const routes = [
     {path: '/', childRoutes: [], component: null},
@@ -37,20 +36,22 @@ describe('groupDetails', () => {
     },
   ];
 
-  const {organization, router, routerContext} = initializeOrg({
-    project,
-    router: {
-      location: {
-        pathname: `/organizations/org-slug/issues/${group.id}/`,
-        query: {},
-        search: '?foo=bar',
-        hash: '#hash',
-      },
-      params: {
-        groupId: group.id,
-      },
-      routes,
+  const initRouter = {
+    location: {
+      pathname: `/organizations/org-slug/issues/${group.id}/`,
+      query: {},
+      search: '?foo=bar',
+      hash: '#hash',
     },
+    params: {
+      groupId: group.id,
+    },
+    routes,
+  };
+
+  const defaultInit = initializeOrg({
+    project,
+    router: initRouter,
   });
 
   function MockComponent({group: groupProp, environments, eventError}) {
@@ -64,23 +65,22 @@ describe('groupDetails', () => {
     );
   }
 
-  const createWrapper = (props = {selection}) => {
+  const createWrapper = (init = defaultInit) => {
     return render(
       <GroupDetails
-        {...router}
-        router={router}
-        selection={props.selection}
-        organization={organization}
+        {...init.router}
+        router={init.router}
+        organization={init.organization}
       >
         <MockComponent />
       </GroupDetails>,
-      {context: routerContext, organization, router}
+      {context: init.routerContext, organization: init.organization, router: init.router}
     );
   };
 
   beforeEach(() => {
-    OrganizationStore.onUpdate(organization);
-    act(() => ProjectsStore.loadInitialData(organization.projects));
+    OrganizationStore.onUpdate(defaultInit.organization);
+    act(() => ProjectsStore.loadInitialData(defaultInit.organization.projects));
 
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
@@ -106,10 +106,10 @@ describe('groupDetails', () => {
     });
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/first-last-release/`,
-      body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
+      method: 'GET',
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
+      url: `/organizations/${defaultInit.organization.slug}/events/`,
       statusCode: 200,
       body: {
         data: [
@@ -120,8 +120,12 @@ describe('groupDetails', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/environments/`,
+      url: `/organizations/${defaultInit.organization.slug}/environments/`,
       body: TestStubs.Environments(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/tags/`,
+      body: [],
     });
   });
 
@@ -138,7 +142,7 @@ describe('groupDetails', () => {
 
     expect(screen.queryByText(group.title)).not.toBeInTheDocument();
 
-    act(() => ProjectsStore.loadInitialData(organization.projects));
+    act(() => ProjectsStore.loadInitialData(defaultInit.organization.projects));
 
     expect(await screen.findByText(group.title, {exact: false})).toBeInTheDocument();
 
@@ -191,9 +195,16 @@ describe('groupDetails', () => {
   });
 
   it('fetches issue details for a given environment', async function () {
-    createWrapper({
-      selection: {environments: ['staging']},
+    const init = initializeOrg({
+      router: {
+        ...initRouter,
+        location: TestStubs.location({
+          ...initRouter.location,
+          query: {environment: 'staging'},
+        }),
+      },
     });
+    createWrapper({router: init.router});
 
     await waitFor(() =>
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
@@ -241,20 +252,33 @@ describe('groupDetails', () => {
         },
       },
     });
-    act(() => ProjectsStore.reset());
     createWrapper();
-
-    act(() => ProjectsStore.loadInitialData(organization.projects));
-
     expect(await screen.findByText('New Issue')).toBeInTheDocument();
+  });
+
+  it('renders substatus badge', async function () {
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/`,
+      body: {
+        ...group,
+        inbox: null,
+        status: 'unresolved',
+        substatus: 'ongoing',
+      },
+    });
+    createWrapper({
+      ...defaultInit,
+      organization: {...defaultInit.organization, features: ['escalating-issues-ui']},
+    });
+    expect(await screen.findByText('Ongoing')).toBeInTheDocument();
   });
 
   it('renders alert for sample event', async function () {
     const sampleGroup = TestStubs.Group({issueCategory: IssueCategory.ERROR});
     sampleGroup.tags.push({key: 'sample_event'});
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
-      body: {...sampleGroup},
+      url: `/issues/${group.id}/tags/`,
+      body: [{key: 'sample_event'}],
     });
 
     createWrapper();

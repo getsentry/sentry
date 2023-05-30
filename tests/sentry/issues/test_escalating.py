@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from uuid import uuid4
 
 from freezegun import freeze_time
@@ -90,9 +90,7 @@ class HistoricGroupCounts(
         )
         assert len(Group.objects.all()) == 2
 
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            perf_event = self.create_performance_issue()
-
+        perf_event = self.create_performance_issue()
         error_event = self._create_events_for_group()
 
         # store_search_issue created two groups
@@ -223,14 +221,8 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         group.substatus = GroupSubStatus.UNTIL_ESCALATING
         group.save()
 
-    def assert_is_escalating(self, group: Group) -> None:
-        assert group.substatus == GroupSubStatus.ESCALATING
-        assert group.status == GroupStatus.UNRESOLVED
-        assert GroupInbox.objects.filter(group=group).exists()
-
     @freeze_time(TIME_YESTERDAY)
-    @patch("sentry.analytics.record")
-    def test_is_escalating_issue(self, record_mock: MagicMock) -> None:
+    def test_is_escalating_issue(self) -> None:
         """Test when an archived until escalating issue starts escalating"""
         with self.feature("organizations:escalating-issues"):
             # The group had 6 events in the last hour
@@ -243,20 +235,11 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             self.save_mock_escalating_group_forecast(
                 group=archived_group, forecast_values=forecast_values, date_added=datetime.now()
             )
-            assert is_escalating(archived_group)
-            group_escalating = Group.objects.get(id=archived_group.id)
-
-            record_mock.assert_called_with(
-                "issue.escalating",
-                organization_id=group_escalating.project.organization.id,
-                project_id=group_escalating.project.id,
-                group_id=group_escalating.id,
-            )
-            self.assert_is_escalating(group_escalating)
+            assert is_escalating(archived_group) == (True, 5)
 
             # Test cache
             assert (
-                cache.get(f"hourly-group-count:{group_escalating.project.id}:{group_escalating.id}")
+                cache.get(f"hourly-group-count:{archived_group.project.id}:{archived_group.id}")
                 == 6
             )
 
@@ -278,8 +261,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
                 forecast_values=forecast_values,
                 date_added=datetime.now() - timedelta(days=1),
             )
-            group_is_escalating = is_escalating(group)
-            assert not group_is_escalating
+            assert is_escalating(group) == (False, None)
             assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
             assert group.status == GroupStatus.IGNORED
             assert not GroupInbox.objects.filter(group=group).exists()
@@ -292,3 +274,26 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
         assert get_group_hourly_count(group) == 1
+
+    @freeze_time(TIME_YESTERDAY)
+    def test_is_forecast_out_of_range(self) -> None:
+        """
+        Test that when an archived until escalating issue does not have a forecast that is in range,
+        the last forecast is used as a fallback and an error is reported
+        """
+        with self.feature("organizations:escalating-issues") and patch(
+            "sentry.issues.escalating_group_forecast.logger"
+        ) as logger:
+            event = self._create_events_for_group(count=2)
+            archived_group = event.group
+            self.archive_until_escalating(archived_group)
+
+            # The escalating forecast was added 15 days ago, and thus is out of the 14 day range
+            forecast_values = [10] * 13 + [1]
+            self.save_mock_escalating_group_forecast(
+                group=archived_group,
+                forecast_values=forecast_values,
+                date_added=datetime.now() - timedelta(15),
+            )
+            assert is_escalating(archived_group) == (True, 1)
+            logger.error.assert_called_once_with("Forecast list index is out of range")

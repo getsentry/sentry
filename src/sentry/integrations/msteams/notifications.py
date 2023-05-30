@@ -11,6 +11,7 @@ from sentry.integrations.notifications import get_context, get_integrations_by_c
 from sentry.models import Team, User
 from sentry.notifications.notifications.activity import (
     AssignedActivityNotification,
+    EscalatingActivityNotification,
     NoteActivityNotification,
     RegressionActivityNotification,
     ReleaseActivityNotification,
@@ -42,6 +43,7 @@ SUPPORTED_NOTIFICATION_TYPES = [
     ResolvedInReleaseActivityNotification,
     ReleaseActivityNotification,
     RegressionActivityNotification,
+    EscalatingActivityNotification,
 ]
 MESSAGE_BUILDERS = {
     "SlackNotificationsMessageBuilder": MSTeamsNotificationsMessageBuilder,
@@ -68,7 +70,7 @@ def get_notification_card(
 @register_notification_provider(ExternalProviders.MSTEAMS)
 def send_notification_as_msteams(
     notification: BaseNotification,
-    recipients: Iterable[Team | User],
+    recipients: Iterable[RpcActor],
     shared_context: Mapping[str, Any],
     extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None,
 ):

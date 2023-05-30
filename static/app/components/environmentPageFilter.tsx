@@ -2,12 +2,13 @@ import styled from '@emotion/styled';
 
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
 import Badge from 'sentry/components/badge';
-import type {ButtonProps} from 'sentry/components/button';
+import {EnvironmentPageFilter as NewEnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import EnvironmentSelector from 'sentry/components/organizations/environmentSelector';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {FormSize} from 'sentry/utils/theme';
 import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -28,10 +29,10 @@ type Props = {
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
-  size?: ButtonProps['size'];
+  size?: FormSize;
 };
 
-function EnvironmentPageFilter({
+function OldEnvironmentPageFilter({
   resetParamsOnChange = [],
   alignDropdown,
   disabled,
@@ -117,5 +118,15 @@ const TitleContainer = styled('div')`
   text-align: left;
   ${p => p.theme.overflowEllipsis}
 `;
+
+function EnvironmentPageFilter(props: Props) {
+  const organization = useOrganization();
+
+  if (organization.features.includes('new-page-filter')) {
+    return <NewEnvironmentPageFilter {...props} />;
+  }
+
+  return <OldEnvironmentPageFilter {...props} />;
+}
 
 export default EnvironmentPageFilter;

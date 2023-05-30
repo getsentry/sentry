@@ -50,6 +50,7 @@ export interface Organization extends OrganizationSummary {
   eventsMemberAdmin: boolean;
   experiments: Partial<OrgExperiments>;
   isDefault: boolean;
+  isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];
   openMembership: boolean;
   orgRoleList: OrgRole[];
@@ -60,7 +61,7 @@ export interface Organization extends OrganizationSummary {
     maxRateInterval: number | null;
     projectLimit: number | null;
   };
-  relayPiiConfig: string;
+  relayPiiConfig: string | null;
   safeFields: string[];
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
@@ -133,18 +134,29 @@ export interface Member {
   pending: boolean | undefined;
   projects: string[];
 
-  // Avoid using these keys
-  role: OrgRole['id']; // Deprecated: use orgRole
+  /**
+   * @deprecated use orgRole
+   */
+  role: OrgRole['id'];
   roleName: string;
-  roles: OrgRole[]; // Deprecated: use orgRoleList
+  /**
+   * @deprecated use orgRoleList
+   */
+  roles: OrgRole[];
 
   teamRoleList: TeamRole[]; // TODO: Move to global store
   teamRoles: {
     role: string | null;
     teamSlug: string;
   }[];
+  /**
+   * @deprecated use teamRoles
+   */
   teams: string[]; // # Deprecated, use teamRoles
-  user: User;
+  /**
+   * User may be null when the member represents an invited member
+   */
+  user: User | null;
 }
 
 /**

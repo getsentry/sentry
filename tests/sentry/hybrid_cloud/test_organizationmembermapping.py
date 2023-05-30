@@ -1,3 +1,4 @@
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
@@ -234,8 +235,7 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
 
         # Creation step of receiver
         org_member = OrganizationMember.objects.create(**fields)
-        region_outbox = org_member.outbox_for_create()
-        region_outbox.save()
+        region_outbox = org_member.save_outbox_for_create()
         region_outbox.drain_shard()
 
         with exempt_from_silo_limits():
@@ -246,9 +246,9 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
                 self.assert_org_member_mapping(org_member=org_member)
 
         # Update step of receiver
-        org_member.update(role="owner")
-        region_outbox = org_member.outbox_for_update()
-        region_outbox.save()
+        with in_test_psql_role_override("postgres"):
+            org_member.update(role="owner")
+        region_outbox = org_member.save_outbox_for_update()
         region_outbox.drain_shard()
 
         with exempt_from_silo_limits():
@@ -269,8 +269,7 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
             "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
         }
         org_member = OrganizationMember.objects.create(**fields)
-        region_outbox = org_member.outbox_for_create()
-        region_outbox.save()
+        region_outbox = org_member.save_outbox_for_create()
         region_outbox.drain_shard()
 
         with exempt_from_silo_limits():

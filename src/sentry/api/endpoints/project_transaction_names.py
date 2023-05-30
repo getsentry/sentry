@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.utils import get_date_range_from_stats_period
+from sentry.ingest.transaction_clusterer import ClustererNamespace
+from sentry.ingest.transaction_clusterer import rules as rule_store
 from sentry.ingest.transaction_clusterer.datasource import redis, snuba
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 
@@ -29,6 +31,11 @@ class ProjectTransactionNamesCluster(ProjectEndpoint):
         limit = int(params.get("limit", 1000))
         merge_threshold = int(params.get("threshold", 100))
         return_all_names = params.get("returnAllNames")
+        namespace = params.get("namespace")
+        if namespace == "spans":
+            namespace = ClustererNamespace.SPANS
+        else:
+            namespace = ClustererNamespace.TRANSACTIONS
 
         if datasource == "redis":
             # NOTE: redis ignores the time range parameters
@@ -51,7 +58,9 @@ class ProjectTransactionNamesCluster(ProjectEndpoint):
                 "meta": {
                     "unique_transaction_names": transaction_names
                     if return_all_names
-                    else len(transaction_names)
+                    else len(transaction_names),
+                    "rules_redis": rule_store.get_redis_rules(namespace, project),
+                    "rules_projectoption": rule_store.get_rules(namespace, project),
                 },
             }
         )

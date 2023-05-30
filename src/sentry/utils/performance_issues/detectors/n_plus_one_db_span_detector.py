@@ -6,6 +6,7 @@ from datetime import timedelta
 from typing import Optional
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -14,8 +15,10 @@ from ..base import (
     PARAMETERIZED_SQL_QUERY_REGEX,
     DetectorType,
     PerformanceDetector,
+    get_notification_attachment_body,
     get_span_duration,
     get_span_evidence_value,
+    total_span_time,
 )
 from ..performance_problem import PerformanceProblem
 from ..types import Span
@@ -162,18 +165,13 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if not self.source_span or not self.n_spans:
             return
 
-        count = self.settings.get("count")
-        duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
-
         # Do we have enough spans?
+        count = self.settings.get("count")
         if len(self.n_spans) < count:
             return
 
         # Do the spans take enough total time?
-        total_duration = timedelta()
-        for span in self.n_spans:
-            total_duration += get_span_duration(span)
-        if total_duration < duration_threshold:
+        if not self._is_slower_than_threshold():
             return
 
         # We require a parent span in order to improve our fingerprint accuracy.
@@ -215,7 +213,17 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 parent_span_ids=[parent_span_id],
                 cause_span_ids=[self.source_span.get("span_id", None)],
                 offender_span_ids=offender_span_ids,
-                evidence_display=[],
+                evidence_display=[
+                    IssueEvidence(
+                        name="Offending Spans",
+                        value=get_notification_attachment_body(
+                            "db",
+                            self.n_spans[0].get("description", ""),
+                        ),
+                        # Has to be marked important to be displayed in the notifications
+                        important=True,
+                    )
+                ],
                 evidence_data={
                     "transaction_name": self._event.get("transaction", ""),
                     "op": "db",
@@ -230,6 +238,13 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                     "num_repeating_spans": str(len(offender_span_ids)),
                 },
             )
+
+    def _is_slower_than_threshold(self) -> bool:
+        duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
+        total_duration = timedelta()
+        for span in self.n_spans:
+            total_duration += get_span_duration(span)
+        return total_duration >= duration_threshold
 
     def _contains_valid_repeating_query(self, span: Span) -> bool:
         query = span.get("description", None)
@@ -277,6 +292,22 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         "n_hash",
         "n_spans",
     )
+
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+        # Only collecting metrics.
+        return False
+
+    def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
+        # Only collecting metrics.
+        return False
+
+    def _overlaps_last_span(self, span: Span) -> bool:
+        # Ignore overlapping spans for determining if an N+1 happened.
+        return False
+
+    def _is_slower_than_threshold(self) -> bool:
+        duration_threshold = self.settings.get("duration_threshold")
+        return total_span_time(self.n_spans) >= duration_threshold
 
 
 def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bool:

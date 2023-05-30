@@ -12,12 +12,14 @@ from sentry.models import (
     Group,
     GroupInboxRemoveAction,
     GroupSnooze,
+    GroupStatus,
     Project,
     User,
     remove_group_from_inbox,
 )
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import issue_archived
+from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -122,6 +124,10 @@ def handle_ignored(
                     "actor_id": user.id if user.is_authenticated else None,
                 },
             )
+
+            Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
+                substatus=GroupSubStatus.UNTIL_CONDITION_MET, status=GroupStatus.IGNORED
+            )
             serialized_user = user_service.serialize_many(
                 filter=dict(user_ids=[user.id]), as_user=user
             )
@@ -135,6 +141,5 @@ def handle_ignored(
             )
     else:
         GroupSnooze.objects.filter(group__in=group_ids).delete()
-        ignore_until = None
 
     return new_status_details

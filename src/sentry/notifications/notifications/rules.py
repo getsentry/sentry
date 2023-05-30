@@ -9,7 +9,7 @@ import pytz
 from sentry import features
 from sentry.db.models import Model
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
-from sentry.models import UserOption
+from sentry.models import Group, GroupSubStatus, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -36,6 +36,16 @@ from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
+
+
+def get_group_substatus_text(group: Group) -> str:
+    if group.substatus == GroupSubStatus.NEW:
+        return "New issue"
+    elif group.substatus == GroupSubStatus.REGRESSED:
+        return "Regressed issue"
+    elif group.substatus == GroupSubStatus.ONGOING:
+        return "Ongoing issue"
+    return "New Alert"
 
 
 class AlertRuleNotification(ProjectNotification):
@@ -117,10 +127,12 @@ class AlertRuleNotification(ProjectNotification):
             fallthrough_choice=self.fallthrough_choice,
         )
         fallback_params: MutableMapping[str, str] = {}
+        group_header = get_group_substatus_text(self.group)
 
         context = {
             "project_label": self.project.get_full_name(),
             "group": self.group,
+            "group_header": group_header,
             "event": self.event,
             "link": get_group_settings_link(
                 self.group, environment, rule_details, None, **fallback_params
@@ -138,6 +150,7 @@ class AlertRuleNotification(ProjectNotification):
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": self.group.issue_type.description,
             "subtitle": self.event.title,
+            "has_issue_states": features.has("organizations:issue-states", self.organization),
         }
 
         # if the organization has enabled enhanced privacy controls we don't send

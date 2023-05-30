@@ -1,10 +1,12 @@
+import {useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {bulkUpdate, useFetchIssueTags} from 'sentry/actionCreators/group';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {Environment, Group, GroupActivity} from 'sentry/types';
+import {Group, GroupActivity} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {useLocation} from 'sentry/utils/useLocation';
 
 export function markEventSeen(
   api: Client,
@@ -134,17 +136,34 @@ export function getGroupReprocessingStatus(
   }
 }
 
-export const useFetchIssueTagsForDetailsPage = ({
-  groupId,
-  environments,
-}: {
-  environments: Environment[];
-  groupId: string;
-}) => {
-  return useFetchIssueTags({
+export const useFetchIssueTagsForDetailsPage = (
+  {
     groupId,
-    environment: environments.map(({name}) => name),
-    readable: true,
-    limit: 4,
-  });
+    environment = [],
+  }: {
+    environment: string[];
+    groupId?: string;
+  },
+  {enabled = true}: {enabled?: boolean} = {}
+) => {
+  return useFetchIssueTags(
+    {
+      groupId,
+      environment,
+      readable: true,
+      limit: 4,
+    },
+    {enabled}
+  );
 };
+
+export function useEnvironmentsFromUrl(): string[] {
+  const location = useLocation();
+  const envs = location.query.environment;
+
+  const envsArray = useMemo(() => {
+    return typeof envs === 'string' ? [envs] : envs ?? [];
+  }, [envs]);
+
+  return envsArray;
+}

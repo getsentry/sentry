@@ -4,7 +4,7 @@ import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {OrganizationSummary, Project} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -235,7 +235,7 @@ export function modifyTrendView(
   location: Location,
   trendsType: TrendChangeType,
   projects: Project[],
-  organization: Organization,
+  organization: OrganizationSummary,
   isProjectOnly?: boolean
 ) {
   const trendFunction = getCurrentTrendFunction(location);
@@ -301,7 +301,7 @@ function getQueryInterval(location: Location, eventView: TrendView) {
     period: statsPeriod,
   };
 
-  const intervalFromSmoothing = getInterval(datetimeSelection, 'high');
+  const intervalFromSmoothing = getInterval(datetimeSelection, 'medium');
 
   return intervalFromQueryParam || intervalFromSmoothing;
 }
@@ -429,4 +429,10 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
     maxValue,
     smoothedResults,
   };
+}
+
+export function modifyTransactionNameTrendsQuery(trendView: TrendView) {
+  const query = new MutableSearch(trendView.query);
+  query.setFilterValues('tpm()', ['>0.01']);
+  trendView.query = query.formatString();
 }

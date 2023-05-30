@@ -5,17 +5,17 @@ from typing import Mapping, MutableMapping, Optional, Sequence, Set
 from django.conf import settings
 from django.core.cache import caches
 
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
-    KeyResults,
     OrgId,
     StringIndexer,
     UseCaseKeyCollection,
     UseCaseKeyResult,
     UseCaseKeyResults,
+    metric_path_key_compatible_resolve,
+    metric_path_key_compatible_rev_resolve,
 )
-from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
@@ -103,17 +103,6 @@ class CachingIndexer(StringIndexer):
         self.indexer = indexer
 
     def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
-        res = self._uca_bulk_record({REVERSE_METRIC_PATH_MAPPING[use_case_id]: org_strings})
-        return res.results[REVERSE_METRIC_PATH_MAPPING[use_case_id]]
-
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        """Store a string and return the integer ID generated for it"""
-        result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
-        return result[org_id][string]
-
-    def _uca_bulk_record(
         self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
     ) -> UseCaseKeyResults:
         cache_keys = UseCaseKeyCollection(strings)
@@ -152,7 +141,7 @@ class CachingIndexer(StringIndexer):
         if db_record_keys.size == 0:
             return cache_key_results
 
-        db_record_key_results = self.indexer._uca_bulk_record(
+        db_record_key_results = self.indexer.bulk_record(
             {
                 use_case_id: key_collection.mapping
                 for use_case_id, key_collection in db_record_keys.mapping.items()
@@ -163,12 +152,13 @@ class CachingIndexer(StringIndexer):
 
         return cache_key_results.merge(db_record_key_results)
 
-    def _uca_record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
-        result = self._uca_bulk_record(strings={use_case_id: {org_id: {string}}})
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
         return result[use_case_id][org_id][string]
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        key = f"{REVERSE_METRIC_PATH_MAPPING[use_case_id].value}:{org_id}:{string}"
+    @metric_path_key_compatible_resolve
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        key = f"{use_case_id.value}:{org_id}:{string}"
         result = self.cache.get(key)
 
         if result and isinstance(result, int):
@@ -183,7 +173,8 @@ class CachingIndexer(StringIndexer):
 
         return id
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    @metric_path_key_compatible_rev_resolve
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         return self.indexer.reverse_resolve(use_case_id, org_id, id)
 
     def resolve_shared_org(self, string: str) -> Optional[int]:

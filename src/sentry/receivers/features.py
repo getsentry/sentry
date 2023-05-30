@@ -26,6 +26,7 @@ from sentry.signals import (
     issue_archived,
     issue_assigned,
     issue_deleted,
+    issue_escalating,
     issue_ignored,
     issue_mark_reviewed,
     issue_resolved,
@@ -154,11 +155,13 @@ def record_project_created(project, user, **kwargs):
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(member, organization, **kwargs):
-    FeatureAdoption.objects.record(
+def record_member_joined(member, organization_id: int, **kwargs):
+    if FeatureAdoption.objects.record(
         organization_id=member.organization_id, feature_slug="invite_team", complete=True
-    )
-    analytics.record("organization.joined", user_id=member.user.id, organization_id=organization.id)
+    ):
+        analytics.record(
+            "organization.joined", user_id=member.user_id, organization_id=organization_id
+        )
 
 
 @issue_assigned.connect(weak=False)
@@ -492,6 +495,17 @@ def record_issue_archived(project, user, group_list, activity_data, **kwargs):
         )
 
 
+@issue_escalating.connect(weak=False)
+def record_issue_escalating(project, group, event, **kwargs):
+    analytics.record(
+        "issue.escalating",
+        organization_id=project.organization_id,
+        project_id=project.id,
+        group_id=group.id,
+        event_id=event.event_id if event else None,
+    )
+
+
 @issue_unignored.connect(weak=False)
 def record_issue_unignored(project, user_id, group, transition_type, **kwargs):
     if user_id is not None:
@@ -650,6 +664,7 @@ def record_issue_deleted(group, user, delete_type, **kwargs):
         default_user_id=default_user_id,
         organization_id=group.project.organization_id,
         group_id=group.id,
+        project_id=group.project_id,
         delete_type=delete_type,
     )
 

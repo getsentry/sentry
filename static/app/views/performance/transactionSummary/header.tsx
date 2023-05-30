@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -10,7 +10,6 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {TabList} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -107,15 +106,9 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
-  const projectIds = useMemo(
-    () => (project?.id ? [Number(project.id)] : []),
-    [project?.id]
-  );
-
   const replaysCount = useReplaysCount({
     transactionNames: transactionName,
     organization,
-    projectIds,
   })[transactionName];
 
   return (
@@ -223,7 +216,6 @@ function TransactionHeader({
               >
                 {t('Replays')}
                 <ReplayCountBadge count={replaysCount} />
-                <ReplaysFeatureBadge tooltipProps={{disabled: true}} />
               </TabList.Item>
               <TabList.Item
                 key={Tab.Profiling}

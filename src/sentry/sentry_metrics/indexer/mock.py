@@ -2,18 +2,18 @@ import itertools
 from collections import defaultdict
 from typing import DefaultDict, Dict, Mapping, Optional, Set
 
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
-    KeyResults,
     OrgId,
     StringIndexer,
     UseCaseKeyCollection,
     UseCaseKeyResult,
     UseCaseKeyResults,
+    metric_path_key_compatible_resolve,
+    metric_path_key_compatible_rev_resolve,
 )
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
-from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 
 class RawSimpleIndexer(StringIndexer):
@@ -28,16 +28,6 @@ class RawSimpleIndexer(StringIndexer):
         self._reverse: Dict[int, str] = {}
 
     def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
-        res = self._uca_bulk_record({REVERSE_METRIC_PATH_MAPPING[use_case_id]: org_strings})
-        return res.results[REVERSE_METRIC_PATH_MAPPING[use_case_id]]
-
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        res = self._uca_bulk_record({REVERSE_METRIC_PATH_MAPPING[use_case_id]: {org_id: {string}}})
-        return res.results[REVERSE_METRIC_PATH_MAPPING[use_case_id]][org_id][string]
-
-    def _uca_bulk_record(
         self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
     ) -> UseCaseKeyResults:
         db_read_keys = UseCaseKeyCollection(strings)
@@ -71,14 +61,16 @@ class RawSimpleIndexer(StringIndexer):
 
         return db_read_key_results.merge(db_write_key_results)
 
-    def _uca_record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         return self._record(use_case_id, org_id, string)
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        strs = self._strings[REVERSE_METRIC_PATH_MAPPING[use_case_id]][org_id]
+    @metric_path_key_compatible_resolve
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        strs = self._strings[use_case_id][org_id]
         return strs.get(string)
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    @metric_path_key_compatible_rev_resolve
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         return self._reverse.get(id)
 
     def _record(self, use_case_id: UseCaseID, org_id: OrgId, string: str) -> Optional[int]:

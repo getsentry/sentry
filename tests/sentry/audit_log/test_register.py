@@ -61,6 +61,7 @@ class AuditLogEventRegisterTest(TestCase):
             "sampling_priority.disabled",
             "monitor.add",
             "monitor.edit",
+            "monitor.environment.remove",
             "monitor.remove",
             "internal-integration.create",
             "internal-integration.add-token",
@@ -74,6 +75,7 @@ class AuditLogEventRegisterTest(TestCase):
             "notification_action.create",
             "notification_action.edit",
             "notification_action.remove",
+            "team-and-project.created",
         ]
 
         assert set(audit_log.get_api_names()) == set(audit_log_api_name_list)

@@ -15,7 +15,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
-from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
@@ -414,6 +413,9 @@ def post_process_group(
         from sentry import eventstore
         from sentry.eventstore.processing import event_processing_store
         from sentry.ingest.transaction_clusterer.datasource.redis import (
+            record_span_descriptions as record_span_descriptions_for_clustering,
+        )
+        from sentry.ingest.transaction_clusterer.datasource.redis import (
             record_transaction_name as record_transaction_name_for_clustering,
         )
         from sentry.models import Organization, Project
@@ -491,6 +493,7 @@ def post_process_group(
         # will not go through any post processing.
         if is_transaction_event:
             record_transaction_name_for_clustering(event.project, event.data)
+            record_span_descriptions_for_clustering(event.project, event.data)
             with sentry_sdk.start_span(op="tasks.post_process_group.transaction_processed_signal"):
                 transaction_processed.send_robust(
                     sender=post_process_group,
@@ -623,6 +626,9 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
 
 
 def process_inbox_adds(job: PostProcessJob) -> None:
+    from sentry.models import Group, GroupStatus
+    from sentry.types.group import GroupSubStatus
+
     with metrics.timer("post_process.process_inbox_adds.duration"):
         with sentry_sdk.start_span(op="tasks.post_process_group.add_group_to_inbox"):
             event = job["event"]
@@ -635,14 +641,31 @@ def process_inbox_adds(job: PostProcessJob) -> None:
             from sentry.models.groupinbox import add_group_to_inbox
 
             if is_reprocessed and is_new:
+                # keep Group.status=UNRESOLVED and Group.substatus=ONGOING if its reprocessed
                 add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
             elif (
                 not is_reprocessed and not has_reappeared
             ):  # If true, we added the .ONGOING reason already
                 if is_new:
-                    add_group_to_inbox(event.group, GroupInboxReason.NEW)
+                    updated = (
+                        Group.objects.filter(id=event.group.id)
+                        .exclude(substatus=GroupSubStatus.NEW)
+                        .update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+                    )
+                    if updated:
+                        event.group.status = GroupStatus.UNRESOLVED
+                        event.group.substatus = GroupSubStatus.NEW
+                        add_group_to_inbox(event.group, GroupInboxReason.NEW)
                 elif is_regression:
-                    add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+                    updated = (
+                        Group.objects.filter(id=event.group.id)
+                        .exclude(substatus=GroupSubStatus.REGRESSED)
+                        .update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED)
+                    )
+                    if updated:
+                        event.group.status = GroupStatus.UNRESOLVED
+                        event.group.substatus = GroupSubStatus.REGRESSED
+                        add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
 
 
 def process_snoozes(job: PostProcessJob) -> None:
@@ -655,18 +678,11 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
-    from sentry.issues.escalating import is_escalating
-    from sentry.models import (
-        Activity,
-        GroupInboxReason,
-        GroupSnooze,
-        GroupStatus,
-        GroupSubStatus,
-        add_group_to_inbox,
-    )
-    from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+    from sentry.issues.escalating import is_escalating, manage_issue_states
+    from sentry.models import GroupInboxReason, GroupSnooze, GroupStatus, GroupSubStatus
 
-    group = job["event"].group
+    event = job["event"]
+    group = event.group
 
     # Check is group is escalating
     if (
@@ -674,7 +690,13 @@ def process_snoozes(job: PostProcessJob) -> None:
         and group.status == GroupStatus.IGNORED
         and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     ):
-        job["has_reappeared"] = is_escalating(group)
+        escalating, forecast = is_escalating(group)
+        if escalating:
+            manage_issue_states(
+                group, GroupInboxReason.ESCALATING, event, activity_data={"forecast": forecast}
+            )
+
+            job["has_reappeared"] = True
         return
 
     with metrics.timer("post_process.process_snoozes.duration"):
@@ -691,7 +713,23 @@ def process_snoozes(job: PostProcessJob) -> None:
             job["has_reappeared"] = False
             return
 
-        if not snooze.is_valid(group, test_rates=True, use_pending_data=True):
+        # GroupSnooze row exists but the Group.status isn't ignored
+        # this shouldn't be possible, if this fires, there may be a race or bug
+        if snooze is not None and group.status is not GroupStatus.IGNORED:
+            # log a metric for now, we can potentially set the status and substatus but that might mask some other bug
+            metrics.incr(
+                "post_process.process_snoozes.mismatch_status",
+                tags={
+                    "group_status": group.status,
+                    "group_substatus": group.substatus,
+                },
+            )
+
+        snooze_condition_still_applies = snooze.is_valid(
+            group, test_rates=True, use_pending_data=True
+        )
+
+        if not snooze_condition_still_applies:
             snooze_details = {
                 "until": snooze.until,
                 "count": snooze.count,
@@ -699,24 +737,18 @@ def process_snoozes(job: PostProcessJob) -> None:
                 "user_count": snooze.user_count,
                 "user_window": snooze.user_window,
             }
-            if features.has("organizations:issue-states", group.organization):
-                add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
-                record_group_history(group, GroupHistoryStatus.ONGOING)
+
+            if features.has("organizations:escalating-issues", group.organization):
+                manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
+
+            elif features.has("organizations:issue-states", group.organization):
+                manage_issue_states(group, GroupInboxReason.ONGOING, event, snooze_details)
+
             else:
-                add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
-                record_group_history(group, GroupHistoryStatus.UNIGNORED)
-            Activity.objects.create(
-                project=group.project,
-                group=group,
-                type=ActivityType.SET_UNRESOLVED.value,
-                user_id=None,
-                data={"event_id": job["event"].event_id},
-            )
+                manage_issue_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
 
             snooze.delete()
-            group.status = GroupStatus.UNRESOLVED
-            group.substatus = GroupSubStatus.ONGOING
-            group.save(update_fields=["status", "substatus"])
+
             issue_unignored.send_robust(
                 project=group.project,
                 user_id=None,

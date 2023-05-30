@@ -275,6 +275,7 @@ export function Control({
     overlayRef,
     overlayProps,
   } = useOverlay({
+    disableTrigger: disabled,
     type: grid ? 'menu' : 'listbox',
     position,
     offset,
@@ -561,9 +562,9 @@ const MenuTitle = styled('span')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
-    margin: ${space(0.5)} ${space(0.5)} ${space(0.5)} ${space(1)};
-    height: ${space(1)};
-    width: ${space(1)};
+    margin: 0 ${space(0.5)} 0 ${space(1)};
+    height: 12px;
+    width: 12px;
   }
 `;
 

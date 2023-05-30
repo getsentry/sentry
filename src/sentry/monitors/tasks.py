@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
@@ -60,9 +61,9 @@ def check_monitors(current_datetime=None):
         )
         .exclude(
             monitor__status__in=[
-                MonitorStatus.DISABLED,
-                MonitorStatus.PENDING_DELETION,
-                MonitorStatus.DELETION_IN_PROGRESS,
+                ObjectStatus.DISABLED,
+                ObjectStatus.PENDING_DELETION,
+                ObjectStatus.DELETION_IN_PROGRESS,
             ]
         )[:MONITOR_LIMIT]
     )
@@ -72,12 +73,22 @@ def check_monitors(current_datetime=None):
             logger.info(
                 "monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment.id}
             )
+
+            monitor = monitor_environment.monitor
+            expected_time = None
+            if monitor_environment.last_checkin:
+                expected_time = monitor.get_next_scheduled_checkin_without_margin(
+                    monitor_environment.last_checkin
+                )
+
             # add missed checkin
             checkin = MonitorCheckIn.objects.create(
                 project_id=monitor_environment.monitor.project_id,
                 monitor=monitor_environment.monitor,
                 monitor_environment=monitor_environment,
                 status=CheckInStatus.MISSED,
+                expected_time=expected_time,
+                monitor_config=monitor.get_validated_config(),
             )
             monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
         except Exception:

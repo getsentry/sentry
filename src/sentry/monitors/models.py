@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
+import jsonschema
 import pytz
 from croniter import croniter
 from dateutil import rrule
@@ -27,8 +29,10 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models import Environment
+from sentry.models import Environment, Rule, RuleSource
 from sentry.utils.retries import TimedRetryPolicy
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.models import Project
@@ -40,6 +44,21 @@ SCHEDULE_INTERVAL_MAP = {
     "day": rrule.DAILY,
     "hour": rrule.HOURLY,
     "minute": rrule.MINUTELY,
+}
+
+MONITOR_CONFIG = {
+    "type": "object",
+    "properties": {
+        "checkin_margin": {"type": ["integer", "null"]},
+        "max_runtime": {"type": ["integer", "null"]},
+        "timezone": {"type": ["string", "null"]},
+        "schedule_type": {"type": "integer"},
+        "schedule": {"type": ["string", "array"]},
+        "alert_rule_id": {"type": ["integer", "null"]},
+    },
+    # TODO(davidenwang): Old monitors may not have timezone or schedule_type, these should be added here once we've cleaned up old data
+    "required": ["checkin_margin", "max_runtime", "schedule"],
+    "additionalProperties": False,
 }
 
 
@@ -147,8 +166,8 @@ class CheckInStatus:
     TIMEOUT = 5
     """Checkin was left in-progress past max_runtime"""
 
-    FINISHED_VALUES = (OK, ERROR, TIMEOUT)
-    """Sentient values used to indicate a monitor is finished running"""
+    FINISHED_VALUES = (OK, ERROR, MISSED, TIMEOUT)
+    """Terminal values used to indicate a monitor is finished running"""
 
     @classmethod
     def as_choices(cls):
@@ -217,14 +236,11 @@ class Monitor(Model):
         choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
     )
     config = JSONField(default=dict)
-    next_checkin = models.DateTimeField(null=True)
-    last_checkin = models.DateTimeField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitor"
-        index_together = (("type", "next_checkin"),)
         unique_together = (("organization_id", "slug"),)
 
     __repr__ = sane_repr("guid", "project_id", "name")
@@ -241,7 +257,6 @@ class Monitor(Model):
                     organization_id=self.organization_id,
                     max_length=50,
                 )
-
         return super().save(*args, **kwargs)
 
     def get_schedule_type_display(self):
@@ -250,12 +265,16 @@ class Monitor(Model):
     def get_audit_log_data(self):
         return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
 
-    def get_next_scheduled_checkin(self, last_checkin):
+    def get_next_scheduled_checkin_without_margin(self, last_checkin):
         tz = pytz.timezone(self.config.get("timezone") or "UTC")
         schedule_type = self.config.get("schedule_type", ScheduleType.CRONTAB)
         next_checkin = get_next_schedule(
             last_checkin.astimezone(tz), schedule_type, self.config["schedule"]
         )
+        return next_checkin
+
+    def get_next_scheduled_checkin(self, last_checkin):
+        next_checkin = self.get_next_scheduled_checkin_without_margin(last_checkin)
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
     def update_config(self, config_payload, validated_config):
@@ -265,6 +284,52 @@ class Monitor(Model):
             if key in validated_config:
                 monitor_config[key] = validated_config[key]
         self.save()
+
+    def get_validated_config(self):
+        try:
+            jsonschema.validate(self.config, MONITOR_CONFIG)
+            return self.config
+        except jsonschema.ValidationError:
+            logging.error(f"Monitor: {self.id} invalid config: {self.config}")
+
+    def get_alert_rule(self):
+        alert_rule_id = self.config.get("alert_rule_id")
+        if alert_rule_id:
+            alert_rule = Rule.objects.filter(
+                project_id=self.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
+            ).first()
+            if alert_rule:
+                return alert_rule
+
+            # If alert_rule_id is stale, clear it from the config
+            clean_config = self.config.copy()
+            clean_config.pop("alert_rule_id", None)
+            self.update(config=clean_config)
+
+        return None
+
+    def get_alert_rule_data(self):
+        alert_rule = self.get_alert_rule()
+        if alert_rule:
+            data = alert_rule.data
+            alert_rule_data = {}
+
+            # Build up alert target data
+            targets = []
+            for action in data.get("actions", []):
+                # Only include email alerts for now
+                if action.get("id") == "sentry.mail.actions.NotifyEmailAction":
+                    targets.append(
+                        {
+                            "targetIdentifier": action.get("targetIdentifier"),
+                            "targetType": action.get("targetType"),
+                        }
+                    )
+            alert_rule_data["targets"] = targets
+
+            return alert_rule_data
+
+        return None
 
 
 @receiver(pre_save, sender=Monitor)
@@ -293,9 +358,12 @@ class MonitorCheckIn(Model):
     )
     config = JSONField(default=dict)
     duration = BoundedPositiveIntegerField(null=True)
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
     date_updated = models.DateTimeField(default=timezone.now)
     attachment_id = BoundedBigIntegerField(null=True)
+    # Holds the time we expected to receive this check-in without factoring in margin
+    expected_time = models.DateTimeField(null=True)
+    monitor_config = JSONField(null=True)
 
     objects = BaseManager(cache_fields=("guid",))
 
@@ -351,14 +419,8 @@ class MonitorEnvironmentManager(BaseManager):
         # TODO: assume these objects exist once backfill is completed
         environment = Environment.get_or_create(project=project, name=environment_name)
 
-        monitorenvironment_defaults = {
-            "status": monitor.status,
-            "next_checkin": monitor.next_checkin,
-            "last_checkin": monitor.last_checkin,
-        }
-
         return MonitorEnvironment.objects.get_or_create(
-            monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
+            monitor=monitor, environment=environment, defaults={"status": MonitorStatus.ACTIVE}
         )[0]
 
 
@@ -442,7 +504,7 @@ class MonitorEnvironment(Model):
             "last_checkin": ts,
             "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
         }
-        if checkin.status == CheckInStatus.OK and self.monitor.status != MonitorStatus.DISABLED:
+        if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
             params["status"] = MonitorStatus.OK
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)

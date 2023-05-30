@@ -13,10 +13,8 @@ import {mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
-import {
-  formatSort,
-  useProfileEvents,
-} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {ProfileCharts} from 'sentry/views/profiling/landing/profileCharts';
 
@@ -72,6 +70,11 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
       <Layout.Main fullWidth>
         <ProfileCharts query={props.query} hideCount compact />
         <AggregateFlamegraphPanel transaction={props.transaction} />
+        <SuspectFunctionsTable
+          project={props.project}
+          transaction={props.transaction}
+          analyticsPageSource="profiling_transaction"
+        />
         <TableHeader>
           <CompactSelect
             triggerProps={{prefix: t('Filter'), size: 'xs'}}
@@ -94,11 +97,6 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
           error={profiles.status === 'error' ? t('Unable to load profiles') : null}
           isLoading={profiles.status === 'loading'}
           sort={sort}
-        />
-        <SuspectFunctionsTable
-          project={props.project}
-          transaction={props.transaction}
-          analyticsPageSource="profiling_transaction"
         />
       </Layout.Main>
     </Fragment>

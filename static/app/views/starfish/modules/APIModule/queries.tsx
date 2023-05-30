@@ -1,6 +1,18 @@
+import {useQuery} from '@tanstack/react-query';
+
+import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
+import {DefinedUseQueryResult} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {HOST} from 'sentry/views/starfish/utils/constants';
+import {
+  datetimeToClickhouseFilterTimestamps,
+  getDateFilters,
+} from 'sentry/views/starfish/utils/dates';
+import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
+import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export const getHostListQuery = ({datetime}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
@@ -19,6 +31,22 @@ export const getHostListQuery = ({datetime}) => {
     GROUP BY domain, interval
     ORDER BY domain, interval asc
  `;
+};
+
+export const getHostListEventView = ({datetime}) => {
+  return EventView.fromSavedQuery({
+    name: '',
+    fields: ['domain'],
+    yAxis: ['p99(span.self_time)', 'count()'],
+    query: 'module:http',
+    topEvents: '10',
+    start: datetime.start,
+    end: datetime.end,
+    range: datetime.period,
+    dataset: DiscoverDatasets.SPANS_INDEXED,
+    projects: [1],
+    version: 2,
+  });
 };
 
 export const getEndpointListQuery = ({domain, action, datetime, transaction}) => {
@@ -63,7 +91,7 @@ export const getEndpointListEventView = ({domain, action, datetime, transaction}
       'count_unique(user)',
       'count_unique(transaction)',
     ],
-    orderby: '-count()',
+    orderby: '-count',
     query: `module:http ${domain ? `domain:${domain}` : ''} ${
       action ? `action:${action}` : ''
     } ${transaction ? `transaction:${transaction}` : ''}`,
@@ -79,11 +107,11 @@ export const getEndpointListEventView = ({domain, action, datetime, transaction}
 export const getEndpointDomainsQuery = ({datetime}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `SELECT domain, count(),
-    sum(exclusive_time) as total_exclusive_time,
-    max(exclusive_time) as max,
-    quantile(0.99)(exclusive_time) as p99,
-    quantile(0.95)(exclusive_time) as p95,
-    quantile(0.50)(exclusive_time) as p50
+    sum(exclusive_time) as "sum(span.self_time)",
+    max(exclusive_time) as "p100(span.self_time)",
+    quantile(0.99)(exclusive_time) as "p99(span.self_time)",
+    quantile(0.95)(exclusive_time) as "p95(span.self_time)",
+    quantile(0.50)(exclusive_time) as "p50(span.self_time)"
     FROM spans_experimental_starfish
     WHERE module = 'http'
     ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
@@ -96,8 +124,16 @@ export const getEndpointDomainsQuery = ({datetime}) => {
 export const getEndpointDomainsEventView = ({datetime}) => {
   return EventView.fromSavedQuery({
     name: '',
-    fields: ['domain', 'count()'],
-    orderby: '-count()',
+    fields: [
+      'domain',
+      'count()',
+      'sum(span.self_time)',
+      'p100(span.self_time)',
+      'p99(span.self_time)',
+      'p95(span.self_time)',
+      'p50(span.self_time)',
+    ],
+    orderby: '-count',
     query: 'module:http',
     start: datetime.start,
     end: datetime.end,
@@ -162,10 +198,12 @@ export const getEndpointDetailSeriesQuery = ({
   groupId,
 }) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
+  const interval = 12;
   return `SELECT
-     toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
+     toStartOfInterval(start_timestamp, INTERVAL ${interval} HOUR) as interval,
      quantile(0.5)(exclusive_time) as p50,
      quantile(0.95)(exclusive_time) as p95,
+     divide(count(), multiply(${interval}, 60)) as spm,
      count() as count,
      countIf(greaterOrEquals(status, 400) AND lessOrEquals(status, 599)) as failure_count,
      failure_count / count as failure_rate
@@ -228,7 +266,7 @@ export const getEndpointDetailTableEventView = ({
       'sum(span.self_time)',
       'count_unique(transaction)',
     ],
-    orderby: '-count()',
+    orderby: '-count',
     query: `module:http ${description ? `description:${description}` : ''} ${
       transactionName ? `transaction:${transactionName}` : ''
     } ${groupId ? `group_id:${groupId}` : ''}`,
@@ -239,31 +277,6 @@ export const getEndpointDetailTableEventView = ({
     projects: [1],
     version: 2,
   });
-};
-
-export const getSpanInTransactionQuery = ({groupId, datetime}) => {
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
-  // TODO - add back `module = <moudle> to filter data
-  return `
-    SELECT count() AS count, quantile(0.5)(exclusive_time) as p50, span_operation
-    FROM spans_experimental_starfish
-    WHERE group_id = '${groupId}'
-    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
-    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    GROUP BY span_operation
- `;
-};
-
-export const getSpanFacetBreakdownQuery = ({groupId, datetime}) => {
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
-  // TODO - add back `module = <moudle> to filter data
-  return `
-    SELECT transaction, user, domain
-    FROM spans_experimental_starfish
-    WHERE group_id = '${groupId}'
-    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
-    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
- `;
 };
 
 export const getHostStatusBreakdownQuery = ({domain, datetime}) => {
@@ -284,7 +297,7 @@ export const getHostStatusBreakdownEventView = ({domain, datetime}) => {
   return EventView.fromSavedQuery({
     name: '',
     fields: ['status', 'count()'],
-    orderby: '-count()',
+    orderby: '-count',
     query: `module:http domain:${domain}`,
     start: datetime.start,
     end: datetime.end,
@@ -302,7 +315,8 @@ export const getEndpointAggregatesQuery = ({datetime, transaction}) => {
     description,
     toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
     count() AS count,
-    quantile(0.5)(exclusive_time) as p50
+    quantile(0.5)(exclusive_time) as p50,
+    quantile(0.95)(exclusive_time) as p95
     FROM spans_experimental_starfish
     WHERE module = 'http'
     ${transaction ? `AND transaction = '${transaction}'` : ''}
@@ -311,4 +325,93 @@ export const getEndpointAggregatesQuery = ({datetime, transaction}) => {
     GROUP BY description, interval
     ORDER BY interval asc
   `;
+};
+
+const ORDERBY = `
+  -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
+`;
+
+const getTransactionsFromHostSubquery = (hostNames: string[], dateFilters: string) => {
+  const hostFilter = `domain IN ('${hostNames.join(`', '`)}')`;
+
+  return `
+  SELECT
+    transaction
+  FROM default.spans_experimental_starfish
+  WHERE
+    startsWith(span_operation, 'http')
+    AND ${hostFilter}
+    ${dateFilters}
+  GROUP BY transaction
+  ORDER BY ${ORDERBY}
+  LIMIT 5
+`;
+};
+
+type TopTransactionData = {
+  interval: string;
+  transaction: string;
+  epm?: number;
+  p75?: number;
+};
+
+export const useGetTransactionsForHosts = (
+  hostNames: string[],
+  interval: string
+): DefinedUseQueryResult<TopTransactionData[]> => {
+  const pageFilter = usePageFilters();
+  const location = useLocation();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+
+  const transactionNameQuery = getTransactionsFromHostSubquery(hostNames, dateFilters);
+
+  const {start, end, period} = pageFilter.selection.datetime;
+
+  const {isLoading: isTopTransactionNamesLoading, data: topTransactionNamesData} =
+    useQuery<{transaction: string}[]>({
+      enabled: !!hostNames?.length,
+      queryKey: ['topTransactionNames', hostNames.join(','), start, end],
+      queryFn: () =>
+        fetch(`${HOST}/?query=${transactionNameQuery}`).then(res => res.json()),
+      retry: false,
+      refetchOnWindowFocus: false,
+      initialData: [],
+    });
+
+  const query: NewQuery = {
+    id: undefined,
+    name: '',
+    query: `transaction:[${topTransactionNamesData
+      ?.map(d => `"${d.transaction}"`)
+      .join(',')}]`,
+    projects: [1],
+    fields: ['transaction', 'epm()', 'p75(transaction.duration)'],
+    version: 1,
+    topEvents: '5',
+    start: start?.toString(),
+    end: end?.toString(),
+    dataset: DiscoverDatasets.METRICS_ENHANCED,
+    interval,
+    yAxis: ['epm()', 'p75(transaction.duration)'],
+  };
+
+  const eventView = EventView.fromNewQueryWithLocation(query, location);
+  eventView.statsPeriod = period ?? undefined;
+
+  const {
+    isLoading: isTopTransactionSeriesLoading,
+    data: topTransactionSeriesData,
+    ...rest
+  } = useWrappedDiscoverTimeseriesQuery({
+    eventView,
+    initialData: [],
+    enabled: !isTopTransactionNamesLoading && !!topTransactionNamesData.length,
+  });
+
+  return {
+    ...rest,
+    isLoading: isTopTransactionSeriesLoading,
+    data: topTransactionSeriesData,
+  } as DefinedUseQueryResult<TopTransactionData[]>;
 };

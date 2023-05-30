@@ -7,14 +7,17 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorStatus, MonitorType, ScheduleType
+from sentry.constants import ObjectStatus
+from sentry.db.models import BoundedPositiveIntegerField
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorType, ScheduleType
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
 MONITOR_STATUSES = {
-    "active": MonitorStatus.ACTIVE,
-    "disabled": MonitorStatus.DISABLED,
+    "active": ObjectStatus.ACTIVE,
+    "disabled": ObjectStatus.DISABLED,
 }
 
 SCHEDULE_TYPES = {
@@ -39,6 +42,18 @@ NONSTANDARD_CRONTAB_SCHEDULES = {
 class ObjectField(serializers.Field):
     def to_internal_value(self, data):
         return data
+
+
+class MonitorAlertRuleTargetValidator(serializers.Serializer):
+    target_identifier = serializers.IntegerField(help_text="ID of target object")
+    target_type = serializers.CharField(help_text="One of [Member, Team]")
+
+
+class MonitorAlertRuleValidator(serializers.Serializer):
+    targets = MonitorAlertRuleTargetValidator(
+        many=True,
+        help_text="Array of dictionaries with information of the user or team to be notified",
+    )
 
 
 class ConfigValidator(serializers.Serializer):
@@ -152,7 +167,7 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
-class MonitorValidator(serializers.Serializer):
+class MonitorValidator(CamelSnakeSerializer):
     project = ProjectField(scope="project:read")
     name = serializers.CharField()
     slug = serializers.RegexField(
@@ -169,6 +184,7 @@ class MonitorValidator(serializers.Serializer):
     )
     type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
     config = ConfigValidator()
+    alert_rule = MonitorAlertRuleValidator(required=False)
 
     def validate_status(self, value):
         return MONITOR_STATUSES.get(value, value)
@@ -208,7 +224,12 @@ class MonitorCheckInValidator(serializers.Serializer):
             ("in_progress", CheckInStatus.IN_PROGRESS),
         )
     )
-    duration = EmptyIntegerField(required=False, allow_null=True)
+    duration = EmptyIntegerField(
+        required=False,
+        allow_null=True,
+        max_value=BoundedPositiveIntegerField.MAX_VALUE,
+        min_value=0,
+    )
     environment = serializers.CharField(required=False, allow_null=True)
     monitor_config = ConfigValidator(required=False)
 

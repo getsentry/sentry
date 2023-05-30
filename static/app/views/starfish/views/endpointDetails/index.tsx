@@ -16,18 +16,20 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import {renderHeadCell} from 'sentry/views/starfish/components/endpointTable';
 import {
   OverflowEllipsisTextContainer,
-  renderHeadCell,
   TextAlignLeft,
-} from 'sentry/views/starfish/modules/APIModule/endpointTable';
+} from 'sentry/views/starfish/components/textAlign';
 import {
   getEndpointDetailSeriesQuery,
   getEndpointDetailTableEventView,
   getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
+import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {queryToSeries} from 'sentry/views/starfish/utils/queryToSeries';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
@@ -129,6 +131,30 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
       zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
     );
 
+  const {isLoading: isP75GraphLoading, data: transactionGraphData} =
+    useQueryTransactionByTPMAndDuration(
+      tableData.map(d => d.transaction).splice(0, 5),
+      24
+    );
+
+  const tpmTransactionSeries = queryToSeries(
+    transactionGraphData,
+    'group',
+    'epm()',
+    startTime,
+    endTime,
+    24
+  );
+
+  const p50TransactionSeries = queryToSeries(
+    transactionGraphData,
+    'group',
+    'p50(transaction.duration)',
+    startTime,
+    endTime,
+    24
+  );
+
   return (
     <div>
       <h2>{t('Endpoint Detail')}</h2>
@@ -193,6 +219,14 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
             index={1}
             outOf={4}
           />
+        </FlexRowItem>
+        <FlexRowItem>
+          <SubHeader>{t('Top 5 Transaction Throughput')}</SubHeader>
+          <APIDetailChart series={tpmTransactionSeries} isLoading={isP75GraphLoading} />
+        </FlexRowItem>
+        <FlexRowItem>
+          <SubHeader>{t('Top 5 Transaction P75')}</SubHeader>
+          <APIDetailChart series={p50TransactionSeries} isLoading={isP75GraphLoading} />
         </FlexRowItem>
       </FlexRowContainer>
       <GridEditable
@@ -273,17 +307,19 @@ function endpointDetailDataToChartData(data: any) {
 }
 
 function APIDetailChart(props: {
-  index: number;
   isLoading: boolean;
-  outOf: number;
   series: any;
+  index?: number;
+  outOf?: number;
 }) {
   const theme = useTheme();
   return (
     <Chart
       statsPeriod="24h"
       height={110}
-      data={props.series ? [props.series] : []}
+      data={
+        Array.isArray(props.series) ? props.series : props.series ? [props.series] : []
+      }
       start=""
       end=""
       loading={props.isLoading}
@@ -292,7 +328,11 @@ function APIDetailChart(props: {
       isLineChart
       disableXAxis
       hideYAxisSplitLine
-      chartColors={[theme.charts.getColorPalette(props.outOf - 2)[props.index]]}
+      chartColors={
+        props.index && props.outOf
+          ? [theme.charts.getColorPalette(props.outOf - 2)[props.index]]
+          : undefined
+      }
       grid={{
         left: '0',
         right: '0',

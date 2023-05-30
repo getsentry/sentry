@@ -266,9 +266,23 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           title: t('Introducing Archive'),
           target: 'issue_details_archive_button',
           description: t(
-            "Archive this issue to move it out of the stream - but don't worry, we'll bring it back if it escalates."
+            "Archive your issues. We'll bring them back up if they escalate."
           ),
           dismissText: t('Go Away'),
+        },
+      ],
+    },
+    {
+      guide: 'explain_archive_tab_issue_stream',
+      requiredTargets: ['issue_stream_archive_tab'],
+      steps: [
+        {
+          title: t('Nothing to see here'),
+          target: 'issue_stream_archive_tab',
+          description: t(
+            "Archived issues will live here. We'll mark them as Escalating if we detect a large number of events."
+          ),
+          dismissText: t('Goodbye Forever'),
         },
       ],
     },

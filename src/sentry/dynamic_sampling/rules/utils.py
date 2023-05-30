@@ -214,7 +214,7 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
 
 
 def get_redis_client_for_ds() -> Any:
-    cluster_key = getattr(settings, "SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER", "default")
+    cluster_key = settings.SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER
     return redis.redis_clusters.get(cluster_key)
 
 

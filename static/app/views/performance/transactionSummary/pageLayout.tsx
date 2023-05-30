@@ -1,22 +1,29 @@
 import {useCallback, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {isString} from '@sentry/utils';
 import {Location} from 'history';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {getSelectedProjectPlatforms, getTransactionName} from '../utils';
@@ -31,7 +38,7 @@ import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import TransactionHeader from './header';
 import Tab from './tabs';
 import {TransactionThresholdMetric} from './transactionThresholdModal';
-import {transactionSummaryRouteWithQuery} from './utils';
+import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
 
 type TabEvents =
   | 'performance_views.vitals.vitals_tab_clicked'
@@ -88,7 +95,14 @@ function PageLayout(props: Props) {
     features = [],
   } = props;
 
-  const projectId = decodeScalar(location.query.project);
+  let projectId: string | undefined;
+  const filterProjects = location.query.project;
+
+  if (isString(filterProjects) && filterProjects !== '-1') {
+    projectId = filterProjects;
+  }
+
+  const router = useRouter();
   const transactionName = getTransactionName(location);
   const [error, setError] = useState<string | undefined>();
   const metricsCardinality = useMetricsCardinalityContext();
@@ -159,13 +173,79 @@ function PageLayout(props: Props) {
     [getNewRoute, tab, organization, location, projects]
   );
 
-  if (!defined(projectId) || !defined(transactionName)) {
+  if (!defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location);
     return null;
   }
 
-  const project = projects.find(p => p.id === projectId);
   const eventView = generateEventView({location, transactionName, organization});
+
+  if (!defined(projectId)) {
+    // Using a discover query to get the projects associated
+    // with a transaction name
+    const nextView = eventView.clone();
+    nextView.query = `transaction:"${transactionName}"`;
+    nextView.fields = [
+      {
+        field: 'project',
+        width: COL_WIDTH_UNDEFINED,
+      },
+      {
+        field: 'count()',
+        width: COL_WIDTH_UNDEFINED,
+      },
+    ];
+
+    return (
+      <DiscoverQuery
+        eventView={nextView}
+        location={location}
+        orgSlug={organization.slug}
+        queryExtras={{project: filterProjects ? filterProjects : undefined}}
+        referrer="api.performance.transaction-summary"
+      >
+        {({isLoading, tableData, error: discoverQueryError}) => {
+          if (discoverQueryError) {
+            addErrorMessage(t('Unable to get projects associated with transaction'));
+            redirectToPerformanceHomepage(organization, location);
+            return null;
+          }
+
+          if (isLoading) {
+            return <LoadingIndicator />;
+          }
+
+          const selectableProjects = tableData?.data
+            .map(row => projects.find(project => project.slug === row.project))
+            .filter((p): p is Project => p !== undefined);
+
+          return (
+            selectableProjects && (
+              <PickProjectToContinue
+                data-test-id="transaction-sumamry-project-picker-modal"
+                projects={selectableProjects}
+                router={router}
+                nextPath={{
+                  pathname: generateTransactionSummaryRoute({orgSlug: organization.slug}),
+                  query: {
+                    project: projectId,
+                    transaction: transactionName,
+                    statsPeriod: eventView.statsPeriod,
+                    referrer: 'performance-transaction-summary',
+                    ...location.query,
+                  },
+                }}
+                noProjectRedirectPath="/performance/"
+                allowAllProjectsSelection
+              />
+            )
+          );
+        }}
+      </DiscoverQuery>
+    );
+  }
+
+  const project = projects.find(p => p.id === projectId);
 
   return (
     <SentryDocumentTitle

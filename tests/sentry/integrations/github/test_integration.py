@@ -14,6 +14,7 @@ from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.cache import cache
 
 TREE_RESPONSES = {
@@ -61,6 +62,7 @@ class GitHubPlugin(IssueTrackingPlugin2):
     conf_key = slug
 
 
+@control_silo_test
 class GitHubIntegrationTest(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
@@ -500,6 +502,36 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
             status=404,
         )
+        installation = integration.get_installation(self.organization.id)
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert not result
+
+    @responses.activate
+    def test_get_stacktrace_link_no_org_integration(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            config={"name": "Test-Organization/foo"},
+            integration_id=integration.id,
+        )
+        path = "README.md"
+        version = "master"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
+            status=404,
+        )
+        OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        ).delete()
         installation = integration.get_installation(self.organization.id)
         result = installation.get_stacktrace_link(repo, path, default, version)
 

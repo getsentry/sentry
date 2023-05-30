@@ -71,6 +71,8 @@ metadata = IntegrationMetadata(
 
 class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):  # type: ignore
     def get_client(self) -> SlackClient:
+        if not self.org_integration:
+            raise IntegrationError("Organization Integration does not exist")
         return SlackClient(org_integration_id=self.org_integration.id)
 
     def get_config_data(self) -> Mapping[str, str]:
@@ -200,5 +202,8 @@ class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
         """
         Create Identity records for an organization's users if their emails match in Sentry and Slack
         """
-        run_args = {"integration": integration, "organization": organization}
+        run_args = {
+            "integration_id": integration.id,
+            "organization_id": organization.id,
+        }
         link_slack_user_identities.apply_async(kwargs=run_args)

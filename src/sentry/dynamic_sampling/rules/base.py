@@ -1,9 +1,12 @@
 import logging
+from datetime import datetime, timedelta
 from typing import List, OrderedDict, Set
 
+import pytz
 import sentry_sdk
 
 from sentry import features, quotas
+from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
@@ -15,29 +18,75 @@ from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_e
 from sentry.models import Organization, Project
 
 ALWAYS_ALLOWED_RULE_TYPES = {RuleType.RECALIBRATION_RULE, RuleType.UNIFORM_RULE}
+# This threshold should be in sync with the execution time of the cron job responsible for running the sliding window.
+NEW_MODEL_THRESHOLD_IN_MINUTES = 10
 
 
 logger = logging.getLogger("sentry.dynamic_sampling")
 
 
+def is_recently_added(model: Model) -> bool:
+    """
+    Checks whether a specific model has been recently added, with the goal of using this information
+    to infer whether we should boost a specific project.
+
+    The boosting has been implemented because we want to guarantee that the user will have a good onboarding
+    experience. In theory with the sliding window mechanism we will automatically give 100% also to new projects, but
+    it can also happen that there are problems with cron jobs and in that case, if we don't have a specific condition
+    like this one, the boosting will not happen.
+    """
+    if hasattr(model, "date_added"):
+        ten_minutes_ago = datetime.now(tz=pytz.UTC) - timedelta(
+            minutes=NEW_MODEL_THRESHOLD_IN_MINUTES
+        )
+        return bool(model.date_added >= ten_minutes_ago)
+
+    return False
+
+
+def is_sliding_window_enabled(organization: Organization) -> bool:
+    return not features.has(
+        "organizations:ds-sliding-window-org", organization, actor=None
+    ) and features.has("organizations:ds-sliding-window", organization, actor=None)
+
+
+def can_boost_new_projects(organization: Organization) -> bool:
+    return features.has("organizations:ds-boost-new-projects", organization, actor=None)
+
+
 def get_guarded_blended_sample_rate(organization: Organization, project: Project) -> float:
     sample_rate = quotas.get_blended_sample_rate(organization_id=organization.id)
 
+    # If the sample rate is None, it means that dynamic sampling rules shouldn't be generated.
     if sample_rate is None:
         raise Exception("get_blended_sample_rate returns none")
 
+    # If the sample rate is 100%, we don't want to use any special dynamic sample rate, we will just sample at 100%.
+    if sample_rate == 1.0:
+        return float(sample_rate)
+
+    # For now, we will keep this new boost for orgs with the sliding window enabled.
+    #
+    # In case the organization or the project have been recently added, we want to boost to 100% in order to give users
+    # a better experience. Once this condition will become False, the dynamic sampling systems will kick in.
+    if can_boost_new_projects(organization) and (
+        is_recently_added(model=organization) or is_recently_added(model=project)
+    ):
+        return 1.0
+
     # We want to use the normal sliding window only if the sliding window at the org level is disabled.
-    if not features.has(
-        "organizations:ds-sliding-window-org", organization, actor=None
-    ) and features.has("organizations:ds-sliding-window", organization, actor=None):
-        # In case we didn't find the sliding window sample rate, we assume the project is new, and we give it a 100%
-        # sample rate. Note that technically if there is no value in cache an error might have happened, but we are
-        # tracking those errors, thus if they happen lots of time we are going to implement a proper fallback
-        # mechanism.
-        sample_rate = get_sliding_window_sample_rate(project, default_sample_rate=1.0)
+    if is_sliding_window_enabled(organization):
+        # In case we use sliding window, we want to fall back to the original sample rate in case there was an error,
+        # whereas if we don't find a value in cache, we just sample at 100% under the assumption that the project
+        # has just been created.
+        sample_rate = get_sliding_window_sample_rate(
+            org_id=organization.id, project_id=project.id, error_sample_rate_fallback=sample_rate
+        )
     else:
+        # In case we use the prioritise by project, we want to fall back to the original sample rate in case there are
+        # any issues.
         sample_rate = get_prioritise_by_project_sample_rate(
-            project, default_sample_rate=float(sample_rate)
+            project=project, default_sample_rate=sample_rate
         )
 
     return float(sample_rate)
