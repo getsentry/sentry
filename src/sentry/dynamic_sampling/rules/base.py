@@ -59,10 +59,8 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
     #
     # In case the organization or the project have been recently added, we want to boost to 100% in order to give users
     # a better experience. Once this condition will become False, the dynamic sampling systems will kick in.
-    if (
-        is_sliding_window_enabled(organization)
-        and is_recently_added(model=organization)
-        or is_recently_added(model=project)
+    if is_sliding_window_enabled(organization) and (
+        is_recently_added(model=organization) or is_recently_added(model=project)
     ):
         return 1.0
 
