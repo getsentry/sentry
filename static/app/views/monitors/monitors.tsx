@@ -116,7 +116,7 @@ export default function Monitors({location}: RouteComponentProps<{}, {}>) {
   );
 
   return (
-    <SentryDocumentTitle title={`Crons - ${organization.slug}`}>
+    <SentryDocumentTitle title={`Crons — ${organization.slug}`}>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
