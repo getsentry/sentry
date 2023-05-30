@@ -171,6 +171,9 @@ type DefaultProps = {
    * form
    */
   useFormWrapper: boolean;
+  /**
+   * Allows for customization of the invalid token messages.
+   */
   invalidMessages?: SearchConfig['invalidMessages'];
 };
 
