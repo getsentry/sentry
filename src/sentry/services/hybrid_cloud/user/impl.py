@@ -64,8 +64,7 @@ class DatabaseBackedUserService(UserService):
             self._FQ.serialize_rpc(user)
             for user in query.filter(in_iexact("emails__email", emails))
         ]
-        users_by_emails = {email: user for user in users for email in user.emails}
-        return [user.by_email(email) for email, user in users_by_emails.items()]
+        return [user.by_email(email) for user in users for email in user.emails]
 
     def get_by_username(
         self, username: str, with_valid_password: bool = True, is_active: bool | None = None
