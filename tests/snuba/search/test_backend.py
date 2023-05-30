@@ -367,6 +367,8 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 "frequency": 5,
                 "has_stacktrace": 5,
                 "event_halflife_hours": 4,
+                "v2": False,
+                "norm": False,
             }
             results = self.make_query(
                 sort_by="betterPriority",
