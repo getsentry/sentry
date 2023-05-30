@@ -137,9 +137,7 @@ function ShareIssueModal({
                 title={t('Copy to clipboard')}
                 borderless
                 size="sm"
-                onClick={() => {
-                  urlRef.current?.selectText();
-                }}
+                onClick={handleCopy}
                 aria-label={t('Copy to clipboard')}
               />
 
