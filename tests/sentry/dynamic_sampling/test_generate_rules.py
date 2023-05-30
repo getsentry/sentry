@@ -1,7 +1,9 @@
 import time
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
+import pytz
 from freezegun import freeze_time
 from sentry_relay.processing import validate_project_config
 
@@ -12,6 +14,7 @@ from sentry.dynamic_sampling import (
     generate_rules,
     get_redis_client_for_ds,
 )
+from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.utils import (
     LATEST_RELEASES_BOOST_DECAYED_FACTOR,
     LATEST_RELEASES_BOOST_FACTOR,
@@ -31,12 +34,12 @@ DEFAULT_FACTOR_RULE = lambda factor: {
 
 
 @pytest.fixture
-def latest_release_only(default_project):
+def latest_release_only(default_old_project):
     """
     This fixture is a hacky way of automatically changing the default project options to use only the latest release
     bias.
     """
-    default_project.update_option(
+    default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
             {"id": e.value, "active": False}
@@ -44,6 +47,29 @@ def latest_release_only(default_project):
             if e.value != RuleType.BOOST_LATEST_RELEASES_RULE.value
         ],
     )
+
+
+@pytest.fixture
+def default_old_project(default_project):
+    """
+    A project created with an old_date.
+    """
+    return _apply_old_date_to_project_and_org(default_project)
+
+
+def _apply_old_date_to_project_and_org(project):
+    """
+    Applies an old date to project and its corresponding org. An old date is determined as a date which is more than
+    NEW_MODEL_THRESHOLD_IN_MINUTES minutes in the past.
+    """
+    old_date = datetime.now(tz=pytz.UTC) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+
+    # We have to create the project and organization in the past, since we boost new orgs and projects to 100%
+    # automatically.
+    project.organization.date_added = old_date
+    project.date_added = old_date
+
+    return project
 
 
 def _validate_rules(project):
@@ -81,11 +107,11 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rules_are_enabled(
-    get_blended_sample_rate, default_project
+    get_blended_sample_rate, default_old_project
 ):
     get_blended_sample_rate.return_value = 1.0
 
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_old_project) == [
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -93,20 +119,20 @@ def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rule
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(organization_id=default_project.organization.id)
-    _validate_rules(default_project)
+    get_blended_sample_rate.assert_called_with(organization_id=default_old_project.organization.id)
+    _validate_rules(default_old_project)
 
 
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.get_enabled_user_biases")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_with_rate(
-    get_blended_sample_rate, get_enabled_user_biases, default_project
+    get_blended_sample_rate, get_enabled_user_biases, default_old_project
 ):
     # it means no enabled user biases
     get_enabled_user_biases.return_value = {}
     get_blended_sample_rate.return_value = 0.1
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_old_project) == [
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -115,16 +141,18 @@ def test_generate_rules_return_uniform_rules_with_rate(
         },
     ]
     get_enabled_user_biases.assert_called_with(
-        default_project.get_option("sentry:dynamic_sampling_biases", None)
+        default_old_project.get_option("sentry:dynamic_sampling_biases", None)
     )
-    _validate_rules(default_project)
+    _validate_rules(default_old_project)
 
 
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rate, default_project):
+def test_generate_rules_return_uniform_rules_and_env_rule(
+    get_blended_sample_rate, default_old_project
+):
     get_blended_sample_rate.return_value = 0.1
-    default_project.update_option(
+    default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
@@ -133,7 +161,7 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
 
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_old_project) == [
         {
             "samplingValue": {"type": "sampleRate", "value": 0.02},
             "type": "transaction",
@@ -171,18 +199,18 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(organization_id=default_project.organization.id)
-    _validate_rules(default_project)
+    get_blended_sample_rate.assert_called_with(organization_id=default_old_project.organization.id)
+    _validate_rules(default_old_project)
 
 
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
-    get_blended_sample_rate, default_project
+    get_blended_sample_rate, default_old_project
 ):
     get_blended_sample_rate.return_value = 1.0
 
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_old_project) == [
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -190,7 +218,7 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
             "type": "trace",
         },
     ]
-    _validate_rules(default_project)
+    _validate_rules(default_old_project)
 
 
 @freeze_time("2022-10-21T18:50:25Z")
@@ -216,22 +244,24 @@ def test_generate_rules_with_different_project_platforms(
     default_project,
     latest_release_only,
 ):
+    default_old_project = _apply_old_date_to_project_and_org(default_project)
+
     get_blended_sample_rate.return_value = 0.1
     apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
 
-    default_project.update(platform=platform)
-    release = Factories.create_release(project=default_project, version=version)
+    default_old_project.update(platform=platform)
+    release = Factories.create_release(project=default_old_project, version=version)
     environment = "prod"
 
     redis_client.hset(
-        f"ds::p:{default_project.id}:boosted_releases",
+        f"ds::p:{default_old_project.id}:boosted_releases",
         f"ds::r:{release.id}:e:{environment}",
         time.time(),
     )
 
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_old_project) == [
         {
             "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
@@ -260,7 +290,7 @@ def test_generate_rules_with_different_project_platforms(
             "type": "trace",
         },
     ]
-    _validate_rules(default_project)
+    _validate_rules(default_old_project)
 
 
 @pytest.mark.django_db
@@ -270,13 +300,15 @@ def test_generate_rules_with_different_project_platforms(
 def test_generate_rules_return_uniform_rules_and_latest_release_rule(
     get_blended_sample_rate, apply_dynamic_factor, default_project, latest_release_only
 ):
+    default_old_project = _apply_old_date_to_project_and_org(default_project)
+
     get_blended_sample_rate.return_value = 0.1
     apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
 
-    default_project.update(platform="python")
-    first_release = Factories.create_release(project=default_project, version="1.0")
+    default_old_project.update(platform="python")
+    first_release = Factories.create_release(project=default_old_project, version="1.0")
     for release, environment in (
         (first_release, "prod"),
         (first_release, "dev"),
@@ -284,12 +316,12 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
     ):
         env_postfix = f":e:{environment}" if environment is not None else ""
         redis_client.hset(
-            f"ds::p:{default_project.id}:boosted_releases",
+            f"ds::p:{default_old_project.id}:boosted_releases",
             f"ds::r:{release.id}{env_postfix}",
             time.time(),
         )
 
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_old_project) == [
         {
             "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
@@ -339,7 +371,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             "type": "trace",
         },
     ]
-    _validate_rules(default_project)
+    _validate_rules(default_old_project)
 
 
 @pytest.mark.django_db
@@ -349,29 +381,31 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
 def test_generate_rules_does_not_return_rule_with_deleted_release(
     get_blended_sample_rate, apply_dynamic_factor, default_project, latest_release_only
 ):
+    default_old_project = _apply_old_date_to_project_and_org(default_project)
+
     get_blended_sample_rate.return_value = 0.1
     apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
 
-    default_project.update(platform="python")
-    first_release = Factories.create_release(project=default_project, version="1.0")
-    second_release = Factories.create_release(project=default_project, version="2.0")
+    default_old_project.update(platform="python")
+    first_release = Factories.create_release(project=default_old_project, version="1.0")
+    second_release = Factories.create_release(project=default_old_project, version="2.0")
 
     redis_client.hset(
-        f"ds::p:{default_project.id}:boosted_releases",
+        f"ds::p:{default_old_project.id}:boosted_releases",
         f"ds::r:{first_release.id}",
         time.time(),
     )
     redis_client.hset(
-        f"ds::p:{default_project.id}:boosted_releases",
+        f"ds::p:{default_old_project.id}:boosted_releases",
         f"ds::r:{second_release.id}",
         time.time(),
     )
 
     second_release.delete()
 
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_old_project) == [
         {
             "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
@@ -393,19 +427,19 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
             "type": "trace",
         },
     ]
-    _validate_rules(default_project)
+    _validate_rules(default_old_project)
 
 
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_release_rule(
-    get_blended_sample_rate, default_project, latest_release_only
+    get_blended_sample_rate, default_old_project, latest_release_only
 ):
     get_blended_sample_rate.return_value = 1.0
 
-    default_project.update(platform="python")
+    default_old_project.update(platform="python")
 
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_old_project) == [
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -413,21 +447,23 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_rel
             "type": "trace",
         },
     ]
-    _validate_rules(default_project)
+    _validate_rules(default_old_project)
 
 
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rule_with_non_existent_releases(
-    get_blended_sample_rate, default_project, latest_release_only
+    get_blended_sample_rate, default_old_project, latest_release_only
 ):
     get_blended_sample_rate.return_value = 1.0
 
     redis_client = get_redis_client_for_ds()
 
-    redis_client.hset(f"ds::p:{default_project.id}:boosted_releases", f"ds::r:{1234}", time.time())
+    redis_client.hset(
+        f"ds::p:{default_old_project.id}:boosted_releases", f"ds::r:{1234}", time.time()
+    )
 
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_old_project) == [
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -435,15 +471,15 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(
             "type": "trace",
         },
     ]
-    _validate_rules(default_project)
+    _validate_rules(default_old_project)
 
 
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, default_project):
+def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, default_old_project):
     get_blended_sample_rate.return_value = 0.0
 
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_old_project) == [
         {
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -451,8 +487,8 @@ def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, defa
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(organization_id=default_project.organization.id)
-    _validate_rules(default_project)
+    get_blended_sample_rate.assert_called_with(organization_id=default_old_project.organization.id)
+    _validate_rules(default_old_project)
 
 
 @pytest.mark.django_db
@@ -461,7 +497,7 @@ def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, defa
     "sentry.dynamic_sampling.rules.biases.boost_rare_transactions_rule.get_transactions_resampling_rates"
 )
 def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
-    get_transactions_resampling_rates, get_blended_sample_rate, default_project, default_team
+    get_transactions_resampling_rates, get_blended_sample_rate, default_old_project, default_team
 ):
     project_sample_rate = 0.1
     t1_rate = 0.7
@@ -472,7 +508,7 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
     }, implicit_rate
     boost_low_transactions_id = RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS]
     uniform_id = RESERVED_IDS[RuleType.UNIFORM_RULE]
-    default_project.update_option(
+    default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
             {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
@@ -482,14 +518,14 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ],
     )
-    default_project.add_team(default_team)
+    default_old_project.add_team(default_team)
 
     TeamKeyTransaction.objects.create(
-        organization=default_project.organization,
+        organization=default_old_project.organization,
         transaction="/foo",
-        project_team=ProjectTeam.objects.get(project=default_project, team=default_team),
+        project_team=ProjectTeam.objects.get(project=default_old_project, team=default_team),
     )
-    rules = generate_rules(default_project)
+    rules = generate_rules(default_old_project)
     implicit_rate /= project_sample_rate
     t1_rate /= project_sample_rate
     t1_rate /= implicit_rate
@@ -524,8 +560,8 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(organization_id=default_project.organization.id)
-    _validate_rules(default_project)
+    get_blended_sample_rate.assert_called_with(organization_id=default_old_project.organization.id)
+    _validate_rules(default_old_project)
 
 
 @pytest.mark.django_db
@@ -534,7 +570,7 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
     "sentry.dynamic_sampling.rules.biases.boost_rare_transactions_rule.get_transactions_resampling_rates"
 )
 def test_low_volume_transactions_rules_not_returned_when_inactive(
-    get_transactions_resampling_rates, get_blended_sample_rate, default_project, default_team
+    get_transactions_resampling_rates, get_blended_sample_rate, default_old_project, default_team
 ):
     get_blended_sample_rate.return_value = 0.1
     get_transactions_resampling_rates.return_value = {
@@ -542,7 +578,7 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
     }, 0.037
     uniform_id = RESERVED_IDS[RuleType.UNIFORM_RULE]
 
-    default_project.update_option(
+    default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
             {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
@@ -553,14 +589,14 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ],
     )
-    default_project.add_team(default_team)
+    default_old_project.add_team(default_team)
 
     TeamKeyTransaction.objects.create(
-        organization=default_project.organization,
+        organization=default_old_project.organization,
         transaction="/foo",
-        project_team=ProjectTeam.objects.get(project=default_project, team=default_team),
+        project_team=ProjectTeam.objects.get(project=default_old_project, team=default_team),
     )
-    rules = generate_rules(default_project)
+    rules = generate_rules(default_old_project)
 
     # we should have only the uniform rule
     assert len(rules) == 1
@@ -574,10 +610,12 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
 def test_generate_rules_return_uniform_rules_and_rebalance_factor_rule(
     get_blended_sample_rate, default_project
 ):
+    default_old_project = _apply_old_date_to_project_and_org(default_project)
+
     get_blended_sample_rate.return_value = 0.1
     redis_client = get_redis_client_for_ds()
 
-    default_project.update_option(
+    default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
             {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
@@ -592,10 +630,10 @@ def test_generate_rules_return_uniform_rules_and_rebalance_factor_rule(
     # Set factor
     default_factor = 0.5
     redis_client.set(
-        f"ds::o:{default_project.organization.id}:rate_rebalance_factor2",
+        f"ds::o:{default_old_project.organization.id}:rate_rebalance_factor2",
         default_factor,
     )
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_old_project) == [
         DEFAULT_FACTOR_RULE(default_factor),
         {
             "condition": {"inner": [], "op": "and"},
@@ -609,9 +647,9 @@ def test_generate_rules_return_uniform_rules_and_rebalance_factor_rule(
 
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-def test_generate_rules_return_boost_replay_id(get_blended_sample_rate, default_project):
+def test_generate_rules_return_boost_replay_id(get_blended_sample_rate, default_old_project):
     get_blended_sample_rate.return_value = 0.5
-    default_project.update_option(
+    default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
             {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
@@ -622,7 +660,7 @@ def test_generate_rules_return_boost_replay_id(get_blended_sample_rate, default_
         ],
     )
 
-    assert generate_rules(default_project) == [
+    assert generate_rules(default_old_project) == [
         {
             "condition": {
                 "inner": {
@@ -645,4 +683,4 @@ def test_generate_rules_return_boost_replay_id(get_blended_sample_rate, default_
         },
     ]
 
-    _validate_rules(default_project)
+    _validate_rules(default_old_project)

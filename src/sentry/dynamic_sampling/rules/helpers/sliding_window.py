@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 import pytz
+import sentry_sdk
 
 from sentry import options
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
@@ -54,6 +55,7 @@ def get_sliding_window_sample_rate(
         # In case we had an explicit error or the sliding window was not run, we want to return the error fallback
         # sample rate.
         if value == SLIDING_WINDOW_CALCULATION_ERROR:
+            sentry_sdk.capture_message("Sliding window calculation error stored in cache")
             return error_sample_rate_fallback
 
         return float(value)
@@ -68,9 +70,13 @@ def get_sliding_window_sample_rate(
 
         # In the other case were the sliding window was not run, maybe because of an issue, we will just fallback to
         # blended sample rate, to avoid oversampling.
+        sentry_sdk.capture_message(
+            "Sliding window value not stored in cache and sliding window not executed"
+        )
         return error_sample_rate_fallback
     # Thrown if the input is not a valid float.
     except ValueError:
+        sentry_sdk.capture_message("Invalid sliding window value stored in cache")
         return error_sample_rate_fallback
 
 
