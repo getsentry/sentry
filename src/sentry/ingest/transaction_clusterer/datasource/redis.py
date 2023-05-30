@@ -161,24 +161,16 @@ def record_span_descriptions(
 
     spans = event_data.get("spans", [])
     for span in spans:
-        if _should_store_span_description(span):
-            description = _get_description_from_span(span)
-            if not description:
-                continue
-            url_path = _get_url_path_from_description(description)
-            safe_execute(_store_span_description, project, url_path)
+        description = _get_span_description_to_store(span)
+        if not description:
+            continue
+        url_path = _get_url_path_from_description(description)
+        safe_execute(_store_span_description, project, url_path)
 
 
-def _should_store_span_description(span: Mapping[str, Any]) -> bool:
+def _get_span_description_to_store(span: Mapping[str, Any]) -> bool:
     if not span.get("op", "").startswith("http"):
-        return False
-    data = span.get("data", {})
-    if not data.get("description.scrubbed") and not span.get("description"):
-        return False
-    return True
-
-
-def _get_description_from_span(span: Mapping[str, Any]) -> Optional[str]:
+        return None
     data = span.get("data", {})
     return data.get("description.scrubbed") or span.get("description")
 
