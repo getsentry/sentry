@@ -1725,10 +1725,6 @@ function buildRoutes() {
       />
       <Route
         path="span/:groupId/"
-        component={make(() => import('sentry/views/starfish/views/spanSummary'))}
-      />
-      <Route
-        path="span-summary/:groupId/"
         component={make(
           () => import('sentry/views/starfish/views/spans/spanSummaryPage')
         )}

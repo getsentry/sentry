@@ -132,7 +132,7 @@ function TransactionCell({span, column, row}: CellProps) {
   return (
     <Fragment>
       <Link
-        to={`/starfish/span-summary/${encodeURIComponent(span.group_id)}?${qs.stringify({
+        to={`/starfish/span/${encodeURIComponent(span.group_id)}?${qs.stringify({
           transaction: row.transaction,
         })}`}
       >
