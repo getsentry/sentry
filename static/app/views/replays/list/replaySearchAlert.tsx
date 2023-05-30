@@ -1,133 +1,131 @@
-import {useMemo} from 'react';
+import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import {IconClose, IconInfo} from 'sentry/icons';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {ReplayNewFeatureBanner} from 'sentry/components/replays/replayNewFeatureBanner';
+import {IconBroadcast} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project, ProjectSdkUpdates} from 'sentry/types';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
-import {semverCompare} from 'sentry/utils/versions';
 
-const MIN_REPLAY_CLICK_SDK = '7.44.0';
-const LOCAL_STORAGE_KEY = 'replay-search-min-sdk-alert-dismissed';
+const REPLAY_CLICK_SEARCH_FEATURE_BANNER_KEY = 'new-feature-banner-replays-click-search';
+interface Props {
+  needSdkUpdates: boolean;
+}
 
-// exported for testing
-export function ReplaySearchAlert() {
-  const {selection} = usePageFilters();
-  const projects = useProjects();
+export function ReplaySearchAlert({needSdkUpdates}: Props) {
   const location = useLocation();
-  const organization = useOrganization();
-  const sdkUpdates = useProjectSdkUpdates({
-    organization,
-    projectId: null,
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: REPLAY_CLICK_SEARCH_FEATURE_BANNER_KEY,
   });
 
-  const {dismiss: handleDismiss, isDismissed} = useDismissAlert({
-    key: LOCAL_STORAGE_KEY,
-  });
-  const conditions = useMemo(() => {
-    return new MutableSearch(decodeScalar(location.query.query, ''));
-  }, [location.query.query]);
-
-  const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
-
-  if (sdkUpdates.type !== 'resolved') {
+  if (isDismissed) {
     return null;
   }
+  const heading = (
+    <Fragment>
+      {tct('Introducing [feature]', {
+        feature: (
+          <ExternalLink href="https://blog.sentry.io/introducing-search-by-user-click-for-session-replay-zero-in-on-interesting/">
+            {t('Click Search')}
+          </ExternalLink>
+        ),
+      })}
+    </Fragment>
+  );
 
-  const selectedProjectsWithSdkUpdates = sdkUpdates.data?.reduce((acc, sdkUpdate) => {
-    if (!selection.projects.includes(Number(sdkUpdate.projectId))) {
-      return acc;
-    }
+  const description = (
+    <span>
+      {tct(
+        `Find replays which captured specific DOM elements using our new search key [key]`,
+        {
+          key: <strong>{t("'click'")}</strong>,
+        }
+      )}
+    </span>
+  );
 
-    const project = projects.projects.find(p => p.id === sdkUpdate.projectId);
-    // should never really happen but making ts happy
-    if (!project) {
-      return acc;
-    }
-
-    acc.push({
-      project,
-      sdkUpdate,
+  const handleTryNow = () => {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        query: 'click.tag:button',
+      },
     });
+    dismiss();
+  };
 
-    return acc;
-  }, [] as Array<{project: Project; sdkUpdate: ProjectSdkUpdates}>);
-
-  const doesNotMeetMinSDK =
-    selectedProjectsWithSdkUpdates &&
-    selectedProjectsWithSdkUpdates.length > 0 &&
-    selectedProjectsWithSdkUpdates.every(({sdkUpdate}) => {
-      return semverCompare(sdkUpdate.sdkVersion, MIN_REPLAY_CLICK_SDK) === -1;
-    });
-
-  if (!doesNotMeetMinSDK) {
-    return null;
-  }
-
-  if (hasReplayClick) {
-    return (
-      <Alert data-test-id="min-sdk-alert">
-        <AlertContent>
-          <IconInfo />
-          <AlertText>
-            {tct(
-              'Search field [click] requires a minimum SDK version of >= [minSdkVersion].',
-              {
-                click: <strong>'click'</strong>,
-                minSdkVersion: <strong>{MIN_REPLAY_CLICK_SDK}</strong>,
-              }
-            )}
-          </AlertText>
-        </AlertContent>
-      </Alert>
-    );
-  }
+  const handleLearnMore = () => {
+    openModal(LearnMoreModal);
+  };
 
   if (isDismissed) {
     return null;
   }
 
+  if (needSdkUpdates) {
+    return (
+      <ReplayNewFeatureBanner
+        heading={heading}
+        description={description}
+        button={
+          <Button priority="primary" onClick={handleLearnMore}>
+            {t('Learn More')}
+          </Button>
+        }
+      />
+    );
+  }
+
   return (
-    <Alert data-test-id="min-sdk-alert">
-      <AlertContent>
-        <IconInfo />
-        <AlertText>
-          {tct(
-            'Search for dom elements clicked during a replay by using our new search key [click]. Sadly, it requires an SDK version >= [version]',
-            {
-              click: <strong>{`'click'`}</strong>,
-              version: <strong>{MIN_REPLAY_CLICK_SDK}</strong>,
-            }
-          )}
-        </AlertText>
-        <Button
-          priority="link"
-          size="sm"
-          icon={<IconClose size="xs" />}
-          aria-label={t('Close Alert')}
-          onClick={handleDismiss}
-        />
-      </AlertContent>
-    </Alert>
+    <ReplayNewFeatureBanner
+      heading={heading}
+      description={description}
+      button={
+        <Button priority="primary" onClick={handleTryNow}>
+          {t('Try Now')}
+        </Button>
+      }
+    />
   );
 }
 
-const AlertContent = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${space(1)};
-`;
+function LearnMoreModal({Header, Body, Footer, closeModal}: ModalRenderProps) {
+  return (
+    <Fragment>
+      <Header>
+        <ModalHeaderContainer>
+          <IconBroadcast />
+          <h2>{t('Click Search')}</h2>
+        </ModalHeaderContainer>
+      </Header>
+      <Body>
+        <p>
+          {t(
+            'Search by user click is a new feature which allows you to search for replays by DOM element - or in other words - where users have clicked to interact with specific parts of your web app.'
+          )}
+        </p>
+        <strong>{t('Prerequisites')}</strong>
+        <ul>
+          <li>{t('JavaScript SDK Version is >= 7.44.0')}</li>
+        </ul>
+      </Body>
+      <Footer>
+        <Button priority="primary" onClick={closeModal}>
+          {t('Got it')}
+        </Button>
+      </Footer>
+    </Fragment>
+  );
+}
 
-const AlertText = styled('div')`
-  flex-grow: 1;
+const ModalHeaderContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
