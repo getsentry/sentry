@@ -2,6 +2,7 @@ import datetime
 import logging
 import random
 import time
+import uuid
 from concurrent.futures.thread import ThreadPoolExecutor
 
 import msgpack
@@ -12,6 +13,7 @@ from django.test import override_settings
 
 from sentry import eventstore
 from sentry.event_manager import EventManager
+from sentry.ingest.consumer_v2 import factory
 from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
 from sentry.utils import json
 
@@ -30,7 +32,7 @@ def get_test_message(default_project):
     def inner(type, project=default_project):
         now = datetime.datetime.now()
         # the event id should be 32 digits
-        event_id = "{}".format(now.strftime("000000000000%Y%m%d%H%M%S%f"))
+        event_id = uuid.uuid4().hex
         message_text = f"some message {event_id}"
         project_id = project.id  # must match the project id set up by the test fixtures
         if type == "transaction":
@@ -83,8 +85,13 @@ def random_group_id():
     "executor",
     [pytest.param(None, id="synchronous"), pytest.param(ThreadPoolExecutor(), id="asynchronous")],
 )
+@pytest.mark.parametrize(
+    "ingest_v2",
+    [pytest.param(False, id="v1"), pytest.param(True, id="v2")],
+)
 def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     executor,
+    ingest_v2,
     task_runner,
     kafka_producer,
     kafka_admin,
@@ -105,14 +112,35 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     producer.produce(topic_event_name, transaction_message)
 
     with override_settings(KAFKA_CONSUMER_AUTO_CREATE_TOPICS=True):
-        consumer = get_ingest_consumer(
-            max_batch_size=2,
-            max_batch_time=5000,
-            group_id=random_group_id,
-            consumer_types={ConsumerType.Events},
-            auto_offset_reset="earliest",
-            executor=executor,
-        )
+        if ingest_v2:
+            DEFAULT_BLOCK_SIZE = int(32 * 1e6)  # whatever this even means
+
+            consumer = factory.get_ingest_consumer(
+                topic=ConsumerType.get_topic_name(ConsumerType.Events),
+                group_id=random_group_id,
+                auto_offset_reset="earliest",
+                strict_offset_reset=None,
+                max_batch_size=2,
+                max_batch_time=5,
+                # FIXME: running the test with real multi-processing does not work
+                # correctly right now. It either fails to setup the database itself,
+                # or it fails because the child process does not see the project that
+                # was created as `default_project`.
+                processes=1 if executor else 1,
+                input_block_size=DEFAULT_BLOCK_SIZE,
+                output_block_size=DEFAULT_BLOCK_SIZE,
+                force_cluster=None,
+                force_topic=None,
+            )
+        else:
+            consumer = get_ingest_consumer(
+                max_batch_size=2,
+                max_batch_time=5000,
+                group_id=random_group_id,
+                consumer_types={ConsumerType.Events},
+                auto_offset_reset="earliest",
+                executor=executor,
+            )
 
     with task_runner():
         i = 0

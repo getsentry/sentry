@@ -215,6 +215,7 @@ class BatchingKafkaConsumer:
         metrics_sample_rates=None,
         metrics_default_tags=None,
         commit_on_shutdown: bool = False,
+        **_kwargs,
     ):
         assert isinstance(worker, AbstractBatchWorker)
         self.worker = worker

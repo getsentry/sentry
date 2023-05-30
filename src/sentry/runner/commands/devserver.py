@@ -55,7 +55,32 @@ _DEFAULT_DAEMONS = {
         "--synchronize-commit-group=generic_events_group",
         "--no-strict-offset-reset",
     ],
-    "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
+    # NOTE: you can add `"--v2-consumer"` to run a local dev server with the v2 consumer,
+    # and `"--processes=2"` to make it run in multi-process mode.
+    "ingest-events": [
+        "sentry",
+        "run",
+        "ingest-consumer",
+        "--consumer-type=events",
+        # "--v2-consumer",
+        # "--processes=2",
+    ],
+    "ingest-attachments": [
+        "sentry",
+        "run",
+        "ingest-consumer",
+        "--consumer-type=attachments",
+        # "--v2-consumer",
+        # "--processes=2",
+    ],
+    "ingest-transactions": [
+        "sentry",
+        "run",
+        "ingest-consumer",
+        "--consumer-type=transactions",
+        # "--v2-consumer",
+        # "--processes=2",
+    ],
     "occurrences": ["sentry", "run", "occurrences-ingest-consumer", "--no-strict-offset-reset"],
     "server": ["sentry", "run", "web"],
     "subscription-consumer": [
@@ -319,7 +344,12 @@ and run `sentry devservices up kafka zookeeper`.
             ]
 
     if settings.SENTRY_USE_RELAY:
-        daemons += [_get_daemon("ingest"), _get_daemon("monitors")]
+        daemons += [
+            _get_daemon("ingest-events"),
+            _get_daemon("ingest-attachments"),
+            _get_daemon("ingest-transactions"),
+            _get_daemon("monitors"),
+        ]
 
         if settings.SENTRY_USE_PROFILING:
             daemons += [_get_daemon("profiles")]
