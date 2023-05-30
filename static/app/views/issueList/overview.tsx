@@ -860,6 +860,7 @@ class IssueListOverview extends Component<Props, State> {
         hasStacktrace: 0,
         eventHalflifeHours: 4,
         v2: false,
+        norm: false,
       });
     } else {
       this.transitionTo({sort});
