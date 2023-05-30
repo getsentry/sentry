@@ -255,7 +255,7 @@ class SpanDescriptionRuleRedaction(TypedDict):
 
 class SpanDescriptionRule(TypedDict):
     pattern: str
-    expirty: str
+    expiry: str
     scope: SpanDescriptionScope
     redaction: SpanDescriptionRuleRedaction
 
