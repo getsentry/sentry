@@ -55,7 +55,7 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
         # In case we use the prioritise by project, we want to fall back to the original sample rate in case there are
         # any issues.
         sample_rate = get_prioritise_by_project_sample_rate(
-            org_id=organization.id, project_id=project.id, default_sample_rate=sample_rate
+            org_id=organization.id, project_id=project.id, error_sample_rate_fallback=sample_rate
         )
 
     return float(sample_rate)

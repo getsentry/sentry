@@ -223,9 +223,19 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
         sample_rate = get_sliding_window_sample_rate(
             org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
         )
+        log_sample_rate_source(
+            org_id, None, "prioritize_transactions", "sliding_window", sample_rate
+        )
     elif organization is not None and is_sliding_window_org_enabled(organization):
         sample_rate = get_prioritise_by_project_sample_rate(
-            org_id=org_id, project_id=project_id, default_sample_rate=sample_rate
+            org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
+        )
+        log_sample_rate_source(
+            org_id, None, "prioritize_transactions", "sliding_window_org", sample_rate
+        )
+    else:
+        log_sample_rate_source(
+            org_id, None, "prioritize_transactions", "get_blended_sample_rate", sample_rate
         )
 
     if sample_rate is None or sample_rate == 1.0:
@@ -315,8 +325,14 @@ def adjust_sample_rates(
     # We get the sample rate either directly from quotas or from the new sliding window org mechanism.
     if organization is not None and is_sliding_window_org_enabled(organization):
         sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_id)
+        log_sample_rate_source(
+            org_id, None, "prioritize_projects", "sliding_window_org", sample_rate
+        )
     else:
         sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
+        log_sample_rate_source(
+            org_id, None, "prioritize_projects", "get_blended_sample_rate", sample_rate
+        )
 
     # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
     if sample_rate is None:
@@ -539,7 +555,7 @@ def adjust_base_sample_rate_per_org(org_id: int, total_root_count: int, window_s
         sentry_sdk.capture_exception(e)
         sample_rate = None
 
-    # If the sample rate is None, we don't want to store a value into Redis but we prefer to keep the system
+    # If the sample rate is None, we don't want to store a value into Redis, but we prefer to keep the system
     # with the old value.
     if sample_rate is None:
         return
@@ -603,6 +619,20 @@ def log_extrapolated_monthly_volume(
 
     logger.info(
         "compute_sliding_window_sample_rate.extrapolate_monthly_volume",
+        extra=extra,
+    )
+
+
+def log_sample_rate_source(
+    org_id: int, project_id: Optional[int], used_for: str, source: str, sample_rate: float
+) -> None:
+    extra = {"org_id": org_id, "sample_rate": sample_rate, "source": source, "used_for": used_for}
+
+    if project_id is not None:
+        extra["project_id"] = project_id
+
+    logger.info(
+        "dynamic_sampling.sample_rate_source",
         extra=extra,
     )
 
